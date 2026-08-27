@@ -31,6 +31,35 @@ spring:
       hibernate:
         format_sql: true
 
+  # Configuracion del resource server. Se activa cuando exista el realm en Keycloak:
+  # descomentar este bloque y poner app.security.enabled en true.
+  #
+  # security:
+  #   oauth2:
+  #     resourceserver:
+  #       jwt:
+  #         issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/malphasos-realm}
+
+app:
+  security:
+    # OJO: temporalmente en false porque el realm malphasos-realm todavia no existe; con la
+    # propiedad issuer-uri sin definir, el resource server no puede validar ningun token.
+    # El codigo de SecurityConfig es seguro por defecto (matchIfMissing = true): si esta linea
+    # desaparece, la API queda protegida. Ponerla en true al crear el realm.
+    enabled: false
+    # Client de Keycloak cuyos roles se leen del claim resource_access del token.
+    client-id: ${KEYCLOAK_CLIENT_ID:malphasos-api}
+
+# Cliente administrativo de Keycloak (Admin API), para crear usuarios y asignar roles.
+# Desactivado hasta que exista el realm y su client confidencial.
+keycloak:
+  admin:
+    enabled: ${KEYCLOAK_ADMIN_ENABLED:false}
+    server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+    realm: ${KEYCLOAK_REALM:malphasos-realm}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:malphasos-backend-admin}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
+
 logging:
   level:
     org.flywaydb: INFO
