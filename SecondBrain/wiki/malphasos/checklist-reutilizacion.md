@@ -21,9 +21,9 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 - [x] **Hecho.** Dependencias del backend en el `pom.xml`: MapStruct + binding con los annotation processors en orden, springdoc-openapi, keycloak-admin-client. Ojo con las particularidades del stack moderno: [[stack-spring-boot-4-particularidades]]
 - [ ] Portar `shared/domain/events` completo (`AggregateRoot`, `DomainEvent`, `EventMetadata`, `Payload`) sin cambios. **Siguiente paso natural.** [[aggregate-root-pattern]], [[eventos-de-dominio]]
 - [ ] Portar `EventDispatcherPort` + `SpringDispatcher` + `RabbitMQDispatcher`, **corrigiendo el mismatch de routing key** antes de activar el de Rabbit. [[patron-event-dispatcher-dual]], [[deuda-tecnica-y-riesgos]]
-- [ ] Portar `SecurityConfig` + `KeycloakRoleConverter` + `KeycloakAdminConfig`, actualizando `CLIENT_ID`/realm. [[seguridad-keycloak-backend]]
-- [ ] Portar `OpenApiConfig` con grupos por módulo. [[openapi-swagger]]
-- [ ] Diseñar el manejo de excepciones con una base compartida real (no repetir la divergencia detectada). [[manejo-global-excepciones]], [[patron-catalogo-errores-por-contexto]]
+- [x] **Hecho.** Portar `SecurityConfig` + `KeycloakRoleConverter` + `KeycloakAdminConfig`, con el client id ya configurable y sin casts inseguros. Pendiente activarla al crear el realm. [[seguridad-keycloak-backend]]
+- [x] **Hecho.** Portar `OpenApiConfig` con grupos por módulo; fija la convención de rutas `/v1/api/<recurso>`. [[openapi-swagger]]
+- [x] **Parcial.** Catálogo transversal migrado y corregido. Falta la interfaz/clase base común, que se definirá al migrar el primer módulo con excepciones propias. [[manejo-global-excepciones]], [[patron-catalogo-errores-por-contexto]]
 
 ## 3. Primer módulo de dominio — usar como plantilla la Generación 2, no la 1
 

@@ -42,6 +42,7 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 ## Infraestructura
 
 - [[docker-compose]] 🟢 — 5 servicios: Postgres, pgAdmin, RabbitMQ, Keycloak, backend.
+- [[dockerfile-y-contenedores]] 🟡 — Build en dos etapas, usuario sin privilegios y healthcheck real vía Actuator. Cuatro problemas del Dockerfile original que no conviene heredar.
 - [[keycloak-configuracion]] 🟢 — Realm sigma-bb-realm, 3 clients, theme custom.
 
 ## Patrones reutilizables (transversales)
@@ -62,4 +63,4 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 
 ---
 
-**34 notas** · última actualización 2026-08-27 · ver [[log.md]] para el historial de ingests.
+**35 notas** · última actualización 2026-08-27 · ver [[log.md]] para el historial de ingests.
