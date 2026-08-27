@@ -7,17 +7,19 @@ updated: 2026-08-27
 
 # Checklist priorizado de reutilización
 
-Orden sugerido para cuando arranque la construcción de MalphasOS (código, no este wiki). No es una tarea de este wiki ejecutarlo — es la guía que este wiki deja lista para esa conversación futura.
+Orden sugerido para la construcción de MalphasOS. **La construcción ya arrancó** (2026-08-27); las decisiones tomadas se registran en [[decisiones-tecnicas-malphasos]].
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 
-- [ ] Clonar el patrón de `docker-compose.yaml` — Postgres + Keycloak compartiendo instancia + RabbitMQ. [[docker-compose]]
-- [ ] Clonar `realm-export.json`, renombrar a `malphasos-realm`, adaptar los 3 clients. [[keycloak-configuracion]]
-- [ ] Diseñar el schema de BD adoptando desde el inicio: PKs UUID, `estado_activo` universal, convención de prefijos si se quiere mantener consistencia visual con el proyecto origen. [[esquema-bd-v4]], [[evolucion-esquema-v1-v4]]
+- [x] **Hecho.** Clonar el patrón de `docker-compose.yaml` — Postgres + Keycloak compartiendo instancia + RabbitMQ. Corregido el import de realms roto del original, healthcheck en los tres servicios, pgAdmin bajo perfil `tools`. [[docker-compose]]
+- [ ] Clonar `realm-export.json`, renombrar a `malphasos-realm`, adaptar los 3 clients. El compose ya lo importa correctamente con `--import-realm`; falta el archivo del realm. [[keycloak-configuracion]]
+- [x] **Hecho.** Estrategia de esquema decidida: **Flyway**, no scripts `initdb`. `V1__baseline.sql` establece el punto de partida con PKs UUID como convención. Cada módulo aportará su migración. [[esquema-bd-v4]], [[evolucion-esquema-v1-v4]], [[decisiones-tecnicas-malphasos]]
+- [x] **Hecho.** Backend conectado a PostgreSQL, arrancando en el puerto 8081, con tests sobre Testcontainers en verde.
 
 ## 2. Esqueleto de aplicación
 
-- [ ] Portar `shared/domain/events` completo (`AggregateRoot`, `DomainEvent`, `EventMetadata`, `Payload`) sin cambios. [[aggregate-root-pattern]], [[eventos-de-dominio]]
+- [x] **Hecho.** Dependencias del backend en el `pom.xml`: MapStruct + binding con los annotation processors en orden, springdoc-openapi, keycloak-admin-client. Ojo con las particularidades del stack moderno: [[stack-spring-boot-4-particularidades]]
+- [ ] Portar `shared/domain/events` completo (`AggregateRoot`, `DomainEvent`, `EventMetadata`, `Payload`) sin cambios. **Siguiente paso natural.** [[aggregate-root-pattern]], [[eventos-de-dominio]]
 - [ ] Portar `EventDispatcherPort` + `SpringDispatcher` + `RabbitMQDispatcher`, **corrigiendo el mismatch de routing key** antes de activar el de Rabbit. [[patron-event-dispatcher-dual]], [[deuda-tecnica-y-riesgos]]
 - [ ] Portar `SecurityConfig` + `KeycloakRoleConverter` + `KeycloakAdminConfig`, actualizando `CLIENT_ID`/realm. [[seguridad-keycloak-backend]]
 - [ ] Portar `OpenApiConfig` con grupos por módulo. [[openapi-swagger]]

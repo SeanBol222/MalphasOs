@@ -11,6 +11,8 @@ Nota índice que centraliza todo lo detectado como bug, inconsistencia o pieza i
 
 | Hallazgo | Dónde | Severidad para portar | Nota detallada |
 |---|---|---|---|
+| **El import del realm de Keycloak nunca se ejecutó**: `KEYCLOAK_IMPORT` es de la era WildFly y Keycloak 26 la ignora; además apunta a un nombre de archivo inexistente (`real-export.json`) con basura concatenada en el valor | `docker-compose.yaml` | Alta — al reproducir el entorno desde cero el realm no aparece solo. **Ya corregido en MalphasOS** con `--import-realm` | [[docker-compose]], [[keycloak-configuracion]] |
+| Los dos `realm-export.json` (`imports/` y `configuration/`) **no son idénticos** — difieren en tamaño; el wiki afirmaba lo contrario hasta el 2026-08-27 | `keycloak/` | Media — verificar cuál es la fuente real antes de clonar el realm | [[keycloak-configuracion]] |
 | Mismatch de routing key: dispatcher publica `events-domains.*` (con "s"), binding declara `events-domain.#` (sin "s") | `RabbitMQDispatcher` / `RabbitMQConfig` | Alta si se usa Rabbit como dispatcher activo — mensajes no llegarían a la cola | [[eventos-de-dominio]] |
 | `event_persister_hexagon` tiene el pipeline completo pero los dos listeners de entrada están comentados/desactivados — no persiste eventos hoy | `EventListenerRabbitMQ`, `EventListenerSpring` | Alta — no asumir auditoría de eventos funcionando | [[event-persister-outbox]] |
 | `EventPersisterService` crea un `ObjectMapper` nuevo por llamada en vez de reutilizar el bean configurado | `event_persister_hexagon` | Baja (ineficiencia, no bug funcional) | [[event-persister-outbox]] |

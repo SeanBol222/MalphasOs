@@ -16,7 +16,7 @@ updated: 2026-08-27
 - **Lombok** 1.18.30 + **MapStruct** 1.5.5.Final (con `mapstruct-processor` y `lombok-mapstruct-binding` 0.2.0 encadenados en el compiler plugin — el orden de los annotation processors importa para que Lombok y MapStruct coexistan).
 - OAuth2 resource server + oauth2-client (Spring Security).
 - `spring-boot-starter-amqp` (RabbitMQ).
-- **Jackson mixto**: `tools.jackson.core:jackson-databind:3.1.3` (Jackson 3, groupId nuevo) junto a módulos clásicos de Jackson 2 (`com.fasterxml.jackson.datatype:*`). Posible transición en curso — **verificar compatibilidad real antes de copiar esta combinación tal cual** en MalphasOS.
+- **Jackson mixto**: `tools.jackson.core:jackson-databind:3.1.3` (Jackson 3, groupId nuevo) junto a módulos clásicos de Jackson 2 (`com.fasterxml.jackson.datatype:*`). **Actualización 2026-08-27**: al construir MalphasOS se confirmó que **Spring Boot 4 ya trae Jackson 3 de serie**, así que esa mezcla no era un experimento sino la transición del propio framework. La conclusión práctica cambia: en MalphasOS **no se declara ninguna dependencia de Jackson** y funciona correctamente. Ver [[stack-spring-boot-4-particularidades]].
 - `springdoc-openapi-starter-webmvc-ui` 3.0.2.
 - `keycloak-admin-client` 26.0.9.
 - Testing: `spring-boot-starter-test` (JUnit/Mockito incluidos por el starter, no se detectaron librerías de test adicionales).

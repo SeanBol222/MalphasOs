@@ -67,8 +67,20 @@ Usa `[[nombre-de-nota]]` (el `name` del frontmatter, sin extensión) para enlaza
 **Lint** (cuando el usuario lo pida explícitamente, ej. "revisa la salud del wiki"):
 Buscar contradicciones entre notas, notas huérfanas (sin enlaces entrantes), afirmaciones desactualizadas frente al código actual, y conceptos mencionados repetidamente que aún no tienen nota propia. Reportar hallazgos y, si el usuario lo confirma, corregir.
 
+## Regla permanente: el wiki se mantiene solo, sin que lo pidan
+
+**Siempre que se haga un cambio grande en MalphasOS, o se descubra algo relevante que no esté ya documentado aquí, hay que actualizar el wiki en la misma sesión, sin esperar a que el usuario lo pida.** Esto incluye:
+
+- Bugs o inconsistencias descubiertos en `bolivarbioingenieria-app` → añadir a [[deuda-tecnica-y-riesgos]] y a la nota del área correspondiente.
+- Afirmaciones del wiki que resulten **falsas** al verificarlas contra el código → corregirlas explícitamente, dejando constancia de que se corrigieron y cuándo.
+- Decisiones técnicas tomadas al construir MalphasOS → registrar en [[decisiones-tecnicas-malphasos]] con su justificación.
+- Conocimiento técnico nuevo que no se deduce del proyecto original (versiones, APIs que cambiaron, comportamientos del framework) → nota propia, como [[stack-spring-boot-4-particularidades]].
+- Progreso real del proyecto → marcar en [[checklist-reutilizacion]].
+
+Y siempre: actualizar `index.md` y agregar una entrada a `log.md`. Un wiki que no refleja el estado real del conocimiento deja de servir como referencia, que es exactamente el problema que este patrón busca evitar.
+
 ## Reglas duras
 
-- Este wiki **describe y evalúa** el sistema actual. **No planifica ni ejecuta** la migración/creación de MalphasOS a menos que el usuario lo pida explícitamente en una conversación futura — eso es un proyecto de código, no de documentación.
+- Este wiki **describe y evalúa** el sistema original, y **registra** las decisiones de MalphasOS. La construcción de MalphasOS ocurre en `../malphasos/`, no aquí.
 - Nunca escribir, mover ni borrar archivos fuera de `/home/sean-omarchy/Documents/BolivarBioIngenieria/MalphasOS/SecondBrain/` como parte del mantenimiento de este wiki.
 - Cuando una nota documenta un bug o inconsistencia real detectada en el código fuente (hay varios, ver [[deuda-tecnica-y-riesgos]]), decirlo explícitamente — el valor de este wiki depende de no idealizar el sistema original.
