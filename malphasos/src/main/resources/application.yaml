@@ -31,6 +31,12 @@ spring:
       hibernate:
         format_sql: true
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:malphasos}
+    password: ${RABBITMQ_PASSWORD:cambiame}
+
   # Configuracion del resource server. Se activa cuando exista el realm en Keycloak:
   # descomentar este bloque y poner app.security.enabled en true.
   #
@@ -59,6 +65,22 @@ keycloak:
     realm: ${KEYCLOAK_REALM:malphasos-realm}
     client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:malphasos-backend-admin}
     client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
+
+# Actuator: solo se expone health, que es lo que consulta el healthcheck del contenedor.
+# El resto de endpoints queda fuera porque revelan informacion interna (beans, configuracion,
+# variables de entorno).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      # Un cliente anonimo solo ve {"status":"UP"}; el desglose por componente (base de datos,
+      # RabbitMQ) requiere estar autenticado.
+      show-details: when-authorized
+      probes:
+        enabled: true
 
 logging:
   level:

@@ -30,8 +30,16 @@ import org.springframework.security.web.SecurityFilterChain;
 @ConditionalOnProperty(name = "app.security.enabled", havingValue = "true", matchIfMissing = true)
 public class SecurityConfig {
 
-    /** Rutas públicas: solo la documentación del API. */
-    private static final String[] PUBLIC_PATHS = {"/swagger-ui/**", "/v3/api-docs/**"};
+    /**
+     * Rutas públicas: la documentación del API y el endpoint de salud.
+     *
+     * <p>{@code /actuator/health} debe ser accesible sin token para que el healthcheck del
+     * contenedor pueda consultarlo. No expone información sensible: sin autenticación devuelve
+     * únicamente el estado global, nunca el desglose por componente.
+     */
+    private static final String[] PUBLIC_PATHS = {
+        "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health", "/actuator/health/**"
+    };
 
     /** Client de Keycloak cuyos roles se leen del token. */
     private final String clientId;

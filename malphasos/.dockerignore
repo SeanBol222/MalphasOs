@@ -1,0 +1,28 @@
+# Todo lo que no necesita entrar al contexto de build. Reduce el tamano que se
+# envia al daemon de Docker y evita invalidar la cache por archivos irrelevantes.
+
+# Artefactos de compilacion: la imagen los reconstruye desde cero
+target/
+
+# Control de versiones y metadatos
+.git/
+.gitignore
+.gitattributes
+
+# Configuracion de IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# Documentacion que no afecta el build
+HELP.md
+README.md
+
+# Variables de entorno locales: nunca deben quedar dentro de una imagen
+.env
+.env.*
