@@ -1,0 +1,2 @@
+Los realms exportados van en esta carpeta. Keycloak 26 los importa al arrancar
+gracias al flag --import-realm del docker-compose.

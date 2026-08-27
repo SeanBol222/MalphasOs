@@ -1,0 +1,5 @@
+# Variables de entorno locales: contienen credenciales, nunca se commitean.
+# La plantilla versionada es .env.example
+.env
+.env.local
+.env.*.local
