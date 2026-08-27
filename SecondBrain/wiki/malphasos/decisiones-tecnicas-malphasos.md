@@ -51,6 +51,43 @@ Registro de decisiones tomadas al construir MalphasOS, en el espíritu de un ADR
 | Secretos | **`.env` ignorado, `.env.example` versionado** | El repo nunca contiene credenciales reales |
 | Theme de Keycloak | **el de por defecto** | `sigma-theme` lleva branding de Bolívar Bioingeniería; MalphasOS tendrá el suyo cuando tenga identidad visual |
 
+## Organización del código
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Nombres de paquetes | **camelCase, sin sufijo `_hexagon`** | El original usa snake_case (`equipment_hexagon`, `rest_controllers`), que va contra la convención de Java. Se descartó el todo-minúscula pegado (`technicalverification`) por ilegible: camelCase se aparta de la letra de la convención pero gana en claridad |
+| Estructura por módulo | **La de `location_hexagon`/`equipment_hexagon`** | Es el patrón de Generación 2, ver [[evolucion-arquitectonica-crud-a-cqrs]]. `application/{ports,services/<entidad>/commands}`, `domain/<entidad>/events`, `infrastructure/{input,output}` |
+| Excepciones de dominio | **`domain/exception` en todos los módulos** | El original es inconsistente: `location_hexagon` las pone en `infrastructure/output/errors`. Se unifica y se elimina esa carpeta; `infrastructure/input/errors` se conserva para el ControllerAdvice y el DTO de error |
+| Rutas del API | **`/v1/api/<recurso>` en plural** | El original mezcla `/client/v1/api` con `/v1/api/equipment`. Se unifica; los grupos de OpenAPI ya fijan esta convención |
+| `TechnicalVerificationEquipment` | **No es paquete de dominio** | El propio código original aclara que no es entidad ni agregado, sino DTO de transporte. Va en `infrastructure/input/model` |
+
+## Configuración transversal (bootstrap)
+
+Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-global-excepciones]] y [[seguridad-keycloak-backend]] para el detalle de qué se corrigió.
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| `GlobalErrorResponse` | **`record`** | Una respuesta de error no debe mutar una vez construida; el original era clase con `@Setter` |
+| Detalles de error de BD | **Solo al log, nunca al cliente** | El original devolvía `ex.getMessage()` de `DataAccessException`, exponiendo nombres de tablas y SQL |
+| Client id de Keycloak | **Configurable** (`app.security.client-id`) | Estaba hardcodeado como `"sigma-api"` |
+| Lectura de claims del token | **Pattern matching de Java 21** | El original hacía casts sin verificar: un token con forma inesperada lanzaba `ClassCastException` |
+| Seguridad apagada | **Cadena `permitAll` explícita** (`SecurityDisabledConfig`) | Sin ella, apagar la seguridad no abre la API sino que activa la cadena por defecto de Spring (basic auth con contraseña generada). Ver [[seguridad-keycloak-backend]] |
+| Estado actual de la seguridad | **Desactivada en `application.yaml`** | El realm `malphasos-realm` no existe todavía; definir `issuer-uri` contra un realm inexistente impide arrancar. El código es seguro por omisión (`matchIfMissing = true`) |
+
+## Contenedor y despliegue local
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Imagen de runtime | **JRE sobre Alpine** | El original usaba `eclipse-temurin:21` (JDK completo) para ejecutar. Ejecutar no necesita compilador: menos peso y menos superficie de ataque |
+| Usuario del contenedor | **`malphasos`, sin privilegios** | El original corría como root |
+| Contexto de build | **`.dockerignore`** | El original no tenía, así que el contexto arrastraba `target/`, `.git/` y el `.env` |
+| Arranque | **`ENTRYPOINT`** en vez de `CMD` | El contenedor es la aplicación; los argumentos extra le llegan a ella |
+| Proyecto de Compose | **`name: malphasos`** | Agrupa contenedores, red y volúmenes como una unidad, sin depender del nombre del directorio |
+| Healthcheck de la app | **Spring Boot Actuator**, solo `health` | Una comprobación de puerto abierto no distingue una app sana de una con la base de datos caída. El resto de endpoints de Actuator queda fuera porque revelan beans, configuración y variables de entorno |
+| Detalle del health | **`show-details: when-authorized`** | Un cliente anónimo ve solo `{"status":"UP"}`; el desglose por componente exige autenticación |
+
+⚠️ **Trampa encontrada**: al incorporar Actuator, su health indicator de RabbitMQ intenta conectarse al broker. Por defecto apunta a `localhost:5672`, que dentro del contenedor no existe, así que el healthcheck reportaba DOWN con la aplicación perfectamente sana. Hay que configurar `spring.rabbitmq.host` apuntando al nombre del servicio.
+
 ## Pendientes de decidir
 
 - La relación entre "encargado" y "persona/usuario del sistema": ver [[relacion-cliente-persona-ambiguedad]]. **Debe resolverse antes de modelar el módulo de clientes.**

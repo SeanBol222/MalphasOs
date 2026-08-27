@@ -29,9 +29,24 @@ Cada hexágono repite el mismo esqueleto con su propio scope:
 
 Ventaja real de este patrón: buen aislamiento entre bounded contexts. Costo real: boilerplate case-por-caso casi idéntico repetido 3+ veces (`Catalog` + `Response` + `Advice` con la misma forma), sin una interfaz o clase base compartida que fuerce consistencia.
 
+## ⚠️ Segundo problema: el mensaje de la excepción de BD llega al cliente
+
+El handler de `DataAccessException` hace `details(List.of(ex.getMessage()))`. Ese mensaje suele contener nombres de tablas, columnas y fragmentos de SQL, que quedan expuestos en la respuesta HTTP. Es divulgación de información interna hacia cualquiera que provoque un error de base de datos.
+
+## Estado en MalphasOS (migrado el 2026-08-27)
+
+El paquete ya está portado, con estas correcciones aplicadas:
+
+- Ambos handlers devuelven `GlobalErrorResponse`; se eliminó la fuga del tipo del hexágono de clientes.
+- El mensaje de `DataAccessException` va al log; la respuesta solo lleva el código de error.
+- `GlobalErrorResponse` pasó a ser un `record`: una respuesta de error no debe mutar tras construirse.
+- Los códigos del catálogo se alinearon con su propio javadoc.
+
+Sigue **pendiente** definir la interfaz o clase base común para los catálogos por módulo: hoy solo existe el catálogo transversal, y la duplicación aparecerá cuando se migre el primer módulo de dominio con sus propias excepciones.
+
 ## Reutilizable en MalphasOS
 
-`reusable:media`. El **esqueleto** (catálogo enum + advice + DTO con code/message/details/timestamp) es sólido y vale la pena portarlo, pero al hacerlo en MalphasOS conviene: (1) definir una interfaz/clase base común para `ErrorCatalog` y `ErrorResponse` que los catálogos por hexágono implementen, evitando la duplicación exacta; (2) decidir explícitamente si el advice "global" real cubre solo excepciones transversales (validación, acceso a datos) y cada hexágono maneja únicamente las suyas, sin filtrar tipos de un hexágono a otro; (3) mantener la ubicación de las excepciones de dominio consistente (`domain/exception` en todos los hexágonos, no mezclado con `infrastructure`).
+`reusable:media`. El **esqueleto** (catálogo enum + advice + DTO con code/message/details/timestamp) es sólido y ya está portado, pero al extenderlo a cada módulo conviene: (1) definir una interfaz/clase base común para `ErrorCatalog` y `ErrorResponse` que los catálogos por hexágono implementen, evitando la duplicación exacta; (2) mantener el advice transversal cubriendo solo validación y acceso a datos, y que cada módulo maneje únicamente lo suyo sin filtrar tipos entre módulos; (3) mantener la ubicación de las excepciones de dominio consistente — en MalphasOS ya se decidió `domain/exception` en todos los módulos, ver [[decisiones-tecnicas-malphasos]].
 
 ## Notas relacionadas
 

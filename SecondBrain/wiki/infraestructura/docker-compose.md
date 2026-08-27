@@ -36,7 +36,7 @@ Consecuencia: el realm `sigma-bb-realm` del proyecto original **muy probablement
 
 `reusable:alta` — el patrón completo es una plantilla directa: Postgres con `initdb.d` ordenado por prefijo alfabético, Keycloak compartiendo la misma instancia de Postgres con DB separada, RabbitMQ para eventos, healthchecks con `depends_on: condition: service_healthy`. Al portar, mover las credenciales de `pgadmin` a variables de entorno también (higiene, no arquitectura).
 
-**Ya implementado en MalphasOS** (commit `feat(infra)`): el `docker-compose.yaml` de MalphasOS corrige el import del realm, añade healthcheck a los tres servicios, parametriza pgAdmin bajo un perfil `tools`, usa `KC_HOSTNAME=localhost` para no tocar `/etc/hosts`, y **no monta el esquema de la aplicación como `initdb`** — eso lo gestiona Flyway. El único script de init crea la base de datos de Keycloak. Ver [[decisiones-tecnicas-malphasos]].
+**Ya implementado en MalphasOS**: el `docker-compose.yaml` de MalphasOS declara `name: malphasos` para agrupar todo como un proyecto de Compose independiente del nombre del directorio, incluye el servicio `app` construido desde [[dockerfile-y-contenedores]] con healthcheck vía Actuator, corrige el import del realm, añade healthcheck a los tres servicios, parametriza pgAdmin bajo un perfil `tools`, usa `KC_HOSTNAME=localhost` para no tocar `/etc/hosts`, y **no monta el esquema de la aplicación como `initdb`** — eso lo gestiona Flyway. El único script de init crea la base de datos de Keycloak. Ver [[decisiones-tecnicas-malphasos]].
 
 ## Notas relacionadas
 
