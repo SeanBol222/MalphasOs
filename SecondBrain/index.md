@@ -56,8 +56,10 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 ## MalphasOS
 
 - [[alcance-malphasos]] — Mapeo módulo por módulo de qué entra y qué no.
-- [[checklist-reutilizacion]] — Orden priorizado de trabajo sugerido para cuando arranque el código de MalphasOS.
+- [[checklist-reutilizacion]] — Orden priorizado de trabajo, **con el progreso real marcado**.
+- [[decisiones-tecnicas-malphasos]] ⭐ — Registro de decisiones ya tomadas al construir MalphasOS, con su justificación. Consultar antes de re-decidir algo.
+- [[stack-spring-boot-4-particularidades]] — Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 que no se deducen del proyecto original.
 
 ---
 
-**30 notas** · última actualización 2026-08-27 · ver [[log.md]] para el historial de ingests.
+**34 notas** · última actualización 2026-08-27 · ver [[log.md]] para el historial de ingests.

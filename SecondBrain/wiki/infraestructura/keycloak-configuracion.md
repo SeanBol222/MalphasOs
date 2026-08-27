@@ -8,7 +8,8 @@ updated: 2026-08-27
 
 # Configuración de Keycloak
 
-- **Realm**: `sigma-bb-realm`, importado desde `keycloak/imports/realm-export.json` (hay una copia idéntica en `keycloak/configuration/realm-export.json`, probablemente vestigial — verificar cuál es la fuente real antes de clonar).
+- **Realm**: `sigma-bb-realm`, definido en `keycloak/imports/realm-export.json`. Existe un segundo archivo en `keycloak/configuration/realm-export.json` que **no es idéntico** (corregido el 2026-08-27: difieren en tamaño, 91628 vs 92441 bytes, y el de `imports/` es el más reciente). Antes de clonar el realm hay que verificar cuál refleja la configuración real.
+- ⚠️ **El import automático nunca funcionó.** El `docker-compose.yaml` original usa `KEYCLOAK_IMPORT`, una variable de la era WildFly que **Keycloak 26 (Quarkus) ignora por completo**, y encima apunta a `real-export.json` (nombre inexistente) con un `- Dkeycloak.profile...` concatenado como basura dentro del valor. La forma correcta es `--import-realm` en el `command` con los archivos en `/opt/keycloak/data/import/`. Ver [[docker-compose]].
 - **Clients de negocio** (además de los internos de Keycloak):
   - `sigma-frontend` — público (`publicClient=true`), `directAccessGrantsEnabled=true`, `redirectUris=['http://localhost:5173/*']`. El SPA React (ver [[integracion-keycloak-frontend]]).
   - `sigma-api` — confidencial, `serviceAccountsEnabled=true`, `directAccessGrantsEnabled=false`. Client credentials para el backend (ver [[seguridad-keycloak-backend]]).
