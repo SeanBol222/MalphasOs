@@ -1,3 +1,8 @@
+# Nombre del proyecto de Docker Compose: agrupa contenedores, red y volumenes bajo
+# una misma etiqueta, de modo que `docker compose ls` y la UI de Docker los muestran
+# como una sola unidad y no dependen del nombre del directorio.
+name: malphasos
+
 services:
   postgres:
     container_name: malphasos-postgres
@@ -85,6 +90,41 @@ services:
       timeout: 10s
       retries: 5
       start_period: 20s
+
+  app:
+    container_name: malphasos-app
+    build:
+      context: ./malphasos
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8081
+      # Dentro de la red de Docker los servicios se alcanzan por su nombre, no por
+      # localhost, y siempre en su puerto interno.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "${APP_HOST_PORT}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - malphasos-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   # Solo para desarrollo: inspeccion visual de la base de datos.
   # Levantalo con: docker compose --profile tools up -d
