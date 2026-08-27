@@ -54,6 +54,21 @@
 			<version>${keycloak.version}</version>
 		</dependency>
 
+		<!-- Flyway es el dueno del esquema de la base de datos: migraciones
+		     versionadas en src/main/resources/db/migration.
+		     En Spring Boot 4 la autoconfiguracion vive en el starter, no en
+		     flyway-core suelto. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
+		</dependency>
+		<!-- Flyway 12 separa el soporte de cada motor en su propio modulo: sin este,
+		     falla en arranque con "Unsupported Database: PostgreSQL" -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -92,6 +107,29 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Testcontainers: los tests levantan un PostgreSQL real, el mismo motor
+		     que produccion, para que las migraciones de Flyway se validen de verdad -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

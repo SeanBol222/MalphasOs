@@ -1,0 +1,16 @@
+-- Baseline del esquema de MalphasOS.
+--
+-- Esta migracion no crea tablas a proposito: cada modulo de dominio aportara la
+-- suya cuando se construya. Su funcion es establecer el punto de partida del
+-- versionado y dejar habilitado lo que el resto de migraciones va a dar por hecho.
+--
+-- pgcrypto expone funciones criptograficas (digest, crypt, gen_random_bytes) y
+-- gen_random_uuid(). Nota honesta: desde PostgreSQL 13 gen_random_uuid() ya viene
+-- en el core, asi que para generar UUIDs la extension no es estrictamente
+-- necesaria en el Postgres 17 del docker-compose; se habilita para no depender de
+-- la version del servidor y para tener disponibles el resto de funciones.
+--
+-- Convencion adoptada desde el dia uno (ver SecondBrain, evolucion-esquema-v1-v4):
+-- todas las llaves primarias son UUID. bolivarbioingenieria-app tardo cuatro
+-- iteraciones en estandarizarlas; aqui se parte de esa decision ya tomada.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
