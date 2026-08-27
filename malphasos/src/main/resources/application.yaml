@@ -1,0 +1,36 @@
+# El 8080 lo ocupa Keycloak en el docker-compose, que es su puerto convencional;
+# el backend escucha en el 8081.
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: malphasos
+
+  # Los valores por defecto apuntan al docker-compose de la raiz del repo, para que
+  # el backend arranque en local sin configuracion extra. En otros entornos se
+  # sobrescriben con variables de entorno.
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:malphasos_db}
+    username: ${POSTGRES_USER:malphasos}
+    password: ${POSTGRES_PASSWORD:cambiame}
+
+  # Flyway es el unico dueno del esquema. Hibernate nunca lo modifica: solo valida
+  # que las entidades JPA coincidan con lo que las migraciones crearon.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    # Evita mantener la sesion de JPA abierta durante el renderizado de la respuesta:
+    # obliga a resolver la carga de datos en la capa de aplicacion, no en la web.
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.flywaydb: INFO
