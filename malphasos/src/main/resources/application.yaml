@@ -73,6 +73,16 @@ keycloak:
     client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:malphasos-backend-admin}
     client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
 
+# Swagger UI: el boton "Authorize" inicia sesion contra Keycloak usando el client publico del
+# frontend, con PKCE. Sin use-pkce-with-authorization-code-grant el realm rechaza la peticion,
+# porque ese client exige el desafio S256.
+springdoc:
+  swagger-ui:
+    oauth:
+      client-id: ${SWAGGER_CLIENT_ID:malphasos-frontend}
+      use-pkce-with-authorization-code-grant: true
+    persist-authorization: true
+
 # Actuator: solo se expone health, que es lo que consulta el healthcheck del contenedor.
 # El resto de endpoints queda fuera porque revelan informacion interna (beans, configuracion,
 # variables de entorno).

@@ -3,9 +3,13 @@ package com.malphasos.malphasos.bootstrap.config.openApi;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.OAuthFlow;
+import io.swagger.v3.oas.models.security.OAuthFlows;
+import io.swagger.v3.oas.models.security.Scopes;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,10 +25,26 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 
-    private static final String SECURITY_SCHEME_NAME = "bearer-jwt";
+    /** Inicio de sesión contra Keycloak desde la propia interfaz de Swagger. */
+    private static final String OAUTH_SCHEME = "keycloak-oauth";
+
+    /** Token pegado a mano, para clientes que ya lo obtuvieron por otra via. */
+    private static final String BEARER_SCHEME = "bearer-jwt";
 
     /** Prefijo común de todos los endpoints versionados del API. */
     private static final String API = "/v1/api";
+
+    /**
+     * URL publica del realm. Es la que usa el navegador al pulsar "Authorize", de modo que debe ser
+     * alcanzable desde fuera de Docker; no sirve el nombre interno del servicio.
+     */
+    private final String issuerUri;
+
+    public OpenApiConfig(
+            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:http://localhost:8080/realms/malphasos-realm}")
+                    String issuerUri) {
+        this.issuerUri = issuerUri;
+    }
 
     @Bean
     public OpenAPI customOpenAPI() {
@@ -36,10 +56,23 @@ public class OpenApiConfig {
                         .license(new License()
                                 .name("GNU GPL v3")
                                 .url("https://www.gnu.org/licenses/gpl-3.0.html")))
-                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
-                .schemaRequirement(SECURITY_SCHEME_NAME, new SecurityScheme()
-                        .name(SECURITY_SCHEME_NAME)
+                .addSecurityItem(new SecurityRequirement().addList(OAUTH_SCHEME))
+                .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME))
+                // Authorization Code con PKCE: el mismo flujo que usa el frontend. Swagger nunca
+                // ve la contrasena, solo recibe el token que Keycloak le devuelve.
+                .schemaRequirement(OAUTH_SCHEME, new SecurityScheme()
+                        .type(SecurityScheme.Type.OAUTH2)
+                        .description("Inicia sesion en Keycloak y usa el token en cada peticion")
+                        .flows(new OAuthFlows().authorizationCode(new OAuthFlow()
+                                .authorizationUrl(issuerUri + "/protocol/openid-connect/auth")
+                                .tokenUrl(issuerUri + "/protocol/openid-connect/token")
+                                .scopes(new Scopes()
+                                        .addString("openid", "Identificacion del usuario")
+                                        .addString("profile", "Datos basicos del perfil")
+                                        .addString("email", "Correo electronico")))))
+                .schemaRequirement(BEARER_SCHEME, new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP)
+                        .description("Alternativa: pegar un token obtenido por otro medio")
                         .scheme("bearer")
                         .bearerFormat("JWT"));
     }
