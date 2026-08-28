@@ -32,24 +32,24 @@ class PersonSchemaTest {
     private JdbcTemplate jdbcTemplate;
 
     /** Las cédulas son únicas y la columna admite 10 caracteres. */
-    private String cedulaUnica() {
+    private String uniqueNationalId() {
         return String.valueOf(System.nanoTime() % 10_000_000_000L);
     }
 
-    private void insertarPersona(String cedula, String tipo, String segundoTipo) {
+    private void insertPerson(String cedula, String type, String segundoTipo) {
         jdbcTemplate.update(
                 """
                 INSERT INTO persona (k_identificador, k_cedula, n_primer_nombre, n_primer_apellido,
                                      t_tipo_persona, t_segundo_tipo_persona)
                 VALUES (?, ?, 'Ada', 'Lovelace', ?, ?)
                 """,
-                UUID.randomUUID(), cedula, tipo, segundoTipo);
+                UUID.randomUUID(), cedula, type, segundoTipo);
     }
 
     @Test
     @DisplayName("las tres tablas del modulo existen tras la migracion")
-    void laMigracionCreaLasTablas() {
-        Integer tablas = jdbcTemplate.queryForObject(
+    void migrationCreatesTables() {
+        Integer tables = jdbcTemplate.queryForObject(
                 """
                 SELECT count(*) FROM information_schema.tables
                 WHERE table_schema = 'public'
@@ -57,62 +57,62 @@ class PersonSchemaTest {
                 """,
                 Integer.class);
 
-        assertThat(tablas).isEqualTo(3);
+        assertThat(tables).isEqualTo(3);
     }
 
     @Test
     @DisplayName("b_estado_activo es boolean en las tres tablas")
-    void estadoActivoEsBooleanoEnTodasLasTablas() {
+    void activeFlagIsBooleanInEveryTable() {
         // En el esquema original la columna de persona estaba declarada como varchar(50)
         // pese a ser booleana, a diferencia de las otras dos tablas.
-        var tipos = jdbcTemplate.queryForList(
+        var types = jdbcTemplate.queryForList(
                 """
                 SELECT table_name, data_type FROM information_schema.columns
                 WHERE table_schema = 'public' AND column_name = 'b_estado_activo'
                   AND table_name IN ('persona', 'correo_persona', 'telefono_persona')
                 """);
 
-        assertThat(tipos)
+        assertThat(types)
                 .hasSize(3)
                 .allSatisfy(fila -> assertThat(fila.get("data_type")).isEqualTo("boolean"));
     }
 
     @Test
     @DisplayName("el enum PersonType y el catalogo de la base no se desincronizan")
-    void elEnumCubreTodosLosValoresQueAceptaLaBase() {
+    void enumMatchesDatabaseCatalog() {
         // El original tenia justo este problema: el enum de Java conocia tres valores mientras la
         // restriccion de la base aceptaba cinco. Si alguien agrega un valor en un solo lado, este
         // test lo detecta.
-        for (PersonType tipo : PersonType.values()) {
-            assertThatCode(() -> insertarPersona(cedulaUnica(), tipo.name(), null))
-                    .withFailMessage("La base rechazo el tipo %s, presente en el enum", tipo)
+        for (PersonType type : PersonType.values()) {
+            assertThatCode(() -> insertPerson(uniqueNationalId(), type.name(), null))
+                    .withFailMessage("La base rechazo el tipo %s, presente en el enum", type)
                     .doesNotThrowAnyException();
         }
     }
 
     @Test
     @DisplayName("la cedula es unica")
-    void laCedulaEsUnica() {
-        insertarPersona("1111111111", "ENGINEER", null);
+    void nationalIdIsUnique() {
+        insertPerson("1111111111", "ENGINEER", null);
 
-        assertThatThrownBy(() -> insertarPersona("1111111111", "ADMIN", null))
+        assertThatThrownBy(() -> insertPerson("1111111111", "ADMIN", null))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("se rechaza un tipo de persona fuera del catalogo")
-    void tipoDePersonaInvalidoEsRechazado() {
-        assertThatThrownBy(() -> insertarPersona("2222222222", "PRESIDENTE", null))
+    void invalidPersonTypeIsRejected() {
+        assertThatThrownBy(() -> insertPerson("2222222222", "PRESIDENTE", null))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("el segundo rol solo admite MANAGER o nulo")
-    void segundoTipoDePersonaSoloAdmiteManager() {
-        assertThatCode(() -> insertarPersona("3333333333", "CEO_CLIENT", "MANAGER"))
+    void secondPersonTypeOnlyAllowsManager() {
+        assertThatCode(() -> insertPerson("3333333333", "CEO_CLIENT", "MANAGER"))
                 .doesNotThrowAnyException();
 
-        assertThatThrownBy(() -> insertarPersona("4444444444", "CEO_CLIENT", "ENGINEER"))
+        assertThatThrownBy(() -> insertPerson("4444444444", "CEO_CLIENT", "ENGINEER"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

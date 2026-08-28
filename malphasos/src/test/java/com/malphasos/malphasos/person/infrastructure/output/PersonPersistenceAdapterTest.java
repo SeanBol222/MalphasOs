@@ -33,11 +33,11 @@ import org.springframework.test.context.jdbc.Sql;
         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class PersonPersistenceAdapterTest {
 
-    @Autowired private PersonPersistenceAdapter adaptador;
+    @Autowired private PersonPersistenceAdapter adapter;
     @Autowired private JdbcTemplate jdbcTemplate;
 
-    private Person personaConContactos() {
-        Person persona = Person.builder()
+    private Person personWithContacts() {
+        Person person = Person.builder()
                 .identificador(UUID.randomUUID())
                 .cedula(String.valueOf(System.nanoTime() % 10_000_000_000L))
                 .primerNombre("Ada")
@@ -46,119 +46,119 @@ class PersonPersistenceAdapterTest {
                 .estadoActivo(true)
                 .build();
 
-        persona.addEmail(EmailPerson.builder()
+        person.addEmail(EmailPerson.builder()
                 .idCorreoPersona(UUID.randomUUID())
                 .correoPersona("ada@malphasos.local")
                 .estadoActivo(true)
                 .build());
-        persona.addPhone(PhonePerson.builder()
+        person.addPhone(PhonePerson.builder()
                 .idTelefonoPersona(UUID.randomUUID())
                 .telefonoPersona("3001234567")
                 .estadoActivo(true)
                 .build());
 
-        return persona;
+        return person;
     }
 
     @Test
     @DisplayName("una persona con contactos se guarda y se recupera completa")
-    void guardarYRecuperar() {
-        Person guardada = adaptador.save(personaConContactos());
+    void saveAndRetrieve() {
+        Person saved = adapter.save(personWithContacts());
 
-        Person recuperada = adaptador.findById(guardada.getIdentificador()).orElseThrow();
+        Person retrieved = adapter.findById(saved.getIdentificador()).orElseThrow();
 
-        assertThat(recuperada.getPrimerNombre()).isEqualTo("Ada");
-        assertThat(recuperada.getTipoPersona()).isEqualTo(PersonType.ENGINEER);
-        assertThat(recuperada.getEmailPersonList()).singleElement().satisfies(correo ->
-                assertThat(correo.getCorreoPersona()).isEqualTo("ada@malphasos.local"));
-        assertThat(recuperada.getPhonePersonList()).singleElement().satisfies(telefono ->
-                assertThat(telefono.getTelefonoPersona()).isEqualTo("3001234567"));
+        assertThat(retrieved.getPrimerNombre()).isEqualTo("Ada");
+        assertThat(retrieved.getTipoPersona()).isEqualTo(PersonType.ENGINEER);
+        assertThat(retrieved.getEmailPersonList()).singleElement().satisfies(email ->
+                assertThat(email.getCorreoPersona()).isEqualTo("ada@malphasos.local"));
+        assertThat(retrieved.getPhonePersonList()).singleElement().satisfies(phone ->
+                assertThat(phone.getTelefonoPersona()).isEqualTo("3001234567"));
     }
 
     @Test
     @DisplayName("los contactos quedan enlazados a su persona por la llave foranea")
-    void losContactosGuardanSuLlaveForanea() {
+    void contactsStoreTheirForeignKey() {
         // Sin el @AfterMapping que cierra la relacion bidireccional, las filas hijas se
         // persistirian con k_identificador nulo.
-        Person guardada = adaptador.save(personaConContactos());
+        Person saved = adapter.save(personWithContacts());
 
-        Integer correosHuerfanos = jdbcTemplate.queryForObject(
+        Integer orphanEmails = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM correo_persona WHERE k_identificador IS NULL", Integer.class);
-        UUID personaDelCorreo = jdbcTemplate.queryForObject(
+        UUID emailOwnerId = jdbcTemplate.queryForObject(
                 "SELECT k_identificador FROM correo_persona LIMIT 1", UUID.class);
 
-        assertThat(correosHuerfanos).isZero();
-        assertThat(personaDelCorreo).isEqualTo(guardada.getIdentificador());
+        assertThat(orphanEmails).isZero();
+        assertThat(emailOwnerId).isEqualTo(saved.getIdentificador());
     }
 
     @Test
     @DisplayName("el tipo de persona se guarda como texto, no como posicion del enum")
-    void elEnumSeGuardaComoTexto() {
+    void enumIsStoredAsText() {
         // Con EnumType.ORDINAL, reordenar el enum reinterpretaria en silencio las filas guardadas.
-        adaptador.save(personaConContactos());
+        adapter.save(personWithContacts());
 
-        String tipo = jdbcTemplate.queryForObject(
+        String type = jdbcTemplate.queryForObject(
                 "SELECT t_tipo_persona FROM persona LIMIT 1", String.class);
 
-        assertThat(tipo).isEqualTo("ENGINEER");
+        assertThat(type).isEqualTo("ENGINEER");
     }
 
     @Test
     @DisplayName("desactivar un correo lo conserva en la base en vez de borrarlo")
-    void desactivarUnCorreoNoBorraLaFila() {
-        Person guardada = adaptador.save(personaConContactos());
-        UUID idCorreo = guardada.getEmailPersonList().getFirst().getIdCorreoPersona();
+    void deactivatingEmailKeepsTheRow() {
+        Person saved = adapter.save(personWithContacts());
+        UUID emailId = saved.getEmailPersonList().getFirst().getIdCorreoPersona();
 
-        guardada.removeEmail(idCorreo);
-        adaptador.save(guardada);
+        saved.removeEmail(emailId);
+        adapter.save(saved);
 
-        var filas = jdbcTemplate.queryForList(
-                "SELECT b_estado_activo FROM correo_persona WHERE k_id_correo_persona = ?", idCorreo);
+        var rows = jdbcTemplate.queryForList(
+                "SELECT b_estado_activo FROM correo_persona WHERE k_id_correo_persona = ?", emailId);
 
-        assertThat(filas).singleElement().satisfies(fila ->
+        assertThat(rows).singleElement().satisfies(fila ->
                 assertThat(fila.get("b_estado_activo")).isEqualTo(false));
     }
 
     @Test
     @DisplayName("actualizar los datos de una persona no borra sus contactos")
-    void actualizarNoArrastraLosContactos() {
+    void updateDoesNotDropContacts() {
         // orphanRemoval esta activo: si una actualizacion partiera de una persona sin sus contactos
         // cargados, Hibernate los borraria fisicamente. Este test fija el comportamiento correcto.
-        Person guardada = adaptador.save(personaConContactos());
+        Person saved = adapter.save(personWithContacts());
 
-        Person recuperada = adaptador.findById(guardada.getIdentificador()).orElseThrow();
-        recuperada.setPrimerNombre("Grace");
-        adaptador.save(recuperada);
+        Person retrieved = adapter.findById(saved.getIdentificador()).orElseThrow();
+        retrieved.setPrimerNombre("Grace");
+        adapter.save(retrieved);
 
-        Person trasActualizar = adaptador.findById(guardada.getIdentificador()).orElseThrow();
+        Person afterUpdate = adapter.findById(saved.getIdentificador()).orElseThrow();
 
-        assertThat(trasActualizar.getPrimerNombre()).isEqualTo("Grace");
-        assertThat(trasActualizar.getEmailPersonList()).hasSize(1);
-        assertThat(trasActualizar.getPhonePersonList()).hasSize(1);
+        assertThat(afterUpdate.getPrimerNombre()).isEqualTo("Grace");
+        assertThat(afterUpdate.getEmailPersonList()).hasSize(1);
+        assertThat(afterUpdate.getPhonePersonList()).hasSize(1);
     }
 
     @Test
     @DisplayName("una persona sin segundo apellido se guarda sin problema")
-    void elSegundoApellidoEsOpcional() {
+    void secondSurnameIsOptional() {
         // El original marcaba esta columna como obligatoria en la entidad, en contra del esquema.
-        Person sinSegundoApellido = personaConContactos();
-        sinSegundoApellido.setSegundoApellido(null);
+        Person withoutSecondSurname = personWithContacts();
+        withoutSecondSurname.setSegundoApellido(null);
 
-        Person guardada = adaptador.save(sinSegundoApellido);
+        Person saved = adapter.save(withoutSecondSurname);
 
-        assertThat(adaptador.findById(guardada.getIdentificador()))
+        assertThat(adapter.findById(saved.getIdentificador()))
                 .get()
                 .satisfies(p -> assertThat(p.getSegundoApellido()).isNull());
     }
 
     @Test
     @DisplayName("findAll devuelve las personas guardadas")
-    void listarPersonas() {
-        adaptador.save(personaConContactos());
-        adaptador.save(personaConContactos());
+    void listPersons() {
+        adapter.save(personWithContacts());
+        adapter.save(personWithContacts());
 
-        List<Person> todas = adaptador.findAll();
+        List<Person> all = adapter.findAll();
 
-        assertThat(todas).hasSize(2);
+        assertThat(all).hasSize(2);
     }
 }

@@ -46,17 +46,17 @@ class PersonIdentityAdapterTest {
     @Mock private UsersResource usersResource;
     @Mock private Response response;
 
-    private PersonIdentityAdapter adaptador;
+    private PersonIdentityAdapter adapter;
 
     @BeforeEach
-    void prepararCliente() {
+    void prepareClient() {
         when(keycloak.realm(REALM)).thenReturn(realmResource);
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any())).thenReturn(response);
-        adaptador = new PersonIdentityAdapter(keycloak, REALM);
+        adapter = new PersonIdentityAdapter(keycloak, REALM);
     }
 
-    private PersonIdentityRequest peticion() {
+    private PersonIdentityRequest request() {
         return PersonIdentityRequest.builder()
                 .userName("ada")
                 .email("ada@malphasos.local")
@@ -68,24 +68,24 @@ class PersonIdentityAdapterTest {
 
     @Test
     @DisplayName("un alta correcta devuelve el identificador que viene en la cabecera Location")
-    void devuelveElIdDelUsuarioCreado() {
-        UUID idEsperado = UUID.randomUUID();
+    void returnsCreatedUserId() {
+        UUID expectedId = UUID.randomUUID();
         when(response.getStatus()).thenReturn(201);
         when(response.getLocation())
-                .thenReturn(URI.create("http://keycloak/admin/realms/" + REALM + "/users/" + idEsperado));
+                .thenReturn(URI.create("http://keycloak/admin/realms/" + REALM + "/users/" + expectedId));
 
-        String id = adaptador.createUser(peticion(), RoleType.ENGINEER);
+        String id = adapter.createUser(request(), RoleType.ENGINEER);
 
-        assertThat(id).isEqualTo(idEsperado.toString());
+        assertThat(id).isEqualTo(expectedId.toString());
     }
 
     @Test
     @DisplayName("la respuesta se cierra siempre, tambien cuando el alta falla")
-    void laRespuestaSeCierra() {
+    void responseIsAlwaysClosed() {
         // El original nunca cerraba el Response, de modo que cada alta dejaba una conexion retenida.
         when(response.getStatus()).thenReturn(409);
 
-        assertThatThrownBy(() -> adaptador.createUser(peticion(), RoleType.ENGINEER))
+        assertThatThrownBy(() -> adapter.createUser(request(), RoleType.ENGINEER))
                 .isInstanceOf(KeycloakUserAlreadyExistsException.class);
 
         verify(response).close();
@@ -93,82 +93,82 @@ class PersonIdentityAdapterTest {
 
     @Test
     @DisplayName("un conflicto se traduce a la excepcion de usuario ya existente")
-    void conflictoSeTraduce() {
+    void conflictIsTranslated() {
         when(response.getStatus()).thenReturn(409);
 
-        assertThatThrownBy(() -> adaptador.createUser(peticion(), RoleType.ADMIN))
+        assertThatThrownBy(() -> adapter.createUser(request(), RoleType.ADMIN))
                 .isInstanceOf(KeycloakUserAlreadyExistsException.class)
                 .hasMessageContaining(REALM);
     }
 
     @Test
     @DisplayName("datos rechazados se traducen a la excepcion de datos invalidos")
-    void datosInvalidosSeTraducen() {
+    void invalidDataIsTranslated() {
         when(response.getStatus()).thenReturn(400);
 
-        assertThatThrownBy(() -> adaptador.createUser(peticion(), RoleType.ADMIN))
+        assertThatThrownBy(() -> adapter.createUser(request(), RoleType.ADMIN))
                 .isInstanceOf(KeycloakInvalidDataException.class);
     }
 
     @ParameterizedTest(name = "el codigo {0} indica falta de permisos")
     @CsvSource({"401", "403"})
-    void faltaDePermisosSeTraduce(int codigo) {
-        when(response.getStatus()).thenReturn(codigo);
+    void missingPermissionsIsTranslated(int status) {
+        when(response.getStatus()).thenReturn(status);
 
-        assertThatThrownBy(() -> adaptador.createUser(peticion(), RoleType.ADMIN))
+        assertThatThrownBy(() -> adapter.createUser(request(), RoleType.ADMIN))
                 .isInstanceOf(KeycloakUnauthorizedException.class);
     }
 
     @Test
     @DisplayName("cualquier otro codigo se traduce a un fallo de comunicacion")
-    void otroCodigoSeTraduce() {
+    void otherStatusIsTranslated() {
         when(response.getStatus()).thenReturn(503);
 
-        assertThatThrownBy(() -> adaptador.createUser(peticion(), RoleType.ADMIN))
+        assertThatThrownBy(() -> adapter.createUser(request(), RoleType.ADMIN))
                 .isInstanceOf(KeycloakConnectionException.class)
                 .hasMessageContaining("503");
     }
 
     @ParameterizedTest(name = "el rol {0} se asigna al grupo {1}")
     @CsvSource({"ENGINEER,engineers", "CEO_CLIENT,clients", "ADMIN,admins"})
-    void cadaRolSeAsignaASuGrupo(RoleType rol, String grupoEsperado) {
+    void eachRoleMapsToItsGroup(RoleType role, String expectedGroup) {
         when(response.getStatus()).thenReturn(201);
         when(response.getLocation())
                 .thenReturn(URI.create("http://keycloak/users/" + UUID.randomUUID()));
 
-        adaptador.createUser(peticion(), rol);
+        adapter.createUser(request(), role);
 
-        ArgumentCaptor<UserRepresentation> usuario = ArgumentCaptor.forClass(UserRepresentation.class);
-        verify(usersResource).create(usuario.capture());
-        assertThat(usuario.getValue().getGroups()).containsExactly(grupoEsperado);
+        ArgumentCaptor<UserRepresentation> user = ArgumentCaptor.forClass(UserRepresentation.class);
+        verify(usersResource).create(user.capture());
+        assertThat(user.getValue().getGroups()).containsExactly(expectedGroup);
     }
 
     @Test
     @DisplayName("el usuario se crea habilitado y con su credencial")
-    void elUsuarioSeCreaUsable() {
+    void userIsCreatedEnabled() {
         when(response.getStatus()).thenReturn(201);
         when(response.getLocation())
                 .thenReturn(URI.create("http://keycloak/users/" + UUID.randomUUID()));
 
-        adaptador.createUser(peticion(), RoleType.ENGINEER);
+        adapter.createUser(request(), RoleType.ENGINEER);
 
-        ArgumentCaptor<UserRepresentation> usuario = ArgumentCaptor.forClass(UserRepresentation.class);
-        verify(usersResource).create(usuario.capture());
-        assertThat(usuario.getValue().isEnabled()).isTrue();
-        assertThat(usuario.getValue().getUsername()).isEqualTo("ada");
-        assertThat(usuario.getValue().getCredentials()).hasSize(1);
+        ArgumentCaptor<UserRepresentation> user = ArgumentCaptor.forClass(UserRepresentation.class);
+        verify(usersResource).create(user.capture());
+        assertThat(user.getValue().isEnabled()).isTrue();
+        assertThat(user.getValue().getUsername()).isEqualTo("ada");
+        assertThat(user.getValue().getCredentials()).hasSize(1);
     }
 
     @Test
     @DisplayName("un fallo al eliminar conserva la excepcion original como causa")
-    void elBorradoConservaLaCausa() {
+    void deleteKeepsOriginalCause() {
         // El original envolvia el fallo concatenando el mensaje, perdiendo la traza original.
-        String idUsuario = UUID.randomUUID().toString();
-        RuntimeException causaReal = new IllegalStateException("conexion rechazada");
-        when(usersResource.delete(idUsuario)).thenThrow(causaReal);
+        String userId = UUID.randomUUID().toString();
+        RuntimeException actualCause = new IllegalStateException("conexion rechazada");
+        when(usersResource.delete(userId)).thenThrow(actualCause);
 
-        assertThatThrownBy(() -> adaptador.deleteUser(idUsuario))
+        assertThatThrownBy(() -> adapter.deleteUser(userId))
                 .isInstanceOf(KeycloakConnectionException.class)
-                .hasCause(causaReal);
+                .hasCause(actualCause);
     }
 }

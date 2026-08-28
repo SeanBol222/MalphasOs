@@ -65,7 +65,7 @@ public class Person {
     private List<PhonePerson> phonePersonList = new ArrayList<>();
 
     /** Tipos que no admiten una función secundaria: quien ocupa uno de estos no es además encargado. */
-    private static final Set<PersonType> TIPOS_SIN_SEGUNDA_FUNCION =
+    private static final Set<PersonType> TYPES_WITHOUT_SECOND_TYPE =
             EnumSet.of(PersonType.ENGINEER, PersonType.ADMIN, PersonType.SUPER_ADMIN);
 
     /**
@@ -79,13 +79,13 @@ public class Person {
      *
      * @throws IllegalArgumentException si la combinación de roles no es válida
      */
-    public void validarRoles() {
+    public void validateRoles() {
 
         if (segundoTipoPersona == null) {
             return;
         }
 
-        if (TIPOS_SIN_SEGUNDA_FUNCION.contains(tipoPersona)) {
+        if (TYPES_WITHOUT_SECOND_TYPE.contains(tipoPersona)) {
             throw new IllegalArgumentException(
                     "Una persona de tipo " + tipoPersona + " no puede tener un segundo tipo");
         }

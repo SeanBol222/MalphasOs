@@ -37,11 +37,11 @@ class PersonServiceTest {
     @Mock private PersonPersistencePort persistencePort;
     @Mock private PersonIdentityPort identityPort;
 
-    private PersonService servicio() {
+    private PersonService service() {
         return new PersonService(persistencePort, identityPort);
     }
 
-    private PersonUseCaseRequest peticionValida() {
+    private PersonUseCaseRequest validRequest() {
         return PersonUseCaseRequest.builder()
                 .cedula("1234567890")
                 .primerNombre("Ada")
@@ -57,54 +57,54 @@ class PersonServiceTest {
 
     @Test
     @DisplayName("buscar una persona inexistente lanza PersonNotFoundException")
-    void buscarPersonaInexistente() {
+    void findingUnknownPersonFails() {
         UUID id = UUID.randomUUID();
         when(persistencePort.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio().findById(id))
+        assertThatThrownBy(() -> service().findById(id))
                 .isInstanceOf(PersonNotFoundException.class)
                 .hasMessageContaining(id.toString());
     }
 
     @Test
     @DisplayName("el registro usa como identificador el que asigna el proveedor de identidad")
-    void elIdentificadorProvieneDelProveedorDeIdentidad() {
-        UUID idKeycloak = UUID.randomUUID();
-        when(identityPort.createUser(any(), any())).thenReturn(idKeycloak.toString());
+    void identifierComesFromIdentityProvider() {
+        UUID keycloakId = UUID.randomUUID();
+        when(identityPort.createUser(any(), any())).thenReturn(keycloakId.toString());
         when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Person creada = servicio().registerEngineer(peticionValida());
+        Person created = service().registerEngineer(validRequest());
 
-        assertThat(creada.getIdentificador()).isEqualTo(idKeycloak);
-        assertThat(creada.getTipoPersona()).isEqualTo(PersonType.ENGINEER);
-        assertThat(creada.isEstadoActivo()).isTrue();
+        assertThat(created.getIdentificador()).isEqualTo(keycloakId);
+        assertThat(created.getTipoPersona()).isEqualTo(PersonType.ENGINEER);
+        assertThat(created.isEstadoActivo()).isTrue();
     }
 
     @Test
     @DisplayName("cada metodo de registro pide el rol que le corresponde")
-    void cadaRegistroUsaSuRol() {
+    void eachRegistrationUsesItsRole() {
         when(identityPort.createUser(any(), any())).thenReturn(UUID.randomUUID().toString());
         when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        ArgumentCaptor<RoleType> rol = ArgumentCaptor.forClass(RoleType.class);
+        ArgumentCaptor<RoleType> role = ArgumentCaptor.forClass(RoleType.class);
 
-        PersonService servicio = servicio();
-        servicio.registerEngineer(peticionValida());
-        servicio.registerAdmin(peticionValida());
-        servicio.registerCeoClient(peticionValida());
+        PersonService service = service();
+        service.registerEngineer(validRequest());
+        service.registerAdmin(validRequest());
+        service.registerCeoClient(validRequest());
 
-        verify(identityPort, org.mockito.Mockito.times(3)).createUser(any(), rol.capture());
-        assertThat(rol.getAllValues())
+        verify(identityPort, org.mockito.Mockito.times(3)).createUser(any(), role.capture());
+        assertThat(role.getAllValues())
                 .containsExactly(RoleType.ENGINEER, RoleType.ADMIN, RoleType.CEO_CLIENT);
     }
 
     @Test
     @DisplayName("el segundo tipo de persona llega a la persona creada")
-    void elSegundoTipoNoSePierde() {
+    void secondTypeIsNotLost() {
         // En el original este dato viajaba en la peticion pero nunca se trasladaba al modelo.
         when(identityPort.createUser(any(), any())).thenReturn(UUID.randomUUID().toString());
         when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        PersonUseCaseRequest peticion = PersonUseCaseRequest.builder()
+        PersonUseCaseRequest request = PersonUseCaseRequest.builder()
                 .cedula("1234567890")
                 .primerNombre("Ada")
                 .primerApellido("Lovelace")
@@ -116,36 +116,36 @@ class PersonServiceTest {
                 .phonePersonList(List.of())
                 .build();
 
-        Person creada = servicio().registerCeoClient(peticion);
+        Person created = service().registerCeoClient(request);
 
-        assertThat(creada.getSegundoTipoPersona()).isEqualTo(PersonType.MANAGER);
+        assertThat(created.getSegundoTipoPersona()).isEqualTo(PersonType.MANAGER);
     }
 
     @Test
     @DisplayName("si la persistencia falla se elimina el usuario recien creado")
-    void sePurgaElUsuarioSiFallaLaPersistencia() {
-        String idUsuario = UUID.randomUUID().toString();
-        when(identityPort.createUser(any(), any())).thenReturn(idUsuario);
+    void userIsRemovedWhenPersistenceFails() {
+        String userId = UUID.randomUUID().toString();
+        when(identityPort.createUser(any(), any())).thenReturn(userId);
         when(persistencePort.save(any())).thenThrow(new IllegalStateException("fallo la base"));
 
-        assertThatThrownBy(() -> servicio().registerEngineer(peticionValida()))
+        assertThatThrownBy(() -> service().registerEngineer(validRequest()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("fallo la base");
 
-        verify(identityPort).deleteUser(idUsuario);
+        verify(identityPort).deleteUser(userId);
     }
 
     @Test
     @DisplayName("si al deshacer tambien falla, prevalece el error original")
-    void elErrorOriginalNoSePierdeSiFallaElRollback() {
-        String idUsuario = UUID.randomUUID().toString();
-        when(identityPort.createUser(any(), any())).thenReturn(idUsuario);
+    void originalErrorSurvivesFailedRollback() {
+        String userId = UUID.randomUUID().toString();
+        when(identityPort.createUser(any(), any())).thenReturn(userId);
         when(persistencePort.save(any())).thenThrow(new IllegalStateException("fallo la base"));
         org.mockito.Mockito.doThrow(new IllegalStateException("keycloak caido"))
                 .when(identityPort)
-                .deleteUser(idUsuario);
+                .deleteUser(userId);
 
-        assertThatThrownBy(() -> servicio().registerEngineer(peticionValida()))
+        assertThatThrownBy(() -> service().registerEngineer(validRequest()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("fallo la base")
                 .satisfies(e -> {
@@ -156,8 +156,8 @@ class PersonServiceTest {
 
     @Test
     @DisplayName("un registro sin correo no llega a crear usuario en el proveedor de identidad")
-    void sinCorreoNoSeCreaUsuario() {
-        PersonUseCaseRequest sinCorreo = PersonUseCaseRequest.builder()
+    void noUserIsCreatedWithoutEmail() {
+        PersonUseCaseRequest withoutEmail = PersonUseCaseRequest.builder()
                 .cedula("1234567890")
                 .primerNombre("Ada")
                 .primerApellido("Lovelace")
@@ -167,7 +167,7 @@ class PersonServiceTest {
                 .phonePersonList(List.of())
                 .build();
 
-        assertThatThrownBy(() -> servicio().registerEngineer(sinCorreo))
+        assertThatThrownBy(() -> service().registerEngineer(withoutEmail))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("al menos un correo");
 
@@ -176,42 +176,42 @@ class PersonServiceTest {
 
     @Test
     @DisplayName("eliminar una persona la desactiva en vez de borrarla")
-    void eliminarEsBorradoLogico() {
+    void deleteIsSoftDelete() {
         UUID id = UUID.randomUUID();
-        Person existente = Person.builder()
+        Person existing = Person.builder()
                 .identificador(id)
                 .tipoPersona(PersonType.ENGINEER)
                 .estadoActivo(true)
                 .build();
-        when(persistencePort.findById(id)).thenReturn(Optional.of(existente));
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
         when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        servicio().delete(id);
+        service().delete(id);
 
         // El puerto de persistencia ya no ofrece ninguna operacion de borrado, de modo que la
         // ausencia de borrado fisico esta garantizada por el propio contrato.
-        ArgumentCaptor<Person> guardada = ArgumentCaptor.forClass(Person.class);
-        verify(persistencePort).save(guardada.capture());
-        assertThat(guardada.getValue().isEstadoActivo()).isFalse();
+        ArgumentCaptor<Person> saved = ArgumentCaptor.forClass(Person.class);
+        verify(persistencePort).save(saved.capture());
+        assertThat(saved.getValue().isEstadoActivo()).isFalse();
     }
 
     @Test
     @DisplayName("actualizar con una combinacion de tipos invalida no persiste nada")
-    void actualizarConTiposInvalidosNoPersiste() {
+    void updateWithInvalidTypesDoesNotPersist() {
         UUID id = UUID.randomUUID();
-        Person existente = Person.builder()
+        Person existing = Person.builder()
                 .identificador(id)
                 .tipoPersona(PersonType.ENGINEER)
                 .estadoActivo(true)
                 .build();
-        when(persistencePort.findById(id)).thenReturn(Optional.of(existente));
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
 
-        Person cambios = Person.builder()
+        Person changes = Person.builder()
                 .tipoPersona(PersonType.ENGINEER)
                 .segundoTipoPersona(PersonType.MANAGER)
                 .build();
 
-        assertThatThrownBy(() -> servicio().update(id, cambios))
+        assertThatThrownBy(() -> service().update(id, changes))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(persistencePort, never()).save(any());
