@@ -69,13 +69,26 @@ public class Person {
             EnumSet.of(PersonType.ENGINEER, PersonType.ADMIN, PersonType.SUPER_ADMIN);
 
     /**
+     * La única función que puede desempeñarse como secundaria.
+     *
+     * <p>Ser encargado de una sede es un papel que se suma a otro; los demás tipos describen a la
+     * persona por completo y no se acumulan.
+     */
+    private static final PersonType ONLY_VALID_SECOND_TYPE = PersonType.MANAGER;
+
+    /**
      * Comprueba que la combinación de rol principal y secundario sea válida.
      *
-     * <p>Estas reglas existían en el esquema original como la función {@code validar_roles_persona()},
-     * pero nunca llegaron a ejecutarse: faltaba el {@code CREATE TRIGGER} que la invocara. Viven aquí
-     * porque son lógica de negocio, y en el dominio pueden producir un mensaje de error útil y
-     * probarse sin base de datos. La migración conserva únicamente la restricción de valores
-     * permitidos, como última línea de defensa ante escrituras directas por SQL.
+     * <p>Dos de estas reglas existían en el esquema original como la función
+     * {@code validar_roles_persona()}, que nunca llegó a ejecutarse por faltarle el
+     * {@code CREATE TRIGGER} que la invocara. La tercera, que el segundo tipo solo puede ser
+     * encargado, vivía únicamente en la restricción {@code CHK_segundo_tipo_persona} de la tabla:
+     * sin comprobarla aquí, una combinación inválida llegaba hasta la base y volvía convertida en
+     * un error de servidor en lugar de un dato rechazado.
+     *
+     * <p>Viven en el dominio porque son lógica de negocio, y aquí producen un mensaje útil y se
+     * prueban sin base de datos. La migración conserva las restricciones equivalentes como última
+     * línea de defensa ante escrituras directas por SQL.
      *
      * @throws IllegalArgumentException si la combinación de roles no es válida
      */
@@ -93,6 +106,12 @@ public class Person {
         if (segundoTipoPersona == tipoPersona) {
             throw new IllegalArgumentException(
                     "El tipo principal y el secundario no pueden ser el mismo: " + tipoPersona);
+        }
+
+        if (segundoTipoPersona != ONLY_VALID_SECOND_TYPE) {
+            throw new IllegalArgumentException(
+                    "El unico segundo tipo admitido es " + ONLY_VALID_SECOND_TYPE + ", y se recibio "
+                            + segundoTipoPersona);
         }
     }
 

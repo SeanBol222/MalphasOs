@@ -112,6 +112,37 @@ class PersonTest {
     }
 
     @Test
+    @DisplayName("el segundo tipo solo puede ser MANAGER, aunque el principal si lo admita")
+    void secondTypeMustBeManager() {
+        // Regresion: MANAGER + ADMIN pasaba la validacion del dominio y solo lo rechazaba el CHECK
+        // de la base, de modo que un dato invalido del cliente acababa como error de servidor.
+        Person person = personWithoutContacts()
+                .setTipoPersona(PersonType.MANAGER)
+                .setSegundoTipoPersona(PersonType.ADMIN);
+
+        assertThatThrownBy(person::validateRoles)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("MANAGER");
+    }
+
+    @Test
+    @DisplayName("ningun tipo distinto de MANAGER sirve como secundario")
+    void noOtherTypeWorksAsSecond() {
+        for (PersonType type : PersonType.values()) {
+            if (type == PersonType.MANAGER) {
+                continue;
+            }
+            Person person = personWithoutContacts()
+                    .setTipoPersona(PersonType.CEO_CLIENT)
+                    .setSegundoTipoPersona(type);
+
+            assertThatThrownBy(person::validateRoles)
+                    .describedAs("El tipo %s no deberia admitirse como secundario", type)
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
     @DisplayName("sin segundo rol la validacion siempre pasa")
     void noSecondTypeMeansNothingToValidate() {
         Person person = personWithoutContacts();
