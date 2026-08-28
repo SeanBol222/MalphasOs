@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr]
-updated: 2026-08-27
+updated: 2026-08-28
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -47,7 +47,7 @@ Registro de decisiones tomadas al construir MalphasOS, en el espíritu de un ADR
 | Puerto del backend | **8081** | El 8080 lo ocupa Keycloak, que es su puerto convencional y el que referencian el frontend y la configuración del original |
 | Keycloak hostname | **`localhost`** (original: `keycloak.test`) | No obliga a editar `/etc/hosts` |
 | Import de realms | **`--import-realm`** | La variable `KEYCLOAK_IMPORT` del original es de la era WildFly y Keycloak 26 la ignora, ver [[docker-compose]] |
-| Servicio de la app en compose | **no incluido todavía** | `malphasos/` aún no tiene `Dockerfile`; en desarrollo el backend corre desde el IDE contra los contenedores |
+| Servicio de la app en compose | **incluido** desde el commit de contenedorización | Construido desde el `Dockerfile` del módulo, con healthcheck vía Actuator. Ver [[dockerfile-y-contenedores]] |
 | Secretos | **`.env` ignorado, `.env.example` versionado** | El repo nunca contiene credenciales reales |
 | Theme de Keycloak | **el de por defecto** | `sigma-theme` lleva branding de Bolívar Bioingeniería; MalphasOS tendrá el suyo cuando tenga identidad visual |
 
@@ -87,6 +87,19 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Detalle del health | **`show-details: when-authorized`** | Un cliente anónimo ve solo `{"status":"UP"}`; el desglose por componente exige autenticación |
 
 ⚠️ **Trampa encontrada**: al incorporar Actuator, su health indicator de RabbitMQ intenta conectarse al broker. Por defecto apunta a `localhost:5672`, que dentro del contenedor no existe, así que el healthcheck reportaba DOWN con la aplicación perfectamente sana. Hay que configurar `spring.rabbitmq.host` apuntando al nombre del servicio.
+
+## Módulo de personas
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Patrón | **Generación 1**, como el original | Decisión explícita del usuario. Con el enum y las reglas de validación en el dominio, la distancia hasta Generación 2 quedó corta: falta `extends AggregateRoot`, una factoría y los eventos |
+| `tipoPersona` | **enum `PersonType`** (era `String`) | Como texto libre nada impedía escribir `"ingeniero"`; el error solo aparecía al insertar en la base |
+| `RoleType` | **Separado de `PersonType`**, no fusionado | En el original ambos viajan por separado y esa separación parece deliberada: no toda persona necesita usuario |
+| Reglas de combinación de tipos | **En el dominio** | En el esquema eran una función sin trigger: código muerto. En el dominio dan mensajes útiles y se prueban sin base de datos |
+| Adaptador de comunicación interna | **Aplazado** | Solo existe para que el módulo de clientes hable con personas, y ese módulo aún no existe |
+| `createSuperAdminUser` | **Fuera del puerto** | Devolvía `null` sin implementar |
+| Idioma del código | **Identificadores en inglés**, campos del dominio en español | Los campos son vocabulario del negocio y coinciden con las columnas de la base |
+| Rutas del API | `/v1/api/persons`, subrecursos anidados | El original repartía las de registro entre `/vi/`, `/v1/` y `/v2/` |
 
 ## Pendientes de decidir
 

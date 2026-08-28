@@ -32,6 +32,12 @@ updated: 2026-08-27
 
 `PersonNotFoundException` + las 4 de Keycloak arriba, manejadas por `PersonGlobalControllerAdvice`/`PersonErrorCatalog`. Ver inconsistencias (reutilización cruzada de `UNKNOWN_ERROR` con `client_hexagon`) en [[manejo-global-excepciones]].
 
+## Estado en MalphasOS (migrado el 2026-08-28)
+
+Módulo migrado completo en seis commits, conservando el patrón de Generación 1. Se corrigieron **22 defectos** en el camino, varios capaces de romper el sistema: ver el inventario en [[migracion-person-hallazgos]].
+
+Cambios de diseño respecto al original: `tipoPersona` pasa de `String` al enum `PersonType`; las reglas de combinación de tipos viven en el dominio y no en una función SQL sin trigger; el adaptador de comunicación interna queda aplazado hasta que exista el módulo de clientes; y `createSuperAdminUser` no se incluye en el puerto por estar sin implementar.
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` para todo el patrón de integración Keycloak (`PersonIdentityPort`/Adapter, traducción de códigos HTTP a excepciones de dominio) — es directamente portable cambiando el nombre del realm. `reusable:media` para `RoleType` y los nombres de grupos concretos (`engineers`/`clients`/`admins`), que son específicos de este negocio pero sirven como plantilla de cuántos roles definir. Completar `createSuperAdminUser` es tarea pendiente a resolver en MalphasOS, no algo que se pueda copiar ya hecho.

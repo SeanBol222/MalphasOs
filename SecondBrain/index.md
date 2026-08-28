@@ -23,7 +23,7 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 ## Dominio (hexágonos de negocio)
 
 - [[dominio-cliente]] 🟡 — client_hexagon: Client/Headquarter/ServiceArea/Manager. Patrón viejo (Generación 1).
-- [[dominio-persona-identidad]] 🟢 — person_hexagon: Person + integración Keycloak Admin API.
+- [[dominio-persona-identidad]] 🟢 — person_hexagon: Person + integración Keycloak Admin API. **Ya migrado a MalphasOS.**
 - [[dominio-ubicacion]] 🟢 — location_hexagon: Country/City. Referencia de Generación 2.
 - [[dominio-equipo-mantenimiento]] ⭐ — equipment_hexagon: **el núcleo de mantenimiento preventivo y la referencia arquitectónica principal**.
 - [[dominio-reportes]] 🟢 — reports_hexagon: agregador cross-dominio desacoplado.
@@ -52,6 +52,7 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[patron-soft-delete]] 🟢 — `b_estado_activo` universal en vez de DELETE físico.
 - [[patron-report-data-provider]] 🟢 — Puerto genérico plugin/strategy para agregación cross-módulo.
 - [[patron-event-dispatcher-dual]] 🟢 — Un puerto, dos mecanismos de despacho intercambiables.
+- [[antipatron-open-in-view]] 🔴 — Por qué `open-in-view` esconde errores de carga perezosa y qué hacer en su lugar.
 - [[deuda-tecnica-y-riesgos]] ⭐ — Registro centralizado de todos los bugs/inconsistencias detectados. Consultar antes de portar cualquier pieza.
 
 ## MalphasOS
@@ -60,7 +61,8 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[checklist-reutilizacion]] — Orden priorizado de trabajo, **con el progreso real marcado**.
 - [[decisiones-tecnicas-malphasos]] ⭐ — Registro de decisiones ya tomadas al construir MalphasOS, con su justificación. Consultar antes de re-decidir algo.
 - [[stack-spring-boot-4-particularidades]] — Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 que no se deducen del proyecto original.
+- [[migracion-person-hallazgos]] ⭐ — Los 22 defectos que destapó migrar el primer módulo, y qué los encontró. Leer antes de migrar `client_hexagon`.
 
 ---
 
-**35 notas** · última actualización 2026-08-27 · ver [[log.md]] para el historial de ingests.
+**37 notas** · última actualización 2026-08-28 · ver [[log.md]] para el historial de ingests.
