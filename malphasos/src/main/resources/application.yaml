@@ -37,22 +37,28 @@ spring:
     username: ${RABBITMQ_USERNAME:malphasos}
     password: ${RABBITMQ_PASSWORD:cambiame}
 
-  # Configuracion del resource server. Se activa cuando exista el realm en Keycloak:
-  # descomentar este bloque y poner app.security.enabled en true.
+  # Resource server. Se declaran dos URL distintas a proposito:
   #
-  # security:
-  #   oauth2:
-  #     resourceserver:
-  #       jwt:
-  #         issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/malphasos-realm}
+  #   issuer-uri  es la URL PUBLICA del realm, la que Keycloak escribe en el claim "iss" de cada
+  #               token. Debe coincidir letra por letra con lo que ve el navegador al autenticarse.
+  #   jwk-set-uri es la URL INTERNA desde la que este servicio descarga las claves de firma.
+  #
+  # En Docker no pueden ser la misma: el navegador llega a Keycloak por localhost y el backend por
+  # el nombre del servicio. Al separarlas, las claves se obtienen por la red interna mientras el
+  # emisor se sigue validando contra la URL publica. Definir solo issuer-uri obligaria a que ambas
+  # coincidieran, que es de donde salen los 401 clasicos al contenerizar Keycloak.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/malphasos-realm}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/certs}
 
 app:
   security:
-    # OJO: temporalmente en false porque el realm malphasos-realm todavia no existe; con la
-    # propiedad issuer-uri sin definir, el resource server no puede validar ningun token.
-    # El codigo de SecurityConfig es seguro por defecto (matchIfMissing = true): si esta linea
-    # desaparece, la API queda protegida. Ponerla en true al crear el realm.
-    enabled: false
+    # La API exige token. SecurityConfig es seguro por omision, asi que esta linea solo existe
+    # para poder apagarla de forma explicita en desarrollo; ver SecurityDisabledConfig.
+    enabled: ${APP_SECURITY_ENABLED:true}
     # Client de Keycloak cuyos roles se leen del claim resource_access del token.
     client-id: ${KEYCLOAK_CLIENT_ID:malphasos-api}
 

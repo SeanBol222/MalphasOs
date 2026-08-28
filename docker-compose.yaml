@@ -109,12 +109,23 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      # El emisor es la URL publica, la que el navegador ve y Keycloak escribe en el token.
+      KEYCLOAK_ISSUER_URI: http://${KC_HOSTNAME}:${KC_HOST_PORT}/realms/${KC_REALM:-malphasos-realm}
+      # Las claves de firma se descargan por la red interna, donde si se alcanza al servicio.
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/${KC_REALM:-malphasos-realm}/protocol/openid-connect/certs
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KC_REALM:-malphasos-realm}
+      KEYCLOAK_CLIENT_ID: malphasos-api
+      KEYCLOAK_ADMIN_CLIENT_ID: malphasos-backend-admin
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${MALPHASOS_BACKEND_ADMIN_SECRET:-}
     ports:
       - "${APP_HOST_PORT}:8081"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
     networks:
       - malphasos-network
