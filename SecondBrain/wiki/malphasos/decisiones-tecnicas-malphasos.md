@@ -45,7 +45,7 @@ Registro de decisiones tomadas al construir MalphasOS, en el espíritu de un ADR
 | Decisión | Elegido | Por qué |
 |---|---|---|
 | Puerto del backend | **8081** | El 8080 lo ocupa Keycloak, que es su puerto convencional y el que referencian el frontend y la configuración del original |
-| Keycloak hostname | **`localhost`** (original: `keycloak.test`) | No obliga a editar `/etc/hosts` |
+| Keycloak hostname | **`localhost`** (original: `keycloak.test`) | No obliga a editar `/etc/hosts`. Exige separar `issuer-uri` de `jwk-set-uri`, porque el navegador y el backend alcanzan Keycloak por direcciones distintas: ver [[issuer-uri-vs-jwk-set-uri]] |
 | Import de realms | **`--import-realm`** | La variable `KEYCLOAK_IMPORT` del original es de la era WildFly y Keycloak 26 la ignora, ver [[docker-compose]] |
 | Servicio de la app en compose | **incluido** desde el commit de contenedorización | Construido desde el `Dockerfile` del módulo, con healthcheck vía Actuator. Ver [[dockerfile-y-contenedores]] |
 | Secretos | **`.env` ignorado, `.env.example` versionado** | El repo nunca contiene credenciales reales |
@@ -100,6 +100,19 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | `createSuperAdminUser` | **Fuera del puerto** | Devolvía `null` sin implementar |
 | Idioma del código | **Identificadores en inglés**, campos del dominio en español | Los campos son vocabulario del negocio y coinciden con las columnas de la base |
 | Rutas del API | `/v1/api/persons`, subrecursos anidados | El original repartía las de registro entre `/vi/`, `/v1/` y `/v2/` |
+
+## Identidad y seguridad
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Realm | **Transformado del export original**, no reescrito | Conserva los 21 flujos de autenticación y 14 client scopes internos que un realm escrito a mano perdería |
+| Validación de tokens | **`issuer-uri` público + `jwk-set-uri` interno** | Las dos URL no coinciden en Docker; declarar solo la primera produce 401 con tokens válidos. Ver [[issuer-uri-vs-jwk-set-uri]] |
+| `frontendUrl` del realm | **Vacío** | Fijado anula `KC_HOSTNAME` y ata el realm a una URL concreta |
+| Fuerza bruta | **Activa**, bloqueo a los 5 intentos | El original la tenía apagada y permitía 30 |
+| Política de contraseñas | `length(12) and notUsername and notEmail` | ⚠️ Cambia comportamiento: las contraseñas débiles se rechazan al crear usuarios |
+| Flujo del client público | **Sin `directAccessGrants`** | La SPA usa PKCE; el flujo de contraseña directa expone credenciales sin aportar nada |
+| Roles granulares | **Definidos pero sin usar**, como en el original | Aplicarlos exigiría cambiar los `@PreAuthorize` de todos los controladores; queda como decisión abierta |
+| Seguridad en pruebas | **Apagada salvo en `SecurityIntegrationTest`** | Cada prueba se centra en su capa; la protección se verifica en un sitio, con el decodificador de JWT sustituido por un doble para no necesitar Keycloak |
 
 ## Pendientes de decidir
 

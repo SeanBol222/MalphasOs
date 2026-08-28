@@ -12,7 +12,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 
 - [x] **Hecho.** Clonar el patrón de `docker-compose.yaml` — Postgres + Keycloak compartiendo instancia + RabbitMQ. Corregido el import de realms roto del original, healthcheck en los tres servicios, pgAdmin bajo perfil `tools`. [[docker-compose]]
-- [ ] Clonar `realm-export.json`, renombrar a `malphasos-realm`, adaptar los 3 clients. El compose ya lo importa correctamente con `--import-realm`; falta el archivo del realm. [[keycloak-configuracion]]
+- [x] **Hecho (2026-08-28).** Realm `malphasos-realm` adaptado del export original e importándose solo al arrancar. Corregido el `admin.full` sin asignar que dejaba la API inutilizable. Seguridad activa y verificada extremo a extremo. [[keycloak-configuracion]], [[issuer-uri-vs-jwk-set-uri]]
 - [x] **Hecho.** Estrategia de esquema decidida: **Flyway**, no scripts `initdb`. `V1__baseline.sql` establece el punto de partida con PKs UUID como convención. Cada módulo aportará su migración. [[esquema-bd-v4]], [[evolucion-esquema-v1-v4]], [[decisiones-tecnicas-malphasos]]
 - [x] **Hecho.** Backend conectado a PostgreSQL, arrancando en el puerto 8081, con tests sobre Testcontainers en verde.
 
@@ -21,7 +21,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 - [x] **Hecho.** Dependencias del backend en el `pom.xml`: MapStruct + binding con los annotation processors en orden, springdoc-openapi, keycloak-admin-client. Ojo con las particularidades del stack moderno: [[stack-spring-boot-4-particularidades]]
 - [ ] Portar `shared/domain/events` completo (`AggregateRoot`, `DomainEvent`, `EventMetadata`, `Payload`) sin cambios. **Siguiente paso natural.** [[aggregate-root-pattern]], [[eventos-de-dominio]]
 - [ ] Portar `EventDispatcherPort` + `SpringDispatcher` + `RabbitMQDispatcher`, **corrigiendo el mismatch de routing key** antes de activar el de Rabbit. [[patron-event-dispatcher-dual]], [[deuda-tecnica-y-riesgos]]
-- [x] **Hecho.** Portar `SecurityConfig` + `KeycloakRoleConverter` + `KeycloakAdminConfig`, con el client id ya configurable y sin casts inseguros. Pendiente activarla al crear el realm. [[seguridad-keycloak-backend]]
+- [x] **Hecho.** Portar `SecurityConfig` + `KeycloakRoleConverter` + `KeycloakAdminConfig`, con el client id configurable y sin casts inseguros. **Seguridad ya activa**, con pruebas que verifican 401 sin token y 403 sin permiso. [[seguridad-keycloak-backend]]
 - [x] **Hecho.** Portar `OpenApiConfig` con grupos por módulo; fija la convención de rutas `/v1/api/<recurso>`. [[openapi-swagger]]
 - [x] **Parcial.** Catálogo transversal migrado y corregido. Falta la interfaz/clase base común, que se definirá al migrar el primer módulo con excepciones propias. [[manejo-global-excepciones]], [[patron-catalogo-errores-por-contexto]]
 
