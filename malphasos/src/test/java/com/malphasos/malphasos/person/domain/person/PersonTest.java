@@ -2,6 +2,7 @@ package com.malphasos.malphasos.person.domain.person;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -19,7 +20,7 @@ class PersonTest {
                 .cedula("1234567890")
                 .primerNombre("Ada")
                 .primerApellido("Lovelace")
-                .tipoPersona("ingeniero")
+                .tipoPersona(PersonType.ENGINEER)
                 .estadoActivo(true)
                 .build();
     }
@@ -76,6 +77,46 @@ class PersonTest {
         assertThat(persona.getPhonePersonList())
                 .singleElement()
                 .satisfies(telefono -> assertThat(telefono.isEstadoActivo()).isFalse());
+    }
+
+    @Test
+    @DisplayName("un ingeniero no puede tener un segundo rol")
+    void ingenieroNoAdmiteSegundoRol() {
+        Person persona = personaSinContactos().setSegundoTipoPersona(PersonType.MANAGER);
+
+        assertThatThrownBy(persona::validarRoles)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ENGINEER");
+    }
+
+    @Test
+    @DisplayName("el rol principal y el secundario no pueden coincidir")
+    void rolesNoPuedenSerIguales() {
+        Person persona = personaSinContactos()
+                .setTipoPersona(PersonType.MANAGER)
+                .setSegundoTipoPersona(PersonType.MANAGER);
+
+        assertThatThrownBy(persona::validarRoles)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no pueden ser el mismo");
+    }
+
+    @Test
+    @DisplayName("una combinacion valida de roles no lanza excepcion")
+    void combinacionValidaDeRoles() {
+        Person persona = personaSinContactos()
+                .setTipoPersona(PersonType.CEO_CLIENT)
+                .setSegundoTipoPersona(PersonType.MANAGER);
+
+        assertThatCode(persona::validarRoles).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("sin segundo rol la validacion siempre pasa")
+    void sinSegundoRolNoHayNadaQueValidar() {
+        Person persona = personaSinContactos();
+
+        assertThatCode(persona::validarRoles).doesNotThrowAnyException();
     }
 
     @Test
