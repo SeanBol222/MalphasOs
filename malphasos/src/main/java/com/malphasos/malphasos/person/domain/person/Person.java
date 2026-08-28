@@ -1,7 +1,9 @@
 package com.malphasos.malphasos.person.domain.person;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,11 +44,11 @@ public class Person {
     private String primerApellido;
     private String segundoApellido;
 
-    /** Rol principal: ingeniero, encargado o representante legal. */
-    private String tipoPersona;
+    /** Función principal de la persona en el negocio. */
+    private PersonType tipoPersona;
 
-    /** Rol secundario, cuando una misma persona cumple dos funciones. */
-    private String segundoTipoPersona;
+    /** Función secundaria, cuando una misma persona cumple dos papeles. */
+    private PersonType segundoTipoPersona;
 
     /** Borrado lógico: una persona inactiva conserva su historial. */
     private boolean estadoActivo;
@@ -61,6 +63,38 @@ public class Person {
 
     @Builder.Default
     private List<PhonePerson> phonePersonList = new ArrayList<>();
+
+    /** Tipos que no admiten una función secundaria: quien ocupa uno de estos no es además encargado. */
+    private static final Set<PersonType> TIPOS_SIN_SEGUNDA_FUNCION =
+            EnumSet.of(PersonType.ENGINEER, PersonType.ADMIN, PersonType.SUPER_ADMIN);
+
+    /**
+     * Comprueba que la combinación de rol principal y secundario sea válida.
+     *
+     * <p>Estas reglas existían en el esquema original como la función {@code validar_roles_persona()},
+     * pero nunca llegaron a ejecutarse: faltaba el {@code CREATE TRIGGER} que la invocara. Viven aquí
+     * porque son lógica de negocio, y en el dominio pueden producir un mensaje de error útil y
+     * probarse sin base de datos. La migración conserva únicamente la restricción de valores
+     * permitidos, como última línea de defensa ante escrituras directas por SQL.
+     *
+     * @throws IllegalArgumentException si la combinación de roles no es válida
+     */
+    public void validarRoles() {
+
+        if (segundoTipoPersona == null) {
+            return;
+        }
+
+        if (TIPOS_SIN_SEGUNDA_FUNCION.contains(tipoPersona)) {
+            throw new IllegalArgumentException(
+                    "Una persona de tipo " + tipoPersona + " no puede tener un segundo tipo");
+        }
+
+        if (segundoTipoPersona == tipoPersona) {
+            throw new IllegalArgumentException(
+                    "El tipo principal y el secundario no pueden ser el mismo: " + tipoPersona);
+        }
+    }
 
     public void addEmail(EmailPerson email) {
         this.emailPersonList.add(email);
