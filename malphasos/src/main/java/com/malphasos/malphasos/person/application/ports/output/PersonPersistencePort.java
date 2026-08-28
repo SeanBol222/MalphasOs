@@ -17,7 +17,13 @@ public interface PersonPersistencePort {
 
     List<Person> findAll();
 
+    /**
+     * Guarda la persona y devuelve el resultado.
+     *
+     * <p>No existe una operación de borrado: el sistema nunca elimina filas. Desactivar una persona
+     * es guardarla con su estado en falso. En el proyecto original el puerto declaraba un
+     * {@code delete} cuya implementación se limitaba a llamar a {@code save}, de modo que el nombre
+     * describía algo que no ocurría.
+     */
     Person save(Person person);
-
-    void delete(Person person);
 }
