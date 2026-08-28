@@ -1,0 +1,31 @@
+# Configuracion de las pruebas. Sombrea por completo al application.yaml principal, de modo que
+# ninguna prueba herede por accidente los valores de desarrollo ni acabe escribiendo en la base
+# local: el datasource lo aporta Testcontainers en cada clase que lo necesita.
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  # Sin issuer-uri configurado: definirlo obligaria a tener Keycloak en marcha para poder ejecutar
+  # las pruebas, porque Spring consulta al emisor durante el arranque.
+
+app:
+  security:
+    # Apagada por defecto para que cada prueba se centre en su capa y no en construir tokens. La
+    # proteccion de los endpoints se verifica aparte, en SecurityIntegrationTest.
+    enabled: false
+    client-id: malphasos-api
+
+keycloak:
+  admin:
+    # Activo: KeycloakBuilder construye el cliente sin conectarse, de modo que el bean existe sin
+    # necesidad de un Keycloak en marcha. Las pruebas que ejercitan la identidad usan dobles.
+    enabled: true
+    realm: malphasos-realm
+    server-url: http://localhost:8080
+    client-id: malphasos-backend-admin
+    client-secret: irrelevante-en-pruebas
