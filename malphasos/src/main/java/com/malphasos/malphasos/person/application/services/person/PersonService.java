@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -27,11 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Depende únicamente de los puertos. En el proyecto original inyectaba directamente la clase
  * concreta del adaptador de Keycloak, dejando sin uso el puerto que existía para eso y acoplando la
  * capa de aplicación a una tecnología concreta.
- *
- * <p>Aún no se declara como bean de Spring. El adaptador de persistencia ya existe, pero falta el
- * de identidad, y el contexto no arrancaría sin él. La anotación se añade al migrar ese adaptador.
  */
 @Slf4j
+@Service
 @RequiredArgsConstructor
 public class PersonService implements PersonServicePort {
 
