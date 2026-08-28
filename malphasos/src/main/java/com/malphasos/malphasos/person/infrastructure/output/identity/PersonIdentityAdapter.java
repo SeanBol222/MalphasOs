@@ -42,15 +42,15 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
         user.setEmail(request.email());
         user.setFirstName(request.firstName());
         user.setLastName(request.lastName());
-        user.setGroups(List.of(grupoDe(roleType)));
+        user.setGroups(List.of(groupFor(roleType)));
         user.setEnabled(true);
         user.setEmailVerified(true);
-        user.setCredentials(List.of(credencial(request.password())));
+        user.setCredentials(List.of(credential(request.password())));
 
         // El Response de JAX-RS retiene la conexion hasta que se cierra. El original nunca lo
         // cerraba, de modo que cada alta de usuario dejaba una conexion sin liberar.
         try (Response response = keycloakClient.realm(realm).users().create(user)) {
-            return idDeUsuarioCreado(response);
+            return createdUserId(response);
         }
     }
 
@@ -79,7 +79,7 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
      * sin caso por defecto, así que un rol nuevo habría creado usuarios sin ningún grupo, es decir,
      * sin permiso alguno y sin aviso.
      */
-    private String grupoDe(RoleType roleType) {
+    private String groupFor(RoleType roleType) {
         return switch (roleType) {
             case ENGINEER -> "engineers";
             case CEO_CLIENT -> "clients";
@@ -87,7 +87,7 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
         };
     }
 
-    private CredentialRepresentation credencial(String password) {
+    private CredentialRepresentation credential(String password) {
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(password);
@@ -100,7 +100,7 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
      * Extrae el identificador del usuario recién creado de la cabecera {@code Location}, o traduce
      * el código de error a la excepción de dominio correspondiente.
      */
-    private String idDeUsuarioCreado(Response response) {
+    private String createdUserId(Response response) {
         return switch (response.getStatus()) {
             case 201 -> response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
             case 409 -> throw new KeycloakUserAlreadyExistsException(

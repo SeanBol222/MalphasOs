@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
  */
 class PersonTest {
 
-    private Person personaSinContactos() {
+    private Person personWithoutContacts() {
         return Person.builder()
                 .identificador(UUID.randomUUID())
                 .cedula("1234567890")
@@ -27,12 +27,12 @@ class PersonTest {
 
     @Test
     @DisplayName("agregar un correo a una persona construida sin correos no falla")
-    void agregarCorreoSobrePersonaRecienConstruida() {
-        Person persona = personaSinContactos();
+    void addEmailToNewlyBuiltPerson() {
+        Person person = personWithoutContacts();
 
         // El original dejaba la lista en null cuando el builder no la recibía, de modo que este
         // primer add lanzaba NullPointerException.
-        assertThatCode(() -> persona.addEmail(
+        assertThatCode(() -> person.addEmail(
                         EmailPerson.builder()
                                 .idCorreoPersona(UUID.randomUUID())
                                 .correoPersona("ada@malphasos.local")
@@ -40,99 +40,99 @@ class PersonTest {
                                 .build()))
                 .doesNotThrowAnyException();
 
-        assertThat(persona.getEmailPersonList()).hasSize(1);
+        assertThat(person.getEmailPersonList()).hasSize(1);
     }
 
     @Test
     @DisplayName("eliminar un correo lo desactiva en vez de quitarlo de la lista")
-    void eliminarCorreoEsBorradoLogico() {
-        Person persona = personaSinContactos();
-        UUID idCorreo = UUID.randomUUID();
-        persona.addEmail(EmailPerson.builder()
-                .idCorreoPersona(idCorreo)
+    void removingEmailIsSoftDelete() {
+        Person person = personWithoutContacts();
+        UUID emailId = UUID.randomUUID();
+        person.addEmail(EmailPerson.builder()
+                .idCorreoPersona(emailId)
                 .correoPersona("ada@malphasos.local")
                 .estadoActivo(true)
                 .build());
 
-        persona.removeEmail(idCorreo);
+        person.removeEmail(emailId);
 
-        assertThat(persona.getEmailPersonList())
+        assertThat(person.getEmailPersonList())
                 .singleElement()
-                .satisfies(correo -> assertThat(correo.isEstadoActivo()).isFalse());
+                .satisfies(email -> assertThat(email.isEstadoActivo()).isFalse());
     }
 
     @Test
     @DisplayName("eliminar un telefono lo desactiva en vez de quitarlo de la lista")
-    void eliminarTelefonoEsBorradoLogico() {
-        Person persona = personaSinContactos();
-        UUID idTelefono = UUID.randomUUID();
-        persona.addPhone(PhonePerson.builder()
-                .idTelefonoPersona(idTelefono)
+    void removingPhoneIsSoftDelete() {
+        Person person = personWithoutContacts();
+        UUID phoneId = UUID.randomUUID();
+        person.addPhone(PhonePerson.builder()
+                .idTelefonoPersona(phoneId)
                 .telefonoPersona("3001234567")
                 .estadoActivo(true)
                 .build());
 
-        persona.removePhone(idTelefono);
+        person.removePhone(phoneId);
 
-        assertThat(persona.getPhonePersonList())
+        assertThat(person.getPhonePersonList())
                 .singleElement()
-                .satisfies(telefono -> assertThat(telefono.isEstadoActivo()).isFalse());
+                .satisfies(phone -> assertThat(phone.isEstadoActivo()).isFalse());
     }
 
     @Test
     @DisplayName("un ingeniero no puede tener un segundo rol")
-    void ingenieroNoAdmiteSegundoRol() {
-        Person persona = personaSinContactos().setSegundoTipoPersona(PersonType.MANAGER);
+    void engineerCannotHaveSecondType() {
+        Person person = personWithoutContacts().setSegundoTipoPersona(PersonType.MANAGER);
 
-        assertThatThrownBy(persona::validarRoles)
+        assertThatThrownBy(person::validateRoles)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("ENGINEER");
     }
 
     @Test
     @DisplayName("el rol principal y el secundario no pueden coincidir")
-    void rolesNoPuedenSerIguales() {
-        Person persona = personaSinContactos()
+    void typesCannotBeEqual() {
+        Person person = personWithoutContacts()
                 .setTipoPersona(PersonType.MANAGER)
                 .setSegundoTipoPersona(PersonType.MANAGER);
 
-        assertThatThrownBy(persona::validarRoles)
+        assertThatThrownBy(person::validateRoles)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("no pueden ser el mismo");
     }
 
     @Test
     @DisplayName("una combinacion valida de roles no lanza excepcion")
-    void combinacionValidaDeRoles() {
-        Person persona = personaSinContactos()
+    void validTypeCombination() {
+        Person person = personWithoutContacts()
                 .setTipoPersona(PersonType.CEO_CLIENT)
                 .setSegundoTipoPersona(PersonType.MANAGER);
 
-        assertThatCode(persona::validarRoles).doesNotThrowAnyException();
+        assertThatCode(person::validateRoles).doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("sin segundo rol la validacion siempre pasa")
-    void sinSegundoRolNoHayNadaQueValidar() {
-        Person persona = personaSinContactos();
+    void noSecondTypeMeansNothingToValidate() {
+        Person person = personWithoutContacts();
 
-        assertThatCode(persona::validarRoles).doesNotThrowAnyException();
+        assertThatCode(person::validateRoles).doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("eliminar un contacto inexistente no altera la lista ni lanza excepcion")
-    void eliminarContactoInexistenteNoHaceNada() {
-        Person persona = personaSinContactos();
-        persona.addEmail(EmailPerson.builder()
+    void removingUnknownContactDoesNothing() {
+        Person person = personWithoutContacts();
+        person.addEmail(EmailPerson.builder()
                 .idCorreoPersona(UUID.randomUUID())
                 .correoPersona("ada@malphasos.local")
                 .estadoActivo(true)
                 .build());
 
-        assertThatCode(() -> persona.removeEmail(UUID.randomUUID())).doesNotThrowAnyException();
+        assertThatCode(() -> person.removeEmail(UUID.randomUUID())).doesNotThrowAnyException();
 
-        assertThat(persona.getEmailPersonList())
+        assertThat(person.getEmailPersonList())
                 .singleElement()
-                .satisfies(correo -> assertThat(correo.isEstadoActivo()).isTrue());
+                .satisfies(email -> assertThat(email.isEstadoActivo()).isTrue());
     }
 }

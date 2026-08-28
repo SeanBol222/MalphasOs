@@ -30,13 +30,13 @@ public interface PersonPersistenceMapper {
      * sin este paso se persistirían con {@code k_identificador} nulo.
      */
     @AfterMapping
-    default void enlazarContactos(@MappingTarget PersonEntity entity) {
+    default void linkContacts(@MappingTarget PersonEntity entity) {
 
         if (entity.getEmailPersonList() != null) {
-            entity.getEmailPersonList().forEach(correo -> correo.setPerson(entity));
+            entity.getEmailPersonList().forEach(email -> email.setPerson(entity));
         }
         if (entity.getPhonePersonList() != null) {
-            entity.getPhonePersonList().forEach(telefono -> telefono.setPerson(entity));
+            entity.getPhonePersonList().forEach(phone -> phone.setPerson(entity));
         }
     }
 }

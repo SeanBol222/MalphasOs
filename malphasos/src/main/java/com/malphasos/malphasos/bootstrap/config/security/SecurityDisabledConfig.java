@@ -32,7 +32,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityDisabledConfig {
 
     @PostConstruct
-    void advertir() {
+    void warnSecurityDisabled() {
         log.warn("=================================================================");
         log.warn(" SEGURIDAD DESACTIVADA: todos los endpoints estan abiertos.");
         log.warn(" app.security.enabled=false. Solo para desarrollo local.");

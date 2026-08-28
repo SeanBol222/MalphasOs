@@ -53,7 +53,7 @@ public class PersonService implements PersonServicePort {
     @Transactional
     public Person save(Person person) {
 
-        person.validarRoles();
+        person.validateRoles();
 
         person.setIdentificador(UUID.randomUUID());
         person.setEstadoActivo(true);
@@ -100,17 +100,17 @@ public class PersonService implements PersonServicePort {
      */
     private Person register(PersonUseCaseRequest request, PersonType tipoPersona, RoleType roleType) {
 
-        String idUsuario = personIdentityPort.createUser(identityRequestFrom(request), roleType);
+        String userId = personIdentityPort.createUser(identityRequestFrom(request), roleType);
 
         try {
-            Person person = personFrom(request, tipoPersona, UUID.fromString(idUsuario));
-            person.validarRoles();
+            Person person = personFrom(request, tipoPersona, UUID.fromString(userId));
+            person.validateRoles();
 
             return personPersistencePort.save(person);
 
-        } catch (RuntimeException fallo) {
-            deshacerUsuario(idUsuario, fallo);
-            throw fallo;
+        } catch (RuntimeException failure) {
+            rollbackUser(userId, failure);
+            throw failure;
         }
     }
 
@@ -121,16 +121,16 @@ public class PersonService implements PersonServicePort {
      * reemplazar al error original: quien depure necesita ver la causa real del fallo, y además
      * saber que quedó un usuario huérfano.
      */
-    private void deshacerUsuario(String idUsuario, RuntimeException fallo) {
+    private void rollbackUser(String userId, RuntimeException failure) {
         try {
-            personIdentityPort.deleteUser(idUsuario);
-        } catch (RuntimeException fallaAlDeshacer) {
+            personIdentityPort.deleteUser(userId);
+        } catch (RuntimeException rollbackFailure) {
             log.error(
                     "No se pudo eliminar el usuario {} tras fallar el registro. Queda huerfano en el "
                             + "proveedor de identidad.",
-                    idUsuario,
-                    fallaAlDeshacer);
-            fallo.addSuppressed(fallaAlDeshacer);
+                    userId,
+                    rollbackFailure);
+            failure.addSuppressed(rollbackFailure);
         }
     }
 
@@ -138,18 +138,18 @@ public class PersonService implements PersonServicePort {
     @Transactional
     public Person update(UUID id, Person person) {
         return personPersistencePort.findById(id)
-                .map(existente -> {
-                    existente.setCedula(person.getCedula());
-                    existente.setPrimerNombre(person.getPrimerNombre());
-                    existente.setSegundoNombre(person.getSegundoNombre());
-                    existente.setPrimerApellido(person.getPrimerApellido());
-                    existente.setSegundoApellido(person.getSegundoApellido());
-                    existente.setTipoPersona(person.getTipoPersona());
-                    existente.setSegundoTipoPersona(person.getSegundoTipoPersona());
+                .map(existing -> {
+                    existing.setCedula(person.getCedula());
+                    existing.setPrimerNombre(person.getPrimerNombre());
+                    existing.setSegundoNombre(person.getSegundoNombre());
+                    existing.setPrimerApellido(person.getPrimerApellido());
+                    existing.setSegundoApellido(person.getSegundoApellido());
+                    existing.setTipoPersona(person.getTipoPersona());
+                    existing.setSegundoTipoPersona(person.getSegundoTipoPersona());
 
-                    existente.validarRoles();
+                    existing.validateRoles();
 
-                    return personPersistencePort.save(existente);
+                    return personPersistencePort.save(existing);
                 })
                 .orElseThrow(() -> new PersonNotFoundException(id));
     }
@@ -157,82 +157,82 @@ public class PersonService implements PersonServicePort {
     @Override
     @Transactional
     public void delete(UUID id) {
-        Person persona = personPersistencePort.findById(id)
+        Person person = personPersistencePort.findById(id)
                 .orElseThrow(() -> new PersonNotFoundException(id));
 
-        persona.setEstadoActivo(false);
-        personPersistencePort.save(persona);
+        person.setEstadoActivo(false);
+        personPersistencePort.save(person);
     }
 
     @Override
     @Transactional
     public Person addEmail(UUID personId, EmailPerson email) {
-        Person persona = buscarOFallar(personId);
+        Person person = findOrFail(personId);
 
         email.setIdCorreoPersona(UUID.randomUUID());
         email.setEstadoActivo(true);
-        persona.addEmail(email);
+        person.addEmail(email);
 
-        return personPersistencePort.save(persona);
+        return personPersistencePort.save(person);
     }
 
     @Override
     @Transactional
     public Person updateEmail(UUID personId, UUID emailId, EmailPerson email) {
-        Person persona = buscarOFallar(personId);
+        Person person = findOrFail(personId);
 
-        persona.getEmailPersonList().stream()
+        person.getEmailPersonList().stream()
                 .filter(e -> e.getIdCorreoPersona().equals(emailId))
                 .findFirst()
                 .ifPresent(e -> e.setCorreoPersona(email.getCorreoPersona()));
 
-        return personPersistencePort.save(persona);
+        return personPersistencePort.save(person);
     }
 
     @Override
     @Transactional
     public Person removeEmail(UUID personId, UUID emailId) {
-        Person persona = buscarOFallar(personId);
-        persona.removeEmail(emailId);
+        Person person = findOrFail(personId);
+        person.removeEmail(emailId);
 
-        return personPersistencePort.save(persona);
+        return personPersistencePort.save(person);
     }
 
     @Override
     @Transactional
     public Person addPhone(UUID personId, PhonePerson phone) {
-        Person persona = buscarOFallar(personId);
+        Person person = findOrFail(personId);
 
         phone.setIdTelefonoPersona(UUID.randomUUID());
         phone.setEstadoActivo(true);
-        persona.addPhone(phone);
+        person.addPhone(phone);
 
-        return personPersistencePort.save(persona);
+        return personPersistencePort.save(person);
     }
 
     @Override
     @Transactional
     public Person updatePhone(UUID personId, UUID phoneId, PhonePerson phone) {
-        Person persona = buscarOFallar(personId);
+        Person person = findOrFail(personId);
 
-        persona.getPhonePersonList().stream()
+        person.getPhonePersonList().stream()
                 .filter(p -> p.getIdTelefonoPersona().equals(phoneId))
                 .findFirst()
                 .ifPresent(p -> p.setTelefonoPersona(phone.getTelefonoPersona()));
 
-        return personPersistencePort.save(persona);
+        return personPersistencePort.save(person);
     }
 
     @Override
     @Transactional
     public Person removePhone(UUID personId, UUID phoneId) {
-        Person persona = buscarOFallar(personId);
-        persona.removePhone(phoneId);
+        Person person = findOrFail(personId);
+        person.removePhone(phoneId);
 
-        return personPersistencePort.save(persona);
+        return personPersistencePort.save(person);
     }
 
-    private Person buscarOFallar(UUID id) {
+    private Person findOrFail(UUID id) {
         return personPersistencePort.findById(id).orElseThrow(() -> new PersonNotFoundException(id));
     }
 
@@ -249,16 +249,16 @@ public class PersonService implements PersonServicePort {
                 .segundoTipoPersona(request.segundoTipoPersona())
                 .estadoActivo(true)
                 .emailPersonList(request.emailPersonList().stream()
-                        .map(correo -> EmailPerson.builder()
+                        .map(email -> EmailPerson.builder()
                                 .idCorreoPersona(UUID.randomUUID())
-                                .correoPersona(correo.correoPersona())
+                                .correoPersona(email.correoPersona())
                                 .estadoActivo(true)
                                 .build())
                         .collect(Collectors.toCollection(ArrayList::new)))
                 .phonePersonList(request.phonePersonList().stream()
-                        .map(telefono -> PhonePerson.builder()
+                        .map(phone -> PhonePerson.builder()
                                 .idTelefonoPersona(UUID.randomUUID())
-                                .telefonoPersona(telefono.telefonoPersona())
+                                .telefonoPersona(phone.telefonoPersona())
                                 .estadoActivo(true)
                                 .build())
                         .collect(Collectors.toCollection(ArrayList::new)))

@@ -21,18 +21,18 @@ class MalphasosApplicationTests {
 
 	@Test
 	void flywayAplicaLasMigracionesAlArrancar() {
-		Integer aplicadas = jdbcTemplate.queryForObject(
+		Integer applied = jdbcTemplate.queryForObject(
 				"SELECT count(*) FROM flyway_schema_history WHERE success = true", Integer.class);
 
-		assertThat(aplicadas).isPositive();
+		assertThat(applied).isPositive();
 	}
 
 	@Test
 	void elBaselineHabilitaLaExtensionPgcrypto() {
-		Integer extensiones = jdbcTemplate.queryForObject(
+		Integer extensions = jdbcTemplate.queryForObject(
 				"SELECT count(*) FROM pg_extension WHERE extname = 'pgcrypto'", Integer.class);
 
-		assertThat(extensiones).isEqualTo(1);
+		assertThat(extensions).isEqualTo(1);
 	}
 
 }
