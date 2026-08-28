@@ -700,6 +700,27 @@
       },
       "notBefore": 0,
       "groups": []
+    },
+    {
+      "username": "dev.admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "email": "dev.admin@malphasos.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevAdmin2026!",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/admins"
+      ],
+      "realmRoles": [
+        "default-roles-malphasos-realm"
+      ]
     }
   ],
   "scopeMappings": [
@@ -1148,7 +1169,8 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://localhost:5173/*"
+        "http://localhost:5173/*",
+        "http://localhost:8081/swagger-ui/oauth2-redirect.html"
       ],
       "webOrigins": [
         "+"
