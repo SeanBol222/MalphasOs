@@ -57,10 +57,11 @@ app:
     client-id: ${KEYCLOAK_CLIENT_ID:malphasos-api}
 
 # Cliente administrativo de Keycloak (Admin API), para crear usuarios y asignar roles.
-# Desactivado hasta que exista el realm y su client confidencial.
+# El cliente se construye sin conectarse: el bean existe aunque Keycloak no este disponible, y solo
+# fallan las llamadas reales. Por eso puede quedar activo aun sin el realm creado todavia.
 keycloak:
   admin:
-    enabled: ${KEYCLOAK_ADMIN_ENABLED:false}
+    enabled: ${KEYCLOAK_ADMIN_ENABLED:true}
     server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
     realm: ${KEYCLOAK_REALM:malphasos-realm}
     client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:malphasos-backend-admin}
