@@ -188,10 +188,11 @@ class PersonServiceTest {
 
         servicio().delete(id);
 
+        // El puerto de persistencia ya no ofrece ninguna operacion de borrado, de modo que la
+        // ausencia de borrado fisico esta garantizada por el propio contrato.
         ArgumentCaptor<Person> guardada = ArgumentCaptor.forClass(Person.class);
         verify(persistencePort).save(guardada.capture());
         assertThat(guardada.getValue().isEstadoActivo()).isFalse();
-        verify(persistencePort, never()).delete(any());
     }
 
     @Test

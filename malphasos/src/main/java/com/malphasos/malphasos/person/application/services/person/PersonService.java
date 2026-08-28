@@ -28,9 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
  * concreta del adaptador de Keycloak, dejando sin uso el puerto que existía para eso y acoplando la
  * capa de aplicación a una tecnología concreta.
  *
- * <p>Todavía no se declara como bean de Spring: sus dos puertos de salida no tienen implementación
- * hasta que se migren los adaptadores de persistencia e identidad, y el contexto no arrancaría. La
- * anotación se añade en ese momento. Mientras tanto la clase se ejercita con dobles de prueba.
+ * <p>Aún no se declara como bean de Spring. El adaptador de persistencia ya existe, pero falta el
+ * de identidad, y el contexto no arrancaría sin él. La anotación se añade al migrar ese adaptador.
  */
 @Slf4j
 @RequiredArgsConstructor
