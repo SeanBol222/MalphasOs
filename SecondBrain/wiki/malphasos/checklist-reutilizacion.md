@@ -25,6 +25,10 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 - [x] **Hecho.** Portar `OpenApiConfig` con grupos por módulo; fija la convención de rutas `/v1/api/<recurso>`. [[openapi-swagger]]
 - [x] **Parcial.** Catálogo transversal migrado y corregido. Falta la interfaz/clase base común, que se definirá al migrar el primer módulo con excepciones propias. [[manejo-global-excepciones]], [[patron-catalogo-errores-por-contexto]]
 
+## 2.b Primer módulo de dominio migrado: personas
+
+- [x] **Hecho (2026-08-28).** `person_hexagon` migrado completo en seis commits, de adentro hacia afuera. Se conservó el patrón de Generación 1 por decisión explícita. 22 defectos corregidos: [[migracion-person-hallazgos]]
+
 ## 3. Primer módulo de dominio — usar como plantilla la Generación 2, no la 1
 
 - [ ] Implementar el primer hexágono (sugerido: ubicación, es el más simple) siguiendo exactamente el patrón de `location_hexagon`: agregado + factoría estática + eventos + commands si aplica. [[dominio-ubicacion]], [[evolucion-arquitectonica-crud-a-cqrs]]
@@ -42,7 +46,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## 6. Identidad y frontend
 
-- [ ] Portar `PersonIdentityPort`/Adapter completo, completando `createSuperAdminUser`. [[dominio-persona-identidad]]
+- [x] **Hecho.** Portar `PersonIdentityPort`/Adapter. `createSuperAdminUser` queda fuera del puerto por estar sin implementar en el original. [[dominio-persona-identidad]], [[migracion-person-hallazgos]]
 - [ ] Portar `auth/keycloak.ts` + `AuthProvider` + `PrivateRoute` + `apiFetch` del frontend sin cambios estructurales. [[integracion-keycloak-frontend]]
 - [ ] Decidir organización por feature (no por tipo técnico) desde el inicio del frontend de MalphasOS, dado que el original todavía no lo resolvió. [[arquitectura-frontend]]
 
