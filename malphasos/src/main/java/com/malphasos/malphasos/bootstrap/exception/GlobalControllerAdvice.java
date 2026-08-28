@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.bootstrap.exception;
 
 import static com.malphasos.malphasos.bootstrap.exception.utils.GlobalErrorCatalog.DATABASE_ERROR;
+import static com.malphasos.malphasos.bootstrap.exception.utils.GlobalErrorCatalog.DATA_CONFLICT;
 import static com.malphasos.malphasos.bootstrap.exception.utils.GlobalErrorCatalog.INVALID_DATA;
 
 import com.malphasos.malphasos.bootstrap.exception.response.GlobalErrorResponse;
@@ -9,6 +10,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -41,6 +43,32 @@ public class GlobalControllerAdvice {
         return GlobalErrorResponse.builder()
                 .code(DATABASE_ERROR.getCode())
                 .message(DATABASE_ERROR.getMessage())
+                .details(List.of())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    /**
+     * Los datos chocan con una restricción de integridad: una clave repetida, una referencia
+     * inexistente o un valor fuera del catálogo permitido.
+     *
+     * <p>Se responde 409 y no 500 porque el origen es lo que envió el cliente, no un fallo del
+     * servidor. Aun así, llegar hasta aquí suele delatar una validación que falta en el dominio: lo
+     * deseable es rechazar el dato antes de intentar guardarlo, donde se puede explicar qué regla se
+     * incumplió. Por eso se registra en el log con detalle.
+     *
+     * <p>El mensaje de la excepción no viaja al cliente: contiene nombres de tablas, columnas y
+     * restricciones.
+     */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public GlobalErrorResponse handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+
+        log.warn("Los datos recibidos incumplen una restriccion de integridad", ex);
+
+        return GlobalErrorResponse.builder()
+                .code(DATA_CONFLICT.getCode())
+                .message(DATA_CONFLICT.getMessage())
                 .details(List.of())
                 .timestamp(LocalDateTime.now())
                 .build();

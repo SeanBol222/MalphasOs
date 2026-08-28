@@ -23,7 +23,13 @@ public enum GlobalErrorCatalog {
     /**
      * Los datos de entrada no cumplen con las validaciones declaradas en la petición.
      */
-    INVALID_DATA("ERR_INVALID_DATA_002", "Invalid data");
+    INVALID_DATA("ERR_INVALID_DATA_002", "Invalid data"),
+
+    /**
+     * Los datos chocan con una restricción de integridad de la base: clave repetida, referencia
+     * inexistente o valor fuera del catálogo permitido.
+     */
+    DATA_CONFLICT("ERR_DATA_CONFLICT_003", "Data conflicts with an existing constraint");
 
     private final String code;
     private final String message;
