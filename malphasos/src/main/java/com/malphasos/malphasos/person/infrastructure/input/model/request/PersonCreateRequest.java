@@ -53,6 +53,6 @@ public record PersonCreateRequest(
         @Schema(description = "Funcion secundaria, solo MANAGER", example = "MANAGER")
         PersonType segundoTipoPersona,
 
-        @Valid List<EmailPersonCreateRequest> emailPersonList,
-        @Valid List<PhonePersonCreateRequest> phonePersonList) {
+        List<@Valid EmailPersonCreateRequest> emailPersonList,
+        List<@Valid PhonePersonCreateRequest> phonePersonList) {
 }

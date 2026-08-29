@@ -57,7 +57,7 @@ public record PersonRegisterRequest(
 
         @Schema(description = "Al menos un correo: con el se crea el usuario")
         @NotEmpty(message = "Se requiere al menos un correo")
-        @Valid List<EmailPersonCreateRequest> emailPersonList,
+        List<@Valid EmailPersonCreateRequest> emailPersonList,
 
-        @Valid List<PhonePersonCreateRequest> phonePersonList) {
+        List<@Valid PhonePersonCreateRequest> phonePersonList) {
 }

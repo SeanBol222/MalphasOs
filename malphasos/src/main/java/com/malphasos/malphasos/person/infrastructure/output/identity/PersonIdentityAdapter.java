@@ -7,6 +7,8 @@ import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataExcept
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.person.RoleType;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import org.keycloak.admin.client.Keycloak;
@@ -51,6 +53,13 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
         // cerraba, de modo que cada alta de usuario dejaba una conexion sin liberar.
         try (Response response = keycloakClient.realm(realm).users().create(user)) {
             return createdUserId(response);
+
+        } catch (ProcessingException | WebApplicationException e) {
+            // El cliente puede fallar antes de entregar un Response: si no consigue autenticarse
+            // contra la Admin API o no alcanza el servidor, lanza en vez de devolver un codigo.
+            // Sin traducirlo aqui, la excepcion escapaba hasta el servlet y el cliente recibia un
+            // 500 generico, fuera del contrato de errores del API.
+            throw translateClientFailure(e, "crear el usuario");
         }
     }
 
@@ -64,11 +73,48 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
             }
         } catch (KeycloakConnectionException e) {
             throw e;
+        } catch (ProcessingException | WebApplicationException e) {
+            throw translateClientFailure(e, "eliminar el usuario " + userId);
         } catch (RuntimeException e) {
             // El original envolvia el fallo en un RuntimeException generico concatenando el mensaje,
             // con lo que se perdia la excepcion original y su traza.
             throw new KeycloakConnectionException("No se pudo eliminar el usuario " + userId, e);
         }
+    }
+
+    /**
+     * Traduce un fallo del propio cliente de Keycloak a una excepción del dominio.
+     *
+     * <p>A diferencia de {@link #createdUserId(Response)}, que interpreta el codigo de una respuesta
+     * recibida, aqui la llamada ni siquiera llego a completarse. El motivo real suele venir envuelto
+     * en un {@code ProcessingException}, de modo que hay que recorrer la cadena de causas para
+     * encontrar el codigo HTTP que lo explica.
+     *
+     * <p>El caso mas habitual en desarrollo es un 401: el secreto del client administrativo no esta
+     * configurado o no coincide, y este servicio no consigue autenticarse contra la Admin API.
+     */
+    private RuntimeException translateClientFailure(RuntimeException fallo, String operacion) {
+
+        for (Throwable causa = fallo; causa != null; causa = causa.getCause()) {
+            if (causa instanceof WebApplicationException web) {
+                int status = web.getResponse().getStatus();
+
+                return switch (status) {
+                    case 401, 403 -> new KeycloakUnauthorizedException(
+                            "El cliente administrativo no pudo autenticarse contra Keycloak al "
+                                    + operacion + ". Revisa el secreto configurado.",
+                            fallo);
+                    case 409 -> new KeycloakUserAlreadyExistsException(
+                            "Ya existe un usuario con esos datos en el realm " + realm, fallo);
+                    case 400 -> new KeycloakInvalidDataException(
+                            "Keycloak rechazo los datos al " + operacion, fallo);
+                    default -> new KeycloakConnectionException(
+                            "Keycloak respondio " + status + " al " + operacion, fallo);
+                };
+            }
+        }
+
+        return new KeycloakConnectionException("No se pudo contactar con Keycloak al " + operacion, fallo);
     }
 
     /**
