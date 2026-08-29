@@ -44,4 +44,4 @@ Cambios de diseño respecto al original: `tipoPersona` pasa de `String` al enum 
 
 ## Notas relacionadas
 
-[[seguridad-keycloak-backend]] · [[relacion-cliente-persona-ambiguedad]] · [[dominio-cliente]] · [[keycloak-configuracion]] · [[deuda-tecnica-y-riesgos]]
+[[seguridad-keycloak-backend]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-cliente-persona-ambiguedad]] · [[dominio-cliente]] · [[keycloak-configuracion]] · [[deuda-tecnica-y-riesgos]]

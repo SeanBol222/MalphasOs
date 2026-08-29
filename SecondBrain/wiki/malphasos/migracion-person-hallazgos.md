@@ -3,7 +3,7 @@ name: migracion-person-hallazgos
 description: Los 22 defectos encontrados al migrar person_hexagon capa por capa, y qué los destapó
 tags: [malphasos, person, hallazgos, migracion]
 source: person_hexagon (original) → malphasos/src/.../person (MalphasOS)
-updated: 2026-08-28
+updated: 2026-08-29
 ---
 
 # Migración de `person_hexagon`: qué apareció al mirarlo de cerca
@@ -61,9 +61,23 @@ La lección es general y aplica a los módulos que faltan: **al migrar reglas de
 
 **Las pruebas no lo detectaron porque cubrían las reglas conocidas.** Una regla que nadie identificó no aparece en ninguna prueba. Es el límite de las pruebas escritas por quien migra: verifican lo que entendió, no lo que existe. De ahí el valor de probar la aplicación a mano contra datos reales.
 
+## Defectos heredados que sobrevivieron a la revisión
+
+Una tercera categoría, distinta de las dos anteriores y quizá la más instructiva: defectos que **sí estaban en el original**, que se portaron fielmente, y que ninguna de las dos lecturas del código detectó. Fueron los últimos en caer, y los destapó la misma prueba manual —intentar registrar un ingeniero desde Swagger—, no la batería automática.
+
+**El adaptador de identidad estaba traducido a medias.** `createUser` interpretaba los códigos del `Response` de Keycloak, pero no capturaba nada: cuando el cliente falla antes de entregar respuesta —no logra autenticarse, no alcanza el servidor— lanza en lugar de devolver un código, y esa excepción escapaba hasta el servlet como un 500 fuera del contrato del API. `deleteUser`, en el mismo archivo, sí lo contemplaba. La inconsistencia vivía dentro de una sola clase, en el original y en la copia. Ver [[traduccion-de-fallos-de-adaptadores]], que generaliza el caso a los adaptadores que faltan por migrar.
+
+**Los secretos de los clients eran la máscara del export.** Los dos clients confidenciales quedaron con el secreto literal `**********`, que es lo que Keycloak escribe al exportar y lo que toma como valor real al reimportar. Verificado: los dos `realm-export.json` del original lo traen así. Al transformar el export para MalphasOS se arreglaron `admin.full`, `frontendUrl`, la fuerza bruta y la política de contraseñas, y aun así este campo pasó desapercibido, porque la consola de administración enmascara los secretos exactamente igual y nada en la interfaz lo delata. Ver [[keycloak-configuracion]].
+
+De los dos, el primero hacía fallar el registro; el segundo era la razón por la que fallaba.
+
+Un detalle menor del mismo commit, este sí introducido al migrar: `@Valid` quedó sobre las listas de contactos en vez de sobre su argumento de tipo (`List<@Valid Email>`). Hibernate Validator lo acepta pero lo marca como obsoleto, y llenaba el log en cada petición.
+
+**Lo que enseña la categoría**: revisar un archivo buscando defectos conocidos no equivale a revisarlo entero. En el adaptador se corrigieron cuatro cosas y se pasó por alto una quinta que estaba a diez líneas; en el realm, cinco de seis. La atención se agota en lo que se fue a buscar.
+
 ## Lo que enseñó el proceso
 
-**Cuatro defectos los encontró la ejecución, no la lectura del código**: el `LazyInitializationException`, la desincronización entre el enum y el catálogo de la base, un error propio al escribir `"ingeniero"` donde correspondía `ENGINEER`, y la regla de tipos que faltaba. Los tres primeros los destaparon las pruebas automáticas; el cuarto, una prueba manual desde Swagger. Leer el código no basta, y escribir pruebas tampoco alcanza cuando se desconoce una regla.
+**Seis defectos los encontró la ejecución, no la lectura del código**: el `LazyInitializationException`, la desincronización entre el enum y el catálogo de la base, un error propio al escribir `"ingeniero"` donde correspondía `ENGINEER`, la regla de tipos que faltaba, la mitad sin traducir del adaptador de identidad y los secretos enmascarados del realm. Los tres primeros los destaparon las pruebas automáticas; los tres últimos, pruebas manuales desde Swagger. Y de los seis, **la mitad estaba en el original y se leyó sin verla**. Leer el código no basta, y escribir pruebas tampoco alcanza cuando se desconoce una regla.
 
 **Desactivar `open-in-view` sacó a la luz un problema latente.** El original funciona con esa opción activa, que es su valor por defecto y un antipatrón conocido. Al apagarla, el fallo apareció de inmediato. Conviene mantenerla apagada precisamente por eso.
 
@@ -71,4 +85,4 @@ La lección es general y aplica a los módulos que faltan: **al migrar reglas de
 
 ## Notas relacionadas
 
-[[dominio-persona-identidad]] · [[antipatron-open-in-view]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[checklist-reutilizacion]] · [[dominio-cliente]]
+[[dominio-persona-identidad]] · [[traduccion-de-fallos-de-adaptadores]] · [[antipatron-open-in-view]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[checklist-reutilizacion]] · [[dominio-cliente]]

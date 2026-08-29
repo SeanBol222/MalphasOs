@@ -2,7 +2,7 @@
 name: checklist-reutilizacion
 description: Orden priorizado sugerido de qué portar primero al construir MalphasOS, basado en el análisis de todo el wiki
 tags: [malphasos, checklist, planificacion]
-updated: 2026-08-27
+updated: 2026-08-29
 ---
 
 # Checklist priorizado de reutilización
@@ -27,7 +27,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## 2.b Primer módulo de dominio migrado: personas
 
-- [x] **Hecho (2026-08-28).** `person_hexagon` migrado completo en seis commits, de adentro hacia afuera. Se conservó el patrón de Generación 1 por decisión explícita. 22 defectos corregidos: [[migracion-person-hallazgos]]
+- [x] **Hecho (cerrado el 2026-08-29).** `person_hexagon` migrado completo en seis commits, de adentro hacia afuera, más tres de corrección salidos de pruebas manuales. Se conservó el patrón de Generación 1 por decisión explícita. 22 defectos del original corregidos y dos errores propios documentados: [[migracion-person-hallazgos]]. Verificado extremo a extremo contra la aplicación contenerizada, con 68 pruebas en verde.
 
 ## 3. Primer módulo de dominio — usar como plantilla la Generación 2, no la 1
 

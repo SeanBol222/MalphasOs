@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr]
-updated: 2026-08-28
+updated: 2026-08-29
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -113,6 +113,8 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Flujo del client público | **Sin `directAccessGrants`** | La SPA usa PKCE; el flujo de contraseña directa expone credenciales sin aportar nada |
 | Roles granulares | **Definidos pero sin usar**, como en el original | Aplicarlos exigiría cambiar los `@PreAuthorize` de todos los controladores; queda como decisión abierta |
 | Seguridad en pruebas | **Apagada salvo en `SecurityIntegrationTest`** | Cada prueba se centra en su capa; la protección se verifica en un sitio, con el decodificador de JWT sustituido por un doble para no necesitar Keycloak |
+| Secretos de los clients confidenciales | **Valores de desarrollo explícitos en el realm** | La alternativa —quitar el campo para que Keycloak genere uno aleatorio en cada importación— es más segura, pero obliga a copiar el secreto a mano desde la consola cada vez que se recrea el contenedor. Este realm ya es de desarrollo y contiene la contraseña de su usuario de pruebas, así que se prefirió la reproducibilidad al clonar. Los secretos se llaman `dev-only-...-change-in-any-real-environment` para que su propio nombre advierta |
+| Fallo del servicio contra Keycloak | **502, no 401** | Quien no consiguió autenticarse es el servicio contra su dependencia, no quien llama. Un 401 le pide al cliente arreglar algo que no está en su mano. Ver [[traduccion-de-fallos-de-adaptadores]] |
 
 ## Pruebas manuales y documentación viva
 
@@ -130,4 +132,4 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 
 ## Notas relacionadas
 
-[[stack-spring-boot-4-particularidades]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[stack-spring-boot-4-particularidades]] · [[traduccion-de-fallos-de-adaptadores]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

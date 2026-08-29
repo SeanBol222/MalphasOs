@@ -2,7 +2,7 @@
 name: deuda-tecnica-y-riesgos
 description: Registro centralizado de bugs, inconsistencias y piezas incompletas detectadas en bolivarbioingenieria-app — no asumir que estas partes funcionan al portarlas
 tags: [deuda-tecnica, riesgos, "reusable:no"]
-updated: 2026-08-27
+updated: 2026-08-29
 ---
 
 # Deuda técnica y riesgos conocidos
@@ -14,6 +14,7 @@ Nota índice que centraliza todo lo detectado como bug, inconsistencia o pieza i
 | **El import del realm de Keycloak nunca se ejecutó**: `KEYCLOAK_IMPORT` es de la era WildFly y Keycloak 26 la ignora; además apunta a un nombre de archivo inexistente (`real-export.json`) con basura concatenada en el valor | `docker-compose.yaml` | Alta — al reproducir el entorno desde cero el realm no aparece solo. **Ya corregido en MalphasOS** con `--import-realm` | [[docker-compose]], [[keycloak-configuracion]] |
 | **`admin.full` está definido como rol pero no asignado a ningún grupo**, y es el permiso que exigen todos los controladores: cualquier usuario recibe 403 en todos los endpoints | `realm-export.json` | Alta — la API es inutilizable tal como esta configurada. **Corregido en MalphasOS** | [[keycloak-configuracion]] |
 | **`attributes.frontendUrl` fijado a `http://keycloak:8080`** en el realm, un valor que anula `KC_HOSTNAME` y que ningún navegador puede resolver | `realm-export.json` | Alta — impide autenticarse fuera de Docker. **Corregido en MalphasOS** | [[issuer-uri-vs-jwk-set-uri]] |
+| **Los dos clients confidenciales tienen el secreto literal `**********`**: es la máscara que Keycloak escribe al exportar, y al reimportar la toma como el valor real. La consola no lo delata porque enmascara igual | `realm-export.json` (ambas copias) | Alta — credencial trivial en cualquier entorno reconstruido desde el export. **Corregido en MalphasOS** con secretos de desarrollo explícitos | [[keycloak-configuracion]] |
 | El realm no tiene protección contra fuerza bruta y permite 30 intentos fallidos, sin política de contraseñas | `realm-export.json` | Media. **Corregido en MalphasOS** | [[keycloak-configuracion]] |
 | El client público del frontend habilita el flujo de contraseña directa, innecesario con PKCE, y usa `webOrigins: *` | `realm-export.json` | Media. **Corregido en MalphasOS** | [[keycloak-configuracion]] |
 | Los 15 roles granulares del realm no se usan: el código solo comprueba `admin.full`, de modo que quien lo tiene puede hacer todo | realm + controladores | Media — decisión de diseño pendiente | [[keycloak-configuracion]] |
@@ -33,6 +34,7 @@ Nota índice que centraliza todo lo detectado como bug, inconsistencia o pieza i
 | **`validar_roles_persona()` es código muerto**: la función existe pero ningún `CREATE TRIGGER` la asocia a la tabla, así que sus dos reglas nunca se ejecutaron | esquema SQL | Alta — reglas de negocio inexistentes en la práctica. **Trasladadas al dominio en MalphasOS** | [[migracion-person-hallazgos]] |
 | **El adaptador de persistencia mapea colecciones perezosas fuera de transacción**; solo funciona porque `open-in-view` viene activo por omisión | `PersonPersistenceAdapter` | Alta al desactivar esa opción. **Corregido en MalphasOS** | [[antipatron-open-in-view]] |
 | **El `Response` de JAX-RS nunca se cierra** al crear usuarios en Keycloak | `PersonIdentityAdapter` | Media — fuga de conexiones. **Corregido en MalphasOS** | [[migracion-person-hallazgos]] |
+| **`createUser` no captura los fallos del cliente de Keycloak**, aunque `deleteUser` sí: cuando el cliente lanza en vez de devolver un `Response` (no logra autenticarse, no alcanza el servidor) la excepción escapa hasta el servlet como un 500 fuera del contrato del API | `PersonIdentityAdapter` | Alta — el fallo más probable en un entorno mal configurado es el peor reportado. **Corregido en MalphasOS** | [[traduccion-de-fallos-de-adaptadores]] |
 | **El `switch` de grupos de Keycloak no tiene caso por defecto**: un `RoleType` nuevo crearía usuarios sin ningún grupo y sin aviso | `PersonIdentityAdapter` | Media. **Corregido en MalphasOS** con una expresión switch | [[migracion-person-hallazgos]] |
 | El advice del módulo captura `Exception` y devuelve `ex.getMessage()` al cliente | `PersonGlobalControllerAdvice` | Media — divulgación de información. **Corregido en MalphasOS** | [[migracion-person-hallazgos]] |
 | `KeycloakUnauthorizedException` responde **401** al llamante, cuando quien carece de permisos es el servicio frente a Keycloak | `PersonGlobalControllerAdvice` | Media — culpa al cliente de una mala configuración del servidor | [[migracion-person-hallazgos]] |
@@ -57,4 +59,4 @@ Antes de decidir portar cualquier pieza de `bolivarbioingenieria-app` a MalphasO
 
 ## Notas relacionadas
 
-[[sintesis-malphasos]] · [[checklist-reutilizacion]]
+[[sintesis-malphasos]] · [[checklist-reutilizacion]] · [[traduccion-de-fallos-de-adaptadores]]
