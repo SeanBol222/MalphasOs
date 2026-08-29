@@ -41,6 +41,7 @@ El paquete ya está portado, con estas correcciones aplicadas:
 - El mensaje de `DataAccessException` va al log; la respuesta solo lleva el código de error.
 - `GlobalErrorResponse` pasó a ser un `record`: una respuesta de error no debe mutar tras construirse.
 - Los códigos del catálogo se alinearon con su propio javadoc.
+- Las violaciones de integridad dejan de responder 500. Su origen es lo que envió el cliente —una clave duplicada, un valor fuera del catálogo—, así que se traducen en 409 con código propio, y el mensaje técnico, que nombra tablas y restricciones, se queda en el log. Llegar a ese manejador delata además una validación ausente en el dominio: ver [[reglas-de-negocio-en-el-esquema]].
 
 Sigue **pendiente** definir la interfaz o clase base común para los catálogos por módulo: hoy solo existe el catálogo transversal, y la duplicación aparecerá cuando se migre el primer módulo de dominio con sus propias excepciones.
 

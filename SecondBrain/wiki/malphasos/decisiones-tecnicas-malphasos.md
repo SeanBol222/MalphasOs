@@ -114,6 +114,14 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Roles granulares | **Definidos pero sin usar**, como en el original | Aplicarlos exigiría cambiar los `@PreAuthorize` de todos los controladores; queda como decisión abierta |
 | Seguridad en pruebas | **Apagada salvo en `SecurityIntegrationTest`** | Cada prueba se centra en su capa; la protección se verifica en un sitio, con el decodificador de JWT sustituido por un doble para no necesitar Keycloak |
 
+## Pruebas manuales y documentación viva
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Autenticación en Swagger | **OAuth2 Authorization Code + PKCE** | El esquema bearer obliga a pegar un token que caduca a los cinco minutos. Con el flujo completo, el botón Authorize inicia sesión en Keycloak y el token se inyecta solo |
+| Usuario de desarrollo | **`dev.admin` en el realm versionado**, dentro del grupo `admins` | El realm no traía ningún usuario con el que iniciar sesión. Queda reproducible para quien clone el repositorio. ⚠️ Su contraseña está en el archivo: ese realm es solo para desarrollo local |
+| Violaciones de integridad | **409, no 500** | El origen es el dato que envió el cliente, no un fallo del servidor |
+
 ## Pendientes de decidir
 
 - La relación entre "encargado" y "persona/usuario del sistema": ver [[relacion-cliente-persona-ambiguedad]]. **Debe resolverse antes de modelar el módulo de clientes.**
