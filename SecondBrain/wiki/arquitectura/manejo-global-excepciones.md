@@ -51,4 +51,4 @@ Sigue **pendiente** definir la interfaz o clase base común para los catálogos 
 
 ## Notas relacionadas
 
-[[patron-catalogo-errores-por-contexto]] · [[dominio-cliente]] · [[dominio-persona-identidad]] · [[dominio-ubicacion]] · [[deuda-tecnica-y-riesgos]]
+[[patron-catalogo-errores-por-contexto]] · [[traduccion-de-fallos-de-adaptadores]] · [[dominio-cliente]] · [[dominio-persona-identidad]] · [[dominio-ubicacion]] · [[deuda-tecnica-y-riesgos]]
