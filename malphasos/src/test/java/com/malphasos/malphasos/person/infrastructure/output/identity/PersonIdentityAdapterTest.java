@@ -12,6 +12,8 @@ import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataExcept
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.person.RoleType;
+import jakarta.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.util.UUID;
@@ -157,6 +159,30 @@ class PersonIdentityAdapterTest {
         assertThat(user.getValue().isEnabled()).isTrue();
         assertThat(user.getValue().getUsername()).isEqualTo("ada");
         assertThat(user.getValue().getCredentials()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("si el cliente no logra autenticarse contra Keycloak, se traduce a excepcion de dominio")
+    void clientAuthFailureIsTranslated() {
+        // Regresion: el cliente lanza antes de devolver un Response cuando el secreto del client
+        // administrativo falta o no coincide. Sin traducirlo, la excepcion escapaba hasta el
+        // servlet y el llamante recibia un 500 generico fuera del contrato de errores.
+        when(usersResource.create(any()))
+                .thenThrow(new ProcessingException(new NotAuthorizedException("HTTP 401 Unauthorized")));
+
+        assertThatThrownBy(() -> adapter.createUser(request(), RoleType.ENGINEER))
+                .isInstanceOf(KeycloakUnauthorizedException.class)
+                .hasMessageContaining("secreto");
+    }
+
+    @Test
+    @DisplayName("un fallo de red al crear se traduce a error de comunicacion")
+    void networkFailureIsTranslated() {
+        when(usersResource.create(any()))
+                .thenThrow(new ProcessingException(new java.net.ConnectException("conexion rechazada")));
+
+        assertThatThrownBy(() -> adapter.createUser(request(), RoleType.ENGINEER))
+                .isInstanceOf(KeycloakConnectionException.class);
     }
 
     @Test
