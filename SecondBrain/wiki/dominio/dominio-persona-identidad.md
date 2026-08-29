@@ -4,14 +4,14 @@ description: person_hexagon — Person + integración con Keycloak Admin API par
 tags: [dominio, backend, identidad, keycloak, "reusable:alta"]
 source: Backend/sigma-bb/src/main/java/.../person_hexagon/
 estado: incompleto
-updated: 2026-08-27
+updated: 2026-08-29
 ---
 
 # Dominio Persona e Identidad (`person_hexagon`)
 
 ## Modelo de dominio
 
-`Person` (cédula, nombres, apellidos, `tipoPersona`, `segundoTipoPersona`) + `EmailPerson`/`PhonePerson` propios. **Independiente de `Client`/`Manager`** — sin import cruzado en los modelos de dominio (ver [[relacion-cliente-persona-ambiguedad]]).
+`Person` (cédula, nombres, apellidos, `tipoPersona`, `segundoTipoPersona`) + `EmailPerson`/`PhonePerson` propios. Sin import cruzado con `Client`/`Manager` en los modelos de dominio, aunque **un encargado sí es una persona** en el esquema y en el flujo de creación (ver [[relacion-manager-persona]]).
 
 ## Casos de uso REST
 
@@ -44,4 +44,4 @@ Cambios de diseño respecto al original: `tipoPersona` pasa de `String` al enum 
 
 ## Notas relacionadas
 
-[[seguridad-keycloak-backend]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-cliente-persona-ambiguedad]] · [[dominio-cliente]] · [[keycloak-configuracion]] · [[deuda-tecnica-y-riesgos]]
+[[seguridad-keycloak-backend]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[keycloak-configuracion]] · [[deuda-tecnica-y-riesgos]]

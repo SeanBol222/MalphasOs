@@ -2,7 +2,7 @@
 name: alcance-malphasos
 description: Mapeo módulo por módulo de qué entra a MalphasOS desde bolivarbioingenieria-app y qué se queda fuera
 tags: [malphasos, alcance, planificacion]
-updated: 2026-08-27
+updated: 2026-08-29
 ---
 
 # Alcance de MalphasOS frente a bolivarbioingenieria-app
@@ -31,7 +31,7 @@ MalphasOS es la extracción de **gestión de clientes** + **gestión de mantenim
 
 ## Decisiones pendientes explícitas antes de escribir código
 
-Ver [[relacion-cliente-persona-ambiguedad]] y la tabla completa en [[deuda-tecnica-y-riesgos]].
+Ver [[relacion-manager-persona]] y la tabla completa en [[deuda-tecnica-y-riesgos]].
 
 ## Notas relacionadas
 

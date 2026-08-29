@@ -29,7 +29,7 @@ Registro de decisiones tomadas al construir MalphasOS, en el espíritu de un ADR
 |---|---|---|
 | Esquema | **Flyway** (original: scripts `initdb`) | Los scripts de `/docker-entrypoint-initdb.d` solo corren al crear el volumen: cambiar el esquema obliga a borrar la base. Flyway versiona y es reproducible en cualquier entorno. Ver [[esquema-bd-v4]] para el modelo destino |
 | Propiedad del esquema | **Flyway, exclusivamente** | `ddl-auto: validate` — Hibernate nunca modifica el esquema, solo verifica que las entidades coincidan con lo que crearon las migraciones |
-| Primera migración | **baseline sin tablas** | `V1__baseline.sql` solo habilita `pgcrypto` y establece el punto de partida del versionado. Cada módulo de dominio traerá su propia migración, en vez de congelar de golpe decisiones de modelado que siguen abiertas (ver [[relacion-cliente-persona-ambiguedad]]) |
+| Primera migración | **baseline sin tablas** | `V1__baseline.sql` solo habilita `pgcrypto` y establece el punto de partida del versionado. Cada módulo de dominio traerá su propia migración, en vez de congelar de golpe decisiones de modelado que siguen abiertas (ver [[relacion-manager-persona]]) |
 | PKs | **UUID desde el día uno** | El original tardó cuatro iteraciones en estandarizarlas, ver [[evolucion-esquema-v1-v4]] |
 | `open-in-view` | **false** | Evita resolver lazy-loading durante el renderizado de la respuesta; obliga a decidir la carga de datos en la capa de aplicación |
 
@@ -124,12 +124,20 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Usuario de desarrollo | **`dev.admin` en el realm versionado**, dentro del grupo `admins` | El realm no traía ningún usuario con el que iniciar sesión. Queda reproducible para quien clone el repositorio. ⚠️ Su contraseña está en el archivo: ese realm es solo para desarrollo local |
 | Violaciones de integridad | **409, no 500** | El origen es el dato que envió el cliente, no un fallo del servidor |
 
+## Módulo de clientes (decidido el 2026-08-29, antes de escribir código)
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Patrón arquitectónico | **Generación 2**: `AggregateRoot` + commands + eventos de dominio | `client` es Generación 1 en el original y el wiki lo marca `reusable:no` como patrón. Con 96 archivos, reconvertirlo después sale mucho más caro que construirlo bien. Obliga a migrar antes `shared/domain/events`, coste que `equipment` ya no vuelve a pagar. Ver [[evolucion-arquitectonica-crud-a-cqrs]] |
+| Identidad encargado↔persona | **Entidad propia con `@MapsId`** sobre `Person` | Conserva la forma del esquema —`encargado.k_identificador` como PK y FK a la vez— sin migrar datos, y hace visible para JPA una relación que hoy solo existe en la base y en el orden de dos llamadas de un método privado. La alternativa, absorber el rol dentro de `Person`, da un modelo más simple pero invierte la dependencia entre módulos: `person` pasaría a conocer sedes y áreas. Ver [[relacion-manager-persona]] |
+| `tipoEncargado` | **Enum `ManagerType`** (`HEADQUARTER`, `SERVICE_AREA`) | Es un `String` en el original, con un javadoc que documenta dos valores que la restricción rechaza. Mismo tratamiento que recibió `tipoPersona` |
+| Orden de migración | `PersonCommunicationPort` → `shared/domain/events` → `V3__client.sql` → dominio → aplicación → persistencia → REST | El puerto es un bloqueo real: `HeadquarterService` y `ServiceAreaService` no compilan sin él, y quedó aplazado al migrar `person` por importar tipos de `infrastructure` |
+
 ## Pendientes de decidir
 
-- La relación entre "encargado" y "persona/usuario del sistema": ver [[relacion-cliente-persona-ambiguedad]]. **Debe resolverse antes de modelar el módulo de clientes.**
 - Si el manejo de excepciones usa una base común entre módulos o se repite por bounded context: ver [[manejo-global-excepciones]].
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
 
 ## Notas relacionadas
 
-[[stack-spring-boot-4-particularidades]] · [[traduccion-de-fallos-de-adaptadores]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[stack-spring-boot-4-particularidades]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

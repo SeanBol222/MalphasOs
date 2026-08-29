@@ -27,7 +27,7 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[dominio-ubicacion]] 🟢 — location_hexagon: Country/City. Referencia de Generación 2.
 - [[dominio-equipo-mantenimiento]] ⭐ — equipment_hexagon: **el núcleo de mantenimiento preventivo y la referencia arquitectónica principal**.
 - [[dominio-reportes]] 🟢 — reports_hexagon: agregador cross-dominio desacoplado.
-- [[relacion-cliente-persona-ambiguedad]] 🔴 — Manager no referencia Person; decisión de diseño pendiente, no replicar.
+- [[relacion-manager-persona]] 🟡 — Un encargado ES una persona por clave primaria compartida; el dominio es la única capa que no lo dice.
 
 ## Base de datos
 

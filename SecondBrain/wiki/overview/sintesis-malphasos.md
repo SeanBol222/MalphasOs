@@ -2,7 +2,7 @@
 name: sintesis-malphasos
 description: La nota más importante del wiki — tesis evolutiva sobre qué patrones adoptar y por qué, se actualiza en cada ingest relevante
 tags: [overview, sintesis, malphasos, decision-clave]
-updated: 2026-08-27
+updated: 2026-08-29
 ---
 
 # Síntesis: qué llevarse de bolivarbioingenieria-app a MalphasOS
@@ -27,7 +27,7 @@ Esto significa que **MalphasOS no puede simplemente "copiar" el dominio de clien
 
 ## Lo que hay que decidir explícitamente, no heredar por defecto
 
-- [[relacion-cliente-persona-ambiguedad]] — resolver desde el diseño si un "encargado" de MalphasOS referencia `Person` o se fusiona con ella.
+- [[relacion-manager-persona]] — la relación ya está decidida en el original (identidad compartida); lo que falta es expresarla en el modelo de dominio, y elegir entre `@MapsId` o absorber el rol dentro de `Person`.
 - [[manejo-global-excepciones]] — diseñar el manejo de errores con una base compartida real entre módulos, no repetir el boilerplate divergente detectado aquí.
 - Completar lo que en el original quedó a medias antes de confiar en ello: ver toda la tabla en [[deuda-tecnica-y-riesgos]].
 

@@ -41,7 +41,8 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## 5. Módulo de clientes — reconstruir, no copiar
 
-- [ ] Resolver primero [[relacion-cliente-persona-ambiguedad]] como decisión de diseño explícita, antes de escribir el modelo.
+- [ ] Migrar antes `PersonCommunicationPort`: `HeadquarterService` y `ServiceAreaService` dependen de él para crear la persona del encargado, y quedó aplazado al migrar `person` por importar tipos de `infrastructure`. Sin él, `client` no arranca.
+- [x] **Decidido (2026-08-29).** La identidad compartida encargado↔persona se expresa con `@MapsId`, y el módulo se reconstruye en Generación 2. Ver [[decisiones-tecnicas-malphasos]] y [[relacion-manager-persona]].
 - [ ] Reimplementar la jerarquía Client→Headquarter→ServiceArea siguiendo el patrón de agregados + eventos, no el CRUD anémico original. [[dominio-cliente]]
 
 ## 6. Identidad y frontend
