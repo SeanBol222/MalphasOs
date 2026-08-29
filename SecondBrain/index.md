@@ -52,6 +52,7 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[patron-soft-delete]] 🟢 — `b_estado_activo` universal en vez de DELETE físico.
 - [[patron-report-data-provider]] 🟢 — Puerto genérico plugin/strategy para agregación cross-módulo.
 - [[patron-event-dispatcher-dual]] 🟢 — Un puerto, dos mecanismos de despacho intercambiables.
+- [[reglas-de-negocio-en-el-esquema]] 🟢 — Los seis sitios donde un esquema SQL esconde reglas de negocio. Revisar antes de dar por migrado un módulo.
 - [[issuer-uri-vs-jwk-set-uri]] 🟢 — Por qué Keycloak en Docker devuelve 401 con tokens válidos, y cómo separar la URL pública de la interna.
 - [[antipatron-open-in-view]] 🔴 — Por qué `open-in-view` esconde errores de carga perezosa y qué hacer en su lugar.
 - [[deuda-tecnica-y-riesgos]] ⭐ — Registro centralizado de todos los bugs/inconsistencias detectados. Consultar antes de portar cualquier pieza.
@@ -66,4 +67,4 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 
 ---
 
-**38 notas** · última actualización 2026-08-28 · ver [[log.md]] para el historial de ingests.
+**39 notas** · última actualización 2026-08-28 · ver [[log.md]] para el historial de ingests.

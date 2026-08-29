@@ -51,9 +51,19 @@ El dato relevante no es el volumen —53 clases del original frente a 45 en Malp
 
 Las tres operaciones de registro colgaban de **tres versiones distintas del API**: `/vi/` (error tipográfico por `/v1/`), `/v1/` y `/v2/`. Los métodos devolvían `Object` y `List<?>`, con lo que OpenAPI no podía documentar ninguna respuesta. Los correos se creaban con `PUT` y colgaban de rutas propias, como si existieran sin la persona. Y había typos en `registerAdimn` y `tuUpdatePerson`.
 
+## Errores cometidos durante la migración, no heredados
+
+Conviene separarlos de lo anterior: estos no son defectos del original sino fallos propios al portarlo. Aparecieron **probando la aplicación a mano desde Swagger**, con la batería automática en verde.
+
+**Se perdió una regla al trasladarla al dominio.** Las reglas de combinación de tipos estaban repartidas entre la función `validar_roles_persona()` (dos reglas) y la restricción `CHK_segundo_tipo_persona` de la tabla (una tercera: el segundo tipo solo puede ser encargado). Se portaron las dos primeras y se pasó por alto la de la restricción. Consecuencia: `MANAGER` + `ADMIN` atravesaba el dominio sin freno, la base lo rechazaba, y el cliente recibía un 500 que no explicaba nada.
+
+La lección es general y aplica a los módulos que faltan: **al migrar reglas de un esquema hay que revisar las restricciones `CHECK`, no solo las funciones y triggers**. Ver el inventario de sitios donde esconderse en [[reglas-de-negocio-en-el-esquema]].
+
+**Las pruebas no lo detectaron porque cubrían las reglas conocidas.** Una regla que nadie identificó no aparece en ninguna prueba. Es el límite de las pruebas escritas por quien migra: verifican lo que entendió, no lo que existe. De ahí el valor de probar la aplicación a mano contra datos reales.
+
 ## Lo que enseñó el proceso
 
-**Tres defectos los encontraron las pruebas, no la lectura del código**: el `LazyInitializationException`, la desincronización entre el enum y el catálogo de la base, y un error propio al escribir `"ingeniero"` donde correspondía `ENGINEER`. Leer el código no basta: hay que ejecutarlo contra el motor real.
+**Cuatro defectos los encontró la ejecución, no la lectura del código**: el `LazyInitializationException`, la desincronización entre el enum y el catálogo de la base, un error propio al escribir `"ingeniero"` donde correspondía `ENGINEER`, y la regla de tipos que faltaba. Los tres primeros los destaparon las pruebas automáticas; el cuarto, una prueba manual desde Swagger. Leer el código no basta, y escribir pruebas tampoco alcanza cuando se desconoce una regla.
 
 **Desactivar `open-in-view` sacó a la luz un problema latente.** El original funciona con esa opción activa, que es su valor por defecto y un antipatrón conocido. Al apagarla, el fallo apareció de inmediato. Conviene mantenerla apagada precisamente por eso.
 
