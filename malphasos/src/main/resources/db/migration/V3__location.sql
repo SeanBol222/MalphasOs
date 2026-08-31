@@ -16,7 +16,7 @@ CREATE TABLE pais
     -- Aqui la llave es un UUID, por la convencion adoptada en V1__baseline, y el
     -- codigo se conserva como llave natural: sigue siendo unico y consultable, pero
     -- deja de ser aquello a lo que apuntan las claves foraneas de medio esquema.
-    k_codigo_iso   char(3)     NOT NULL,
+    k_codigo_iso   varchar(3)  NOT NULL,
     n_nombre_pais  varchar(50) NOT NULL,
     b_estado_activo boolean    NOT NULL DEFAULT true,
 
@@ -25,6 +25,11 @@ CREATE TABLE pais
     CONSTRAINT "UQ_pais_nombre" UNIQUE (n_nombre_pais),
     -- El original no restringia el formato: cabia cualquier cosa de hasta tres
     -- caracteres, incluidos minusculas y espacios.
+    --
+    -- varchar y no char: char rellena con espacios hasta la longitud declarada, de modo
+    -- que 'CO' se guardaria como 'CO ' y las comparaciones dependerian de ese relleno.
+    -- Con el CHECK de abajo el valor siempre ocupa los tres caracteres, asi que el
+    -- relleno no aportaria nada y solo introduciria una diferencia sutil al comparar.
     CONSTRAINT "CHK_pais_codigo_iso" CHECK (k_codigo_iso ~ '^[A-Z]{3}$')
 );
 
