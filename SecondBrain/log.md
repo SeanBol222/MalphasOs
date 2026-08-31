@@ -183,3 +183,19 @@ Los otros dos: el `PUT` recibía el identificador por la ruta y construía el co
 Un apunte de método, porque se repitió el patrón de las entradas anteriores. Los cuatro defectos del dominio salieron leyendo el código; **los cuatro de las capas de fuera salieron al ejecutarlo o al compararlo con lo ya migrado**. El de autorización apareció por preguntarse por qué `location` no tenía los `@PreAuthorize` que `person` sí llevaba: no se ve leyendo un archivo, se ve comparando dos módulos.
 
 Actualizadas [[migracion-location-hallazgos]], [[patron-mapper-mapstruct]], [[deuda-tecnica-y-riesgos]] —cuatro filas nuevas, 57 en total—, [[manejo-global-excepciones]], [[dominio-ubicacion]], [[decisiones-tecnicas-malphasos]] y [[checklist-reutilizacion]]. La lista de pendientes de decidir baja a uno.
+
+## [2026-08-30] ingest | Esquema de clientes, y una relacion que este wiki leyo mal
+
+`V4__client.sql`: siete tablas —cliente con sus correos y teléfonos, sus representantes legales, sus sedes, las áreas de servicio de cada sede y los encargados de unas y otras—. 177 pruebas en verde.
+
+**Corrección.** La entrada del 2026-08-29 y la nota [[relacion-manager-persona]] afirmaban que `representante_legal` vinculaba persona y cliente *"exactamente con el mismo patrón de identidad compartida"* que `encargado`. Es falso. Su llave primaria es **compuesta**, `(k_identificador, k_id_cliente)`, de modo que la relación es de muchos a muchos: una persona puede representar a varios clientes y un cliente tener varios representantes.
+
+El error vino de mirar los nombres de las columnas —`k_identificador`, FK a persona, igual que en `encargado`— sin leer la llave primaria, que es justamente donde se decide la cardinalidad. Dos tablas con las mismas columnas y llaves distintas son dos relaciones distintas. La nota queda corregida con una tabla comparativa, y la diferencia importa al modelar: `encargado` se expresa con `@MapsId` sobre `Person` y `representante_legal` no puede, porque su identidad no es la de la persona.
+
+**La restricción que más aporta al esquema nuevo** es la de asignación del encargado. El original dejaba `k_id_sede` y `k_id_area_servicio` ambas anulables, con un `t_tipo_encargado` que declaraba de qué se encargaba y nada que atara una cosa a la otra: cabía un `HEADQUARTER` sin sede, con área, con las dos o con ninguna. El tipo decía una cosa y las claves foráneas otra.
+
+`equipo_cliente` no entra: su clave foránea apunta a `modelo`, que pertenece al módulo de equipos y arrastra también `equipo` y `fabricante`. Hay una prueba que fija que la tabla todavía no existe, para que no se olvide.
+
+El resto de correcciones: llave UUID en `cliente` con el NIT como llave natural, igual que se hizo con el código ISO del país; correos y teléfonos que exigen dueño; unicidad de sede por cliente y de área por sede, que no existían; las tres columnas de dirección renombradas al prefijo del esquema; y dos nombres de restricción con letras traspuestas.
+
+**Nueva sección en [[deuda-tecnica-y-riesgos]]: "Deuda propia de MalphasOS".** Hasta ahora esa nota solo recogía defectos del original, y conviene no mezclar. Estrena una entrada nuestra: en `V2__person.sql` dejamos anulable el dueño de los correos y teléfonos de una persona, y en `V4__client.sql` decidimos lo contrario para los del cliente. Los dos módulos hacen cosas distintas con el mismo problema; corregirlo exige una migración propia.

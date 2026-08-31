@@ -1,6 +1,6 @@
 ---
 name: deuda-tecnica-y-riesgos
-description: Registro centralizado de bugs, inconsistencias y piezas incompletas detectadas en bolivarbioingenieria-app — no asumir que estas partes funcionan al portarlas
+description: Registro centralizado de bugs, inconsistencias y piezas incompletas detectadas en bolivarbioingenieria-app, mas una seccion aparte para la deuda que MalphasOS ha introducido por su cuenta
 tags: [deuda-tecnica, riesgos, "reusable:no"]
 updated: 2026-08-29
 ---
@@ -68,9 +68,17 @@ Nota índice que centraliza todo lo detectado como bug, inconsistencia o pieza i
 | Credenciales de `pgadmin` hardcodeadas en `docker-compose.yaml` en vez de vía `.env` | `docker-compose.yaml` | Baja (higiene, solo dev) | [[docker-compose]] |
 | `client_hexagon`/`person_hexagon` completos usan el patrón CRUD anémico ya superado por `equipment_hexagon`/`location_hexagon` | todo el hexágono | Alta como decisión arquitectónica — no replicar el patrón viejo | [[evolucion-arquitectonica-crud-a-cqrs]] |
 
+## Deuda propia de MalphasOS
+
+Todo lo anterior son defectos de `bolivarbioingenieria-app`. Esta sección es distinta: recoge lo que **hemos introducido nosotros** y sigue sin corregir. Conviene tenerla separada para no confundir lo heredado con lo propio.
+
+| Hallazgo | Dónde | Severidad | Estado |
+|---|---|---|---|
+| `correo_persona.k_identificador` y `telefono_persona.k_identificador` quedaron **anulables**, de modo que cabe un correo sin dueño. En `V4__client.sql` se decidió lo contrario para los contactos del cliente, que sí exigen dueño: los dos módulos hacen cosas distintas con el mismo problema | `V2__person.sql` | Baja — datos huérfanos e inconsistencia entre módulos | Pendiente. Corregirlo exige una migración propia, `ALTER TABLE ... SET NOT NULL`, previa limpieza de las filas sin dueño si las hubiera |
+
 ## Cómo usar esta nota
 
-Antes de decidir portar cualquier pieza de `bolivarbioingenieria-app` a MalphasOS, revisar si aparece en esta tabla. Si aparece, la nota de detalle explica qué corregir antes de confiar en ella — no es una lista de razones para descartar el patrón completo, casi todos son arreglos puntuales sobre patrones por lo demás sólidos.
+Antes de decidir portar cualquier pieza de `bolivarbioingenieria-app` a MalphasOS, revisar si aparece en la tabla principal. Si aparece, la nota de detalle explica qué corregir antes de confiar en ella — no es una lista de razones para descartar el patrón completo, casi todos son arreglos puntuales sobre patrones por lo demás sólidos.
 
 ## Notas relacionadas
 

@@ -4,7 +4,7 @@ description: Un encargado ES una persona, por clave primaria compartida — conf
 tags: [dominio, backend, deuda-de-diseno, "reusable:media"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/domain/model/manager_model/, DataBase/v4/initdb/A_Sigma_DB_V4.sql
 estado: inconsistente
-updated: 2026-08-29
+updated: 2026-08-30
 ---
 
 # `Manager` y `Person` son el mismo humano, y el dominio no lo dice
@@ -47,7 +47,9 @@ Y un invariante que nadie fuerza: `encargado` tiene `k_id_sede` y `k_id_area_ser
 
 ## No es el único: `representante_legal`
 
-Descubierto el 2026-08-29, explorando el esquema para migrar `client`. Existe una **segunda** tabla que vincula persona y cliente exactamente con el mismo patrón de identidad compartida:
+> **Corregido el 2026-08-30.** Esta sección afirmaba que `representante_legal` vinculaba persona y cliente *"exactamente con el mismo patrón de identidad compartida"* que `encargado`. **Es falso, y son dos patrones distintos.** El error vino de mirar solo los nombres de las columnas —`k_identificador`, FK a persona— sin leer la llave primaria, que es donde se decide la cardinalidad de una relación.
+
+Descubierto el 2026-08-29, explorando el esquema para migrar `client`. Existe una segunda tabla que vincula persona y cliente, pero de otra forma:
 
 ```sql
 CREATE TABLE representante_legal (
@@ -55,13 +57,26 @@ CREATE TABLE representante_legal (
     k_id_cliente    varchar(11) NOT NULL,   -- FK a cliente
     b_estado_activo boolean     NOT NULL
 );
+
+ALTER TABLE representante_legal ADD CONSTRAINT "PK_representante_legal"
+    PRIMARY KEY (k_identificador, k_id_cliente);   -- compuesta
 ```
 
-La diferencia es que **esta no tiene una sola línea de código**. Ni entidad, ni modelo de dominio, ni puerto, ni controlador: se buscó en todo el backend y la única aparición del nombre es un `example` dentro de un javadoc. La tabla está en el esquema y nadie la lee ni la escribe.
+**La llave primaria es compuesta**, de modo que la relación es de muchos a muchos: una persona puede representar legalmente a varios clientes, y un cliente tener varios representantes. Es una tabla de unión, no identidad compartida.
+
+| | `encargado` | `representante_legal` |
+|---|---|---|
+| Llave primaria | `k_identificador` sola | `(k_identificador, k_id_cliente)` |
+| Relación con persona | **uno a uno** — el encargado *es* la persona | **muchos a muchos** — la persona *participa* |
+| Consecuencia | No puede haber dos encargados sobre la misma persona | La misma persona aparece tantas veces como clientes represente |
+
+La diferencia importa al modelar: `encargado` se expresa con `@MapsId` sobre `Person`, y `representante_legal` no puede, porque su identidad no es la de la persona.
+
+La otra diferencia es que **`representante_legal` no tiene una sola línea de código**. Ni entidad, ni modelo de dominio, ni puerto, ni controlador: se buscó en todo el backend y la única aparición del nombre es un `example` dentro de un javadoc. La tabla está en el esquema y nadie la lee ni la escribe.
 
 Y es justo lo que le falta al tipo de persona `CEO_CLIENT`, que sí existe en el enum, en el catálogo de la base y en los grupos del realm de Keycloak: sin esta relación, un representante legal no puede asociarse a ningún cliente. El modelo de datos promete algo que el sistema no hace.
 
-**Decisión para MalphasOS (2026-08-29): se porta y se implementa**, con el mismo tratamiento de identidad compartida que el encargado. Ver [[decisiones-tecnicas-malphasos]].
+**Decisión para MalphasOS (2026-08-29): se porta y se implementa**, conservando su llave compuesta. Migrada en `V4__client.sql` el 2026-08-30, con pruebas que fijan que una persona puede representar a varios clientes y que no se repite para el mismo. Ver [[decisiones-tecnicas-malphasos]].
 
 ## Qué hacer en MalphasOS
 
