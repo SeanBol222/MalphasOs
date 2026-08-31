@@ -41,7 +41,11 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## 5. Módulo de clientes — reconstruir, no copiar
 
-- [ ] Migrar antes `PersonCommunicationPort`: `HeadquarterService` y `ServiceAreaService` dependen de él para crear la persona del encargado, y quedó aplazado al migrar `person` por importar tipos de `infrastructure`. Sin él, `client` no arranca.
+- [x] **Hecho (2026-08-29).** `PersonCommunicationPort`, el contrato que `person` publica hacia los demás módulos, con sus DTO en la capa de aplicación en vez de en `infrastructure`. Ver [[traduccion-de-fallos-de-adaptadores]] y [[migracion-person-hallazgos]].
+- [x] **Hecho (2026-08-29).** `shared/domain/events`: el contrato de eventos de dominio, sin el `eventTopic` que filtraba el transporte al dominio y sin `Serializable`. Ver [[eventos-de-dominio]].
+- [x] **Hecho (2026-08-29).** `location`, esquema y dominio: `Country` y `City` como primeros agregados de Generación 2. Pendiente su capa de aplicación, persistencia y REST. Ver [[migracion-location-hallazgos]].
+- [ ] **`location` va antes que `client`**: `sede.k_id_ciudad` es `NOT NULL` y apunta a `ciudad`. Sin las tablas de ubicación la migración de clientes no se puede escribir.
+- [ ] Implementar `representante_legal`, la tabla sin código que vincula `CEO_CLIENT` con su cliente. Ver [[relacion-manager-persona]].
 - [x] **Decidido (2026-08-29).** La identidad compartida encargado↔persona se expresa con `@MapsId`, y el módulo se reconstruye en Generación 2. Ver [[decisiones-tecnicas-malphasos]] y [[relacion-manager-persona]].
 - [ ] Reimplementar la jerarquía Client→Headquarter→ServiceArea siguiendo el patrón de agregados + eventos, no el CRUD anémico original. [[dominio-cliente]]
 

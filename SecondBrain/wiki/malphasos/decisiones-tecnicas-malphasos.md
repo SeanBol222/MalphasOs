@@ -131,7 +131,20 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Patrón arquitectónico | **Generación 2**: `AggregateRoot` + commands + eventos de dominio | `client` es Generación 1 en el original y el wiki lo marca `reusable:no` como patrón. Con 96 archivos, reconvertirlo después sale mucho más caro que construirlo bien. Obliga a migrar antes `shared/domain/events`, coste que `equipment` ya no vuelve a pagar. Ver [[evolucion-arquitectonica-crud-a-cqrs]] |
 | Identidad encargado↔persona | **Entidad propia con `@MapsId`** sobre `Person` | Conserva la forma del esquema —`encargado.k_identificador` como PK y FK a la vez— sin migrar datos, y hace visible para JPA una relación que hoy solo existe en la base y en el orden de dos llamadas de un método privado. La alternativa, absorber el rol dentro de `Person`, da un modelo más simple pero invierte la dependencia entre módulos: `person` pasaría a conocer sedes y áreas. Ver [[relacion-manager-persona]] |
 | `tipoEncargado` | **Enum `ManagerType`** (`HEADQUARTER`, `SERVICE_AREA`) | Es un `String` en el original, con un javadoc que documenta dos valores que la restricción rechaza. Mismo tratamiento que recibió `tipoPersona` |
-| Orden de migración | `PersonCommunicationPort` → `shared/domain/events` → `V3__client.sql` → dominio → aplicación → persistencia → REST | El puerto es un bloqueo real: `HeadquarterService` y `ServiceAreaService` no compilan sin él, y quedó aplazado al migrar `person` por importar tipos de `infrastructure` |
+| Orden de migración | ~~`PersonCommunicationPort` → `shared` → `V3__client.sql`~~ → **`location` completo antes que `client`** | Corregido el 2026-08-29, ya empezado: `sede.k_id_ciudad` es `NOT NULL` y apunta a `ciudad`, que a su vez necesita `pais`. Sin las tablas de ubicación la migración de clientes no se puede ni escribir. `location` es además el módulo más pequeño de Generación 2, así que estrena el contrato de eventos con poco en juego. Ver [[migracion-location-hallazgos]] |
+| `representante_legal` | **Se porta y se implementa** | La tabla existe en el esquema y no tiene una sola línea de código en el original. Vincula persona y cliente por identidad compartida, igual que `encargado`, y es lo que le falta al tipo `CEO_CLIENT` para asociarse a su cliente: sin ella el enum y el grupo del realm existen sin poder usarse |
+
+## Módulo de ubicaciones (migrado el 2026-08-29)
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Identidad de `pais` y `ciudad` | **UUID**, con el código ISO como llave natural | El original usaba el código del país, un `varchar(3)`, como llave primaria, y ese `varchar(3)` era el destino de las claves foráneas de `ciudad`, `cliente` y `fabricante`. El código se conserva único, con formato validado, pero deja de ser aquello a lo que apunta medio esquema |
+| Unicidad del nombre de ciudad | **Dentro de su país**, no global | Hay un Córdoba en España y otro en Argentina. El original no declaraba unicidad de ninguna clase |
+| Igualdad de los agregados | **Por identidad**, nunca por datos | Dos objetos que representan el mismo país lo son aunque difieran sus datos: uno puede ser una versión más vieja del otro. Con `callSuper = true` la comparación acababa en la identidad de `Object` y era siempre falsa |
+| Reconstrucción desde persistencia | **`rehydrate(...)`, que no emite eventos** | Recuperar algo de la base no es un hecho del dominio. Si emitiera, cada lectura publicaría un evento de creación |
+| Nombre de los eventos de baja | **`Deactivated`, no `Deleted`** | Aquí no se borra nada: el registro permanece con `b_estado_activo` en falso. Quien lea "deleted" concluye razonablemente que la fila ya no existe |
+| Renombrar vs. trasladar una ciudad | **Dos eventos distintos** | Mover una ciudad de país cambia la cobertura de todas las sedes que hay en ella; renombrarla no afecta a nadie. Con un único `CityUpdatedEvent` había que comparar el payload contra el estado anterior para saber qué cambió |
+| Cambios que no cambian nada | **No emiten evento** | Renombrar con el mismo nombre no registra nada. Anunciar un cambio que no ocurrió obliga a cada consumidor a defenderse de duplicados |
 
 ## Pendientes de decidir
 
@@ -140,4 +153,4 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 
 ## Notas relacionadas
 
-[[stack-spring-boot-4-particularidades]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[stack-spring-boot-4-particularidades]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
