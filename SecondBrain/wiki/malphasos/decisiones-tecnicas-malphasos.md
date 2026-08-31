@@ -145,10 +145,14 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Nombre de los eventos de baja | **`Deactivated`, no `Deleted`** | Aquí no se borra nada: el registro permanece con `b_estado_activo` en falso. Quien lea "deleted" concluye razonablemente que la fila ya no existe |
 | Renombrar vs. trasladar una ciudad | **Dos eventos distintos** | Mover una ciudad de país cambia la cobertura de todas las sedes que hay en ella; renombrarla no afecta a nadie. Con un único `CityUpdatedEvent` había que comparar el payload contra el estado anterior para saber qué cambió |
 | Cambios que no cambian nada | **No emiten evento** | Renombrar con el mismo nombre no registra nada. Anunciar un cambio que no ocurrió obliga a cada consumidor a defenderse de duplicados |
+| Autorización en `location` | **`admin.full` en las diez operaciones** | El hexágono original no tenía ninguna. Se elige la opción restrictiva y consistente con `person`: si más adelante conviene abrir la lectura para que un formulario llene sus desplegables, abrir es más fácil que cerrar |
+| Manejo de excepciones | **Se repite por módulo, sin base común** | Resuelve la pendiente que este wiki arrastraba. Cada contexto acotado es dueño de su contrato de error y puede cambiarlo sin arrastrar a los demás; es duplicación de forma, no de comportamiento. Ver [[manejo-global-excepciones]] |
+| Mappers de persistencia | **A mano, no con MapStruct** | MapStruct construye por setters o builder, y un agregado de Generación 2 no ofrece ninguno a propósito. Ver [[patron-mapper-mapstruct]] |
+| Verbos de escritura | **Solo `PATCH`, sin `PUT`** | Eran caminos duplicados con su comando y su método de agregado propios, y uno etiquetaba su evento con un tipo distinto del que declaraba su clase |
+| `DELETE` | **204, pero retira sin borrar** | Es el verbo que un cliente HTTP espera para retirar algo, y el cuerpo vacío no promete que la fila haya desaparecido. Queda dicho en la descripción de OpenAPI |
 
 ## Pendientes de decidir
 
-- Si el manejo de excepciones usa una base común entre módulos o se repite por bounded context: ver [[manejo-global-excepciones]].
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
 
 ## Notas relacionadas

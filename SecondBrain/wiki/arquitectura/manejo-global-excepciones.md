@@ -4,7 +4,7 @@ description: Patrón de manejo de excepciones — catálogo enum + RestControlle
 tags: [arquitectura, backend, excepciones, "reusable:media"]
 source: Backend/sigma-bb/src/main/java/.../bootstrap/exception/
 estado: inconsistente
-updated: 2026-08-27
+updated: 2026-08-29
 ---
 
 # Manejo global de excepciones
@@ -48,6 +48,14 @@ Sigue **pendiente** definir la interfaz o clase base común para los catálogos 
 ## Reutilizable en MalphasOS
 
 `reusable:media`. El **esqueleto** (catálogo enum + advice + DTO con code/message/details/timestamp) es sólido y ya está portado, pero al extenderlo a cada módulo conviene: (1) definir una interfaz/clase base común para `ErrorCatalog` y `ErrorResponse` que los catálogos por hexágono implementen, evitando la duplicación exacta; (2) mantener el advice transversal cubriendo solo validación y acceso a datos, y que cada módulo maneje únicamente lo suyo sin filtrar tipos entre módulos; (3) mantener la ubicación de las excepciones de dominio consistente — en MalphasOS ya se decidió `domain/exception` en todos los módulos, ver [[decisiones-tecnicas-malphasos]].
+
+## Decidido en MalphasOS el 2026-08-29: se repite por módulo
+
+Este wiki arrastraba como pendiente si el manejo de excepciones debía compartir una base entre módulos o repetirse por contexto acotado. Al escribir el segundo catálogo —`LocationErrorCatalog`, tras `PersonErrorCatalog`— hubo que decidir, y se optó por **repetir**.
+
+El motivo: cada contexto acotado es dueño de su contrato de error y puede cambiar sus códigos sin arrastrar a los demás. Lo que se duplica es la forma —un enum de catálogo, un `record` de respuesta, un advice limitado con `assignableTypes`—, no el comportamiento. Extraer una clase base en `bootstrap` habría acoplado todos los contextos a una forma compartida, y obligado a refactorizar `person` para estrenarla.
+
+El coste es real y conviene tenerlo presente: cuando llegue `client` habrá una tercera copia de la misma estructura. Si llegara a haber cinco o seis y ninguna divergiera, la decisión merecería revisarse.
 
 ## Notas relacionadas
 

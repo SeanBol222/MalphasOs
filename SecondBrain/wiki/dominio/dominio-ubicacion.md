@@ -30,7 +30,7 @@ updated: 2026-08-29
 
 `reusable:alta` **para la estructura**, no para el código. Sigue siendo más útil estudiar `location_hexagon` que `client_hexagon`, porque representa el patrón que sí se quiere replicar. Corregir al portar: los cuatro defectos de [[migracion-location-hallazgos]], y ubicar las excepciones de dominio en `domain/exception` de forma consistente.
 
-**Migrado el 2026-08-29** (esquema y dominio). `Country` y `City` son los primeros agregados de Generación 2 de MalphasOS, con identidad por UUID, igualdad por identidad, sin setters, y con `rename` / `relocateTo` / `deactivate` en lugar de `updateX` / `updateXPatch` / `deleteX`.
+**Migrado por completo el 2026-08-29** (esquema, dominio, aplicación, persistencia y REST). `Country` y `City` son los primeros agregados de Generación 2 de MalphasOS, con identidad por UUID, igualdad por identidad, sin setters, y con `rename` / `relocateTo` / `deactivate` en lugar de `updateX` / `updateXPatch` / `deleteX`.
 
 ## Notas relacionadas
 
