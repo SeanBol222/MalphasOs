@@ -19,6 +19,10 @@ Client -> EmailClient (N), PhoneClient (N)   [soft-delete vía estadoActivo]
 
 `Manager` es **anémico**: solo `identificadorEncargado (UUID)`, `tipoEncargado (String)`, `estadoActivo`. No referencia `Person` en el modelo de dominio, pero **sí es una persona**: su PK es a la vez FK a `persona`, y el servicio la crea antes de crear el encargado. La relación está implementada en todas las capas menos en el dominio — ver [[relacion-manager-persona]]. Ojo con el javadoc de `tipoEncargado`, que documenta `"sede"|"area_servicio"`, dos valores que la restricción `CHK_tipo_encagado` rechaza: solo acepta `HEADQUARTER` y `SERVICE_AREA`.
 
+## Una tabla sin código: `representante_legal`
+
+El esquema define `representante_legal` (persona ↔ cliente, por identidad compartida) y **el hexágono no la usa en ningún sitio**: no hay entidad, ni modelo, ni puerto, ni controlador. Es la relación que le falta a `CEO_CLIENT` para asociarse a su cliente. Ver [[relacion-manager-persona]].
+
 ## Casos de uso REST expuestos
 
 `ClientRestAdapter` (`/client/v1/api`, CRUD completo) + adapters hermanos `EmailClientRestAdapter`, `PhoneClientRestAdapter`, `HeadquarterRestAdapter`, `ManagerHeadquarterRestAdapter`, `ServiceAreaRestAdapter`, `ManagerServiceAreaRestAdapter`, `ClientEquipmentRestAdapter` — mismo patrón CRUD por sub-recurso. Todos protegidos con `@PreAuthorize("hasAuthority('admin.full')")` a nivel de método.

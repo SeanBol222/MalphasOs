@@ -45,6 +45,24 @@ Además, `tipoEncargado` es un `String` cuyo javadoc dice `"sede"` y `"area_serv
 
 Y un invariante que nadie fuerza: `encargado` tiene `k_id_sede` y `k_id_area_servicio` **ambas anulables**, mientras `t_tipo_encargado` declara cuál de las dos debería estar. Nada impide un `HEADQUARTER` sin sede, con área, con las dos o con ninguna.
 
+## No es el único: `representante_legal`
+
+Descubierto el 2026-08-29, explorando el esquema para migrar `client`. Existe una **segunda** tabla que vincula persona y cliente exactamente con el mismo patrón de identidad compartida:
+
+```sql
+CREATE TABLE representante_legal (
+    k_identificador uuid        NOT NULL,   -- FK a persona
+    k_id_cliente    varchar(11) NOT NULL,   -- FK a cliente
+    b_estado_activo boolean     NOT NULL
+);
+```
+
+La diferencia es que **esta no tiene una sola línea de código**. Ni entidad, ni modelo de dominio, ni puerto, ni controlador: se buscó en todo el backend y la única aparición del nombre es un `example` dentro de un javadoc. La tabla está en el esquema y nadie la lee ni la escribe.
+
+Y es justo lo que le falta al tipo de persona `CEO_CLIENT`, que sí existe en el enum, en el catálogo de la base y en los grupos del realm de Keycloak: sin esta relación, un representante legal no puede asociarse a ningún cliente. El modelo de datos promete algo que el sistema no hace.
+
+**Decisión para MalphasOS (2026-08-29): se porta y se implementa**, con el mismo tratamiento de identidad compartida que el encargado. Ver [[decisiones-tecnicas-malphasos]].
+
 ## Qué hacer en MalphasOS
 
 La decisión ya está tomada por el original y es razonable: **un encargado es una persona con un rol dentro de un cliente**. Lo que hay que cambiar es dónde vive esa afirmación — del método privado al modelo.

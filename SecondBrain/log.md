@@ -141,3 +141,27 @@ La nota se renombró a [[relacion-manager-persona]], se reescribió con la corre
 Otros hallazgos de la exploración, agregados a [[deuda-tecnica-y-riesgos]]: `tipoEncargado` es un `String` cuyo javadoc documenta dos valores que la restricción `CHK_tipo_encagado` rechaza; `encargado` tiene `k_id_sede` y `k_id_area_servicio` ambas anulables sin nada que fuerce cuál corresponde según el tipo; y `Manager` carece de puertos propios, gestionándose a través de los servicios de sede y área. Los dos primeros los encontró aplicar [[reglas-de-negocio-en-el-esquema]], que para eso se escribió.
 
 **El prerequisito real para migrar `client`**: `HeadquarterService` y `ServiceAreaService` dependen de `PersonCommunicationPort`, el puerto que quedó aplazado al migrar `person` por importar tipos de `infrastructure`. Sin resolverlo, `client` no arranca. Anotado en [[checklist-reutilizacion]].
+
+## [2026-08-29] ingest | El modulo que este wiki llamaba ejemplar, visto por dentro
+
+Tres pasos de construcción de una vez: el contrato publicado de `person` hacia otros módulos, el contrato de eventos de dominio, y el módulo de ubicaciones —esquema y dominio—. 130 pruebas en verde.
+
+**El hallazgo que obliga a corregir este wiki.** [[dominio-ubicacion]] describía `location_hexagon` como *"el mejor ejemplo pedagógico de cómo se ve el patrón completo"*, y [[aggregate-root-pattern]] daba la pieza compartida por `reusable:alta` **"tal cual, sin cambios"**. La forma sí es ejemplar y es la que se está replicando. El código traía cuatro defectos:
+
+Los agregados llevaban `@Data`, que genera un setter público por campo: se podía renombrar un país sin emitir evento y sin pasar por validación alguna, que es exactamente lo contrario de aquello para lo que un agregado existe. Tenían `@EqualsAndHashCode(callSuper = true)` sobre una superclase que no redefine `equals`, de modo que **dos países con datos idénticos nunca resultaban iguales** ni coincidían en un `HashSet`. `updateCountryPatch` escribía `"country.patch"` en la metadata mientras construía un `CountryUpdatedEvent`, así que un consumidor que filtrara por tipo y otro que filtrara por clase veían cosas distintas. Y `deleteCountry()` no modificaba estado alguno: el estado activo ni siquiera existía en el modelo, vivía solo en la columna.
+
+Aparte, `City.createIdFromName` derivaba la llave primaria de las **dos primeras letras del nombre**. Bogotá y Boyacá producen ambas `"BO"`. La segunda ciudad que empezara igual chocaba contra la llave de la primera.
+
+Nota nueva: [[migracion-location-hallazgos]]. Y las dos notas que lo idealizaban quedan corregidas con la constancia al principio, como pide el schema.
+
+**La lección, que es la misma que dejó la corrección de [[relacion-manager-persona]] hace dos entradas**: un módulo puede tener la forma correcta y la implementación equivocada. Este wiki lo había leído por su estructura, que es lo que salta a la vista al abrir los archivos, y no por su comportamiento. De ahí que `reusable:alta` merezca un matiz que no tenía: **alta para el patrón, no necesariamente para el código**.
+
+**Del contrato de eventos** salió otra fuga: `EventMetadata` llevaba un campo `eventTopic` donde el dominio escribía `"events-domain"`, el nombre del exchange de RabbitMQ —un detalle de transporte dentro del modelo, duplicando el valor que el despachador ya tenía como constante—. El campo desaparece. Se retira también `Serializable`, tras verificar que el `RabbitMQConfig` del original usa `JacksonJsonMessageConverter` y la serialización de Java no interviene en ningún punto. Y no se porta el despachador de Rabbit: no hay consumidor, su clave de publicación no casa con su propio binding, y los listeners que lo consumirían están desactivados.
+
+**Dos decisiones tuyas quedan registradas en [[decisiones-tecnicas-malphasos]]**, y una de ellas invalida el orden que este wiki daba por bueno:
+
+`location` va **antes** que `client`. La causa es dura: `sede.k_id_ciudad` es `NOT NULL` y apunta a `ciudad`, que a su vez necesita `pais`. Sin las tablas de ubicación la migración de clientes no se puede ni escribir. El orden anterior queda tachado en la nota, no borrado.
+
+`representante_legal` se porta y se implementa. Es una tabla que descubrimos explorando el esquema: vincula persona y cliente por identidad compartida, igual que `encargado`, y **no tiene una sola línea de código en el original** —la única aparición del nombre en todo el backend es un `example` dentro de un javadoc—. Es lo que le falta al tipo `CEO_CLIENT`, que existe en el enum, en el catálogo de la base y en los grupos del realm, para poder asociarse a algún cliente. El modelo de datos promete algo que el sistema no hace.
+
+Actualizadas [[aggregate-root-pattern]], [[dominio-ubicacion]], [[eventos-de-dominio]], [[dominio-cliente]], [[relacion-manager-persona]], [[deuda-tecnica-y-riesgos]] —ocho filas nuevas, 53 en total—, [[decisiones-tecnicas-malphasos]] y [[checklist-reutilizacion]].

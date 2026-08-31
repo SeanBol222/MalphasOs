@@ -65,7 +65,8 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[decisiones-tecnicas-malphasos]] ⭐ — Registro de decisiones ya tomadas al construir MalphasOS, con su justificación. Consultar antes de re-decidir algo.
 - [[stack-spring-boot-4-particularidades]] — Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 que no se deducen del proyecto original.
 - [[migracion-person-hallazgos]] ⭐ — Los 22 defectos que destapó migrar el primer módulo, y qué los encontró. Leer antes de migrar `client_hexagon`.
+- [[migracion-location-hallazgos]] 🟡 — Lo que aparecio al migrar el modulo que este wiki daba por ejemplar: igualdad rota, setters publicos y un evento que mentia.
 
 ---
 
-**40 notas** · última actualización 2026-08-29 · ver [[log.md]] para el historial de ingests.
+**41 notas** · última actualización 2026-08-29 · ver [[log.md]] para el historial de ingests.

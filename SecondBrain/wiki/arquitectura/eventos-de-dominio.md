@@ -4,7 +4,7 @@ description: Contrato DomainEvent/EventMetadata/Payload y el doble dispatcher in
 tags: [arquitectura, backend, eventos, "reusable:alta"]
 source: Backend/sigma-bb/src/main/java/.../shared/domain/events/, shared/application/ports/output/EventDispatcherPort.java
 estado: deuda-tecnica
-updated: 2026-08-27
+updated: 2026-08-29
 ---
 
 # Eventos de dominio
@@ -38,10 +38,24 @@ Los hexágonos con agregados ricos (`equipment_hexagon`, `location_hexagon`) —
 - `event_persister_hexagon` — persiste eventos como bitácora/auditoría. Ver [[event-persister-outbox]] (⚠️ actualmente desconectado).
 - `EquipmentReportProviderAdapter` — no es un listener reactivo real pese a estar en `infrastructure/input/listeners`; funciona como agregador síncrono bajo demanda para [[dominio-reportes]].
 
+## Estado en MalphasOS (portado el 2026-08-29)
+
+El contrato se porta con tres correcciones y una omisión deliberada.
+
+**`eventTopic` sale del dominio.** El original guardaba ahí `"events-domain"`, el nombre del exchange de RabbitMQ: un detalle de transporte escrito dentro del modelo de dominio, y encima duplicando el valor que el propio despachador ya tenía como constante. Dónde se publica un evento lo decide el adaptador de salida, no la entidad que lo emite. `EventMetadata` queda con seis campos en vez de siete.
+
+**Fuera `Serializable`.** Verificado contra el `RabbitMQConfig` del original: usa `JacksonJsonMessageConverter`, de modo que la serialización de Java no interviene en ningún punto del recorrido. Exigirla obligaba a cada payload nuevo a arrastrar una interfaz que nunca entra en juego.
+
+**Metadata validada y construida en un sitio.** `EventMetadata.of(...)` genera identificador y marca de tiempo, y el constructor rechaza campos vacíos. Un evento sin `eventId` no se puede deduplicar y uno sin `occurredAt` no se puede ordenar: son fallos que no rompen nada al emitir y dejan el evento inservible al otro lado.
+
+**No se portó el `RabbitMQDispatcher`.** Tres razones: no hay ningún consumidor que escuche, su clave de publicación no casa con el binding declarado (el bug de esta misma nota), y los dos listeners que lo consumirían están desactivados. Sería un componente sin uso y con un defecto conocido. Por eso `SpringEventDispatcher` tampoco lleva `@Qualifier`: mientras haya una sola implementación, exigirlo obliga a nombrarla en cada punto de inyección sin que haya nada entre lo que elegir.
+
+Se agrega `dispatchAll(...)` al puerto, porque un agregado casi siempre entrega varios eventos y el original obligaba a que cada servicio escribiera el bucle.
+
 ## Reutilizable en MalphasOS
 
-`reusable:alta` el contrato y el patrón de doble dispatcher — es limpio y portable. `reusable:media` la implementación de `RabbitMQDispatcher` específicamente, por el bug de routing key: corregirlo antes de reutilizar.
+`reusable:alta` el contrato y el patrón de doble dispatcher — es limpio y portable, con los ajustes de arriba. `reusable:media` la implementación de `RabbitMQDispatcher` específicamente, por el bug de routing key: corregirlo antes de reutilizar.
 
 ## Notas relacionadas
 
-[[aggregate-root-pattern]] · [[event-persister-outbox]] · [[patron-cqrs-commands]] · [[deuda-tecnica-y-riesgos]] · [[dominio-equipo-mantenimiento]]
+[[aggregate-root-pattern]] · [[migracion-location-hallazgos]] · [[event-persister-outbox]] · [[patron-cqrs-commands]] · [[deuda-tecnica-y-riesgos]] · [[dominio-equipo-mantenimiento]]
