@@ -165,3 +165,21 @@ Nota nueva: [[migracion-location-hallazgos]]. Y las dos notas que lo idealizaban
 `representante_legal` se porta y se implementa. Es una tabla que descubrimos explorando el esquema: vincula persona y cliente por identidad compartida, igual que `encargado`, y **no tiene una sola línea de código en el original** —la única aparición del nombre en todo el backend es un `example` dentro de un javadoc—. Es lo que le falta al tipo `CEO_CLIENT`, que existe en el enum, en el catálogo de la base y en los grupos del realm, para poder asociarse a algún cliente. El modelo de datos promete algo que el sistema no hace.
 
 Actualizadas [[aggregate-root-pattern]], [[dominio-ubicacion]], [[eventos-de-dominio]], [[dominio-cliente]], [[relacion-manager-persona]], [[deuda-tecnica-y-riesgos]] —ocho filas nuevas, 53 en total—, [[decisiones-tecnicas-malphasos]] y [[checklist-reutilizacion]].
+
+## [2026-08-29] ingest | Location cerrado, y un agujero de seguridad en el modulo que nadie miraba
+
+Aplicación, persistencia y REST de ubicaciones. Con esto `location` queda completo de punta a punta y `client` se queda sin bloqueos. 164 pruebas en verde.
+
+**El hallazgo que más pesa es de seguridad.** `location_hexagon` **no tiene una sola anotación de autorización en ningún archivo**, frente a los once archivos con `@PreAuthorize` de `person` y `client`. Bastaba un token válido de cualquier usuario —cualquier ingeniero, cualquier encargado de cliente— para crear o borrar un país, que es la tabla de referencia de la que cuelgan clientes, ciudades y fabricantes. Pasa a exigir `admin.full` en las diez operaciones.
+
+Y el borrado era **físico**: `deleteById`, pese a que la tabla tiene `b_estado_activo` y a que el resto del sistema usa borrado lógico. El agregado emitía un evento diciendo "deleted" mientras la fila desaparecía de verdad. Sobre `pais` habría chocado además con las claves foráneas de tres tablas.
+
+Los otros dos: el `PUT` recibía el identificador por la ruta y construía el comando con el del cuerpo, pasando el de la ruta al servicio por separado, sin que nada comprobara que coincidían; y `PATCH` no validaba la petición mientras `PUT` sí.
+
+**Un hallazgo con consecuencias más allá de este módulo**: MapStruct no sirve para construir un agregado de Generación 2. Construye el destino por setters o por builder, y un agregado no ofrece ninguno de los dos a propósito —se entra por `create`, que registra un evento, o por `rehydrate`, que no—. Generar el mapeo exigiría abrir justo la puerta que el agregado cierra. Los mappers de persistencia van a mano, y lo mismo aplicará a `client` y `equipment`. Registrado en [[patron-mapper-mapstruct]] con la regla completa por dirección.
+
+**Queda resuelta una pendiente que este wiki arrastraba**: si el manejo de excepciones comparte una base entre módulos o se repite por contexto. Al escribir el segundo catálogo hubo que decidir, y se optó por repetir. Cada contexto acotado es dueño de su contrato de error; lo que se duplica es la forma, no el comportamiento. El coste queda anotado en [[manejo-global-excepciones]]: cuando llegue `client` habrá una tercera copia, y si algún día hay cinco sin que ninguna diverja, la decisión merecerá revisarse.
+
+Un apunte de método, porque se repitió el patrón de las entradas anteriores. Los cuatro defectos del dominio salieron leyendo el código; **los cuatro de las capas de fuera salieron al ejecutarlo o al compararlo con lo ya migrado**. El de autorización apareció por preguntarse por qué `location` no tenía los `@PreAuthorize` que `person` sí llevaba: no se ve leyendo un archivo, se ve comparando dos módulos.
+
+Actualizadas [[migracion-location-hallazgos]], [[patron-mapper-mapstruct]], [[deuda-tecnica-y-riesgos]] —cuatro filas nuevas, 57 en total—, [[manejo-global-excepciones]], [[dominio-ubicacion]], [[decisiones-tecnicas-malphasos]] y [[checklist-reutilizacion]]. La lista de pendientes de decidir baja a uno.

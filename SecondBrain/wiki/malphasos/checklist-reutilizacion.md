@@ -43,8 +43,8 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 - [x] **Hecho (2026-08-29).** `PersonCommunicationPort`, el contrato que `person` publica hacia los demás módulos, con sus DTO en la capa de aplicación en vez de en `infrastructure`. Ver [[traduccion-de-fallos-de-adaptadores]] y [[migracion-person-hallazgos]].
 - [x] **Hecho (2026-08-29).** `shared/domain/events`: el contrato de eventos de dominio, sin el `eventTopic` que filtraba el transporte al dominio y sin `Serializable`. Ver [[eventos-de-dominio]].
-- [x] **Hecho (2026-08-29).** `location`, esquema y dominio: `Country` y `City` como primeros agregados de Generación 2. Pendiente su capa de aplicación, persistencia y REST. Ver [[migracion-location-hallazgos]].
-- [ ] **`location` va antes que `client`**: `sede.k_id_ciudad` es `NOT NULL` y apunta a `ciudad`. Sin las tablas de ubicación la migración de clientes no se puede escribir.
+- [x] **Hecho (2026-08-29).** `location` completo: esquema, dominio, aplicación, persistencia y REST. `Country` y `City` son los primeros agregados de Generación 2. Ocho defectos del original corregidos, uno de ellos de seguridad. No se porta `CountryReportProviderAdapter`, que pertenece al módulo de reportes. Ver [[migracion-location-hallazgos]].
+- [x] **Desbloqueado.** `client` ya no tiene impedimentos: la tabla `ciudad` existe, `PersonCommunicationPort` está publicado y el contrato de eventos está listo.
 - [ ] Implementar `representante_legal`, la tabla sin código que vincula `CEO_CLIENT` con su cliente. Ver [[relacion-manager-persona]].
 - [x] **Decidido (2026-08-29).** La identidad compartida encargado↔persona se expresa con `@MapsId`, y el módulo se reconstruye en Generación 2. Ver [[decisiones-tecnicas-malphasos]] y [[relacion-manager-persona]].
 - [ ] Reimplementar la jerarquía Client→Headquarter→ServiceArea siguiendo el patrón de agregados + eventos, no el CRUD anémico original. [[dominio-cliente]]

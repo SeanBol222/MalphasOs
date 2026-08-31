@@ -44,6 +44,25 @@ Ninguna de las dos tablas tenía **una sola restricción de unicidad**: admitía
 - **`rehydrate` no emite.** Recuperar algo de la base no es un hecho del dominio; si emitiera, cada lectura publicaría un evento de creación.
 - **Los cambios que no cambian nada no emiten.** Renombrar con el mismo nombre no registra evento: anunciar un cambio que no ocurrió obliga a cada consumidor a defenderse de duplicados.
 
+## Lo que apareció en las capas de fuera
+
+Los cuatro defectos de arriba estaban en el dominio. Al migrar aplicación, persistencia y REST salieron otros cuatro, uno de ellos de seguridad.
+
+| Defecto | Dónde | Consecuencia |
+|---|---|---|
+| **El hexágono no tiene una sola anotación de autorización** | los dos controladores | Ningún `@PreAuthorize` en ningún archivo, frente a los once de `person` y `client`. Bastaba un token válido de cualquier usuario para crear o borrar un país, del que cuelgan clientes, ciudades y fabricantes |
+| **`delete` es un borrado físico** | `CountryPersistenceAdapter` | `deleteById`, pese a que la tabla tiene `b_estado_activo` y a que el resto del sistema usa borrado lógico. El agregado emitía además un evento "deleted" mientras la fila desaparecía de verdad. Sobre `pais` habría chocado con las claves foráneas de `ciudad`, `cliente` y `fabricante` |
+| **El `PUT` maneja dos identificadores contradictorios** | los dos controladores | Recibe el id por la ruta y construye el comando con el del cuerpo, pasando luego el de la ruta al servicio por separado. Nada comprueba que coincidan |
+| **`PATCH` no valida la petición** mientras `PUT` sí | los dos controladores | Un cuerpo inválido llega hasta el agregado |
+
+Aparte, el puerto de persistencia declaraba `save` y `update(id, agregado)`, y el segundo recibía el identificador por separado del agregado que ya lo lleva dentro. Y `CreateCountryCommand` transportaba el identificador, de modo que quien llamara al API elegía la llave primaria del registro.
+
+## MapStruct no sirve para un agregado de Generación 2
+
+Hallazgo con consecuencias más allá de este módulo. MapStruct construye el objeto destino **por setters o por builder**, y un agregado de Generación 2 no ofrece ninguno de los dos a propósito: se entra por `create`, que registra un evento, o por `rehydrate`, que no. Poder generar el mapeo automáticamente exigiría abrir justo la puerta que el agregado cierra.
+
+Los mappers de persistencia de este módulo están escritos a mano por ese motivo, y lo mismo aplicará a `client` y `equipment`. MapStruct sigue sirviendo en la dirección contraria —del agregado al DTO de respuesta—, donde el destino sí es un `record` sin reglas. Ver [[patron-mapper-mapstruct]].
+
 ## Dos decisiones de nombres
 
 **`Deactivated` en lugar de `Deleted`.** Aquí no se borra nada, el registro permanece inactivo. Un consumidor que lea "deleted" concluye razonablemente que la fila ya no existe, y eso es falso. Ver [[patron-soft-delete]].
