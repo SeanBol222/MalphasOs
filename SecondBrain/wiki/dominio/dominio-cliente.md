@@ -21,7 +21,7 @@ Client -> EmailClient (N), PhoneClient (N)   [soft-delete vía estadoActivo]
 
 ## Una tabla sin código: `representante_legal`
 
-El esquema define `representante_legal` (persona ↔ cliente, por identidad compartida) y **el hexágono no la usa en ningún sitio**: no hay entidad, ni modelo, ni puerto, ni controlador. Es la relación que le falta a `CEO_CLIENT` para asociarse a su cliente. Ver [[relacion-manager-persona]].
+El esquema define `representante_legal` (persona ↔ cliente, **muchos a muchos** por llave compuesta — no identidad compartida como `encargado`) y **el hexágono no la usa en ningún sitio**: no hay entidad, ni modelo, ni puerto, ni controlador. Es la relación que le falta a `CEO_CLIENT` para asociarse a su cliente. Ver [[relacion-manager-persona]].
 
 ## Casos de uso REST expuestos
 
