@@ -126,18 +126,6 @@ class ClientSchemaTest {
     }
 
     @Test
-    @DisplayName("equipo_cliente no se crea todavia: depende del modulo de equipos")
-    void equipoClienteAplazado() {
-        assertThat(jdbcTemplate.queryForObject(
-                        """
-                        SELECT count(*) FROM information_schema.tables
-                        WHERE table_schema = 'public' AND table_name = 'equipo_cliente'
-                        """,
-                        Integer.class))
-                .isZero();
-    }
-
-    @Test
     @DisplayName("el documento del cliente no se puede repetir")
     void documentoUnico() {
         UUID id = insertClient("NIT_juridico");
