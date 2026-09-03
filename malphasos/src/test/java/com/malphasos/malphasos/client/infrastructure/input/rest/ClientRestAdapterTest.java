@@ -169,7 +169,7 @@ class ClientRestAdapterTest {
                         .content(jsonMapper.writeValueAsString(new HeadquarterCreateRequest(
                                 "Sede", "10", "20", "30-40", ciudad))))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ERR_CLIENT_005"));
+                .andExpect(jsonPath("$.code").value("ERR_CLIENT_006"));
     }
 
     @Test

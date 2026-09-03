@@ -59,12 +59,18 @@ public class ClientControllerAdvice {
         return ClientErrorResponse.of(ClientErrorCatalog.MANAGER_NOT_FOUND, List.of(ex.getMessage()));
     }
 
-    /** Referencias hacia otros módulos que no existen. */
+    /** La ciudad de una sede, que vive en el módulo de ubicación. */
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    @ExceptionHandler({CityNotFoundException.class, PersonNotFoundException.class})
-    public ClientErrorResponse handleReferenciaInexistente(RuntimeException ex) {
-        return ClientErrorResponse.of(
-                ClientErrorCatalog.INVALID_CLIENT_DATA, List.of(ex.getMessage()));
+    @ExceptionHandler(CityNotFoundException.class)
+    public ClientErrorResponse handleCity(CityNotFoundException ex) {
+        return ClientErrorResponse.of(ClientErrorCatalog.CITY_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** La persona detrás de un encargado o de un representante legal. */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(PersonNotFoundException.class)
+    public ClientErrorResponse handlePerson(PersonNotFoundException ex) {
+        return ClientErrorResponse.of(ClientErrorCatalog.PERSON_NOT_FOUND, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */
