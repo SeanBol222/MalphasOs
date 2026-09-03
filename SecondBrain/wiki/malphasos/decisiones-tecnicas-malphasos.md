@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr]
-updated: 2026-08-29
+updated: 2026-09-02
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -151,10 +151,22 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Verbos de escritura | **Solo `PATCH`, sin `PUT`** | Eran caminos duplicados con su comando y su método de agregado propios, y uno etiquetaba su evento con un tipo distinto del que declaraba su clase |
 | `DELETE` | **204, pero retira sin borrar** | Es el verbo que un cliente HTTP espera para retirar algo, y el cuerpo vacío no promete que la fila haya desaparecido. Queda dicho en la descripción de OpenAPI |
 
+## Módulo de clientes, decisiones de construcción (2026-09-02)
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Fronteras de agregados | **Cuatro agregados pequeños** que se referencian por identificador | Cargar un cliente no arrastra sus sedes, áreas y encargados, y dos personas editando sedes distintas no compiten por la misma fila. Coincide con lo que el esquema ya modelaba. El coste: ninguna transacción abarca cliente y sede a la vez |
+| Representación legal | **Dentro del agregado `Client`**, como conjunto de identificadores de persona | "Quién representa a este cliente" es una pregunta sobre el cliente, y la lista es pequeña y acotada |
+| Identidad del encargado | **Llave primaria de la persona**, sin `@OneToOne` ni `@MapsId` hacia la entidad de personas | La identidad compartida la garantizan la PK y la clave foránea del esquema. La anotación habría sido la única relación JPA entre módulos del proyecto, cuando las otras cuatro entidades referencian por identificador |
+| Alta de encargado | **Dos caminos**: `register` crea la persona, `assign` parte de alguien que ya existe | El original siempre creaba una persona nueva, de modo que un ingeniero de la empresa no podía figurar además como encargado sin duplicarse |
+| Orden dentro de `register` | **Validar el destino antes de crear la persona** | Al revés, un fallo en la validación dejaría una persona huérfana sin encargado que la justifique |
+| Rutas REST | Lo que no existe sin otro **cuelga de su ruta** | Contactos y representantes van bajo `/clients/{id}`; una sede se abre bajo el cliente pero luego se direcciona sola, porque tiene identidad propia |
+| Dirección de una sede | **Va entera o no va** | Sus tres partes forman un valor único; aceptar solo la calle dejaría una dirección incoherente |
+
 ## Pendientes de decidir
 
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
 
 ## Notas relacionadas
 
-[[stack-spring-boot-4-particularidades]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[stack-spring-boot-4-particularidades]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

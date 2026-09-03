@@ -66,7 +66,8 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[stack-spring-boot-4-particularidades]] — Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 que no se deducen del proyecto original.
 - [[migracion-person-hallazgos]] ⭐ — Los 22 defectos que destapó migrar el primer módulo, y qué los encontró. Leer antes de migrar `client_hexagon`.
 - [[migracion-location-hallazgos]] 🟡 — Lo que aparecio al migrar el modulo que este wiki daba por ejemplar: igualdad rota, setters publicos y un evento que mentia.
+- [[migracion-client-hallazgos]] 🟡 — El modulo mas grande, reconstruido y no portado: fronteras de agregados y la tabla que no tenia codigo.
 
 ---
 
-**41 notas** · última actualización 2026-08-29 · ver [[log.md]] para el historial de ingests.
+**42 notas** · última actualización 2026-09-02 · ver [[log.md]] para el historial de ingests.

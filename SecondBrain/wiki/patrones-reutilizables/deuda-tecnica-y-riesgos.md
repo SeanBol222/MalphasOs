@@ -76,6 +76,9 @@ Todo lo anterior son defectos de `bolivarbioingenieria-app`. Esta sección es di
 |---|---|---|---|
 | `correo_persona.k_identificador` y `telefono_persona.k_identificador` quedaron **anulables**, de modo que cabe un correo sin dueño. En `V4__client.sql` se decidió lo contrario para los contactos del cliente, que sí exigen dueño: los dos módulos hacen cosas distintas con el mismo problema | `V2__person.sql` | Baja — datos huérfanos e inconsistencia entre módulos | Pendiente. Corregirlo exige una migración propia, `ALTER TABLE ... SET NOT NULL`, previa limpieza de las filas sin dueño si las hubiera |
 
+| **La batería de pruebas es intermitente.** La comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si el contenedor no está levantado: una misma ejecución dio 3 errores y la siguiente, sin tocar nada, 251/251 | perfil de pruebas | Media — una batería que da dos resultados distintos deja de servir como señal | Pendiente. Desactivar esa comprobación en el perfil de pruebas: ningún test usa la mensajería |
+| **`equipo_cliente` no existe todavía**: su clave foránea apunta a `modelo`, que arrastra `equipo` y `fabricante` del módulo de equipos | `V4__client.sql` | Baja — aplazamiento consciente | Pendiente hasta migrar `equipment`. Hay una prueba que fija que la tabla no existe, para que no se olvide |
+
 ## Cómo usar esta nota
 
 Antes de decidir portar cualquier pieza de `bolivarbioingenieria-app` a MalphasOS, revisar si aparece en la tabla principal. Si aparece, la nota de detalle explica qué corregir antes de confiar en ella — no es una lista de razones para descartar el patrón completo, casi todos son arreglos puntuales sobre patrones por lo demás sólidos.

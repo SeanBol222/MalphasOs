@@ -4,10 +4,12 @@ description: client_hexagon — Client, Headquarter, ServiceArea, Manager. Patr�
 tags: [dominio, backend, gestion-clientes, "reusable:media"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/
 estado: incompleto
-updated: 2026-08-29
+updated: 2026-09-02
 ---
 
 # Dominio Cliente (`client_hexagon`)
+
+> **Migrado el 2026-09-02.** El módulo se **reconstruyó** en Generación 2, no se portó: el original es Generación 1 y este wiki lo marca como patrón a no replicar. Se conservó la jerarquía conceptual y se rehízo todo lo demás. Ver [[migracion-client-hallazgos]].
 
 ## Modelo de dominio y relaciones
 
@@ -45,4 +47,4 @@ MapStruct en cada frontera. `ClientPersistenceMapper` compone mappers hijos (`us
 
 ## Notas relacionadas
 
-[[relacion-manager-persona]] · [[dominio-persona-identidad]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[manejo-global-excepciones]] · [[esquema-bd-v4]] · [[alcance-malphasos]]
+[[migracion-client-hallazgos]] · [[relacion-manager-persona]] · [[dominio-persona-identidad]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[manejo-global-excepciones]] · [[esquema-bd-v4]] · [[alcance-malphasos]]
