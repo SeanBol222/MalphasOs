@@ -52,6 +52,14 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`. Baterí
 
 **Verificar ejecutando, no compilando.** Varios de los defectos encontrados compilaban perfectamente. Las pruebas de esquema y de persistencia corren contra un PostgreSQL real vía Testcontainers.
 
+## Reparto del trabajo
+
+Existe un subagente **`documentador`** (`.claude/agents/documentador.md`) que es dueño exclusivo de `Documentation/`: la ERS IEEE 830, sus diagramas PlantUML y los manuales. Se le invoca con la herramienta Agent cuando hay que escribir o poner al día un documento formal, o contrastar lo que la ERS promete contra lo que el código hace.
+
+No mantiene el wiki: `SecondBrain/` sigue siendo responsabilidad de la sesión principal. Y no escribe código.
+
+Trabaja en ramas `docs/` y **no mergea a `main`**: deja la rama y reporta, para que el usuario revise. Así no compite con las ramas `feat/` de la sesión principal, que solo tocan `malphasos/`.
+
 ## Convenciones de código establecidas
 
 **Agregados de Generación 2** (`client`, `location`; `person` quedó en Generación 1 por decisión explícita):
