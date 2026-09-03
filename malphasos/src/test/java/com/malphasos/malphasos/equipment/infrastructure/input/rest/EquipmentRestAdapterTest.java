@@ -213,6 +213,27 @@ class EquipmentRestAdapterTest {
     }
 
     @Test
+    @DisplayName("los seis recursos aparecen en el grupo de OpenAPI del modulo")
+    void recursosDocumentados() throws Exception {
+        // Un patron de grupo que no case con ninguna ruta real no falla: deja el recurso fuera de
+        // Swagger en silencio. Tres de estos seis se habian quedado fuera por esa via.
+        String docs = mockMvc.perform(get("/v3/api-docs/equipment"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(docs)
+                .describedAs("Todo recurso del catalogo debe estar en su grupo de OpenAPI")
+                .contains("/v1/api/manufacturers")
+                .contains("/v1/api/brands")
+                .contains("/v1/api/equipment-types")
+                .contains("/v1/api/equipments")
+                .contains("/v1/api/models")
+                .contains("/v1/api/client-equipments");
+    }
+
+    @Test
     @DisplayName("DELETE de una unidad responde 204 y la da de baja sin borrarla")
     void darDeBaja() throws Exception {
         mockMvc.perform(delete("/v1/api/client-equipments/" + UUID.randomUUID()))
