@@ -9,7 +9,7 @@ updated: 2026-09-02
 
 Orden sugerido para la construcción de MalphasOS. **La construcción ya arrancó** (2026-08-27); las decisiones tomadas se registran en [[decisiones-tecnicas-malphasos]].
 
-> **Estado al 2026-09-02.** Los cuatro módulos de dominio —`person`, `location`, `client` y `equipment`— están completos de esquema a REST, con 338 pruebas en verde. Del alcance del backend queda **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos. Lo demás pendiente es frontend y opcionales.
+> **Estado al 2026-09-02.** Los cuatro módulos de dominio —`person`, `location`, `client` y `equipment`— están completos de esquema a REST, con 339 pruebas en verde. Del alcance del backend queda **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos. Lo demás pendiente es frontend y opcionales.
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 
