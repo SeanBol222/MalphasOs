@@ -18,14 +18,14 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[event-persister-outbox]] 🟡 — Hexágono de auditoría de eventos, actualmente desconectado.
 - [[manejo-global-excepciones]] 🟡 — Catálogo + advice + DTO, con inconsistencias reales detectadas.
 - [[seguridad-keycloak-backend]] 🟢 — Resource server OAuth2/JWT + admin client, dos piezas separadas.
-- [[openapi-swagger]] 🟢 — Un GroupedOpenApi por dominio.
+- [[openapi-swagger]] 🟢 — Un GroupedOpenApi por dominio, y el fallo silencioso de un patrón que no casa con ninguna ruta.
 
 ## Dominio (hexágonos de negocio)
 
-- [[dominio-cliente]] 🟡 — client_hexagon: Client/Headquarter/ServiceArea/Manager. Patrón viejo (Generación 1).
+- [[dominio-cliente]] 🟡 — client_hexagon: Client/Headquarter/ServiceArea/Manager. Patrón viejo (Generación 1). **Ya reconstruido en MalphasOS.**
 - [[dominio-persona-identidad]] 🟢 — person_hexagon: Person + integración Keycloak Admin API. **Ya migrado a MalphasOS.**
 - [[dominio-ubicacion]] 🟢 — location_hexagon: Country/City. Referencia de Generación 2.
-- [[dominio-equipo-mantenimiento]] ⭐ — equipment_hexagon: **el núcleo de mantenimiento preventivo y la referencia arquitectónica principal**.
+- [[dominio-equipo-mantenimiento]] ⭐ — equipment_hexagon: **el núcleo de mantenimiento preventivo y la referencia arquitectónica principal**. Catálogo e inventario **ya migrados**; faltan verificaciones y datos metrológicos.
 - [[dominio-reportes]] 🟢 — reports_hexagon: agregador cross-dominio desacoplado.
 - [[relacion-manager-persona]] 🟡 — Un encargado ES una persona por clave primaria compartida; el dominio es la única capa que no lo dice.
 
@@ -67,7 +67,8 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[migracion-person-hallazgos]] ⭐ — Los 22 defectos que destapó migrar el primer módulo, y qué los encontró. Leer antes de migrar `client_hexagon`.
 - [[migracion-location-hallazgos]] 🟡 — Lo que aparecio al migrar el modulo que este wiki daba por ejemplar: igualdad rota, setters publicos y un evento que mentia.
 - [[migracion-client-hallazgos]] 🟡 — El modulo mas grande, reconstruido y no portado: fronteras de agregados y la tabla que no tenia codigo.
+- [[migracion-equipment-hallazgos]] ⭐ — El nucleo de negocio, en cinco pasos: un booleano que el dominio no sabia derivar, una tabla cuyo nombre miente y la prueba centinela que se rompio a proposito.
 
 ---
 
-**42 notas** · última actualización 2026-09-02 · ver [[log.md]] para el historial de ingests.
+**43 notas** · última actualización 2026-09-02 · ver [[log.md]] para el historial de ingests.

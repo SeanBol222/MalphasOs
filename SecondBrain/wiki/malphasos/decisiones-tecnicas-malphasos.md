@@ -163,10 +163,24 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Rutas REST | Lo que no existe sin otro **cuelga de su ruta** | Contactos y representantes van bajo `/clients/{id}`; una sede se abre bajo el cliente pero luego se direcciona sola, porque tiene identidad propia |
 | Dirección de una sede | **Va entera o no va** | Sus tres partes forman un valor único; aceptar solo la calle dejaría una dirección incoherente |
 
+## Módulo de equipos, decisiones de construcción (2026-09-02)
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| `verificable` de un tipo de equipo | **Derivado, no almacenado**: `isVerificable()` devuelve si consta la modalidad | Un tipo es verificable exactamente cuando se sabe cómo verificarlo. El original tenía un booleano y una columna de modalidad sin nada que los atara. Al derivarlo, el estado inconsistente deja de ser expresable. Ver [[migracion-equipment-hallazgos]] |
+| La columna `b_verificable` de la tabla | **Se conserva, pero deja de ser fuente de verdad**: el mapper la deriva al guardar y la ignora al leer | La tabla se conserva para no divergir del sistema del que se migra. Un `CHECK` en `V5` ata las dos columnas desde el otro lado |
+| Nombre de la tabla `equipo` | **Se conserva pese a que miente** | No guarda un equipo: es la asociación marca↔tipo. Renombrarla habría divergido del original sin ganar nada; se documenta en el esquema, en el agregado y en el controlador |
+| Asociación marca↔tipo | **Inmutable, sin operación de cambio** | Cambiar cualquiera de sus dos referencias volvería mentira todos los modelos colgados de ella. El original ofrecía `updateEquipment` y `updateEquipmentPatch`. Si está mal se retira y se crea la correcta |
+| Unicidad del par marca↔tipo | **Al esquema, no al servicio** | Comprobarla en el servicio solo abriría una ventana entre la consulta y la escritura. La regla que la base puede defender sin carreras, la defiende la base |
+| Traslado de una unidad | **Evento propio**, separado del cambio de datos de compra | Los equipos se mueven dentro de una sede y eso cambia quién responde por ellos: es el hecho que más importa de una unidad |
+| Alcance de la primera tanda | **Catálogo e inventario**; verificaciones técnicas y datos metrológicos, aparte | Cinco pasos ya grandes. La segunda tanda es lo único del backend que queda |
+| Verbos de escritura, revisado | **Solo `PATCH`, también en rutas de sub-recurso** | Las tres rutas de sub-recurso llegaron como `PUT` y eran defendibles —reemplazan del todo y son idempotentes—, pero dos verbos con la misma semántica repartidos según quién escribiera cada controlador cuestan más que la precisión del matiz |
+| Códigos de error de referencias externas | **Código propio por referencia**, no el genérico de datos inválidos | Un 404 con el código de "datos inválidos" no se distingue del 400 que usa el mismo código. `client` todavía no lo hace así: queda en [[deuda-tecnica-y-riesgos]] |
+
 ## Pendientes de decidir
 
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
 
 ## Notas relacionadas
 
-[[stack-spring-boot-4-particularidades]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

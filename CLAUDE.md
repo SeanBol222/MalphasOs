@@ -33,10 +33,12 @@ El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/In
 | `shared/domain/events` | Contrato de eventos de dominio + despachador in-process |
 | `person` | Completo, más `PersonCommunicationPort` publicado hacia otros módulos |
 | `location` | Completo: esquema, dominio, aplicación, persistencia, REST |
-| `client` | Esquema y dominio completos. `Client`, `Headquarter` y `ServiceArea` con aplicación y persistencia. **Falta `Manager` y toda la capa REST** |
-| `equipment` | Sin empezar. `equipo_cliente` espera a que exista `modelo` |
+| `client` | Completo: esquema, cuatro agregados, aplicación, persistencia y REST |
+| `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos |
 
-Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`. Batería en ~251 pruebas.
+Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`. Batería en 338 pruebas.
+
+**La migración del backend está cerrada** salvo esa segunda tanda de `equipment`.
 
 ## Cómo se trabaja aquí
 
@@ -83,5 +85,7 @@ Trabaja en ramas `docs/` y **no mergea a `main`**: deja la rama y reporta, para 
 
 ## Deuda propia conocida
 
-- Las pruebas son **intermitentes**: la comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si no está levantado. Conviene desactivarla en el perfil de pruebas.
+- Las pruebas son **intermitentes**: la comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si no está levantado. Conviene desactivarla en el perfil de pruebas. (El 2026-09-02 dos ejecuciones completas salieron limpias, pero eso no la cierra.)
 - `correo_persona` y `telefono_persona` admiten dueño nulo, al contrario que los contactos del cliente. Corregirlo exige una migración propia.
+- **`/v1/api/managers` no aparece en ningún grupo de OpenAPI.** Un patrón de `pathsToMatch` que no casa con ninguna ruta no falla ni avisa: deja el recurso fuera de Swagger. Las tres instancias equivalentes de `equipment` se corrigieron el 2026-09-02, con una prueba que las cubre; esta no.
+- El advice de `client` traduce `CityNotFoundException` y `PersonNotFoundException` a `INVALID_CLIENT_DATA`, el mismo código que usan sus 400. `equipment` ya da código propio a cada referencia externa; `client` no.
