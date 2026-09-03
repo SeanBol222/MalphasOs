@@ -25,7 +25,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  *
  * <p>Maneja también las de los módulos que este consulta —un país o un área de servicio
  * inexistentes—, porque llegan por sus controladores y de otro modo escaparían al manejador
- * transversal como un 500.
+ * transversal como un 500. Cada una lleva su propio código: el 404 dice que algo no existe, y el
+ * código dice qué.
  */
 @RestControllerAdvice(
         assignableTypes = {
@@ -80,12 +81,20 @@ public class EquipmentControllerAdvice {
                 EquipmentErrorCatalog.CLIENT_EQUIPMENT_NOT_FOUND, List.of(ex.getMessage()));
     }
 
-    /** Referencias hacia otros módulos que no existen. */
+    /** El país de un fabricante, que vive en el módulo de ubicación. */
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    @ExceptionHandler({CountryNotFoundException.class, ServiceAreaNotFoundException.class})
-    public EquipmentErrorResponse handleReferenciaExterna(RuntimeException ex) {
+    @ExceptionHandler(CountryNotFoundException.class)
+    public EquipmentErrorResponse handleCountry(CountryNotFoundException ex) {
         return EquipmentErrorResponse.of(
-                EquipmentErrorCatalog.INVALID_EQUIPMENT_DATA, List.of(ex.getMessage()));
+                EquipmentErrorCatalog.COUNTRY_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** El área donde se instala una unidad, que vive en el módulo de clientes. */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(ServiceAreaNotFoundException.class)
+    public EquipmentErrorResponse handleServiceArea(ServiceAreaNotFoundException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.SERVICE_AREA_NOT_FOUND, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */

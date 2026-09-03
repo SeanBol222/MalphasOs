@@ -184,7 +184,7 @@ class EquipmentRestAdapterTest {
                         .content(jsonMapper.writeValueAsString(new ClientEquipmentRegisterRequest(
                                 "SN-001", UUID.randomUUID(), null, null, null))))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_007"));
+                .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_009"));
     }
 
     @Test
