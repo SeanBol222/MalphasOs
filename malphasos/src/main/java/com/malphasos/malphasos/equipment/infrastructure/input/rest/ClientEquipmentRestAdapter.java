@@ -95,7 +95,7 @@ public class ClientEquipmentRestAdapter {
     @Operation(summary = "Trasladar una unidad a otra area de servicio",
             description = "El area de destino debe estar activa.")
     @PreAuthorize("hasAuthority('admin.full')")
-    @PutMapping("/client-equipments/{id}/service-area/{idAreaServicio}")
+    @PatchMapping("/client-equipments/{id}/service-area/{idAreaServicio}")
     public ClientEquipmentResponse relocate(
             @PathVariable UUID id, @PathVariable UUID idAreaServicio) {
 

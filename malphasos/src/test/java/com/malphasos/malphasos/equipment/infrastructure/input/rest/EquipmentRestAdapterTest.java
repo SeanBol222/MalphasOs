@@ -109,7 +109,7 @@ class EquipmentRestAdapterTest {
         UUID id = UUID.randomUUID();
         when(equipmentTypeServicePort.changeVerificationMode(any())).thenReturn(unTipo(null));
 
-        mockMvc.perform(put("/v1/api/equipment-types/" + id + "/verification-mode")
+        mockMvc.perform(patch("/v1/api/equipment-types/" + id + "/verification-mode")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new VerificationModeRequest(null))))
                 .andExpect(status().isOk())

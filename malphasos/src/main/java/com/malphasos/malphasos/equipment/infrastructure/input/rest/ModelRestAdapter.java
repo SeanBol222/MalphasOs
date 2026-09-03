@@ -69,7 +69,7 @@ public class ModelRestAdapter {
     @Operation(summary = "Anotar o corregir el registro INVIMA",
             description = "Un registro ausente deja el modelo sin el.")
     @PreAuthorize("hasAuthority('admin.full')")
-    @PutMapping("/{id}/invima")
+    @PatchMapping("/{id}/invima")
     public ModelResponse changeInvima(@PathVariable UUID id, @Valid @RequestBody InvimaRequest request) {
         return mapper.toResponse(
                 modelServicePort.changeInvima(new ChangeModelInvimaCommand(id, request.invima())));

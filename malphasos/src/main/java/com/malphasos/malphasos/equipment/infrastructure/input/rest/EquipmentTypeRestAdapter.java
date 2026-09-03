@@ -92,7 +92,7 @@ public class EquipmentTypeRestAdapter {
     @Operation(summary = "Declarar como se verifica el tipo",
             description = "Una modalidad ausente significa que el tipo deja de verificarse.")
     @PreAuthorize("hasAuthority('admin.full')")
-    @PutMapping("/{id}/verification-mode")
+    @PatchMapping("/{id}/verification-mode")
     public EquipmentTypeResponse changeVerificationMode(
             @PathVariable UUID id, @Valid @RequestBody VerificationModeRequest request) {
 
