@@ -225,4 +225,23 @@ class ClientRestAdapterTest {
 
         verify(managerServicePort, never()).register(any());
     }
+
+    @Test
+    @DisplayName("los cuatro recursos aparecen en el grupo de OpenAPI del modulo")
+    void recursosDocumentados() throws Exception {
+        // Un patron de grupo que no case con ninguna ruta real no falla: deja el recurso fuera de
+        // Swagger en silencio. /managers se habia quedado fuera por esa via, sin declararse nunca.
+        String docs = mockMvc.perform(get("/v3/api-docs/client"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(docs)
+                .describedAs("Todo recurso del modulo debe estar en su grupo de OpenAPI")
+                .contains("/v1/api/clients")
+                .contains("/v1/api/headquarters")
+                .contains("/v1/api/service-areas")
+                .contains("/v1/api/managers");
+    }
 }
