@@ -36,7 +36,7 @@ El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/In
 | `client` | Completo: esquema, cuatro agregados, aplicación, persistencia y REST |
 | `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos |
 
-Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`. Batería en 338 pruebas.
+Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`. Batería en 339 pruebas.
 
 **La migración del backend está cerrada** salvo esa segunda tanda de `equipment`.
 
@@ -87,6 +87,6 @@ Trabaja en ramas `docs/` y **no mergea a `main`**: deja la rama y reporta, para 
 
 ## Deuda propia conocida
 
-- Las pruebas son **intermitentes**: la comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si no está levantado. Conviene desactivarla en el perfil de pruebas. (El 2026-09-02 dos ejecuciones completas salieron limpias, pero eso no la cierra.)
+- Las pruebas son **intermitentes**: la comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si no está levantado. Conviene desactivarla en el perfil de pruebas. (El 2026-09-02 tres ejecuciones completas salieron limpias, pero eso no la cierra.)
 - `correo_persona` y `telefono_persona` admiten dueño nulo, al contrario que los contactos del cliente. Corregirlo exige una migración propia.
 

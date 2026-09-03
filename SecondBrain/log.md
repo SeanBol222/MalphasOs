@@ -267,3 +267,25 @@ Con esto los dos módulos que hablan con otros tratan sus referencias externas d
 **Sobre cómo aparecieron las dos.** Ninguna la encontró leer el módulo donde vivían. La primera salió de preguntarse si el fallo recién corregido en `equipment` tenía más instancias; la segunda, de verificar una afirmación que se había hecho a la ligera —que `client` ya daba código propio a cada referencia externa— y descubrir que era falsa. Es el mismo patrón que ya registraron [[migracion-location-hallazgos]] y [[migracion-client-hallazgos]]: **los defectos de las capas de fuera aparecen comparando módulos entre sí, no leyendo uno solo**.
 
 Actualizadas [[deuda-tecnica-y-riesgos]] —dos entradas de deuda propia cerradas, quedan tres—, [[openapi-swagger]], [[migracion-equipment-hallazgos]] y el `CLAUDE.md` de la raíz, cuyas convenciones REST ganan las dos reglas aprendidas hoy y estrenan una sección de OpenAPI.
+
+## [2026-09-02] ingest | La ERS contrastada contra el codigo: seis defectos que ningun modulo delataba
+
+Primer encargo real al subagente `documentador`: contrastar la sección 3.2 de la ERS contra lo que el código implementa de verdad. Trabajó en `docs/ieee830-alcance-implementado`, sin mergear. **Los seis defectos de código que reportó se verificaron uno a uno antes de anotarlos aquí.**
+
+**El resultado del contraste, en una línea: de 31 requisitos funcionales, 8 están implementados y 23 no tienen una línea de código detrás.** Órdenes de trabajo (7), reportes (6), firma digital (2), inventario de existencias (2), alertas y calibración (2), módulo comercial (2) y dos de hojas de vida. Lo implementado es la gestión de clientes, el registro de equipos y los cinco requisitos de usuarios y seguridad.
+
+**Los dos hallazgos que más pesan son de seguridad, y los dos estaban a la vista sin que nadie los mirara.**
+
+Las **83** operaciones REST exigen `hasAuthority('admin.full')` —83 mappings, 83 anotaciones idénticas— y el realm solo concede ese rol al grupo `admins`. Los grupos `engineers` y `clients` reciben cuatro roles de lectura que **ninguna operación comprueba**. Un ingeniero autentica correctamente y recibe 403 en toda llamada. Es exactamente el defecto que [[keycloak-configuracion]] ya registraba del original —"los 15 roles granulares no se usan"— heredado intacto, y que nadie notó porque todas las pruebas de seguridad usan `admin.full`.
+
+Y **dar de baja a una persona no le quita la entrada**: `PersonService.delete` marca `estadoActivo=false` y guarda, pero `personIdentityPort.deleteUser` solo se invoca desde el rollback de un alta fallida. La cuenta de Keycloak sobrevive y sigue emitiendo tokens válidos. El borrado lógico, que en el resto del sistema es una virtud, aquí deja una puerta abierta: el dato dice inactivo y la identidad dice que pase.
+
+Los otros cuatro: `PersonService.update` no propaga nada a Keycloak; `EquipmentType.update` viola la convención propia de no emitir evento cuando nada cambia, porque solo compara `nombre` contra el valor actual; el NIT duplicado se deja a la restricción del esquema en vez de comprobarse en el servicio, al revés del criterio que el proyecto aplica a las referencias; y quedan seis directorios de andamiaje vacíos en `equipment`.
+
+**Sobre el método, que es lo que hay que retener.** Ninguno de los seis lo habría encontrado leer el módulo donde vive. Aparecieron al preguntarle a un documento qué promete y al código qué cumple — la misma mecánica que ya habían registrado [[migracion-location-hallazgos]] y [[migracion-client-hallazgos]] al comparar módulos entre sí, aplicada ahora entre dos artefactos distintos. **Contrastar una especificación contra su implementación es una técnica de detección de defectos, no solo de documentación.**
+
+**Y una deuda de documentación que no se arregla escribiendo**: los fuentes `.puml` de los diez diagramas de casos de uso **no están en el repositorio** —solo los `.svg` y `.pdf` compilados—, de modo que no se pueden regenerar ni corregir. Varios describen dominios que no existen. Junto con `RF-49` dependiendo de sí mismo y las dependencias a quince requisitos ausentes de la sección, queda todo en [[deuda-tecnica-y-riesgos]].
+
+El `.tex` **estaba sin versionar**: el único commit que había tocado `Documentation/` añadió el PDF y los diagramas y dejó el fuente fuera del `git add`. Ya está en git, con un `.gitignore` propio para los artefactos de LaTeX.
+
+Actualizadas [[deuda-tecnica-y-riesgos]] con dos secciones nuevas —seis defectos de código propio y cinco de la ERS— y el conteo de la batería, que subió a 339 al añadirse la prueba de OpenAPI de `client`.
