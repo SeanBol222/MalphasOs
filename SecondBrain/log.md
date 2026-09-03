@@ -199,3 +199,25 @@ El error vino de mirar los nombres de las columnas —`k_identificador`, FK a pe
 El resto de correcciones: llave UUID en `cliente` con el NIT como llave natural, igual que se hizo con el código ISO del país; correos y teléfonos que exigen dueño; unicidad de sede por cliente y de área por sede, que no existían; las tres columnas de dirección renombradas al prefijo del esquema; y dos nombres de restricción con letras traspuestas.
 
 **Nueva sección en [[deuda-tecnica-y-riesgos]]: "Deuda propia de MalphasOS".** Hasta ahora esa nota solo recogía defectos del original, y conviene no mezclar. Estrena una entrada nuestra: en `V2__person.sql` dejamos anulable el dueño de los correos y teléfonos de una persona, y en `V4__client.sql` decidimos lo contrario para los del cliente. Los dos módulos hacen cosas distintas con el mismo problema; corregirlo exige una migración propia.
+
+## [2026-09-02] ingest | Client cerrado: el primer modulo que se reconstruye en vez de portarse
+
+Esquema, cuatro agregados, aplicación, persistencia y REST. Con esto `client` queda completo salvo `equipo_cliente`, y solo falta `equipment`. 275 pruebas en verde.
+
+**Es el primer módulo que no se porta.** `person` y `location` se migraron corrigiendo defectos sobre la estructura del original; aquí el original es Generación 1 —CRUD anémico, sin agregados ni eventos— y este wiki lo marca como patrón a no replicar. Se conservó la jerarquía conceptual y se rehízo todo lo demás.
+
+**La decisión que dio forma a todo** fue elegir cuatro agregados pequeños que se referencian por identificador, en vez de un `Client` que contuviera sus sedes, sus áreas y sus encargados. Cargar un cliente no arrastra su organización entera, y dos personas editando sedes distintas no compiten por la misma fila. El coste, asumido: ninguna transacción abarca cliente y sede a la vez.
+
+**`representante_legal` se implementó por primera vez.** La tabla existía en el esquema original sin una sola línea de código —la única aparición del nombre en todo el backend era un `example` dentro de un javadoc—, y era justo lo que le faltaba al tipo `CEO_CLIENT` para poder asociarse a algún cliente. El modelo de datos prometía algo que el sistema no hacía.
+
+**Aparecieron las primeras reglas que ningún esquema puede expresar.** No se abre un área en una sede cerrada, y no se pone a nadie al frente de algo cerrado. Una clave foránea comprueba que una fila exista, no que esté activa, y con borrado lógico esas dos cosas dejan de ser la misma. Viven en los servicios, con sus pruebas, y el patrón se repetirá en `equipment`.
+
+**El original siempre creaba una persona nueva** al añadir un encargado, de modo que un ingeniero de la empresa no podía figurar además como encargado sin duplicarse. Ahora hay dos caminos: `register` crea la persona, `assign` parte de alguien que ya existe. Y `register` valida el destino **antes** de crear la persona: al revés, un fallo dejaría una persona huérfana en la base.
+
+**Es también el primer módulo que habla con otros dos**, `person` para el representante legal y el alta de encargado, `location` para la ciudad de la sede. Eso obligó a que su advice traduzca `CityNotFoundException` y `PersonNotFoundException`, que si no escaparían al manejador transversal como un 500.
+
+Nota nueva: [[migracion-client-hallazgos]], con los ocho defectos del original corregidos y el detalle de las decisiones.
+
+**Dos entradas nuevas en la deuda propia.** La primera incomoda: **la batería es intermitente**. Una ejecución dio 3 errores por la comprobación de salud de RabbitMQ contra `localhost:5672`, y la siguiente, sin tocar nada, dio 251/251. Una batería que da dos resultados distintos deja de servir como señal; conviene desactivar esa comprobación en el perfil de pruebas, que ningún test usa la mensajería. La segunda es el aplazamiento consciente de `equipo_cliente`.
+
+Actualizadas [[dominio-cliente]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]] y [[checklist-reutilizacion]], donde `client` queda cerrado y `equipment` pasa a ser lo único pendiente.
