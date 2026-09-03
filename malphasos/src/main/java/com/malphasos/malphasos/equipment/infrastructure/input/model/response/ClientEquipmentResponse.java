@@ -1,0 +1,20 @@
+package com.malphasos.malphasos.equipment.infrastructure.input.model.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDate;
+import java.util.UUID;
+import lombok.Builder;
+
+/** Una unidad física del inventario de un cliente. */
+@Builder
+@Schema(name = "ClientEquipmentResponse")
+public record ClientEquipmentResponse(
+        UUID id,
+        String serie,
+        String numeroInventario,
+        LocalDate fechaCompra,
+        Long valorCompra,
+        UUID idModelo,
+        UUID idAreaServicio,
+        boolean estadoActivo) {
+}
