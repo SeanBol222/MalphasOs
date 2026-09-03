@@ -251,3 +251,19 @@ Y un código de error que servía para dos cosas incompatibles: un área inexist
 **Y una corrección al propio checklist**, que arrastraba contradicciones internas desde hacía tres pasos: daba por pendientes `shared/domain/events`, el dispatcher, el primer hexágono de Generación 2 y la jerarquía de clientes, cuatro cosas que sus propias entradas de la sección 5 declaraban hechas. Quedan marcadas con su fecha real. El dispatcher se marca **parcial**, que es lo cierto: `SpringEventDispatcher` está en marcha y `RabbitMQDispatcher` no se ha portado.
 
 Nota nueva: [[migracion-equipment-hallazgos]]. Actualizadas [[dominio-equipo-mantenimiento]] —que pasa a advertir que describe el original y no lo que MalphasOS hace—, [[openapi-swagger]], [[decisiones-tecnicas-malphasos]] con nueve decisiones del módulo, [[deuda-tecnica-y-riesgos]] —siete defectos nuevos del original, 63 en total, y tres entradas nuevas de deuda propia— y [[checklist-reutilizacion]], donde la migración del backend queda cerrada salvo verificaciones técnicas y datos metrológicos.
+
+## [2026-09-02] ingest | Las dos deudas que abrio la revision de equipment, cerradas el mismo dia
+
+Dos correcciones en `client`, salidas de revisar la capa REST de `equipment` unas horas antes. 339 pruebas en verde.
+
+**`/v1/api/managers` no aparecía en ningún grupo de OpenAPI.** El grupo `client` declaraba sedes, áreas y clientes, y nunca declaró encargados. Era la **cuarta** instancia del mismo fallo silencioso, tras las tres de `equipment`, y apareció justamente al ir a buscar más casos de aquellas: es la única forma en que este fallo se encuentra, porque nunca se manifiesta solo —no hay error de arranque, no hay log, el recurso simplemente no está en Swagger—.
+
+Cada módulo lleva ahora una prueba que consulta su propio `/v3/api-docs/<grupo>` y exige que aparezcan todos sus recursos. **Los cinco grupos del proyecto casan hoy con las rutas reales**, y esta vez comprobado por una prueba y no leyendo dos listas en paralelo, que es exactamente lo que falló cuatro veces.
+
+**Los códigos de error de `client` no distinguían "no existe" de "datos inválidos".** Una ciudad o una persona inexistentes salían como 404 con `ERR_CLIENT_005`, *"Invalid client data"*, el mismo código que sale con 400 cuando una regla rechaza la petición. Ahora llevan código propio, `006` y `007`.
+
+Con esto los dos módulos que hablan con otros tratan sus referencias externas de la misma forma, y la regla queda enunciable sin excepciones: **un código de "no existe" no se comparte nunca con uno de "datos inválidos"**, porque salen con estados HTTP distintos y un cliente que solo mire el código no podría separarlos.
+
+**Sobre cómo aparecieron las dos.** Ninguna la encontró leer el módulo donde vivían. La primera salió de preguntarse si el fallo recién corregido en `equipment` tenía más instancias; la segunda, de verificar una afirmación que se había hecho a la ligera —que `client` ya daba código propio a cada referencia externa— y descubrir que era falsa. Es el mismo patrón que ya registraron [[migracion-location-hallazgos]] y [[migracion-client-hallazgos]]: **los defectos de las capas de fuera aparecen comparando módulos entre sí, no leyendo uno solo**.
+
+Actualizadas [[deuda-tecnica-y-riesgos]] —dos entradas de deuda propia cerradas, quedan tres—, [[openapi-swagger]], [[migracion-equipment-hallazgos]] y el `CLAUDE.md` de la raíz, cuyas convenciones REST ganan las dos reglas aprendidas hoy y estrenan una sección de OpenAPI.
