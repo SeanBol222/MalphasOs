@@ -36,7 +36,7 @@ El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/In
 | `client` | Completo: esquema, cuatro agregados, aplicación, persistencia y REST |
 | `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos |
 
-Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`. Batería en 339 pruebas.
+Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`. Batería en 339 pruebas — el conteo de los XML de Surefire; los `.txt` suman 307 porque cuentan cada parametrizado como una. Ver [[stack-spring-boot-4-particularidades]].
 
 **La migración del backend está cerrada** salvo esa segunda tanda de `equipment`.
 

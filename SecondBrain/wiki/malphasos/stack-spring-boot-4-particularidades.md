@@ -3,7 +3,7 @@ name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
 tags: [malphasos, stack, backend, hallazgo]
 source: malphasos/pom.xml (MalphasOS)
-updated: 2026-08-27
+updated: 2026-09-02
 ---
 
 # Particularidades de Spring Boot 4 y el stack moderno
@@ -52,6 +52,19 @@ Las clases Java **no** cambiaron de paquete: `org.testcontainers.containers.Post
 ## 5. Jackson 3 ya viene por defecto
 
 En los logs de arranque aparece `JacksonAutoConfiguration#jsonMapperBuilder` resolviendo `tools.jackson.databind.json.JsonMapper$Builder` — es decir, **Spring Boot 4 ya usa Jackson 3 de serie**. Esto explica retroactivamente la mezcla rara de Jackson 2 y 3 que [[stack-tecnologico]] marcaba como riesgo en el proyecto original: no era un experimento, era la transición del propio framework. En MalphasOS no se declaró ninguna dependencia de Jackson y funciona correctamente.
+
+## Surefire da dos conteos distintos de la misma ejecución (2026-09-02)
+
+Al citar "339 pruebas en verde" conviene saber que **el número depende de dónde se mire**, y que el camino más obvio da otro:
+
+| Fuente | Suma | Qué cuenta |
+|---|---|---|
+| `target/surefire-reports/*.txt` | **307** | un `@ParameterizedTest` cuenta como **una** prueba |
+| atributo `tests=` de `TEST-*.xml` | **339** | cada **invocación** de un parametrizado cuenta aparte |
+
+Los 32 de diferencia salen de 11 métodos `@ParameterizedTest` que se expanden en 43 invocaciones.
+
+**Los dos números son correctos según lo que miden.** Este wiki y el `CLAUDE.md` de la raíz publican **339**, el conteo de los XML, que es el que refleja cuántas aserciones se ejecutaron de verdad. Quien vaya a reverificarlo con `grep "Tests run" target/surefire-reports/*.txt` obtendrá 307 y creerá que la cifra está inflada: no lo está, está contando otra cosa.
 
 ## Notas relacionadas
 
