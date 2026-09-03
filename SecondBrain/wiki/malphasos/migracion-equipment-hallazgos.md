@@ -123,7 +123,7 @@ El fallo no avisa: un patrón que no casa con ninguna ruta no es un error, simpl
 
 **Un código de error que servía para dos cosas incompatibles.** Un área de servicio inexistente respondía 404 con `ERR_EQUIPMENT_007`, *"Invalid equipment data"* — el mismo código que sale con **400** cuando una regla del servicio rechaza la petición. El estado decía "no existe" y el código decía "datos inválidos"; un cliente que solo mirase el código no podía distinguirlos. Ahora el país y el área llevan código propio, 008 y 009.
 
-**`client` tiene el mismo defecto y sigue sin corregir**: agrupa `CityNotFoundException` y `PersonNotFoundException` bajo `INVALID_CLIENT_DATA`. Anotado en [[deuda-tecnica-y-riesgos]].
+**`client` tenía el mismo defecto**, agrupando `CityNotFoundException` y `PersonNotFoundException` bajo `INVALID_CLIENT_DATA`. Se creyó al principio que `client` ya lo hacía bien y que `equipment` se desviaba del patrón; era al revés. **Corregido el mismo día** con `ERR_CLIENT_006` y `007`, de modo que los dos módulos que hablan con otros tratan ahora sus referencias externas igual.
 
 ## Notas relacionadas
 

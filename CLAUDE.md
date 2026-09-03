@@ -81,11 +81,12 @@ Trabaja en ramas `docs/` y **no mergea a `main`**: deja la rama y reporta, para 
 
 **Esquema**: llaves primarias UUID, con la llave natural como columna única aparte (código ISO, NIT). Prefijos `k_` llaves, `n_` nombres, `t_` texto, `b_` booleanos. Borrado lógico universal con `b_estado_activo`. Las reglas de negocio que el esquema puede expresar van como `CHECK`; las que no —"no abrir un área en una sede cerrada"— viven en el servicio.
 
-**REST**: `@PreAuthorize("hasAuthority('admin.full')")` en todas las operaciones. Solo `PATCH`, sin `PUT`. `DELETE` responde 204 pero retira sin borrar. El identificador sale de la ruta, nunca del cuerpo. Catálogo de errores propio por módulo, con el advice limitado por `assignableTypes`.
+**REST**: `@PreAuthorize("hasAuthority('admin.full')")` en todas las operaciones. Solo `PATCH`, sin `PUT` — **también en las rutas de sub-recurso**. `DELETE` responde 204 pero retira sin borrar. El identificador sale de la ruta, nunca del cuerpo. Catálogo de errores propio por módulo, con el advice limitado por `assignableTypes`; **un código de "no existe" nunca se comparte con uno de "datos inválidos"**, y cada referencia hacia otro módulo lleva el suyo.
+
+**OpenAPI**: cada módulo declara su grupo en `OpenApiConfig`, y **cada grupo lleva una prueba que consulta `/v3/api-docs/<grupo>` y exige que aparezcan todos sus recursos**. Un patrón de `pathsToMatch` que no casa con ninguna ruta no falla ni avisa: deja el recurso fuera de Swagger en silencio. Pasó cuatro veces antes de que hubiera pruebas.
 
 ## Deuda propia conocida
 
 - Las pruebas son **intermitentes**: la comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si no está levantado. Conviene desactivarla en el perfil de pruebas. (El 2026-09-02 dos ejecuciones completas salieron limpias, pero eso no la cierra.)
 - `correo_persona` y `telefono_persona` admiten dueño nulo, al contrario que los contactos del cliente. Corregirlo exige una migración propia.
-- **`/v1/api/managers` no aparece en ningún grupo de OpenAPI.** Un patrón de `pathsToMatch` que no casa con ninguna ruta no falla ni avisa: deja el recurso fuera de Swagger. Las tres instancias equivalentes de `equipment` se corrigieron el 2026-09-02, con una prueba que las cubre; esta no.
-- El advice de `client` traduce `CityNotFoundException` y `PersonNotFoundException` a `INVALID_CLIENT_DATA`, el mismo código que usan sus 400. `equipment` ya da código propio a cada referencia externa; `client` no.
+

@@ -29,7 +29,7 @@ En MalphasOS ocurrió cuatro veces, porque `OpenApiConfig` se escribió al porta
 | `/v1/api/client-equipment/**` | `/v1/api/client-equipments` | fuera de Swagger |
 | *(ninguno)* | `/v1/api/managers` | fuera de Swagger |
 
-Las tres primeras se corrigieron el 2026-09-02, con una prueba que exige los seis recursos del catálogo en `/v3/api-docs/equipment`. La de `managers` sigue pendiente, en [[deuda-tecnica-y-riesgos]].
+**Las cuatro quedaron corregidas el 2026-09-02**, cada módulo con una prueba que consulta su propio documento generado y exige que aparezcan todos sus recursos. La de `managers` apareció justamente al buscar más instancias de las tres primeras, que es la única forma en que este fallo se encuentra: nunca se manifiesta solo.
 
 **La lección de método**: escribir el grupo *antes* que el controlador invierte el orden de la verificación. Si el grupo se declara primero, la única forma de saber que casa es una prueba que consulte el documento generado; leer las dos listas en paralelo es exactamente lo que falló cuatro veces.
 
