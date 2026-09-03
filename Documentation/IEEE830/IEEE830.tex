@@ -35,6 +35,18 @@
   \addcontentsline{toc}{subsection}{#1}
 }
 
+% Marcas de estado de implementacion. Se usan solo en el apartado 3.2 y su
+% significado se explica alli, la primera vez que aparecen. El rojo es el color
+% de acento del documento y el gris el de los elementos atenuados: lo construido
+% resalta, lo que falta queda en segundo plano.
+% Rutas del API y caminos de archivo. \texttt es indivisible y una ruta larga se
+% sale de la caja; \nolinkurl la compone igual pero admite corte tras cada barra.
+\urlstyle{tt}
+\newcommand{\ruta}[1]{\nolinkurl{#1}}
+
+\newcommand{\estadoImplementado}{\textcolor{mainRed}{\textbf{[IMPLEMENTADO]}}}
+\newcommand{\estadoPrevisto}{\textcolor{mainGray}{\textbf{[PREVISTO]}}}
+
 \begin{document}
 
 % ===== PORTADA =====
@@ -554,11 +566,95 @@ En este apartado se presentan las funciones que deberá cumplir el sistema, desc
 
 Para cada dominio identificado, se detallan los requisitos funcionales asociados, especificando su identificador (ID), nombre, descripción y criterios de aceptación, así como las dependencias relevantes cuando aplique. Posteriormente, se presenta el diagrama de casos de uso correspondiente a cada dominio, el cual permite visualizar las interacciones entre los usuarios y el sistema en relación con las funcionalidades descritas. Finalmente, se incluye una breve conclusión por cada agrupación, con el fin de sintetizar el alcance funcional cubierto y su aporte dentro del sistema global.
 
+\textbf{Cómo leer el estado de cada requisito.} Los requisitos de este apartado describen el alcance del sistema, no lo que el sistema ya hace. Para que ambas cosas no se confundan, cada requisito lleva junto a su título una de estas dos marcas, y solo una de las dos:
+
+\begin{itemize}
+  \item \estadoImplementado{} — hay código en el repositorio que hace lo que el requisito pide. El último punto del requisito, \textit{Estado en la implementación actual}, cita la evidencia: la ruta que lo expone, el agregado que guarda la regla o la tabla que lo persiste. Cuando algún criterio de aceptación concreto queda sin cubrir, ese mismo punto dice cuál y por qué.
+
+  \item \estadoPrevisto{} — el requisito sigue formando parte del alcance del proyecto, pero a la fecha de esta revisión no hay una línea de código que lo implemente. El punto \textit{Estado en la implementación actual} dice qué se comprobó para afirmarlo y nombra las piezas ya construidas sobre las que se apoyará cuando se aborde.
+\end{itemize}
+
+La revisión se hizo el 2 de septiembre de 2026 sobre el backend de MalphasOS, contrastando cada requisito con los controladores REST, los puertos de entrada de cada agregado, las reglas del dominio y las cinco migraciones del esquema. De los treinta y un requisitos funcionales de este apartado, \textbf{ocho tienen implementación y veintitrés están previstos}. Lo construido son los datos maestros: personas y su alta en el proveedor de identidad, países y ciudades, clientes con sus sedes y áreas de servicio, y el catálogo e inventario de equipos. Lo que falta es el flujo operativo que se apoya sobre ellos —órdenes de trabajo, reportes de mantenimiento, firma digital, inventario de existencias, alertas de calibración y cotizaciones— y, dentro del módulo de equipos, las verificaciones técnicas y los datos metrológicos.
+
+\begingroup
+\small
+\begin{longtable}{|p{1.6cm}|p{7.6cm}|p{4.3cm}|}
+\hline
+\textbf{ID} & \textbf{Requisito} & \textbf{Estado} \\
+\hline
+\endfirsthead
+\hline
+\textbf{ID} & \textbf{Requisito} & \textbf{Estado} \\
+\hline
+\endhead
+\multicolumn{3}{|l|}{\textit{3.2.1. Gestión de Órdenes de Trabajo}} \\
+\hline
+RF-01 & Crear orden de trabajo directa & Previsto \\
+RF-02 & Eliminación de dependencia de solicitud & Previsto \\
+RF-03 & Formulario de orden de trabajo & Previsto \\
+RF-04 & Selección múltiple de áreas & Previsto \\
+RF-05 & Identificador único de orden & Previsto \\
+RF-06 & Visualización de equipos por área & Previsto \\
+RF-07 & Selección múltiple de equipos & Previsto \\
+\hline
+\multicolumn{3}{|l|}{\textit{3.2.2. Gestión de Clientes}} \\
+\hline
+RF-08 & Crear cliente & Implementado \\
+\hline
+\multicolumn{3}{|l|}{\textit{3.2.3. Reportes de Mantenimiento}} \\
+\hline
+RF-09 & Generar reporte por equipo & Previsto \\
+RF-11 & Autocompletar datos en reporte & Previsto \\
+RF-13 & Asignación automática de protocolo & Previsto \\
+RF-14 & Configuración de protocolos & Previsto \\
+RF-15 & Registro de información técnica & Previsto \\
+RF-17 & Exportar a PDF & Previsto \\
+\hline
+\multicolumn{3}{|l|}{\textit{3.2.4. Firma Digital}} \\
+\hline
+RF-18 & Captura de firma digital & Previsto \\
+RF-21 & Replicación de firma & Previsto \\
+\hline
+\multicolumn{3}{|l|}{\textit{3.2.5. Hojas de Vida de los Equipos}} \\
+\hline
+RF-22 & Crear hoja de vida & Implementado \\
+RF-24 & Modificar/eliminar hoja de vida & Implementado \\
+RF-26 & Registro automático de intervenciones & Previsto \\
+RF-27 & Historial de intervenciones & Previsto \\
+\hline
+\multicolumn{3}{|l|}{\textit{3.2.6. Inventario}} \\
+\hline
+RF-36 & Módulo inventario & Previsto \\
+RF-37 & Entrada/salida inventario & Previsto \\
+\hline
+\multicolumn{3}{|l|}{\textit{3.2.7. Alertas y calibración}} \\
+\hline
+RF-40 & Identificar vencimientos & Previsto \\
+RF-41 & Generar alertas & Previsto \\
+\hline
+\multicolumn{3}{|l|}{\textit{3.2.8. Módulo Comercial}} \\
+\hline
+RF-45 & Crear cotización & Previsto \\
+RF-47 & Generar orden desde cotización & Previsto \\
+\hline
+\multicolumn{3}{|l|}{\textit{3.2.9. Usuarios y seguridad}} \\
+\hline
+RF-49 & Login de usuario & Implementado \\
+RF-50 & Identificación de rol & Implementado \\
+RF-51 & Creación de usuarios & Implementado \\
+RF-52 & Modificación de usuarios & Implementado \\
+RF-53 & Eliminación de usuarios & Implementado \\
+\hline
+\caption{Estado de implementación de los requisitos funcionales al 2 de septiembre de 2026.}
+\label{tab:estado_rf}
+\end{longtable}
+\endgroup
+
 \subsectiontitle{3.2.1. Gestión de Órdenes de Trabajo}
 
-Este dominio agrupa las funcionalidades relacionadas con la creación, configuración y gestión de órdenes de trabajo dentro del sistema. Permite estructurar las actividades de mantenimiento mediante la selección de clientes, sedes, áreas de servicio y equipos, consolidando la información necesaria para la ejecución de las intervenciones.
+Este dominio agrupa las funcionalidades relacionadas con la creación, configuración y gestión de órdenes de trabajo dentro del sistema. Permitirá estructurar las actividades de mantenimiento mediante la selección de clientes, sedes, áreas de servicio y equipos, consolidando la información necesaria para la ejecución de las intervenciones. Ninguno de sus siete requisitos tiene implementación todavía.
 
-\textbf{RF-01 Crear orden de trabajo directa:}
+\textbf{RF-01 Crear orden de trabajo directa:} \estadoPrevisto{}
 
 El sistema debe proporcionar una funcionalidad que permita crear registros de órdenes de trabajo de forma directa dentro del sistema.
 
@@ -576,9 +672,11 @@ El sistema debe proporcionar una funcionalidad que permita crear registros de ó
   \begin{itemize}
     \item RF-49, RF-50
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No existe la orden de trabajo. Ninguna de las cinco migraciones del esquema crea una tabla para ella, no hay agregado de dominio que la represente y no hay ruta que la exponga. Cuando se construya se apoyará sobre el cliente, la sede, el área de servicio y la unidad de equipo, que sí existen y ya se consultan por identificador.
 \end{itemize}
 
-\textbf{RF-02 Eliminación de dependencia de solicitud:}
+\textbf{RF-02 Eliminación de dependencia de solicitud:} \estadoPrevisto{}
 
 El sistema no debe requerir la existencia ni la selección de registros de tipo ``solicitud'' como condición previa para la creación de una orden de trabajo.
 
@@ -596,9 +694,11 @@ El sistema no debe requerir la existencia ni la selección de registros de tipo 
   \begin{itemize}
     \item RF-01
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} La palabra \emph{solicitud} no aparece en ninguna tabla ni en ninguna clase del backend, de modo que no hay nada que retirar. El requisito quedará cubierto por construcción cuando la orden de trabajo se implemente; esta revisión deja constancia de que el esquema no introduce esa dependencia.
 \end{itemize}
 
-\textbf{RF-03 Formulario de orden de trabajo:}
+\textbf{RF-03 Formulario de orden de trabajo:} \estadoPrevisto{}
 
 El sistema debe disponer de un formulario para la creación de órdenes de trabajo. El formulario debe incluir los campos Cliente, Sede, Áreas, Tipo de servicio, Periodicidad.
 
@@ -616,9 +716,11 @@ El sistema debe disponer de un formulario para la creación de órdenes de traba
   \begin{itemize}
     \item RF-01, RF-08
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No existe el formulario ni la entidad que lo respaldaría. Dos de los cinco campos ni siquiera tienen columna en el esquema: \emph{tipo de servicio} y \emph{periodicidad}. Los otros tres sí están modelados, en las tablas \texttt{cliente}, \texttt{sede} y \texttt{area\_servicio}.
 \end{itemize}
 
-\textbf{RF-04 Selección múltiple de áreas:}
+\textbf{RF-04 Selección múltiple de áreas:} \estadoPrevisto{}
 
 El sistema debe permitir seleccionar múltiples áreas de servicio asociadas a la sede seleccionada dentro de una misma orden de trabajo.
 
@@ -636,9 +738,11 @@ El sistema debe permitir seleccionar múltiples áreas de servicio asociadas a l
   \begin{itemize}
     \item RF-03, RF-08
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} El filtrado que exige el segundo criterio de aceptación ya está resuelto del lado del backend: \texttt{GET} \ruta{/v1/api/headquarters/{idSede}/service-areas} devuelve las áreas de una sede concreta. Lo que no existe es la orden de trabajo a la que asociarlas y, por tanto, tampoco la selección múltiple.
 \end{itemize}
 
-\textbf{RF-05 Identificador único de orden:}
+\textbf{RF-05 Identificador único de orden:} \estadoPrevisto{}
 
 El sistema debe almacenar cada orden de trabajo creada con un identificador único de tipo UUID y asociar la información ingresada en el formulario.
 
@@ -656,9 +760,11 @@ El sistema debe almacenar cada orden de trabajo creada con un identificador úni
   \begin{itemize}
     \item RF-03, RF-04, RF-07
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No hay orden de trabajo que identificar. La convención de llave primaria UUID sí está establecida y se aplica sin excepción en las cinco migraciones, de modo que el requisito quedará cubierto por la propia convención del esquema en cuanto la entidad se cree.
 \end{itemize}
 
-\textbf{RF-06 Visualización de equipos por área:}
+\textbf{RF-06 Visualización de equipos por área:} \estadoPrevisto{}
 
 El sistema debe mostrar los equipos disponibles organizados por cada área de servicio seleccionada dentro del formulario de creación de la orden de trabajo.
 
@@ -676,9 +782,11 @@ El sistema debe mostrar los equipos disponibles organizados por cada área de se
   \begin{itemize}
     \item RF-05, RF-09
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} La consulta de fondo existe: \texttt{GET} \ruta{/v1/api/service-areas/{idAreaServicio}/equipments} devuelve las unidades situadas en un área de servicio. Falta el formulario de la orden de trabajo desde el que agruparlas y la actualización dinámica al cambiar la selección de áreas, que corresponden a una interfaz de usuario que el repositorio todavía no contiene.
 \end{itemize}
 
-\textbf{RF-07 Selección múltiple de equipos:}
+\textbf{RF-07 Selección múltiple de equipos:} \estadoPrevisto{}
 
 El sistema debe permitir seleccionar múltiples equipos pertenecientes a las áreas seleccionadas para ser incluidos en la misma orden de trabajo.
 
@@ -696,6 +804,8 @@ El sistema debe permitir seleccionar múltiples equipos pertenecientes a las ár
   \begin{itemize}
     \item RF-06, RF-04
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Depende íntegramente de la orden de trabajo. Las unidades a seleccionar existen —tabla \texttt{equipo\_cliente}, expuesta en \ruta{/v1/api/client-equipments}—, pero no hay a qué asociarlas.
 \end{itemize}
 
 [DIAGRAMA DE CASOS DE USO - GESTIÓN DE ÓRDENES DE TRABAJO]
@@ -707,13 +817,13 @@ El sistema debe permitir seleccionar múltiples equipos pertenecientes a las ár
 \label{fig:cu_ordenes_trabajo}
 \end{figure}
 
-Las funcionalidades de este dominio constituyen el eje central del sistema, ya que permiten iniciar y organizar el flujo de trabajo operativo, garantizando una adecuada planificación y trazabilidad de las actividades de mantenimiento.
+Las funcionalidades de este dominio constituirán el eje central del sistema, porque son las que inician y organizan el flujo de trabajo operativo. El dominio entero está previsto, y se levantará sobre piezas que sí están construidas: el cliente, la sede, el área de servicio y el inventario de equipos de cada área.
 
 \subsectiontitle{3.2.2. Gestión de Clientes}
 
 Este dominio contempla las funcionalidades necesarias para la administración de la información de los clientes, incluyendo su registro, modificación y almacenamiento en el sistema. Esta información es fundamental para alimentar otros procesos del sistema.
 
-\textbf{RF-08 Crear cliente:}
+\textbf{RF-08 Crear cliente:} \estadoImplementado{}
 
 El sistema debe permitir crear por medio de un formulario a un cliente con los datos de Nombre del Cliente, dirección, sede, NIT, ciudad, Profesional Responsable, correo, teléfono fijo, celular, sedes y áreas. Y permitir guardarlo en la Base de Datos.
 
@@ -731,6 +841,10 @@ El sistema debe permitir crear por medio de un formulario a un cliente con los d
   \begin{itemize}
     \item RF-49, RF-50, RF-52
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} El alta se hace con \texttt{POST} \ruta{/v1/api/clients} y persiste en la tabla \texttt{cliente} a través del agregado \texttt{Client}. Los correos y teléfonos son entidades internas de ese agregado y se añaden con \texttt{POST} \ruta{/v1/api/clients/{id}/emails} y \texttt{POST} \ruta{/v1/api/clients/{id}/phones}. Las sedes se crean con \texttt{POST} \ruta{/v1/api/clients/{idCliente}/headquarters} y las áreas de servicio con \texttt{POST} \ruta{/v1/api/headquarters/{idSede}/service-areas}. La edición es \texttt{PATCH} \ruta{/v1/api/clients/{id}} y la baja \texttt{DELETE} \ruta{/v1/api/clients/{id}}, que responde 204 pero desactiva en lugar de borrar: en este sistema nada se elimina físicamente. El tercer criterio de aceptación se cumple: el cliente no tiene credenciales; solo las personas se dan de alta en el proveedor de identidad.
+
+  Tres precisiones sobre los campos que enumera el requisito. La \emph{dirección} y la \emph{ciudad} no son datos del cliente sino de cada sede: viven descompuestos en \texttt{sede} —\texttt{t\_calle}, \texttt{t\_carrera} y \texttt{t\_numero}— junto a la referencia a la ciudad; del cliente solo se guarda el país. El \emph{teléfono fijo} y el \emph{celular} no se distinguen: \texttt{telefono\_cliente} es una lista de teléfonos sin tipo. Y el \emph{profesional responsable} se corresponde con dos figuras distintas del código —el representante legal del cliente y el encargado de una sede o de un área—, ninguna de las cuales lleva ese nombre. La unicidad del NIT la impone la restricción \texttt{UQ\_cliente\_documento} del esquema y no una comprobación del servicio, de modo que un documento repetido se rechaza con un conflicto genérico y no con un error del dominio.
 \end{itemize}
 
 La gestión de clientes permite centralizar la información institucional, facilitando su reutilización en diferentes módulos y contribuyendo a la consistencia y reducción de errores en el manejo de datos.
@@ -739,7 +853,7 @@ La gestión de clientes permite centralizar la información institucional, facil
 
 Este dominio abarca las funcionalidades orientadas a la generación, gestión y exportación de reportes de mantenimiento por cada equipo intervenido, incluyendo el registro de información técnica y la automatización de datos provenientes de la orden de trabajo.
 
-\textbf{RF-09 Generar reporte por equipo:}
+\textbf{RF-09 Generar reporte por equipo:} \estadoPrevisto{}
 
 El sistema debe generar un reporte de mantenimiento individual por cada equipo seleccionado dentro de una orden de trabajo.
 
@@ -757,9 +871,11 @@ El sistema debe generar un reporte de mantenimiento individual por cada equipo s
   \begin{itemize}
     \item RF-05, RF-07
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No existe entidad de reporte ni tabla que lo guarde. El directorio \ruta{equipment/infrastructure/input/model/report/} está creado y vacío: es el sitio reservado para cuando se aborde, no una implementación.
 \end{itemize}
 
-\textbf{RF-11 Autocompletar datos en reporte:}
+\textbf{RF-11 Autocompletar datos en reporte:} \estadoPrevisto{}
 
 El sistema debe autocompletar en cada reporte los datos del cliente, sede, responsables y tipo de servicio a partir de la información registrada en la orden de trabajo.
 
@@ -777,9 +893,11 @@ El sistema debe autocompletar en cada reporte los datos del cliente, sede, respo
   \begin{itemize}
     \item RF-05, RF-08, RF-09
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Depende de la orden de trabajo y del reporte, y no existe ninguno de los dos. Los datos que se autocompletarían —cliente, sede, encargados— sí están registrados y son consultables por identificador.
 \end{itemize}
 
-\textbf{RF-13 Asignación automática de protocolo:}
+\textbf{RF-13 Asignación automática de protocolo:} \estadoPrevisto{}
 
 El sistema debe seleccionar automáticamente el protocolo de mantenimiento correspondiente según el tipo de equipo y el tipo de servicio definido.
 
@@ -797,9 +915,11 @@ El sistema debe seleccionar automáticamente el protocolo de mantenimiento corre
   \begin{itemize}
     \item RF-09, RF-14
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No hay protocolos que asignar; véase RF-14. Tampoco está modelado el tipo de servicio, que es la otra mitad de la clave por la que el protocolo se elegiría.
 \end{itemize}
 
-\textbf{RF-14 Configuración de protocolos:}
+\textbf{RF-14 Configuración de protocolos:} \estadoPrevisto{}
 
 El sistema debe permitir la configuración previa de protocolos asociados a cada tipo de equipo y tipo de servicio.
 
@@ -817,9 +937,11 @@ El sistema debe permitir la configuración previa de protocolos asociados a cada
   \begin{itemize}
     \item RF-22
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} La palabra \emph{protocolo} no aparece en el esquema ni en el código. Lo que sí existe es el tipo de equipo —tabla \texttt{tipo\_equipo}, agregado \texttt{EquipmentType}—, que es una de las dos dimensiones por las que el requisito quiere clasificar los protocolos.
 \end{itemize}
 
-\textbf{RF-15 Registro de información técnica:}
+\textbf{RF-15 Registro de información técnica:} \estadoPrevisto{}
 
 El sistema debe permitir ingresar y guardar la información del reporte para cada equipo de manera independiente.
 
@@ -837,9 +959,11 @@ El sistema debe permitir ingresar y guardar la información del reporte para cad
   \begin{itemize}
     \item RF-09, RF-11, RF-13
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Ninguno de los campos que enumera el criterio de aceptación —falla reportada, diagnóstico, procedimientos, observaciones, resultado— tiene columna en el esquema. Conviene no confundir este requisito con la verificación técnica de un equipo, que es una pieza distinta y también pendiente: forma parte de la segunda tanda del módulo de equipos.
 \end{itemize}
 
-\textbf{RF-17 Exportar a PDF:}
+\textbf{RF-17 Exportar a PDF:} \estadoPrevisto{}
 
 El sistema debe permitir exportar los reportes de mantenimiento en formato PDF (.pdf).
 
@@ -857,6 +981,8 @@ El sistema debe permitir exportar los reportes de mantenimiento en formato PDF (
   \begin{itemize}
     \item RF-15, RF-21
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} El proyecto no declara ninguna dependencia de generación de PDF y no hay código que produzca documentos. El apartado 2.2 promete además exportación a Excel, que este requisito no recoge y que tampoco tiene implementación.
 \end{itemize}
 
 [DIAGRAMA DE CASOS DE USO - REPORTES DE MANTENIMIENTO]
@@ -868,13 +994,13 @@ El sistema debe permitir exportar los reportes de mantenimiento en formato PDF (
 \label{fig:cu_mantenimientos}
 \end{figure}
 
-La implementación de este dominio garantiza la correcta documentación de las intervenciones realizadas, mejorando la calidad, consistencia y disponibilidad de la información generada durante los procesos de mantenimiento.
+La implementación de este dominio garantizará la correcta documentación de las intervenciones realizadas, mejorando la calidad, consistencia y disponibilidad de la información generada durante los procesos de mantenimiento. Ninguno de sus seis requisitos está construido: el reporte de mantenimiento no existe todavía como entidad del sistema.
 
 \subsectiontitle{3.2.4. Firma Digital}
 
 Este dominio reúne las funcionalidades relacionadas con la captura, validación y aplicación de la firma digital del cliente o responsable, permitiendo formalizar la aprobación de los reportes de mantenimiento generados.
 
-\textbf{RF-18 Captura de firma digital:}
+\textbf{RF-18 Captura de firma digital:} \estadoPrevisto{}
 
 El sistema debe permitir capturar la firma digital del cliente o responsable mediante un componente de firma táctil dentro del dispositivo móvil.
 
@@ -892,9 +1018,11 @@ El sistema debe permitir capturar la firma digital del cliente o responsable med
   \begin{itemize}
     \item RF-20
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No hay dónde guardar una firma: ninguna tabla ni columna del esquema la contempla. El requisito describe además un componente táctil de una aplicación móvil, y el repositorio no contiene interfaz de usuario alguna: lo construido es una API REST.
 \end{itemize}
 
-\textbf{RF-21 Replicación de firma:}
+\textbf{RF-21 Replicación de firma:} \estadoPrevisto{}
 
 El sistema debe permitir replicar la firma digital a todos los reportes de mantenimiento asociados a una misma orden de trabajo.
 
@@ -912,6 +1040,8 @@ El sistema debe permitir replicar la firma digital a todos los reportes de mante
   \begin{itemize}
     \item RF-18
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Depende de RF-18 y de la orden de trabajo, y no existe ninguno de los dos.
 \end{itemize}
 
 [DIAGRAMA DE CASOS DE USO - FIRMA DIGITAL]
@@ -923,13 +1053,13 @@ El sistema debe permitir replicar la firma digital a todos los reportes de mante
 \label{fig:cu_firma_digital}
 \end{figure}
 
-La firma digital asegura la validación de la información registrada, optimizando el proceso de aprobación y reduciendo la necesidad de procedimientos manuales o documentación física.
+La firma digital asegurará la validación de la información registrada, optimizando el proceso de aprobación y reduciendo la necesidad de procedimientos manuales o documentación física. Los dos requisitos del dominio están previstos: no hay soporte de firma en ninguna capa del sistema.
 
 \subsectiontitle{3.2.5. Hojas de Vida de los Equipos}
 
 Este dominio comprende las funcionalidades destinadas a la creación, consulta, actualización y mantenimiento de la hoja de vida de cada equipo, incluyendo su información técnica, historial de intervenciones y documentación asociada.
 
-\textbf{RF-22 Crear hoja de vida:}
+\textbf{RF-22 Crear hoja de vida:} \estadoImplementado{}
 
 El sistema debe disponer de un formulario para la creación de la hoja de vida de un equipo.
 
@@ -947,9 +1077,13 @@ El sistema debe disponer de un formulario para la creación de la hoja de vida d
   \begin{itemize}
     \item RF-08, RF-49, RF-50
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Los datos que el requisito enumera se registran hoy, pero conviene decirlo con precisión: \textbf{no existe una entidad llamada hoja de vida}. Están repartidos por la cadena del catálogo de equipos, y cada eslabón tiene su propio recurso. La identificación de la unidad —número de serie, número de inventario del cliente, fecha y valor de compra, y el área de servicio donde está— es la tabla \texttt{equipo\_cliente}, y se crea con \texttt{POST} \ruta{/v1/api/service-areas/{idAreaServicio}/equipments}. Las características técnicas —definición técnica, recomendaciones de cuidado, tecnología predominante, voltaje, amperaje y valor unitario del mantenimiento— pertenecen al tipo de equipo, en \ruta{/v1/api/equipment-types}. El fabricante y su país de origen están en \ruta{/v1/api/manufacturers}, la marca en \ruta{/v1/api/brands} y el modelo con su registro INVIMA en \ruta{/v1/api/models}.
+
+  La sección de \emph{servicio técnico} es la única de las cuatro que enumera el criterio de aceptación que falta, y falta entera: presupone el historial de intervenciones de RF-26 y RF-27, ambos previstos.
 \end{itemize}
 
-\textbf{RF-24 Modificar/eliminar hoja de vida:}
+\textbf{RF-24 Modificar/eliminar hoja de vida:} \estadoImplementado{}
 
 El sistema debe permitir modificar y eliminar la información registrada en la hoja de vida de un equipo.
 
@@ -967,9 +1101,13 @@ El sistema debe permitir modificar y eliminar la información registrada en la h
   \begin{itemize}
     \item RF-22
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} La unidad se modifica con \texttt{PATCH} \ruta{/v1/api/client-equipments/{id}} —número de inventario, fecha y valor de compra— y se traslada de área con \texttt{PATCH} \ruta{/v1/api/client-equipments/{id}/service-area/{idAreaServicio}}, que es una operación aparte porque el traslado cambia quién responde por el equipo. El resto de la cadena tiene sus propias operaciones de cambio: fabricante, marca, tipo de equipo y el registro INVIMA de un modelo. La baja es \texttt{DELETE} \ruta{/v1/api/client-equipments/{id}}, que responde 204 y desactiva sin borrar, conservando el historial.
+
+  Dos datos no se pueden cambiar, y es deliberado: el número de serie y el modelo de una unidad son inmutables en el agregado \texttt{ClientEquipment}, porque una unidad no se convierte en otra cosa; y la asociación entre una marca y un tipo de equipo no admite modificación en absoluto —hay una prueba que fija ese rechazo como contrato—, porque cambiarla volvería mentira todos los modelos que cuelgan de ella. La restricción por rol que pide el tercer criterio de aceptación se cumple solo en el sentido descrito en RF-50: toda la API exige la misma autoridad.
 \end{itemize}
 
-\textbf{RF-26 Registro automático de intervenciones:}
+\textbf{RF-26 Registro automático de intervenciones:} \estadoPrevisto{}
 
 El sistema debe registrar automáticamente cada mantenimiento, calibración o diagnóstico realizado a un equipo en su hoja de vida.
 
@@ -987,9 +1125,11 @@ El sistema debe registrar automáticamente cada mantenimiento, calibración o di
   \begin{itemize}
     \item RF-09, RF-15, RF-22
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No existe la intervención que registrar. El directorio \ruta{equipment/infrastructure/input/listeners/} está creado y vacío: es donde irá el oyente que reaccione al cierre de un reporte, cuando el reporte exista. El mecanismo sobre el que se apoyará —el despachador de eventos de dominio que comparten todos los módulos— sí está construido y en uso.
 \end{itemize}
 
-\textbf{RF-27 Historial de intervenciones:}
+\textbf{RF-27 Historial de intervenciones:} \estadoPrevisto{}
 
 El sistema debe almacenar el historial de intervenciones con información de fecha, tipo de servicio y resultado.
 
@@ -1007,6 +1147,8 @@ El sistema debe almacenar el historial de intervenciones con información de fec
   \begin{itemize}
     \item RF-26
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No hay tabla de historial, ni columnas de fecha de servicio, tipo de servicio o resultado, en ninguna de las cinco migraciones del esquema.
 \end{itemize}
 
 [DIAGRAMA DE CASOS DE USO - HOJAS DE VIDA]
@@ -1018,13 +1160,13 @@ El sistema debe almacenar el historial de intervenciones con información de fec
 \label{fig:cu_hojas_vida}
 \end{figure}
 
-La gestión de hojas de vida permite mantener un registro histórico completo y actualizado de cada equipo, fortaleciendo la trazabilidad y facilitando la toma de decisiones basadas en el estado y comportamiento de los equipos.
+La gestión de hojas de vida permite hoy registrar y mantener la ficha de cada equipo: su identificación, sus características técnicas, su marca y su fabricante, repartidas por la cadena del catálogo. Lo que falta es el historial de intervenciones, que es precisamente lo que convierte esa ficha en un registro del comportamiento del equipo y lo que sostiene la trazabilidad; depende de que exista el reporte de mantenimiento.
 
 \subsectiontitle{3.2.6. Inventario}
 
 Este dominio agrupa las funcionalidades necesarias para la gestión del inventario de equipos, herramientas y repuestos, así como el registro y control de los equipos patrón utilizados en procesos de calibración.
 
-\textbf{RF-36 Módulo inventario:}
+\textbf{RF-36 Módulo inventario:} \estadoPrevisto{}
 
 El sistema debe permitir registrar nuevos ítems en el inventario mediante un formulario con los campos: Nombre del ítem, Tipo (equipo, herramienta, repuesto), Cantidad disponible, Estado
 
@@ -1042,9 +1184,11 @@ El sistema debe permitir registrar nuevos ítems en el inventario mediante un fo
   \begin{itemize}
     \item RF-35
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No hay módulo de inventario de existencias. Conviene no confundirlo con la tabla \texttt{equipo\_cliente}, que sí existe y a la que el código llama \emph{inventario de un área}: esa tabla es el censo de las unidades que posee el cliente, una fila por equipo físico identificado por su número de serie, y no lleva cantidad disponible ni distingue entre equipo, herramienta y repuesto. El inventario que describe este requisito es el de BolivarBioingeniería, con existencias y estado, y no tiene ninguna tabla detrás.
 \end{itemize}
 
-\textbf{RF-37 Entrada/salida inventario:}
+\textbf{RF-37 Entrada/salida inventario:} \estadoPrevisto{}
 
 El sistema debe permitir registrar la salida y entrada de ítems del inventario durante las actividades de mantenimiento.
 
@@ -1062,6 +1206,8 @@ El sistema debe permitir registrar la salida y entrada de ítems del inventario 
   \begin{itemize}
     \item RF-35
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Sin existencias no hay movimientos: no hay tabla de entradas y salidas, ni descuento de cantidad, ni captura del usuario que realiza el movimiento.
 \end{itemize}
 
 [DIAGRAMA DE CASOS DE USO - INVENTARIO]
@@ -1073,13 +1219,13 @@ El sistema debe permitir registrar la salida y entrada de ítems del inventario 
 \label{fig:cu_inventario}
 \end{figure}
 
-La gestión de inventario permite un control eficiente de los recursos utilizados en mantenimiento, asegurando su disponibilidad, trazabilidad y correcto uso dentro de las actividades operativas.
+La gestión de inventario permitirá un control eficiente de los recursos utilizados en mantenimiento, asegurando su disponibilidad, trazabilidad y correcto uso dentro de las actividades operativas. Los dos requisitos están previstos, y no deben confundirse con el inventario de equipos del cliente, que sí existe y se describe en el apartado 3.2.5.
 
 \subsectiontitle{3.2.7. Alertas y calibración}
 
 Este dominio contempla las funcionalidades encargadas de monitorear el estado de calibración de los equipos patrón y generar alertas automáticas ante próximos vencimientos.
 
-\textbf{RF-40 Identificar vencimientos:}
+\textbf{RF-40 Identificar vencimientos:} \estadoPrevisto{}
 
 El sistema debe identificar automáticamente los equipos patrón cuya fecha de vencimiento de calibración esté próxima a cumplirse.
 
@@ -1097,9 +1243,13 @@ El sistema debe identificar automáticamente los equipos patrón cuya fecha de v
   \begin{itemize}
     \item RF-11
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Ni los equipos patrón ni las fechas de calibración están modelados. No hay columna de fecha de última calibración ni de frecuencia de calibración en ninguna de las cinco migraciones, y la comparación diaria que pide el primer criterio de aceptación no puede existir: el backend no tiene tareas programadas ni la capacidad de ejecutarlas habilitada.
+
+  Conviene no leer de más en lo que sí existe. La tabla \texttt{tipo\_equipo} tiene las columnas \texttt{b\_verificable} y \texttt{n\_tipo\_verificacion}, y el dominio las modela en el agregado \texttt{EquipmentType} y en el enumerado \texttt{VerificationMode}. Eso declara \emph{si} un tipo de equipo se verifica metrológicamente y \emph{con qué modalidad} de las tres previstas, y nada más: no es un registro de calibración, no lleva fechas y no vence. Las verificaciones técnicas y los datos metrológicos, que sí llevarían esas fechas, son la segunda tanda del módulo de equipos y están previstos.
 \end{itemize}
 
-\textbf{RF-41 Generar alertas:}
+\textbf{RF-41 Generar alertas:} \estadoPrevisto{}
 
 El sistema debe generar una alerta cuando la fecha de vencimiento de calibración de un equipo patrón esté dentro de un umbral de 30 días previos.
 
@@ -1117,6 +1267,8 @@ El sistema debe generar una alerta cuando la fecha de vencimiento de calibració
   \begin{itemize}
     \item RF-40
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Depende de RF-40. No existe el estado \emph{Alerta de Calibración}, ni el umbral de 30 días, ni el certificado de calibración que lo reiniciaría.
 \end{itemize}
 
 [DIAGRAMA DE CASOS DE USO - ALERTAS Y CALIBRACIÓN]
@@ -1128,13 +1280,13 @@ El sistema debe generar una alerta cuando la fecha de vencimiento de calibració
 \label{fig:cu_alertas_calibracion}
 \end{figure}
 
-Las alertas de calibración contribuyen a la prevención de errores operativos, garantizando el uso de equipos patrón vigentes y apoyando el cumplimiento de las normas regulatorias del sector salud.
+Las alertas de calibración contribuirán a la prevención de errores operativos, garantizando el uso de equipos patrón vigentes y apoyando el cumplimiento de las normas regulatorias del sector salud. Los dos requisitos están previstos: el sistema sabe hoy qué tipos de equipo se verifican metrológicamente y con qué modalidad, pero no guarda ninguna fecha de calibración ni la vigilancia de su vencimiento.
 
 \subsectiontitle{3.2.8. Módulo Comercial}
 
 Este dominio incluye las funcionalidades orientadas a la generación y gestión de cotizaciones de servicios de mantenimiento, así como su integración con el proceso operativo mediante la creación de órdenes de trabajo.
 
-\textbf{RF-45 Crear cotización:}
+\textbf{RF-45 Crear cotización:} \estadoPrevisto{}
 
 El sistema debe disponer de un formulario para la creación de cotizaciones de servicios de mantenimiento.
 
@@ -1152,9 +1304,11 @@ El sistema debe disponer de un formulario para la creación de cotizaciones de s
   \begin{itemize}
     \item RF-46
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} No hay tabla ni agregado de cotización, ni líneas, descuentos, moneda o validez de la oferta. El único dato económico del sistema es el valor unitario del mantenimiento de cada tipo de equipo, en \texttt{tipo\_equipo}: justamente la entrada que una cotización usaría para calcular su total.
 \end{itemize}
 
-\textbf{RF-47 Generar orden desde cotización:}
+\textbf{RF-47 Generar orden desde cotización:} \estadoPrevisto{}
 
 El sistema debe permitir generar una orden de trabajo a partir de una cotización en estado ``aprobada''.
 
@@ -1172,6 +1326,8 @@ El sistema debe permitir generar una orden de trabajo a partir de una cotizació
   \begin{itemize}
     \item RF-45
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Depende de la cotización y de la orden de trabajo, y no existe ninguna de las dos. El control de existencias que pide el tercer criterio de aceptación depende además de RF-36, también previsto.
 \end{itemize}
 
 [DIAGRAMA DE CASOS DE USO - MÓDULO COMERCIAL]
@@ -1183,13 +1339,13 @@ El sistema debe permitir generar una orden de trabajo a partir de una cotizació
 \label{fig:cu_modulo_comercial}
 \end{figure}
 
-El módulo comercial permite extender el alcance del sistema hacia la gestión de oportunidades de negocio, facilitando la transición entre la cotización y la ejecución del servicio.
+El módulo comercial permitirá extender el alcance del sistema hacia la gestión de oportunidades de negocio, facilitando la transición entre la cotización y la ejecución del servicio. Los dos requisitos están previstos y dependen, además, de la orden de trabajo.
 
 \subsectiontitle{3.2.9. Usuarios y seguridad}
 
 Este dominio abarca las funcionalidades relacionadas con la autenticación, autorización y gestión de usuarios del sistema, incluyendo la administración de roles y credenciales.
 
-\textbf{RF-49 Login de usuario:}
+\textbf{RF-49 Login de usuario:} \estadoImplementado{}
 
 El sistema debe permitir al usuario ingresar a la aplicación por medio de sus credenciales compuestos por usuario y contraseña.
 
@@ -1207,9 +1363,13 @@ El sistema debe permitir al usuario ingresar a la aplicación por medio de sus c
   \begin{itemize}
     \item RF-49
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} La API está protegida de extremo a extremo, con un reparto de responsabilidades que conviene enunciar: \textbf{MalphasOS no comprueba credenciales}. Es un \emph{resource server} de OAuth2 que valida los JWT emitidos por Keycloak, cuyo realm se versiona junto con la infraestructura del proyecto. La pantalla de usuario y contraseña, el mensaje de error que no revela qué campo falló y la política de contraseñas son de Keycloak, no del sistema.
+
+  Lo que sí aporta MalphasOS: toda ruta exige autenticación salvo la documentación del API y el punto de salud, y hay pruebas de integración que fijan como contrato el 401 sin token y el 403 con un token sin el permiso exigido. No hay todavía una aplicación cliente desde la que iniciar sesión: el repositorio contiene el backend, no una interfaz de usuario.
 \end{itemize}
 
-\textbf{RF-50 Identificación de rol:}
+\textbf{RF-50 Identificación de rol:} \estadoImplementado{}
 
 El sistema debe poder identificar el rol dependiendo de las credenciales ingresadas por el usuario.
 
@@ -1227,9 +1387,13 @@ El sistema debe poder identificar el rol dependiendo de las credenciales ingresa
   \begin{itemize}
     \item RF-49
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} La identificación del rol funciona. El conversor de roles lee los que el token trae para el client de esta API y los convierte en autoridades, descartando a propósito los de otros clients del mismo realm —hay una prueba que fija ese descarte—. La autorización se declara operación por operación, no solo por ruta.
+
+  El segundo criterio de aceptación, en cambio, \textbf{no se cumple todavía}. Las ochenta y tres operaciones de la API exigen la misma autoridad, \texttt{admin.full}, y el realm solo se la concede al grupo de administradores. Los grupos de ingenieros y de clientes reciben únicamente permisos de lectura que ninguna operación comprueba, de modo que un ingeniero o un representante de cliente se autentica sin problema pero recibe 403 en toda llamada. El rol de SuperUsuario que menciona el primer criterio existe en el realm, pero ningún grupo lo otorga y ninguna operación lo exige.
 \end{itemize}
 
-\textbf{RF-51 Creación de usuarios:}
+\textbf{RF-51 Creación de usuarios:} \estadoImplementado{}
 
 El sistema debe permitir crear nuevos usuarios del sistema.
 
@@ -1247,9 +1411,13 @@ El sistema debe permitir crear nuevos usuarios del sistema.
   \begin{itemize}
     \item RF-50
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} Hay tres altas, una por rol: \texttt{POST} \ruta{/v1/api/persons/engineers}, \ruta{/admins} y \ruta{/ceo-clients}. Cada una crea el usuario en Keycloak con su contraseña, lo asigna al grupo que le corresponde y después guarda la persona en la tabla \texttt{persona}. Si el guardado falla, el usuario recién creado se elimina para no dejarlo huérfano; si esa limpieza también falla, queda constancia en el registro de la aplicación. Existe además \texttt{POST} \ruta{/v1/api/persons}, que registra a alguien que solo existe como dato, sin credenciales: no toda persona del sistema necesita acceder a él.
+
+  No hay un alta genérica que reciba el rol como parámetro, y no hay alta de SuperUsuario: el enumerado de roles tiene tres valores y ninguno lo cubre.
 \end{itemize}
 
-\textbf{RF-52 Modificación de usuarios:}
+\textbf{RF-52 Modificación de usuarios:} \estadoImplementado{}
 
 El sistema debe permitir modificar y eliminar la información registrada en la cuenta de usuario.
 
@@ -1267,9 +1435,13 @@ El sistema debe permitir modificar y eliminar la información registrada en la c
   \begin{itemize}
     \item RF-50
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} \texttt{PUT} \ruta{/v1/api/persons/{id}} actualiza los datos de la persona —cédula, nombres, apellidos y tipo— y valida la combinación de tipos antes de guardar. Los correos y teléfonos tienen sus propias operaciones de alta, cambio y retirada.
+
+  Los cambios \textbf{se detienen en la tabla \texttt{persona}}: no se propaga nada al proveedor de identidad. Ni el nombre de usuario, ni el correo, ni la contraseña de la cuenta se modifican desde aquí, de modo que el registro de la persona y su cuenta pueden divergir. Cambiar una contraseña exige hoy entrar a Keycloak.
 \end{itemize}
 
-\textbf{RF-53 Eliminación de usuarios:}
+\textbf{RF-53 Eliminación de usuarios:} \estadoImplementado{}
 
 El sistema debe permitir eliminar usuarios del sistema.
 
@@ -1287,6 +1459,10 @@ El sistema debe permitir eliminar usuarios del sistema.
   \begin{itemize}
     \item RF-50
   \end{itemize}
+
+  \item \textbf{Estado en la implementación actual:} \texttt{DELETE} \ruta{/v1/api/persons/{id}} existe y responde 204. No borra: marca la persona como inactiva, coherentemente con la regla de que en este sistema nada se elimina físicamente. El requisito habla de eliminar y lo que el sistema hace es retirar.
+
+  El tercer criterio de aceptación, que el acceso se revoque de inmediato, \textbf{no se cumple}. La baja no elimina ni deshabilita el usuario en Keycloak; el sistema solo sabe borrar usuarios del proveedor de identidad para deshacer un alta que falló a medias. Una persona retirada conserva su cuenta y puede seguir obteniendo tokens válidos. La confirmación previa que pide el segundo criterio corresponde a la interfaz de usuario, que no existe.
 \end{itemize}
 
 [DIAGRAMA DE CASOS DE USO - USUARIOS Y SEGURIDAD]
@@ -1298,7 +1474,7 @@ El sistema debe permitir eliminar usuarios del sistema.
 \label{fig:cu_usuarios_seguridad}
 \end{figure}
 
-La gestión de usuarios y seguridad garantiza el acceso controlado al sistema, protegiendo la información y asegurando que cada usuario interactúe únicamente con las funcionalidades correspondientes a su rol.
+La gestión de usuarios y seguridad garantiza hoy el acceso controlado al sistema: sin un token válido no se entra a ninguna ruta, y hay pruebas que lo fijan. La segunda mitad de esa promesa —que cada usuario interactúe únicamente con las funcionalidades correspondientes a su rol— todavía no se cumple: la API exige la misma autoridad en todas sus operaciones, según se detalla en RF-50.
 
 \subsectiontitle{3.3. Requisitos de rendimiento}
 
