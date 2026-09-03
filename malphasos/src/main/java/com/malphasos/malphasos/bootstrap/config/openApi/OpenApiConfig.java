@@ -21,6 +21,9 @@ import org.springframework.context.annotation.Configuration;
  * lista plana de endpoints. Cada módulo nuevo debe añadir aquí su grupo.
  *
  * <p>Todos los recursos siguen la convención {@code /v1/api/<recurso>}, con el recurso en plural.
+ * Los patrones de cada grupo deben escribirse contra las rutas que los controladores publican de
+ * verdad: uno que no case con ninguna no falla, simplemente deja el recurso fuera de la
+ * documentación sin avisar.
  */
 @Configuration
 public class OpenApiConfig {
@@ -77,17 +80,24 @@ public class OpenApiConfig {
                         .bearerFormat("JWT"));
     }
 
-    /** Equipos y su perfil de mantenimiento: marcas, fabricantes, modelos, tipos y verificaciones. */
+    /**
+     * Equipos y su perfil de mantenimiento: marcas, fabricantes, modelos, tipos y verificaciones.
+     *
+     * <p>El inventario de un area de servicio cuelga de la ruta del area, de modo que aparece
+     * tambien en el grupo de clientes: el mismo endpoint interesa desde los dos dominios.
+     */
     @Bean
     public GroupedOpenApi equipmentApi() {
         return GroupedOpenApi.builder()
                 .group("equipment")
                 .pathsToMatch(
-                        API + "/equipment/**",
+                        API + "/equipments/**",
                         API + "/equipment-types/**",
-                        API + "/equipment-models/**",
+                        API + "/models/**",
                         API + "/brands/**",
                         API + "/manufacturers/**",
+                        API + "/client-equipments/**",
+                        API + "/service-areas/*/equipments",
                         API + "/technical-verifications/**")
                 .build();
     }
@@ -100,8 +110,7 @@ public class OpenApiConfig {
                 .pathsToMatch(
                         API + "/clients/**",
                         API + "/headquarters/**",
-                        API + "/service-areas/**",
-                        API + "/client-equipment/**")
+                        API + "/service-areas/**")
                 .build();
     }
 
