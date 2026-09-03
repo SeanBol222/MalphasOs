@@ -2,12 +2,14 @@
 name: checklist-reutilizacion
 description: Orden priorizado sugerido de qué portar primero al construir MalphasOS, basado en el análisis de todo el wiki
 tags: [malphasos, checklist, planificacion]
-updated: 2026-08-29
+updated: 2026-09-02
 ---
 
 # Checklist priorizado de reutilización
 
 Orden sugerido para la construcción de MalphasOS. **La construcción ya arrancó** (2026-08-27); las decisiones tomadas se registran en [[decisiones-tecnicas-malphasos]].
+
+> **Estado al 2026-09-02.** Los cuatro módulos de dominio —`person`, `location`, `client` y `equipment`— están completos de esquema a REST, con 338 pruebas en verde. Del alcance del backend queda **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos. Lo demás pendiente es frontend y opcionales.
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 
@@ -19,8 +21,8 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 ## 2. Esqueleto de aplicación
 
 - [x] **Hecho.** Dependencias del backend en el `pom.xml`: MapStruct + binding con los annotation processors en orden, springdoc-openapi, keycloak-admin-client. Ojo con las particularidades del stack moderno: [[stack-spring-boot-4-particularidades]]
-- [ ] Portar `shared/domain/events` completo (`AggregateRoot`, `DomainEvent`, `EventMetadata`, `Payload`) sin cambios. **Siguiente paso natural.** [[aggregate-root-pattern]], [[eventos-de-dominio]]
-- [ ] Portar `EventDispatcherPort` + `SpringDispatcher` + `RabbitMQDispatcher`, **corrigiendo el mismatch de routing key** antes de activar el de Rabbit. [[patron-event-dispatcher-dual]], [[deuda-tecnica-y-riesgos]]
+- [x] **Hecho (2026-08-29).** Portar `shared/domain/events` completo (`AggregateRoot`, `DomainEvent`, `EventMetadata`, `Payload`), sin el `eventTopic` que filtraba el transporte al dominio y sin `Serializable`. [[aggregate-root-pattern]], [[eventos-de-dominio]]
+- [x] **Parcial (2026-08-29).** `EventDispatcherPort` + `SpringEventDispatcher` en marcha; **`RabbitMQDispatcher` no se porta todavía**, y cuando se porte hay que corregir antes el mismatch de routing key. Los cuatro módulos despachan hoy en proceso. [[patron-event-dispatcher-dual]], [[deuda-tecnica-y-riesgos]]
 - [x] **Hecho.** Portar `SecurityConfig` + `KeycloakRoleConverter` + `KeycloakAdminConfig`, con el client id configurable y sin casts inseguros. **Seguridad ya activa**, con pruebas que verifican 401 sin token y 403 sin permiso. [[seguridad-keycloak-backend]]
 - [x] **Hecho.** Portar `OpenApiConfig` con grupos por módulo; fija la convención de rutas `/v1/api/<recurso>`. [[openapi-swagger]]
 - [x] **Parcial.** Catálogo transversal migrado y corregido. Falta la interfaz/clase base común, que se definirá al migrar el primer módulo con excepciones propias. [[manejo-global-excepciones]], [[patron-catalogo-errores-por-contexto]]
@@ -31,13 +33,14 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## 3. Primer módulo de dominio — usar como plantilla la Generación 2, no la 1
 
-- [ ] Implementar el primer hexágono (sugerido: ubicación, es el más simple) siguiendo exactamente el patrón de `location_hexagon`: agregado + factoría estática + eventos + commands si aplica. [[dominio-ubicacion]], [[evolucion-arquitectonica-crud-a-cqrs]]
-- [ ] Adoptar MapStruct con el patrón de `@AfterMapping` para relaciones bidireccionales desde el primer mapper. [[patron-mapper-mapstruct]]
+- [x] **Hecho (2026-08-29).** El primer hexágono fue `location`. `Country` y `City` fijan el patrón de Generación 2 que siguieron después `client` y `equipment`: agregado + factoría estática + eventos. [[dominio-ubicacion]], [[evolucion-arquitectonica-crud-a-cqrs]]
+- [x] **Decidido y corregido (2026-08-29).** MapStruct **no sirve** para construir un agregado de Generación 2: construye por setters o builder, y un agregado no ofrece ninguno a propósito. Los mappers de persistencia van a mano; MapStruct queda para la dirección agregado→DTO. [[patron-mapper-mapstruct]]
 
 ## 4. Módulo de mantenimiento preventivo (núcleo de negocio)
 
-- [ ] Portar el modelo de dominio completo de `equipment_hexagon` (Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData) como referencia directa. [[dominio-equipo-mantenimiento]]
-- [ ] Decidir si se completa el patrón CQRS (read/write ports separados) en todos los sub-módulos o solo donde aporte valor — no es obligatorio uniformarlo, el propio original no lo hace. [[patron-cqrs-commands]]
+- [x] **Hecho (2026-09-02), primera tanda.** `equipment` completo de esquema a REST en cinco pasos: `V5__equipment_catalog.sql`, seis agregados de Generación 2 (Manufacturer, Brand, EquipmentType, Equipment, Model, ClientEquipment), aplicación, persistencia y capa REST. Se reconstruyó, no se portó. Seis defectos del esquema original corregidos y `b_verificable` eliminado como campo. Ver [[migracion-equipment-hallazgos]].
+- [ ] **Segunda tanda de `equipment`: `TechnicalVerification` y `MetrologicalData`.** Es lo único del alcance del backend que queda por construir. [[dominio-equipo-mantenimiento]]
+- [x] **Resuelto de hecho (2026-09-02).** La pregunta era si completar el patrón CQRS con puertos read/write separados. Con los cuatro módulos cerrados, **ninguno los separa**: hay un `PersistencePort` por agregado, comprobado sobre el código. No fue una decisión explícita sino una convergencia, y ya no conviene revisarla sin un motivo concreto —lecturas que pesen, o un almacén de lectura aparte—. Lo que sí se adoptó del patrón son los commands inmutables por operación de escritura. [[patron-cqrs-commands]]
 
 ## 5. Módulo de clientes — reconstruir, no copiar
 
@@ -45,10 +48,10 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 - [x] **Hecho (2026-08-29).** `shared/domain/events`: el contrato de eventos de dominio, sin el `eventTopic` que filtraba el transporte al dominio y sin `Serializable`. Ver [[eventos-de-dominio]].
 - [x] **Hecho (2026-08-29).** `location` completo: esquema, dominio, aplicación, persistencia y REST. `Country` y `City` son los primeros agregados de Generación 2. Ocho defectos del original corregidos, uno de ellos de seguridad. No se porta `CountryReportProviderAdapter`, que pertenece al módulo de reportes. Ver [[migracion-location-hallazgos]].
 - [x] **Hecho (2026-09-02).** `client` completo: esquema, cuatro agregados de Generación 2, aplicación, persistencia y REST. Se reconstruyó en lugar de portarse. Ocho defectos del original corregidos y `representante_legal` implementada por primera vez. Ver [[migracion-client-hallazgos]].
-- [ ] `equipment`, el núcleo de negocio. Es el módulo más grande (173 archivos) y el único que falta. Trae consigo `equipo_cliente`, que quedó fuera de `V4__client.sql`.
+- [x] **Hecho (2026-09-02).** `equipment`, el núcleo de negocio y el módulo más grande del original (173 archivos). Trajo consigo `equipo_cliente`, que había quedado fuera de `V4__client.sql`: la prueba centinela que fijaba su ausencia se rompió al aparecer la tabla, tal como se le pedía. Ver [[migracion-equipment-hallazgos]].
 - [x] **Hecho (2026-09-02).** `representante_legal` implementada dentro del agregado `Client`, como conjunto de identificadores de persona.
 - [x] **Decidido (2026-08-29).** La identidad compartida encargado↔persona se expresa con `@MapsId`, y el módulo se reconstruye en Generación 2. Ver [[decisiones-tecnicas-malphasos]] y [[relacion-manager-persona]].
-- [ ] Reimplementar la jerarquía Client→Headquarter→ServiceArea siguiendo el patrón de agregados + eventos, no el CRUD anémico original. [[dominio-cliente]]
+- [x] **Hecho (2026-09-02).** La jerarquía Client→Headquarter→ServiceArea reimplementada como cuatro agregados pequeños que se referencian por identificador, no como un agregado que contenga a los demás. [[dominio-cliente]]
 
 ## 6. Identidad y frontend
 

@@ -2,7 +2,7 @@
 name: deuda-tecnica-y-riesgos
 description: Registro centralizado de bugs, inconsistencias y piezas incompletas detectadas en bolivarbioingenieria-app, mas una seccion aparte para la deuda que MalphasOS ha introducido por su cuenta
 tags: [deuda-tecnica, riesgos, "reusable:no"]
-updated: 2026-08-29
+updated: 2026-09-02
 ---
 
 # Deuda técnica y riesgos conocidos
@@ -67,6 +67,13 @@ Nota índice que centraliza todo lo detectado como bug, inconsistencia o pieza i
 | Patrón CQRS/commands no uniforme dentro del mismo hexágono (`TechnicalVerificationService` no separa puertos read/write como el resto de `equipment_hexagon`) | `equipment_hexagon` | Baja — no es un bug, es aplicación parcial de un patrón en evolución | [[patron-cqrs-commands]] |
 | Credenciales de `pgadmin` hardcodeadas en `docker-compose.yaml` en vez de vía `.env` | `docker-compose.yaml` | Baja (higiene, solo dev) | [[docker-compose]] |
 | `client_hexagon`/`person_hexagon` completos usan el patrón CRUD anémico ya superado por `equipment_hexagon`/`location_hexagon` | todo el hexágono | Alta como decisión arquitectónica — no replicar el patrón viejo | [[evolucion-arquitectonica-crud-a-cqrs]] |
+| **`b_verificable` y `n_tipo_verificacion` no están atadas**: cabe un tipo marcado como verificable del que nadie sabe cómo se verifica, y uno no verificable con modalidad. El dominio ni siquiera modela la segunda columna | `equipment_hexagon` + esquema | Media — dos columnas describiendo el mismo hecho, libres de contradecirse. **Corregido en MalphasOS** derivando el booleano, más un `CHECK` | [[migracion-equipment-hallazgos]], [[dominio-equipo-mantenimiento]] |
+| **`d_amperaje` es `numeric(2)`**: escala cero y máximo 99, de modo que 2.5 A se redondea a 3 y 120 A no cabe | esquema | Media — pérdida silenciosa de datos técnicos. **Corregido en MalphasOS** a `numeric(8,2)`, con prueba de ida y vuelta | [[migracion-equipment-hallazgos]] |
+| **Anulables que no deberían serlo en el catálogo de equipos**: el nombre de una marca; el fabricante y el equipo de un modelo, de modo que cabe un modelo que no pertenece a nada; y el modelo y el área de una unidad, de modo que cabe un equipo del que no se sabe qué es ni dónde está | esquema | Media. **Corregido en MalphasOS** | [[migracion-equipment-hallazgos]] |
+| **Ninguna tabla del catálogo de equipos tiene unicidad**: ni el nombre de fabricante, marca o tipo, ni el registro INVIMA de un modelo, ni el número de serie dentro de un modelo | esquema | Media — duplicados silenciosos en las tablas de referencia. **Corregido en MalphasOS** | [[migracion-equipment-hallazgos]] |
+| **La tabla `equipo` no guarda un equipo**: no tiene un solo atributo propio más allá de sus dos claves foráneas. Es la asociación marca↔tipo, y su nombre induce a error en todo el módulo | esquema + `equipment_hexagon` | Baja — el nombre miente, el modelo es correcto. **En MalphasOS se conserva el nombre y se documenta**, para no divergir del sistema del que se migra | [[migracion-equipment-hallazgos]] |
+| **`updateEquipment` y `updateEquipmentPatch` permiten cambiar las dos referencias de la asociación marca↔tipo**, lo que convertiría en mentira todos los modelos colgados de ella | `equipment_hexagon` | Media — corrupción semántica silenciosa. **En MalphasOS la asociación es inmutable**: no hay operación de cambio y una prueba fija el 405 | [[migracion-equipment-hallazgos]] |
+| **`Equipment` guarda cada referencia dos veces**, como identificador y como objeto completo, sin nada que mantenga ambos al día | `equipment_hexagon` | Media — dos fuentes de verdad que pueden divergir. **Corregido en MalphasOS**: solo identificadores | [[migracion-equipment-hallazgos]] |
 
 ## Deuda propia de MalphasOS
 
@@ -75,9 +82,10 @@ Todo lo anterior son defectos de `bolivarbioingenieria-app`. Esta sección es di
 | Hallazgo | Dónde | Severidad | Estado |
 |---|---|---|---|
 | `correo_persona.k_identificador` y `telefono_persona.k_identificador` quedaron **anulables**, de modo que cabe un correo sin dueño. En `V4__client.sql` se decidió lo contrario para los contactos del cliente, que sí exigen dueño: los dos módulos hacen cosas distintas con el mismo problema | `V2__person.sql` | Baja — datos huérfanos e inconsistencia entre módulos | Pendiente. Corregirlo exige una migración propia, `ALTER TABLE ... SET NOT NULL`, previa limpieza de las filas sin dueño si las hubiera |
-
-| **La batería de pruebas es intermitente.** La comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si el contenedor no está levantado: una misma ejecución dio 3 errores y la siguiente, sin tocar nada, 251/251 | perfil de pruebas | Media — una batería que da dos resultados distintos deja de servir como señal | Pendiente. Desactivar esa comprobación en el perfil de pruebas: ningún test usa la mensajería |
-| **`equipo_cliente` no existe todavía**: su clave foránea apunta a `modelo`, que arrastra `equipo` y `fabricante` del módulo de equipos | `V4__client.sql` | Baja — aplazamiento consciente | Pendiente hasta migrar `equipment`. Hay una prueba que fija que la tabla no existe, para que no se olvide |
+| **La batería de pruebas es intermitente.** La comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si el contenedor no está levantado: una misma ejecución dio 3 errores y la siguiente, sin tocar nada, 251/251 | perfil de pruebas | Media — una batería que da dos resultados distintos deja de servir como señal | Pendiente, aunque **el 2026-09-02 dos ejecuciones completas salieron limpias** (337 y 338). Que no se reproduzca no la cierra: la comprobación sigue apuntando a `localhost:5672`. Desactivarla en el perfil de pruebas, que ningún test usa la mensajería |
+| ~~**`equipo_cliente` no existe todavía**~~ | `V4__client.sql` | — | **Resuelto el 2026-09-02** con `V5__equipment_catalog.sql`. La prueba centinela que fijaba la ausencia de la tabla se rompió al aparecer, tal como se le pedía, y la reemplaza una que comprueba que sus dos referencias son obligatorias |
+| **Los códigos de error de `client` no distinguen "no existe" de "datos inválidos"** en las referencias externas: `CityNotFoundException` y `PersonNotFoundException` salen como 404 con `INVALID_CLIENT_DATA`, el mismo código que usan los 400. Un cliente que solo mire el código no puede distinguirlos | `ClientControllerAdvice:62` | Baja — el estado HTTP sí distingue; el código no | Pendiente. `equipment` ya se corrigió el 2026-09-02 dando código propio a cada referencia (008, 009); `client` sigue igual. Ver [[migracion-equipment-hallazgos]] |
+| **`/v1/api/managers` no aparece en ningún grupo de OpenAPI.** El grupo `client` declara `/clients/**`, `/headquarters/**` y `/service-areas/**`, pero no `/managers/**` | `OpenApiConfig` | Baja — el endpoint funciona; solo falta en Swagger | Pendiente. Es la cuarta instancia del mismo fallo: un patrón que no casa con ninguna ruta no avisa. Las tres de `equipment` se corrigieron el 2026-09-02 con una prueba que las cubre; la de `client` no tiene prueba equivalente todavía |
 
 ## Cómo usar esta nota
 
@@ -85,4 +93,4 @@ Antes de decidir portar cualquier pieza de `bolivarbioingenieria-app` a MalphasO
 
 ## Notas relacionadas
 
-[[sintesis-malphasos]] · [[checklist-reutilizacion]] · [[traduccion-de-fallos-de-adaptadores]]
+[[sintesis-malphasos]] · [[checklist-reutilizacion]] · [[traduccion-de-fallos-de-adaptadores]] · [[migracion-equipment-hallazgos]] · [[openapi-swagger]]
