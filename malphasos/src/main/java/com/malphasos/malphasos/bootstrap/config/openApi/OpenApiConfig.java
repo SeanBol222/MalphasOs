@@ -102,7 +102,7 @@ public class OpenApiConfig {
                 .build();
     }
 
-    /** Clientes y su estructura: sedes, áreas de servicio y equipos asignados. */
+    /** Clientes y su estructura: sedes, áreas de servicio, encargados y equipos instalados. */
     @Bean
     public GroupedOpenApi clientApi() {
         return GroupedOpenApi.builder()
@@ -110,7 +110,8 @@ public class OpenApiConfig {
                 .pathsToMatch(
                         API + "/clients/**",
                         API + "/headquarters/**",
-                        API + "/service-areas/**")
+                        API + "/service-areas/**",
+                        API + "/managers/**")
                 .build();
     }
 
