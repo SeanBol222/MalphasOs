@@ -40,8 +40,17 @@ class ClientSchemaTest {
 
     @Autowired private JdbcTemplate jdbcTemplate;
 
+    /**
+     * Diez digitos exactos, con ceros a la izquierda si hacen falta.
+     *
+     * <p>El formato fijo no es cosmetico: {@code k_cedula} es {@code varchar(10)} y
+     * {@code k_documento} {@code varchar(11)}, asi que el valor se recortaba a diez caracteres. Un
+     * resto de {@code nanoTime()} por debajo de mil millones tiene nueve digitos, y recortarlo
+     * lanzaba {@code StringIndexOutOfBoundsException} en una de cada cien ejecuciones. Rellenando a
+     * la izquierda la longitud deja de depender del reloj.
+     */
     private String unico() {
-        return String.valueOf(System.nanoTime() % 100_000_000_000L);
+        return String.format("%010d", Math.floorMod(System.nanoTime(), 10_000_000_000L));
     }
 
     private UUID insertClient(String tipoIdentificacion) {
@@ -51,7 +60,7 @@ class ClientSchemaTest {
                 INSERT INTO cliente (k_id_cliente, k_documento, n_tipo_identificacion, n_razon_social)
                 VALUES (?, ?, ?, 'Hospital Central')
                 """,
-                id, unico().substring(0, 10), tipoIdentificacion);
+                id, unico(), tipoIdentificacion);
 
         return id;
     }
@@ -96,7 +105,7 @@ class ClientSchemaTest {
                                      t_tipo_persona)
                 VALUES (?, ?, 'Ada', 'Lovelace', 'MANAGER')
                 """,
-                id, unico().substring(0, 10));
+                id, unico());
 
         return id;
     }

@@ -37,8 +37,17 @@ class ManagerPersistenceAdapterTest {
     @Autowired private ManagerPersistenceAdapter adapter;
     @Autowired private JdbcTemplate jdbcTemplate;
 
+    /**
+     * Diez digitos exactos, con ceros a la izquierda si hacen falta.
+     *
+     * <p>El formato fijo no es cosmetico: {@code k_cedula} es {@code varchar(10)} y
+     * {@code k_documento} {@code varchar(11)}, asi que el valor se recortaba a diez caracteres. Un
+     * resto de {@code nanoTime()} por debajo de mil millones tiene nueve digitos, y recortarlo
+     * lanzaba {@code StringIndexOutOfBoundsException} en una de cada cien ejecuciones. Rellenando a
+     * la izquierda la longitud deja de depender del reloj.
+     */
     private String unico() {
-        return String.valueOf(System.nanoTime() % 10_000_000_000L);
+        return String.format("%010d", Math.floorMod(System.nanoTime(), 10_000_000_000L));
     }
 
     private UUID unaPersona() {
@@ -76,7 +85,7 @@ class ManagerPersistenceAdapterTest {
                 INSERT INTO cliente (k_id_cliente, k_documento, n_tipo_identificacion, n_razon_social)
                 VALUES (?, ?, 'NIT_juridico', 'Hospital')
                 """,
-                cliente, unico().substring(0, 10));
+                cliente, unico());
         jdbcTemplate.update(
                 """
                 INSERT INTO sede (k_id_sede, n_nombre_sede, t_calle, t_carrera, t_numero,
