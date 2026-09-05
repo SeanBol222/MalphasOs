@@ -1,0 +1,45 @@
+@startuml mantenimientos
+!define DIRECTION top to bottom direction
+skinparam backgroundColor #F3F2F2
+skinparam actorBorderColor #EC3013
+skinparam actorBackgroundColor #EC3013
+skinparam usecaseBorderColor #6b6866
+skinparam usecaseBackgroundColor #ffffff
+
+actor "Ingeniero Técnico" as Ingeniero
+
+rectangle "Gestión de Mantenimientos" {
+  usecase "Generar reporte" as UC1
+  usecase "Diligenciar reporte" as UC2
+  usecase "Autocompletar datos" as UC3
+  usecase "Asignar protocolo" as UC4
+  usecase "Registrar información técnica" as UC5
+  usecase "Exportar a PDF" as UC6
+}
+
+Ingeniero --> UC1
+Ingeniero --> UC2
+Ingeniero --> UC6
+
+UC1 ..> UC3 : <<include>>
+UC1 ..> UC4 : <<include>>
+UC2 ..> UC5 : <<include>>
+UC5 ..> UC6 : <<extend>>
+
+note right of UC1
+  Generar un reporte
+  por cada equipo seleccionado
+end note
+
+note right of UC3
+  Autocompletar cliente, sede,
+  responsables, tipo de servicio
+end note
+
+note right of UC4
+  Asignar automáticamente
+  protocolo según tipo equipo
+  y tipo de servicio
+end note
+
+@enduml

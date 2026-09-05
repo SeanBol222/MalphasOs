@@ -107,7 +107,8 @@ No son deuda del código, sino del documento, y quedan aquí porque afectan a lo
 - **`RF-49` depende de sí mismo.**
 - **Hay dependencias a requisitos que no existen en 3.2**: RF-20 (desde RF-18), RF-35 (desde RF-36 y RF-37), RF-46 (desde RF-45). La numeración salta —faltan RF-10, 12, 16, 19, 20, 23, 25, 28–35, 38, 39, 42–44, 46 y 48— y el apartado 3.1.1 los referencia como si estuvieran.
 - **El apartado 2.2 promete exportación a Excel** que ningún requisito de 3.2 recoge.
-- **Los fuentes `.puml` de los diez diagramas no están en el repositorio**: en `use_cases/` solo hay `.svg` y `.pdf`. **Los diagramas no se pueden regenerar ni corregir**, y varios describen dominios que no existen —órdenes de trabajo, firma digital, módulo comercial—. Es la deuda más incómoda de las tres, porque no se arregla escribiendo.
+- ~~**Los fuentes `.puml` de los diez diagramas no están en el repositorio**~~ — **corregido el 2026-09-02, era falso**. Sí estaban en git, en la rama `feat/client-headquarter`, 38 commits por detrás de `main`; lo que ocurría es que nunca habían llegado a la línea principal, y quien miró `main` y el árbol de trabajo concluyó razonablemente que no existían. Rescatados a `main` junto con el devcontainer que los compila. **Los diagramas sí se pueden regenerar.** Lo que sigue en pie es lo otro: varios describen dominios que no existen —órdenes de trabajo, firma digital, módulo comercial—, y eso sí hay que rehacerlo.
+- **La lección**: "no está en el repositorio" y "no está en `main`" no son lo mismo, y una rama vieja sin mergear puede ser la única copia de algo. Antes de dar un archivo por perdido, `git log --all --diff-filter=A -- '<patrón>'`.
 - Los rótulos de flotantes salen en inglés porque `babel` está comentado en el preámbulo. Preexistente y consistente.
 
 ## Cómo usar esta nota

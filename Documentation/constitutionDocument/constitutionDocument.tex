@@ -1,0 +1,482 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{pgfgantt}
+\usepackage{xcolor}
+
+\geometry{
+  a4paper,
+  left=2.5cm,
+  right=2.5cm,
+  top=2.5cm,
+  bottom=2.5cm,
+  headheight=14pt
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Documento de Constitución de Inicio del Proyecto}
+\fancyhead[R]{\small MalphasOS $-$ Versión 1.0}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Section formatting without titlesec
+\renewcommand{\thesection}{\arabic{section}.}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}.}
+
+% Paragraph spacing
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+
+% Wrapping column type using only 'array'
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\begin{document}
+
+%-----------------------------------------------------------------------
+% PORTADA
+%-----------------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{0.5cm}
+
+  \includegraphics[width=8cm]{./Images/malphasos-stacked.png}\\[1.0cm]
+
+  \rule{\linewidth}{0.8mm}\\[0.5cm]
+  {\LARGE\bfseries Documento de Constitución\\[0.3cm] de Inicio del Proyecto}\\[0.5cm]
+  \rule{\linewidth}{0.8mm}\\[1.5cm]
+
+  {\large\textbf{Proyecto:}}\\[0.3cm]
+  {\LARGE\bfseries MalphasOS}\\[0.3cm]
+  {\large\textbf{Versión:}}\\[0.3cm]
+  {\LARGE\bfseries 1.0}\\[1.5cm]
+
+  \begin{tabular}{rl}
+    \textbf{Elaborado por:}   & Sean Sebastian Bolivar Calderon \\
+    \textbf{Código:}          & 20231020135 \\[0.4cm]
+    \textbf{Asignatura:}      & Calidad de software \\
+    \textbf{Institución:}     & Universidad Distrital Francisco José de Caldas \\[0.4cm]
+    \textbf{Fecha:}           & 11 de agosto de 2026 \\
+  \end{tabular}
+
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+%=======================================================================
+\section{Descripción del Proyecto}
+%=======================================================================
+
+\textbf{MalphasOS} es una plataforma web que centraliza y automatiza la gestión de mantenimiento de equipos biomédicos para BolívarBioingeniería LTDA, cubriendo órdenes de trabajo, reportes, hojas de vida de equipos, gestión de clientes e inventario.
+
+\subsection{Usuarios}
+
+Sistema dirigido a: BolívarBioingeniería LTDA (cliente), Personal administrativo (gestión), Ingenieros técnicos en campo (registro de intervenciones) y SuperUsuario (administración).
+
+\subsection{Desarrollo}
+
+Dos fases: \textbf{Fase 1 (MVP)} en 1.5 meses con funcionalidades esenciales; \textbf{Fase 2} en 6 meses con módulos completos. Basado en ERS IEEE~830.
+
+\subsection{Plazo y entorno}
+
+\textbf{Plazo:} MVP a 1.5 meses, sistema completo a 6 meses. \textbf{Entorno:} Administrativas (escritorio) y sedes de clientes (mobile).
+
+%=======================================================================
+\section{Descripción del Producto}
+%=======================================================================
+
+Aplicación web responsiva que reemplaza el entorno fragmentado actual (reportes parciales en sistema, hojas de vida en Excel, comunicación vía WhatsApp). Accesible desde navegadores en escritorio y móvil.
+
+\subsection{Módulos funcionales}
+
+\textbf{Fase 1 (MVP):} Usuarios y roles (JWT), Clientes y sedes, Órdenes de trabajo, Reportes automáticos, Registro de equipos.
+
+\textbf{Fase 2:} Firma digital táctil, Hojas de vida con historial, Inventario, Alertas de calibración (umbral 30 días), Módulo comercial, Exportación PDF/Excel.
+
+\subsection{Características técnicas}
+
+Web responsiva (Mobile y Desktop), PDF con formato estándar, JWT, captura móvil (fotos/firmas), sin integraciones externas en MVP, soporte 5-20 usuarios concurrentes.
+
+%=======================================================================
+\section{Objetivos}
+%=======================================================================
+
+\subsection{Objetivo general}
+
+Desarrollar MalphasOS, plataforma web integrada de gestión de mantenimiento de equipos biomédicos para BolívarBioingeniería LTDA, digitalizando procesos operativos y mejorando documentación, trazabilidad y cumplimiento regulatorio.
+
+\subsection{Objetivos específicos}
+
+\begin{enumerate}
+  \item \textbf{[OBJ-01]} Reducir $\geq 40\,\%$ tiempo de elaboración de reportes mediante automatización.
+  \item \textbf{[OBJ-02]} Disminuir $\geq 30\,\%$ errores en diligenciamiento mediante validación y autocompletado.
+  \item \textbf{[OBJ-03]} Asegurar 100\,\% cobertura digital de equipos con hojas de vida actualizadas.
+  \item \textbf{[OBJ-04]} Centralizar 100\,\% órdenes de trabajo en plataforma, eliminando Excel y WhatsApp.
+  \item \textbf{[OBJ-05]} Garantizar cumplimiento regulatorio de Secretaría de Salud en documentación.
+  \item \textbf{[OBJ-06]} Entregar MVP en 1.5~meses y sistema completo en 6~meses dentro de COP \$15.000.000.
+  \item \textbf{[OBJ-07]} Asegurar consultas en $< 3$ segundos y disponibilidad $\geq 99\,\%$ horario operativo.
+\end{enumerate}
+
+%=======================================================================
+\section{Criterios de Éxito}
+%=======================================================================
+
+Los siguientes criterios permiten determinar de manera objetiva y verificable si el
+proyecto ha alcanzado sus objetivos satisfactoriamente:
+
+\vspace{0.3cm}
+\begin{longtable}{|L{1.1cm}|L{3.2cm}|L{4.8cm}|L{1.9cm}|}
+\hline
+\textbf{ID} & \textbf{Criterio} & \textbf{Indicador} & \textbf{Obj.} \\
+\hline
+\endfirsthead
+\hline
+\textbf{ID} & \textbf{Criterio} & \textbf{Indicador} & \textbf{Obj.} \\
+\hline
+\endhead
+
+CE-01 & Tiempo reportes & Reducción $\geq 40\,\%$ vs.\ manual & OBJ-01 \\
+\hline
+
+CE-02 & Errores diligenciamiento & Reducción $\geq 30\,\%$ vs.\ manual & OBJ-02 \\
+\hline
+
+CE-03 & Cobertura digital & 100\,\% equipos con hoja de vida & OBJ-03 \\
+\hline
+
+CE-04 & Centralización OT & 100\,\% OT en plataforma & OBJ-04 \\
+\hline
+
+CE-05 & Cumplimiento regulatorio & Reportes cumplen formato Secretaría de Salud & OBJ-05 \\
+\hline
+
+CE-06 & Plazo & MVP $\leq 1{,}5$ meses; Completo $\leq 6$ meses & OBJ-06 \\
+\hline
+
+CE-07 & Presupuesto & Gasto total $\leq$ COP \$15.000.000 & OBJ-06 \\
+\hline
+
+CE-08 & Rendimiento & Consultas $\leq 3$ segundos & OBJ-07 \\
+\hline
+
+CE-09 & Disponibilidad & $\geq 99\,\%$ uptime horario operativo & OBJ-07 \\
+\hline
+
+CE-10 & Usabilidad & Reporte por equipo $\leq 3$ min sin capacitación & OBJ-01 \\
+\hline
+
+\end{longtable}
+
+%=======================================================================
+\section{Requisitos de Aprobación del Proyecto}
+%=======================================================================
+
+Para que el proyecto MalpphasOS y su producto resultante sean considerados formalmente
+aprobados, deberán satisfacerse las siguientes condiciones:
+
+\subsection{Requisitos funcionales mínimos (MVP)}
+
+MoSCoW Must Have: Órdenes de trabajo directas (RF-01--07), Gestión clientes/sedes (RF-08), Reportes automáticos con autocompletado (RF-09--15), Registro de equipos (RD-03--04), Autenticación y roles (RF-49--53).
+
+\subsection{Requisitos de calidad}
+
+Pruebas sin errores críticos en flujos principales; documentos PDF/Excel con formato estandarizado; interfaz responsiva mobile/desktop; máximo 6 pasos por proceso.
+
+\subsection{Requisitos de seguridad}
+
+Autenticación usuario/contraseña; JWT para sesiones; control acceso por rol; sin exposición de datos a usuarios no autorizados.
+
+\subsection{Requisitos regulatorios}
+
+Reportes y hojas de vida cumplen formato exigido por Secretaría de Salud.
+
+\subsection{Requisitos de entrega}
+
+Capacitación formal; documentación técnica y manuales de usuario; entrega dentro de plazo y presupuesto; migración de datos históricos completada.
+
+%=======================================================================
+\section{Finalidad del Proyecto}
+%=======================================================================
+
+\subsection{Beneficio para BolívarBioingeniería LTDA}
+
+Eficiencia operativa (eliminación de reingreso de datos); Calidad e integridad (datos centralizados, sin duplicados); Trazabilidad digital completa; Cumplimiento regulatorio; Comunicación formal (reemplazo WhatsApp/Excel); Competitividad en sector salud.
+
+\subsection{Beneficio para usuarios}
+
+\textbf{Ingenieros:} Registro directo desde móvil sin documentos físicos. \textbf{Administradores:} Información centralizada para decisiones oportunas. \textbf{Clientes de empresa:} Documentación completa y estandarizada según Secretaría de Salud.
+
+%=======================================================================
+\section{Entregables Principales}
+%=======================================================================
+
+\subsection{Entregables del proyecto}
+
+ERS IEEE~830; Project Charter; Modelo de datos y arquitectura; Diagramas de casos de uso; Plan de proyecto con cronograma.
+
+\subsection{Entregables --- Fase 1 (MVP, 1.5 meses)}
+
+Autenticación y roles (JWT); Gestión clientes/sedes; Órdenes de trabajo; Reportes automáticos con autocompletado; Registro de equipos.
+
+\subsection{Entregables --- Fase 2 (Sistema completo, 6 meses)}
+
+Firma digital táctil; Hojas de vida con historial; Inventario; Alertas calibración (30 días); Módulo comercial; Exportación PDF/Excel; Captura fotográfica móvil.
+
+\subsection{Entregables de soporte}
+
+Manuales de usuario (Administrador e Ingeniero); Documentación técnica; Capacitación formal.
+
+%=======================================================================
+\section{Justificación del Proyecto}
+%=======================================================================
+
+\subsection{Problema identificado}
+
+Entorno fragmentado: hojas de vida en Excel sin actualización automática, comunicación vía WhatsApp (sin trazabilidad), reingreso repetitivo de datos en reportes. Resultado: alta carga manual, errores, inconsistencias, falta de trazabilidad y riesgo regulatorio.
+
+\subsection{Necesidad de negocio}
+
+Centralizar y estandarizar información operativa; automatizar documentación técnica; facilitar trabajo en campo (mobile sin instalación); garantizar trazabilidad completa; reducir tiempo y errores documentales.
+
+\subsection{Oportunidad estratégica}
+
+Digitalización posiciona a BolívarBioingeniería como empresa competitiva y confiable en sector salud, generando ventaja diferencial ante IPS, hospitales y clínicas.
+
+%=======================================================================
+\section{Principales Interesados}
+%=======================================================================
+
+\vspace{0.3cm}
+\begin{longtable}{|L{3.0cm}|L{2.5cm}|L{4.2cm}|L{1.8cm}|}
+\hline
+\textbf{Interesado} & \textbf{Rol} & \textbf{Relación} & \textbf{Influencia} \\
+\hline
+\endhead
+
+BolívarBioingeniería LTDA & Cliente & Define requisitos, aprueba y financia & Alta \\
+\hline
+
+Gerente & Patrocinador & Decisiones, alcance, presupuesto & Alta \\
+\hline
+
+Personal Administrativo & Usuario principal & Gestión diaria (escritorio) & Media \\
+\hline
+
+Ingenieros Técnicos & Usuario en campo & Registro móvil intervenciones & Media \\
+\hline
+
+SuperUsuario & Admin técnico & Configuración inicial y accesos & Media \\
+\hline
+
+Clientes (IPS, hospitales) & Receptor docs & Reciben reportes y hojas de vida & Baja \\
+\hline
+
+Secretaría de Salud & Regulatoria & Define requisitos normativos & Media \\
+\hline
+
+Equipo desarrollo & Ejecutor & Diseño, desarrollo, implementación & Alta \\
+\hline
+
+\end{longtable}
+
+%=======================================================================
+\section{Riesgos Iniciales}
+%=======================================================================
+
+Principales riesgos identificados:
+
+\vspace{0.3cm}
+\begin{longtable}{|L{0.6cm}|L{3.2cm}|L{2.5cm}|L{1.8cm}|L{4.0cm}|}
+\hline
+\textbf{ID} & \textbf{Riesgo} & \textbf{Tipo} & \textbf{Impacto} & \textbf{Mitigación} \\
+\hline
+\endhead
+
+R-01 & Cambio req. regulatorios Secretaría Salud & Externo & Alto & Diseño modular reportes; monitoreo normativas \\
+\hline
+
+R-02 & Resistencia al cambio personal & Organizacional & Medio & Involucrar usuarios tempranas; capacitación \\
+\hline
+
+R-03 & Conectividad limitada clientes & Técnico & Medio & Optimizar consumo datos; documentar limitaciones \\
+\hline
+
+R-04 & Incompatibilidad firma digital mobile & Técnico & Alto & Validar compatibilidad Android/iOS antes MVP \\
+\hline
+
+R-05 & Migración datos incompleta & Técnico & Alto & Protocolo migración; validar integridad con cliente \\
+\hline
+
+R-06 & Incumplimiento plazo MVP 1.5 meses & Cronograma & Alto & Priorización Must Have; seguimiento semanal \\
+\hline
+
+R-07 & Superar presupuesto \$15M & Presupuesto & Alto & Control alcance MoSCoW; seguimiento costos \\
+\hline
+
+R-08 & Baja adopción ingenieros técnicos & Usuarios & Alto & Interfaz intuitiva (6 pasos max); capacitación diseño \\
+\hline
+
+R-09 & Cambios estructura organizacional & Organizacional & Medio & Roles configurables por SuperUsuario \\
+\hline
+
+R-10 & Scope creep no controlado & Alcance & Medio & Gestión formal cambios; ERS como línea base \\
+\hline
+
+\end{longtable}
+
+%=======================================================================
+\section{Duración e Hitos}
+%=======================================================================
+
+\subsection{Duración}
+
+\textbf{Total:} 6 meses. \textbf{Fase 1 (MVP):} 1.5 meses.
+
+\subsection{Hitos principales}
+
+\vspace{0.3cm}
+\begin{longtable}{|L{1.2cm}|L{2.2cm}|L{5.2cm}|L{2.0cm}|}
+\hline
+\textbf{Fase} & \textbf{Hito} & \textbf{Descripción} & \textbf{Plazo} \\
+\hline
+\endhead
+
+Fase 0 & H-00 & Inicio formal, aprobación Project Charter y plan proyecto & Mes 0 \\
+\hline
+
+Fase 1 & H-01 & Entrega MVP: Auth, clientes, OT, reportes, equipos & 1.5 meses \\
+\hline
+
+Fase 2 & H-02 & Sistema completo: firma, hojas de vida, inventario, alertas, comercial, PDF/Excel & 6 meses \\
+\hline
+
+Fase 2 & H-03 & Capacitación usuarios & Mes 6 \\
+\hline
+
+Fase 2 & H-04 & Cierre: aceptación formal, docs técnicas, manuales & Mes 6 \\
+\hline
+
+\end{longtable}
+
+\subsection{Diagrama de Gantt}
+
+% Definir colores personalizados del design system
+\definecolor{colorLP}{HTML}{EC3013}       % Landing Page - Rojo principal
+\definecolor{colorAuth}{HTML}{ef6853}     % Auth - Naranja
+\definecolor{colorClientes}{HTML}{ff9783} % Clientes - Coral claro
+\definecolor{colorOrdenes}{HTML}{ff563c}  % Órdenes - Rojo medio
+\definecolor{colorReportes}{HTML}{e15b47} % Reportes - Naranja oscuro
+\definecolor{colorEquipos}{HTML}{dd2b0f}  % Equipos - Rojo muy oscuro
+\definecolor{colorFirma}{HTML}{C91E10}    % Firma digital
+\definecolor{colorHojas}{HTML}{B51A0D}    % Hojas de vida
+\definecolor{colorInventario}{HTML}{9E1609}% Inventario
+\definecolor{colorAlertas}{HTML}{8B1407}  % Alertas
+\definecolor{colorComercial}{HTML}{7A1206}% Módulo comercial
+\definecolor{colorExportacion}{HTML}{6B0F05}% Exportación
+\definecolor{colorCapacitacion}{HTML}{5C0D04}% Capacitación
+
+\vspace{0.5cm}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{ganttchart}[
+  hgrid,
+  vgrid,
+  x unit=0.30cm,
+  y unit chart=0.5cm,
+  title/.style={font=\bfseries\tiny},
+  bar/.style={draw=black, line width=0.8pt},
+  group/.style={draw=black, line width=1pt},
+  milestone/.style={draw=black, line width=1pt},
+  bar height=0.6,
+  bar top shift=0.05,
+  group top shift=0.05,
+  group height=0.4,
+  title height=0.8,
+  include title in canvas=false,
+  y label node/.append style={font=\tiny}
+]{1}{26}
+
+  \gantttitle{Cronograma de Proyecto MalphasOS (26 semanas)}{26}\\
+  \gantttitle{}{1} \gantttitle{Fase 1: MVP}{6} \gantttitle{Fase 2: Sistema Completo}{19}\\
+  \gantttitlelist[title label font=\tiny]{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26}{1}\\
+
+  \ganttbar[bar/.style={fill=colorLP, draw=black}]{Landing Page}{1}{1}\\
+
+  \ganttgroup{Fase 1: MVP}{2}{7}\\
+  \ganttbar[bar/.style={fill=colorAuth, draw=black}]{Autenticación y Roles}{2}{3}\\
+  \ganttbar[bar/.style={fill=colorClientes, draw=black}]{Gestión de Clientes}{3}{4}\\
+  \ganttbar[bar/.style={fill=colorOrdenes, draw=black}]{Órdenes de Trabajo}{4}{5}\\
+  \ganttbar[bar/.style={fill=colorReportes, draw=black}]{Reportes Automáticos}{5}{6}\\
+  \ganttbar[bar/.style={fill=colorEquipos, draw=black}]{Registro de Equipos}{6}{7}\\
+  \ganttmilestone[milestone/.style={fill=colorEquipos}]{Entrega MVP}{7}\\
+
+  \ganttgroup{Fase 2: Sistema Completo}{8}{26}\\
+  \ganttbar[bar/.style={fill=colorFirma, draw=black}]{Firma Digital Táctil}{8}{12}\\
+  \ganttbar[bar/.style={fill=colorHojas, draw=black}]{Hojas de Vida de Equipos}{12}{15}\\
+  \ganttbar[bar/.style={fill=colorInventario, draw=black}]{Inventario}{15}{19}\\
+  \ganttbar[bar/.style={fill=colorAlertas, draw=black}]{Alertas Calibración}{19}{22}\\
+  \ganttbar[bar/.style={fill=colorComercial, draw=black}]{Módulo Comercial}{22}{24}\\
+  \ganttbar[bar/.style={fill=colorExportacion, draw=black}]{Exportación PDF/Excel}{24}{25}\\
+  \ganttbar[bar/.style={fill=colorCapacitacion, draw=black}]{Capacitación y Cierre}{25}{26}\\
+  \ganttmilestone[milestone/.style={fill=colorCapacitacion}]{Proyecto Completo}{26}\\
+
+\end{ganttchart}%
+}
+\caption{Cronograma teórico del proyecto MalphasOS (6 meses, 26 semanas)}
+\label{fig:cronograma}
+\end{figure}
+
+\textit{Nota: Plazos relativos al inicio formal. Fechas absolutas se definen en plan de proyecto.}
+
+%=======================================================================
+\section{Presupuesto}
+%=======================================================================
+
+\textbf{Presupuesto total:} COP \$15.000.000 (cubre MVP y sistema completo, por 3 años de Lincencia).
+
+\subsection{Consideraciones presupuestales}
+
+Presupuesto cubre ambas fases; Hosting dentro presupuesto total o acuerdo separado; Capacitación incluida en alcance; Licencias; Cambios de alcance requieren aprobación formal del patrocinador.
+
+%=======================================================================
+\section{Sponsor}
+%=======================================================================
+
+\vspace{0.3cm}
+
+\textbf{Entidad patrocinadora:} BolívarBioingeniería LTDA. \textbf{Representante:} Gerente de BolívarBioingeniería LTDA (Sandra Bolivar). \textbf{Rol:} Cliente y patrocinador. \textbf{Responsabilidades:} Aprobar alcance y cambios; garantizar presupuesto; facilitar acceso a usuarios e información.
+
+%=======================================================================
+\section{Director del Proyecto}
+%=======================================================================
+
+\vspace{0.3cm}
+
+\textbf{Nombre:} Sean Sebastian Bolivar Calderon (20231020135). \textbf{Rol:} Director del Proyecto. \textbf{Responsabilidades:} Planificación, coordinación y control; comunicación cliente; gestión riesgos, alcance, cronograma, presupuesto; calidad entregables; gestión interesados. \textbf{Nivel de autoridad:} Maxima.
+
+\vspace{3cm}
+
+\newpage
+\vspace*{5cm}
+
+\begin{center}
+\rule{5cm}{0.5pt} \hspace{2cm} \rule{5cm}{0.5pt}\\[0.3cm]
+\textbf{Elaborado por} \hspace{4.5cm} \textbf{Revisado por}\\[0.1cm]
+Sean Sebastian Bolivar Calderon \hspace{3cm} Alfredo Lopez Hernandez\\[0.1cm]
+Código: 20231020135 \hspace{4.0cm} Calidad de Software\\[1.5cm]
+\textit{11 de agosto de 2026 --- Universidad Distrital Francisco José de Caldas}
+\end{center}
+
+\end{document}

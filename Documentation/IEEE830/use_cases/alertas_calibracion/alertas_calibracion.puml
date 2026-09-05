@@ -1,0 +1,41 @@
+@startuml alertas_calibracion
+!define DIRECTION top to bottom direction
+skinparam backgroundColor #F3F2F2
+skinparam actorBorderColor #EC3013
+skinparam actorBackgroundColor #EC3013
+skinparam usecaseBorderColor #6b6866
+skinparam usecaseBackgroundColor #ffffff
+
+actor "Administrador" as Admin
+
+rectangle "Alertas y Validación de Calibración" {
+  usecase "Identificar vencimientos" as UC1
+  usecase "Validar vigencia" as UC2
+  usecase "Generar alerta" as UC3
+  usecase "Notificar vencimiento" as UC4
+}
+
+Admin --> UC2
+UC2 ..> UC1 : <<include>>
+UC1 ..> UC3 : <<include>>
+UC3 ..> UC4 : <<include>>
+
+note right of UC1
+  Comparar fecha de última
+  calibración con frecuencia
+  versus fecha actual
+end note
+
+note right of UC3
+  Generar alerta cuando
+  vencimiento esté dentro
+  de 30 días
+end note
+
+note right of UC4
+  Mostrar indicador visual
+  en listado de equipos
+  próximos a vencer
+end note
+
+@enduml

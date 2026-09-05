@@ -1,0 +1,37 @@
+@startuml firma_digital
+!define DIRECTION top to bottom direction
+skinparam backgroundColor #F3F2F2
+skinparam actorBorderColor #EC3013
+skinparam actorBackgroundColor #EC3013
+skinparam usecaseBorderColor #6b6866
+skinparam usecaseBackgroundColor #ffffff
+
+actor "Cliente/Responsable" as Cliente
+
+rectangle "Gestión Firma Digital" {
+  usecase "Capturar firma digital" as UC1
+  usecase "Validar firma" as UC2
+  usecase "Replicar firma" as UC3
+}
+
+Cliente --> UC1
+UC1 ..> UC2 : <<include>>
+UC1 ..> UC3 : <<include>>
+
+note right of UC1
+  Capturar firma mediante
+  componente táctil en dispositivo móvil
+end note
+
+note right of UC2
+  No permitir aceptar
+  si área vacía
+end note
+
+note right of UC3
+  Replicar automáticamente
+  a todos los reportes de
+  la misma orden de trabajo
+end note
+
+@enduml

@@ -1,0 +1,45 @@
+{
+  "name": "MalphasOS Documentation",
+  "build": {
+    "dockerfile": "../dockerfile.devcontainer",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "James-Yu.latex-workshop",
+        "jebbs.plantuml",
+        "ms-python.python",
+        "eamodio.gitlens",
+        "redhat.vscode-xml"
+      ],
+      "settings": {
+        "latex-workshop.latex.recipes": [
+          {
+            "name": "pdflatex",
+            "tools": ["pdflatex"]
+          },
+          {
+            "name": "pdflatex × 2",
+            "tools": ["pdflatex", "pdflatex"]
+          }
+        ],
+        "latex-workshop.latex.tools": [
+          {
+            "name": "pdflatex",
+            "command": "pdflatex",
+            "args": ["-interaction=nonstopmode", "-synctex=1", "%DOC%"]
+          }
+        ],
+        "plantuml.diagramsRoot": "use_cases",
+        "plantuml.exportOutDir": "./",
+        "plantuml.render": "Local"
+      }
+    }
+  },
+  "forwardPorts": [],
+  "remoteUser": "root",
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached"
+  ]
+}

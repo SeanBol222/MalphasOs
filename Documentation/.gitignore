@@ -1,0 +1,20 @@
+# Productos de compilacion de LaTeX. Se regeneran con `latexmk -pdf IEEE830.tex`
+# y cambian en cada pasada, de modo que versionarlos solo produce ruido en el diff.
+# El .pdf si se versiona: es el entregable que se lee sin tener LaTeX instalado.
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+texput.log
+
+# Salidas que la extension de PlantUML de VS Code deja fuera del directorio del
+# diagrama cuando la ruta de exportacion no esta configurada.
+out/
+__WorkspaceFolder__/

@@ -1,0 +1,50 @@
+@startuml modulo_comercial
+!define DIRECTION top to bottom direction
+skinparam backgroundColor #F3F2F2
+skinparam actorBorderColor #EC3013
+skinparam actorBackgroundColor #EC3013
+skinparam usecaseBorderColor #6b6866
+skinparam usecaseBackgroundColor #ffffff
+
+actor "Administrador" as Admin
+
+rectangle "Módulo Comercial" {
+  usecase "Seleccionar cliente" as UC1
+  usecase "Crear cotización" as UC2
+  usecase "Aplicar descuento" as UC3
+  usecase "Gestionar cotizaciones" as UC4
+  usecase "Generar orden" as UC5
+  usecase "Validar stock" as UC6
+}
+
+Admin --> UC4
+UC4 ..> UC1 : <<include>>
+UC4 ..> UC2 : <<include>>
+
+UC2 ..> UC3 : <<extend>>
+UC2 ..> UC6 : <<include>>
+
+UC4 -.> UC5 : <<extend>>
+
+note right of UC2
+  Incluir cliente, fecha emisión,
+  validez, moneda, líneas de servicio
+end note
+
+note right of UC3
+  Aplicar descuento por
+  porcentaje o monto fijo
+end note
+
+note right of UC5
+  Generar orden de trabajo
+  desde cotización aprobada
+  heredando datos
+end note
+
+note right of UC6
+  Validar disponibilidad
+  de repuestos en inventario
+end note
+
+@enduml

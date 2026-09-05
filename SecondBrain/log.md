@@ -289,3 +289,17 @@ Los otros cuatro: `PersonService.update` no propaga nada a Keycloak; `EquipmentT
 El `.tex` **estaba sin versionar**: el único commit que había tocado `Documentation/` añadió el PDF y los diagramas y dejó el fuente fuera del `git add`. Ya está en git, con un `.gitignore` propio para los artefactos de LaTeX.
 
 Actualizadas [[deuda-tecnica-y-riesgos]] con dos secciones nuevas —seis defectos de código propio y cinco de la ERS— y el conteo de la batería, que subió a 339 al añadirse la prueba de OpenAPI de `client`.
+
+## [2026-09-02] lint | Los diagramas no estaban perdidos: estaban fuera de main
+
+Limpieza del repositorio antes de abrir un worktree, y salió una corrección que importa.
+
+**Corrección.** La entrada anterior y [[deuda-tecnica-y-riesgos]] afirmaban que **los fuentes `.puml` de los diez diagramas de casos de uso no estaban en el repositorio** y que por tanto los diagramas no se podían regenerar. **Es falso.** Estaban en git desde el principio, en la rama `feat/client-headquarter`, 38 commits por detrás de `main`. Quien lo comprobó miró `main` y el árbol de trabajo —donde efectivamente solo hay `.svg` y `.pdf`— y concluyó lo razonable; el error fue mío al registrarlo sin verificar contra todas las referencias.
+
+La lección se anota en la nota de deuda porque va a volver a pasar: **"no está en el repositorio" y "no está en `main`" no son lo mismo.** Una rama vieja sin mergear puede ser la única copia de algo, y `git log --all --diff-filter=A -- '<patrón>'` responde la pregunta de verdad en un segundo.
+
+Rescatados a `main` los diez `.puml`, sus `.png`, el documento de constitución con sus imágenes, el devcontainer con la configuración de PlantUML que hace falta para compilarlos, y el `CLAUDE.md` de `Documentation/`, que resulta ser **el único sitio donde constan el cliente (BolívarBioingeniería LTDA), la duración estimada y el presupuesto del proyecto** — datos que ninguna otra parte del repositorio recoge.
+
+Se rescató por archivo y no mergeando la rama: su `malphasos/` es anterior al módulo `equipment` y mergearla habría borrado 8.267 líneas de código. Quedaron fuera los artefactos de compilación y su `IEEE830.tex`, anterior al marcado de requisitos.
+
+Lo que sigue en pie de esa deuda es lo que no se arregla recuperando archivos: **varios diagramas describen dominios que no existen** —órdenes de trabajo, firma digital, módulo comercial—. Ahora al menos se pueden corregir.

@@ -1,0 +1,32 @@
+@startuml clientes
+!define DIRECTION top to bottom direction
+skinparam backgroundColor #F3F2F2
+skinparam actorBorderColor #EC3013
+skinparam actorBackgroundColor #EC3013
+skinparam usecaseBorderColor #6b6866
+skinparam usecaseBackgroundColor #ffffff
+
+actor "Administrador" as Admin
+
+rectangle "Gestión de Clientes" {
+  usecase "Crear cliente" as UC1
+  usecase "Editar cliente" as UC2
+  usecase "Eliminar cliente" as UC3
+  usecase "Consultar cliente" as UC4
+}
+
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
+
+UC1 ..> UC2 : <<include>>
+UC2 ..> UC4 : <<include>>
+
+note right of UC1
+  Registrar información:
+  Nombre, NIT, dirección, ciudad,
+  sede, área de servicio, contacto
+end note
+
+@enduml

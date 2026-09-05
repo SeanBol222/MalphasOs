@@ -1,0 +1,66 @@
+FROM texlive/texlive:latest
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y \
+        # LaTeX and fonts
+        fontconfig \
+        fonts-liberation \
+        fonts-dejavu \
+        # Development tools
+        git \
+        git-lfs \
+        make \
+        curl \
+        wget \
+        unzip \
+        # Java (for PlantUML)
+        default-jre \
+        default-jdk \
+        # Diagram tools
+        graphviz \
+        # Python (for utilities)
+        python3 \
+        python3-pip \
+        # PDF and image processing
+        ghostscript \
+        imagemagick \
+        poppler-utils \
+        librsvg2-bin \
+        # Text editors and tools
+        vim \
+        nano \
+        less \
+        # Network tools
+        ca-certificates \
+        && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download and install PlantUML from official source
+RUN mkdir -p /opt/plantuml && \
+    cd /opt/plantuml && \
+    curl -L https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar -o plantuml.jar && \
+    chmod +x plantuml.jar
+
+# Create PlantUML wrapper script
+RUN echo '#!/bin/bash\njava -jar /opt/plantuml/plantuml.jar "$@"' > /usr/local/bin/plantuml && \
+    chmod +x /usr/local/bin/plantuml
+
+# Configure fonts
+RUN fc-cache -fv
+
+# Install additional LaTeX packages if needed
+RUN tlmgr update --self --no-auto-install || true && \
+    tlmgr install pgfgantt tikz uml || true
+
+# Set working directory
+WORKDIR /workspaces
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=es_CO.UTF-8
+ENV LC_ALL=es_CO.UTF-8
+
+# Create necessary directories
+RUN mkdir -p /workspaces/.vscode && \
+    chmod -R 777 /workspaces
