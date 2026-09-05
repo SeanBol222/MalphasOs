@@ -1,0 +1,527 @@
+% Formato: standalone, variante varwidth de una sola hoja continua.
+%
+% Este documento no se pagina: se pensa para plotter o para lectura con zoom,
+% no para imprimirse en A4. La clase `standalone` recorta la caja de salida
+% al contenido real, de modo que `longtable` (pensado para partir tablas
+% entre paginas) no tiene sentido aqui y se sustituye por `tabular` simple;
+% tampoco hay portada de pagina completa, indice, ni encabezado/pie de
+% pagina, porque ninguno de los tres presupone la existencia de paginas.
+%
+% Ancho de contenido: 170mm. Es el ancho maximo que la opcion `varwidth` deja
+% crecer al cuerpo del documento antes de recortar por contenido real. Se
+% eligio por dos motivos: (1) la tabla mas ancha del documento -las de cinco
+% columnas de la seccion 1 y 2- suma cerca de 155mm entre el contenido de sus
+% columnas y el relleno de celda (`\tabcolsep`) de la propia tabla, asi que
+% 170mm deja margen sin que ninguna tabla toque el borde recortado; (2) es
+% comparable al `\textwidth` de la ERS y el Plan de Gestion del Alcance (ambos
+% a4paper con margen de 2.5cm, es decir, 160mm), de modo que la prosa de la
+% seccion de hallazgos envuelve con un ritmo de lectura parecido al de esos
+% dos documentos hermanos.
+\documentclass[12pt,varwidth=170mm,border=10pt]{standalone}
+%\usepackage[es]{babel}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{hyperref}
+
+% Color definitions. Identicas a las de la ERS, el Plan de Gestion del
+% Alcance y la version paginada de esta misma matriz: los documentos son
+% piezas del mismo entregable.
+\definecolor{mainRed}{HTML}{EC3013}
+\definecolor{mainGray}{HTML}{6b6866}
+\definecolor{mainWhite}{HTML}{F3F2F2}
+
+% Title formatting. En `article` estos macros delegaban en \section*/\subsection*
+% con saltos mas cortos que los de la clase (ver la version paginada). Aqui no
+% hay seccionado -`standalone` no pagina, y \section no aporta nada sin una
+% tabla de contenidos que lo use-, asi que se redefinen como bloques de texto
+% con exactamente el mismo tamano y peso de fuente (\Large\bfseries y
+% \large\bfseries) y un espaciado vertical equivalente al que dejaba
+% \@startsection, sin apoyarse en su maquinaria.
+\newcommand{\sectiontitle}[1]{%
+  \par\vspace{1.8ex}%
+  {\normalfont\Large\bfseries #1\par}%
+  \vspace{1.0ex}%
+}
+
+\newcommand{\subsectiontitle}[1]{%
+  \par\vspace{1.3ex}%
+  {\normalfont\large\bfseries #1\par}%
+  \vspace{0.5ex}%
+}
+
+% Rutas y codigos. \texttt es indivisible y una ruta larga se sale de la caja;
+% \nolinkurl la compone igual pero admite corte tras cada barra y cada guion.
+\urlstyle{tt}
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\-}
+\makeatother
+\newcommand{\ruta}[1]{\nolinkurl{#1}}
+
+% Marcas de estado, con el mismo significado y el mismo color que en el
+% apartado 3.2 de la ERS, de donde proceden.
+\newcommand{\estadoImplementado}{\textcolor{mainRed}{\textbf{[IMPLEMENTADO]}}}
+\newcommand{\estadoPrevisto}{\textcolor{mainGray}{\textbf{[PREVISTO]}}}
+
+% Marca para lo que no se puede evaluar con honestidad: ni implementado ni
+% previsto, porque no hay enunciado del requisito contra el que contrastar.
+\newcommand{\noVerificable}{\textcolor{mainGray}{\textit{[NO VERIFICABLE]}}}
+
+% Hueco explicito de trazabilidad: una raya, no una celda vacia, para que el
+% vacio se vea y no se confunda con un olvido de edicion.
+\newcommand{\hueco}{---}
+
+% Pie de tabla. `longtable` traia su propio \caption numerado; en `tabular`
+% dentro de `standalone` no hay flotantes de pagina que numerar, asi que este
+% macro imprime el mismo texto con el mismo aspecto (cursiva, centrado, un
+% cuerpo menor) sin depender del contador de tablas.
+\newcommand{\tablecaption}[2]{%
+  \par\vspace{0.4em}%
+  \begin{center}
+    \footnotesize\textit{Tabla #1. #2}
+  \end{center}
+  \vspace{1.0em}%
+}
+
+\begin{document}
+
+% ===== IDENTIFICACION =====
+% Sustituye a la portada de pagina completa de la version paginada: mismo
+% contenido, mismo orden, sin \vfill ni salto de pagina porque aqui no hay
+% pagina que llenar.
+\begin{center}
+  {\Large\textbf{UNIVERSIDAD DISTRITAL}\\
+   \textbf{FRANCISCO JOSÉ DE CALDAS}}\par
+
+  \vspace{1.2em}
+
+  {\Huge\textbf{Matriz de Trazabilidad de Requisitos}}\par
+
+  \vspace{1.0em}
+
+  {\Large\textbf{MalphasOS}}\\
+  {\large Gestión de Clientes}\par
+
+  \vspace{1.0em}
+
+  {\large Sean Sebastián Bolívar Calderón - 20231020135}\par
+  {\large 5 de septiembre de 2026}\par
+\end{center}
+
+\vspace{1.0em}
+{\color{mainRed}\hrule height 1pt}
+\vspace{1.5em}
+
+% ===== NOTA PRELIMINAR =====
+\sectiontitle{Nota preliminar}
+
+Esta matriz encadena cada requisito de la Especificación de Requisitos de Software (ERS) de MalphasOS con el objetivo del proyecto al que sirve, el criterio de éxito que lo mediría, su prioridad MoSCoW, su estado de implementación y la evidencia concreta de ese estado. Cubre los tres tipos de requisito que reconoce la ERS: los \textbf{31 funcionales} de su apartado 3.2, los \textbf{23 no funcionales} de sus apartados 3.3 y 3.8, y los \textbf{6 de dominio} que cita su apartado 3.5.
+
+\textbf{El apartado 3.6 de la propia ERS, titulado ``Matriz de Trazabilidad'', no contiene una tabla: contiene el marcador \texttt{[MATRIZ DE TRAZABILIDAD COMPLETA - Ver páginas 37-38 del PDF]}.} Y el apartado 1.2.4 afirma que el proyecto mantiene consistencia con una matriz de trazabilidad ``de etapas previas del proyecto''. Se buscó ese artefacto en el repositorio y no se encontró ningún archivo, tabla ni referencia que se le pareciera. Este documento es, hasta donde alcanza esta revisión, la primera matriz de trazabilidad real de MalphasOS.
+
+\textbf{Fuentes.} Los requisitos, su descripción y la priorización MoSCoW proceden de \ruta{Documentation/IEEE830/IEEE830.tex}. Los objetivos (\texttt{OBJ-01} a \texttt{OBJ-07}) y los criterios de éxito (\texttt{CE-01} a \texttt{CE-10}) proceden de \ruta{Documentation/constitutionDocument/constitutionDocument.tex}. La evidencia de implementación se verificó de nuevo contra \ruta{malphasos/} el 5 de septiembre de 2026: los controladores en \ruta{*/infrastructure/input/rest/}, los agregados de dominio y las cinco migraciones del esquema (\texttt{V1} a \texttt{V5}). No se copió el estado que la ERS declara en su apartado 3.2: se comprobó de nuevo, y coincide.
+
+\textbf{Cómo leer las columnas de objetivo y criterio.} Un requisito solo lleva un código de objetivo u otro de criterio de éxito cuando su propio enunciado o sus criterios de aceptación coinciden con lo que ese objetivo o ese criterio miden. Donde no hay una correspondencia defendible, la celda lleva \hueco{}, no un código elegido por plausibilidad. Un hueco es información: dice que ese requisito no está sostenido por la cadena objetivo~$\to$~criterio~$\to$~requisito que un proyecto bien trazado debería tener completa. La sección de \hyperref[sec:hallazgos]{Hallazgos} recoge lo que esos huecos revelan en conjunto.
+
+\textbf{Cómo leer la columna de estado.} Para los requisitos funcionales se usa la misma marca que ya trae la ERS en su apartado 3.2, \estadoImplementado{} o \estadoPrevisto{}, verificada de nuevo. Para los no funcionales y los de dominio, la ERS no ofrece ninguna marca —el propio texto del apartado 3.2 aclara que las marcas ``se usan solo en este apartado''—, de modo que esta matriz es la primera vez que se evalúa su estado. Cuando el requisito de dominio no tiene enunciado en ningún documento, la marca es \noVerificable{}: no es previsto ni implementado, es indeterminable.
+
+\textbf{Formato.} Seis columnas por sesenta requisitos no cabe en una sola tabla legible. Cada tipo de requisito se presenta en dos tablas encadenadas por el código: la primera cruza el requisito con el objetivo, el criterio de éxito y la prioridad MoSCoW; la segunda cruza el mismo requisito con su estado y su evidencia.
+
+% ===== SECCIÓN 1: FUNCIONALES =====
+\sectiontitle{1. Requisitos funcionales}
+
+Los 31 requisitos funcionales del apartado 3.2 de la ERS, agrupados por el mismo dominio funcional que usa ese apartado.
+
+\subsectiontitle{1.1. Objetivo, criterio de éxito y prioridad}
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|p{1.3cm}|p{5.3cm}|p{2.5cm}|p{2.1cm}|p{2.3cm}|}
+\hline
+\textbf{ID} & \textbf{Requisito} & \textbf{Objetivo} & \textbf{Criterio} & \textbf{MoSCoW} \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.1. Gestión de Órdenes de Trabajo}} \\
+\hline
+RF-01 & Crear orden de trabajo directa & OBJ-04 & CE-04 & Must Have \\
+RF-02 & Eliminación de dependencia de solicitud & OBJ-04 & \hueco{} & Must Have \\
+RF-03 & Formulario de orden de trabajo & OBJ-04 & \hueco{} & Must Have \\
+RF-04 & Selección múltiple de áreas & OBJ-04 & \hueco{} & Must Have \\
+RF-05 & Identificador único de orden & OBJ-04 & \hueco{} & Must Have \\
+RF-06 & Visualización de equipos por área & OBJ-04 & \hueco{} & Should Have \\
+RF-07 & Selección múltiple de equipos & OBJ-04 & \hueco{} & Must Have \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.2. Gestión de Clientes}} \\
+\hline
+RF-08 & Crear cliente & \hueco{} & \hueco{} & Must Have \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.3. Reportes de Mantenimiento}} \\
+\hline
+RF-09 & Generar reporte por equipo & OBJ-01 & CE-01 & Must Have \\
+RF-11 & Autocompletar datos en reporte & OBJ-01, OBJ-02 & CE-02 & Should Have \\
+RF-13 & Asignación automática de protocolo & OBJ-01, OBJ-02 & \hueco{} & Should Have \\
+RF-14 & Configuración de protocolos & \hueco{} & \hueco{} & Sin asignar \\
+RF-15 & Registro de información técnica & OBJ-01 & CE-10 & Must Have \\
+RF-17 & Exportar a PDF & OBJ-05 & CE-05 & Could Have \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.4. Firma Digital}} \\
+\hline
+RF-18 & Captura de firma digital & \hueco{} & \hueco{} & Sin asignar \\
+RF-21 & Replicación de firma & \hueco{} & \hueco{} & Sin asignar \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.5. Hojas de Vida de los Equipos}} \\
+\hline
+RF-22 & Crear hoja de vida & OBJ-03 & CE-03 & Could Have \\
+RF-24 & Modificar/eliminar hoja de vida & OBJ-03 & CE-03 & Could Have \\
+RF-26 & Registro automático de intervenciones & OBJ-03 & CE-03 & Could Have \\
+RF-27 & Historial de intervenciones & OBJ-03 & CE-03 & Could Have \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.6. Inventario}} \\
+\hline
+RF-36 & Módulo inventario & \hueco{} & \hueco{} & Won't Have \\
+RF-37 & Entrada/salida inventario & \hueco{} & \hueco{} & Won't Have \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.7. Alertas y calibración}} \\
+\hline
+RF-40 & Identificar vencimientos & \hueco{} & \hueco{} & Won't Have \\
+RF-41 & Generar alertas & \hueco{} & \hueco{} & Won't Have \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.8. Módulo Comercial}} \\
+\hline
+RF-45 & Crear cotización & \hueco{} & \hueco{} & Sin asignar \\
+RF-47 & Generar orden desde cotización & \hueco{} & \hueco{} & Sin asignar \\
+\hline
+\multicolumn{5}{|l|}{\textit{3.2.9. Usuarios y seguridad}} \\
+\hline
+RF-49 & Login de usuario & \hueco{} & \hueco{} & Must Have \\
+RF-50 & Identificación de rol & \hueco{} & \hueco{} & Must Have \\
+RF-51 & Creación de usuarios & \hueco{} & \hueco{} & Must Have \\
+RF-52 & Modificación de usuarios & \hueco{} & \hueco{} & Must Have \\
+RF-53 & Eliminación de usuarios & \hueco{} & \hueco{} & Must Have \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{1}{Requisitos funcionales: objetivo, criterio de éxito y prioridad MoSCoW.}
+\endgroup
+
+\subsectiontitle{1.2. Estado y evidencia}
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|p{1.3cm}|p{2.4cm}|p{10.3cm}|}
+\hline
+\textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
+\hline
+RF-01 & Previsto & Ninguna de las cinco migraciones crea tabla de orden de trabajo; no hay agregado de dominio ni ruta que la exponga. \\
+\hline
+RF-02 & Previsto & La palabra \emph{solicitud} no aparece en el esquema ni en el código: no hay nada que retirar porque nunca se introdujo. \\
+\hline
+RF-03 & Previsto & No existe el formulario ni la entidad que lo respaldaría. \emph{Tipo de servicio} y \emph{periodicidad} no tienen columna en ninguna tabla. \\
+\hline
+RF-04 & Previsto & El filtrado por sede existe —\texttt{GET} \ruta{/v1/api/headquarters/{idSede}/service-areas}— pero no hay orden de trabajo a la que asociar la selección. \\
+\hline
+RF-05 & Previsto & No hay orden de trabajo que identificar; la convención de UUID del esquema se aplicaría por construcción en cuanto exista. \\
+\hline
+RF-06 & Previsto & La consulta de fondo existe —\texttt{GET} \ruta{/v1/api/service-areas/{idAreaServicio}/equipments}— pero falta el formulario de la orden de trabajo y la interfaz que agrupe por área. \\
+\hline
+RF-07 & Previsto & Las unidades a seleccionar existen —tabla \texttt{equipo\_cliente}, \ruta{/v1/api/client-equipments}—; no hay a qué asociarlas. \\
+\hline
+RF-08 & Implementado & \texttt{POST} \ruta{/v1/api/clients} persiste en la tabla \texttt{cliente} a través del agregado \texttt{Client}; \texttt{PATCH} edita y \texttt{DELETE} da de baja (204, sin borrado físico). \\
+\hline
+RF-09 & Previsto & No existe tabla ni agregado de reporte. El directorio \ruta{equipment/infrastructure/input/model/report/} está creado y vacío. \\
+\hline
+RF-11 & Previsto & Depende del reporte y de la orden de trabajo, y ninguno de los dos existe; los datos que se autocompletarían sí son consultables por identificador. \\
+\hline
+RF-13 & Previsto & No hay protocolos que asignar (véase RF-14); tampoco está modelado el tipo de servicio, la otra mitad de la clave de asignación. \\
+\hline
+RF-14 & Previsto & La palabra \emph{protocolo} no aparece en el esquema ni en el código. \\
+\hline
+RF-15 & Previsto & Ninguno de los campos del criterio de aceptación —falla, diagnóstico, procedimientos, observaciones, resultado— tiene columna en el esquema. \\
+\hline
+RF-17 & Previsto & El proyecto no declara dependencia de generación de PDF y no hay código que produzca documentos. \\
+\hline
+RF-18 & Previsto & Ninguna tabla ni columna del esquema contempla una firma; el repositorio no contiene interfaz de usuario. \\
+\hline
+RF-21 & Previsto & Depende de RF-18 y de la orden de trabajo; ninguno de los dos existe. \\
+\hline
+RF-22 & Implementado & Cadena del catálogo: \ruta{/v1/api/service-areas/{id}/equipments} (tabla \texttt{equipo\_cliente}), \ruta{/v1/api/equipment-types}, \ruta{/v1/api/manufacturers}, \ruta{/v1/api/brands}, \ruta{/v1/api/models}. No existe una entidad llamada ``hoja de vida''; la sección de servicio técnico falta entera. \\
+\hline
+RF-24 & Implementado & \texttt{PATCH} y \texttt{DELETE} \ruta{/v1/api/client-equipments/{id}} (204, baja lógica). Número de serie y modelo son inmutables por diseño en el agregado \texttt{ClientEquipment}. \\
+\hline
+RF-26 & Previsto & No existe la intervención que registrar. El directorio \ruta{equipment/infrastructure/input/listeners/} está creado y vacío. \\
+\hline
+RF-27 & Previsto & No hay tabla de historial ni columnas de fecha, tipo o resultado de servicio en ninguna de las cinco migraciones. \\
+\hline
+RF-36 & Previsto & No hay módulo de inventario de existencias. No confundir con \texttt{equipo\_cliente}, que es el censo de unidades del cliente, no un inventario con cantidades. \\
+\hline
+RF-37 & Previsto & Sin existencias no hay movimientos que registrar: no hay tabla de entradas y salidas. \\
+\hline
+RF-40 & Previsto & Ni los equipos patrón ni las fechas de calibración están modelados; el backend no tiene tareas programadas. \\
+\hline
+RF-41 & Previsto & Depende de RF-40; no existe el estado ``Alerta de Calibración'' ni el umbral de 30 días. \\
+\hline
+RF-45 & Previsto & No hay tabla ni agregado de cotización. \\
+\hline
+RF-47 & Previsto & Depende de la cotización y de la orden de trabajo; ninguna de las dos existe. \\
+\hline
+RF-49 & Implementado & \texttt{SecurityConfig} configura un \emph{resource server} OAuth2 que valida los JWT de Keycloak; MalphasOS no comprueba credenciales por sí mismo. \\
+\hline
+RF-50 & Implementado & \texttt{KeycloakRoleConverter} traduce los roles del token en autoridades; \texttt{@PreAuthorize} se declara por operación. El criterio de que cada rol acceda solo a lo suyo no se cumple: las 83 operaciones exigen la misma autoridad \texttt{admin.full}. \\
+\hline
+RF-51 & Implementado & \texttt{POST} \ruta{/v1/api/persons/engineers}, \ruta{/admins} y \ruta{/ceo-clients} dan de alta en Keycloak y en la tabla \texttt{persona}. No hay alta de SuperUsuario. \\
+\hline
+RF-52 & Implementado & \texttt{PUT} \ruta{/v1/api/persons/{id}} actualiza la tabla \texttt{persona}; los cambios no se propagan a Keycloak. \\
+\hline
+RF-53 & Implementado & \texttt{DELETE} \ruta{/v1/api/persons/{id}} responde 204 y marca inactivo, sin revocar el acceso en Keycloak. \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{2}{Requisitos funcionales: estado de implementación y evidencia, verificados el 5 de septiembre de 2026.}
+\endgroup
+
+% ===== SECCIÓN 2: NO FUNCIONALES =====
+\sectiontitle{2. Requisitos no funcionales}
+
+Los 23 requisitos no funcionales de los apartados 3.3 y 3.8 de la ERS. Dieciséis tienen bloque propio con nivel de complejidad; los siete restantes —RNF-12 a RNF-17 y RNF-23— se citan por su código dentro de los apartados 3.1.1, 3.4 y 3.7, sin bloque propio, pero con enunciado suficiente para identificarlos sin ambigüedad.
+
+\subsectiontitle{2.1. Objetivo, criterio de éxito y prioridad}
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|p{1.5cm}|p{5.1cm}|p{2.5cm}|p{2.1cm}|p{2.3cm}|}
+\hline
+\textbf{ID} & \textbf{Requisito} & \textbf{Objetivo} & \textbf{Criterio} & \textbf{MoSCoW} \\
+\hline
+RNF-01 & Tiempo de diligenciamiento de OT ($\leq$3 min) & \hueco{} & \hueco{} & Could Have \\
+\hline
+RNF-02 & Minimización de entrada manual de datos & OBJ-02 & CE-02 & Sin asignar \\
+\hline
+RNF-03 & Tiempo de registro de orden ($\leq$2 s) & OBJ-07 & CE-08 & Could Have \\
+\hline
+RNF-04 & Tiempo de carga de equipos ($\leq$2 s) & OBJ-07 & CE-08 & Could Have \\
+\hline
+RNF-05 & Reducción de carga cognitiva & OBJ-02 & CE-02 & Sin asignar \\
+\hline
+RNF-06 & Propagación automática de datos & OBJ-01, OBJ-02 & CE-01, CE-02 & Should Have \\
+\hline
+RNF-07 & Restricción de edición de datos autocompletados & OBJ-02 & CE-02 & Sin asignar \\
+\hline
+RNF-08 & Consistencia en exportación de documentos & OBJ-05 & CE-05 & Could Have \\
+\hline
+RNF-09 & Tiempo de carga de reportes ($\leq$2 s) & OBJ-07 & CE-08 & Sin asignar \\
+\hline
+RNF-10 & Actualización de historial de equipos ($\leq$2 s) & OBJ-07 & CE-08 & Won't Have \\
+\hline
+RNF-11 & Calidad de almacenamiento de imágenes & \hueco{} & \hueco{} & Won't Have \\
+\hline
+RNF-12 & Accesibilidad web & \hueco{} & \hueco{} & Should Have \\
+\hline
+RNF-13 & Diseño responsivo & \hueco{} & \hueco{} & Should Have \\
+\hline
+RNF-14 & Interacción mediante pantalla táctil & \hueco{} & \hueco{} & Should Have \\
+\hline
+RNF-15 & Usabilidad (interfaz simple, $\leq$6 pasos) & \hueco{} & \hueco{} & Could Have \\
+\hline
+RNF-16 & Componentes de UI (listas, autocompletado, selección múltiple) & \hueco{} & \hueco{} & Should Have \\
+\hline
+RNF-17 & Mensajes de error claros y comprensibles & \hueco{} & \hueco{} & Should Have \\
+\hline
+RNF-18 & Actualización de inventario ($\leq$2 s) & OBJ-07 & CE-08 & Won't Have \\
+\hline
+RNF-19 & Frecuencia de monitoreo de alertas (24 h) & \hueco{} & \hueco{} & Won't Have \\
+\hline
+RNF-20 & Tiempo de registro de reportes ($\leq$3 min) & OBJ-01 & CE-10 & Could Have \\
+\hline
+RNF-21 & Disponibilidad del sistema ($\geq$99\,\%) & OBJ-07 & CE-09 & Could Have \\
+\hline
+RNF-22 & Tiempo de generación de OT desde cotización ($\leq$2 s) & OBJ-07 & CE-08 & Sin asignar \\
+\hline
+RNF-23 & JSON Web Token para gestión de sesiones & \hueco{} & \hueco{} & Should Have \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{3}{Requisitos no funcionales: objetivo, criterio de éxito y prioridad MoSCoW.}
+\endgroup
+
+\subsectiontitle{2.2. Estado y evidencia}
+
+Ningún documento previo evalúa el estado de estos 23 requisitos: la marca \estadoImplementado{}/\estadoPrevisto{} de la ERS se aplica solo a los funcionales. Lo que sigue es la primera verificación de este tipo para los no funcionales, hecha contra el mismo código el 5 de septiembre de 2026.
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|p{1.5cm}|p{2.4cm}|p{10.1cm}|}
+\hline
+\textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
+\hline
+RNF-01 & Previsto & Depende de la orden de trabajo y de una interfaz de usuario; ninguna de las dos existe. \\
+\hline
+RNF-02 & Previsto & El repositorio contiene una API REST, no una interfaz de usuario con listas desplegables o autocompletado. \\
+\hline
+RNF-03 & Previsto & No existe la orden de trabajo que registrar. \\
+\hline
+RNF-04 & Previsto & El endpoint que serviría la lista existe —\texttt{GET} \ruta{/v1/api/service-areas/{id}/equipments}— pero el proyecto no tiene pruebas de carga ni de rendimiento que fijen un tiempo de respuesta. \\
+\hline
+RNF-05 & Previsto & Depende de la orden de trabajo, que no existe. \\
+\hline
+RNF-06 & Previsto & Depende de la orden de trabajo y del reporte; ninguno de los dos existe. \\
+\hline
+RNF-07 & Previsto & Depende de una interfaz de usuario con autocompletado, que no existe. \\
+\hline
+RNF-08 & Previsto & No hay dependencia de generación de documentos declarada ni código que exporte PDF o Excel. \\
+\hline
+RNF-09 & Previsto & No existe el reporte de mantenimiento. \\
+\hline
+RNF-10 & Previsto & No existe el historial de intervenciones (véase RF-26, RF-27). \\
+\hline
+RNF-11 & Previsto & No hay ninguna referencia a imágenes, fotografías o almacenamiento de archivos binarios en el código fuente. \\
+\hline
+RNF-12 & Previsto & El repositorio contiene el backend, no una interfaz de usuario; no hay nada que evaluar como accesible desde un navegador. \\
+\hline
+RNF-13 & Previsto & No hay interfaz de usuario y, por tanto, tampoco diseño responsivo. \\
+\hline
+RNF-14 & Previsto & No hay componente de interacción táctil: no existe interfaz de usuario. \\
+\hline
+RNF-15 & Previsto & No hay interfaz de usuario cuyos pasos puedan contarse. \\
+\hline
+RNF-16 & Previsto & Listas desplegables, autocompletado y selección múltiple son componentes de una interfaz de usuario que no existe. \\
+\hline
+RNF-17 & Previsto & Cada módulo declara su propio catálogo de errores (\texttt{ClientControllerAdvice}, \texttt{EquipmentControllerAdvice}, \texttt{LocationControllerAdvice}, \texttt{PersonControllerAdvice}, más \texttt{GlobalControllerAdvice}), pero falta la interfaz que traduzca esos códigos en un mensaje legible para el usuario final. \\
+\hline
+RNF-18 & Previsto & No existe el módulo de inventario de existencias. \\
+\hline
+RNF-19 & Previsto & El backend no declara \texttt{@EnableScheduling} ni ninguna tarea programada. \\
+\hline
+RNF-20 & Previsto & No existe el reporte de mantenimiento. \\
+\hline
+RNF-21 & Previsto & No hay entorno de producción desplegado ni medición de disponibilidad; \ruta{/actuator/health} es una sonda para un monitor futuro, no una medición del 99\,\%. \\
+\hline
+RNF-22 & Previsto & Depende de la cotización y de la orden de trabajo; ninguna de las dos existe. \\
+\hline
+RNF-23 & Implementado & \texttt{SecurityConfig} configura la aplicación como \emph{resource server} OAuth2 (\texttt{oauth2ResourceServer().jwt(...)}) y valida los JWT que emite Keycloak; \texttt{KeycloakRoleConverter} traduce sus roles en autoridades. \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{4}{Requisitos no funcionales: estado de implementación y evidencia, verificados el 5 de septiembre de 2026.}
+\endgroup
+
+De 23 requisitos no funcionales, solo uno —RNF-23, la autenticación basada en JWT— tiene implementación. Es la misma pieza de infraestructura que ya sostiene RF-49 y RF-50.
+
+% ===== SECCIÓN 3: DOMINIO =====
+\sectiontitle{3. Requisitos de dominio}
+
+Aquí es donde la trazabilidad se rompe antes de empezar. Los seis códigos de requisito de dominio que reconoce la ERS —\texttt{RD-01}, \texttt{RD-03}, \texttt{RD-04}, \texttt{RD-05}, \texttt{RD-06} y \texttt{RD-07}— \textbf{aparecen exclusivamente en el apartado 3.5 (Priorización MoSCoW)}. Ninguno tiene nombre, descripción, criterios de aceptación ni sección propia en ningún apartado de la ERS. No existe \texttt{RD-02}: la numeración salta de \texttt{RD-01} a \texttt{RD-03} sin explicación.
+
+La única pista de contenido que existe en todo el repositorio está fuera de la ERS: el documento de constitución, en su apartado de requisitos de aprobación, asocia \texttt{RD-03} y \texttt{RD-04} a ``Registro de equipos'' (\ruta{constitutionDocument.tex}, línea 189). Esa asociación se usa aquí como la única pista disponible, marcada como \textbf{inferida} y no como un hecho que la ERS declare. Para \texttt{RD-01}, \texttt{RD-05}, \texttt{RD-06} y \texttt{RD-07} no existe pista alguna, ni siquiera esa: contrastarlos contra el código exigiría inventar qué se les está pidiendo, y esta matriz no lo hace.
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|p{1.5cm}|p{6.4cm}|p{2.8cm}|p{2.3cm}|}
+\hline
+\textbf{ID} & \textbf{Requisito} & \textbf{Objetivo / Criterio} & \textbf{MoSCoW} \\
+\hline
+RD-01 & Sin nombre ni descripción en ningún documento del proyecto. & No verificable & Should Have \\
+\hline
+RD-03 & Sin nombre en la ERS. El documento de constitución (no la ERS) lo asocia, junto con RD-04, a ``Registro de equipos''. & OBJ-03 / CE-03 \newline (inferido, no declarado por la ERS) & Must Have \\
+\hline
+RD-04 & Sin nombre en la ERS. Misma asociación inferida que RD-03; la ERS no distingue qué aporta cada código por separado. & OBJ-03 / CE-03 \newline (inferido, no declarado por la ERS) & Must Have \\
+\hline
+RD-05 & Sin nombre ni descripción en ningún documento del proyecto. & No verificable & Should Have \\
+\hline
+RD-06 & Sin nombre ni descripción en ningún documento del proyecto. & No verificable & Could Have \\
+\hline
+RD-07 & Sin nombre ni descripción en ningún documento del proyecto. & No verificable & Won't Have \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{5}{Requisitos de dominio citados en la ERS. Ninguno tiene enunciado propio.}
+\endgroup
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|p{1.5cm}|p{2.6cm}|p{9.9cm}|}
+\hline
+\textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
+\hline
+RD-01 & No verificable & El código no puede contrastarse contra un requisito sin enunciado ni criterios de aceptación en ningún documento del proyecto. \\
+\hline
+RD-03 & Implementado \newline (inferido) & Si ``registro de equipos'' es la lectura correcta, la cadena del catálogo ya existe: \texttt{equipo\_cliente}, \texttt{tipo\_equipo}, \texttt{fabricante}, \texttt{marca}, \texttt{modelo} (misma evidencia que RF-22). La ERS nunca lo confirma con sus propias palabras, de modo que este estado se ofrece con la salvedad de que el requisito que se está evaluando es una suposición razonable, no un enunciado verificado. \\
+\hline
+RD-04 & Implementado \newline (inferido) & Misma evidencia y misma salvedad que RD-03. \\
+\hline
+RD-05 & No verificable & Idem RD-01. \\
+\hline
+RD-06 & No verificable & Idem RD-01. \\
+\hline
+RD-07 & No verificable & Idem RD-01. \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{6}{Requisitos de dominio: estado de implementación, con la salvedad de que cuatro de los seis no tienen enunciado contra el que contrastar.}
+\endgroup
+
+% ===== SECCIÓN 4: HALLAZGOS =====
+\sectiontitle{4. Hallazgos}
+\label{sec:hallazgos}
+
+Construir esta matriz obligó a leer la ERS y el documento de constitución con más detalle del que exige redactarlos, y ese cruce destapó defectos de la especificación que ninguno de los dos documentos por separado deja ver. Se registran aquí, sin proponer cómo cerrarlos: eso mezclaría lo que hay con lo que debería hacerse.
+
+\subsectiontitle{4.1. Referencias rotas: 49 códigos RF citados, 31 reales}
+
+La ERS cita 49 códigos \texttt{RF-} distintos a lo largo de su texto —en las dependencias de un requisito, en el apartado 3.1 y en la priorización MoSCoW del apartado 3.5—, pero solo 31 tienen sección propia en el apartado 3.2 con nombre, descripción y criterios de aceptación. Los otros 18 no existen como requisito en ningún lugar del documento:
+
+\begin{itemize}
+  \item \textbf{RF-10:} citado solo en el Must Have del apartado 3.5, entre RF-09 y RF-15. Ninguna sección lo define.
+  \item \textbf{RF-16:} citado en el apartado 3.1.3 como el requisito de exportación a Excel, junto a RF-17 (PDF). Nunca se define; la exportación a Excel que promete el apartado 2.2 queda así sin requisito que la respalde.
+  \item \textbf{RF-20:} citado como dependencia de RF-18 (Captura de firma digital). No existe.
+  \item \textbf{RF-23, RF-25:} citados solo en el Could Have del apartado 3.5, entre RF-22 y RF-26/RF-27 (hojas de vida). Ninguna sección los define.
+  \item \textbf{RF-28, RF-29, RF-30:} citados en el apartado 3.1.1 y 3.1.2 como la toma de fotografías desde el dispositivo móvil, y en el Won't Have del apartado 3.5. Nunca se definen como requisito propio.
+  \item \textbf{RF-31, RF-32, RF-33, RF-34:} citados en el apartado 3.1.1 como los requisitos de ``visualización organizada'' de equipos por área y tipo, y en el Should Have del apartado 3.5. No existen en el apartado 3.2.
+  \item \textbf{RF-35:} citado como dependencia de RF-36 y RF-37 (inventario), y en el Won't Have del apartado 3.5. No existe.
+  \item \textbf{RF-38, RF-39:} citados solo en el Won't Have del apartado 3.5, entre RF-37 y RF-40. No existen.
+  \item \textbf{RF-42, RF-43:} citados solo en el Won't Have del apartado 3.5, después de RF-41 (alertas de calibración). No existen.
+  \item \textbf{RF-46:} citado como dependencia de RF-47 (Generar orden desde cotización). No existe.
+\end{itemize}
+
+El patrón es consistente: los códigos ausentes se concentran en las funcionalidades que la ERS misma marca como fuera del MVP inicial —fotografías, inventario, alertas, cotizaciones— y en las dependencias declaradas de requisitos que sí existen. La numeración sugiere que en algún momento hubo más requisitos de los que llegaron a la versión final del documento, y que las referencias a ellos no se limpiaron.
+
+\subsectiontitle{4.2. Requisitos sin objetivo, y objetivos sin requisito}
+
+De los 31 requisitos funcionales, \textbf{15 no tienen ningún objetivo que los justifique}: RF-08 (crear cliente), RF-14 (configuración de protocolos), RF-18 y RF-21 (firma digital), RF-36 y RF-37 (inventario), RF-40 y RF-41 (alertas de calibración), RF-45 y RF-47 (módulo comercial), y los cinco de RF-49 a RF-53 (usuarios y seguridad). Merece señalarse en particular el último grupo: \textbf{es el dominio con más requisitos implementados de toda la ERS —los cinco lo están— y ninguno de los siete objetivos de la constitución lo menciona.} La autenticación, la identificación de rol y la gestión de usuarios son, según este cruce, trabajo construido que no responde a ningún objetivo declarado del proyecto.
+
+De los 23 requisitos no funcionales, \textbf{11 tampoco tienen objetivo}: RNF-01, RNF-09, RNF-11 y, de forma notable, el bloque RNF-12 a RNF-17 completo —accesibilidad web, diseño responsivo, interacción táctil, usabilidad, componentes de interfaz y mensajes de error— más RNF-19 y RNF-23. Esto es señal de algo más que un descuido puntual: la ERS presenta el acceso desde dispositivos móviles de los ingenieros de campo como una de las razones de ser del proyecto (apartados 1.2.2, 2.1 y 2.3), pero ninguno de los siete objetivos de la constitución mide esa característica.
+
+En la dirección opuesta, \textbf{OBJ-06 —entregar el MVP en 1,5 meses y el sistema completo en 6, dentro de COP \$15.000.000— no tiene ningún requisito, funcional, no funcional ni de dominio, que lo mida.} Es coherente con su propia naturaleza: plazo y presupuesto se gestionan y verifican a nivel de proyecto, no de producto, y ningún requisito de software podría medirlos por sí solo.
+
+\subsectiontitle{4.3. Criterios de éxito que ningún requisito permite medir}
+
+\textbf{CE-06 (Plazo) y CE-07 (Presupuesto) no los mide ningún requisito de la ERS.} Es la misma causa que deja a OBJ-06 sin requisitos: ambos criterios son de gestión de proyecto —cumplir el cronograma, no superar el presupuesto— y no hay página de código ni prueba automatizada que pueda contrastarlos. La ERS especifica software; estos dos criterios se verifican fuera de ella.
+
+Los ocho criterios restantes sí tienen al menos un requisito que los mide: CE-01 y CE-10 en la generación de reportes; CE-02 en el autocompletado y la reducción de entrada manual; CE-03 en la hoja de vida de los equipos; CE-04 en la orden de trabajo; CE-05 en la exportación de documentos; CE-08 en el bloque de rendimiento de dos segundos; CE-09 en la disponibilidad.
+
+\subsectiontitle{4.4. Seis requisitos de dominio citados, cero definidos}
+
+Ya se detalla en la Sección 3: los seis códigos \texttt{RD-} de la ERS no tienen enunciado, descripción ni criterios de aceptación en ningún apartado del documento. Aparecen solo como elementos de las cuatro listas del apartado 3.5. Cuatro de los seis (\texttt{RD-01}, \texttt{RD-05}, \texttt{RD-06}, \texttt{RD-07}) no tienen ni siquiera una pista de contenido en ningún otro documento del proyecto; los otros dos (\texttt{RD-03}, \texttt{RD-04}) solo se pueden aproximar gracias a una frase del documento de constitución, que no es la ERS y que tampoco los define con criterios de aceptación. Es, de los tres tipos de requisito, el que peor sostiene su propia trazabilidad: una categoría entera —``de dominio''— que la introducción de la ERS (apartado 1.3.3) declara como una de sus tres clasificaciones, sin que exista una sola sección que la desarrolle.
+
+\subsectiontitle{4.5. Prioridad MoSCoW ausente en diez requisitos reales}
+
+Cinco requisitos funcionales con sección propia en el apartado 3.2 no aparecen en ninguna de las cuatro listas del apartado 3.5: \textbf{RF-14, RF-18, RF-21, RF-45 y RF-47}. El caso de RF-18 y RF-21 —firma digital— es el más llamativo: el párrafo introductorio de la categoría Won't Have, en prosa, afirma explícitamente que ``entre ellas se encuentran la firma digital unificada''; pero ni RF-18 ni RF-21 figuran en la lista de códigos de esa categoría. La narrativa y la lista de códigos se contradicen.
+
+Cinco requisitos no funcionales tampoco tienen prioridad asignada: \textbf{RNF-02, RNF-05, RNF-07, RNF-09 y RNF-22}. En conjunto, diez de los 54 requisitos funcionales y no funcionales reales de la ERS —casi uno de cada cinco— carecen de la clasificación que el propio apartado 3.5 dice haber aplicado a todos. En cambio, los seis códigos de dominio, pese a no tener ni nombre, sí tienen todos prioridad MoSCoW asignada: la única propiedad que la ERS les reconoce es, precisamente, la que sobra sin un enunciado que priorizar.
+
+\subsectiontitle{4.6. Dos escalas de tiempo bajo el mismo objetivo de rendimiento}
+
+OBJ-07 y su criterio CE-08 fijan el umbral de rendimiento del proyecto en ``consultas $\leq 3$ segundos''. Pero los requisitos no funcionales que más concretamente miden tiempos de respuesta —RNF-03, RNF-04, RNF-09, RNF-10, RNF-18 y RNF-22— fijan un umbral distinto y más estricto: \textbf{2 segundos}, no 3. A esto se suma una segunda escala completamente distinta para los procesos de usuario —RNF-01 y RNF-20 exigen completar un formulario o un reporte en 3 \emph{minutos}, no segundos—. La ERS nunca concilia estas tres cifras (2 s, 3 s, 3 min) bajo un mismo criterio de rendimiento; esta matriz las trata como compatibles entre sí porque un umbral de 2 segundos satisface uno de 3, pero la propia especificación no lo dice en ningún lugar.
+
+\subsectiontitle{4.7. Otras incoherencias}
+
+\begin{itemize}
+  \item \textbf{RF-49 depende de sí mismo.} Su apartado de dependencias declara únicamente ``RF-49''. El Plan de Gestión del Alcance ya señaló esta autorreferencia en su apartado 4.3; se confirma de nuevo aquí porque afecta directamente a la columna de dependencias de esta misma matriz, que no pudo completarse para ese requisito.
+  \item \textbf{La matriz de trazabilidad ``de etapas previas'' que cita el apartado 1.2.4 de la ERS no existe en el repositorio.} No se encontró ningún archivo, carpeta ni referencia cruzada que se le pareciera, y la propia Sección 3.6 de la ERS —titulada ``Matriz de Trazabilidad''— es un marcador de posición sin contenido, tal como se explica en la Nota preliminar.
+  \item \textbf{De los 23 requisitos no funcionales, solo uno tiene implementación (RNF-23, JWT)}, la misma proporción severa que ya mostraban los funcionales (8 de 31), pero sin que ningún documento previo lo hubiera evaluado: la ERS nunca marca el estado de un RNF.
+\end{itemize}
+
+\end{document}
