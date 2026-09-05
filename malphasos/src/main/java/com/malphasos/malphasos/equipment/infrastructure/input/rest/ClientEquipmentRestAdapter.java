@@ -38,7 +38,7 @@ public class ClientEquipmentRestAdapter {
     private final EquipmentRestMapper mapper;
 
     @Operation(summary = "Inventario de un area de servicio")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/service-areas/{idAreaServicio}/equipments")
     public List<ClientEquipmentResponse> getByServiceArea(
             @Parameter(description = "Identificador del area") @PathVariable UUID idAreaServicio) {
@@ -49,7 +49,7 @@ public class ClientEquipmentRestAdapter {
 
     @Operation(summary = "Incorporar una unidad al inventario de un area",
             description = "El area debe estar activa y el modelo no puede estar retirado.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.assign')")
     @PostMapping("/service-areas/{idAreaServicio}/equipments")
     public ResponseEntity<ClientEquipmentResponse> register(
             @PathVariable UUID idAreaServicio,
@@ -68,14 +68,14 @@ public class ClientEquipmentRestAdapter {
     }
 
     @Operation(summary = "Listar todas las unidades")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/client-equipments")
     public List<ClientEquipmentResponse> getAll() {
         return mapper.toClientEquipmentList(clientEquipmentServicePort.findAll());
     }
 
     @Operation(summary = "Obtener una unidad por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/client-equipments/{id}")
     public ClientEquipmentResponse getById(@PathVariable UUID id) {
         return mapper.toResponse(clientEquipmentServicePort.findById(id));
@@ -83,7 +83,7 @@ public class ClientEquipmentRestAdapter {
 
     @Operation(summary = "Corregir los datos de compra de una unidad",
             description = "Los campos ausentes conservan su valor.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PatchMapping("/client-equipments/{id}")
     public ClientEquipmentResponse update(
             @PathVariable UUID id, @Valid @RequestBody ClientEquipmentUpdateRequest request) {
@@ -94,7 +94,7 @@ public class ClientEquipmentRestAdapter {
 
     @Operation(summary = "Trasladar una unidad a otra area de servicio",
             description = "El area de destino debe estar activa.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.assign')")
     @PatchMapping("/client-equipments/{id}/service-area/{idAreaServicio}")
     public ClientEquipmentResponse relocate(
             @PathVariable UUID id, @PathVariable UUID idAreaServicio) {
@@ -104,7 +104,7 @@ public class ClientEquipmentRestAdapter {
     }
 
     @Operation(summary = "Dar de baja una unidad", description = "No la borra: la deja inactiva.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @DeleteMapping("/client-equipments/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void decommission(@PathVariable UUID id) {
