@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** API de ciudades. Todas las operaciones exigen {@code admin.full}. */
+/** API de ciudades. Leer exige {@code location.read} y escribir {@code location.write}. */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/api/cities")
@@ -43,7 +43,7 @@ public class CityRestAdapter {
     @Operation(
             summary = "Listar ciudades",
             description = "Con el parametro idPais, solo las de ese pais. Sin el, todas.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.read')")
     @GetMapping
     public List<CityResponse> getCities(
             @Parameter(description = "Filtra por pais") @RequestParam(required = false) UUID idPais) {
@@ -55,7 +55,7 @@ public class CityRestAdapter {
     }
 
     @Operation(summary = "Obtener una ciudad por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.read')")
     @GetMapping("/{id}")
     public CityResponse getCityById(
             @Parameter(description = "Identificador de la ciudad") @PathVariable UUID id) {
@@ -64,7 +64,7 @@ public class CityRestAdapter {
     }
 
     @Operation(summary = "Registrar una ciudad")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.write')")
     @PostMapping
     public ResponseEntity<CityResponse> createCity(@Valid @RequestBody CityCreateRequest request) {
 
@@ -77,7 +77,7 @@ public class CityRestAdapter {
     @Operation(
             summary = "Cambiar el nombre de una ciudad o trasladarla de pais",
             description = "Los campos ausentes conservan su valor. Cada cambio registra su propio hecho.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.write')")
     @PatchMapping("/{id}")
     public CityResponse updateCity(
             @Parameter(description = "Identificador de la ciudad") @PathVariable UUID id,
@@ -90,7 +90,7 @@ public class CityRestAdapter {
     @Operation(
             summary = "Retirar una ciudad",
             description = "No la borra: la deja inactiva, conservando el historial.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.write')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateCity(
