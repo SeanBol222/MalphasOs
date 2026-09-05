@@ -1,52 +1,52 @@
-\documentclass[12pt,a4paper]{article}
+% Formato: standalone, variante varwidth de una sola hoja continua.
+%
+% Este documento no se pagina: se pensa para plotter o para lectura con zoom,
+% no para imprimirse en A4. La clase `standalone` recorta la caja de salida
+% al contenido real, de modo que `longtable` (pensado para partir tablas
+% entre paginas) no tiene sentido aqui y se sustituye por `tabular` simple;
+% tampoco hay portada de pagina completa, indice, ni encabezado/pie de
+% pagina, porque ninguno de los tres presupone la existencia de paginas.
+%
+% Ancho de contenido: 170mm. Es el ancho maximo que la opcion `varwidth` deja
+% crecer al cuerpo del documento antes de recortar por contenido real. Se
+% eligio por dos motivos: (1) la tabla mas ancha del documento -las de cinco
+% columnas de la seccion 1 y 2- suma cerca de 155mm entre el contenido de sus
+% columnas y el relleno de celda (`\tabcolsep`) de la propia tabla, asi que
+% 170mm deja margen sin que ninguna tabla toque el borde recortado; (2) es
+% comparable al `\textwidth` de la ERS y el Plan de Gestion del Alcance (ambos
+% a4paper con margen de 2.5cm, es decir, 160mm), de modo que la prosa de la
+% seccion de hallazgos envuelve con un ritmo de lectura parecido al de esos
+% dos documentos hermanos.
+\documentclass[12pt,varwidth=170mm,border=10pt]{standalone}
 %\usepackage[es]{babel}
-\usepackage[margin=2.5cm]{geometry}
-\usepackage{graphicx}
 \usepackage{xcolor}
-\usepackage{fancyhdr}
-\setlength{\headheight}{15pt}
-\addtolength{\topmargin}{-3pt}
-\usepackage{tikz}
 \usepackage{array}
-\usepackage{longtable}
 \usepackage{hyperref}
 
-% Color definitions. Identicas a las de la ERS y el Plan de Gestion del
-% Alcance: los tres documentos son piezas del mismo entregable.
+% Color definitions. Identicas a las de la ERS, el Plan de Gestion del
+% Alcance y la version paginada de esta misma matriz: los documentos son
+% piezas del mismo entregable.
 \definecolor{mainRed}{HTML}{EC3013}
 \definecolor{mainGray}{HTML}{6b6866}
 \definecolor{mainWhite}{HTML}{F3F2F2}
 
-% Header and footer
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[C]{\textcolor{mainGray}{Matriz de Trazabilidad --- MSO}}
-\fancyfoot[C]{\thepage}
-\renewcommand{\headrulewidth}{0.5pt}
-\renewcommand{\headrule}{\color{mainRed}\hrule}
-
-% Saltos de titulo mas cortos que los de article, como en el Plan de Gestion
-% del Alcance: seis tablas largas no necesitan el espaciado por omision.
-\makeatletter
-\renewcommand\section{\@startsection{section}{1}{\z@}%
-  {-2.2ex \@plus -1ex \@minus -.2ex}{1.0ex \@plus.2ex}%
-  {\normalfont\Large\bfseries}}
-\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
-  {-1.7ex \@plus -.8ex \@minus -.2ex}{0.5ex \@plus.2ex}%
-  {\normalfont\large\bfseries}}
-\def\@listi{\leftmargin\leftmargini \parsep 0\p@ \topsep 4\p@ \itemsep 2\p@}
-\let\@listI\@listi
-\makeatother
-
-% Title formatting
+% Title formatting. En `article` estos macros delegaban en \section*/\subsection*
+% con saltos mas cortos que los de la clase (ver la version paginada). Aqui no
+% hay seccionado -`standalone` no pagina, y \section no aporta nada sin una
+% tabla de contenidos que lo use-, asi que se redefinen como bloques de texto
+% con exactamente el mismo tamano y peso de fuente (\Large\bfseries y
+% \large\bfseries) y un espaciado vertical equivalente al que dejaba
+% \@startsection, sin apoyarse en su maquinaria.
 \newcommand{\sectiontitle}[1]{%
-  \section*{#1}
-  \addcontentsline{toc}{section}{#1}
+  \par\vspace{1.8ex}%
+  {\normalfont\Large\bfseries #1\par}%
+  \vspace{1.0ex}%
 }
 
 \newcommand{\subsectiontitle}[1]{%
-  \subsection*{#1}
-  \addcontentsline{toc}{subsection}{#1}
+  \par\vspace{1.3ex}%
+  {\normalfont\large\bfseries #1\par}%
+  \vspace{0.5ex}%
 }
 
 % Rutas y codigos. \texttt es indivisible y una ruta larga se sale de la caja;
@@ -70,37 +70,46 @@
 % vacio se vea y no se confunda con un olvido de edicion.
 \newcommand{\hueco}{---}
 
+% Pie de tabla. `longtable` traia su propio \caption numerado; en `tabular`
+% dentro de `standalone` no hay flotantes de pagina que numerar, asi que este
+% macro imprime el mismo texto con el mismo aspecto (cursiva, centrado, un
+% cuerpo menor) sin depender del contador de tablas.
+\newcommand{\tablecaption}[2]{%
+  \par\vspace{0.4em}%
+  \begin{center}
+    \footnotesize\textit{Tabla #1. #2}
+  \end{center}
+  \vspace{1.0em}%
+}
+
 \begin{document}
 
-% ===== PORTADA =====
-\begin{titlepage}
-  \centering
-  \vspace*{2cm}
-
+% ===== IDENTIFICACION =====
+% Sustituye a la portada de pagina completa de la version paginada: mismo
+% contenido, mismo orden, sin \vfill ni salto de pagina porque aqui no hay
+% pagina que llenar.
+\begin{center}
   {\Large\textbf{UNIVERSIDAD DISTRITAL}\\
    \textbf{FRANCISCO JOSÉ DE CALDAS}}\par
 
-  \vspace{3cm}
+  \vspace{1.2em}
 
   {\Huge\textbf{Matriz de Trazabilidad de Requisitos}}\par
 
-  \vspace{2cm}
+  \vspace{1.0em}
 
   {\Large\textbf{MalphasOS}}\\
   {\large Gestión de Clientes}\par
 
-  \vspace{3cm}
+  \vspace{1.0em}
 
   {\large Sean Sebastián Bolívar Calderón - 20231020135}\par
+  {\large 5 de septiembre de 2026}\par
+\end{center}
 
-  \vfill
-
-  {\large 5 de septiembre de 2026}
-\end{titlepage}
-
-% ===== TABLA DE CONTENIDOS =====
-\tableofcontents
-\newpage
+\vspace{1.0em}
+{\color{mainRed}\hrule height 1pt}
+\vspace{1.5em}
 
 % ===== NOTA PRELIMINAR =====
 \sectiontitle{Nota preliminar}
@@ -111,13 +120,11 @@ Esta matriz encadena cada requisito de la Especificación de Requisitos de Softw
 
 \textbf{Fuentes.} Los requisitos, su descripción y la priorización MoSCoW proceden de \ruta{Documentation/IEEE830/IEEE830.tex}. Los objetivos (\texttt{OBJ-01} a \texttt{OBJ-07}) y los criterios de éxito (\texttt{CE-01} a \texttt{CE-10}) proceden de \ruta{Documentation/constitutionDocument/constitutionDocument.tex}. La evidencia de implementación se verificó de nuevo contra \ruta{malphasos/} el 5 de septiembre de 2026: los controladores en \ruta{*/infrastructure/input/rest/}, los agregados de dominio y las cinco migraciones del esquema (\texttt{V1} a \texttt{V5}). No se copió el estado que la ERS declara en su apartado 3.2: se comprobó de nuevo, y coincide.
 
-\textbf{Cómo leer las columnas de objetivo y criterio.} Un requisito solo lleva un código de objetivo u otro de criterio de éxito cuando su propio enunciado o sus criterios de aceptación coinciden con lo que ese objetivo o ese criterio miden. Donde no hay una correspondencia defendible, la celda lleva \hueco{}, no un código elegido por plausibilidad. Un hueco es información: dice que ese requisito no está sostenido por la cadena objetivo~$\to$~criterio~$\to$~requisito que un proyecto bien trazado debería tener completa. La sección de \nameref{sec:hallazgos} recoge lo que esos huecos revelan en conjunto.
+\textbf{Cómo leer las columnas de objetivo y criterio.} Un requisito solo lleva un código de objetivo u otro de criterio de éxito cuando su propio enunciado o sus criterios de aceptación coinciden con lo que ese objetivo o ese criterio miden. Donde no hay una correspondencia defendible, la celda lleva \hueco{}, no un código elegido por plausibilidad. Un hueco es información: dice que ese requisito no está sostenido por la cadena objetivo~$\to$~criterio~$\to$~requisito que un proyecto bien trazado debería tener completa. La sección de \hyperref[sec:hallazgos]{Hallazgos} recoge lo que esos huecos revelan en conjunto.
 
 \textbf{Cómo leer la columna de estado.} Para los requisitos funcionales se usa la misma marca que ya trae la ERS en su apartado 3.2, \estadoImplementado{} o \estadoPrevisto{}, verificada de nuevo. Para los no funcionales y los de dominio, la ERS no ofrece ninguna marca —el propio texto del apartado 3.2 aclara que las marcas ``se usan solo en este apartado''—, de modo que esta matriz es la primera vez que se evalúa su estado. Cuando el requisito de dominio no tiene enunciado en ningún documento, la marca es \noVerificable{}: no es previsto ni implementado, es indeterminable.
 
 \textbf{Formato.} Seis columnas por sesenta requisitos no cabe en una sola tabla legible. Cada tipo de requisito se presenta en dos tablas encadenadas por el código: la primera cruza el requisito con el objetivo, el criterio de éxito y la prioridad MoSCoW; la segunda cruza el mismo requisito con su estado y su evidencia.
-
-\newpage
 
 % ===== SECCIÓN 1: FUNCIONALES =====
 \sectiontitle{1. Requisitos funcionales}
@@ -128,15 +135,11 @@ Los 31 requisitos funcionales del apartado 3.2 de la ERS, agrupados por el mismo
 
 \begingroup
 \small
-\begin{longtable}{|p{1.3cm}|p{5.3cm}|p{2.5cm}|p{2.1cm}|p{2.3cm}|}
+\begin{center}
+\begin{tabular}{|p{1.3cm}|p{5.3cm}|p{2.5cm}|p{2.1cm}|p{2.3cm}|}
 \hline
 \textbf{ID} & \textbf{Requisito} & \textbf{Objetivo} & \textbf{Criterio} & \textbf{MoSCoW} \\
 \hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Requisito} & \textbf{Objetivo} & \textbf{Criterio} & \textbf{MoSCoW} \\
-\hline
-\endhead
 \multicolumn{5}{|l|}{\textit{3.2.1. Gestión de Órdenes de Trabajo}} \\
 \hline
 RF-01 & Crear orden de trabajo directa & OBJ-04 & CE-04 & Must Have \\
@@ -195,24 +198,20 @@ RF-51 & Creación de usuarios & \hueco{} & \hueco{} & Must Have \\
 RF-52 & Modificación de usuarios & \hueco{} & \hueco{} & Must Have \\
 RF-53 & Eliminación de usuarios & \hueco{} & \hueco{} & Must Have \\
 \hline
-\caption{Requisitos funcionales: objetivo, criterio de éxito y prioridad MoSCoW.}
-\label{tab:rf_objetivo}
-\end{longtable}
+\end{tabular}
+\end{center}
+\tablecaption{1}{Requisitos funcionales: objetivo, criterio de éxito y prioridad MoSCoW.}
 \endgroup
 
 \subsectiontitle{1.2. Estado y evidencia}
 
 \begingroup
 \small
-\begin{longtable}{|p{1.3cm}|p{2.4cm}|p{10.3cm}|}
+\begin{center}
+\begin{tabular}{|p{1.3cm}|p{2.4cm}|p{10.3cm}|}
 \hline
 \textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
 \hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
-\hline
-\endhead
 RF-01 & Previsto & Ninguna de las cinco migraciones crea tabla de orden de trabajo; no hay agregado de dominio ni ruta que la exponga. \\
 \hline
 RF-02 & Previsto & La palabra \emph{solicitud} no aparece en el esquema ni en el código: no hay nada que retirar porque nunca se introdujo. \\
@@ -275,12 +274,10 @@ RF-52 & Implementado & \texttt{PUT} \ruta{/v1/api/persons/{id}} actualiza la tab
 \hline
 RF-53 & Implementado & \texttt{DELETE} \ruta{/v1/api/persons/{id}} responde 204 y marca inactivo, sin revocar el acceso en Keycloak. \\
 \hline
-\caption{Requisitos funcionales: estado de implementación y evidencia, verificados el 5 de septiembre de 2026.}
-\label{tab:rf_estado}
-\end{longtable}
+\end{tabular}
+\end{center}
+\tablecaption{2}{Requisitos funcionales: estado de implementación y evidencia, verificados el 5 de septiembre de 2026.}
 \endgroup
-
-\newpage
 
 % ===== SECCIÓN 2: NO FUNCIONALES =====
 \sectiontitle{2. Requisitos no funcionales}
@@ -291,15 +288,11 @@ Los 23 requisitos no funcionales de los apartados 3.3 y 3.8 de la ERS. Dieciséi
 
 \begingroup
 \small
-\begin{longtable}{|p{1.5cm}|p{5.1cm}|p{2.5cm}|p{2.1cm}|p{2.3cm}|}
+\begin{center}
+\begin{tabular}{|p{1.5cm}|p{5.1cm}|p{2.5cm}|p{2.1cm}|p{2.3cm}|}
 \hline
 \textbf{ID} & \textbf{Requisito} & \textbf{Objetivo} & \textbf{Criterio} & \textbf{MoSCoW} \\
 \hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Requisito} & \textbf{Objetivo} & \textbf{Criterio} & \textbf{MoSCoW} \\
-\hline
-\endhead
 RNF-01 & Tiempo de diligenciamiento de OT ($\leq$3 min) & \hueco{} & \hueco{} & Could Have \\
 \hline
 RNF-02 & Minimización de entrada manual de datos & OBJ-02 & CE-02 & Sin asignar \\
@@ -346,9 +339,9 @@ RNF-22 & Tiempo de generación de OT desde cotización ($\leq$2 s) & OBJ-07 & CE
 \hline
 RNF-23 & JSON Web Token para gestión de sesiones & \hueco{} & \hueco{} & Should Have \\
 \hline
-\caption{Requisitos no funcionales: objetivo, criterio de éxito y prioridad MoSCoW.}
-\label{tab:rnf_objetivo}
-\end{longtable}
+\end{tabular}
+\end{center}
+\tablecaption{3}{Requisitos no funcionales: objetivo, criterio de éxito y prioridad MoSCoW.}
 \endgroup
 
 \subsectiontitle{2.2. Estado y evidencia}
@@ -357,15 +350,11 @@ Ningún documento previo evalúa el estado de estos 23 requisitos: la marca \est
 
 \begingroup
 \small
-\begin{longtable}{|p{1.5cm}|p{2.4cm}|p{10.1cm}|}
+\begin{center}
+\begin{tabular}{|p{1.5cm}|p{2.4cm}|p{10.1cm}|}
 \hline
 \textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
 \hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
-\hline
-\endhead
 RNF-01 & Previsto & Depende de la orden de trabajo y de una interfaz de usuario; ninguna de las dos existe. \\
 \hline
 RNF-02 & Previsto & El repositorio contiene una API REST, no una interfaz de usuario con listas desplegables o autocompletado. \\
@@ -412,14 +401,12 @@ RNF-22 & Previsto & Depende de la cotización y de la orden de trabajo; ninguna 
 \hline
 RNF-23 & Implementado & \texttt{SecurityConfig} configura la aplicación como \emph{resource server} OAuth2 (\texttt{oauth2ResourceServer().jwt(...)}) y valida los JWT que emite Keycloak; \texttt{KeycloakRoleConverter} traduce sus roles en autoridades. \\
 \hline
-\caption{Requisitos no funcionales: estado de implementación y evidencia, verificados el 5 de septiembre de 2026.}
-\label{tab:rnf_estado}
-\end{longtable}
+\end{tabular}
+\end{center}
+\tablecaption{4}{Requisitos no funcionales: estado de implementación y evidencia, verificados el 5 de septiembre de 2026.}
 \endgroup
 
 De 23 requisitos no funcionales, solo uno —RNF-23, la autenticación basada en JWT— tiene implementación. Es la misma pieza de infraestructura que ya sostiene RF-49 y RF-50.
-
-\newpage
 
 % ===== SECCIÓN 3: DOMINIO =====
 \sectiontitle{3. Requisitos de dominio}
@@ -430,15 +417,11 @@ La única pista de contenido que existe en todo el repositorio está fuera de la
 
 \begingroup
 \small
-\begin{longtable}{|p{1.5cm}|p{6.4cm}|p{2.8cm}|p{2.3cm}|}
+\begin{center}
+\begin{tabular}{|p{1.5cm}|p{6.4cm}|p{2.8cm}|p{2.3cm}|}
 \hline
 \textbf{ID} & \textbf{Requisito} & \textbf{Objetivo / Criterio} & \textbf{MoSCoW} \\
 \hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Requisito} & \textbf{Objetivo / Criterio} & \textbf{MoSCoW} \\
-\hline
-\endhead
 RD-01 & Sin nombre ni descripción en ningún documento del proyecto. & No verificable & Should Have \\
 \hline
 RD-03 & Sin nombre en la ERS. El documento de constitución (no la ERS) lo asocia, junto con RD-04, a ``Registro de equipos''. & OBJ-03 / CE-03 \newline (inferido, no declarado por la ERS) & Must Have \\
@@ -451,22 +434,18 @@ RD-06 & Sin nombre ni descripción en ningún documento del proyecto. & No verif
 \hline
 RD-07 & Sin nombre ni descripción en ningún documento del proyecto. & No verificable & Won't Have \\
 \hline
-\caption{Requisitos de dominio citados en la ERS. Ninguno tiene enunciado propio.}
-\label{tab:rd_objetivo}
-\end{longtable}
+\end{tabular}
+\end{center}
+\tablecaption{5}{Requisitos de dominio citados en la ERS. Ninguno tiene enunciado propio.}
 \endgroup
 
 \begingroup
 \small
-\begin{longtable}{|p{1.5cm}|p{2.6cm}|p{9.9cm}|}
+\begin{center}
+\begin{tabular}{|p{1.5cm}|p{2.6cm}|p{9.9cm}|}
 \hline
 \textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
 \hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Estado} & \textbf{Evidencia} \\
-\hline
-\endhead
 RD-01 & No verificable & El código no puede contrastarse contra un requisito sin enunciado ni criterios de aceptación en ningún documento del proyecto. \\
 \hline
 RD-03 & Implementado \newline (inferido) & Si ``registro de equipos'' es la lectura correcta, la cadena del catálogo ya existe: \texttt{equipo\_cliente}, \texttt{tipo\_equipo}, \texttt{fabricante}, \texttt{marca}, \texttt{modelo} (misma evidencia que RF-22). La ERS nunca lo confirma con sus propias palabras, de modo que este estado se ofrece con la salvedad de que el requisito que se está evaluando es una suposición razonable, no un enunciado verificado. \\
@@ -479,12 +458,10 @@ RD-06 & No verificable & Idem RD-01. \\
 \hline
 RD-07 & No verificable & Idem RD-01. \\
 \hline
-\caption{Requisitos de dominio: estado de implementación, con la salvedad de que cuatro de los seis no tienen enunciado contra el que contrastar.}
-\label{tab:rd_estado}
-\end{longtable}
+\end{tabular}
+\end{center}
+\tablecaption{6}{Requisitos de dominio: estado de implementación, con la salvedad de que cuatro de los seis no tienen enunciado contra el que contrastar.}
 \endgroup
-
-\newpage
 
 % ===== SECCIÓN 4: HALLAZGOS =====
 \sectiontitle{4. Hallazgos}
