@@ -441,6 +441,42 @@
           "clientRole": true,
           "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
           "attributes": {}
+        },
+        {
+          "id": "de87859e-d6b6-49c6-bce0-bf6636fc9b27",
+          "name": "person.read",
+          "description": "Consultar personas y sus datos de contacto",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
+        },
+        {
+          "id": "6eb3e3bf-3436-4568-98bf-0eec2f6cff42",
+          "name": "person.write",
+          "description": "Registrar, actualizar y desactivar personas, sus correos y sus telefonos",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
+        },
+        {
+          "id": "c9144202-fa6b-4a58-ad9f-8e164aae61ea",
+          "name": "location.read",
+          "description": "Consultar el catalogo de paises y ciudades",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
+        },
+        {
+          "id": "a7f4f711-cdc0-4331-90cf-925166185f4b",
+          "name": "location.write",
+          "description": "Crear, renombrar y desactivar paises y ciudades",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
         }
       ],
       "malphasos-frontend": [],
@@ -566,6 +602,10 @@
           "equipment.assign",
           "equipment.read",
           "equipment.write",
+          "location.read",
+          "location.write",
+          "person.read",
+          "person.write",
           "service-area.read",
           "service-area.write",
           "work-order.assign",
@@ -601,10 +641,17 @@
       "realmRoles": [],
       "clientRoles": {
         "malphasos-api": [
-          "service-area.read",
-          "work-order.read",
           "client.read",
-          "equipment.read"
+          "engineer.read",
+          "equipment.assign",
+          "equipment.read",
+          "equipment.write",
+          "location.read",
+          "person.read",
+          "service-area.read",
+          "work-order.assign",
+          "work-order.read",
+          "work-order.write"
         ]
       }
     }
