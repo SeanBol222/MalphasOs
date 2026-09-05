@@ -15,6 +15,11 @@ import org.springframework.security.oauth2.jwt.Jwt;
  * <p>Keycloak agrupa los roles por client, de modo que solo se toman los del client que
  * representa a esta API. Los roles de otros clients del mismo realm se ignoran.
  *
+ * <p>Aquí se aplica además la expansión del administrador que describe {@link ApiAuthority}: quien
+ * trae {@code admin.full} sale de esta conversión con todas las autoridades de recurso. Este es el
+ * único punto por el que un token se convierte en autoridades, así que es el sitio donde la regla
+ * se aplica una vez en lugar de repetirse en cada anotación de los controladores.
+ *
  * <p>El token es una entrada externa: cualquier desviación de la estructura esperada se resuelve
  * devolviendo una lista vacía, es decir, sin autoridades. Nunca lanza excepción por un token con
  * forma inesperada.
@@ -45,9 +50,12 @@ public class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedA
             return List.of();
         }
 
-        return roles.stream()
+        List<String> nombresDeRol = roles.stream()
                 .filter(String.class::isInstance)
                 .map(String.class::cast)
+                .toList();
+
+        return ApiAuthority.expand(nombresDeRol).stream()
                 .map(SimpleGrantedAuthority::new)
                 .map(GrantedAuthority.class::cast)
                 .toList();
