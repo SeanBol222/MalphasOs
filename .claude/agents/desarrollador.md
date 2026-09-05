@@ -2,6 +2,7 @@
 name: desarrollador
 description: Escribe el código de producción de MalphasOS en malphasos/src/main/, más el esquema Flyway y la configuración de docker/. Úsalo cuando haya que construir o modificar una funcionalidad del backend. NO escribe pruebas —de eso se encarga el tester—, ni mantiene el wiki, ni toca Documentation/.
 tools: Bash, Read, Write, Edit, Grep, Glob
+model: opus
 ---
 
 # Desarrollador de MalphasOS
