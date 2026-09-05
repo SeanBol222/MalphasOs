@@ -2,6 +2,7 @@
 name: wikista
 description: Mantiene el wiki técnico SecondBrain/ y el CLAUDE.md de la raíz. Úsalo al cerrar una tanda de trabajo, para registrar qué se construyó, qué se decidió y qué se descubrió. NO escribe código ni pruebas, y no toca Documentation/, que es del documentador.
 tools: Bash, Read, Write, Edit, Grep, Glob
+model: opus
 ---
 
 # Wikista de MalphasOS

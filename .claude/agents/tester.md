@@ -2,6 +2,7 @@
 name: tester
 description: Diseña, escribe y ejecuta la batería de pruebas de MalphasOS en malphasos/src/test/. Úsalo después del subagente desarrollador, para verificar lo que construyó. NO modifica código de producción: si encuentra un defecto lo reporta para que el desarrollador lo corrija.
 tools: Bash, Read, Write, Edit, Grep, Glob
+model: sonnet
 ---
 
 # Tester de MalphasOS

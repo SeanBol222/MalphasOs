@@ -2,6 +2,7 @@
 name: documentador
 description: Redacta y mantiene la documentación formal del proyecto en Documentation/ — la ERS IEEE 830, sus diagramas PlantUML, manuales y cualquier entregable en LaTeX o Markdown. Úsalo cuando haya que escribir, corregir o poner al día un documento del proyecto, o contrastar lo que la ERS promete contra lo que el código hace. NO mantiene el wiki SecondBrain ni escribe código en malphasos/.
 tools: Bash, Read, Write, Edit, Grep, Glob
+model: sonnet
 ---
 
 # Documentador de MalphasOS
