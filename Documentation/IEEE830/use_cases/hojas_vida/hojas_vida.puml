@@ -1,0 +1,46 @@
+@startuml hojas_vida
+!define DIRECTION top to bottom direction
+skinparam backgroundColor #F3F2F2
+skinparam actorBorderColor #EC3013
+skinparam actorBackgroundColor #EC3013
+skinparam usecaseBorderColor #6b6866
+skinparam usecaseBackgroundColor #ffffff
+
+actor "Administrador" as Admin
+
+rectangle "Gestión de Hojas de Vida" {
+  usecase "Registrar identificación" as UC1
+  usecase "Registrar serie/código" as UC2
+  usecase "Crear hoja de vida" as UC3
+  usecase "Consultar hoja de vida" as UC4
+  usecase "Modificar hoja de vida" as UC5
+  usecase "Eliminar hoja de vida" as UC6
+  usecase "Registrar mantenimiento" as UC7
+  usecase "Ver historial" as UC8
+}
+
+Admin --> UC3
+UC3 ..> UC1 : <<include>>
+UC3 ..> UC2 : <<include>>
+UC3 ..> UC4 : <<include>>
+
+Admin --> UC5
+UC5 ..> UC4 : <<include>>
+
+Admin --> UC6
+Admin --> UC7
+UC7 ..> UC8 : <<include>>
+
+note right of UC3
+  Crear formulario para
+  identificación, fabricante,
+  datos técnicos, servicio técnico
+end note
+
+note right of UC7
+  Registrar automáticamente
+  intervenciones en hoja de vida
+  cuando se completa reporte
+end note
+
+@enduml

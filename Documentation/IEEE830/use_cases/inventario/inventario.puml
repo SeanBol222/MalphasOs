@@ -1,0 +1,49 @@
+@startuml inventario
+!define DIRECTION top to bottom direction
+skinparam backgroundColor #F3F2F2
+skinparam actorBorderColor #EC3013
+skinparam actorBackgroundColor #EC3013
+skinparam usecaseBorderColor #6b6866
+skinparam usecaseBackgroundColor #ffffff
+
+actor "Administrador" as Admin
+
+rectangle "Gestión de Inventario" {
+  usecase "Registrar ítem" as UC1
+  usecase "Registrar equipo" as UC2
+  usecase "Registrar herramienta" as UC3
+  usecase "Verificar existencia" as UC4
+  usecase "Actualizar estado" as UC5
+  usecase "Registrar entrada" as UC6
+  usecase "Registrar salida" as UC7
+  usecase "Gestionar inventario" as UC8
+}
+
+Admin --> UC8
+UC8 ..> UC1 : <<include>>
+UC8 ..> UC4 : <<include>>
+UC8 ..> UC5 : <<include>>
+
+UC1 -.> UC2 : <<extend>>
+UC1 -.> UC3 : <<extend>>
+
+UC6 ..> UC4 : <<include>>
+UC7 ..> UC4 : <<include>>
+
+note right of UC1
+  Registrar con: Nombre, Tipo
+  (Equipo/Herramienta/Repuesto),
+  Cantidad, Estado
+end note
+
+note right of UC6
+  Registrar entrada de ítems
+  al inventario
+end note
+
+note right of UC7
+  Registrar salida de ítems
+  validando stock disponible
+end note
+
+@enduml

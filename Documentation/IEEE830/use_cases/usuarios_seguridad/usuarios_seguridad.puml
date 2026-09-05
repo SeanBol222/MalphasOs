@@ -1,0 +1,60 @@
+@startuml usuarios_seguridad
+!define DIRECTION top to bottom direction
+skinparam backgroundColor #F3F2F2
+skinparam actorBorderColor #EC3013
+skinparam actorBackgroundColor #EC3013
+skinparam usecaseBorderColor #6b6866
+skinparam usecaseBackgroundColor #ffffff
+
+actor "SuperUsuario" as Super
+actor "Administrador" as Admin
+actor "Ingeniero Técnico" as Ingeniero
+
+rectangle "Usuarios y Seguridad" {
+  usecase "Ingresar credenciales" as UC1
+  usecase "Validar credenciales" as UC2
+  usecase "Solicitar credenciales" as UC3
+  usecase "Generar Token JWT" as UC4
+  usecase "Identificar rol" as UC5
+  usecase "Crear usuario" as UC6
+  usecase "Modificar usuario" as UC7
+  usecase "Eliminar usuario" as UC8
+}
+
+Super --> UC6
+Admin --> UC7
+Admin --> UC8
+
+Super --> UC1
+Admin --> UC1
+Ingeniero --> UC1
+
+UC1 ..> UC2 : <<include>>
+UC2 ..> UC4 : <<include>>
+UC4 ..> UC5 : <<include>>
+UC3 ..> UC2 : <<include>>
+
+UC6 ..> UC1 : <<include>>
+UC7 ..> UC1 : <<include>>
+
+note right of UC1
+  Ingresar usuario
+  y contraseña
+end note
+
+note right of UC4
+  Generar token JWT
+  para gestión de sesiones
+end note
+
+note right of UC5
+  Identificar rol: SuperUsuario,
+  Administrador, Ingeniero Técnico
+end note
+
+note right of UC6
+  Crear nuevos usuarios
+  con rol asignado
+end note
+
+@enduml
