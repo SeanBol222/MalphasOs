@@ -39,6 +39,7 @@ Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la no
 - [[documento-constitucion]] — El Project Charter. Objetivos, criterios, interesados, riesgos, Gantt.
 - [[plan-gestion-alcance]] — Cómo se define, descompone, verifica y controla el alcance de MSO.
 - [[matriz-de-trazabilidad]] ⭐ — El documento más nuevo y el que centraliza casi todos los defectos conocidos.
+- [[matriz-de-interesados]] — Análisis de interesados (Poder vs. Interés), expectativas, trazabilidad y riesgos.
 
 ## Forma: cómo se escribe
 
@@ -53,4 +54,4 @@ Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la no
 
 ---
 
-**24 notas de contenido** más `CLAUDE.md` y `log.md` · última actualización 2026-09-05 · ver [[log.md]] para el historial.
+**25 notas de contenido** más `CLAUDE.md` y `log.md` · última actualización 2026-09-05 · ver [[log.md]] para el historial.
