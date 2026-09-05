@@ -1,0 +1,298 @@
+\documentclass[12pt,a4paper]{article}
+%\usepackage[es]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\setlength{\headheight}{15pt}
+\addtolength{\topmargin}{-3pt}
+\usepackage{tikz}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{hyperref}
+
+% Color definitions. Identicas a las de la ERS: los dos documentos son piezas
+% del mismo entregable y deben verse como tales.
+\definecolor{mainRed}{HTML}{EC3013}
+\definecolor{mainGray}{HTML}{6b6866}
+\definecolor{mainWhite}{HTML}{F3F2F2}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\textcolor{mainGray}{Plan de Gestión del Alcance — MSO}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\color{mainRed}\hrule}
+
+% Saltos de titulo mas cortos que los de article. Con seis campos por proceso
+% el documento acumula 24 subsecciones, y el espaciado por omision lo estira
+% sin anadir informacion. Tipo y cuerpo se mantienen como en la ERS.
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+  {-2.2ex \@plus -1ex \@minus -.2ex}{1.0ex \@plus.2ex}%
+  {\normalfont\Large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {-1.7ex \@plus -.8ex \@minus -.2ex}{0.5ex \@plus.2ex}%
+  {\normalfont\large\bfseries}}
+% Listas mas compactas: las vinetas de este documento son cortas y el
+% espaciado por omision las separa mas de lo que su contenido justifica.
+\def\@listi{\leftmargin\leftmargini \parsep 0\p@ \topsep 4\p@ \itemsep 2\p@}
+\let\@listI\@listi
+\makeatother
+
+% Title formatting
+\newcommand{\sectiontitle}[1]{%
+  \section*{#1}
+  \addcontentsline{toc}{section}{#1}
+}
+
+\newcommand{\subsectiontitle}[1]{%
+  \subsection*{#1}
+  \addcontentsline{toc}{subsection}{#1}
+}
+
+% Rutas y codigos. \texttt es indivisible y una ruta larga se sale de la caja;
+% \nolinkurl la compone igual pero admite corte tras cada barra y cada guion.
+\urlstyle{tt}
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\-}
+\makeatother
+\newcommand{\ruta}[1]{\nolinkurl{#1}}
+
+% Marcas de estado, con el mismo significado y el mismo color que en el
+% apartado 3.2 de la ERS, de donde proceden.
+\newcommand{\estadoImplementado}{\textcolor{mainRed}{\textbf{[IMPLEMENTADO]}}}
+\newcommand{\estadoPrevisto}{\textcolor{mainGray}{\textbf{[PREVISTO]}}}
+
+% Campo con nombre del encabezado del plan.
+\newcommand{\campoencabezado}[2]{%
+  \par\vspace{0.35em}%
+  \noindent\textbf{#1:} #2%
+}
+
+\begin{document}
+
+% ===== PORTADA =====
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\Large\textbf{UNIVERSIDAD DISTRITAL}\\
+   \textbf{FRANCISCO JOSÉ DE CALDAS}}\par
+
+  \vspace{3cm}
+
+  {\Huge\textbf{Plan de Gestión del Alcance}}\par
+
+  \vspace{2cm}
+
+  {\Large\textbf{MalphasOS}}\\
+  {\large Gestión de Clientes}\par
+
+  \vspace{3cm}
+
+  {\large Sean Sebastián Bolívar Calderón - 20231020135}\par
+
+  \vfill
+
+  {\large 2 de septiembre de 2026}
+\end{titlepage}
+
+% ===== IDENTIFICACIÓN =====
+\sectiontitle{Identificación del plan}
+
+\campoencabezado{Nombre del plan de gestión del alcance}{Plan de Gestión del Alcance de MalphasOS}
+
+\campoencabezado{Nombre del proyecto}{MalphasOS}
+
+\campoencabezado{Siglas del proyecto}{MSO}
+
+\vspace{0.6em}
+
+% ===== NOTA PRELIMINAR =====
+\sectiontitle{Nota preliminar}
+
+El alcance de MSO es el que define su Especificación de Requisitos de Software (ERS), redactada bajo la norma IEEE 830: \textbf{31 requisitos funcionales en nueve categorías}, cada uno con su enunciado, su complejidad, sus criterios de aceptación y sus dependencias, más las exclusiones del apartado 1.2.2. Este plan describe cómo ese alcance se define, se descompone, se verifica y se controla, tal como el proyecto lo hace de hecho: cuando algo no existe, lo dice en lugar de inventarlo.
+
+\textbf{Todos los roles recaen en la misma persona.} Sean Sebastián Bolívar Calderón es patrocinador, gerente de proyecto, analista de requisitos y desarrollador. No hay equipo, ni comité de control de cambios, ni contraparte que apruebe entregables desde fuera. Aun así cada proceso nombra el rol que actúa en cada paso, porque separarlos permite ver dónde falta un contrapeso; el apartado 4.2 trata esa carencia. El cliente, BolivarBioingeniería LTDA, participó en la elicitación pero no en los ciclos de verificación.
+
+\begingroup
+\small
+\begin{longtable}{|p{7.4cm}|p{4.6cm}|p{2.4cm}|}
+\hline
+\textbf{Categoría (apartado 3.2 de la ERS)} & \textbf{Requisitos} & \textbf{Implem.} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Categoría (apartado 3.2 de la ERS)} & \textbf{Requisitos} & \textbf{Implem.} \\
+\hline
+\endhead
+3.2.1. Gestión de Órdenes de Trabajo & RF-01 a RF-07 (7) & 0 \\
+\hline
+3.2.2. Gestión de Clientes & RF-08 (1) & 1 \\
+\hline
+3.2.3. Reportes de Mantenimiento & RF-09, 11, 13, 14, 15, 17 (6) & 0 \\
+\hline
+3.2.4. Firma Digital & RF-18, RF-21 (2) & 0 \\
+\hline
+3.2.5. Hojas de Vida de los Equipos & RF-22, 24, 26, 27 (4) & 2 \\
+\hline
+3.2.6. Inventario & RF-36, RF-37 (2) & 0 \\
+\hline
+3.2.7. Alertas y calibración & RF-40, RF-41 (2) & 0 \\
+\hline
+3.2.8. Módulo Comercial & RF-45, RF-47 (2) & 0 \\
+\hline
+3.2.9. Usuarios y seguridad & RF-49 a RF-53 (5) & 5 \\
+\hline
+\textbf{Total} & \textbf{31} & \textbf{8} \\
+\hline
+\caption{El alcance funcional de MSO y su estado al 2 de septiembre de 2026.}
+\label{tab:alcance}
+\end{longtable}
+\endgroup
+
+% ===== SECCIÓN 1 =====
+\sectiontitle{1. Proceso de definición del alcance}
+
+\subsectiontitle{1.1. Qué}
+
+Elaborar y mantener el enunciado del alcance, que en MSO es la ERS. Dice qué construye el sistema —los 31 requisitos de la tabla anterior y los no funcionales del apartado 3.3— y, con igual precisión, qué no: el apartado 1.2.2 excluye la integración con sistemas de terceros, la gestión contable y financiera, la facturación, la vigilancia de calibraciones mediante alertas automáticas y el inventario de herramientas y equipos patrón, y deja las cotizaciones sujetas a priorización.
+
+\subsectiontitle{1.2. Quién}
+
+El \textbf{patrocinador} fija los límites exteriores y decide las exclusiones. El \textbf{analista de requisitos} eleva las necesidades recogidas a requisitos con código y criterios. El \textbf{gerente de proyecto} aprueba el enunciado resultante y decide cuándo se revisa.
+
+\subsectiontitle{1.3. Cómo}
+
+Según registra el apartado 1.2.4 de la ERS, el alcance se levantó mediante entrevistas, encuestas y reuniones con la gerente y un ingeniero de BolivarBioingeniería LTDA, más el análisis de los formatos que la empresa usa para órdenes de trabajo, mantenimientos preventivos y hojas de vida; de ahí salieron los listados de requisitos y la matriz de trazabilidad con los que la ERS se declara consistente. Ese material se estructura luego según la norma IEEE 830, y las nueve categorías del apartado 3.2 no son un índice arbitrario: agrupan los requisitos por proceso de negocio para servir de primer nivel de descomposición.
+
+\subsectiontitle{1.4. Cuándo}
+
+La definición inicial se cerró con la primera versión de la ERS, del 11 de agosto de 2026. El enunciado se revisa al cerrar una categoría y cuando aparece una discrepancia entre lo escrito y lo construido; la última revisión, del 2 de septiembre de 2026, recorrió los 31 requisitos uno a uno.
+
+\subsectiontitle{1.5. Dónde}
+
+En la ERS, dentro de \ruta{Documentation/IEEE830/}: el apartado 3.2 para los requisitos funcionales, el 3.3 para los no funcionales y el 1.2.2 para las exclusiones.
+
+\subsectiontitle{1.6. Con qué}
+
+Las técnicas de elicitación ya citadas, el formato IEEE 830, y diez diagramas de casos de uso de las categorías del apartado 3.2, \textbf{con una salvedad}: sus archivos fuente no están versionados, no pueden regenerarse ni corregirse, y varios representan categorías sin implementación.
+
+% ===== SECCIÓN 2 =====
+\sectiontitle{2. Proceso de elaboración de la EDT/WBS}
+
+\subsectiontitle{2.1. Qué}
+
+Descomponer el alcance en unidades ejecutables y verificables. La descomposición la aporta la propia ERS y tiene tres niveles: las \textbf{nueve categorías} del apartado 3.2, el \textbf{requisito} identificado por su código, y sus \textbf{criterios de aceptación}, que enumeran el trabajo necesario para darlo por entregado. RF-08 se descompone así en tres: que el formulario incluya todos los campos listados, que los registros se guarden, editen y eliminen, y que el cliente no represente un rol de acceso.
+
+\textbf{MSO no mantiene un diccionario de la EDT como documento aparte}, y este plan no va a fingir lo contrario. Su equivalente es el propio enunciado del requisito, que ya trae complejidad, criterios y dependencias: el diccionario está dentro de la descomposición.
+
+\subsectiontitle{2.2. Quién}
+
+El \textbf{gerente de proyecto} ordena las categorías y fija el tamaño de cada unidad de trabajo. El \textbf{analista de requisitos} comprueba que cada unidad corresponda a un requisito enunciado y no a trabajo que nadie pidió. El \textbf{desarrollador} la ejecuta.
+
+\subsectiontitle{2.3. Cómo}
+
+\textbf{El orden de ejecución lo dictan las dependencias declaradas, no la numeración.} Casi todos los requisitos dependen de RF-49 y RF-50 —autenticación e identificación de rol—, y las categorías operativas dependen de los datos maestros: no hay orden de trabajo (RF-01) sin cliente (RF-08), sin sus sedes y áreas ni sin los equipos de la hoja de vida (RF-22). Por eso los ocho implementados están en las tres categorías fundacionales, y las seis del flujo operativo siguen previstas.
+
+\textbf{La unidad mínima de trabajo es la que puede contrastarse por completo contra los criterios de aceptación de su requisito}; si una división deja una mitad que no se puede verificar por sí sola, las dos van juntas. La aprobación es la revisión previa a la integración (apartado 3.3), y al cerrar la unidad se actualiza el estado del requisito en la ERS: la descomposición no se rehace en replanificaciones periódicas, se mantiene al día conforme se entrega.
+
+\subsectiontitle{2.4. Cuándo}
+
+Los dos primeros niveles existen desde la primera versión de la ERS; el desglose de una categoría en unidades se decide al abordarla y el estado de sus requisitos se actualiza al cerrarla.
+
+\subsectiontitle{2.5. Dónde}
+
+En el apartado 3.2 de la ERS, que contiene los tres niveles: la categoría como subapartado, el requisito como entrada y los criterios como lista. Las dependencias que ordenan la ejecución van declaradas requisito por requisito.
+
+\subsectiontitle{2.6. Con qué}
+
+La propia ERS. Como medio, el control de versiones, donde cada unidad se integra por separado para poder aceptarse como una sola cosa.
+
+% ===== SECCIÓN 3 =====
+\sectiontitle{3. Proceso para la verificación del alcance}
+
+\subsectiontitle{3.1. Qué}
+
+Comprobar que lo entregado satisface los criterios de aceptación de su requisito, y dejar constancia. La verificación opera en dos niveles: \textbf{por requisito}, al entregar cada unidad de trabajo, y \textbf{del alcance total}, contrastando los 31 requisitos contra lo construido.
+
+\subsectiontitle{3.2. Quién}
+
+El \textbf{desarrollador} comprueba el entregable contra los criterios de aceptación. El \textbf{gerente de proyecto} lo revisa y lo acepta: ése es el punto de aceptación formal del proyecto. El \textbf{analista de requisitos} contrasta el alcance total y marca el estado de cada requisito.
+
+\textbf{No hay aceptación por parte del cliente.} No existe acta firmada por BolivarBioingeniería LTDA: la aceptación la otorga el mismo responsable que produjo el entregable. Es una limitación del proyecto, no una simplificación de este documento.
+
+\subsectiontitle{3.3. Cómo}
+
+\textbf{Por requisito, la lista de comprobación ya está escrita:} los criterios se redactaron antes de construir, y verificar consiste en recorrerlos uno a uno, no en darlos por cumplidos en bloque.
+
+\textbf{Del alcance total, mediante el contraste requisito por requisito.} El 2 de septiembre de 2026 se recorrieron los 31 comparándolos con lo construido. Cada uno lleva ahora una de dos marcas y un punto nuevo, \textit{Estado en la implementación actual}, que cita la evidencia o dice qué se comprobó para afirmar su ausencia:
+
+\begin{itemize}
+  \item \estadoImplementado{} — hay implementación que hace lo que el requisito pide. Ocho: RF-08, RF-22, RF-24 y los cinco de usuarios y seguridad.
+  \item \estadoPrevisto{} — sigue siendo parte del alcance, pero no tiene implementación. Veintitrés: el flujo operativo completo, de las órdenes de trabajo a las cotizaciones.
+\end{itemize}
+
+\textbf{La marca no encubre incumplimientos parciales:} cuando un criterio queda sin cubrir, la salvedad se enuncia junto a la marca. Las tres que más pesan están en usuarios y seguridad: el criterio de RF-50 de que cada rol acceda solo a lo suyo no se cumple, porque toda la interfaz exige el mismo permiso de administrador; los cambios de RF-52 no llegan al proveedor de identidad; y la baja de RF-53 no revoca el acceso, de modo que un usuario retirado conserva credenciales válidas.
+
+Un efecto lateral merece constar: \textbf{contrastar la especificación con lo construido resultó ser también una técnica de detección de defectos}, pues afloraron seis fallos —dos de seguridad— que ninguna revisión del sistema por separado había revelado.
+
+\subsectiontitle{3.4. Cuándo}
+
+La verificación por requisito, antes de aceptar cada unidad de trabajo; la del alcance total, al cerrar una categoría, y se hizo por primera vez el 2 de septiembre de 2026.
+
+\subsectiontitle{3.5. Dónde}
+
+En el apartado 3.2 de la ERS: la marca de estado y la evidencia de cada uno de los 31 requisitos.
+
+\subsectiontitle{3.6. Con qué}
+
+Los criterios de aceptación de la ERS son el instrumento principal. Como medios, una batería automatizada de pruebas que dictamina sin negociación si el sistema se comporta como debe —339 comprobaciones, ninguna fallando— y la revisión previa a cada integración.
+
+% ===== SECCIÓN 4 =====
+\sectiontitle{4. Proceso para el control del alcance}
+
+\subsectiontitle{4.1. Qué}
+
+Identificar los cambios de alcance, registrarlos y decidir si entran, se aplazan o se rechazan. No llegan como solicitudes del cliente, sino de contrastar la ERS con lo construido y de revisar la coherencia del propio enunciado.
+
+\subsectiontitle{4.2. Quién}
+
+Quien \textbf{detecta} el cambio es el analista de requisitos, al contrastar; quien \textbf{decide} si entra, el gerente de proyecto; quien \textbf{asume el costo}, el patrocinador.
+
+Los tres son la misma persona. \textbf{No hay contraparte independiente que pueda rechazar un cambio de alcance}, y el riesgo mayor no es la ampliación deliberada sino la aceptación complaciente: nadie más va a mirar un entregable y decir que no cumple. Lo sustituyen en parte los criterios de aceptación, escritos antes de construir y difíciles de reinterpretar; la batería de pruebas, que dictamina con independencia de quién la ejecute; y el contraste con lo construido, que enfrenta dos artefactos y no dos opiniones: un requisito no se da por implementado porque a alguien se lo parezca, sino citando la evidencia.
+
+Ninguno de los tres comprueba que la ERS diga lo que el cliente necesita, solo que el sistema haga lo que la ERS dice: la validación con BolivarBioingeniería LTDA no vuelve a ocurrir tras la elicitación, y este plan no puede afirmar lo contrario.
+
+\subsectiontitle{4.3. Cómo}
+
+\textbf{Identificación.} Un cambio se manifiesta de tres formas: un requisito cambia de marca, una dependencia declarada apunta a un requisito que no existe, o el documento promete algo que ningún requisito recoge.
+
+\textbf{Registro.} El cambio se anota en la ERS, sobre el requisito afectado. \textbf{Ningún requisito se elimina:} la revisión del 2 de septiembre no borró los veintitrés sin implementación, que siguen siendo el alcance comprometido; solo dejaron de leerse como cosas ya hechas. El alcance se controla marcando, no recortando.
+
+\textbf{Cambios pendientes en la línea base.} La revisión de coherencia de la ERS dejó tres abiertos:
+
+\begin{itemize}
+  \item \textbf{RF-49 declara depender de sí mismo}, y su dependencia real queda sin especificar.
+  \item \textbf{Hay dependencias hacia requisitos ausentes} del apartado 3.2: RF-20 desde RF-18, RF-35 desde RF-36 y RF-37, RF-46 desde RF-45. O esos requisitos se reincorporan, o se corrigen las dependencias que los invocan.
+  \item \textbf{El apartado 2.2 promete exportación a Excel} que ningún requisito recoge: una función comprometida fuera de la descomposición.
+\end{itemize}
+
+\textbf{Procesamiento y control integrado.} Un cambio aceptado se convierte en unidad de trabajo; uno aplazado queda registrado con su razón. El control integrado se ejerce en un único punto, \textbf{la revisión previa a la integración}, donde convergen alcance —¿entrega lo que el requisito pedía, y solo eso?—, calidad —¿satisface sus criterios de aceptación?— y cronograma —¿cabe como una unidad o hay que partirla?—. Los seis defectos del contraste quedaron pendientes en lugar de corregirse en el acto, porque hacerlo habría mezclado dos alcances en un entregable.
+
+\subsectiontitle{4.4. Cuándo}
+
+De forma continua: la identificación al comparar la ERS con lo construido, el registro en el momento del hallazgo, el procesamiento en la unidad siguiente y el control integrado en cada integración.
+
+\subsectiontitle{4.5. Dónde}
+
+En la ERS: sobre el requisito afectado, su marca de estado y sus dependencias declaradas.
+
+\subsectiontitle{4.6. Con qué}
+
+La ERS como línea base. Como medios, el control de versiones, que separa cada cambio para poder aceptarlo o rechazarlo por sí solo, y la batería de pruebas, que impide aceptar uno que rompa lo ya verificado.
+
+% ===== FIN DEL DOCUMENTO =====
+\end{document}
