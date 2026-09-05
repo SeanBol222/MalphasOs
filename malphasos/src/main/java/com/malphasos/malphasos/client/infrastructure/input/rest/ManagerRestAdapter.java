@@ -43,6 +43,14 @@ import org.springframework.web.bind.annotation.RestController;
  * la crea; {@code POST /managers/assignments} pone al frente a alguien que ya existe. El original
  * solo tenía la primera, de modo que un ingeniero de la empresa no podía figurar además como
  * encargado sin duplicarse.
+ *
+ * <p><b>Sobre las autoridades {@code engineer.*}.</b> No es un error que un controlador llamado
+ * {@code Manager} exija permisos llamados {@code engineer}: son tres nombres para lo mismo. El
+ * realm de Keycloak lo llama {@code engineer}, el código {@code manager} y la ERS «profesional
+ * responsable». Se usa el vocabulario del realm porque es el que la documentación de despliegue ya
+ * recoge, y renombrarlo obligaría a tocar el realm, los grupos y los tokens ya emitidos. Leer un
+ * encargado exige {@code engineer.read}; ponerlo, trasladarlo o relevarlo, {@code engineer.assign},
+ * porque las tres son la misma decisión: quién queda al frente de qué.
  */
 @RestController
 @RequiredArgsConstructor
@@ -54,14 +62,14 @@ public class ManagerRestAdapter {
     private final ClientRestMapper clientRestMapper;
 
     @Operation(summary = "Listar todos los encargados")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('engineer.read')")
     @GetMapping
     public List<ManagerResponse> getAllManagers() {
         return clientRestMapper.toManagerResponseList(managerServicePort.findAll());
     }
 
     @Operation(summary = "Obtener el encargado que corresponde a una persona")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('engineer.read')")
     @GetMapping("/{idPersona}")
     public ManagerResponse getByPerson(
             @Parameter(description = "Identificador de la persona, que es el del encargado")
@@ -73,7 +81,7 @@ public class ManagerRestAdapter {
     @Operation(
             summary = "Registrar un encargado nuevo",
             description = "Crea la persona y la pone al frente de la sede o area indicada.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('engineer.assign')")
     @PostMapping
     public ResponseEntity<ManagerResponse> registerManager(
             @Valid @RequestBody ManagerRegisterRequest request) {
@@ -88,7 +96,7 @@ public class ManagerRestAdapter {
     @Operation(
             summary = "Poner al frente a alguien que ya existe",
             description = "Para una persona ya registrada en el sistema.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('engineer.assign')")
     @PostMapping("/assignments")
     public ResponseEntity<ManagerResponse> assignManager(
             @Valid @RequestBody ManagerAssignRequest request) {
@@ -101,7 +109,7 @@ public class ManagerRestAdapter {
     }
 
     @Operation(summary = "Trasladar un encargado a otra sede o area")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('engineer.assign')")
     @PatchMapping("/{idPersona}")
     public ManagerResponse reassignManager(
             @PathVariable UUID idPersona, @Valid @RequestBody ManagerAssignRequest request) {
@@ -111,7 +119,7 @@ public class ManagerRestAdapter {
     }
 
     @Operation(summary = "Relevar a un encargado", description = "No lo borra: lo deja inactivo.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('engineer.assign')")
     @DeleteMapping("/{idPersona}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateManager(@PathVariable UUID idPersona) {
