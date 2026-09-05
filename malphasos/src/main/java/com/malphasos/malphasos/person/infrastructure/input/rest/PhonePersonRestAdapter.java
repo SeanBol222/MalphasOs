@@ -38,7 +38,7 @@ public class PhonePersonRestAdapter {
     private final PersonRestMapper personRestMapper;
 
     @Operation(summary = "Agregar un telefono a una persona")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('person.write')")
     @PostMapping
     public ResponseEntity<PersonResponse> addPhone(
             @Parameter(description = "Identificador de la persona") @PathVariable UUID personId,
@@ -51,7 +51,7 @@ public class PhonePersonRestAdapter {
     }
 
     @Operation(summary = "Actualizar un telefono de una persona")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('person.write')")
     @PutMapping("/{phoneId}")
     public PersonResponse updatePhone(
             @PathVariable UUID personId,
@@ -65,7 +65,7 @@ public class PhonePersonRestAdapter {
     @Operation(
             summary = "Desactivar un telefono",
             description = "No lo elimina: lo marca como inactivo y conserva el historial.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('person.write')")
     @DeleteMapping("/{phoneId}")
     public PersonResponse removePhone(
             @PathVariable UUID personId,
