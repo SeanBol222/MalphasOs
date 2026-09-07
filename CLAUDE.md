@@ -56,11 +56,15 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__eq
 
 ## Reparto del trabajo
 
-Existe un subagente **`documentador`** (`.claude/agents/documentador.md`) que es dueño exclusivo de `Documentation/`: la ERS IEEE 830, sus diagramas PlantUML y los manuales. Se le invoca con la herramienta Agent cuando hay que escribir o poner al día un documento formal, o contrastar lo que la ERS promete contra lo que el código hace.
+Tres subagentes con dominios que no se solapan, invocados con la herramienta Agent y en este orden:
 
-No mantiene el wiki: `SecondBrain/` sigue siendo responsabilidad de la sesión principal. Y no escribe código.
+1. **`desarrollador`** — `malphasos/src/main/`, las migraciones y `docker/`. No escribe pruebas.
+2. **`tester`** — `malphasos/src/test/`. No toca producción: si encuentra un defecto, lo reporta y el ciclo vuelve al desarrollador.
+3. **`wikista`** — `SecondBrain/` y este archivo. Trabaja el último, con la batería en verde.
 
-Trabaja en ramas `docs/` y **no mergea a `main`**: deja la rama y reporta, para que el usuario revise. Así no compite con las ramas `feat/` de la sesión principal, que solo tocan `malphasos/`.
+Los tres trabajan en ramas propias y **no mergean a `main`**: dejan la rama y reportan, para que el usuario revise.
+
+**`Documentation/` no tiene dueño asignado.** Existió un subagente `documentador`, retirado el 2026-09-05; su trabajo pendiente vive en las ramas `docs/` del worktree `MalphasOS-Documentation`. Quien vaya a escribir ahí debe leer antes `Documentation/wiki/`, que recoge las convenciones y el contenido de los documentos oficiales.
 
 ## Convenciones de código establecidas
 

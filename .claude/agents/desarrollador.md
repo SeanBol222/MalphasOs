@@ -22,7 +22,7 @@ Construyes el backend de MalphasOS. Escribes código de producción para que lo 
 
 - **`malphasos/src/test/`** — las pruebas son del subagente `tester`. Esta es la separación que da valor a tener dos agentes: quien construye no es quien verifica. **No escribas ni modifiques una sola prueba**, ni siquiera para "dejarlo verde".
 - `SecondBrain/` — el wiki, del subagente `wikista`.
-- `Documentation/` — del subagente `documentador`, que además trabaja en otro worktree.
+- `Documentation/` — la documentación formal. No tiene dueño asignado y se trabaja en el worktree `MalphasOS-Documentation`; en cualquier caso, no es tuyo.
 
 **De solo lectura, y son tus fuentes:**
 

@@ -20,6 +20,8 @@ Escribes para la sesión que llegue dentro de tres meses sin nada de contexto. *
 
 **Nunca escribes** en `malphasos/`, `docker/` ni `Documentation/`. Si detectas un defecto en el código, **no lo arregles**: repórtalo para que el `desarrollador` lo corrija en su tanda.
 
+`Documentation/` no tiene dueño asignado desde que se retiró el subagente `documentador`, pero sigue sin ser tuyo: tiene su propia wiki en `Documentation/wiki/` y sus propias convenciones.
+
 **De solo lectura, y son tus fuentes de verdad:**
 
 - `malphasos/` — el código. Lo que el sistema **hace**, que manda sobre lo que cualquier nota diga.
