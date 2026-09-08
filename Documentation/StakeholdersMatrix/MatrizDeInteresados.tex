@@ -1,0 +1,234 @@
+% Formato: standalone, variante varwidth de una sola hoja continua.
+%
+% Este documento no se pagina: se piensa para lectura continua con zoom o
+% para impresion en plotter/gran formato. La clase `standalone` con `varwidth=170mm`
+% ajusta la caja de salida al contenido exacto, consistente con
+% `TraceabilityMatrix/MatrizDeTrazabilidad.tex`.
+%
+% Ancho de contenido: 170mm. Permite tablas detalladas de cinco columnas
+% respetando los margenes y el ritmo de lectura de los demas documentos del
+% proyecto MalphasOS.
+\documentclass[12pt,varwidth=170mm,border=10pt]{standalone}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{hyperref}
+
+% Definición de tipos de columna con alineación controlada y partición de palabras.
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+% Definición de colores corporativos y de diseño.
+% Idénticos a la ERS, Documento de Constitución y Matriz de Trazabilidad.
+\definecolor{mainRed}{HTML}{EC3013}
+\definecolor{mainGray}{HTML}{6b6866}
+\definecolor{mainWhite}{HTML}{F3F2F2}
+
+% Macros para títulos en clase standalone sin sección numerada estándar.
+\newcommand{\sectiontitle}[1]{%
+  \par\vspace{1.8ex}%
+  {\normalfont\Large\bfseries #1\par}%
+  \vspace{1.0ex}%
+}
+
+\newcommand{\subsectiontitle}[1]{%
+  \par\vspace{1.3ex}%
+  {\normalfont\large\bfseries #1\par}%
+  \vspace{0.5ex}%
+}
+
+% Manejo de rutas, endpoints y códigos monoespaciados con partición de línea.
+\urlstyle{tt}
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\-}
+\makeatother
+\newcommand{\ruta}[1]{\nolinkurl{#1}}
+
+% Marcas de estado de implementación de requisitos y artefactos.
+\newcommand{\estadoImplementado}{\textcolor{mainRed}{\textbf{[IMPLEMENTADO]}}}
+\newcommand{\estadoPrevisto}{\textcolor{mainGray}{\textbf{[PREVISTO]}}}
+\newcommand{\noVerificable}{\textcolor{mainGray}{\textit{[NO VERIFICABLE]}}}
+\newcommand{\hueco}{---}
+
+% Macro para leyendas de tabla en standalone (sustituye al \caption de float).
+\newcommand{\tablecaption}[2]{%
+  \par\vspace{0.4em}%
+  \begin{center}
+    \footnotesize\textit{Tabla #1. #2}
+  \end{center}
+  \vspace{1.0em}%
+}
+
+\begin{document}
+
+% ===== BLOQUE DE IDENTIFICACIÓN =====
+\begin{center}
+  {\Large\textbf{UNIVERSIDAD DISTRITAL}\\
+   \textbf{FRANCISCO JOSÉ DE CALDAS}}\par
+
+  \vspace{1.2em}
+
+  {\Huge\textbf{Matriz de Interesados del Proyecto}}\par
+  {\Large\textit{(Stakeholder Analysis Matrix)}}\par
+
+  \vspace{1.0em}
+
+  {\Large\textbf{MalphasOS}}\\
+  {\large Gestión de Clientes y Mantenimiento Biomédico}\par
+
+  \vspace{1.0em}
+
+  {\large Sean Sebastián Bolívar Calderón - 20231020135}\par
+  {\large 5 de septiembre de 2026}\par
+\end{center}
+
+\vspace{1.0em}
+{\color{mainRed}\hrule height 1pt}
+\vspace{1.5em}
+
+% ===== NOTA PRELIMINAR =====
+\sectiontitle{Nota preliminar}
+
+Esta matriz identifica, clasifica y analiza de manera sistemática a los interesados (\emph{stakeholders}) del proyecto \textbf{MalphasOS: Gestión de Clientes}. Su propósito es determinar cómo cada actor influye en el éxito del sistema, cuáles son sus expectativas operativas y técnicas, cómo se encadenan con los objetivos del proyecto (\texttt{OBJ-01} a \texttt{OBJ-07}) y los requisitos de software, qué riesgos conllevan y qué estrategia de gestión de comunicaciones e involucramiento se aplica a cada uno.
+
+\textbf{Fuentes y alineación documental.} La base de interesados procede de la Sección~9 del Documento de Constitución (\ruta{constitutionDocument.tex}), complementada con los roles de usuario de la Sección~2.3 de la ERS IEEE 830 (\ruta{IEEE830.tex}), los riesgos de la Sección~10 del charter (\texttt{R-01} a \texttt{R-10}) y los procesos de control descritos en el Plan de Gestión del Alcance (\ruta{PlanDeGestionDelAlcance.tex}).
+
+\textbf{Modelo de clasificación Poder vs. Interés.} Cada interesado es clasificado bajo la matriz clásica de análisis de interesados (PMBOK / IEEE), cruzando su nivel de autoridad o poder sobre el proyecto con su nivel de interés directo en los resultados:
+\begin{itemize}
+  \item \textbf{Alto poder / Alto interés $\to$ Gestionar de cerca (\emph{Manage Closely}):} Involucramiento constante, participación en toma de decisiones críticas de alcance y presupuesto.
+  \item \textbf{Alto poder / Bajo o medio interés $\to$ Mantener satisfecho (\emph{Keep Satisfied}):} Garantizar estricto cumplimiento de expectativas y normativas sin sobrecargar de información técnica interna.
+  \item \textbf{Bajo o medio poder / Alto interés $\to$ Mantener informado (\emph{Keep Informed}):} Comunicación frecuente, sesiones de validación de usabilidad y soporte operativo.
+  \item \textbf{Bajo poder / Bajo interés $\to$ Monitorear (\emph{Monitor}):} Supervisión pasiva con canales mínimos de consulta.
+\end{itemize}
+
+\textbf{Criterio de honestidad técnica.} Coherente con la regla central de MalphasOS (\emph{no documentar como existente algo que no está implementado}), esta matriz expone la realidad operativa y técnica del proyecto: señala los roles teóricos que carecen de interfaz construida, las discrepancias entre la asignación de roles conceptuales y la seguridad técnica en Keycloak (\ruta{admin.full}), y la concentración real de responsabilidades en la dirección del proyecto.
+
+% ===== SECCIÓN 1: IDENTIFICACIÓN Y CLASIFICACIÓN =====
+\sectiontitle{1. Identificación y clasificación de interesados}
+
+A continuación se caracterizan los ocho actores clave del proyecto MalphasOS, especificando su ámbito (interno o externo a la organización), su rol operativo y su ubicación en los cuadrantes de Poder vs. Interés.
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|C{1.2cm}|L{3.2cm}|L{2.3cm}|L{2.4cm}|L{4.8cm}|}
+\hline
+\textbf{ID} & \textbf{Interesado} & \textbf{Tipo / Rol} & \textbf{Poder / Interés} & \textbf{Estrategia del Cuadrante} \\
+\hline
+STK-01 & Bolívar\-Bioingeniería LTDA & Externo/Org. \newline Cliente & Alto Poder \newline Alto Interés & \textbf{Gestionar de cerca}: Patrocinador institucional; aprueba el alcance final y financia el proyecto (\$15.000.000 COP). \\
+\hline
+STK-02 & Sandra Bolívar (Gerente) & Interno \newline Patrocinador & Alto Poder \newline Alto Interés & \textbf{Gestionar de cerca}: Toma de decisiones ejecutivas, aprobación de cambios de alcance y asignación presupuestal. \\
+\hline
+STK-03 & Sean S. Bolívar Calderón & Interno \newline Director / Dev & Alto Poder \newline Alto Interés & \textbf{Gestionar de cerca}: Ejecutor único; concentra la dirección, análisis de requisitos, arquitectura y desarrollo. \\
+\hline
+STK-04 & Personal Administrativo & Interno \newline Usuario prin. & Medio Poder \newline Alto Interés & \textbf{Mantener informado / Colaborar}: Usuario diario de escritorio; gestiona clientes, supervisa órdenes y emite reportes. \\
+\hline
+STK-05 & Ingenieros Técnicos & Interno \newline Usuario campo & Medio Poder \newline Alto Interés & \textbf{Mantener informado / Colaborar}: Registro en campo móvil de intervenciones; clave para la tasa de adopción del sistema. \\
+\hline
+STK-06 & Clientes (IPS, clínicas) & Externo \newline Receptor docs & Medio Poder \newline Medio Interés & \textbf{Mantener informado}: Reciben reportes y hojas de vida; firman conformidad; demandan disponibilidad documental. \\
+\hline
+STK-07 & Secretaría de Salud e INVIMA & Externo \newline Regulador & Alto Poder \newline Bajo/Med. Int. & \textbf{Mantener satisfecho}: Entidades regulatorias; fijan requisitos normativos de hojas de vida y reportes biomédicos. \\
+\hline
+STK-08 & SuperUsuario & Interno \newline Admin técnico & Medio Poder \newline Medio Interés & \textbf{Monitorear / Informar}: Gestión técnica de accesos, roles e infraestructura base del sistema en Keycloak. \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{1}{Identificación y categorización de interesados bajo la matriz Poder vs. Interés.}
+\endgroup
+
+% ===== SECCIÓN 2: EXPECTATIVAS, OBJETIVOS Y REQUISITOS =====
+\sectiontitle{2. Expectativas, objetivos y trazabilidad de requisitos}
+
+Esta sección vincula a cada interesado con sus necesidades fundamentales, los objetivos del Project Charter a los que contribuye y los requisitos de software específicos asociados, detallando su estado de implementación real.
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|C{1.2cm}|L{2.8cm}|L{4.9cm}|L{2.0cm}|L{3.3cm}|}
+\hline
+\textbf{ID} & \textbf{Interesado} & \textbf{Expectativas principales} & \textbf{Objetivos} & \textbf{Requisitos y estado} \\
+\hline
+STK-01 & Bolívar\-Bioingeniería LTDA & Eliminar la dispersión operativa (Excel/WhatsApp); plataforma web centralizada; mayor ventaja competitiva en el sector salud. & OBJ-01 al OBJ-07 (Todos) & Visión global del producto. Catálogo y clientes: \estadoImplementado{}; Operaciones: \estadoPrevisto{}. \\
+\hline
+STK-02 & Sandra Bolívar (Gerente) & Retorno de inversión; reducción $\geq$40\,\% en tiempos de reporte y $\geq$30\,\% en errores; cumplimiento normativo; control de cotizaciones. & OBJ-01, OBJ-02, OBJ-05, OBJ-06 & RF-45, RF-47 (comercial): \estadoPrevisto{}. \newline RF-49 al RF-53 (seguridad): \estadoImplementado{}. \\
+\hline
+STK-03 & Sean S. Bolívar Calderón & Cumplimiento académico (Calidad de Software); rigor en trazabilidad ERS; arquitectura hexagonal mantenible; pruebas automatizadas. & OBJ-01 al OBJ-07 (Todos) & 31 RF, 23 RNF y 6 RD. Backend implementado: 8 RF, 1 RNF. Resto: \estadoPrevisto{}. \\
+\hline
+STK-04 & Personal Administrativo & Plataforma ágil de escritorio; gestión rápida de sedes/áreas; autocompletado en reportes; exportación masiva a PDF y Excel sin reprocesos. & OBJ-01, OBJ-02, OBJ-03, OBJ-04 & RF-08 (clientes): \estadoImplementado{}. \newline RF-01 al RF-07 (OT) y RF-17 (PDF): \estadoPrevisto{}. \\
+\hline
+STK-05 & Ingenieros Técnicos & Interfaz móvil responsiva e intuitiva ($\leq$6 pasos); registro en $\leq$3 min; captura de firma digital una sola vez; mínimo consumo de datos en campo. & OBJ-01, OBJ-02, OBJ-04 & RF-09 al RF-15 (reportes) y RF-18, RF-21 (firma): \estadoPrevisto{}. \newline RNF-01, 13, 14, 15, 20: \estadoPrevisto{}. \\
+\hline
+STK-06 & Clientes (IPS, clínicas) & Entrega puntual de reportes estandarizados; hojas de vida siempre actualizadas para auditorías; proceso de firma digital rápido y sin fricción. & OBJ-03, OBJ-05 & RF-22, RF-24 (catálogo de equipos): \estadoImplementado{}. \newline RF-17 (PDF) e historial RF-27: \estadoPrevisto{}. \\
+\hline
+STK-07 & Secretaría de Salud e INVIMA & Trazabilidad metrológica y técnica completa; registro inalterable de protocolos; calibración de equipos patrón; cumplimiento Res. 3100/2019. & OBJ-05, CE-05 & RF-15 (datos técnicos) y RF-40, 41 (alertas calibración): \estadoPrevisto{} (Won't Have en ERS). \\
+\hline
+STK-08 & SuperUsuario & Configuración centralizada de cuentas; administración desacoplada de accesos vía Keycloak; alta/baja de personal sin comprometer el sistema. & OBJ-07 & RF-49 al RF-53: \estadoImplementado{}. \newline RNF-23 (JWT): \estadoImplementado{}. \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{2}{Matriz de expectativas, alineación con objetivos estratégicos y trazabilidad técnica.}
+\endgroup
+
+% ===== SECCIÓN 3: GESTIÓN DE COMUNICACIONES Y RIESGOS =====
+\sectiontitle{3. Estrategia de comunicación, gestión y riesgos}
+
+La interacción con cada grupo de interesados debe mitigar proactivamente los diez riesgos formales identificados en el Project Charter (\texttt{R-01} a \texttt{R-10}).
+
+\begingroup
+\small
+\begin{center}
+\begin{tabular}{|C{1.2cm}|L{2.8cm}|L{3.7cm}|L{3.3cm}|L{3.2cm}|}
+\hline
+\textbf{ID} & \textbf{Interesado} & \textbf{Estrategia de gestión} & \textbf{Canales y frecuencia} & \textbf{Riesgos vinculados} \\
+\hline
+STK-01 & Bolívar\-Bioingeniería LTDA & Informes ejecutivos de avance contra el alcance; demostraciones al cierre de fase (H-01 y H-02). & Reuniones quincenales / informes de hito. & R-06 (plazo MVP), R-07 (presupuesto), R-10 (scope creep). \\
+\hline
+STK-02 & Sandra Bolívar (Gerente) & Validación de decisiones clave; aprobación formal de cambios de alcance (línea base ERS); control de costes. & Reuniones semanales / contacto directo por acta. & R-06 (cronograma), R-07 (costes), R-09 (estructura org.). \\
+\hline
+STK-03 & Sean S. Bolívar Calderón & Autocontrol mediante pruebas unitarias/integración (339 tests); commits atómicos; registro continuo en wiki técnica. & Repositorio Git / suites de pruebas continuas. & R-06 (plazo de entrega), R-10 (riesgo de unipersonalidad). \\
+\hline
+STK-04 & Personal Administrativo & Capacitación temprana en el uso de la interfaz web; validación de formularios contra los Excel existentes (migración). & Talleres prácticos / sesiones de pruebas de usuario. & R-02 (resistencia al cambio), R-05 (migración de datos). \\
+\hline
+STK-05 & Ingenieros Técnicos & Involucramiento en el diseño ergonómico móvil; pruebas de campo de firma táctil y bajo consumo de datos móviles. & Pruebas piloto en campo / retroalimentación directa. & R-02 (resistencia), R-03 (conectividad), R-04 (firma), R-08 (adopción). \\
+\hline
+STK-06 & Clientes (IPS, clínicas) & Comunicación de mejoras en la entrega documental; envío de reportes PDF homologados por correo o portal de cliente. & Correo formal / entrega de reportes post-servicio. & R-01 (observaciones regulatorias), R-03 (conectividad en sede). \\
+\hline
+STK-07 & Secretaría de Salud e INVIMA & Cumplimiento estricto de lineamientos normativos en los formatos generados; auditoría pasiva documental. & Inspecciones oficiales / revisión de carpetas técnicas. & R-01 (cambios regulatorios intempestivos en reportes). \\
+\hline
+STK-08 & SuperUsuario & Monitoreo del servicio Keycloak, Docker y logs del backend Spring Boot; revisión de métricas en \ruta{/actuator/health}. & Consola de administración Keycloak / logs de despliegue. & R-09 (reconfiguración de roles y permisos del sistema). \\
+\hline
+\end{tabular}
+\end{center}
+\tablecaption{3}{Estrategia de relacionamiento, matriz de comunicaciones y mitigación de riesgos.}
+\endgroup
+
+% ===== SECCIÓN 4: HALLAZGOS Y ANÁLISIS CRÍTICO =====
+\sectiontitle{4. Hallazgos del análisis de interesados}
+\label{sec:hallazgos}
+
+El cruce entre los interesados declarados en el Project Charter, las definiciones de la ERS y la implementación técnica del sistema revela discrepancias estructurales que condicionan la gestión del proyecto:
+
+\subsectiontitle{4.1. Unipersonalidad de la dirección y desarrollo (Riesgo estructural)}
+El Plan de Gestión del Alcance lo asume abiertamente: Sean Sebastián Bolívar Calderón (\texttt{STK-03}) concentra simultáneamente los roles de director de proyecto, analista de requisitos, arquitecto y desarrollador. No existe un equipo de ingeniería colegiado ni un comité formal de control de cambios. En consecuencia:
+\begin{itemize}
+  \item La verificación del alcance recae casi exclusivamente en artefactos formales (batería de pruebas automatizada de 339 pruebas con Testcontainers y verificación cruzada de la ERS) en lugar de revisiones humanas independientes.
+  \item Aunque Sandra Bolívar (\texttt{STK-02}) actúa como patrocinadora, no se cuenta con un ciclo periódico de actas de aceptación firmadas por el cliente tras cada incremento, lo que agrava el riesgo de desalineación entre el software y las expectativas del negocio (\texttt{R-10}).
+\end{itemize}
+
+\subsectiontitle{4.2. Discrepancia entre roles del negocio y el modelo de seguridad técnica}
+Existe una desarticulación evidente entre los roles concebidos en la documentación y los implementados en el software:
+\begin{itemize}
+  \item \textbf{SuperUsuario ausente en la API:} La ERS y el charter definen al SuperUsuario (\texttt{STK-08}) como el responsable de la administración técnica. Sin embargo, en el backend de Spring Boot no existen endpoints para registrar superusuarios (el enum \texttt{RoleType} solo contempla \texttt{ADMIN}, \texttt{ENGINEER} y \texttt{CEO\_CLIENT}), ni una autoridad específica asignada a este rol.
+  \item \textbf{Monocultivo de permisos (\texttt{admin.full}):} Las 83 operaciones REST del backend exigen actualmente la autoridad \texttt{admin.full}. Como consecuencia directa, los ingenieros técnicos (\texttt{STK-05}) y los clientes (\texttt{STK-06}) disponen de cuentas en Keycloak y tokens JWT válidos, pero reciben respuestas de error \texttt{403 Forbidden} en cualquier operación a la que intenten acceder. El sistema técnico actual solo es operable por el personal administrativo con rol de administrador.
+\end{itemize}
+
+\subsectiontitle{4.3. Desfase en la entrega de valor a los usuarios de campo}
+El objetivo principal del negocio (\texttt{OBJ-01}) y los requisitos que concentran mayor riesgo de adopción (\texttt{R-02}, \texttt{R-04}, \texttt{R-08}) están vinculados a los Ingenieros Técnicos (\texttt{STK-05}): la eliminación del reporte en papel/Excel y la captura en campo mediante celulares. Sin embargo:
+\begin{itemize}
+  \item La totalidad de las funcionalidades de campo (órdenes de trabajo, reportes de mantenimiento, firma digital táctil y la propia interfaz de usuario responsiva) permanecen en estado \estadoPrevisto{}.
+  \item El desarrollo se ha concentrado en la base de datos maestra (clientes, sedes, áreas, catálogo técnico de equipos y seguridad Keycloak). Aunque esta base es indispensable (no se pueden generar órdenes sin clientes ni equipos), existe el riesgo latente de que los ingenieros perciban el sistema como una herramienta de control administrativo de oficina antes que como un facilitador de su labor operativa.
+\end{itemize}
+
+\subsectiontitle{4.4. Tensión regulatoria y exclusión de alertas de calibración}
+La Secretaría de Salud e INVIMA (\texttt{STK-07}) ejercen una influencia crítica (\texttt{R-01}). Para IPS y hospitales, el mantenimiento biomédico carece de validez legal si los equipos patrón carecen de calibración vigente documentada. No obstante, la ERS relegó los requisitos de alertas de calibración (\texttt{RF-40} y \texttt{RF-41}) a la categoría \emph{Won't Have} (excluidos del alcance actual), y el módulo de inventario (\texttt{RF-36}, \texttt{RF-37}) no está implementado. Esto crea una vulnerabilidad frente a la expectativa regulatoria de cumplimiento integral del estándar de habilitación en salud.
+
+\end{document}

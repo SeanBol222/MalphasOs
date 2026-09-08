@@ -9,7 +9,7 @@
 \usepackage{tikz}
 \usepackage{array}
 \usepackage{longtable}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 
 % Color definitions
 \definecolor{mainRed}{HTML}{EC3013}
@@ -33,6 +33,11 @@
 \newcommand{\subsectiontitle}[1]{%
   \subsection*{#1}
   \addcontentsline{toc}{subsection}{#1}
+}
+
+\newcommand{\subsubsectiontitle}[1]{%
+  \subsubsection*{#1}
+  \addcontentsline{toc}{subsubsection}{#1}
 }
 
 % Marcas de estado de implementacion. Se usan solo en el apartado 3.2 y su
@@ -92,11 +97,11 @@ El propósito de este documento es especificar de manera clara, completa y estru
 
 El presente apartado describe el alcance del sistema propuesto, definiendo de manera general sus funcionalidades principales, limitaciones y objetivos dentro del contexto de la empresa BolivarBioingeniería LTDA. Asimismo, se establecen los límites del sistema, identificando qué procesos serán cubiertos en su implementación inicial (MVP) y cuáles quedarán fuera de su alcance.
 
-\subsectiontitle{1.2.1. Nombre del sistema}
+\subsubsectiontitle{1.2.1. Nombre del sistema}
 
 El sistema propuesto se denominará \textbf{MalphasOS}: Gestión de Clientes, el cual corresponde a una plataforma de gestión de clientes orientada a optimizar los procesos operativos de la empresa BolivarBioingeniería LTDA.
 
-\subsectiontitle{1.2.2. Alcance del Sistema}
+\subsubsectiontitle{1.2.2. Alcance del Sistema}
 
 El sistema MalphasOS estará orientado a gestionar de manera integral los procesos asociados al mantenimiento de equipos biomédicos en la empresa BolivarBioingeniería LTDA. En su versión inicial (MVP), el sistema permitirá la creación y gestión de órdenes de trabajo, la generación de reportes de mantenimiento por equipo, la administración de hojas de vida de los equipos y la captura de información en campo desde dispositivos móviles.
 
@@ -104,7 +109,7 @@ Asimismo, el sistema permitirá la automatización de procesos repetitivos, como
 
 Por otro lado, el sistema no contemplará en esta versión inicial funcionalidades avanzadas como la integración con sistemas externos de terceros, la gestión contable o financiera completa, el manejo de módulos complejos de facturación, el control de la vigilancia de calibraciones mediante alertas automáticas, y tampoco el manejo de inventario de las herramientas ni de los equipos patrón. Adicionalmente, funcionalidades opcionales como la generación de cotizaciones podrán estar limitadas o sujetadas a implementación futura según la priorización del proyecto.
 
-\subsectiontitle{1.2.3. Objetivos y Beneficios esperados}
+\subsubsectiontitle{1.2.3. Objetivos y Beneficios esperados}
 
 El sistema MalphasOS tiene como objetivo principal mejorar la gestión de los procesos de mantenimiento de equipos biomédicos en la empresa BolivarBioingeniería LTDA, mediante la automatización de tareas, la centralización de la información y la reducción de errores asociados a procesos manuales.
 
@@ -120,7 +125,7 @@ Se espera lograr una reducción de al menos un 40\% en el tiempo de elaboración
 
 Adicionalmente, se plantea como meta que el sistema permita gestionar el 100\% de las órdenes de trabajo de mantenimiento preventivo dentro de la plataforma, eliminando el uso de herramientas externas como hojas de cálculo o aplicaciones de mensajería. También se espera garantizar el cumplimiento de los requisitos exigidos por las entidades regulatorias del sector salud, y mejorar la toma de decisiones operativa mediante la disponibilidad de información confiable, con tiempos de consulta inferiores a 3 segundos para reportes y datos históricos.
 
-\subsectiontitle{1.2.4. Documentos de Referencia}
+\subsubsectiontitle{1.2.4. Documentos de Referencia}
 
 El presente documento de especificación de requisitos de software se ha elaborado siguiendo la plantilla de la norma IEEE830 y con base en la información recopilada durante el proceso de elicitación de requerimientos realizado con la empresa BolivarBioingeniería LTDA, incluyendo entrevistas, encuestas, reuniones con la gerente y un ingeniero, además del análisis de los procesos actuales y la identificación de necesidades del negocio.
 
@@ -130,7 +135,7 @@ Asimismo, se mantiene consistencia con los artefactos generados en etapas previa
 
 En este apartado se definirán todos los términos, acrónimos y abreviaturas utilizadas en el documento de Especificación de Requisitos de Software.
 
-\subsectiontitle{1.3.1. Definiciones}
+\subsubsectiontitle{1.3.1. Definiciones}
 
 A continuación se presentan los términos utilizados en este documento, junto con sus significados:
 
@@ -156,7 +161,7 @@ A continuación se presentan los términos utilizados en este documento, junto c
   \item \textbf{Protocolo de mantenimiento:} Conjunto de procedimientos estandarizados que deben seguirse para realizar el mantenimiento de un tipo específico de equipo.
 \end{itemize}
 
-\subsectiontitle{1.3.2. Acrónimos}
+\subsubsectiontitle{1.3.2. Acrónimos}
 
 A continuación se presentan los acrónimos utilizados en este documento, junto con sus significados:
 
@@ -170,7 +175,7 @@ A continuación se presentan los acrónimos utilizados en este documento, junto 
   \item \textbf{UX} (User Experience): Experiencia de usuario en la interacción con el sistema.
 \end{itemize}
 
-\subsectiontitle{1.3.3. Abreviaturas}
+\subsubsectiontitle{1.3.3. Abreviaturas}
 
 A continuación se presentan las abreviaturas utilizadas en este documento, junto con sus significados:
 
@@ -514,7 +519,7 @@ Para garantizar la calidad de esta especificación, los requisitos han sido defi
 
 El sistema MalphasOS deberá interactuar con diferentes tipos de interfaces externas, incluyendo la interfaz de usuario, interfaces con dispositivos hardware y posibles interfaces de comunicación. Estas interfaces son fundamentales para garantizar la correcta interacción entre el sistema, los usuarios y el entorno operativo.
 
-\subsectiontitle{3.1.1. Interfaz de usuario}
+\subsubsectiontitle{3.1.1. Interfaz de usuario}
 
 El sistema contará con una interfaz de usuario accesible desde navegadores web, optimizada para dispositivos móviles, especialmente teléfonos celulares, conforme a los requisitos RNF-12, RNF-13 y RNF-14, los cuales establecen la accesibilidad web, el diseño responsivo y la interacción mediante pantalla táctil.
 
@@ -534,7 +539,7 @@ Adicionalmente, el sistema deberá proporcionar mecanismos de captura de informa
 
 Estas funcionalidades permiten soportar el trabajo en campo de los usuarios y garantizar la recolección eficiente de información.
 
-\subsectiontitle{3.1.2. Interfaces de hardware}
+\subsubsectiontitle{3.1.2. Interfaces de hardware}
 
 El sistema deberá interactuar con los siguientes componentes de hardware disponibles en los dispositivos móviles:
 
@@ -548,7 +553,9 @@ Estas interfaces permiten la interacción directa del usuario con el sistema en 
 
 No se contemplan interfaces directas con equipos biomédicos ni con dispositivos físicos externos especializados en esta versión del sistema (MVP).
 
-\subsectiontitle{3.1.3. Interfaces de comunicación}
+
+\subsubsectiontitle{3.1.3. Interfaces de comunicación}
+\label{sec:interfaces_comunicacion}
 
 El sistema operará sobre la web, requiriendo conexión a internet para el acceso a sus funcionalidades principales. La comunicación entre el navegador y el servidor se realizará mediante protocolos estándar de transferencia de datos. Asimismo, el sistema deberá permitir:
 
@@ -650,7 +657,7 @@ RF-53 & Eliminación de usuarios & Implementado \\
 \end{longtable}
 \endgroup
 
-\subsectiontitle{3.2.1. Gestión de Órdenes de Trabajo}
+\subsubsectiontitle{3.2.1. Gestión de Órdenes de Trabajo}
 
 Este dominio agrupa las funcionalidades relacionadas con la creación, configuración y gestión de órdenes de trabajo dentro del sistema. Permitirá estructurar las actividades de mantenimiento mediante la selección de clientes, sedes, áreas de servicio y equipos, consolidando la información necesaria para la ejecución de las intervenciones. Ninguno de sus siete requisitos tiene implementación todavía.
 
@@ -819,7 +826,7 @@ El sistema debe permitir seleccionar múltiples equipos pertenecientes a las ár
 
 Las funcionalidades de este dominio constituirán el eje central del sistema, porque son las que inician y organizan el flujo de trabajo operativo. El dominio entero está previsto, y se levantará sobre piezas que sí están construidas: el cliente, la sede, el área de servicio y el inventario de equipos de cada área.
 
-\subsectiontitle{3.2.2. Gestión de Clientes}
+\subsubsectiontitle{3.2.2. Gestión de Clientes}
 
 Este dominio contempla las funcionalidades necesarias para la administración de la información de los clientes, incluyendo su registro, modificación y almacenamiento en el sistema. Esta información es fundamental para alimentar otros procesos del sistema.
 
@@ -849,7 +856,7 @@ El sistema debe permitir crear por medio de un formulario a un cliente con los d
 
 La gestión de clientes permite centralizar la información institucional, facilitando su reutilización en diferentes módulos y contribuyendo a la consistencia y reducción de errores en el manejo de datos.
 
-\subsectiontitle{3.2.3. Reportes de Mantenimiento}
+\subsubsectiontitle{3.2.3. Reportes de Mantenimiento}
 
 Este dominio abarca las funcionalidades orientadas a la generación, gestión y exportación de reportes de mantenimiento por cada equipo intervenido, incluyendo el registro de información técnica y la automatización de datos provenientes de la orden de trabajo.
 
@@ -996,7 +1003,7 @@ El sistema debe permitir exportar los reportes de mantenimiento en formato PDF (
 
 La implementación de este dominio garantizará la correcta documentación de las intervenciones realizadas, mejorando la calidad, consistencia y disponibilidad de la información generada durante los procesos de mantenimiento. Ninguno de sus seis requisitos está construido: el reporte de mantenimiento no existe todavía como entidad del sistema.
 
-\subsectiontitle{3.2.4. Firma Digital}
+\subsubsectiontitle{3.2.4. Firma Digital}
 
 Este dominio reúne las funcionalidades relacionadas con la captura, validación y aplicación de la firma digital del cliente o responsable, permitiendo formalizar la aprobación de los reportes de mantenimiento generados.
 
@@ -1044,6 +1051,7 @@ El sistema debe permitir replicar la firma digital a todos los reportes de mante
   \item \textbf{Estado en la implementación actual:} Depende de RF-18 y de la orden de trabajo, y no existe ninguno de los dos.
 \end{itemize}
 
+\newpage
 [DIAGRAMA DE CASOS DE USO - FIRMA DIGITAL]
 
 \begin{figure}[h]
@@ -1053,9 +1061,10 @@ El sistema debe permitir replicar la firma digital a todos los reportes de mante
 \label{fig:cu_firma_digital}
 \end{figure}
 
+
 La firma digital asegurará la validación de la información registrada, optimizando el proceso de aprobación y reduciendo la necesidad de procedimientos manuales o documentación física. Los dos requisitos del dominio están previstos: no hay soporte de firma en ninguna capa del sistema.
 
-\subsectiontitle{3.2.5. Hojas de Vida de los Equipos}
+\subsubsectiontitle{3.2.5. Hojas de Vida de los Equipos}
 
 Este dominio comprende las funcionalidades destinadas a la creación, consulta, actualización y mantenimiento de la hoja de vida de cada equipo, incluyendo su información técnica, historial de intervenciones y documentación asociada.
 
@@ -1162,7 +1171,7 @@ El sistema debe almacenar el historial de intervenciones con información de fec
 
 La gestión de hojas de vida permite hoy registrar y mantener la ficha de cada equipo: su identificación, sus características técnicas, su marca y su fabricante, repartidas por la cadena del catálogo. Lo que falta es el historial de intervenciones, que es precisamente lo que convierte esa ficha en un registro del comportamiento del equipo y lo que sostiene la trazabilidad; depende de que exista el reporte de mantenimiento.
 
-\subsectiontitle{3.2.6. Inventario}
+\subsubsectiontitle{3.2.6. Inventario}
 
 Este dominio agrupa las funcionalidades necesarias para la gestión del inventario de equipos, herramientas y repuestos, así como el registro y control de los equipos patrón utilizados en procesos de calibración.
 
@@ -1221,7 +1230,7 @@ El sistema debe permitir registrar la salida y entrada de ítems del inventario 
 
 La gestión de inventario permitirá un control eficiente de los recursos utilizados en mantenimiento, asegurando su disponibilidad, trazabilidad y correcto uso dentro de las actividades operativas. Los dos requisitos están previstos, y no deben confundirse con el inventario de equipos del cliente, que sí existe y se describe en el apartado 3.2.5.
 
-\subsectiontitle{3.2.7. Alertas y calibración}
+\subsubsectiontitle{3.2.7. Alertas y calibración}
 
 Este dominio contempla las funcionalidades encargadas de monitorear el estado de calibración de los equipos patrón y generar alertas automáticas ante próximos vencimientos.
 
@@ -1275,14 +1284,14 @@ El sistema debe generar una alerta cuando la fecha de vencimiento de calibració
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.95\textwidth]{use_cases/alertas_calibracion/alertas_calibracion.pdf}
+\includegraphics[width=0.75\textwidth]{use_cases/alertas_calibracion/alertas_calibracion.pdf}
 \caption{CU - Alertas y Calibración}
 \label{fig:cu_alertas_calibracion}
 \end{figure}
 
 Las alertas de calibración contribuirán a la prevención de errores operativos, garantizando el uso de equipos patrón vigentes y apoyando el cumplimiento de las normas regulatorias del sector salud. Los dos requisitos están previstos: el sistema sabe hoy qué tipos de equipo se verifican metrológicamente y con qué modalidad, pero no guarda ninguna fecha de calibración ni la vigilancia de su vencimiento.
 
-\subsectiontitle{3.2.8. Módulo Comercial}
+\subsubsectiontitle{3.2.8. Módulo Comercial}
 
 Este dominio incluye las funcionalidades orientadas a la generación y gestión de cotizaciones de servicios de mantenimiento, así como su integración con el proceso operativo mediante la creación de órdenes de trabajo.
 
@@ -1341,7 +1350,7 @@ El sistema debe permitir generar una orden de trabajo a partir de una cotizació
 
 El módulo comercial permitirá extender el alcance del sistema hacia la gestión de oportunidades de negocio, facilitando la transición entre la cotización y la ejecución del servicio. Los dos requisitos están previstos y dependen, además, de la orden de trabajo.
 
-\subsectiontitle{3.2.9. Usuarios y seguridad}
+\subsubsectiontitle{3.2.9. Usuarios y seguridad}
 
 Este dominio abarca las funcionalidades relacionadas con la autenticación, autorización y gestión de usuarios del sistema, incluyendo la administración de roles y credenciales.
 
