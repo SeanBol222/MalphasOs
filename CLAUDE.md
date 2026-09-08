@@ -64,7 +64,11 @@ Tres subagentes con dominios que no se solapan, invocados con la herramienta Age
 
 Los tres trabajan en ramas propias y **no mergean a `main`**: dejan la rama y reportan, para que el usuario revise.
 
-**`Documentation/` no tiene dueño asignado.** Existió un subagente `documentador`, retirado el 2026-09-05; su trabajo pendiente vive en las ramas `docs/` del worktree `MalphasOS-Documentation`. Quien vaya a escribir ahí debe leer antes `Documentation/wiki/`, que recoge las convenciones y el contenido de los documentos oficiales.
+**`Documentation/` no tiene dueño asignado.** Existió un subagente `documentador`, retirado el 2026-09-05 tras entregar la ERS marcada, el plan de gestión del alcance, las matrices de trazabilidad e interesados y la wiki de `Documentation/`. Todo ello está ya en `main`.
+
+Quien vaya a escribir ahí debe leer antes **`Documentation/wiki/`**, un wiki de 28 notas con el patrón de `SecondBrain/`: qué dice cada documento oficial, las convenciones de LaTeX y la paleta, el estado real de los requisitos y los defectos conocidos de la ERS. Quedan dos notas por escribir —el glosario del dominio y los defectos conocidos—, marcadas como enlaces sin destino.
+
+Se trabaja en el worktree `MalphasOS-Documentation`, sobre la rama del mismo nombre.
 
 ## Convenciones de código establecidas
 
