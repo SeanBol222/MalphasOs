@@ -29,21 +29,21 @@ public class BrandRestAdapter {
     private final EquipmentRestMapper mapper;
 
     @Operation(summary = "Listar todas las marcas")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping
     public List<BrandResponse> getAll() {
         return mapper.toBrandList(brandServicePort.findAll());
     }
 
     @Operation(summary = "Obtener una marca por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/{id}")
     public BrandResponse getById(@PathVariable UUID id) {
         return mapper.toResponse(brandServicePort.findById(id));
     }
 
     @Operation(summary = "Registrar una marca")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PostMapping
     public ResponseEntity<BrandResponse> create(@Valid @RequestBody NamedRequest request) {
         BrandResponse creada = mapper.toResponse(
@@ -53,14 +53,14 @@ public class BrandRestAdapter {
     }
 
     @Operation(summary = "Cambiar el nombre de una marca")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PatchMapping("/{id}")
     public BrandResponse rename(@PathVariable UUID id, @Valid @RequestBody NamedRequest request) {
         return mapper.toResponse(brandServicePort.rename(new RenameBrandCommand(id, request.nombre())));
     }
 
     @Operation(summary = "Retirar una marca", description = "No la borra: la deja inactiva.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivate(@PathVariable UUID id) {

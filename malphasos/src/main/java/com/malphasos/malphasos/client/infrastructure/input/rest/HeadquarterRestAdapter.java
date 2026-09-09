@@ -46,7 +46,7 @@ public class HeadquarterRestAdapter {
     private final ClientRestMapper clientRestMapper;
 
     @Operation(summary = "Listar las sedes de un cliente")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.read')")
     @GetMapping("/clients/{idCliente}/headquarters")
     public List<HeadquarterResponse> getByClient(
             @Parameter(description = "Identificador del cliente") @PathVariable UUID idCliente) {
@@ -56,7 +56,7 @@ public class HeadquarterRestAdapter {
     }
 
     @Operation(summary = "Abrir una sede para un cliente")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @PostMapping("/clients/{idCliente}/headquarters")
     public ResponseEntity<HeadquarterResponse> createHeadquarter(
             @PathVariable UUID idCliente, @Valid @RequestBody HeadquarterCreateRequest request) {
@@ -72,7 +72,7 @@ public class HeadquarterRestAdapter {
     }
 
     @Operation(summary = "Obtener una sede por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.read')")
     @GetMapping("/headquarters/{id}")
     public HeadquarterResponse getById(@PathVariable UUID id) {
         return clientRestMapper.toResponse(headquarterServicePort.findById(id));
@@ -81,7 +81,7 @@ public class HeadquarterRestAdapter {
     @Operation(
             summary = "Cambiar los datos de una sede",
             description = "Los campos ausentes conservan su valor. La direccion va entera o no va.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @PatchMapping("/headquarters/{id}")
     public HeadquarterResponse updateHeadquarter(
             @PathVariable UUID id, @Valid @RequestBody HeadquarterUpdateRequest request) {
@@ -91,7 +91,7 @@ public class HeadquarterRestAdapter {
     }
 
     @Operation(summary = "Cerrar una sede", description = "No la borra: la deja inactiva.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @DeleteMapping("/headquarters/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateHeadquarter(@PathVariable UUID id) {

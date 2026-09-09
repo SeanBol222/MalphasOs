@@ -31,10 +31,10 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * API de países.
  *
- * <p>Todas las operaciones exigen {@code admin.full}, igual que el resto del proyecto. **El hexágono
- * original no tenía una sola anotación de autorización**: bastaba un token válido de cualquier
- * usuario para crear o borrar un país, que es una tabla de referencia de la que cuelgan clientes,
- * ciudades y fabricantes.
+ * <p>Leer exige {@code location.read} y escribir {@code location.write}. **El hexágono original no
+ * tenía una sola anotación de autorización**: bastaba un token válido de cualquier usuario para
+ * crear o borrar un país, que es una tabla de referencia de la que cuelgan clientes, ciudades y
+ * fabricantes.
  *
  * <p>Solo hay {@code PATCH} y no {@code PUT}. Un cambio total y uno parcial son la misma operación
  * cuando el único campo mutable es el nombre, y el original mantenía ambos caminos con un comando y
@@ -50,14 +50,14 @@ public class CountryRestAdapter {
     private final LocationRestMapper locationRestMapper;
 
     @Operation(summary = "Listar todos los paises")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.read')")
     @GetMapping
     public List<CountryResponse> getAllCountries() {
         return locationRestMapper.toCountryResponseList(countryServicePort.findAll());
     }
 
     @Operation(summary = "Obtener un pais por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.read')")
     @GetMapping("/{id}")
     public CountryResponse getCountryById(
             @Parameter(description = "Identificador del pais") @PathVariable UUID id) {
@@ -66,7 +66,7 @@ public class CountryRestAdapter {
     }
 
     @Operation(summary = "Registrar un pais")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.write')")
     @PostMapping
     public ResponseEntity<CountryResponse> createCountry(
             @Valid @RequestBody CountryCreateRequest request) {
@@ -80,7 +80,7 @@ public class CountryRestAdapter {
     @Operation(
             summary = "Cambiar el nombre de un pais",
             description = "Los campos ausentes conservan su valor. El codigo ISO no se puede cambiar.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.write')")
     @PatchMapping("/{id}")
     public CountryResponse updateCountry(
             @Parameter(description = "Identificador del pais") @PathVariable UUID id,
@@ -96,7 +96,7 @@ public class CountryRestAdapter {
     @Operation(
             summary = "Retirar un pais",
             description = "No lo borra: lo deja inactivo, conservando el historial.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('location.write')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateCountry(

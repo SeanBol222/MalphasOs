@@ -37,14 +37,14 @@ public class EquipmentTypeRestAdapter {
     private final EquipmentRestMapper mapper;
 
     @Operation(summary = "Listar todos los tipos de equipo")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping
     public List<EquipmentTypeResponse> getAll() {
         return mapper.toEquipmentTypeList(equipmentTypeServicePort.findAll());
     }
 
     @Operation(summary = "Obtener un tipo por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/{id}")
     public EquipmentTypeResponse getById(@PathVariable UUID id) {
         return mapper.toResponse(equipmentTypeServicePort.findById(id));
@@ -52,7 +52,7 @@ public class EquipmentTypeRestAdapter {
 
     @Operation(summary = "Registrar un tipo de equipo",
             description = "Si se indica la modalidad de verificacion, el tipo queda como verificable.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PostMapping
     public ResponseEntity<EquipmentTypeResponse> create(
             @Valid @RequestBody EquipmentTypeCreateRequest request) {
@@ -73,7 +73,7 @@ public class EquipmentTypeRestAdapter {
 
     @Operation(summary = "Cambiar las caracteristicas de un tipo",
             description = "Los campos ausentes conservan su valor. La modalidad tiene ruta propia.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PatchMapping("/{id}")
     public EquipmentTypeResponse update(
             @PathVariable UUID id, @Valid @RequestBody EquipmentTypeUpdateRequest request) {
@@ -91,7 +91,7 @@ public class EquipmentTypeRestAdapter {
 
     @Operation(summary = "Declarar como se verifica el tipo",
             description = "Una modalidad ausente significa que el tipo deja de verificarse.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PatchMapping("/{id}/verification-mode")
     public EquipmentTypeResponse changeVerificationMode(
             @PathVariable UUID id, @Valid @RequestBody VerificationModeRequest request) {
@@ -101,7 +101,7 @@ public class EquipmentTypeRestAdapter {
     }
 
     @Operation(summary = "Retirar un tipo de equipo", description = "No lo borra: lo deja inactivo.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivate(@PathVariable UUID id) {

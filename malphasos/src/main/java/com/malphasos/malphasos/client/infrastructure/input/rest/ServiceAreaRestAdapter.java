@@ -37,7 +37,7 @@ public class ServiceAreaRestAdapter {
     private final ClientRestMapper clientRestMapper;
 
     @Operation(summary = "Listar las areas de una sede")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('service-area.read')")
     @GetMapping("/headquarters/{idSede}/service-areas")
     public List<ServiceAreaResponse> getByHeadquarter(@PathVariable UUID idSede) {
         return clientRestMapper.toServiceAreaResponseList(
@@ -47,7 +47,7 @@ public class ServiceAreaRestAdapter {
     @Operation(
             summary = "Abrir un area de servicio en una sede",
             description = "La sede debe estar activa: no se abre un area en una sede cerrada.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('service-area.write')")
     @PostMapping("/headquarters/{idSede}/service-areas")
     public ResponseEntity<ServiceAreaResponse> createServiceArea(
             @PathVariable UUID idSede, @Valid @RequestBody ServiceAreaCreateRequest request) {
@@ -59,7 +59,7 @@ public class ServiceAreaRestAdapter {
     }
 
     @Operation(summary = "Obtener un area por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('service-area.read')")
     @GetMapping("/service-areas/{id}")
     public ServiceAreaResponse getById(@PathVariable UUID id) {
         return clientRestMapper.toResponse(serviceAreaServicePort.findById(id));
@@ -68,7 +68,7 @@ public class ServiceAreaRestAdapter {
     @Operation(
             summary = "Cambiar el nombre de un area",
             description = "La sede no se puede cambiar: un area no se traslada.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('service-area.write')")
     @PatchMapping("/service-areas/{id}")
     public ServiceAreaResponse renameServiceArea(
             @PathVariable UUID id, @Valid @RequestBody ServiceAreaCreateRequest request) {
@@ -78,7 +78,7 @@ public class ServiceAreaRestAdapter {
     }
 
     @Operation(summary = "Cerrar un area de servicio", description = "No la borra: la deja inactiva.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('service-area.write')")
     @DeleteMapping("/service-areas/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateServiceArea(@PathVariable UUID id) {

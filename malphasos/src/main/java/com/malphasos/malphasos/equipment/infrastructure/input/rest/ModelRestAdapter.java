@@ -37,7 +37,7 @@ public class ModelRestAdapter {
 
     @Operation(summary = "Listar modelos",
             description = "Con el parametro idEquipo, solo los de esa asociacion marca-tipo.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping
     public List<ModelResponse> getAll(
             @Parameter(description = "Filtra por asociacion marca-tipo")
@@ -49,7 +49,7 @@ public class ModelRestAdapter {
     }
 
     @Operation(summary = "Obtener un modelo por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/{id}")
     public ModelResponse getById(@PathVariable UUID id) {
         return mapper.toResponse(modelServicePort.findById(id));
@@ -57,7 +57,7 @@ public class ModelRestAdapter {
 
     @Operation(summary = "Registrar un modelo",
             description = "La asociacion marca-tipo debe estar activa.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PostMapping
     public ResponseEntity<ModelResponse> create(@Valid @RequestBody ModelCreateRequest request) {
         ModelResponse creado = mapper.toResponse(modelServicePort.create(new CreateModelCommand(
@@ -68,7 +68,7 @@ public class ModelRestAdapter {
 
     @Operation(summary = "Anotar o corregir el registro INVIMA",
             description = "Un registro ausente deja el modelo sin el.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PatchMapping("/{id}/invima")
     public ModelResponse changeInvima(@PathVariable UUID id, @Valid @RequestBody InvimaRequest request) {
         return mapper.toResponse(
@@ -76,7 +76,7 @@ public class ModelRestAdapter {
     }
 
     @Operation(summary = "Retirar un modelo", description = "No lo borra: lo deja inactivo.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivate(@PathVariable UUID id) {

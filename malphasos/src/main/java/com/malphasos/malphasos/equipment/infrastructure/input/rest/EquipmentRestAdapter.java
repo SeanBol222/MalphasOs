@@ -36,7 +36,7 @@ public class EquipmentRestAdapter {
 
     @Operation(summary = "Listar asociaciones",
             description = "Con el parametro idMarca, solo las de esa marca.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping
     public List<EquipmentResponse> getAll(
             @Parameter(description = "Filtra por marca") @RequestParam(required = false) UUID idMarca) {
@@ -47,14 +47,14 @@ public class EquipmentRestAdapter {
     }
 
     @Operation(summary = "Obtener una asociacion por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/{id}")
     public EquipmentResponse getById(@PathVariable UUID id) {
         return mapper.toResponse(equipmentServicePort.findById(id));
     }
 
     @Operation(summary = "Registrar que una marca fabrica un tipo de equipo")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PostMapping
     public ResponseEntity<EquipmentResponse> create(@Valid @RequestBody EquipmentCreateRequest request) {
         EquipmentResponse creada = mapper.toResponse(equipmentServicePort.create(
@@ -64,7 +64,7 @@ public class EquipmentRestAdapter {
     }
 
     @Operation(summary = "Retirar una asociacion", description = "No la borra: la deja inactiva.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivate(@PathVariable UUID id) {

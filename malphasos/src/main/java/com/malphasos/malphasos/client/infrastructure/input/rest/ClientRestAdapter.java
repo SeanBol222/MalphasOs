@@ -52,14 +52,14 @@ public class ClientRestAdapter {
     private final ClientRestMapper clientRestMapper;
 
     @Operation(summary = "Listar todos los clientes")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.read')")
     @GetMapping
     public List<ClientResponse> getAllClients() {
         return clientRestMapper.toClientResponseList(clientServicePort.findAll());
     }
 
     @Operation(summary = "Obtener un cliente por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.read')")
     @GetMapping("/{id}")
     public ClientResponse getClientById(
             @Parameter(description = "Identificador del cliente") @PathVariable UUID id) {
@@ -68,7 +68,7 @@ public class ClientRestAdapter {
     }
 
     @Operation(summary = "Registrar un cliente")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @PostMapping
     public ResponseEntity<ClientResponse> createClient(
             @Valid @RequestBody ClientCreateRequest request) {
@@ -86,7 +86,7 @@ public class ClientRestAdapter {
     @Operation(
             summary = "Cambiar los datos de un cliente",
             description = "Los campos ausentes conservan su valor. El documento no se puede cambiar.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @PatchMapping("/{id}")
     public ClientResponse updateClient(
             @PathVariable UUID id, @Valid @RequestBody ClientUpdateRequest request) {
@@ -96,7 +96,7 @@ public class ClientRestAdapter {
     }
 
     @Operation(summary = "Retirar un cliente", description = "No lo borra: lo deja inactivo.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.delete')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateClient(@PathVariable UUID id) {
@@ -104,7 +104,7 @@ public class ClientRestAdapter {
     }
 
     @Operation(summary = "Agregar un correo de contacto")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @PostMapping("/{id}/emails")
     public ResponseEntity<ClientResponse> addEmail(
             @PathVariable UUID id, @Valid @RequestBody ContactRequest request) {
@@ -116,7 +116,7 @@ public class ClientRestAdapter {
     }
 
     @Operation(summary = "Retirar un correo", description = "Lo deja inactivo, no lo borra.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @DeleteMapping("/{id}/emails/{idCorreo}")
     public ClientResponse removeEmail(@PathVariable UUID id, @PathVariable UUID idCorreo) {
         return clientRestMapper.toResponse(
@@ -124,7 +124,7 @@ public class ClientRestAdapter {
     }
 
     @Operation(summary = "Agregar un telefono de contacto")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @PostMapping("/{id}/phones")
     public ResponseEntity<ClientResponse> addPhone(
             @PathVariable UUID id, @Valid @RequestBody ContactRequest request) {
@@ -136,7 +136,7 @@ public class ClientRestAdapter {
     }
 
     @Operation(summary = "Retirar un telefono", description = "Lo deja inactivo, no lo borra.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @DeleteMapping("/{id}/phones/{idTelefono}")
     public ClientResponse removePhone(@PathVariable UUID id, @PathVariable UUID idTelefono) {
         return clientRestMapper.toResponse(
@@ -146,7 +146,7 @@ public class ClientRestAdapter {
     @Operation(
             summary = "Nombrar representante legal",
             description = "La persona debe existir. Una persona puede representar a varios clientes.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @PostMapping("/{id}/representatives/{idPersona}")
     public ResponseEntity<ClientResponse> appointRepresentative(
             @PathVariable UUID id, @PathVariable UUID idPersona) {
@@ -159,7 +159,7 @@ public class ClientRestAdapter {
     }
 
     @Operation(summary = "Retirar a un representante legal")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('client.write')")
     @DeleteMapping("/{id}/representatives/{idPersona}")
     public ClientResponse removeRepresentative(
             @PathVariable UUID id, @PathVariable UUID idPersona) {

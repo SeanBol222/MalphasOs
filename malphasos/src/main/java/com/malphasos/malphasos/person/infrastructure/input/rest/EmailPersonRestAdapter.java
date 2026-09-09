@@ -38,7 +38,7 @@ public class EmailPersonRestAdapter {
     private final PersonRestMapper personRestMapper;
 
     @Operation(summary = "Agregar un correo a una persona")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('person.write')")
     @PostMapping
     public ResponseEntity<PersonResponse> addEmail(
             @Parameter(description = "Identificador de la persona") @PathVariable UUID personId,
@@ -51,7 +51,7 @@ public class EmailPersonRestAdapter {
     }
 
     @Operation(summary = "Actualizar un correo de una persona")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('person.write')")
     @PutMapping("/{emailId}")
     public PersonResponse updateEmail(
             @PathVariable UUID personId,
@@ -65,7 +65,7 @@ public class EmailPersonRestAdapter {
     @Operation(
             summary = "Desactivar un correo",
             description = "No lo elimina: lo marca como inactivo y conserva el historial.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('person.write')")
     @DeleteMapping("/{emailId}")
     public PersonResponse removeEmail(
             @PathVariable UUID personId,

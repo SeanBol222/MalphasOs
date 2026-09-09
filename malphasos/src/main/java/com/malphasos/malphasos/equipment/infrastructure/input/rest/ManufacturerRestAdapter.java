@@ -29,21 +29,21 @@ public class ManufacturerRestAdapter {
     private final EquipmentRestMapper mapper;
 
     @Operation(summary = "Listar todos los fabricantes")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping
     public List<ManufacturerResponse> getAll() {
         return mapper.toManufacturerList(manufacturerServicePort.findAll());
     }
 
     @Operation(summary = "Obtener un fabricante por su identificador")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/{id}")
     public ManufacturerResponse getById(@PathVariable UUID id) {
         return mapper.toResponse(manufacturerServicePort.findById(id));
     }
 
     @Operation(summary = "Registrar un fabricante")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PostMapping
     public ResponseEntity<ManufacturerResponse> create(@Valid @RequestBody ManufacturerRequest request) {
         ManufacturerResponse creado = mapper.toResponse(manufacturerServicePort.create(
@@ -54,7 +54,7 @@ public class ManufacturerRestAdapter {
 
     @Operation(summary = "Cambiar los datos de un fabricante",
             description = "Los campos ausentes conservan su valor.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @PatchMapping("/{id}")
     public ManufacturerResponse update(
             @PathVariable UUID id, @Valid @RequestBody ManufacturerRequest request) {
@@ -64,7 +64,7 @@ public class ManufacturerRestAdapter {
     }
 
     @Operation(summary = "Retirar un fabricante", description = "No lo borra: lo deja inactivo.")
-    @PreAuthorize("hasAuthority('admin.full')")
+    @PreAuthorize("hasAuthority('equipment.write')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivate(@PathVariable UUID id) {
