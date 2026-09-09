@@ -2,7 +2,7 @@
 name: checklist-reutilizacion
 description: Orden priorizado sugerido de qué portar primero al construir MalphasOS, basado en el análisis de todo el wiki
 tags: [malphasos, checklist, planificacion]
-updated: 2026-09-08
+updated: 2026-09-09
 ---
 
 # Checklist priorizado de reutilización
@@ -11,7 +11,17 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 > **Estado al 2026-09-08.** Los cuatro módulos de dominio —`person`, `location`, `client` y `equipment`— están completos de esquema a REST. Del alcance del backend queda **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos. Lo demás pendiente es frontend y opcionales.
 >
-> Sobre el conteo de la batería: **472 pruebas en verde** medidas el 2026-09-08 sobre la rama `feat/permission-model`, **todavía sin mergear a `main`**; en `main` son 339. Es el atributo `tests=` de los XML de Surefire, borrando el directorio de informes antes de correr; el mismo `main` da 307 por los `.txt`, que no cuentan las clases `@Nested`. Ver [[stack-spring-boot-4-particularidades]].
+> Sobre el conteo de la batería, y sobre **dos ramas que no están en `main` y no descienden una de otra**:
+>
+> | Rama | En `main` | Pruebas | Qué trae |
+> |---|---|---|---|
+> | `main` (`82a697b`) | — | 339 | Los cuatro módulos |
+> | `feat/permission-model` (`2de115f`) | **No** | 472 | El modelo de permisos. Parte de un `main` anterior |
+> | `fix/person-identity-sync` (`5fde17c`) | **No** | **361** | La sincronización con Keycloak. Parte del `main` actual |
+>
+> **Las dos ramas no se han visto entre sí**: 361 no incluye las 139 pruebas de seguridad, y 472 no incluye la baja en Keycloak. El día que se mergeen habrá que remedirlo, no sumarlo. Ambas duplican por su cuenta el arreglo de `unico()`.
+>
+> Todas las cifras son el atributo `tests=` de los XML de Surefire, borrando el directorio de informes antes de correr — que `mvn test` **no** limpia. Ese atributo se queda **dos por debajo** del número real de ejecuciones, 363 en `fix/person-identity-sync`; los `.txt` dan 329 porque no cuentan las clases `@Nested`. Ver [[stack-spring-boot-4-particularidades]].
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 
@@ -58,6 +68,8 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## 6. Identidad y frontend
 
+- [x] **Hecho (2026-09-09, en `fix/person-identity-sync`, sin mergear).** Sincronización de la persona con Keycloak al darla de baja y al editarla: `disableUser` y `updateUserProfile` en el puerto, llamados **antes** de persistir. Cierra la brecha de que dar de baja a alguien no le quitaba la entrada. **Queda abierto** el correo —no hay principal que sincronizar—, el cambio de grupo al cambiar de rol, y la ventana del token ya emitido. [[sincronizacion-con-proveedor-de-identidad]]
+
 - [x] **Hecho.** Portar `PersonIdentityPort`/Adapter. `createSuperAdminUser` queda fuera del puerto por estar sin implementar en el original. [[dominio-persona-identidad]], [[migracion-person-hallazgos]]
 - [ ] Portar `auth/keycloak.ts` + `AuthProvider` + `PrivateRoute` + `apiFetch` del frontend sin cambios estructurales. [[integracion-keycloak-frontend]]
 - [ ] Decidir organización por feature (no por tipo técnico) desde el inicio del frontend de MalphasOS, dado que el original todavía no lo resolvió. [[arquitectura-frontend]]
@@ -69,4 +81,4 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## Notas relacionadas
 
-[[sintesis-malphasos]] · [[alcance-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[modelo-de-permisos]]
+[[sintesis-malphasos]] · [[alcance-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]]

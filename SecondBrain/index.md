@@ -55,6 +55,7 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[reglas-de-negocio-en-el-esquema]] 🟢 — Los seis sitios donde un esquema SQL esconde reglas de negocio. Revisar antes de dar por migrado un módulo.
 - [[issuer-uri-vs-jwk-set-uri]] 🟢 — Por qué Keycloak en Docker devuelve 401 con tokens válidos, y cómo separar la URL pública de la interna.
 - [[traduccion-de-fallos-de-adaptadores]] 🟢 — Un adaptador de salida falla de dos maneras; traducir solo una deja escapar 500 fuera del contrato.
+- [[sincronizacion-con-proveedor-de-identidad]] 🟢 — Dos sistemas de registro sin transacción compartida: en qué orden llamarlos, qué no se puede propagar todavía y qué ventana no cierra ninguna de las dos cosas.
 - [[antipatron-open-in-view]] 🔴 — Por qué `open-in-view` esconde errores de carga perezosa y qué hacer en su lugar.
 - [[deuda-tecnica-y-riesgos]] ⭐ — Registro centralizado de todos los bugs/inconsistencias detectados. Consultar antes de portar cualquier pieza.
 
@@ -72,4 +73,4 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 
 ---
 
-**44 notas** · última actualización 2026-09-08 · ver [[log.md]] para el historial de ingests.
+**45 notas** · última actualización 2026-09-09 · ver [[log.md]] para el historial de ingests.
