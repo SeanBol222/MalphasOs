@@ -1,7 +1,7 @@
 ---
 name: sincronizacion-con-proveedor-de-identidad
 description: Dos sistemas de registro sin transaccion compartida - en que orden llamarlos, que se propaga, que no se puede propagar todavia y que ventana no cierra ninguna de las dos cosas
-tags: [patron, identidad, keycloak, seguridad, "reusable:alta"]
+tags: [patron, identidad, keycloak, seguridad, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/person/ (MalphasOS)
 estado: estable
 updated: 2026-09-09

@@ -1,7 +1,7 @@
 ---
 name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
-tags: [malphasos, stack, backend, hallazgo]
+tags: [malphasos, stack, backend, hallazgo, "describe:malphasos"]
 source: malphasos/pom.xml (MalphasOS)
 updated: 2026-09-09
 ---

@@ -1,7 +1,7 @@
 ---
 name: aggregate-root-pattern
 description: Clase base AggregateRoot que acumula eventos de dominio internamente (registerEvent/pullEvents)
-tags: [arquitectura, backend, ddd, "reusable:alta"]
+tags: [arquitectura, backend, ddd, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../shared/domain/events/AggregateRoot.java
 updated: 2026-08-29
 ---

@@ -1,7 +1,7 @@
 ---
 name: patron-event-dispatcher-dual
 description: Un puerto EventDispatcherPort con dos adaptadores intercambiables (in-process vs distribuido) seleccionables por @Qualifier
-tags: [patron, backend, eventos, "reusable:alta"]
+tags: [patron, backend, eventos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../shared/application/ports/output/EventDispatcherPort.java
 updated: 2026-08-27
 ---

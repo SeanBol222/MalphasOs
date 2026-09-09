@@ -1,7 +1,7 @@
 ---
 name: alcance-malphasos
 description: Mapeo módulo por módulo de qué entra a MalphasOS desde bolivarbioingenieria-app y qué se queda fuera
-tags: [malphasos, alcance, planificacion]
+tags: [malphasos, alcance, planificacion, "describe:ambos"]
 updated: 2026-08-29
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: patron-report-data-provider
 description: ReportDataProviderPort<T> genérico en shared — patrón plugin/strategy para que cada dominio provea datos de reportes sin acoplar el módulo de reportes
-tags: [patron, backend, reportes, "reusable:alta"]
+tags: [patron, backend, reportes, "reusable:alta", "describe:original"]
 source: Backend/sigma-bb/src/main/java/.../shared/application/ports/input/ReportDataProviderPort.java
 updated: 2026-08-27
 ---

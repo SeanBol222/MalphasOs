@@ -13,14 +13,15 @@ El código de MalphasOS vive **exclusivamente** en `malphasos/`.
 
 ## Antes de decidir nada de arquitectura, dominio o patrones
 
-Consulta **`SecondBrain/`**: 44 notas interconectadas que documentan y evalúan `bolivarbioingenieria-app`, con juicio explícito de qué portar tal cual, qué adaptar y qué evitar.
+Consulta **`SecondBrain/`**: 46 notas interconectadas. **Reenfocado el 2026-09-09**: nació para decidir qué portar de `bolivarbioingenieria-app` —pregunta ya contestada, la migración terminó— y hoy responde cómo funciona MalphasOS y qué falta por construir. Cada nota declara con la etiqueta `describe:*` si habla de MalphasOS, del sistema original, o del camino de uno al otro.
 
 Punto de entrada: `SecondBrain/index.md` (catálogo) y `SecondBrain/CLAUDE.md` (convenciones del wiki). Las notas que más se usan:
 
-- `wiki/malphasos/checklist-reutilizacion.md` — **qué está hecho y qué sigue**. Empieza por aquí.
+- `wiki/malphasos/hoja-de-ruta-producto.md` — **qué falta por construir**, backend y frontend, ordenado por dependencias. Empieza por aquí si vas a abrir un módulo nuevo.
+- `wiki/malphasos/checklist-reutilizacion.md` — el registro **cerrado** de la migración. Dice qué se hizo y cuándo; no es una lista de pendientes.
 - `wiki/malphasos/decisiones-tecnicas-malphasos.md` — toda decisión tomada, con su porqué.
 - `wiki/malphasos/modelo-de-permisos.md` — quién puede hacer qué, y por qué se decide en un solo sitio.
-- `wiki/patrones-reutilizables/deuda-tecnica-y-riesgos.md` — **63** defectos conocidos del original (decía 57; contados fila a fila el 2026-09-08), más una sección aparte con la deuda que hemos introducido nosotros. **Consultar antes de portar cualquier pieza.**
+- `wiki/patrones-reutilizables/deuda-tecnica-y-riesgos.md` — **63** defectos conocidos del original (decía 57; contados fila a fila el 2026-09-08 y recontados el 2026-09-09), más **17** de deuda propia en dos secciones aparte. **Consultar antes de tocar cualquier pieza.**
 - `wiki/malphasos/migracion-person-hallazgos.md` y `migracion-location-hallazgos.md` — qué apareció al migrar cada módulo.
 - `wiki/arquitectura/evolucion-arquitectonica-crud-a-cqrs.md` — Generación 1 (CRUD anémico, no replicar) vs Generación 2 (agregados + eventos, el patrón a seguir).
 
@@ -30,7 +31,7 @@ El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/In
 
 | Módulo | Estado |
 |---|---|
-| `bootstrap` | Configuración transversal, seguridad, OpenAPI, manejo de excepciones. Incluye `ApiAuthority`, el vocabulario de 19 autoridades y la expansión del administrador |
+| `bootstrap` | Configuración transversal, seguridad, OpenAPI, manejo de excepciones. `ApiAuthority` —el vocabulario de 19 autoridades y la expansión del administrador— vive solo en `feat/permission-model`, **no en `main`** |
 | `shared/domain/events` | Contrato de eventos de dominio + despachador in-process |
 | `person` | Completo, más `PersonCommunicationPort` publicado hacia otros módulos y la sincronización con Keycloak al dar de baja y al editar |
 | `location` | Completo: esquema, dominio, aplicación, persistencia, REST |
@@ -51,7 +52,7 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__eq
 
 Las cifras de arriba son el atributo `tests=` de los XML de Surefire. Los `.txt` dan menos porque **no cuentan las clases `@Nested`** — un `@ParameterizedTest` sí lo cuentan, al contrario de lo que este archivo afirmó hasta el 2026-09-08 —, y el propio atributo `tests=` se queda **por debajo del número real de ejecuciones** cuando dos clases `@Nested` tienen un método con el mismo nombre: en `fix/person-identity-sync` son 363 ejecuciones frente a 361 por atributo y 329 por `.txt`. Y `mvn test` **no borra `target/surefire-reports`**: antes de citar un conteo hay que borrarlo, o se suman informes de corridas y ramas anteriores. Ver [[stack-spring-boot-4-particularidades]].
 
-**La migración del backend está cerrada** salvo esa segunda tanda de `equipment`.
+**La migración del backend está cerrada** salvo esa segunda tanda de `equipment`. **Eso no es lo mismo que el producto terminado**: de los 31 requisitos funcionales de la ERS hay **8** implementados, de los 23 no funcionales **1**, y **no existe una sola línea de frontend**. El siguiente bloque decidido es **órdenes de trabajo**. El orden completo, con sus dependencias, en [[hoja-de-ruta-producto]].
 
 ## Cómo se trabaja aquí
 

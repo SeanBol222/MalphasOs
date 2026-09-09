@@ -1,7 +1,7 @@
 ---
 name: reglas-de-negocio-en-el-esquema
 description: Dónde se esconden las reglas de negocio dentro de un esquema SQL, y por qué es fácil dejarse alguna al migrarlas al dominio
-tags: [patron, base-de-datos, migracion, "reusable:alta"]
+tags: [patron, base-de-datos, migracion, "reusable:alta", "describe:ambos"]
 source: aprendido al migrar person_hexagon
 updated: 2026-08-28
 ---

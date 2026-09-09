@@ -1,7 +1,7 @@
 ---
 name: eventos-de-dominio
 description: Contrato DomainEvent/EventMetadata/Payload y el doble dispatcher intercambiable (Spring in-process vs RabbitMQ)
-tags: [arquitectura, backend, eventos, "reusable:alta"]
+tags: [arquitectura, backend, eventos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../shared/domain/events/, shared/application/ports/output/EventDispatcherPort.java
 estado: deuda-tecnica
 updated: 2026-08-29

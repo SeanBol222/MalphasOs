@@ -1,7 +1,7 @@
 ---
 name: arquitectura-hexagonal
 description: Patrón ports & adapters aplicado en el backend, capa por capa con ejemplo de flujo real
-tags: [arquitectura, backend, "reusable:alta"]
+tags: [arquitectura, backend, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/com/bolivar/bioingenieria/app/sigma_bb/
 updated: 2026-08-27
 ---

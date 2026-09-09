@@ -1,7 +1,7 @@
 ---
 name: seguridad-keycloak-backend
 description: Resource server OAuth2/JWT + admin client de Keycloak, dos piezas separadas con responsabilidades distintas
-tags: [arquitectura, backend, seguridad, keycloak, "reusable:alta"]
+tags: [arquitectura, backend, seguridad, keycloak, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../bootstrap/config/keycloak/, bootstrap/config/security/
 updated: 2026-09-09
 ---

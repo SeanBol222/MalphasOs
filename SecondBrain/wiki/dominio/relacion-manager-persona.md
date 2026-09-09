@@ -1,7 +1,7 @@
 ---
 name: relacion-manager-persona
 description: Un encargado ES una persona, por clave primaria compartida — confirmado en esquema, servicio y DTO; el modelo de dominio es el único que no lo dice
-tags: [dominio, backend, deuda-de-diseno, "reusable:media"]
+tags: [dominio, backend, deuda-de-diseno, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/domain/model/manager_model/, DataBase/v4/initdb/A_Sigma_DB_V4.sql
 estado: inconsistente
 updated: 2026-08-30

@@ -1,7 +1,7 @@
 ---
 name: stack-tecnologico
 description: Stack tecnológico completo del backend, frontend, BD e infraestructura
-tags: [overview, stack, "reusable:alta"]
+tags: [overview, stack, "reusable:alta", "describe:original"]
 source: Backend/sigma-bb/pom.xml, Frontend/package.json, docker-compose.yaml
 updated: 2026-08-27
 ---

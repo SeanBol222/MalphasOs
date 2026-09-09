@@ -1,7 +1,7 @@
 ---
 name: antipatron-open-in-view
 description: Por qué open-in-view enmascara errores de carga perezosa y qué hacer en su lugar
-tags: [patron, backend, jpa, "reusable:no"]
+tags: [patron, backend, jpa, "reusable:no", "describe:ambos"]
 source: descubierto al migrar person_hexagon
 updated: 2026-08-28
 ---

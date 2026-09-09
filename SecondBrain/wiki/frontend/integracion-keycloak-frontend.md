@@ -1,7 +1,7 @@
 ---
 name: integracion-keycloak-frontend
 description: keycloak-js + AuthProvider (Context) + PrivateRoute + apiFetch — starter kit de auth completo y reutilizable sin cambios estructurales
-tags: [frontend, keycloak, seguridad, "reusable:alta"]
+tags: [frontend, keycloak, seguridad, "reusable:alta", "describe:original"]
 source: Frontend/src/auth/, Frontend/src/services/api.ts
 updated: 2026-08-27
 ---

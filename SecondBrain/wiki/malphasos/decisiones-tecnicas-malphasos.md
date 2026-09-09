@@ -1,7 +1,7 @@
 ---
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
-tags: [malphasos, decisiones, adr]
+tags: [malphasos, decisiones, adr, "describe:malphasos"]
 updated: 2026-09-09
 ---
 

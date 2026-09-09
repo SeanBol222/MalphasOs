@@ -1,7 +1,7 @@
 ---
 name: migracion-location-hallazgos
 description: Lo que aparecio al migrar el modulo que el wiki daba por ejemplar — agregados con la igualdad rota, setters publicos y un evento que mentia sobre si mismo
-tags: [malphasos, location, hallazgos, migracion, generacion-2]
+tags: [malphasos, location, hallazgos, migracion, generacion-2, "describe:ambos"]
 source: location_hexagon (original) → malphasos/src/.../location (MalphasOS)
 updated: 2026-08-29
 ---

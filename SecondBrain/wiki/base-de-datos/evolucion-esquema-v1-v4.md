@@ -1,7 +1,7 @@
 ---
 name: evolucion-esquema-v1-v4
 description: v1 a v4 es endurecimiento de un mismo modelo (mismas 27 tablas), no un rediseño conceptual
-tags: [base-de-datos, historia, "reusable:media"]
+tags: [base-de-datos, historia, "reusable:media", "describe:original"]
 source: DataBase/v1/initdb/, DataBase/v4/initdb/A_Sigma_DB_V4.sql
 updated: 2026-08-27
 ---

@@ -1,7 +1,7 @@
 ---
 name: evolucion-arquitectonica-crud-a-cqrs
 description: El repo convive con dos generaciones de patrón — CRUD anémico (client/person) vs agregados ricos + commands + eventos (equipment/location) — este es el hallazgo más importante del wiki
-tags: [arquitectura, backend, decision-clave, "reusable:alta"]
+tags: [arquitectura, backend, decision-clave, "reusable:alta", "describe:ambos"]
 source: git log — commit 2d39984 "Fix: applying CQRS patterns"
 updated: 2026-08-27
 ---

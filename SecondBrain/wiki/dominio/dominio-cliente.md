@@ -1,7 +1,7 @@
 ---
 name: dominio-cliente
 description: client_hexagon — Client, Headquarter, ServiceArea, Manager. Patrón CRUD anémico (Generación 1)
-tags: [dominio, backend, gestion-clientes, "reusable:media"]
+tags: [dominio, backend, gestion-clientes, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/
 estado: incompleto
 updated: 2026-09-02

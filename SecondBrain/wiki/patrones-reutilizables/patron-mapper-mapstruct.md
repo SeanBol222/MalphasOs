@@ -1,7 +1,7 @@
 ---
 name: patron-mapper-mapstruct
 description: MapStruct en cada frontera de capa (REST<->Domain<->Entity), con @AfterMapping para relaciones bidireccionales JPA
-tags: [patron, backend, mappers, "reusable:alta"]
+tags: [patron, backend, mappers, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/infrastructure/adapters/output/persistence/mapper/
 updated: 2026-08-29
 ---

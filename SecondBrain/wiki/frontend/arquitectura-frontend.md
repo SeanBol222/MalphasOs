@@ -1,7 +1,7 @@
 ---
 name: arquitectura-frontend
 description: React 19 + TS + Vite, proyecto en etapa de bootstrap — organización por tipo técnico, sin estado global ni UI kit todavía
-tags: [frontend, "reusable:media"]
+tags: [frontend, "reusable:media", "describe:original"]
 source: Frontend/src/
 estado: incompleto
 updated: 2026-08-27

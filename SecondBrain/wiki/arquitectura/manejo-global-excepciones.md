@@ -1,7 +1,7 @@
 ---
 name: manejo-global-excepciones
 description: Patrón de manejo de excepciones — catálogo enum + RestControllerAdvice + DTO de error, repetido por bounded context
-tags: [arquitectura, backend, excepciones, "reusable:media"]
+tags: [arquitectura, backend, excepciones, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../bootstrap/exception/
 estado: inconsistente
 updated: 2026-08-29

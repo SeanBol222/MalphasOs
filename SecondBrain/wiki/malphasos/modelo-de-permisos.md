@@ -1,7 +1,7 @@
 ---
 name: modelo-de-permisos
 description: Las 19 autoridades del API de MalphasOS, la regla de expansión del administrador aplicada en dos capas, y qué recibe cada grupo del realm
-tags: [malphasos, seguridad, keycloak, autorizacion, "reusable:media"]
+tags: [malphasos, seguridad, keycloak, autorizacion, "reusable:media", "describe:malphasos"]
 estado: estable
 updated: 2026-09-08
 ---

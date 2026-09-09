@@ -1,7 +1,7 @@
 ---
 name: deuda-tecnica-y-riesgos
 description: Registro centralizado de bugs, inconsistencias y piezas incompletas detectadas en bolivarbioingenieria-app, mas una seccion aparte para la deuda que MalphasOS ha introducido por su cuenta
-tags: [deuda-tecnica, riesgos, "reusable:no"]
+tags: [deuda-tecnica, riesgos, "reusable:no", "describe:ambos"]
 updated: 2026-09-09
 ---
 

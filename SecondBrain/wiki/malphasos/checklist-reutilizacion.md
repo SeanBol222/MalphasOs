@@ -1,7 +1,7 @@
 ---
 name: checklist-reutilizacion
 description: Orden priorizado sugerido de qué portar primero al construir MalphasOS, basado en el análisis de todo el wiki
-tags: [malphasos, checklist, planificacion]
+tags: [malphasos, checklist, planificacion, "describe:ambos"]
 updated: 2026-09-09
 ---
 

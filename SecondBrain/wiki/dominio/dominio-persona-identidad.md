@@ -1,7 +1,7 @@
 ---
 name: dominio-persona-identidad
 description: person_hexagon — Person + integración con Keycloak Admin API para crear usuarios/roles
-tags: [dominio, backend, identidad, keycloak, "reusable:alta"]
+tags: [dominio, backend, identidad, keycloak, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../person_hexagon/
 estado: incompleto
 updated: 2026-09-09

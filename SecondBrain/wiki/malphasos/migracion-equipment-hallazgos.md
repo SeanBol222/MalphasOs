@@ -1,7 +1,7 @@
 ---
 name: migracion-equipment-hallazgos
 description: Lo que apareció al migrar el núcleo de negocio en cinco pasos, incluido un booleano que el dominio no sabía derivar y una tabla cuyo nombre miente
-tags: [malphasos, migracion, equipment, hallazgos, "reusable:media"]
+tags: [malphasos, migracion, equipment, hallazgos, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/com/sigma/bb/equipment_hexagon
 estado: estable
 updated: 2026-09-02
