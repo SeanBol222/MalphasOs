@@ -68,7 +68,8 @@ Catálogo de contenido del wiki. Ver [[CLAUDE.md]] para las convenciones. Leyend
 - [[migracion-location-hallazgos]] 🟡 — Lo que aparecio al migrar el modulo que este wiki daba por ejemplar: igualdad rota, setters publicos y un evento que mentia.
 - [[migracion-client-hallazgos]] 🟡 — El modulo mas grande, reconstruido y no portado: fronteras de agregados y la tabla que no tenia codigo.
 - [[migracion-equipment-hallazgos]] ⭐ — El nucleo de negocio, en cinco pasos: un booleano que el dominio no sabia derivar, una tabla cuyo nombre miente y la prueba centinela que se rompio a proposito.
+- [[modelo-de-permisos]] 🟡 — Las 19 autoridades del API, la expansion del administrador en dos capas, y por que 83 anotaciones identicas no protegian a nadie salvo al admin.
 
 ---
 
-**43 notas** · última actualización 2026-09-02 · ver [[log.md]] para el historial de ingests.
+**44 notas** · última actualización 2026-09-08 · ver [[log.md]] para el historial de ingests.
