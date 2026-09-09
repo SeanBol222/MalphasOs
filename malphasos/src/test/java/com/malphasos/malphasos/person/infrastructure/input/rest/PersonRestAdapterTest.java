@@ -2,6 +2,7 @@ package com.malphasos.malphasos.person.infrastructure.input.rest;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import tools.jackson.databind.json.JsonMapper;
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
+import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.person.Person;
@@ -238,6 +241,28 @@ class PersonRestAdapterTest {
         mockMvc.perform(delete("/v1/api/persons/{id}", id)).andExpect(status().isNoContent());
 
         verify(personServicePort).delete(id);
+    }
+
+    @Test
+    @DisplayName("desactivar con Keycloak caido responde 503 y no un 500 generico")
+    void deleteWithKeycloakDownReturnsServiceUnavailable() throws Exception {
+        UUID id = UUID.randomUUID();
+        doThrow(new KeycloakConnectionException("keycloak caido")).when(personServicePort).delete(id);
+
+        mockMvc.perform(delete("/v1/api/persons/{id}", id))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("ERR_KEYCLOAK_004"));
+    }
+
+    @Test
+    @DisplayName("desactivar con un secreto invalido contra Keycloak responde 502")
+    void deleteWithInvalidKeycloakSecretReturnsBadGateway() throws Exception {
+        UUID id = UUID.randomUUID();
+        doThrow(new KeycloakUnauthorizedException("secreto invalido")).when(personServicePort).delete(id);
+
+        mockMvc.perform(delete("/v1/api/persons/{id}", id))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value("ERR_KEYCLOAK_003"));
     }
 
     @Test
