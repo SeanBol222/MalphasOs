@@ -3,20 +3,27 @@ package com.malphasos.malphasos.person.application.services.person;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.malphasos.malphasos.person.application.model.identity.PersonIdentityProfile;
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityRequest;
 import com.malphasos.malphasos.person.application.model.request.EmailPersonUseCaseRequest;
 import com.malphasos.malphasos.person.application.model.request.PersonUseCaseRequest;
 import com.malphasos.malphasos.person.application.model.request.PhonePersonUseCaseRequest;
 import com.malphasos.malphasos.person.application.ports.output.PersonIdentityPort;
 import com.malphasos.malphasos.person.application.ports.output.PersonPersistencePort;
+import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.person.domain.person.RoleType;
+import java.lang.reflect.RecordComponent;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,7 +31,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
@@ -193,6 +202,229 @@ class PersonServiceTest {
         ArgumentCaptor<Person> saved = ArgumentCaptor.forClass(Person.class);
         verify(persistencePort).save(saved.capture());
         assertThat(saved.getValue().isEstadoActivo()).isFalse();
+    }
+
+    @Test
+    @DisplayName("dar de baja retira el acceso en Keycloak con el identificador de la persona")
+    void deleteDisablesTheIdentityAccount() {
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service().delete(id);
+
+        verify(identityPort).disableUser(id.toString());
+    }
+
+    @Test
+    @DisplayName("el orden falla cerrado: Keycloak se retira antes de guardar la baja")
+    void deleteRevokesAccessBeforePersisting() {
+        // Es la invariante de seguridad que corrige este cambio: si el orden se invierte, queda
+        // una persona dada de baja que todavia puede entrar, que es el defecto original.
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service().delete(id);
+
+        InOrder orden = Mockito.inOrder(identityPort, persistencePort);
+        orden.verify(identityPort).disableUser(id.toString());
+        orden.verify(persistencePort).save(any());
+    }
+
+    @Test
+    @DisplayName("si Keycloak no responde al dar de baja, se propaga el fallo y no se guarda")
+    void deleteFailsClosedWhenKeycloakIsUnreachable() {
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+        doThrow(new KeycloakConnectionException("keycloak caido"))
+                .when(identityPort)
+                .disableUser(id.toString());
+
+        assertThatThrownBy(() -> service().delete(id))
+                .isInstanceOf(KeycloakConnectionException.class);
+
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("sin permisos sobre Keycloak, la baja tambien se aborta")
+    void deleteFailsClosedWhenKeycloakRejectsAuthorization() {
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+        doThrow(new KeycloakUnauthorizedException("sin permisos"))
+                .when(identityPort)
+                .disableUser(id.toString());
+
+        assertThatThrownBy(() -> service().delete(id))
+                .isInstanceOf(KeycloakUnauthorizedException.class);
+
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("si la persona nunca tuvo cuenta en Keycloak, la baja se completa igual")
+    void deleteCompletesWhenIdentityAccountIsMissing() {
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new KeycloakUserNotFoundException("no existe"))
+                .when(identityPort)
+                .disableUser(id.toString());
+
+        service().delete(id);
+
+        ArgumentCaptor<Person> saved = ArgumentCaptor.forClass(Person.class);
+        verify(persistencePort).save(saved.capture());
+        assertThat(saved.getValue().isEstadoActivo()).isFalse();
+    }
+
+    @Test
+    @DisplayName("una persona ya inactiva vuelve a deshabilitarse en Keycloak al repetir la baja")
+    void deleteRepeatsDisableUserForAnAlreadyInactivePerson() {
+        // Intencional: repetir es barato y repara una desincronizacion si alguien reactivo la
+        // cuenta a mano en la consola de Keycloak.
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(false)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service().delete(id);
+
+        verify(identityPort).disableUser(id.toString());
+    }
+
+    @Test
+    @DisplayName("dar de baja una persona inexistente no llama al proveedor de identidad")
+    void deleteOfUnknownPersonNeverTouchesIdentityPort() {
+        UUID id = UUID.randomUUID();
+        when(persistencePort.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().delete(id)).isInstanceOf(PersonNotFoundException.class);
+
+        verify(identityPort, never()).disableUser(any());
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("actualizar propaga nombre y apellido a Keycloak antes de guardar")
+    void updatePropagatesProfileBeforePersisting() {
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Person changes = Person.builder()
+                .cedula("1234567890")
+                .primerNombre("Grace")
+                .primerApellido("Hopper")
+                .tipoPersona(PersonType.ENGINEER)
+                .build();
+
+        service().update(id, changes);
+
+        ArgumentCaptor<PersonIdentityProfile> profile = ArgumentCaptor.forClass(PersonIdentityProfile.class);
+        InOrder orden = Mockito.inOrder(identityPort, persistencePort);
+        orden.verify(identityPort).updateUserProfile(eq(id.toString()), profile.capture());
+        orden.verify(persistencePort).save(any());
+        assertThat(profile.getValue().firstName()).isEqualTo("Grace");
+        assertThat(profile.getValue().lastName()).isEqualTo("Hopper");
+    }
+
+    @Test
+    @DisplayName("actualizar no lleva a Keycloak ni el nombre de usuario ni el correo ni la contrasena")
+    void updateProfileCarriesOnlyFirstAndLastName() {
+        // Fija el contrato de PersonIdentityProfile: el record no tiene sitio para esos campos, y
+        // esta prueba es la que deberia romperse si alguien lo amplia sin pensarlo.
+        RecordComponent[] components = PersonIdentityProfile.class.getRecordComponents();
+
+        assertThat(components)
+                .extracting(RecordComponent::getName)
+                .containsExactlyInAnyOrder("firstName", "lastName");
+    }
+
+    @Test
+    @DisplayName("con una combinacion de tipos invalida, actualizar no llama a Keycloak")
+    void updateWithInvalidTypesNeverCallsIdentityPort() {
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+
+        Person changes = Person.builder()
+                .tipoPersona(PersonType.ENGINEER)
+                .segundoTipoPersona(PersonType.MANAGER)
+                .build();
+
+        assertThatThrownBy(() -> service().update(id, changes))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(identityPort, never()).updateUserProfile(any(), any());
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("actualizar una persona sin cuenta en Keycloak persiste igual")
+    void updatePersistsEvenWithoutAnIdentityAccount() {
+        UUID id = UUID.randomUUID();
+        Person existing = Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new KeycloakUserNotFoundException("no existe"))
+                .when(identityPort)
+                .updateUserProfile(eq(id.toString()), any());
+
+        Person changes = Person.builder()
+                .cedula("1234567890")
+                .primerNombre("Grace")
+                .primerApellido("Hopper")
+                .tipoPersona(PersonType.ENGINEER)
+                .build();
+
+        Person updated = service().update(id, changes);
+
+        assertThat(updated.getPrimerNombre()).isEqualTo("Grace");
+        verify(persistencePort).save(any());
     }
 
     @Test
