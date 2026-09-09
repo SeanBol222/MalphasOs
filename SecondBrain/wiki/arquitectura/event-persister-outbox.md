@@ -1,7 +1,7 @@
 ---
 name: event-persister-outbox
 description: event_persister_hexagon — hexágono dedicado a persistir eventos como log de auditoría; actualmente desconectado/no operativo
-tags: [arquitectura, backend, eventos, auditoria, "reusable:media"]
+tags: [arquitectura, backend, eventos, auditoria, "reusable:media", "describe:original"]
 source: Backend/sigma-bb/src/main/java/.../event_persister_hexagon/
 estado: deuda-tecnica
 updated: 2026-08-27

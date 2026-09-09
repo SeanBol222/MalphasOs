@@ -1,7 +1,7 @@
 ---
 name: docker-compose
 description: 5 servicios orquestados — Postgres con initdb ordenado por prefijo, Keycloak compartiendo la instancia de Postgres, RabbitMQ, pgAdmin, backend
-tags: [infraestructura, docker, "reusable:alta"]
+tags: [infraestructura, docker, "reusable:alta", "describe:ambos"]
 source: docker-compose.yaml
 updated: 2026-08-27
 ---

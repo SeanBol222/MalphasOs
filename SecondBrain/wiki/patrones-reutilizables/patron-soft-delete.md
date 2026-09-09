@@ -1,7 +1,7 @@
 ---
 name: patron-soft-delete
 description: b_estado_activo boolean en casi toda tabla — borrado lógico universal en vez de DELETE físico
-tags: [patron, base-de-datos, "reusable:alta"]
+tags: [patron, base-de-datos, "reusable:alta", "describe:ambos"]
 source: DataBase/v4/initdb/A_Sigma_DB_V4.sql
 updated: 2026-08-27
 ---

@@ -1,7 +1,7 @@
 ---
 name: dockerfile-y-contenedores
 description: Cómo se contenedoriza el backend — build en dos etapas, usuario sin privilegios y healthcheck real vía Actuator
-tags: [infraestructura, docker, "reusable:media"]
+tags: [infraestructura, docker, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/Dockerfile (original), malphasos/Dockerfile (MalphasOS)
 updated: 2026-08-27
 ---

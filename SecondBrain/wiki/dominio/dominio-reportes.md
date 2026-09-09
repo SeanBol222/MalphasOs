@@ -1,7 +1,7 @@
 ---
 name: dominio-reportes
 description: reports_hexagon — agregador cross-dominio desacoplado vía ReportDataProviderPort genérico
-tags: [dominio, backend, reportes, "reusable:alta"]
+tags: [dominio, backend, reportes, "reusable:alta", "describe:original"]
 source: Backend/sigma-bb/src/main/java/.../reports_hexagon/, shared/application/ports/input/ReportDataProviderPort.java
 updated: 2026-08-27
 ---

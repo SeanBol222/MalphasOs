@@ -1,7 +1,7 @@
 ---
 name: esquema-bd-v4
 description: Esquema PostgreSQL actual — 27 tablas, convención de prefijos por tipo de dato, soft-delete universal
-tags: [base-de-datos, "reusable:alta"]
+tags: [base-de-datos, "reusable:alta", "describe:ambos"]
 source: DataBase/v4/initdb/A_Sigma_DB_V4.sql
 updated: 2026-08-27
 ---

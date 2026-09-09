@@ -1,9 +1,9 @@
 ---
 name: seguridad-keycloak-backend
 description: Resource server OAuth2/JWT + admin client de Keycloak, dos piezas separadas con responsabilidades distintas
-tags: [arquitectura, backend, seguridad, keycloak, "reusable:alta"]
+tags: [arquitectura, backend, seguridad, keycloak, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../bootstrap/config/keycloak/, bootstrap/config/security/
-updated: 2026-09-08
+updated: 2026-09-09
 ---
 
 # Seguridad — Keycloak en el backend
@@ -47,10 +47,22 @@ Hasta esa fecha **las 83 operaciones exigían `admin.full`** y el modelo de role
 
 El detalle completo —qué autoridad protege qué, qué recibe cada grupo, qué queda abierto— está en [[modelo-de-permisos]].
 
+## Lo que un JWT válido no sabe: la cuenta pudo morir después de firmarse
+
+Este resource server valida el token **solo con la firma**, sin preguntarle a Keycloak si la cuenta sigue viva. Es lo normal en OAuth2 y es lo que hace que escale; el precio es una ventana que conviene tener escrita antes de que alguien la descubra en producción.
+
+Medido contra un **Keycloak 26.6.1 real** el 2026-09-09, al implementar la baja de personas:
+
+- Deshabilitar el usuario impide autenticarse de nuevo y renovar el token: el intento responde `invalid_grant`.
+- **Un token de acceso emitido antes de la baja sigue abriendo el API hasta que caduca.** En el realm de desarrollo, `accessTokenLifespan` son **300 segundos** (`docker/keycloak/import/malphasos-realm-realm.json`).
+
+Es decir: retirar el acceso a alguien surte efecto **para las autenticaciones nuevas, no para las ya emitidas**. Cerrar la ventana del todo exigiría introspección del token en cada petición, un coste por petición que hoy no se paga. Ver [[sincronizacion-con-proveedor-de-identidad]].
+
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — el patrón completo (resource server + admin client + role converter desde `resource_access`) es portable prácticamente sin cambios, solo actualizando `CLIENT_ID`, nombre de realm y prefijos de propiedades. Es una de las piezas más maduras y consistentes de todo el backend original. Ya está migrado.
 
 ## Notas relacionadas
 
-[[modelo-de-permisos]] · [[dominio-persona-identidad]] · [[integracion-keycloak-frontend]] · [[keycloak-configuracion]] · [[stack-tecnologico]]
+[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[dominio-persona-identidad]] · [[integracion-keycloak-frontend]] · [[keycloak-configuracion]] · [[stack-tecnologico]]

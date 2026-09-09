@@ -1,7 +1,7 @@
 ---
 name: migracion-client-hallazgos
 description: Migracion de client_hexagon a Generacion 2 — fronteras de agregados, la tabla sin codigo que se implemento, y las reglas que ningun esquema puede expresar
-tags: [malphasos, client, hallazgos, migracion, generacion-2]
+tags: [malphasos, client, hallazgos, migracion, generacion-2, "describe:ambos"]
 source: client_hexagon (original) → malphasos/src/.../client (MalphasOS)
 updated: 2026-09-02
 ---
@@ -78,7 +78,7 @@ El agregado tiene la forma que no admite estados imposibles: guarda **una** asig
 
 ## Los dos caminos de alta del encargado
 
-Consecuencia del último defecto. `register` crea la persona a través de [[traduccion-de-fallos-de-adaptadores|PersonCommunicationPort]] y la asigna; `assign` parte de alguien que ya existe.
+Consecuencia del último defecto. `register` crea la persona a través de `PersonCommunicationPort` (ver [[traduccion-de-fallos-de-adaptadores]]) y la asigna; `assign` parte de alguien que ya existe.
 
 `register` **comprueba que el destino exista y esté activo antes de crear la persona**. Al revés, un fallo en la validación dejaría una persona huérfana en la base sin encargado que la justifique. Y el tipo de persona lo fija el servicio, no quien llama.
 

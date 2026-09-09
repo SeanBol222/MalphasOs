@@ -1,7 +1,7 @@
 ---
 name: patron-cqrs-commands
 description: Cómo se aplica CQRS por commands en equipment_hexagon — no es CQRS completo, es separación de puertos + commands inmutables
-tags: [arquitectura, backend, cqrs, "reusable:alta"]
+tags: [arquitectura, backend, cqrs, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/application/services/*/commands/
 estado: incompleto
 updated: 2026-08-27

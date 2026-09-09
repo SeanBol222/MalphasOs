@@ -1,7 +1,7 @@
 ---
 name: traduccion-de-fallos-de-adaptadores
 description: Un adaptador de salida falla de dos maneras distintas, y traducir solo una deja escapar 500 genéricos fuera del contrato del API
-tags: [patron, arquitectura-hexagonal, excepciones, "reusable:alta"]
+tags: [patron, arquitectura-hexagonal, excepciones, "reusable:alta", "describe:malphasos"]
 source: descubierto al probar el registro de personas en MalphasOS
 updated: 2026-08-29
 ---

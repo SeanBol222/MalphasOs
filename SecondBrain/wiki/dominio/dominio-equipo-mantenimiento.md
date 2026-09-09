@@ -1,7 +1,7 @@
 ---
 name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
-tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta"]
+tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
 updated: 2026-09-02
 ---

@@ -1,9 +1,9 @@
 ---
 name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
-tags: [malphasos, stack, backend, hallazgo]
+tags: [malphasos, stack, backend, hallazgo, "describe:malphasos"]
 source: malphasos/pom.xml (MalphasOS)
-updated: 2026-09-08
+updated: 2026-09-09
 ---
 
 # Particularidades de Spring Boot 4 y el stack moderno
@@ -80,6 +80,22 @@ Hasta hoy esta nota afirmaba que el `.txt` **cuenta un `@ParameterizedTest` como
 | `EquipmentChainServiceTest` (3 anidadas) | 0 | 9 |
 
 Las dos últimas no se han tocado desde antes del 2026-09-02 y suman **exactamente 32**, que es el desfase que aquella medición atribuyó a los parametrizados. La cifra era correcta; la explicación, no. Es un caso de manual de conclusión que encaja con el dato y aun así apunta al mecanismo equivocado.
+
+### Corrección: tampoco el atributo `tests=` cuenta todo (2026-09-09)
+
+Esta nota daba el atributo `tests=` de los XML como el conteo bueno, "todas las pruebas". **No lo es: también se queda corto**, y hay un tercer número que nadie había mirado.
+
+Medido dos veces el 2026-09-09 sobre `fix/person-identity-sync`, borrando `target/surefire-reports` antes de cada ejecución. Las dos corridas dieron exactamente lo mismo:
+
+| Fuente | Suma | Qué cuenta |
+|---|---|---|
+| Resumen de Maven (`[INFO] Tests run:` final) y número de elementos `<testcase>` de los XML | **363** | **Las ejecuciones reales.** Es el techo |
+| atributo `tests=` de los `<testsuite>` | **361** | Dos de menos |
+| `target/surefire-reports/*.txt` | **329** | Omite por completo las clases `@Nested` |
+
+**Los dos que faltan salen de una sola clase**, y la causa es concreta y comprobable: `CatalogAggregatesTest` declara `tests="23"` y contiene **25** elementos `<testcase>`. Tres de sus clases `@Nested` tienen un método con **el mismo nombre**, `referenciasObligatorias`, y el atributo agregado del `<testsuite>` los cuenta **una sola vez**. Comprobado recorriendo los 36 XML: es la única clase del proyecto con nombres de método repetidos entre `@Nested`, y es la única en la que el atributo y el recuento de elementos difieren.
+
+Corolario práctico: **el número honesto es el del resumen de Maven**, que coincide con contar `<testcase>`. Los conteos publicados hasta ahora (339, 472, 361) no están inflados — están ligeramente **por debajo** de las pruebas que se ejecutaron, en la medida en que haya nombres de método repetidos entre clases anidadas.
 
 ### Y una trampa de método: Surefire no limpia sus informes
 

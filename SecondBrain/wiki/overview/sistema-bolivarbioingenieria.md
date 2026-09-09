@@ -1,7 +1,7 @@
 ---
 name: sistema-bolivarbioingenieria
 description: Visión general de bolivarbioingenieria-app — qué es, sus módulos y cómo encajan
-tags: [overview, "reusable:alta"]
+tags: [overview, "reusable:alta", "describe:original"]
 updated: 2026-08-27
 ---
 

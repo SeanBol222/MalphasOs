@@ -1,8 +1,8 @@
 ---
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
-tags: [malphasos, decisiones, adr]
-updated: 2026-09-08
+tags: [malphasos, decisiones, adr, "describe:malphasos"]
+updated: 2026-09-09
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -196,10 +196,30 @@ Detalle completo en [[modelo-de-permisos]]; aquí solo las decisiones y su coste
 
 **Un javadoc que quedó falso y nadie lo notó.** Los dos controladores de `location` afirmaban por escrito que todas sus operaciones exigen `admin.full`. La afirmación era cierta cuando se escribió y dejó de serlo con este cambio. Se corrigió en el mismo commit; queda como recordatorio de que **un comentario que enuncia una regla de seguridad envejece igual que el código y nada lo comprueba**.
 
+## Sincronizacion con el proveedor de identidad (2026-09-09)
+
+Detalle completo en [[sincronizacion-con-proveedor-de-identidad]]; aquí las decisiones y su coste.
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Qué hace la baja con la cuenta de Keycloak | **Deshabilitar, no borrar** | El motivo fuerte **no** es la simetría con el borrado lógico: es que el identificador de la persona **es** el id del usuario de Keycloak —`register` hace `UUID.fromString` sobre lo que devuelve `createUser`—. Borrar rompería esa correspondencia para siempre y recrear la cuenta daría otro UUID, sin tabla de equivalencias que lo repare |
+| Orden de las dos escrituras | **Keycloak primero, base después** | No hay transacción que abarque a los dos, así que hay que elegir en qué dirección puede quedar la inconsistencia. Con este orden, un fallo al persistir deja a alguien **activo que no puede entrar**: molesto, visible y reparable repitiendo el `DELETE`. Con el orden contrario dejaría a alguien **de baja que sí puede entrar**, que es el defecto que se estaba corrigiendo. **Coste aceptado**: la transacción sigue abierta durante una llamada de red |
+| Cómo se sostiene ese orden | **Con una prueba de orden** (`InOrder`), no con un javadoc | Mover una línea basta para invertirlo, y una prueba que solo comprobara "se llamó a Keycloak" pasaría igual |
+| Un usuario que no existe en Keycloak | **No impide la baja** | Quien se dio de alta con `save` nunca tuvo cuenta; el objetivo —que nadie entre con esa identidad— ya está cumplido. Se registra en el log porque, si la persona sí debía tener cuenta, es la única señal de que los dos sistemas estaban desincronizados. **Cualquier otro fallo sí aborta** |
+| Comprobar si ya estaba inactiva antes de llamar | **No se comprueba** | Repetir la baja es barato, es idempotente en Keycloak, y **repara** la desincronización si alguien reactivó la cuenta a mano desde la consola |
+| Qué propaga `update` | **Solo nombre y apellido** | El usuario no viaja en la petición; la contraseña es otra operación con otras garantías; y el **correo no se puede sincronizar**: una persona tiene varios sin ninguno marcado como principal, así que no hay forma de saber cuál es el de la cuenta. Es un límite del modelo de datos, no una omisión — por eso esa deuda queda **parcialmente abierta** |
+| Cómo se sostiene ese conjunto | **Prueba por reflexión sobre los componentes del `record`** | Si alguien añade usuario, correo o contraseña a `PersonIdentityProfile`, la prueba se rompe a propósito |
+| `enableUser` | **No se añade** | No existe hoy ningún camino de reactivación que lo llamaría, y un puerto con operaciones que nadie invoca es código muerto |
+| Mover al usuario de grupo al cambiar `tipoPersona` | **Fuera de esta tanda**, decisión explícita | Quien deja de ser ingeniero conserva sus permisos. Es un agujero real y sigue abierto, pero pertenece a la línea del [[modelo-de-permisos]]: cambiar de rol tiene consecuencias que merecen su propio caso de uso |
+
+**Un límite que se escribe en vez de disimularse.** Verificado contra un Keycloak 26.6.1 real: un token emitido **antes** de la baja sigue abriendo el API hasta que caduca —300 s en este realm—, porque el resource server lo valida sin preguntarle al emisor. La brecha queda cerrada **para las autenticaciones nuevas, no para las ya emitidas**; cerrarla del todo exige introspección por petición.
+
+**Y un cambio de conducta que nadie había señalado.** Añadir `case 404` a `translateClientFailure` modificó `deleteUser`, que ya existía: de sus **dos** caminos para un 404, el que pasa por la traducción devuelve ahora `KeycloakUserNotFoundException` en vez de `KeycloakConnectionException`. Es inocuo —su único llamante captura `RuntimeException` y solo cambia el log—, pero deja una regla: **un `switch` de traducción compartido tiene tantos llamantes como métodos lo usen, y añadirle un caso los modifica a todos**.
+
 ## Pendientes de decidir
 
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
 
 ## Notas relacionadas
 
-[[modelo-de-permisos]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

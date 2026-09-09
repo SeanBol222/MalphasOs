@@ -1,7 +1,7 @@
 ---
 name: patron-catalogo-errores-por-contexto
 description: Catálogo enum + ControllerAdvice + ErrorResponse repetido por bounded context — buen aislamiento, boilerplate duplicado
-tags: [patron, backend, excepciones, "reusable:media"]
+tags: [patron, backend, excepciones, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../{client,person,location}_hexagon/
 updated: 2026-08-27
 ---

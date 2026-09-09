@@ -1,7 +1,7 @@
 ---
 name: migracion-person-hallazgos
 description: Los 22 defectos encontrados al migrar person_hexagon capa por capa, y qué los destapó
-tags: [malphasos, person, hallazgos, migracion]
+tags: [malphasos, person, hallazgos, migracion, "describe:ambos"]
 source: person_hexagon (original) → malphasos/src/.../person (MalphasOS)
 updated: 2026-08-29
 ---

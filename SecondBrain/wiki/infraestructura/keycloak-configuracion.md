@@ -1,7 +1,7 @@
 ---
 name: keycloak-configuracion
 description: Realm sigma-bb-realm con 3 clients (público SPA + 2 confidenciales), theme de login personalizado
-tags: [infraestructura, keycloak, "reusable:alta"]
+tags: [infraestructura, keycloak, "reusable:alta", "describe:ambos"]
 source: keycloak/
 updated: 2026-09-08
 ---

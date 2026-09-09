@@ -1,7 +1,7 @@
 ---
 name: openapi-swagger
 description: Configuración de OpenAPI con un GroupedOpenApi por dominio, separando Swagger UI en pestañas por módulo
-tags: [arquitectura, backend, documentacion, "reusable:alta"]
+tags: [arquitectura, backend, documentacion, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../bootstrap/config/open_api/OpenApiConfig.java
 updated: 2026-09-02
 ---

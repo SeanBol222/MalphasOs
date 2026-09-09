@@ -1,7 +1,7 @@
 ---
 name: dominio-ubicacion
 description: location_hexagon — Country/City, referencia de la Generación 2 (agregados ricos + eventos) aplicada a un dominio simple
-tags: [dominio, backend, ubicacion, "reusable:alta"]
+tags: [dominio, backend, ubicacion, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../location_hexagon/
 updated: 2026-08-29
 ---

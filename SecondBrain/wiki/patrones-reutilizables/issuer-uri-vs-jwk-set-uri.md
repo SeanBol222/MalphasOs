@@ -1,7 +1,7 @@
 ---
 name: issuer-uri-vs-jwk-set-uri
 description: Por qué Keycloak en Docker devuelve 401 con tokens válidos, y cómo separar la URL pública del emisor de la interna de las claves
-tags: [patron, seguridad, keycloak, docker, "reusable:alta"]
+tags: [patron, seguridad, keycloak, docker, "reusable:alta", "describe:malphasos"]
 source: descubierto al activar la seguridad en MalphasOS
 updated: 2026-08-28
 ---
