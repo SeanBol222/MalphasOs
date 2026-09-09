@@ -3,7 +3,7 @@ name: keycloak-configuracion
 description: Realm sigma-bb-realm con 3 clients (público SPA + 2 confidenciales), theme de login personalizado
 tags: [infraestructura, keycloak, "reusable:alta"]
 source: keycloak/
-updated: 2026-08-29
+updated: 2026-09-08
 ---
 
 # Configuración de Keycloak
@@ -43,9 +43,11 @@ El síntoma llega por otro lado: el backend no consigue autenticarse contra la A
 - **Eliminar el campo**, y Keycloak genera uno aleatorio en cada importación. Más seguro, pero obliga a copiarlo a mano desde la consola cada vez que se recrea el contenedor.
 - **Fijar un valor explícito**, viable solo en un realm que ya es de desarrollo. Es lo que hace MalphasOS, con secretos cuyo propio nombre advierte que no sirven fuera de local.
 
-## El modelo de permisos granular no se usa
+## El modelo de permisos granular no se usa (en el original)
 
-Los 15 roles describen un control de acceso fino por recurso y operación, pero el código solo comprueba `admin.full`. El diseño existe y nunca se aprovechó: cualquiera con ese permiso puede hacer todo. Es una decisión pendiente si se quiere aplicar de verdad.
+Los 15 roles describen un control de acceso fino por recurso y operación, pero el código solo comprueba `admin.full`. El diseño existe y nunca se aprovechó: cualquiera con ese permiso puede hacer todo.
+
+**MalphasOS heredó el defecto entero** al migrar los controladores, y lo arrastró hasta el 2026-09-08. Ahí se corrigió: 19 roles, cada operación exigiendo la de su recurso, y tres grupos que por fin se distinguen entre sí. Ver [[modelo-de-permisos]].
 
 ## Estado en MalphasOS (migrado el 2026-08-28)
 
@@ -53,10 +55,27 @@ Realm adaptado transformando el export original, no reescribiéndolo, para conse
 
 El realm de MalphasOS es **explícitamente de desarrollo**: trae un usuario `dev.admin` con su contraseña escrita en el archivo y secretos de client fijos, para que el entorno funcione al clonar el repositorio sin pasos manuales. Nunca debe usarse en un entorno desplegado.
 
+### Segunda corrección del realm (2026-09-08): los roles y el reparto por grupos
+
+El realm migrado seguía teniendo los 15 roles del original y repartiéndolos como el original: `admins` con todo, y `engineers` y `clients` con **los mismos cuatro roles de lectura**, que ninguna operación del backend comprobaba. Dos perfiles idénticos y ambos inservibles.
+
+Verificado el 2026-09-08 sobre `docker/keycloak/import/malphasos-realm-realm.json`:
+
+| | Antes | Ahora |
+|---|---|---|
+| Roles del client `malphasos-api` | 15 | **19** (entran `person.read`, `person.write`, `location.read`, `location.write`) |
+| Grupo `admins` | 14 | **18** — todos salvo `super.admin.full`, que **no lo recibe ningún grupo** |
+| Grupo `engineers` | 4 | **11** — lectura completa, más `equipment.write`, `equipment.assign` y los tres de `work-order` |
+| Grupo `clients` | 4 | 4, sin cambios |
+
+Los cuatro roles nuevos **llevan descripción**, al contrario que los quince heredados, y sin tildes porque el archivo es ASCII puro y viaja entre entornos. El cambio se verificó importando el archivo en un Keycloak 26.6.1 desechable.
+
+⚠️ **Lo que sigue sin poder comprobarse**: que el realm que Keycloak tiene cargado sea el del repositorio. `RealmAuthorityContractTest` lee el archivo versionado; una edición hecha a mano en la consola de administración no la ve nadie.
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — el patrón de 3 clients (público SPA + confidencial API + confidencial admin) es directamente trasladable. El `realm-export.json` se puede clonar y renombrar (`malphasos-realm`), igual que el theme de login (cambiar solo assets de marca).
 
 ## Notas relacionadas
 
-[[seguridad-keycloak-backend]] · [[integracion-keycloak-frontend]] · [[docker-compose]] · [[dominio-persona-identidad]] · [[issuer-uri-vs-jwk-set-uri]] · [[traduccion-de-fallos-de-adaptadores]]
+[[modelo-de-permisos]] · [[seguridad-keycloak-backend]] · [[integracion-keycloak-frontend]] · [[docker-compose]] · [[dominio-persona-identidad]] · [[issuer-uri-vs-jwk-set-uri]] · [[traduccion-de-fallos-de-adaptadores]]
