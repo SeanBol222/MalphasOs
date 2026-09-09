@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr]
-updated: 2026-09-02
+updated: 2026-09-08
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -72,7 +72,7 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Client id de Keycloak | **Configurable** (`app.security.client-id`) | Estaba hardcodeado como `"sigma-api"` |
 | Lectura de claims del token | **Pattern matching de Java 21** | El original hacía casts sin verificar: un token con forma inesperada lanzaba `ClassCastException` |
 | Seguridad apagada | **Cadena `permitAll` explícita** (`SecurityDisabledConfig`) | Sin ella, apagar la seguridad no abre la API sino que activa la cadena por defecto de Spring (basic auth con contraseña generada). Ver [[seguridad-keycloak-backend]] |
-| Estado actual de la seguridad | **Desactivada en `application.yaml`** | El realm `malphasos-realm` no existe todavía; definir `issuer-uri` contra un realm inexistente impide arrancar. El código es seguro por omisión (`matchIfMissing = true`) |
+| Estado actual de la seguridad | ~~**Desactivada en `application.yaml`**~~ → **activa** | Se escribió cuando el realm `malphasos-realm` no existía y definir `issuer-uri` contra un realm inexistente impedía arrancar. **Corregido el 2026-09-08 al verificarlo**: `application.yaml` trae `enabled: ${APP_SECURITY_ENABLED:true}` desde que el realm se importa (2026-08-28). Solo el `application.yaml` de pruebas la apaga, para que cada prueba se centre en su capa |
 
 ## Contenedor y despliegue local
 
@@ -111,7 +111,7 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Fuerza bruta | **Activa**, bloqueo a los 5 intentos | El original la tenía apagada y permitía 30 |
 | Política de contraseñas | `length(12) and notUsername and notEmail` | ⚠️ Cambia comportamiento: las contraseñas débiles se rechazan al crear usuarios |
 | Flujo del client público | **Sin `directAccessGrants`** | La SPA usa PKCE; el flujo de contraseña directa expone credenciales sin aportar nada |
-| Roles granulares | **Definidos pero sin usar**, como en el original | Aplicarlos exigiría cambiar los `@PreAuthorize` de todos los controladores; queda como decisión abierta |
+| Roles granulares | ~~**Definidos pero sin usar**, como en el original~~ → **aplicados** | Se decidió heredar el defecto y quedó como decisión abierta. **Resuelto el 2026-09-08**: las 83 operaciones exigen la autoridad de su recurso y el realm reparte 19 roles entre tres grupos. Sí hubo que cambiar los `@PreAuthorize` de todos los controladores, que era el coste que retrasaba la decisión. Ver [[modelo-de-permisos]] |
 | Seguridad en pruebas | **Apagada salvo en `SecurityIntegrationTest`** | Cada prueba se centra en su capa; la protección se verifica en un sitio, con el decodificador de JWT sustituido por un doble para no necesitar Keycloak |
 | Secretos de los clients confidenciales | **Valores de desarrollo explícitos en el realm** | La alternativa —quitar el campo para que Keycloak genere uno aleatorio en cada importación— es más segura, pero obliga a copiar el secreto a mano desde la consola cada vez que se recrea el contenedor. Este realm ya es de desarrollo y contiene la contraseña de su usuario de pruebas, así que se prefirió la reproducibilidad al clonar. Los secretos se llaman `dev-only-...-change-in-any-real-environment` para que su propio nombre advierta |
 | Fallo del servicio contra Keycloak | **502, no 401** | Quien no consiguió autenticarse es el servicio contra su dependencia, no quien llama. Un 401 le pide al cliente arreglar algo que no está en su mano. Ver [[traduccion-de-fallos-de-adaptadores]] |
@@ -145,7 +145,7 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Nombre de los eventos de baja | **`Deactivated`, no `Deleted`** | Aquí no se borra nada: el registro permanece con `b_estado_activo` en falso. Quien lea "deleted" concluye razonablemente que la fila ya no existe |
 | Renombrar vs. trasladar una ciudad | **Dos eventos distintos** | Mover una ciudad de país cambia la cobertura de todas las sedes que hay en ella; renombrarla no afecta a nadie. Con un único `CityUpdatedEvent` había que comparar el payload contra el estado anterior para saber qué cambió |
 | Cambios que no cambian nada | **No emiten evento** | Renombrar con el mismo nombre no registra nada. Anunciar un cambio que no ocurrió obliga a cada consumidor a defenderse de duplicados |
-| Autorización en `location` | **`admin.full` en las diez operaciones** | El hexágono original no tenía ninguna. Se elige la opción restrictiva y consistente con `person`: si más adelante conviene abrir la lectura para que un formulario llene sus desplegables, abrir es más fácil que cerrar |
+| Autorización en `location` | ~~**`admin.full` en las diez operaciones**~~ → **`location.read` en cuatro y `location.write` en seis** | El hexágono original no tenía ninguna anotación. Se eligió la opción restrictiva apostando a que abrir es más fácil que cerrar, y **eso es exactamente lo que ocurrió el 2026-09-08**: países y ciudades son la tabla de referencia de la que cuelgan clientes, sedes y fabricantes, todo el mundo necesita leerlas y casi nadie tocarlas. Con `admin.full` ni leerlas era posible sin ser administrador |
 | Manejo de excepciones | **Se repite por módulo, sin base común** | Resuelve la pendiente que este wiki arrastraba. Cada contexto acotado es dueño de su contrato de error y puede cambiarlo sin arrastrar a los demás; es duplicación de forma, no de comportamiento. Ver [[manejo-global-excepciones]] |
 | Mappers de persistencia | **A mano, no con MapStruct** | MapStruct construye por setters o builder, y un agregado de Generación 2 no ofrece ninguno a propósito. Ver [[patron-mapper-mapstruct]] |
 | Verbos de escritura | **Solo `PATCH`, sin `PUT`** | Eran caminos duplicados con su comando y su método de agregado propios, y uno etiquetaba su evento con un tipo distinto del que declaraba su clase |
@@ -177,10 +177,29 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 | Verbos de escritura, revisado | **Solo `PATCH`, también en rutas de sub-recurso** | Las tres rutas de sub-recurso llegaron como `PUT` y eran defendibles —reemplazan del todo y son idempotentes—, pero dos verbos con la misma semántica repartidos según quién escribiera cada controlador cuestan más que la precisión del matiz |
 | Códigos de error de referencias externas | **Código propio por referencia**, no el genérico de datos inválidos | Un 404 con el código de "datos inválidos" no se distingue del 400 que usa el mismo código. `client` todavía no lo hace así: queda en [[deuda-tecnica-y-riesgos]] |
 
+## Modelo de permisos (2026-09-08)
+
+Detalle completo en [[modelo-de-permisos]]; aquí solo las decisiones y su coste.
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Dónde se decide quién es administrador | **En un solo sitio**, `ApiAuthority.expand(...)`: quien trae `admin.full` recibe las 17 autoridades de recurso | La alternativa era que cada operación nombrara al administrador además de a su recurso, `hasAnyAuthority('admin.full','client.read')`. Eso deja el modelo repetido en las **83** operaciones, donde basta olvidar una para abrir un agujero que no rompe nada visible. Una prueba estructural impide que un controlador vuelva a nombrar al administrador |
+| Cuántas capas aplican la regla | **Dos**: el converter del token y un bean `RoleHierarchy` | No es duplicación por descuido. El converter solo interviene cuando la autenticación nace de un JWT que pasa por esta cadena de filtros; cualquier otra llegaría a `@PreAuthorize` con las autoridades crudas y un administrador se vería rechazado. El coste —que las dos digan cosas distintas— se paga derivando ambas de la misma constante `RESOURCE_AUTHORITIES` y probándolas por separado, porque compartir la constante no garantiza que ambas la traduzcan bien |
+| Qué hace `expand()` con un rol desconocido | **Lo conserva**: añade, nunca quita | Filtrar lo desconocido parece más limpio y es peor: un rol recién creado en el realm desaparecería en silencio dentro de un converter, sin log ni error, y se diagnosticaría mirando el sitio equivocado. La pertenencia se decide por igualdad exacta, no por prefijo, para que `admin.fullish` no conceda nada |
+| Granularidad del vocabulario | **Por recurso, no por módulo**: `client`, `service-area` y `engineer` son tres vocabularios dentro del mismo módulo | El realm ya los distinguía y ninguna anotación los comprobaba. Permite que un ingeniero trabaje sobre áreas de servicio sin tocar la ficha del cliente. `client.delete` protege solo la baja del cliente entero: retirar un correo no es cerrar la cuenta |
+| `equipment.assign` aparte de `equipment.write` | **Sí** | Asignar un equipo a un área o trasladarlo cambia **quién responde por él**, que es lo que un ingeniero de campo hace y un administrativo no. Corregir sus datos de compra se queda en `write` |
+| Nombre del rol del encargado | **`engineer`, el del realm**, aunque el código diga `Manager` y la ERS «profesional responsable» | Tres nombres para lo mismo, y se conserva el del realm porque es el que la documentación recoge. El controlador lleva la correspondencia escrita para que nadie lo tome por un error. **No existe `engineer.write`**: al encargado se le asigna, no se le escribe, y una prueba lo fija para que quien la escriba no deje un endpoint sin nadie que pueda llamarlo |
+| Autoridades de `work-order` en el catálogo | **Se incluyen**, sin módulo detrás | Ya estaban en el realm y asignadas al grupo `engineers`. Así el día que aparezcan sus endpoints el administrador no se queda fuera por olvido. Una prueba fija que hoy no protegen nada y fallará cuando lo hagan |
+| Roles del realm que la expansión ya concede | **Se asignan igualmente al grupo `admins`** | La expansión de `admin.full` se los daría de todos modos, pero el realm debe poder leerse sin conocer el código: un `admins` sin `person` ni `location` afirmaría por escrito que un administrador no puede tocar personas ni ciudades |
+| Filtrado por dueño | **Fuera de esta tanda**, decisión explícita | Un usuario del grupo `clients` ve hoy todos los clientes y el catálogo entero. No es añadir un `WHERE`: exige decidir cómo se ata una cuenta de Keycloak a un cliente del dominio. Queda anotado como deuda propia en [[deuda-tecnica-y-riesgos]] |
+| Cómo se sostiene el modelo | **Invariantes estructurales por reflexión**, no solo casos | Las 83 anotaciones se pusieron con un script por número de línea: un desfase de una línea deja un endpoint con la autoridad del vecino, y ninguna prueba de HTTP por casos lo ve. Los umbrales van como mínimos (`>= 83`, `>= 27`, `>= 56`) para servir de guarda de no vacuidad sin romperse al añadir un endpoint legítimo |
+
+**Un javadoc que quedó falso y nadie lo notó.** Los dos controladores de `location` afirmaban por escrito que todas sus operaciones exigen `admin.full`. La afirmación era cierta cuando se escribió y dejó de serlo con este cambio. Se corrigió en el mismo commit; queda como recordatorio de que **un comentario que enuncia una regla de seguridad envejece igual que el código y nada lo comprueba**.
+
 ## Pendientes de decidir
 
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
 
 ## Notas relacionadas
 
-[[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[modelo-de-permisos]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

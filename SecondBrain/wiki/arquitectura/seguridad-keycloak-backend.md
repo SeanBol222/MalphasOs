@@ -3,7 +3,7 @@ name: seguridad-keycloak-backend
 description: Resource server OAuth2/JWT + admin client de Keycloak, dos piezas separadas con responsabilidades distintas
 tags: [arquitectura, backend, seguridad, keycloak, "reusable:alta"]
 source: Backend/sigma-bb/src/main/java/.../bootstrap/config/keycloak/, bootstrap/config/security/
-updated: 2026-08-27
+updated: 2026-09-08
 ---
 
 # Seguridad — Keycloak en el backend
@@ -15,7 +15,7 @@ Dos piezas separadas, no confundir:
 `SecurityConfig` + `KeycloakRoleConverter` (`bootstrap/config/security/`) — resource server OAuth2/JWT estándar de Spring Security.
 
 - `SecurityFilterChain` permite `/swagger-ui/**` y `/v3/api-docs/**` sin auth; exige autenticación en todo lo demás; CSRF deshabilitado (API stateless).
-- `KeycloakRoleConverter` extrae roles desde `resource_access.<CLIENT_ID>.roles` del JWT (client-id hardcodeado `"sigma-api"` en este repo) y los mapea a `GrantedAuthority` de Spring. Los controllers usan `@PreAuthorize("hasAuthority('admin.full')")` a nivel de método (autorización granular por operación, no por clase — ver [[dominio-cliente]] para ejemplos).
+- `KeycloakRoleConverter` extrae roles desde `resource_access.<CLIENT_ID>.roles` del JWT (client-id hardcodeado `"sigma-api"` en este repo) y los mapea a `GrantedAuthority` de Spring. Los controllers usan `@PreAuthorize` a nivel de método (autorización por operación, no por clase — ver [[dominio-cliente]] para ejemplos), y **en el original todos exigen la misma autoridad, `admin.full`**. Eso es lo que MalphasOS heredó y corrigió el 2026-09-08: ver [[modelo-de-permisos]].
 - Toda la config es `@ConditionalOnProperty(app.security.enabled, matchIfMissing=true)` — permite desactivar seguridad completa vía `application.yaml`, útil para tests/dev.
 - `issuer-uri` apunta al realm dedicado: `http://keycloak.test:8080/realms/sigma-bb-realm`.
 
@@ -37,7 +37,15 @@ El original condiciona toda la configuración a `app.security.enabled` con `matc
 
 MalphasOS añade una cadena `permitAll` explícita condicionada a `enabled=false`, que además registra una advertencia visible en el arranque. Así los dos estados son inequívocos y el de desarrollo es utilizable.
 
-⚠️ **Estado actual**: la seguridad está desactivada en `application.yaml` porque el realm `malphasos-realm` todavía no existe. Definir `issuer-uri` apuntando a un realm inexistente impide que la aplicación arranque, ya que Spring hace el discovery del emisor al inicializar. El código sigue siendo seguro por omisión.
+~~⚠️ **Estado actual**: la seguridad está desactivada en `application.yaml` porque el realm `malphasos-realm` todavía no existe.~~ **Corregido el 2026-09-08 al verificarlo contra el código**: eso fue cierto hasta que el realm se importó (2026-08-28). Hoy `application.yaml` trae `enabled: ${APP_SECURITY_ENABLED:true}` y la API exige token; solo el `application.yaml` de pruebas la apaga, para que cada prueba se centre en su capa. La protección se verifica en `SecurityIntegrationTest`, con el decodificador de JWT sustituido por un doble.
+
+## El modelo de permisos (desde el 2026-09-08)
+
+Hasta esa fecha **las 83 operaciones exigían `admin.full`** y el modelo de roles del realm era decorativo. Hoy cada operación declara únicamente la autoridad de su recurso —`hasAuthority('client.read')`— y una clase nueva, `ApiAuthority`, reúne el vocabulario de 19 autoridades y la regla de expansión del administrador. La regla se aplica en dos capas, el converter y un bean `RoleHierarchy`, ambas derivadas de la misma constante.
+
+`KeycloakRoleConverter` gana con eso una responsabilidad más: además de extraer los roles del claim, los expande. Es el único punto por el que un token se convierte en autoridades, así que es donde la regla se aplica una vez en lugar de repetirse en cada anotación.
+
+El detalle completo —qué autoridad protege qué, qué recibe cada grupo, qué queda abierto— está en [[modelo-de-permisos]].
 
 ## Reutilizable en MalphasOS
 
@@ -45,4 +53,4 @@ MalphasOS añade una cadena `permitAll` explícita condicionada a `enabled=false
 
 ## Notas relacionadas
 
-[[dominio-persona-identidad]] · [[integracion-keycloak-frontend]] · [[keycloak-configuracion]] · [[stack-tecnologico]]
+[[modelo-de-permisos]] · [[dominio-persona-identidad]] · [[integracion-keycloak-frontend]] · [[keycloak-configuracion]] · [[stack-tecnologico]]

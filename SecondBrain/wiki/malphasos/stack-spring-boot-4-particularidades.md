@@ -3,7 +3,7 @@ name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
 tags: [malphasos, stack, backend, hallazgo]
 source: malphasos/pom.xml (MalphasOS)
-updated: 2026-09-02
+updated: 2026-09-08
 ---
 
 # Particularidades de Spring Boot 4 y el stack moderno
@@ -53,19 +53,42 @@ Las clases Java **no** cambiaron de paquete: `org.testcontainers.containers.Post
 
 En los logs de arranque aparece `JacksonAutoConfiguration#jsonMapperBuilder` resolviendo `tools.jackson.databind.json.JsonMapper$Builder` — es decir, **Spring Boot 4 ya usa Jackson 3 de serie**. Esto explica retroactivamente la mezcla rara de Jackson 2 y 3 que [[stack-tecnologico]] marcaba como riesgo en el proyecto original: no era un experimento, era la transición del propio framework. En MalphasOS no se declaró ninguna dependencia de Jackson y funciona correctamente.
 
-## Surefire da dos conteos distintos de la misma ejecución (2026-09-02)
+## Surefire da dos conteos distintos de la misma ejecución
 
-Al citar "339 pruebas en verde" conviene saber que **el número depende de dónde se mire**, y que el camino más obvio da otro:
+Al citar un número de pruebas conviene saber que **depende de dónde se mire**, y que el camino más obvio da otro.
+
+Medido el **2026-09-08** sobre `feat/permission-model`, con `rm -rf target/surefire-reports` antes de cada ejecución:
 
 | Fuente | Suma | Qué cuenta |
 |---|---|---|
-| `target/surefire-reports/*.txt` | **307** | un `@ParameterizedTest` cuenta como **una** prueba |
-| atributo `tests=` de `TEST-*.xml` | **339** | cada **invocación** de un parametrizado cuenta aparte |
+| atributo `tests=` de `TEST-*.xml` | **472** | todas las pruebas, incluidas las de clases `@Nested` |
+| `target/surefire-reports/*.txt` | **358** | **omite por completo las pruebas que viven en clases `@Nested`** |
 
-Los 32 de diferencia salen de 11 métodos `@ParameterizedTest` que se expanden en 43 invocaciones.
+**Los dos números son correctos según lo que miden.** Este wiki y el `CLAUDE.md` de la raíz publican el conteo de los XML. Quien reverifique con `grep "Tests run" target/surefire-reports/*.txt` obtendrá el otro y creerá que la cifra está inflada: no lo está, está contando otra cosa.
 
-**Los dos números son correctos según lo que miden.** Este wiki y el `CLAUDE.md` de la raíz publican **339**, el conteo de los XML, que es el que refleja cuántas aserciones se ejecutaron de verdad. Quien vaya a reverificarlo con `grep "Tests run" target/surefire-reports/*.txt` obtendrá 307 y creerá que la cifra está inflada: no lo está, está contando otra cosa.
+### Corrección: la causa del desfase no era la que decía esta nota (2026-09-08)
+
+Hasta hoy esta nota afirmaba que el `.txt` **cuenta un `@ParameterizedTest` como una sola prueba** y que los 32 de diferencia del 2026-09-02 salían de «11 métodos parametrizados expandidos en 43 invocaciones». **Es falso**, comprobado por clase:
+
+- `ApiAuthorityTest` tiene un método `@ParameterizedTest` y **no** tiene `@Nested`: `.txt` y XML dicen **19 los dos**. Igual `CountryTest` (16/16), `ClientTest` (20/20), `EventMetadataTest` (13/13). El `.txt` sí cuenta cada invocación.
+- La diferencia de 114 sale **entera** de tres clases, y las tres usan `@Nested`. Su `.txt` dice literalmente `Tests run: 0`:
+
+| Clase | `.txt` | XML |
+|---|---|---|
+| `SecurityIntegrationTest` (6 clases anidadas) | 0 | 82 |
+| `CatalogAggregatesTest` (5 anidadas) | 0 | 23 |
+| `EquipmentChainServiceTest` (3 anidadas) | 0 | 9 |
+
+Las dos últimas no se han tocado desde antes del 2026-09-02 y suman **exactamente 32**, que es el desfase que aquella medición atribuyó a los parametrizados. La cifra era correcta; la explicación, no. Es un caso de manual de conclusión que encaja con el dato y aun así apunta al mecanismo equivocado.
+
+### Y una trampa de método: Surefire no limpia sus informes
+
+Esta nota registraba que el conteo **no era estable entre corridas** (337, 338 y 339 en tres ejecuciones seguidas del 2026-09-02). El 2026-09-08 dos ejecuciones completas dieron **472 y 472**, idénticas hasta el número de clases, así que la inestabilidad no se reprodujo.
+
+Lo que sí se comprobó ese día es un mecanismo suficiente para producirla: **`mvn test` no borra `target/surefire-reports`**. Se plantó a mano un `TEST-com.fake.StaleTest.xml` con `tests="7"`, se ejecutó otra prueba, y el archivo falso seguía ahí y seguía sumando. Los informes de una corrida anterior —o de **otra rama**, que es lo que pasa al cambiar de rama sin reconstruir— se quedan y se suman a los de la nueva.
+
+**Al citar un conteo, borrar el directorio primero.** Sin eso, el número no mide una ejecución sino la unión de todas las que hayan pasado por ahí.
 
 ## Notas relacionadas
 
-[[stack-tecnologico]] · [[decisiones-tecnicas-malphasos]] · [[checklist-reutilizacion]]
+[[stack-tecnologico]] · [[decisiones-tecnicas-malphasos]] · [[checklist-reutilizacion]] · [[modelo-de-permisos]]

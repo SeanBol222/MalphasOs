@@ -13,30 +13,35 @@ El código de MalphasOS vive **exclusivamente** en `malphasos/`.
 
 ## Antes de decidir nada de arquitectura, dominio o patrones
 
-Consulta **`SecondBrain/`**: 41 notas interconectadas que documentan y evalúan `bolivarbioingenieria-app`, con juicio explícito de qué portar tal cual, qué adaptar y qué evitar.
+Consulta **`SecondBrain/`**: 44 notas interconectadas que documentan y evalúan `bolivarbioingenieria-app`, con juicio explícito de qué portar tal cual, qué adaptar y qué evitar.
 
 Punto de entrada: `SecondBrain/index.md` (catálogo) y `SecondBrain/CLAUDE.md` (convenciones del wiki). Las notas que más se usan:
 
 - `wiki/malphasos/checklist-reutilizacion.md` — **qué está hecho y qué sigue**. Empieza por aquí.
 - `wiki/malphasos/decisiones-tecnicas-malphasos.md` — toda decisión tomada, con su porqué.
-- `wiki/patrones-reutilizables/deuda-tecnica-y-riesgos.md` — 57 defectos conocidos del original, más una sección aparte con la deuda que hemos introducido nosotros. **Consultar antes de portar cualquier pieza.**
+- `wiki/malphasos/modelo-de-permisos.md` — quién puede hacer qué, y por qué se decide en un solo sitio.
+- `wiki/patrones-reutilizables/deuda-tecnica-y-riesgos.md` — **63** defectos conocidos del original (decía 57; contados fila a fila el 2026-09-08), más una sección aparte con la deuda que hemos introducido nosotros. **Consultar antes de portar cualquier pieza.**
 - `wiki/malphasos/migracion-person-hallazgos.md` y `migracion-location-hallazgos.md` — qué apareció al migrar cada módulo.
 - `wiki/arquitectura/evolucion-arquitectonica-crud-a-cqrs.md` — Generación 1 (CRUD anémico, no replicar) vs Generación 2 (agregados + eventos, el patrón a seguir).
 
 El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/IngenieriaDeRequerimientos/bolivarbioingenieria-app` y es **inmutable**: se lee, nunca se escribe.
 
-## Estado (2026-09-02)
+## Estado (2026-09-08)
 
 | Módulo | Estado |
 |---|---|
-| `bootstrap` | Configuración transversal, seguridad, OpenAPI, manejo de excepciones |
+| `bootstrap` | Configuración transversal, seguridad, OpenAPI, manejo de excepciones. Incluye `ApiAuthority`, el vocabulario de 19 autoridades y la expansión del administrador |
 | `shared/domain/events` | Contrato de eventos de dominio + despachador in-process |
 | `person` | Completo, más `PersonCommunicationPort` publicado hacia otros módulos |
 | `location` | Completo: esquema, dominio, aplicación, persistencia, REST |
 | `client` | Completo: esquema, cuatro agregados, aplicación, persistencia y REST |
 | `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos |
 
-Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`. Batería en 339 pruebas — el conteo de los XML de Surefire; los `.txt` suman 307 porque cuentan cada parametrizado como una. Ver [[stack-spring-boot-4-particularidades]].
+Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`.
+
+**Modelo de permisos** (rama `feat/permission-model`, sin mergear a fecha de 2026-09-08): cada una de las 83 operaciones REST exige la autoridad de su recurso, no `admin.full`. Ver [[modelo-de-permisos]]. Falta el filtrado por dueño: quien tiene `client.read` ve todos los clientes.
+
+Batería: **472 pruebas** en esa rama, 339 en `main`. Es el atributo `tests=` de los XML de Surefire; los `.txt` dan 358 y 307 porque **no cuentan las pruebas de clases `@Nested`** — un `@ParameterizedTest` sí lo cuentan, al contrario de lo que este archivo afirmó hasta el 2026-09-08. Y `mvn test` **no borra `target/surefire-reports`**: antes de citar un conteo hay que borrarlo, o se suman informes de corridas y ramas anteriores. Ver [[stack-spring-boot-4-particularidades]].
 
 **La migración del backend está cerrada** salvo esa segunda tanda de `equipment`.
 
@@ -89,12 +94,14 @@ Se trabaja en el worktree `MalphasOS-Documentation`, sobre la rama del mismo nom
 
 **Esquema**: llaves primarias UUID, con la llave natural como columna única aparte (código ISO, NIT). Prefijos `k_` llaves, `n_` nombres, `t_` texto, `b_` booleanos. Borrado lógico universal con `b_estado_activo`. Las reglas de negocio que el esquema puede expresar van como `CHECK`; las que no —"no abrir un área en una sede cerrada"— viven en el servicio.
 
-**REST**: `@PreAuthorize("hasAuthority('admin.full')")` en todas las operaciones. Solo `PATCH`, sin `PUT` — **también en las rutas de sub-recurso**. `DELETE` responde 204 pero retira sin borrar. El identificador sale de la ruta, nunca del cuerpo. Catálogo de errores propio por módulo, con el advice limitado por `assignableTypes`; **un código de "no existe" nunca se comparte con uno de "datos inválidos"**, y cada referencia hacia otro módulo lleva el suyo.
+**REST**: `@PreAuthorize` en todas las operaciones, **con la autoridad del recurso y una sola, nombrada literalmente** — `hasAuthority('client.read')`, nunca `admin.full` ni `hasAnyAuthority`. Quien es administrador lo decide `ApiAuthority.expand(...)` en un solo sitio, y una prueba por reflexión impide que un controlador vuelva a nombrarlo. (Hasta el 2026-09-08 aquí decía `hasAuthority('admin.full')` en todas: era cierto y dejó de serlo.) Solo `PATCH`, sin `PUT` — **también en las rutas de sub-recurso**. `DELETE` responde 204 pero retira sin borrar. El identificador sale de la ruta, nunca del cuerpo. Catálogo de errores propio por módulo, con el advice limitado por `assignableTypes`; **un código de "no existe" nunca se comparte con uno de "datos inválidos"**, y cada referencia hacia otro módulo lleva el suyo.
 
-**OpenAPI**: cada módulo declara su grupo en `OpenApiConfig`, y **cada grupo lleva una prueba que consulta `/v3/api-docs/<grupo>` y exige que aparezcan todos sus recursos**. Un patrón de `pathsToMatch` que no casa con ninguna ruta no falla ni avisa: deja el recurso fuera de Swagger en silencio. Pasó cuatro veces antes de que hubiera pruebas.
+**OpenAPI**: cada módulo declara su grupo en `OpenApiConfig`, y **cada grupo debe llevar una prueba que consulte `/v3/api-docs/<grupo>` y exija que aparezcan todos sus recursos** — hoy solo la tienen `client` y `equipment`. Un patrón de `pathsToMatch` que no casa con ninguna ruta no falla ni avisa: deja el recurso fuera de Swagger en silencio. Pasó cuatro veces antes de que hubiera pruebas.
 
 ## Deuda propia conocida
 
-- Las pruebas son **intermitentes**: la comprobación de salud de RabbitMQ intenta conectarse a `localhost:5672` y falla si no está levantado. Conviene desactivarla en el perfil de pruebas. (El 2026-09-02 tres ejecuciones completas salieron limpias, pero eso no la cierra.)
+- La intermitencia de la batería tenía **dos causas y solo una estaba anotada**. La demostrada era el ayudante `unico()` de las pruebas, que recortaba `nanoTime()` con `substring(0, 10)` y lanzaba cuando el resto tenía nueve dígitos (10 % por llamada en `ManagerPersistenceAdapterTest`); corregido el 2026-09-08. La de RabbitMQ —la comprobación de salud apunta a `localhost:5672`— sigue en pie como riesgo, pero sin caso reproducido: ese día dos ejecuciones completas con nada escuchando en 5672 salieron limpias. Conviene desactivarla igualmente en el perfil de pruebas.
+- **El filtrado por dueño no existe.** Un usuario del grupo `clients` ve todos los clientes y el catálogo entero. Ninguna clase fuera de `bootstrap/config` toca `Authentication` ni `SecurityContextHolder`. Fue una decisión explícita, no un olvido.
+- **Dos grupos de OpenAPI sin prueba de cobertura**, `location` y `reports`; el segundo apunta a un módulo que no existe, así que no casa con ninguna ruta. Es el fallo silencioso que persigue la convención de OpenAPI de más arriba, vivo dentro del propio proyecto.
 - `correo_persona` y `telefono_persona` admiten dueño nulo, al contrario que los contactos del cliente. Corregirlo exige una migración propia.
 

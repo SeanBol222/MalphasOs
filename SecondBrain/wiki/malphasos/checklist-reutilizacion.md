@@ -2,14 +2,16 @@
 name: checklist-reutilizacion
 description: Orden priorizado sugerido de qué portar primero al construir MalphasOS, basado en el análisis de todo el wiki
 tags: [malphasos, checklist, planificacion]
-updated: 2026-09-02
+updated: 2026-09-08
 ---
 
 # Checklist priorizado de reutilización
 
 Orden sugerido para la construcción de MalphasOS. **La construcción ya arrancó** (2026-08-27); las decisiones tomadas se registran en [[decisiones-tecnicas-malphasos]].
 
-> **Estado al 2026-09-02.** Los cuatro módulos de dominio —`person`, `location`, `client` y `equipment`— están completos de esquema a REST, con 339 pruebas en verde. Del alcance del backend queda **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos. Lo demás pendiente es frontend y opcionales.
+> **Estado al 2026-09-08.** Los cuatro módulos de dominio —`person`, `location`, `client` y `equipment`— están completos de esquema a REST. Del alcance del backend queda **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos. Lo demás pendiente es frontend y opcionales.
+>
+> Sobre el conteo de la batería: **472 pruebas en verde** medidas el 2026-09-08 sobre la rama `feat/permission-model`, **todavía sin mergear a `main`**; en `main` son 339. Es el atributo `tests=` de los XML de Surefire, borrando el directorio de informes antes de correr; el mismo `main` da 307 por los `.txt`, que no cuentan las clases `@Nested`. Ver [[stack-spring-boot-4-particularidades]].
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 
@@ -24,6 +26,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 - [x] **Hecho (2026-08-29).** Portar `shared/domain/events` completo (`AggregateRoot`, `DomainEvent`, `EventMetadata`, `Payload`), sin el `eventTopic` que filtraba el transporte al dominio y sin `Serializable`. [[aggregate-root-pattern]], [[eventos-de-dominio]]
 - [x] **Parcial (2026-08-29).** `EventDispatcherPort` + `SpringEventDispatcher` en marcha; **`RabbitMQDispatcher` no se porta todavía**, y cuando se porte hay que corregir antes el mismatch de routing key. Los cuatro módulos despachan hoy en proceso. [[patron-event-dispatcher-dual]], [[deuda-tecnica-y-riesgos]]
 - [x] **Hecho.** Portar `SecurityConfig` + `KeycloakRoleConverter` + `KeycloakAdminConfig`, con el client id configurable y sin casts inseguros. **Seguridad ya activa**, con pruebas que verifican 401 sin token y 403 sin permiso. [[seguridad-keycloak-backend]]
+- [x] **Hecho (2026-09-08, en `feat/permission-model`, sin mergear).** Modelo de permisos: se heredaba del original que las 83 operaciones exigieran `admin.full` y que los roles del realm fueran decorativos. Ahora cada operación exige la autoridad de su recurso, `ApiAuthority` expande al administrador en un solo sitio, y el realm reparte 19 roles entre tres grupos que por fin se distinguen. 139 pruebas de seguridad, dos de ellas invariantes estructurales por reflexión. **Falta el filtrado por dueño**, dejado fuera a propósito. [[modelo-de-permisos]]
 - [x] **Hecho.** Portar `OpenApiConfig` con grupos por módulo; fija la convención de rutas `/v1/api/<recurso>`. [[openapi-swagger]]
 - [x] **Parcial.** Catálogo transversal migrado y corregido. Falta la interfaz/clase base común, que se definirá al migrar el primer módulo con excepciones propias. [[manejo-global-excepciones]], [[patron-catalogo-errores-por-contexto]]
 
@@ -66,4 +69,4 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## Notas relacionadas
 
-[[sintesis-malphasos]] · [[alcance-malphasos]] · [[deuda-tecnica-y-riesgos]]
+[[sintesis-malphasos]] · [[alcance-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[modelo-de-permisos]]
