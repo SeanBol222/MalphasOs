@@ -1,17 +1,21 @@
 package com.malphasos.malphasos.person.infrastructure.output.identity;
 
+import com.malphasos.malphasos.person.application.model.identity.PersonIdentityProfile;
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityRequest;
 import com.malphasos.malphasos.person.application.ports.output.PersonIdentityPort;
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
 import com.malphasos.malphasos.person.domain.person.RoleType;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import java.util.function.Consumer;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
@@ -82,6 +86,54 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
         }
     }
 
+    @Override
+    public void disableUser(String userId) {
+        modifyUser(userId, "deshabilitar el usuario " + userId, user -> user.setEnabled(false));
+    }
+
+    @Override
+    public void updateUserProfile(String userId, PersonIdentityProfile profile) {
+        modifyUser(userId, "actualizar el usuario " + userId, user -> {
+            user.setFirstName(profile.firstName());
+            user.setLastName(profile.lastName());
+        });
+    }
+
+    /**
+     * Lee la representación actual del usuario, le aplica el cambio y la devuelve completa.
+     *
+     * <p>La Admin API actualiza con un PUT sobre el recurso entero. Comprobado contra Keycloak
+     * 26.6.1, los campos ausentes de la representación enviada se conservan en lugar de borrarse,
+     * así que un PUT parcial también habría funcionado; se lee antes de escribir de todos modos por
+     * dos razones. La primera es que ese comportamiento no es contractual: depende de la versión y
+     * de la configuración del perfil de usuario, y un atributo no gestionado sí puede perderse.
+     * La segunda es que la lectura es la llamada que responde 404 cuando el usuario no existe, de
+     * modo que el fallo se detecta antes de intentar ningún cambio.
+     *
+     * <p>La representación que devuelve Keycloak no incluye credenciales, de modo que este camino no
+     * puede reescribir la contraseña de nadie ni siquiera por accidente.
+     *
+     * <p>A diferencia de {@link #createUser} y {@link #deleteUser}, aquí no hay {@code Response} que
+     * cerrar: el cliente generado devuelve el objeto ya deserializado y libera la conexión él mismo.
+     */
+    private void modifyUser(String userId, String operacion, Consumer<UserRepresentation> cambio) {
+        try {
+            // users().get(userId) no llama al servidor: solo construye el recurso. La primera
+            // llamada real es toRepresentation(), y es la que puede responder 404.
+            UserResource userResource = keycloakClient.realm(realm).users().get(userId);
+
+            UserRepresentation user = userResource.toRepresentation();
+            cambio.accept(user);
+            userResource.update(user);
+
+        } catch (ProcessingException | WebApplicationException e) {
+            throw translateClientFailure(e, operacion);
+
+        } catch (RuntimeException e) {
+            throw new KeycloakConnectionException("No se pudo " + operacion + " en Keycloak", e);
+        }
+    }
+
     /**
      * Traduce un fallo del propio cliente de Keycloak a una excepción del dominio.
      *
@@ -100,6 +152,11 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
                 int status = web.getResponse().getStatus();
 
                 return switch (status) {
+                    // El usuario pudo eliminarse a mano desde la consola, o la persona pudo darse
+                    // de alta sin cuenta. Quien llama decide si eso interrumpe su caso de uso.
+                    case 404 -> new KeycloakUserNotFoundException(
+                            "Keycloak no encontro en el realm " + realm + " el usuario al "
+                                    + operacion, fallo);
                     case 401, 403 -> new KeycloakUnauthorizedException(
                             "El cliente administrativo no pudo autenticarse contra Keycloak al "
                                     + operacion + ". Revisa el secreto configurado.",
