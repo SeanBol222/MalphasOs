@@ -53,6 +53,20 @@ public class ServiceAreaService implements ServiceAreaServicePort {
                 .orElseThrow(() -> new ServiceAreaNotFoundException(id));
     }
 
+    /**
+     * Resuelve aquí, en un solo salto para quien pregunta, el cliente dueño de un área.
+     *
+     * <p>El dato ya está: el área guarda su sede y la sede guarda su cliente. Lo que este método
+     * aporta es que ese camino se recorra dentro de este módulo y no en el que consulta.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public UUID findOwningClient(UUID idAreaServicio) {
+        ServiceArea area = findById(idAreaServicio);
+
+        return requireHeadquarter(area.getIdSede()).getIdCliente();
+    }
+
     @Override
     @Transactional
     public ServiceArea create(CreateServiceAreaCommand command) {

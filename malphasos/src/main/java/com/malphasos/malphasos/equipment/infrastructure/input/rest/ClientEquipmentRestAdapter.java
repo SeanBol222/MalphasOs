@@ -93,7 +93,9 @@ public class ClientEquipmentRestAdapter {
     }
 
     @Operation(summary = "Trasladar una unidad a otra area de servicio",
-            description = "El area de destino debe estar activa.")
+            description = "El area de destino debe estar activa y pertenecer al mismo cliente que "
+                    + "la unidad. Entre sedes de ese cliente si se puede; cruzar de cliente "
+                    + "responde 409.")
     @PreAuthorize("hasAuthority('equipment.assign')")
     @PatchMapping("/client-equipments/{id}/service-area/{idAreaServicio}")
     public ClientEquipmentResponse relocate(

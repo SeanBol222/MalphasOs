@@ -20,6 +20,14 @@ public interface ClientEquipmentServicePort {
 
     ClientEquipment register(RegisterClientEquipmentCommand command);
 
+    /**
+     * Traslada una unidad a otra área de servicio, que debe estar abierta y ser del mismo cliente.
+     *
+     * <p>Entre sedes del mismo cliente sí se puede; cruzar de cliente no.
+     *
+     * @throws com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException si
+     *     el área de destino es de otro cliente
+     */
     ClientEquipment relocate(RelocateClientEquipmentCommand command);
 
     ClientEquipment update(UpdateClientEquipmentCommand command);

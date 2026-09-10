@@ -11,9 +11,11 @@ import com.malphasos.malphasos.equipment.application.services.clientEquipment.co
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.UpdateClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Dos reglas que ninguna clave foránea puede imponer, porque comprueban que la fila exista y no
  * que esté activa: no se incorpora una unidad de un modelo retirado, ni se instala o traslada a un
  * área de servicio cerrada.
+ *
+ * <p>Y una tercera que ningún {@code CHECK} podría expresar sin cruzar tres tablas: una unidad solo
+ * se traslada a áreas de su propio cliente. En el alta no hay nada equivalente que comprobar,
+ * porque es el área elegida la que define de qué cliente pasa a ser la unidad.
  */
 @Service
 @RequiredArgsConstructor
@@ -86,6 +92,7 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
         requireActiveServiceArea(command.idAreaServicio());
 
         ClientEquipment unidad = findById(command.id());
+        requireSameClient(unidad, command.idAreaServicio());
         unidad.relocateTo(command.idAreaServicio());
 
         return persistAndPublish(unidad);
@@ -107,6 +114,31 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
         unidad.decommission();
 
         persistAndPublish(unidad);
+    }
+
+    /**
+     * Una unidad solo se mueve entre áreas del cliente que la posee.
+     *
+     * <p>Puede cambiar de área dentro de una sede y también de sede, mientras el cliente sea el
+     * mismo. Cruzar a otro cliente dejaría el historial de mantenimiento de la unidad colgando de
+     * quien nunca la tuvo, y el traslado es justo el hecho que decide quién responde por ella.
+     *
+     * <p>La regla vive aquí y no en el esquema porque expresarla en SQL exigiría un {@code CHECK}
+     * que cruza tres tablas —unidad, área y sede— para comparar dos clientes que ninguna de ellas
+     * guarda junta. Es el mismo caso que "no abrir un área en una sede cerrada", que también vive
+     * en un servicio.
+     *
+     * <p>El cliente de cada área lo responde {@code client} en una sola llamada: este módulo no
+     * camina la jerarquía área → sede → cliente, que es interna de aquel contexto.
+     */
+    private void requireSameClient(ClientEquipment unidad, UUID idAreaDestino) {
+        UUID clienteDestino = serviceAreaServicePort.findOwningClient(idAreaDestino);
+        UUID clienteActual = serviceAreaServicePort.findOwningClient(unidad.getIdAreaServicio());
+
+        if (!Objects.equals(clienteActual, clienteDestino)) {
+            throw new CrossClientRelocationException(
+                    unidad.getId(), idAreaDestino, clienteActual, clienteDestino);
+        }
     }
 
     /** Un equipo no se instala donde ya no se opera. */
