@@ -97,6 +97,21 @@ Medido dos veces el 2026-09-09 sobre `fix/person-identity-sync`, borrando `targe
 
 Corolario práctico: **el número honesto es el del resumen de Maven**, que coincide con contar `<testcase>`. Los conteos publicados hasta ahora (339, 472, 361) no están inflados — están ligeramente **por debajo** de las pruebas que se ejecutaron, en la medida en que haya nombres de método repetidos entre clases anidadas.
 
+### La remedición que quedaba pendiente: `main` con las dos ramas dentro (2026-09-09)
+
+Esta nota y el `CLAUDE.md` de la raíz avisaban de que **el día que se mergearan las dos ramas habría que remedir, no sumar**. Se mergearon ese mismo día (`e6dda32` y `258cd81`), y el resultado es el dato que faltaba:
+
+| Fuente | `main` (`01c3277`) | `feat/relocation-same-client` (`3c002b2`) |
+|---|---|---|
+| elementos `<testcase>` — **el conteo honesto** | **496** | **496** |
+| atributo `tests=` de los `<testsuite>` | 494 | 494 |
+| `target/surefire-reports/*.txt` | 380 | 380 |
+| clases · fallos · errores · omitidas | 41 · 0 · 0 · 0 | 41 · 0 · 0 · 0 |
+
+Medido con `./mvnw test` y `rm -rf target/surefire-reports` antes de cada corrida. **496 no es 472 + 361 menos nada**: sumar habría dado un número inventado, que es exactamente contra lo que avisaba la nota.
+
+Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la única clase con nombres de método repetidos entre `@Nested`. Las dos ramas dan lo mismo porque **`3c002b2` no añadió ninguna prueba**: ver [[regla-traslado-mismo-cliente]] para qué significa —y qué no significa— ese verde.
+
 ### Y una trampa de método: Surefire no limpia sus informes
 
 Esta nota registraba que el conteo **no era estable entre corridas** (337, 338 y 339 en tres ejecuciones seguidas del 2026-09-02). El 2026-09-08 dos ejecuciones completas dieron **472 y 472**, idénticas hasta el número de clases, así que la inestabilidad no se reprodujo.

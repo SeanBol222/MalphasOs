@@ -4,12 +4,14 @@ description: client_hexagon — Client, Headquarter, ServiceArea, Manager. Patr�
 tags: [dominio, backend, gestion-clientes, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/
 estado: incompleto
-updated: 2026-09-02
+updated: 2026-09-09
 ---
 
 # Dominio Cliente (`client_hexagon`)
 
 > **Migrado el 2026-09-02.** El módulo se **reconstruyó** en Generación 2, no se portó: el original es Generación 1 y este wiki lo marca como patrón a no replicar. Se conservó la jerarquía conceptual y se rehízo todo lo demás. Ver [[migracion-client-hallazgos]].
+>
+> **Ampliación del 2026-09-09.** Este módulo pasó a **publicar una respuesta hacia fuera**, no solo a ser consultado por identificador: `ServiceAreaServicePort.findOwningClient(UUID)` devuelve el cliente dueño de un área en una sola llamada. Existe para que nadie fuera de `client` tenga que caminar la jerarquía área → sede → cliente, que es interna de este contexto. Su primer llamante es el traslado de equipos: ver [[regla-traslado-mismo-cliente]].
 
 ## Modelo de dominio y relaciones
 
@@ -47,4 +49,4 @@ MapStruct en cada frontera. `ClientPersistenceMapper` compone mappers hijos (`us
 
 ## Notas relacionadas
 
-[[migracion-client-hallazgos]] · [[relacion-manager-persona]] · [[dominio-persona-identidad]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[manejo-global-excepciones]] · [[esquema-bd-v4]] · [[alcance-malphasos]]
+[[migracion-client-hallazgos]] · [[regla-traslado-mismo-cliente]] · [[relacion-manager-persona]] · [[dominio-persona-identidad]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[manejo-global-excepciones]] · [[esquema-bd-v4]] · [[alcance-malphasos]]

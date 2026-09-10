@@ -13,7 +13,7 @@ El código de MalphasOS vive **exclusivamente** en `malphasos/`.
 
 ## Antes de decidir nada de arquitectura, dominio o patrones
 
-Consulta **`SecondBrain/`**: 46 notas interconectadas. **Reenfocado el 2026-09-09**: nació para decidir qué portar de `bolivarbioingenieria-app` —pregunta ya contestada, la migración terminó— y hoy responde cómo funciona MalphasOS y qué falta por construir. Cada nota declara con la etiqueta `describe:*` si habla de MalphasOS, del sistema original, o del camino de uno al otro.
+Consulta **`SecondBrain/`**: 47 notas interconectadas. **Reenfocado el 2026-09-09**: nació para decidir qué portar de `bolivarbioingenieria-app` —pregunta ya contestada, la migración terminó— y hoy responde cómo funciona MalphasOS y qué falta por construir. Cada nota declara con la etiqueta `describe:*` si habla de MalphasOS, del sistema original, o del camino de uno al otro.
 
 Punto de entrada: `SecondBrain/index.md` (catálogo) y `SecondBrain/CLAUDE.md` (convenciones del wiki). Las notas que más se usan:
 
@@ -21,7 +21,7 @@ Punto de entrada: `SecondBrain/index.md` (catálogo) y `SecondBrain/CLAUDE.md` (
 - `wiki/malphasos/checklist-reutilizacion.md` — el registro **cerrado** de la migración. Dice qué se hizo y cuándo; no es una lista de pendientes.
 - `wiki/malphasos/decisiones-tecnicas-malphasos.md` — toda decisión tomada, con su porqué.
 - `wiki/malphasos/modelo-de-permisos.md` — quién puede hacer qué, y por qué se decide en un solo sitio.
-- `wiki/patrones-reutilizables/deuda-tecnica-y-riesgos.md` — **63** defectos conocidos del original (decía 57; contados fila a fila el 2026-09-08 y recontados el 2026-09-09), más **17** de deuda propia en dos secciones aparte. **Consultar antes de tocar cualquier pieza.**
+- `wiki/patrones-reutilizables/deuda-tecnica-y-riesgos.md` — **63** defectos conocidos del original (decía 57; contados fila a fila el 2026-09-08 y recontados el 2026-09-09), más **22** de deuda propia en dos secciones aparte. **Consultar antes de tocar cualquier pieza.**
 - `wiki/malphasos/migracion-person-hallazgos.md` y `migracion-location-hallazgos.md` — qué apareció al migrar cada módulo.
 - `wiki/arquitectura/evolucion-arquitectonica-crud-a-cqrs.md` — Generación 1 (CRUD anémico, no replicar) vs Generación 2 (agregados + eventos, el patrón a seguir).
 
@@ -31,26 +31,25 @@ El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/In
 
 | Módulo | Estado |
 |---|---|
-| `bootstrap` | Configuración transversal, seguridad, OpenAPI, manejo de excepciones. `ApiAuthority` —el vocabulario de 19 autoridades y la expansión del administrador— vive solo en `feat/permission-model`, **no en `main`** |
+| `bootstrap` | Configuración transversal, seguridad, OpenAPI, manejo de excepciones, más `ApiAuthority` —el vocabulario de 19 autoridades y la expansión del administrador—. (Este archivo decía que `ApiAuthority` vivía **solo fuera de `main`**: **falso desde el 2026-09-09**, entró por `e6dda32`.) |
 | `shared/domain/events` | Contrato de eventos de dominio + despachador in-process |
 | `person` | Completo, más `PersonCommunicationPort` publicado hacia otros módulos y la sincronización con Keycloak al dar de baja y al editar |
 | `location` | Completo: esquema, dominio, aplicación, persistencia, REST |
 | `client` | Completo: esquema, cuatro agregados, aplicación, persistencia y REST |
-| `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos |
+| `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos. En `feat/relocation-same-client`, **sin mergear**, el traslado deja de cruzar de cliente — regla **construida y sin verificar**, ver [[regla-traslado-mismo-cliente]] |
 
 Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`.
 
-**Dos ramas de código están fuera de `main` y no descienden una de otra.** Antes de dar por cierta cualquier afirmación sobre el código, comprobar en cuál se está:
+**Corrección del 2026-09-09**: este archivo hablaba de **dos ramas de código fuera de `main`**, `feat/permission-model` y `fix/person-identity-sync`. **Las dos están dentro** desde ese día —`e6dda32` y `258cd81`— y se borraron tras el merge. Queda **una** rama de código fuera:
 
 | Rama | Qué trae | Pruebas |
 |---|---|---|
-| `main` (`82a697b`) | Los cuatro módulos | 339 |
-| `feat/permission-model` (`2de115f`) | Cada una de las 83 operaciones REST exige la autoridad de su recurso, no `admin.full`; `ApiAuthority` y 19 autoridades. Falta el filtrado por dueño. Ver [[modelo-de-permisos]] | 472 |
-| `fix/person-identity-sync` (`5fde17c`) | Dar de baja a una persona **deshabilita su cuenta de Keycloak** antes de persistir, y editarla propaga nombre y apellido. Ver [[sincronizacion-con-proveedor-de-identidad]] | 361 |
+| `main` (`01c3277`) | Los cuatro módulos, el modelo de permisos y la sincronización con Keycloak | **496** |
+| `feat/relocation-same-client` (`3c002b2`) | El traslado de una unidad no cruza de cliente. **Regla construida y sin verificar**: la única prueba que la toca pasa en vacío. Ver [[regla-traslado-mismo-cliente]] | **496** |
 
-`ApiAuthority` **no existe en `main`**. Las dos ramas duplican por su cuenta el arreglo de `unico()`; el día que se mergeen hay que remedir la batería, no sumar.
+**496 es una remedición, no una suma**: 472 + 361 habría sido un número inventado, y el aviso de remedir ya estaba escrito. Las dos ramas dan lo mismo porque `3c002b2` **no añadió ninguna prueba**.
 
-Las cifras de arriba son el atributo `tests=` de los XML de Surefire. Los `.txt` dan menos porque **no cuentan las clases `@Nested`** — un `@ParameterizedTest` sí lo cuentan, al contrario de lo que este archivo afirmó hasta el 2026-09-08 —, y el propio atributo `tests=` se queda **por debajo del número real de ejecuciones** cuando dos clases `@Nested` tienen un método con el mismo nombre: en `fix/person-identity-sync` son 363 ejecuciones frente a 361 por atributo y 329 por `.txt`. Y `mvn test` **no borra `target/surefire-reports`**: antes de citar un conteo hay que borrarlo, o se suman informes de corridas y ramas anteriores. Ver [[stack-spring-boot-4-particularidades]].
+Las cifras de arriba son el **número de elementos `<testcase>` de los XML de Surefire**, que es el conteo honesto; el atributo `tests=` da 494 y los `.txt` 380. Los `.txt` dan menos porque **no cuentan las clases `@Nested`** — un `@ParameterizedTest` sí lo cuentan, al contrario de lo que este archivo afirmó hasta el 2026-09-08 —, y el atributo `tests=` se queda corto cuando dos clases `@Nested` tienen un método con el mismo nombre. Y `mvn test` **no borra `target/surefire-reports`**: antes de citar un conteo hay que borrarlo, o se suman informes de corridas y ramas anteriores. Ver [[stack-spring-boot-4-particularidades]].
 
 **La migración del backend está cerrada** salvo esa segunda tanda de `equipment`. **Eso no es lo mismo que el producto terminado**: de los 31 requisitos funcionales de la ERS hay **8** implementados, de los 23 no funcionales **1**, y **no existe una sola línea de frontend**. El siguiente bloque decidido es **órdenes de trabajo**. El orden completo, con sus dependencias, en [[hoja-de-ruta-producto]].
 
@@ -101,7 +100,7 @@ Se trabaja en el worktree `MalphasOS-Documentation`, sobre la rama del mismo nom
 
 **Persistencia**: los mappers de agregados se escriben **a mano**, no con MapStruct — MapStruct construye por setters o builder, y un agregado no ofrece ninguno a propósito. MapStruct sí sirve del agregado hacia el DTO de respuesta. Los puertos no declaran `delete` ni `update`: retirar es guardar con el estado en falso.
 
-**Esquema**: llaves primarias UUID, con la llave natural como columna única aparte (código ISO, NIT). Prefijos `k_` llaves, `n_` nombres, `t_` texto, `b_` booleanos. Borrado lógico universal con `b_estado_activo`. Las reglas de negocio que el esquema puede expresar van como `CHECK`; las que no —"no abrir un área en una sede cerrada"— viven en el servicio.
+**Esquema**: llaves primarias UUID, con la llave natural como columna única aparte (código ISO, NIT). Prefijos `k_` llaves, `n_` nombres, `t_` texto, `b_` booleanos. Borrado lógico universal con `b_estado_activo`. Las reglas de negocio que el esquema puede expresar van como `CHECK`; las que no —"no abrir un área en una sede cerrada", "una unidad no se traslada al área de otro cliente"— viven en el servicio. Van **seis** de ésas; la lista y su porqué, en [[regla-traslado-mismo-cliente]].
 
 **REST**: `@PreAuthorize` en todas las operaciones, **con la autoridad del recurso y una sola, nombrada literalmente** — `hasAuthority('client.read')`, nunca `admin.full` ni `hasAnyAuthority`. Quien es administrador lo decide `ApiAuthority.expand(...)` en un solo sitio, y una prueba por reflexión impide que un controlador vuelva a nombrarlo. (Hasta el 2026-09-08 aquí decía `hasAuthority('admin.full')` en todas: era cierto y dejó de serlo.) Solo `PATCH`, sin `PUT` — **también en las rutas de sub-recurso**. (La convención se fijó al migrar `location`; `person`, migrado antes, **conserva tres `PUT`** del original y nadie volvió sobre ellos — comprobado el 2026-09-09 sobre los 83 mappings.) `DELETE` responde 204 pero retira sin borrar. El identificador sale de la ruta, nunca del cuerpo. Catálogo de errores propio por módulo, con el advice limitado por `assignableTypes`; **un código de "no existe" nunca se comparte con uno de "datos inválidos"**, y cada referencia hacia otro módulo lleva el suyo.
 
@@ -116,4 +115,5 @@ Se trabaja en el worktree `MalphasOS-Documentation`, sobre la rama del mismo nom
 - **Ningún correo de una persona está marcado como principal**, y por eso la edición no puede sincronizar el correo con Keycloak: no hay forma de saber cuál es el de la cuenta. Corregirlo exige también una migración.
 - **Cambiar `tipoPersona` no mueve al usuario de grupo en Keycloak**: quien deja de ser ingeniero conserva sus permisos. Heredado del original, dejado fuera a propósito de la tanda del 2026-09-09.
 - **Retirar el acceso no invalida los tokens ya emitidos**: siguen abriendo el API hasta que caducan, 300 s en el realm de desarrollo.
+- **Una prueba que pasa en vacío**, en `feat/relocation-same-client`: `EquipmentChainServiceTest.Unidad.trasladar` no estuba `findOwningClient`, Mockito devuelve `null` en las dos consultas y la guarda del traslado nunca se ejerce. **Una prueba así es peor que una ausente**: aparenta cobertura. La regla del traslado dentro del mismo cliente queda **construida y sin verificar**. Esa tanda **no pasó por el `tester`, por decisión explícita del usuario** — no es un olvido. Ver [[regla-traslado-mismo-cliente]].
 

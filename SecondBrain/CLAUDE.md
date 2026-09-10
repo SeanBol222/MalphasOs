@@ -53,7 +53,7 @@ Es el eje por el que se ordena `index.md`. Responde a "¿esto me sirve para cons
 - `describe:original` — el sujeto es **`bolivarbioingenieria-app`** y nada de eso está construido aquí. Valor histórico y de referencia para lo que aún no existe.
 - `describe:ambos` — la nota **sigue una pieza del original hasta MalphasOS**: qué había, qué se corrigió y cómo quedó. Es la mayoría, y son las notas que más se usan.
 
-Reparto al 2026-09-09: 31 `ambos`, 8 `original`, 7 `malphasos`.
+Reparto al 2026-09-09: 31 `ambos`, 8 `original`, 8 `malphasos` — 47 notas. (Eran 7 `malphasos` hasta que entró [[regla-traslado-mismo-cliente]] ese mismo día.)
 
 ### `reusable:*` — congelada, se conserva, no se aplica a notas nuevas
 

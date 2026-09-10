@@ -42,6 +42,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[dominio-persona-identidad]] — Person + Keycloak Admin API. El único módulo que se quedó en Generación 1, por decisión explícita.
 - [[dominio-ubicacion]] — Country / City. El primer módulo de Generación 2 y la plantilla de los siguientes.
 - [[dominio-equipo-mantenimiento]] ⭐ — El núcleo del negocio. Catálogo e inventario construidos; **faltan verificaciones técnicas y datos metrológicos**.
+- [[regla-traslado-mismo-cliente]] ⚠️ — Una unidad solo se traslada a áreas de su propio cliente, y **la regla está construida sin verificar**: la única prueba que la toca pasa en vacío. Leer antes de tocar `ClientEquipmentService`.
 - [[relacion-manager-persona]] — Un encargado ES una persona por clave primaria compartida.
 
 ### Datos y esquema
@@ -53,8 +54,8 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 ### Seguridad e identidad
 
 - [[seguridad-keycloak-backend]] — Resource server + admin client, dos piezas separadas. Incluye la ventana del token ya emitido.
-- [[modelo-de-permisos]] — Las 19 autoridades del API y la expansión del administrador en dos capas. **En rama sin mergear.**
-- [[sincronizacion-con-proveedor-de-identidad]] — Dos sistemas de registro sin transacción compartida: en qué orden llamarlos y qué queda sin cerrar. **En rama sin mergear.**
+- [[modelo-de-permisos]] — Las 19 autoridades del API y la expansión del administrador en dos capas. (Decía «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `e6dda32`.)
+- [[sincronizacion-con-proveedor-de-identidad]] — Dos sistemas de registro sin transacción compartida: en qué orden llamarlos y qué queda sin cerrar. (Decía «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `258cd81`.)
 - [[issuer-uri-vs-jwk-set-uri]] — Por qué Keycloak en Docker devuelve 401 con tokens válidos.
 - [[keycloak-configuracion]] — El realm, sus clients y sus grupos.
 
@@ -102,4 +103,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**46 notas** · reorganizado el 2026-09-09 · ver [[log.md]] para el historial.
+**47 notas** · reorganizado el 2026-09-09 · ver [[log.md]] para el historial.

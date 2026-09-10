@@ -3,7 +3,7 @@ name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
 tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
-updated: 2026-09-02
+updated: 2026-09-09
 ---
 
 # Dominio Equipo y Mantenimiento Preventivo (`equipment_hexagon`)
@@ -13,6 +13,8 @@ updated: 2026-09-02
 > **Migrado el 2026-09-02, en primera tanda.** El catálogo y el inventario —`Manufacturer`, `Brand`, `EquipmentType`, `Equipment`, `Model` y `ClientEquipment`— están completos en MalphasOS de esquema a REST. **`TechnicalVerification` y `MetrologicalData` no**: son la segunda tanda y lo único del backend que queda por construir.
 >
 > Se **reconstruyó, no se portó**, y siete defectos de esta parte del original quedaron corregidos por el camino. Lo que esta nota describe es el original; lo que MalphasOS hace de verdad está en [[migracion-equipment-hallazgos]]. **Donde las dos difieran, manda esa nota.**
+>
+> **Ampliación del 2026-09-09**: el traslado de una unidad ya no puede cruzar de cliente, y esa regla **está construida sin verificar**. Antes de tocar `ClientEquipmentService`, leer [[regla-traslado-mismo-cliente]].
 
 ## Modelo de dominio y relaciones
 
@@ -71,4 +73,4 @@ Cada agregado hereda `AggregateRoot` ([[aggregate-root-pattern]]) y registra eve
 
 ## Notas relacionadas
 
-[[migracion-equipment-hallazgos]] · [[patron-cqrs-commands]] · [[aggregate-root-pattern]] · [[eventos-de-dominio]] · [[dominio-reportes]] · [[esquema-bd-v4]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[alcance-malphasos]] · [[checklist-reutilizacion]]
+[[migracion-equipment-hallazgos]] · [[regla-traslado-mismo-cliente]] · [[patron-cqrs-commands]] · [[aggregate-root-pattern]] · [[eventos-de-dominio]] · [[dominio-reportes]] · [[esquema-bd-v4]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[alcance-malphasos]] · [[checklist-reutilizacion]]
