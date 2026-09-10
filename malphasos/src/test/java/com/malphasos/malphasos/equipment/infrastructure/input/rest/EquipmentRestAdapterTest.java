@@ -17,6 +17,7 @@ import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.*;
 import java.math.BigDecimal;
@@ -210,6 +211,21 @@ class EquipmentRestAdapterTest {
                                 "SN-001", UUID.randomUUID(), null, null, null))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_007"));
+    }
+
+    @Test
+    @DisplayName("trasladar a un area de otro cliente responde 409 con el codigo propio")
+    void trasladarAAreaDeOtroCliente() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID areaDestino = UUID.randomUUID();
+        when(clientEquipmentServicePort.relocate(any())).thenThrow(new CrossClientRelocationException(
+                id, areaDestino, UUID.randomUUID(), UUID.randomUUID()));
+
+        mockMvc.perform(patch("/v1/api/client-equipments/" + id + "/service-area/" + areaDestino))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_010"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test

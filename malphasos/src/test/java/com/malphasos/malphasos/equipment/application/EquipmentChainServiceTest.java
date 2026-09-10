@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
+import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.equipment.application.ports.input.BrandServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServicePort;
@@ -28,6 +29,8 @@ import com.malphasos.malphasos.equipment.application.services.model.commands.Cre
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.exception.BrandNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.shared.domain.events.DomainEvent;
@@ -164,6 +167,11 @@ class EquipmentChainServiceTest {
                     .thenReturn(ServiceArea.rehydrate(AREA, "UCI", UUID.randomUUID(), activa));
         }
 
+        private void sonDelMismoCliente(UUID areaActual, UUID areaDestino, UUID cliente) {
+            when(areaService.findOwningClient(areaActual)).thenReturn(cliente);
+            when(areaService.findOwningClient(areaDestino)).thenReturn(cliente);
+        }
+
         private void elModeloEsta(boolean activo) {
             when(modelService.findById(MODELO))
                     .thenReturn(Model.rehydrate(MODELO, "INV-1", FABRICANTE, EQUIPO, activo));
@@ -181,6 +189,10 @@ class EquipmentChainServiceTest {
 
             // Es la primera vez que equipment consulta a client.
             verify(areaService).findById(AREA);
+            // En el alta no hay cliente previo que violar: es el area elegida la que define de
+            // que cliente pasa a ser la unidad. Si alguien anadiera aqui una comprobacion de
+            // cliente, no estaria defendiendo nada.
+            verify(areaService, never()).findOwningClient(any());
             assertThat(despachados())
                     .extracting(evento -> evento.metadata().eventType())
                     .containsExactly("client-equipment.registered");
@@ -224,15 +236,28 @@ class EquipmentChainServiceTest {
                     .hasMessageContaining("cerrada");
 
             verify(unitPort, never()).save(any());
+            // El area cerrada se rechaza antes de que exista una unidad que buscar, y antes de
+            // preguntar de quien es cada area.
+            verify(unitPort, never()).findById(any());
+            verify(areaService, never()).findOwningClient(any());
         }
 
+        /**
+         * Este era el doble que Mockito dejaba pasar sin queja: {@code findOwningClient} nunca se
+         * estubaba, devolvia {@code null} en las dos consultas, y {@code Objects.equals(null,
+         * null)} es cierto. La guarda de cliente nunca se ejercia y la bateria en verde no decia
+         * nada al respecto.
+         */
         @Test
-        @DisplayName("trasladar a un area activa publica el hecho")
+        @DisplayName("trasladar a un area activa del mismo cliente publica el hecho")
         void trasladar() {
             UUID id = UUID.randomUUID();
+            UUID areaActual = UUID.randomUUID();
+            UUID cliente = UUID.randomUUID();
             elAreaEsta(true);
+            sonDelMismoCliente(areaActual, AREA, cliente);
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, UUID.randomUUID(), null, null, null, true)));
+                    id, "SN-001", MODELO, areaActual, null, null, null, true)));
             when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
 
             service().relocate(new RelocateClientEquipmentCommand(id, AREA));
@@ -240,6 +265,137 @@ class EquipmentChainServiceTest {
             assertThat(despachados())
                     .extracting(evento -> evento.metadata().eventType())
                     .containsExactly("client-equipment.relocated");
+        }
+
+        /**
+         * El caso que una implementacion perezosa rompe sin que nada mas falle: comparar sedes en
+         * vez de clientes dejaria pasar exactamente este traslado, porque las dos areas son de
+         * sedes distintas.
+         */
+        @Test
+        @DisplayName("trasladar a un area de otra sede del mismo cliente tambien se permite")
+        void trasladarEntreSedesDelMismoCliente() {
+            UUID id = UUID.randomUUID();
+            UUID areaActual = UUID.randomUUID();
+            UUID cliente = UUID.randomUUID();
+            elAreaEsta(true);
+            // Las dos areas responden el mismo cliente aunque no se diga nada de sus sedes: son
+            // sedes distintas por construccion, al ser UUID generados sin relacion entre si.
+            sonDelMismoCliente(areaActual, AREA, cliente);
+            when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
+                    id, "SN-001", MODELO, areaActual, null, null, null, true)));
+            when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
+
+            ClientEquipment resultado = service().relocate(new RelocateClientEquipmentCommand(id, AREA));
+
+            assertThat(resultado.getIdAreaServicio()).isEqualTo(AREA);
+            assertThat(despachados())
+                    .extracting(evento -> evento.metadata().eventType())
+                    .containsExactly("client-equipment.relocated");
+        }
+
+        @Test
+        @DisplayName("trasladar al area que ya se ocupa no publica nada, aunque si consulta y guarda")
+        void trasladarALaMismaAreaEsIdempotente() {
+            UUID id = UUID.randomUUID();
+            UUID cliente = UUID.randomUUID();
+            elAreaEsta(true);
+            sonDelMismoCliente(AREA, AREA, cliente);
+            when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
+                    id, "SN-001", MODELO, AREA, null, null, null, true)));
+            when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
+
+            service().relocate(new RelocateClientEquipmentCommand(id, AREA));
+
+            // Ineficiente, no incorrecto: hoy igual consulta la propiedad de las dos areas (la
+            // misma, dos veces) y guarda, aunque nada cambie.
+            verify(unitPort).save(any(ClientEquipment.class));
+            assertThat(despachados()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("trasladar a un area de otro cliente se rechaza, sin guardar ni publicar")
+        void trasladarAAreaDeOtroCliente() {
+            UUID id = UUID.randomUUID();
+            UUID areaActual = UUID.randomUUID();
+            elAreaEsta(true);
+            when(areaService.findOwningClient(AREA)).thenReturn(UUID.randomUUID());
+            when(areaService.findOwningClient(areaActual)).thenReturn(UUID.randomUUID());
+            when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
+                    id, "SN-001", MODELO, areaActual, null, null, null, true)));
+
+            assertThatThrownBy(() -> service().relocate(new RelocateClientEquipmentCommand(id, AREA)))
+                    .isInstanceOf(CrossClientRelocationException.class);
+
+            verify(unitPort, never()).save(any());
+            verifyNoInteractions(dispatcher);
+        }
+
+        @Test
+        @DisplayName("un area de destino inexistente falla antes de mirar la unidad o el cliente")
+        void trasladarAAreaInexistente() {
+            UUID areaInexistente = UUID.randomUUID();
+            when(areaService.findById(areaInexistente))
+                    .thenThrow(new ServiceAreaNotFoundException(areaInexistente));
+
+            assertThatThrownBy(() -> service().relocate(
+                            new RelocateClientEquipmentCommand(UUID.randomUUID(), areaInexistente)))
+                    .isInstanceOf(ServiceAreaNotFoundException.class);
+
+            verify(unitPort, never()).findById(any());
+            verify(areaService, never()).findOwningClient(any());
+        }
+
+        @Test
+        @DisplayName("una unidad inexistente con area activa responde con su propio 404")
+        void trasladarUnidadInexistente() {
+            UUID id = UUID.randomUUID();
+            elAreaEsta(true);
+            when(unitPort.findById(id)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service().relocate(new RelocateClientEquipmentCommand(id, AREA)))
+                    .isInstanceOf(ClientEquipmentNotFoundException.class);
+
+            // La unidad no llego a comprobarse contra ningun cliente: no hay unidad de la que
+            // preguntar el area actual.
+            verify(areaService, never()).findOwningClient(any());
+        }
+
+        /**
+         * El area se comprueba antes que la unidad: por eso una unidad inexistente contra un area
+         * cerrada responde 400 y no el 404 de la unidad. El orden de las dos primeras lineas de
+         * {@code relocate} es lo que decide cual de los dos gana.
+         */
+        @Test
+        @DisplayName("una unidad inexistente con area cerrada responde 400, porque el area se mira primero")
+        void trasladarUnidadInexistenteConAreaCerrada() {
+            UUID id = UUID.randomUUID();
+            elAreaEsta(false);
+
+            assertThatThrownBy(() -> service().relocate(new RelocateClientEquipmentCommand(id, AREA)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("cerrada");
+
+            verify(unitPort, never()).findById(any());
+        }
+
+        /**
+         * Deliberado y fragil: si alguien reordenara la comprobacion de cliente antes que la de
+         * actividad, esta misma situacion pasaria a responder 409 en vez de 400. Fija el orden
+         * actual: primero se rechaza el area cerrada, sin llegar a preguntar de quien es.
+         */
+        @Test
+        @DisplayName("un area inactiva y de otro cliente responde cerrada, no conflicto de cliente")
+        void areaInactivaYDeOtroClienteGanaLaInactividad() {
+            elAreaEsta(false);
+
+            assertThatThrownBy(() -> service().relocate(
+                            new RelocateClientEquipmentCommand(UUID.randomUUID(), AREA)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .isNotInstanceOf(CrossClientRelocationException.class)
+                    .hasMessageContaining("cerrada");
+
+            verify(areaService, never()).findOwningClient(any());
         }
     }
 }
