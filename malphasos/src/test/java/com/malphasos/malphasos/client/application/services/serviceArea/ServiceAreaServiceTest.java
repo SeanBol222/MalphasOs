@@ -14,6 +14,7 @@ import com.malphasos.malphasos.client.application.services.serviceArea.commands.
 import com.malphasos.malphasos.client.application.services.serviceArea.commands.DeactivateServiceAreaCommand;
 import com.malphasos.malphasos.client.application.services.serviceArea.commands.RenameServiceAreaCommand;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.client.domain.headquarter.Address;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
@@ -90,6 +91,61 @@ class ServiceAreaServiceTest {
         when(headquarterPort.findById(SEDE)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service().create(new CreateServiceAreaCommand("UCI", SEDE)))
+                .isInstanceOf(HeadquarterNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("findOwningClient resuelve el cliente de la sede del area, en un solo salto")
+    void resuelveElClienteDueno() {
+        UUID area = UUID.randomUUID();
+        UUID cliente = UUID.randomUUID();
+        when(areaPort.findById(area)).thenReturn(Optional.of(ServiceArea.rehydrate(area, "UCI", SEDE, true)));
+        when(headquarterPort.findById(SEDE)).thenReturn(Optional.of(
+                Headquarter.rehydrate(SEDE, "Sede Norte", new Address("10", "20", "30-40"),
+                        cliente, UUID.randomUUID(), true)));
+
+        assertThat(service().findOwningClient(area)).isEqualTo(cliente);
+    }
+
+    @Test
+    @DisplayName("findOwningClient no filtra por estado: responde igual para un area o una sede cerradas")
+    void resuelveElClienteAunqueEsteCerrada() {
+        UUID area = UUID.randomUUID();
+        UUID cliente = UUID.randomUUID();
+        // Intencional: de esto depende que un traslado a un area cerrada responda "cerrada" y no
+        // un falso 404, porque quien pregunta por el cliente no rechaza por el estado.
+        when(areaPort.findById(area)).thenReturn(Optional.of(ServiceArea.rehydrate(area, "UCI", SEDE, false)));
+        when(headquarterPort.findById(SEDE)).thenReturn(Optional.of(
+                Headquarter.rehydrate(SEDE, "Sede Norte", new Address("10", "20", "30-40"),
+                        cliente, UUID.randomUUID(), false)));
+
+        assertThat(service().findOwningClient(area)).isEqualTo(cliente);
+    }
+
+    @Test
+    @DisplayName("findOwningClient de un area inexistente falla con el 404 del area, no el de la sede")
+    void findOwningClientDeAreaInexistente() {
+        UUID area = UUID.randomUUID();
+        when(areaPort.findById(area)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().findOwningClient(area))
+                .isInstanceOf(ServiceAreaNotFoundException.class);
+    }
+
+    /**
+     * En la practica es inalcanzable mientras la clave foranea de {@code area_servicio} exija que
+     * la sede exista y nada la borre de verdad: pero el contrato del puerto la declara, y esto deja
+     * constancia de que {@code ServiceAreaService} la lanza tal como promete. Que nadie fuera de
+     * este modulo la traduzca a un codigo de error propio es harina de otro costal.
+     */
+    @Test
+    @DisplayName("findOwningClient de una sede huerfana lanza HeadquarterNotFoundException")
+    void findOwningClientDeSedeInexistente() {
+        UUID area = UUID.randomUUID();
+        when(areaPort.findById(area)).thenReturn(Optional.of(ServiceArea.rehydrate(area, "UCI", SEDE, true)));
+        when(headquarterPort.findById(SEDE)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().findOwningClient(area))
                 .isInstanceOf(HeadquarterNotFoundException.class);
     }
 

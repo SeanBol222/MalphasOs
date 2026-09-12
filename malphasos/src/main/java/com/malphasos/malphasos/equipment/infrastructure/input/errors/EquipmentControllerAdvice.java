@@ -3,6 +3,7 @@ package com.malphasos.malphasos.equipment.infrastructure.input.errors;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.BrandNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ManufacturerNotFoundException;
@@ -95,6 +96,21 @@ public class EquipmentControllerAdvice {
     public EquipmentErrorResponse handleServiceArea(ServiceAreaNotFoundException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.SERVICE_AREA_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /**
+     * Un traslado que cruza de cliente.
+     *
+     * <p>409 y no 400: los datos que llegaron son válidos —el área existe y está abierta— y no es
+     * que algo no exista. Lo que ocurre es que la operación choca con el estado actual de la
+     * unidad, que ya pertenece a otro cliente. Lleva código propio para que quien llama pueda
+     * distinguirlo de un dato mal formado sin leer el mensaje.
+     */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(CrossClientRelocationException.class)
+    public EquipmentErrorResponse handleCrossClientRelocation(CrossClientRelocationException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.CROSS_CLIENT_RELOCATION, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */

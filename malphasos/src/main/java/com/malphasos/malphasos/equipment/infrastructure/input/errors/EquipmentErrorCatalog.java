@@ -22,7 +22,12 @@ public enum EquipmentErrorCatalog {
     // el cliente del API necesita saber cual de las referencias fallo, y "datos invalidos" no se
     // lo dice.
     COUNTRY_NOT_FOUND("ERR_EQUIPMENT_008", "Country not found"),
-    SERVICE_AREA_NOT_FOUND("ERR_EQUIPMENT_009", "Service area not found");
+    SERVICE_AREA_NOT_FOUND("ERR_EQUIPMENT_009", "Service area not found"),
+
+    // Reglas de negocio que rechazan una operacion valida en sus datos. No entran por
+    // INVALID_EQUIPMENT_DATA: el area de destino existe, esta abierta y el identificador es
+    // correcto; lo que falla es que la unidad es de otro cliente.
+    CROSS_CLIENT_RELOCATION("ERR_EQUIPMENT_010", "Relocation across clients is not allowed");
 
     private final String code;
     private final String message;
