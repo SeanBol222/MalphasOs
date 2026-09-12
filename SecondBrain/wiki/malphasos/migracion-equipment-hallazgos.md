@@ -4,7 +4,7 @@ description: Lo que apareció al migrar el núcleo de negocio en cinco pasos, in
 tags: [malphasos, migracion, equipment, hallazgos, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/com/sigma/bb/equipment_hexagon
 estado: estable
-updated: 2026-09-02
+updated: 2026-09-12
 ---
 
 # Migración de equipment: hallazgos
@@ -62,6 +62,8 @@ La pregunta se hizo agregado por agregado, y las respuestas están en los puerto
 
 El **traslado de una unidad tiene evento propio**, `ClientEquipmentRelocatedEvent`, separado del cambio de datos de compra. Los equipos se mueven dentro de una sede y eso cambia quién responde por ellos: es el hecho que más importa de una unidad.
 
+> **Corrección del 2026-09-09**: "se mueven dentro de una sede" se queda corto y por eso el traslado tenía un agujero. Una unidad se mueve entre áreas de una sede **y entre sedes del mismo cliente**; lo único prohibido es cruzar de cliente, y eso no se comprobaba en ninguna parte hasta `3c002b2`. Ver [[regla-traslado-mismo-cliente]].
+
 ## Seis defectos del esquema original
 
 Todos corregidos en `V5__equipment_catalog.sql`:
@@ -109,6 +111,8 @@ Siguen la línea que abrió `client` ([[migracion-client-hallazgos]]): comprueba
 
 Con las dos de `client` van **cinco invariantes de este tipo** en el proyecto. Todas viven en los servicios, con sus pruebas.
 
+> **Ampliación del 2026-09-09.** Se añadió una cuarta a este módulo, y son **seis** en el proyecto: **una unidad solo se traslada a áreas de su propio cliente**. Rompe el molde de las cinco anteriores, porque no comprueba que algo esté activo sino que compara dos clientes que ninguna tabla guarda juntos. Y rompía también la frase de arriba en otro sentido: **ésta no tenía prueba que la ejerciera** — cierto hasta el **2026-09-10**, cuando `43de295` añadió 13; corregido aquí el 2026-09-12. Ver [[regla-traslado-mismo-cliente]].
+
 **La unicidad del par marca-tipo se deja al esquema**, deliberadamente: comprobarla en el servicio solo abriría una ventana entre la consulta y la escritura. La regla que la base puede defender sin carreras, la defiende la base.
 
 ## Lo que apareció al revisar la capa REST
@@ -127,4 +131,4 @@ El fallo no avisa: un patrón que no casa con ninguna ruta no es un error, simpl
 
 ## Notas relacionadas
 
-[[dominio-equipo-mantenimiento]] · [[migracion-client-hallazgos]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[checklist-reutilizacion]] · [[reglas-de-negocio-en-el-esquema]] · [[patron-soft-delete]]
+[[dominio-equipo-mantenimiento]] · [[regla-traslado-mismo-cliente]] · [[migracion-client-hallazgos]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[checklist-reutilizacion]] · [[reglas-de-negocio-en-el-esquema]] · [[patron-soft-delete]]

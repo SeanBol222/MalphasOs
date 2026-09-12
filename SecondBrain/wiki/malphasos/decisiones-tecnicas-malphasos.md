@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -216,10 +216,28 @@ Detalle completo en [[sincronizacion-con-proveedor-de-identidad]]; aquí las dec
 
 **Y un cambio de conducta que nadie había señalado.** Añadir `case 404` a `translateClientFailure` modificó `deleteUser`, que ya existía: de sus **dos** caminos para un 404, el que pasa por la traducción devuelve ahora `KeycloakUserNotFoundException` en vez de `KeycloakConnectionException`. Es inocuo —su único llamante captura `RuntimeException` y solo cambia el log—, pero deja una regla: **un `switch` de traducción compartido tiene tantos llamantes como métodos lo usen, y añadirle un caso los modifica a todos**.
 
+## Traslado de equipos dentro del mismo cliente (2026-09-09)
+
+Detalle completo en [[regla-traslado-mismo-cliente]]. Aquí solo las decisiones y su coste. (Esta línea remitía a «por qué la regla figura como construida y no como verificada»: **verificada el 2026-09-10**, corregido el 2026-09-12.)
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Quién resuelve de qué cliente es un área | **`client`, en una llamada**: `ServiceAreaServicePort.findOwningClient(UUID)` | La alternativa era que `equipment` caminara área → sede → cliente dos veces, atándose a la estructura interna de otro contexto. Lo que cruza la frontera sigue siendo un identificador |
+| Llamada o evento | **Llamada síncrona** | El traslado necesita la respuesta antes de decidir y **un evento no contesta preguntas**. Con eventos habría que permitir el traslado y deshacerlo después |
+| Puerto dedicado o ampliar el existente | **Ampliar `ServiceAreaServicePort`** | `equipment` ya dependía de ese puerto y del agregado `ServiceArea`: un segundo contrato al estilo de `PersonCommunicationPort` no estrechaba nada y solo añadía un bean. **Segunda razón, y es sobre el proceso**: inyectar una dependencia nueva cambia el constructor del servicio y rompe la compilación de `EquipmentChainServiceTest`, archivo que el `desarrollador` tiene prohibido tocar. **El reparto de dominios entre agentes empujó una decisión de diseño** |
+| Dónde vive la regla | **En el servicio** | Un `CHECK` tendría que cruzar unidad, área y sede para comparar dos clientes que ninguna tabla guarda junta |
+| Qué se comprueba en el alta | **Nada** | No hay cliente previo que violar: el área elegida define de qué cliente pasa a ser la unidad. Buscar simetría habría sido inventar una regla |
+| Estado del rechazo | **409 con `ERR_EQUIPMENT_010`**, no 400 | Los datos son válidos; choca el estado. Precedente verificado en `PersonControllerAdvice`, que responde 409 a `KeycloakUserAlreadyExistsException` |
+| Tipo de la excepción | **`RuntimeException` propia**, no `IllegalArgumentException` | El advice del módulo traduce esa familia entera a 400, así que heredar de ella habría dado 400 en silencio |
+
+**Y una decisión de proceso, tomada por el usuario y no por el código**: esta tanda **no pasó por el `tester`**. Es la razón por la que la regla se registra como construida y sin verificar, con la batería en verde diciendo únicamente que nada se rompió — **496 ejecuciones y cero fallos, idénticas a `main`, porque no se añadió ninguna prueba**.
+
+> **Corrección del 2026-09-12.** El párrafo de arriba fue cierto durante un día: el `tester` pasó por la rama el 2026-09-10 (`43de295`) y la regla quedó verificada con 13 pruebas, dejando la rama en **509** ejecuciones. Se conserva porque la decisión de proceso se tomó de verdad y **su coste quedó medido**: la regla estuvo un día en el repositorio sin que nada la ejerciera, y el wiki tuvo que publicarlo como pendiente. Lo que **no** cambió al repararla es igual de informativo: **no había ningún defecto detrás, la guarda funcionaba**.
+
 ## Pendientes de decidir
 
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
 
 ## Notas relacionadas
 
-[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[regla-traslado-mismo-cliente]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

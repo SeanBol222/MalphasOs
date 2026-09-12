@@ -2,7 +2,7 @@
 name: checklist-reutilizacion
 description: Orden priorizado sugerido de qué portar primero al construir MalphasOS, basado en el análisis de todo el wiki
 tags: [malphasos, checklist, planificacion, "describe:ambos"]
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # Checklist priorizado de reutilización
@@ -11,17 +11,18 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 > **Estado al 2026-09-08.** Los cuatro módulos de dominio —`person`, `location`, `client` y `equipment`— están completos de esquema a REST. Del alcance del backend queda **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos. Lo demás pendiente es frontend y opcionales.
 >
-> Sobre el conteo de la batería, y sobre **dos ramas que no están en `main` y no descienden una de otra**:
+> **Corrección del 2026-09-09: las dos ramas ya están en `main`, y lo que decía este recuadro es falso desde entonces.** `feat/permission-model` (`2de115f`) entró por `e6dda32` y `fix/person-identity-sync` (`5fde17c`) por `258cd81`; las dos se borraron tras el merge, como manda la convención. Se deja la tabla vieja tachada porque el aviso «no sumar, remedir» era correcto y su resultado es el dato útil:
 >
 > | Rama | En `main` | Pruebas | Qué trae |
 > |---|---|---|---|
-> | `main` (`82a697b`) | — | 339 | Los cuatro módulos |
-> | `feat/permission-model` (`2de115f`) | **No** | 472 | El modelo de permisos. Parte de un `main` anterior |
-> | `fix/person-identity-sync` (`5fde17c`) | **No** | **361** | La sincronización con Keycloak. Parte del `main` actual |
+> | ~~`main` (`82a697b`)~~ | — | ~~339~~ | Los cuatro módulos |
+> | ~~`feat/permission-model` (`2de115f`)~~ | **Sí, `e6dda32`** | ~~472~~ | El modelo de permisos |
+> | ~~`fix/person-identity-sync` (`5fde17c`)~~ | **Sí, `258cd81`** | ~~361~~ | La sincronización con Keycloak |
+> | **`main` (`01c3277`)** | — | **496** | Todo lo anterior, remedido |
 >
-> **Las dos ramas no se han visto entre sí**: 361 no incluye las 139 pruebas de seguridad, y 472 no incluye la baja en Keycloak. El día que se mergeen habrá que remedirlo, no sumarlo. Ambas duplican por su cuenta el arreglo de `unico()`.
+> **Remedido, no sumado**, tal como se había anotado: `./mvnw test` el 2026-09-09 sobre `01c3277`, borrando `target/surefire-reports` antes — que `mvn test` **no** limpia—, da **496 ejecuciones**, 41 clases, cero fallos y cero errores. Las cifras viejas eran el atributo `tests=` de los XML; **496 es el número de elementos `<testcase>`, que es el conteo honesto** —el atributo da 494 y los `.txt` 380—. Ver [[stack-spring-boot-4-particularidades]].
 >
-> Todas las cifras son el atributo `tests=` de los XML de Surefire, borrando el directorio de informes antes de correr — que `mvn test` **no** limpia. Ese atributo se queda **dos por debajo** del número real de ejecuciones, 363 en `fix/person-identity-sync`; los `.txt` dan 329 porque no cuentan las clases `@Nested`. Ver [[stack-spring-boot-4-particularidades]].
+> Fuera de `main` queda hoy **una** rama de código: `feat/relocation-same-client`, el traslado que no cruza de cliente. Esta línea decía «(`3c002b2`), **también 496**, porque no añadió ninguna prueba»: era cierto el 2026-09-09 y **dejó de serlo el 2026-09-10** — corregido el **2026-09-12**. La rama está hoy en `43de295`, con 13 pruebas del `tester` encima y **509** elementos `<testcase>`, 42 clases, cero fallos. Ver [[regla-traslado-mismo-cliente]].
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 
@@ -36,7 +37,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 - [x] **Hecho (2026-08-29).** Portar `shared/domain/events` completo (`AggregateRoot`, `DomainEvent`, `EventMetadata`, `Payload`), sin el `eventTopic` que filtraba el transporte al dominio y sin `Serializable`. [[aggregate-root-pattern]], [[eventos-de-dominio]]
 - [x] **Parcial (2026-08-29).** `EventDispatcherPort` + `SpringEventDispatcher` en marcha; **`RabbitMQDispatcher` no se porta todavía**, y cuando se porte hay que corregir antes el mismatch de routing key. Los cuatro módulos despachan hoy en proceso. [[patron-event-dispatcher-dual]], [[deuda-tecnica-y-riesgos]]
 - [x] **Hecho.** Portar `SecurityConfig` + `KeycloakRoleConverter` + `KeycloakAdminConfig`, con el client id configurable y sin casts inseguros. **Seguridad ya activa**, con pruebas que verifican 401 sin token y 403 sin permiso. [[seguridad-keycloak-backend]]
-- [x] **Hecho (2026-09-08, en `feat/permission-model`, sin mergear).** Modelo de permisos: se heredaba del original que las 83 operaciones exigieran `admin.full` y que los roles del realm fueran decorativos. Ahora cada operación exige la autoridad de su recurso, `ApiAuthority` expande al administrador en un solo sitio, y el realm reparte 19 roles entre tres grupos que por fin se distinguen. 139 pruebas de seguridad, dos de ellas invariantes estructurales por reflexión. **Falta el filtrado por dueño**, dejado fuera a propósito. [[modelo-de-permisos]]
+- [x] **Hecho (2026-09-08; en `main` desde `e6dda32`).** Modelo de permisos: se heredaba del original que las 83 operaciones exigieran `admin.full` y que los roles del realm fueran decorativos. Ahora cada operación exige la autoridad de su recurso, `ApiAuthority` expande al administrador en un solo sitio, y el realm reparte 19 roles entre tres grupos que por fin se distinguen. 139 pruebas de seguridad, dos de ellas invariantes estructurales por reflexión. **Falta el filtrado por dueño**, dejado fuera a propósito. [[modelo-de-permisos]]
 - [x] **Hecho.** Portar `OpenApiConfig` con grupos por módulo; fija la convención de rutas `/v1/api/<recurso>`. [[openapi-swagger]]
 - [x] **Parcial.** Catálogo transversal migrado y corregido. Falta la interfaz/clase base común, que se definirá al migrar el primer módulo con excepciones propias. [[manejo-global-excepciones]], [[patron-catalogo-errores-por-contexto]]
 
@@ -68,7 +69,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 
 ## 6. Identidad y frontend
 
-- [x] **Hecho (2026-09-09, en `fix/person-identity-sync`, sin mergear).** Sincronización de la persona con Keycloak al darla de baja y al editarla: `disableUser` y `updateUserProfile` en el puerto, llamados **antes** de persistir. Cierra la brecha de que dar de baja a alguien no le quitaba la entrada. **Queda abierto** el correo —no hay principal que sincronizar—, el cambio de grupo al cambiar de rol, y la ventana del token ya emitido. [[sincronizacion-con-proveedor-de-identidad]]
+- [x] **Hecho (2026-09-09; en `main` desde `258cd81`).** Sincronización de la persona con Keycloak al darla de baja y al editarla: `disableUser` y `updateUserProfile` en el puerto, llamados **antes** de persistir. Cierra la brecha de que dar de baja a alguien no le quitaba la entrada. **Queda abierto** el correo —no hay principal que sincronizar—, el cambio de grupo al cambiar de rol, y la ventana del token ya emitido. [[sincronizacion-con-proveedor-de-identidad]]
 
 - [x] **Hecho.** Portar `PersonIdentityPort`/Adapter. `createSuperAdminUser` queda fuera del puerto por estar sin implementar en el original. [[dominio-persona-identidad]], [[migracion-person-hallazgos]]
 - [ ] Portar `auth/keycloak.ts` + `AuthProvider` + `PrivateRoute` + `apiFetch` del frontend sin cambios estructurales. [[integracion-keycloak-frontend]]

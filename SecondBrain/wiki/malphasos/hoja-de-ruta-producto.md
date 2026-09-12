@@ -29,7 +29,7 @@ Detalle por categoría en `Documentation/wiki/requisitos/estado-de-implementacio
 
 ## Decisiones ya tomadas por el usuario
 
-- **La tanda de seguridad está hecha** (`fix/person-identity-sync`, sin mergear): dar de baja a una persona ya deshabilita su cuenta de Keycloak. Ver [[sincronizacion-con-proveedor-de-identidad]].
+- **La tanda de seguridad está hecha** (`fix/person-identity-sync`, **en `main` desde `258cd81`**; esta nota la daba por sin mergear, **corregido el 2026-09-09**): dar de baja a una persona ya deshabilita su cuenta de Keycloak. Ver [[sincronizacion-con-proveedor-de-identidad]].
 - **El siguiente bloque es órdenes de trabajo.**
 
 Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué arrastra cada pieza.
@@ -91,7 +91,7 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 
 | # | Bloque | Desbloquea | Estado de sus dependencias |
 |---|---|---|---|
-| 0 | **Mergear las dos ramas pendientes** (`feat/permission-model`, `fix/person-identity-sync`) | Todo lo demás | Listas, sin mergear, **y no descienden una de otra** |
+| ~~0~~ | ~~**Mergear las dos ramas pendientes**~~ | Todo lo demás | **Hecho el 2026-09-09**: `e6dda32` y `258cd81`. `main` está en `01c3277` con las dos dentro y la batería remedida en **496** |
 | 1 | **Órdenes de trabajo** (RF-01…07) | Reportes, firma, comercial, inventario | Todas cumplidas |
 | 2 | **Reportes de mantenimiento** (RF-09, 11, 13, 15) | Historial de hojas de vida, PDF, alertas | Requiere el bloque 1 (+ RF-14, disponible ya) |
 | 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | Ninguna pendiente. Puede ir en paralelo al 1 y al 2 |
@@ -105,7 +105,7 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 
 ### Por qué el bloque 0 no es burocracia
 
-`feat/permission-model` incluye una prueba, `RestAuthorizationCoverageTest`, que **falla a propósito el día que aparezca el primer endpoint de órdenes de trabajo**: `ApiAuthority` ya declara `work-order.read`, `work-order.write` y `work-order.assign`, el realm ya se las concede al grupo `engineers`, y la prueba fija que hoy no protegen nada. Construir órdenes de trabajo **antes** de mergear esa rama significa escribir los controladores sin ese vocabulario y volver luego; construirlo después significa que la prueba avisa en el momento justo. Verificado sobre la rama.
+**Ya no aplica desde el 2026-09-09, y lo que sigue explica por qué importaba.** `feat/permission-model` incluía una prueba, `RestAuthorizationCoverageTest` —hoy en `main`—, que **falla a propósito el día que aparezca el primer endpoint de órdenes de trabajo**: `ApiAuthority` ya declara `work-order.read`, `work-order.write` y `work-order.assign`, el realm ya se las concede al grupo `engineers`, y la prueba fija que hoy no protegen nada. Construir órdenes de trabajo **antes** de mergear esa rama habría significado escribir los controladores sin ese vocabulario y volver luego. Con la rama ya en `main`, la prueba avisa en el momento justo: **el bloque 1 puede empezar**.
 
 ## Lo que esta hoja de ruta no puede decidir: cuándo entra el frontend
 
@@ -126,7 +126,7 @@ Lo que sí conviene tener presente al decidirlo: el arranque no parte de cero. `
 
 ## Un efecto lateral que ya venció: la ERS quedó desactualizada
 
-RF-53 está marcado `[IMPLEMENTADO]` con la salvedad escrita de que **su tercer criterio de aceptación —"el acceso se revoca inmediatamente"— no se cumple**. Con `fix/person-identity-sync` **pasa a cumplirse, con una precisión que el documento tendrá que recoger**: se revoca para las autenticaciones nuevas, no para los tokens ya emitidos, que siguen valiendo hasta 300 s. Lo mismo con RF-52, que ahora propaga nombre y apellido a Keycloak.
+RF-53 está marcado `[IMPLEMENTADO]` con la salvedad escrita de que **su tercer criterio de aceptación —"el acceso se revoca inmediatamente"— no se cumple**. Con `fix/person-identity-sync`, **en `main` desde el 2026-09-09**, **pasa a cumplirse, con una precisión que el documento tendrá que recoger**: se revoca para las autenticaciones nuevas, no para los tokens ya emitidos, que siguen valiendo hasta 300 s. Lo mismo con RF-52, que ahora propaga nombre y apellido a Keycloak.
 
 `Documentation/` no es de este wiki y **no se ha tocado**. Queda anotado aquí para quien vaya a escribir allí.
 
