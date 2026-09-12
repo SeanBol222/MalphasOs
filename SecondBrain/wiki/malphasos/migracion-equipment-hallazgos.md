@@ -4,7 +4,7 @@ description: Lo que apareció al migrar el núcleo de negocio en cinco pasos, in
 tags: [malphasos, migracion, equipment, hallazgos, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/com/sigma/bb/equipment_hexagon
 estado: estable
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # Migración de equipment: hallazgos
@@ -111,7 +111,7 @@ Siguen la línea que abrió `client` ([[migracion-client-hallazgos]]): comprueba
 
 Con las dos de `client` van **cinco invariantes de este tipo** en el proyecto. Todas viven en los servicios, con sus pruebas.
 
-> **Ampliación del 2026-09-09.** Se añadió una cuarta a este módulo, y son **seis** en el proyecto: **una unidad solo se traslada a áreas de su propio cliente**. Rompe el molde de las cinco anteriores, porque no comprueba que algo esté activo sino que compara dos clientes que ninguna tabla guarda juntos. Y rompe también la frase de arriba en otro sentido: **ésta no tiene prueba que la ejerza**. Ver [[regla-traslado-mismo-cliente]].
+> **Ampliación del 2026-09-09.** Se añadió una cuarta a este módulo, y son **seis** en el proyecto: **una unidad solo se traslada a áreas de su propio cliente**. Rompe el molde de las cinco anteriores, porque no comprueba que algo esté activo sino que compara dos clientes que ninguna tabla guarda juntos. Y rompía también la frase de arriba en otro sentido: **ésta no tenía prueba que la ejerciera** — cierto hasta el **2026-09-10**, cuando `43de295` añadió 13; corregido aquí el 2026-09-12. Ver [[regla-traslado-mismo-cliente]].
 
 **La unicidad del par marca-tipo se deja al esquema**, deliberadamente: comprobarla en el servicio solo abriría una ventana entre la consulta y la escritura. La regla que la base puede defender sin carreras, la defiende la base.
 

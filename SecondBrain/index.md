@@ -42,7 +42,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[dominio-persona-identidad]] — Person + Keycloak Admin API. El único módulo que se quedó en Generación 1, por decisión explícita.
 - [[dominio-ubicacion]] — Country / City. El primer módulo de Generación 2 y la plantilla de los siguientes.
 - [[dominio-equipo-mantenimiento]] ⭐ — El núcleo del negocio. Catálogo e inventario construidos; **faltan verificaciones técnicas y datos metrológicos**.
-- [[regla-traslado-mismo-cliente]] ⚠️ — Una unidad solo se traslada a áreas de su propio cliente, y **la regla está construida sin verificar**: la única prueba que la toca pasa en vacío. Leer antes de tocar `ClientEquipmentService`.
+- [[regla-traslado-mismo-cliente]] — Una unidad solo se traslada a áreas de su propio cliente. Construida el 2026-09-09 y **verificada el 2026-09-10** con 13 pruebas; esta línea la marcaba con ⚠️ como «sin verificar» hasta el **2026-09-12**. Leer antes de tocar `ClientEquipmentService`: recoge además por qué una prueba pasaba en vacío sin que Mockito estricto lo delatara.
 - [[relacion-manager-persona]] — Un encargado ES una persona por clave primaria compartida.
 
 ### Datos y esquema
@@ -103,4 +103,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**47 notas** · reorganizado el 2026-09-09 · ver [[log.md]] para el historial.
+**47 notas** · reorganizado el 2026-09-09 · última corrección el 2026-09-12 · ver [[log.md]] para el historial.

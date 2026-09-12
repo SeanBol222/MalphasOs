@@ -21,7 +21,7 @@ Punto de entrada: `SecondBrain/index.md` (catálogo) y `SecondBrain/CLAUDE.md` (
 - `wiki/malphasos/checklist-reutilizacion.md` — el registro **cerrado** de la migración. Dice qué se hizo y cuándo; no es una lista de pendientes.
 - `wiki/malphasos/decisiones-tecnicas-malphasos.md` — toda decisión tomada, con su porqué.
 - `wiki/malphasos/modelo-de-permisos.md` — quién puede hacer qué, y por qué se decide en un solo sitio.
-- `wiki/patrones-reutilizables/deuda-tecnica-y-riesgos.md` — **63** defectos conocidos del original (decía 57; contados fila a fila el 2026-09-08 y recontados el 2026-09-09), más **22** de deuda propia en dos secciones aparte. **Consultar antes de tocar cualquier pieza.**
+- `wiki/patrones-reutilizables/deuda-tecnica-y-riesgos.md` — **63** defectos conocidos del original (decía 57; contados fila a fila el 2026-09-08 y recontados el 2026-09-09), más **23** de deuda propia en dos secciones aparte (eran 22 hasta el 2026-09-12). **Consultar antes de tocar cualquier pieza.**
 - `wiki/malphasos/migracion-person-hallazgos.md` y `migracion-location-hallazgos.md` — qué apareció al migrar cada módulo.
 - `wiki/arquitectura/evolucion-arquitectonica-crud-a-cqrs.md` — Generación 1 (CRUD anémico, no replicar) vs Generación 2 (agregados + eventos, el patrón a seguir).
 
@@ -36,7 +36,7 @@ El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/In
 | `person` | Completo, más `PersonCommunicationPort` publicado hacia otros módulos y la sincronización con Keycloak al dar de baja y al editar |
 | `location` | Completo: esquema, dominio, aplicación, persistencia, REST |
 | `client` | Completo: esquema, cuatro agregados, aplicación, persistencia y REST |
-| `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos. En `feat/relocation-same-client`, **sin mergear**, el traslado deja de cruzar de cliente — regla **construida y sin verificar**, ver [[regla-traslado-mismo-cliente]] |
+| `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos. En `feat/relocation-same-client`, **sin mergear**, el traslado deja de cruzar de cliente — regla construida el 2026-09-09 y **verificada el 2026-09-10** con 13 pruebas (esta tabla la dio por «construida y sin verificar» hasta el **2026-09-12**), ver [[regla-traslado-mismo-cliente]] |
 
 Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog`.
 
@@ -45,11 +45,11 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__eq
 | Rama | Qué trae | Pruebas |
 |---|---|---|
 | `main` (`01c3277`) | Los cuatro módulos, el modelo de permisos y la sincronización con Keycloak | **496** |
-| `feat/relocation-same-client` (`3c002b2`) | El traslado de una unidad no cruza de cliente. **Regla construida y sin verificar**: la única prueba que la toca pasa en vacío. Ver [[regla-traslado-mismo-cliente]] | **496** |
+| `feat/relocation-same-client` (`43de295`) | El traslado de una unidad no cruza de cliente, **con la regla ya ejercida**: 13 pruebas nuevas el 2026-09-10, incluidas las dos frágiles —otra sede del mismo cliente se permite; un área inactiva y de otro cliente responde 400 por cerrada, no 409—. Ver [[regla-traslado-mismo-cliente]] | **509** |
 
-**496 es una remedición, no una suma**: 472 + 361 habría sido un número inventado, y el aviso de remedir ya estaba escrito. Las dos ramas dan lo mismo porque `3c002b2` **no añadió ninguna prueba**.
+**496 es una remedición, no una suma**: 472 + 361 habría sido un número inventado, y el aviso de remedir ya estaba escrito. **Corrección del 2026-09-12**: esta tabla apuntaba a `3c002b2` con **496** y decía que la rama no añadía ninguna prueba. Era cierto el 2026-09-09 y dejó de serlo el 2026-09-10 con `43de295`, que suma 13 pruebas y deja la rama en **509** —507 por el atributo `tests=`, 386 por los `.txt`, 42 clases, cero fallos—, medido borrando `target/surefire-reports` antes.
 
-Las cifras de arriba son el **número de elementos `<testcase>` de los XML de Surefire**, que es el conteo honesto; el atributo `tests=` da 494 y los `.txt` 380. Los `.txt` dan menos porque **no cuentan las clases `@Nested`** — un `@ParameterizedTest` sí lo cuentan, al contrario de lo que este archivo afirmó hasta el 2026-09-08 —, y el atributo `tests=` se queda corto cuando dos clases `@Nested` tienen un método con el mismo nombre. Y `mvn test` **no borra `target/surefire-reports`**: antes de citar un conteo hay que borrarlo, o se suman informes de corridas y ramas anteriores. Ver [[stack-spring-boot-4-particularidades]].
+Las cifras de arriba son el **número de elementos `<testcase>` de los XML de Surefire**, que es el conteo honesto; en `main` el atributo `tests=` da 494 y los `.txt` 380, y en `43de295` dan 507 y 386. Los `.txt` dan menos porque **no cuentan las clases `@Nested`** — un `@ParameterizedTest` sí lo cuentan, al contrario de lo que este archivo afirmó hasta el 2026-09-08 —, y el atributo `tests=` se queda corto cuando dos clases `@Nested` tienen un método con el mismo nombre. Y `mvn test` **no borra `target/surefire-reports`**: antes de citar un conteo hay que borrarlo, o se suman informes de corridas y ramas anteriores. Ver [[stack-spring-boot-4-particularidades]].
 
 **La migración del backend está cerrada** salvo esa segunda tanda de `equipment`. **Eso no es lo mismo que el producto terminado**: de los 31 requisitos funcionales de la ERS hay **8** implementados, de los 23 no funcionales **1**, y **no existe una sola línea de frontend**. El siguiente bloque decidido es **órdenes de trabajo**. El orden completo, con sus dependencias, en [[hoja-de-ruta-producto]].
 
@@ -115,5 +115,5 @@ Se trabaja en el worktree `MalphasOS-Documentation`, sobre la rama del mismo nom
 - **Ningún correo de una persona está marcado como principal**, y por eso la edición no puede sincronizar el correo con Keycloak: no hay forma de saber cuál es el de la cuenta. Corregirlo exige también una migración.
 - **Cambiar `tipoPersona` no mueve al usuario de grupo en Keycloak**: quien deja de ser ingeniero conserva sus permisos. Heredado del original, dejado fuera a propósito de la tanda del 2026-09-09.
 - **Retirar el acceso no invalida los tokens ya emitidos**: siguen abriendo el API hasta que caducan, 300 s en el realm de desarrollo.
-- **Una prueba que pasa en vacío**, en `feat/relocation-same-client`: `EquipmentChainServiceTest.Unidad.trasladar` no estuba `findOwningClient`, Mockito devuelve `null` en las dos consultas y la guarda del traslado nunca se ejerce. **Una prueba así es peor que una ausente**: aparenta cobertura. La regla del traslado dentro del mismo cliente queda **construida y sin verificar**. Esa tanda **no pasó por el `tester`, por decisión explícita del usuario** — no es un olvido. Ver [[regla-traslado-mismo-cliente]].
+- ~~**Una prueba que pasa en vacío**, en `feat/relocation-same-client`~~ — **resuelta el 2026-09-10** con `43de295`; esta línea la daba por abierta hasta el **2026-09-12**. `EquipmentChainServiceTest.Unidad.trasladar` no estubaba `findOwningClient`, Mockito devolvía `null` en las dos consultas y la guarda nunca se ejercía. **Repararla no destapó ningún defecto: la guarda funcionaba**, el riesgo era la ceguera. Lo que queda vivo es lo que lo permitió: **`MockitoExtension` en modo estricto no detecta esto**, porque vigila los estubados que sobran y no las llamadas sin estubar. Ver [[regla-traslado-mismo-cliente]].
 

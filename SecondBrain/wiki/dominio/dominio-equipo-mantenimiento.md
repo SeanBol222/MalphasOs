@@ -3,7 +3,7 @@ name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
 tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # Dominio Equipo y Mantenimiento Preventivo (`equipment_hexagon`)
@@ -14,7 +14,7 @@ updated: 2026-09-09
 >
 > Se **reconstruyó, no se portó**, y siete defectos de esta parte del original quedaron corregidos por el camino. Lo que esta nota describe es el original; lo que MalphasOS hace de verdad está en [[migracion-equipment-hallazgos]]. **Donde las dos difieran, manda esa nota.**
 >
-> **Ampliación del 2026-09-09**: el traslado de una unidad ya no puede cruzar de cliente, y esa regla **está construida sin verificar**. Antes de tocar `ClientEquipmentService`, leer [[regla-traslado-mismo-cliente]].
+> **Ampliación del 2026-09-09**: el traslado de una unidad ya no puede cruzar de cliente. Esta línea añadía que la regla **estaba construida sin verificar**; lo estuvo hasta el **2026-09-10**, cuando entraron 13 pruebas en `43de295` — corregido el 2026-09-12. Antes de tocar `ClientEquipmentService`, leer [[regla-traslado-mismo-cliente]].
 
 ## Modelo de dominio y relaciones
 

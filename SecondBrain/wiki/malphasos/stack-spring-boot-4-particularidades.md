@@ -3,7 +3,7 @@ name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
 tags: [malphasos, stack, backend, hallazgo, "describe:malphasos"]
 source: malphasos/pom.xml (MalphasOS)
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # Particularidades de Spring Boot 4 y el stack moderno
@@ -101,16 +101,18 @@ Corolario práctico: **el número honesto es el del resumen de Maven**, que coin
 
 Esta nota y el `CLAUDE.md` de la raíz avisaban de que **el día que se mergearan las dos ramas habría que remedir, no sumar**. Se mergearon ese mismo día (`e6dda32` y `258cd81`), y el resultado es el dato que faltaba:
 
-| Fuente | `main` (`01c3277`) | `feat/relocation-same-client` (`3c002b2`) |
-|---|---|---|
-| elementos `<testcase>` — **el conteo honesto** | **496** | **496** |
-| atributo `tests=` de los `<testsuite>` | 494 | 494 |
-| `target/surefire-reports/*.txt` | 380 | 380 |
-| clases · fallos · errores · omitidas | 41 · 0 · 0 · 0 | 41 · 0 · 0 · 0 |
+| Fuente | `main` (`01c3277`) | `feat/relocation-same-client` (`3c002b2`) | `feat/relocation-same-client` (`43de295`) |
+|---|---|---|---|
+| elementos `<testcase>` — **el conteo honesto** | **496** | **496** | **509** |
+| atributo `tests=` de los `<testsuite>` | 494 | 494 | 507 |
+| `target/surefire-reports/*.txt` | 380 | 380 | 386 |
+| clases · fallos · errores · omitidas | 41 · 0 · 0 · 0 | 41 · 0 · 0 · 0 | 42 · 0 · 0 · 0 |
 
 Medido con `./mvnw test` y `rm -rf target/surefire-reports` antes de cada corrida. **496 no es 472 + 361 menos nada**: sumar habría dado un número inventado, que es exactamente contra lo que avisaba la nota.
 
-Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la única clase con nombres de método repetidos entre `@Nested`. Las dos ramas dan lo mismo porque **`3c002b2` no añadió ninguna prueba**: ver [[regla-traslado-mismo-cliente]] para qué significa —y qué no significa— ese verde.
+Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la única clase con nombres de método repetidos entre `@Nested`. Las dos primeras columnas dan lo mismo porque **`3c002b2` no añadió ninguna prueba**: ver [[regla-traslado-mismo-cliente]] para qué significa —y qué no significa— ese verde.
+
+**Ampliación del 2026-09-12**: la tercera columna es la misma rama tras la pasada del `tester` (`43de295`, 2026-09-10) y **sí es una suma legítima**, 496 + 13, porque es la misma base con pruebas añadidas encima; sumar solo está prohibido entre ramas que no descienden una de otra. La clase 42 es `ClientEquipmentRelocationPersistenceTest`, nueva. La diferencia `<testcase>` – atributo se mantiene en 2, así que el desajuste sigue viniendo entero de `CatalogAggregatesTest` y las pruebas nuevas no añaden nombres repetidos entre `@Nested`. Medido aquí con `./mvnw test` y `rm -rf target/surefire-reports` antes.
 
 ### Y una trampa de método: Surefire no limpia sus informes
 

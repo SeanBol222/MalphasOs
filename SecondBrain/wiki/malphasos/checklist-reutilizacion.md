@@ -2,7 +2,7 @@
 name: checklist-reutilizacion
 description: Orden priorizado sugerido de qué portar primero al construir MalphasOS, basado en el análisis de todo el wiki
 tags: [malphasos, checklist, planificacion, "describe:ambos"]
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # Checklist priorizado de reutilización
@@ -22,7 +22,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 >
 > **Remedido, no sumado**, tal como se había anotado: `./mvnw test` el 2026-09-09 sobre `01c3277`, borrando `target/surefire-reports` antes — que `mvn test` **no** limpia—, da **496 ejecuciones**, 41 clases, cero fallos y cero errores. Las cifras viejas eran el atributo `tests=` de los XML; **496 es el número de elementos `<testcase>`, que es el conteo honesto** —el atributo da 494 y los `.txt` 380—. Ver [[stack-spring-boot-4-particularidades]].
 >
-> Fuera de `main` queda hoy **una** rama de código: `feat/relocation-same-client` (`3c002b2`), el traslado que no cruza de cliente. **También 496**, porque no añadió ninguna prueba — ver [[regla-traslado-mismo-cliente]].
+> Fuera de `main` queda hoy **una** rama de código: `feat/relocation-same-client`, el traslado que no cruza de cliente. Esta línea decía «(`3c002b2`), **también 496**, porque no añadió ninguna prueba»: era cierto el 2026-09-09 y **dejó de serlo el 2026-09-10** — corregido el **2026-09-12**. La rama está hoy en `43de295`, con 13 pruebas del `tester` encima y **509** elementos `<testcase>`, 42 clases, cero fallos. Ver [[regla-traslado-mismo-cliente]].
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 

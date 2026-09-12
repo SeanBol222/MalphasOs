@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -218,7 +218,7 @@ Detalle completo en [[sincronizacion-con-proveedor-de-identidad]]; aquí las dec
 
 ## Traslado de equipos dentro del mismo cliente (2026-09-09)
 
-Detalle completo en [[regla-traslado-mismo-cliente]], **incluido por qué la regla figura como construida y no como verificada**. Aquí solo las decisiones y su coste.
+Detalle completo en [[regla-traslado-mismo-cliente]]. Aquí solo las decisiones y su coste. (Esta línea remitía a «por qué la regla figura como construida y no como verificada»: **verificada el 2026-09-10**, corregido el 2026-09-12.)
 
 | Decisión | Elegido | Por qué |
 |---|---|---|
@@ -231,6 +231,8 @@ Detalle completo en [[regla-traslado-mismo-cliente]], **incluido por qué la reg
 | Tipo de la excepción | **`RuntimeException` propia**, no `IllegalArgumentException` | El advice del módulo traduce esa familia entera a 400, así que heredar de ella habría dado 400 en silencio |
 
 **Y una decisión de proceso, tomada por el usuario y no por el código**: esta tanda **no pasó por el `tester`**. Es la razón por la que la regla se registra como construida y sin verificar, con la batería en verde diciendo únicamente que nada se rompió — **496 ejecuciones y cero fallos, idénticas a `main`, porque no se añadió ninguna prueba**.
+
+> **Corrección del 2026-09-12.** El párrafo de arriba fue cierto durante un día: el `tester` pasó por la rama el 2026-09-10 (`43de295`) y la regla quedó verificada con 13 pruebas, dejando la rama en **509** ejecuciones. Se conserva porque la decisión de proceso se tomó de verdad y **su coste quedó medido**: la regla estuvo un día en el repositorio sin que nada la ejerciera, y el wiki tuvo que publicarlo como pendiente. Lo que **no** cambió al repararla es igual de informativo: **no había ningún defecto detrás, la guarda funcionaba**.
 
 ## Pendientes de decidir
 
