@@ -1,13 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { proveerSesionFalsa } from '../../../testing/keycloak-falso';
 import { NAVEGACION } from '../navegacion';
 import { routes } from '../../app.routes';
 import { Shell } from './shell';
 
 describe('Armazón', () => {
   async function pintar(destino = '/inicio'): Promise<HTMLElement> {
-    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    TestBed.configureTestingModule({
+      providers: [provideRouter(routes), ...proveerSesionFalsa()],
+    });
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(destino);
     await harness.fixture.whenStable();

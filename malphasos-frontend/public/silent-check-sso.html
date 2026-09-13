@@ -1,0 +1,13 @@
+<!doctype html>
+<!--
+  Marco oculto con el que Keycloak comprueba si ya hay sesion sin sacar al
+  usuario de la aplicacion. Sin el, cada arranque redirige al servidor y vuelve,
+  que se ve como un parpadeo.
+-->
+<html lang="es">
+  <body>
+    <script>
+      parent.postMessage(location.href, location.origin);
+    </script>
+  </body>
+</html>
