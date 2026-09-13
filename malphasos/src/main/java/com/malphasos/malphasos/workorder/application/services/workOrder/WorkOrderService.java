@@ -5,6 +5,7 @@ import com.malphasos.malphasos.client.application.ports.input.HeadquarterService
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
+import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
@@ -31,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Orquesta las órdenes de trabajo.
  *
- * <p>Aquí viven las <b>siete reglas</b> que ni el esquema ni el agregado pueden defender, porque
+ * <p>Aquí viven las <b>reglas</b> que ni el esquema ni el agregado pueden defender, porque
  * todas exigen preguntar a otro módulo. El esquema solo sostiene una de las cruzadas —que la sede
  * sea del cliente, con una clave foránea compuesta—; el agregado solo decide con lo que la propia
  * orden tiene delante.
@@ -149,7 +150,7 @@ public class WorkOrderService implements WorkOrderServicePort {
                     "No se puede incluir en una orden una unidad dada de baja: " + unidad.getId());
         }
 
-        requireEquipmentBelongsTo(unidad, orden.getIdCliente());
+        requireEquipmentInScopeOf(unidad, orden);
 
         orden.addEquipment(unidad.getId(), unidad.getIdAreaServicio());
 
@@ -253,26 +254,42 @@ public class WorkOrderService implements WorkOrderServicePort {
     }
 
     /**
-     * El equipo pertenece al cliente de la orden.
+     * El equipo está donde el mantenimiento se va a prestar: mismo cliente y misma sede.
      *
-     * <p>Se llega por el área en la que está la unidad, que es quien conoce a su sede y esta a su
-     * cliente. La pregunta la responde {@code client} de una vez, para no obligar a este módulo a
-     * conocer esa jerarquía.
+     * <p><b>Son tres comprobaciones y ninguna sobra.</b> Que el área esté abierta, porque incluir un
+     * equipo de un área cerrada sería programar trabajo donde ya no se opera. Que el equipo sea del
+     * cliente de la orden. Y que su área sea <b>de la sede de la orden</b>: una orden se presta en
+     * un sitio, y un equipo de otra sede no se va a intervenir ese día por mucho que el cliente
+     * coincida.
      *
-     * <p>Se comprueba también que el área esté abierta: incluir en una orden un equipo que está en
-     * un área cerrada sería programar trabajo donde ya no se opera.
+     * <p>El orden importa y no es casual. El dueño se comprueba antes que la sede porque un equipo
+     * de otro cliente está necesariamente en otra sede, y las dos negativas serían ciertas: quien
+     * recibe el error necesita la más informativa de las dos. Con este orden <b>cada comprobación
+     * sigue siendo alcanzable</b> y cada una da el mensaje que corresponde a su caso.
+     *
+     * <p>La pertenencia al cliente la responde {@code client} de una vez con {@code
+     * findOwningClient}, para no obligar a este módulo a caminar la jerarquía área → sede → cliente.
+     * La sede, en cambio, la trae ya el propio área, así que no cuesta ninguna consulta más.
      */
-    private void requireEquipmentBelongsTo(ClientEquipment unidad, UUID idCliente) {
-        if (!serviceAreaServicePort.findById(unidad.getIdAreaServicio()).isEstadoActivo()) {
+    private void requireEquipmentInScopeOf(ClientEquipment unidad, WorkOrder orden) {
+        ServiceArea area = serviceAreaServicePort.findById(unidad.getIdAreaServicio());
+
+        if (!area.isEstadoActivo()) {
             throw new IllegalArgumentException("La unidad " + unidad.getId()
                     + " esta en un area de servicio cerrada");
         }
 
         UUID duenoDelEquipo = serviceAreaServicePort.findOwningClient(unidad.getIdAreaServicio());
 
-        if (!duenoDelEquipo.equals(idCliente)) {
+        if (!duenoDelEquipo.equals(orden.getIdCliente())) {
             throw new IllegalArgumentException("La unidad " + unidad.getId() + " es del cliente "
-                    + duenoDelEquipo + " y la orden es del cliente " + idCliente);
+                    + duenoDelEquipo + " y la orden es del cliente " + orden.getIdCliente());
+        }
+
+        if (!area.getIdSede().equals(orden.getIdSede())) {
+            throw new IllegalArgumentException("La unidad " + unidad.getId() + " esta en la sede "
+                    + area.getIdSede() + " y el mantenimiento se presta en la sede "
+                    + orden.getIdSede());
         }
     }
 

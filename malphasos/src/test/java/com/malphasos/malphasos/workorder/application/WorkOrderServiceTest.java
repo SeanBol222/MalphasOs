@@ -92,7 +92,11 @@ class WorkOrderServiceTest {
     }
 
     private static ServiceArea unArea(boolean activa) {
-        return ServiceArea.rehydrate(AREA, "Urgencias", SEDE, activa);
+        return unArea(activa, SEDE);
+    }
+
+    private static ServiceArea unArea(boolean activa, UUID idSede) {
+        return ServiceArea.rehydrate(AREA, "Urgencias", idSede, activa);
     }
 
     private static ClientEquipment unaUnidad(UUID area, boolean activa) {
@@ -239,6 +243,43 @@ class WorkOrderServiceTest {
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("es del cliente");
+
+            verify(workOrderPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("un equipo del mismo cliente pero de otra sede tampoco entra")
+        void equipoDeOtraSedeDelMismoCliente() {
+            // El caso que se colaba: pasa las tres comprobaciones que habia -unidad activa, area
+            // abierta, mismo cliente- porque el cliente si coincide. Una orden se presta en un
+            // sitio, y un equipo de otra sede no se va a intervenir ese dia.
+            laOrdenExiste();
+            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
+            when(serviceAreaServicePort.findById(AREA))
+                    .thenReturn(unArea(true, UUID.randomUUID()));
+            when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(CLIENTE);
+
+            assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
+                    .withMessageContaining("se presta en la sede");
+
+            verify(workOrderPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("la negativa por cliente sigue siendo alcanzable y no la tapa la de sede")
+        void elClienteSeCompruebaAntesQueLaSede() {
+            // Un equipo de otro cliente esta necesariamente en otra sede, asi que las dos negativas
+            // serian ciertas. Se comprueba el cliente primero porque es la mas informativa de las
+            // dos; si alguien invierte el orden, esta prueba lo dice.
+            laOrdenExiste();
+            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
+            when(serviceAreaServicePort.findById(AREA))
+                    .thenReturn(unArea(true, UUID.randomUUID()));
+            when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(UUID.randomUUID());
+
+            assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
+                    .withMessageContaining("es del cliente")
+                    .withMessageNotContaining("se presta en la sede");
 
             verify(workOrderPersistencePort, never()).save(any());
         }
