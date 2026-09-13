@@ -21,6 +21,7 @@ class RealmAuthorityContractTest {
     /** Todo lo que la aplicación conoce: los recursos más quienes los conceden. */
     private static Set<String> vocabularioDeLaAplicacion() {
         Set<String> todo = new LinkedHashSet<>(ApiAuthority.RESOURCE_AUTHORITIES);
+        todo.addAll(ApiAuthority.SUPER_AUTHORITIES);
         todo.add(ApiAuthority.ADMIN_FULL);
         todo.add(ApiAuthority.SUPER_ADMIN_FULL);
 
@@ -32,6 +33,17 @@ class RealmAuthorityContractTest {
     void elRealmYElCatalogoDicenLoMismo() {
         assertThat(RealmFixture.rolesDelClientApi())
                 .containsExactlyInAnyOrderElementsOf(vocabularioDeLaAplicacion());
+    }
+
+    @Test
+    @DisplayName("ningun grupo trae una autoridad de super: se asignan a mano")
+    void elEscalonDeArribaNoLoDaNingunGrupo() {
+        // Un super usuario se crea entrando a Keycloak, no dandole de alta por el API. Si alguien
+        // colgara super.person.write de un grupo, cualquiera que entrase en ese grupo podria crear
+        // administradores, que es exactamente lo que el escalon existe para impedir.
+        assertThat(RealmFixture.grupos())
+                .allSatisfy(grupo -> assertThat(RealmFixture.rolesDelGrupo(grupo))
+                        .doesNotContainAnyElementsOf(ApiAuthority.SUPER_AUTHORITIES));
     }
 
     @Test

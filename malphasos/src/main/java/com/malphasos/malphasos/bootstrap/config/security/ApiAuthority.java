@@ -21,9 +21,13 @@ import java.util.Set;
  * agujero. En su lugar, quien trae {@code admin.full} recibe todas las autoridades de recurso, y
  * quién es administrador se decide en un solo sitio: aquí.
  *
- * <p>{@code super.admin.full} implica {@code admin.full}; ambos acaban concediendo lo mismo, pero
- * se conservan separados porque el realm los distingue y un realm futuro podría dar al segundo
- * capacidades que el primero no tenga.
+ * <p>{@code super.admin.full} implica {@code admin.full} y, <b>desde el 2026-09-13, algo más</b>.
+ * Hasta esa fecha los dos concedían exactamente lo mismo y este javadoc decía que se conservaban
+ * separados por si «un realm futuro» daba al segundo capacidades propias. Ese futuro llegó: las de
+ * {@link #SUPER_AUTHORITIES} las concede solo el primero.
+ *
+ * <p>La regla se lee en los nombres sin abrir el código: <b>lo que empieza por {@code super.} es
+ * justamente lo que el administrador no recibe al expandirse.</b>
  *
  * <p>Las autoridades de {@code work-order} figuran en el catálogo aunque todavía no exista ese
  * módulo: ya están en el realm y asignadas al grupo de ingenieros. Incluirlas ahora evita que el
@@ -36,6 +40,20 @@ public final class ApiAuthority {
 
     /** Implica {@link #ADMIN_FULL} y, por tanto, todo lo que este concede. */
     public static final String SUPER_ADMIN_FULL = "super.admin.full";
+
+    /**
+     * Dar de alta, editar y retirar a la gente de la casa: ingenieros y administradores.
+     *
+     * <p>El prefijo {@code super.} no es decorativo: <b>marca lo que {@link #ADMIN_FULL} no
+     * concede</b>. Un administrador crea representantes de cliente y encargados; crear a otro
+     * administrador o a un ingeniero está un escalón por encima.
+     *
+     * <p>No se llama {@code engineer.write} a propósito. {@code engineer.read} y
+     * {@code engineer.assign} ya existen y hablan del <i>encargado</i> —lo que el código llama
+     * {@code Manager} y la ERS «profesional responsable»—, de modo que ese nombre ya está tomado
+     * por otro concepto.
+     */
+    public static final String SUPER_PERSON_WRITE = "super.person.write";
 
     public static final String PERSON_READ = "person.read";
     public static final String PERSON_WRITE = "person.write";
@@ -94,6 +112,21 @@ public final class ApiAuthority {
                     WORK_ORDER_WRITE,
                     WORK_ORDER_ASSIGN)));
 
+    /**
+     * Lo que solo {@link #SUPER_ADMIN_FULL} concede, y {@link #ADMIN_FULL} no.
+     *
+     * <p>Hasta el 2026-09-13 los dos acababan concediendo exactamente lo mismo, y el javadoc de
+     * esta clase decía que se conservaban separados «porque un realm futuro podría dar al segundo
+     * capacidades que el primero no tenga». Este conjunto es ese futuro.
+     *
+     * <p><b>Ninguna de estas autoridades puede estar en {@link #RESOURCE_AUTHORITIES}</b>, o el
+     * administrador las recibiría al expandirse y el escalón desaparecería sin que nada fallara.
+     * Lo fija una prueba, porque es la clase de error que se comete añadiendo una línea al sitio
+     * que parece correcto.
+     */
+    public static final Set<String> SUPER_AUTHORITIES =
+            Collections.unmodifiableSet(new LinkedHashSet<>(List.of(SUPER_PERSON_WRITE)));
+
     private ApiAuthority() {}
 
     /**
@@ -113,6 +146,7 @@ public final class ApiAuthority {
 
         if (granted.contains(SUPER_ADMIN_FULL)) {
             granted.add(ADMIN_FULL);
+            granted.addAll(SUPER_AUTHORITIES);
         }
 
         if (granted.contains(ADMIN_FULL)) {
