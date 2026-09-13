@@ -51,7 +51,8 @@ Detalle por categoría en `Documentation/wiki/requisitos/estado-de-implementacio
 
 - **La tanda de seguridad está hecha** (`fix/person-identity-sync`, **en `main` desde `258cd81`**; esta nota la daba por sin mergear, **corregido el 2026-09-09**): dar de baja a una persona ya deshabilita su cuenta de Keycloak. Ver [[sincronizacion-con-proveedor-de-identidad]].
 - **El siguiente bloque era órdenes de trabajo**, y **está construido**: las cuatro tandas, del esquema al REST, entre el 2026-09-12 y el 2026-09-13. Ver [[dominio-orden-trabajo]].
-- **Lo siguiente, por dependencias, son los reportes de servicio.** Es lo que cuelga directamente de la orden, y el módulo ya emite los siete eventos que un reporte querría escuchar — sin consumidor todavía.
+- **Lo siguiente decidido es el frontend**, el 2026-09-13, con su declaración de diseño escrita y su manual de marca. Arranca por una **rebanada vertical**: arranque de la aplicación, autenticación y el flujo de órdenes de trabajo. Ver [[arquitectura-frontend-malphasos]].
+- **Reportes de servicio** queda como el siguiente bloque de backend. Es lo que cuelga directamente de la orden, y el módulo ya emite los siete eventos que un reporte querría escuchar — sin consumidor todavía.
 
 Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué arrastra cada pieza.
 
@@ -121,7 +122,7 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 | 2 | **Reportes de mantenimiento** (RF-09, 11, 13, 15) | Historial de hojas de vida, PDF, alertas | Requiere el bloque 1 (+ RF-14, disponible ya) |
 | 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | Ninguna pendiente. Puede ir en paralelo al 1 y al 2 |
 | 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | Requiere el bloque 2 |
-| 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **No es una decisión de esta nota**, ver abajo |
+| 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora** |
 | 6 | **Firma digital** (RF-18, RF-21) → **PDF** (RF-17) | Cierra reportes | Requiere los bloques 2 y 5 |
 | 7 | **Alertas y calibración** (RF-40, RF-41) | — | Requiere el bloque 3 + tareas programadas. **Won't Have** |
 | 8 | **Inventario y módulo comercial** | — | **Requisitos ausentes que hay que escribir primero.** Inventario es Won't Have |
@@ -147,9 +148,15 @@ De él dependen:
 
 Y la ERS **presenta el trabajo móvil en campo como su razón de ser**: el apartado 1.2 dice que el sistema "facilitará el trabajo en campo de los ingenieros mediante el uso de dispositivos móviles"; el 2.1 exige que sea accesible desde el teléfono del ingeniero **sin instalar aplicaciones nativas**; y el 3.1.2 lista la **pantalla táctil** entre las interfaces de hardware del sistema, junto a la cámara.
 
-**Un backend completo con cero frontend cumple 0 de esos requisitos y, leyendo la ERS, no es el producto que se prometió.** La decisión de cuándo entra —después del bloque 2, en paralelo desde ya, o al final— es del usuario y no de un grafo de dependencias, porque técnicamente **no está bloqueado por nada**: puede empezar hoy contra los cuatro módulos que ya publican API.
+**Un backend completo con cero frontend cumple 0 de esos requisitos y, leyendo la ERS, no es el producto que se prometió.**
 
-Lo que sí conviene tener presente al decidirlo: el arranque no parte de cero. `Frontend/src/auth/` del proyecto original —`keycloak.ts`, `AuthProvider`, `PrivateRoute`, `apiFetch`— es un starter completo y portable. Ver [[integracion-keycloak-frontend]] y [[arquitectura-frontend]].
+> **Decidido el 2026-09-13.** Esta nota decía que la decisión de cuándo entra el frontend «es del usuario y no de un grafo de dependencias». **Ya se tomó: entra ahora**, antes que los reportes. Hay documento oficial —`Documentation/FrontendDesign/`— con la plataforma, la arquitectura, el sistema visual, el nivel de accesibilidad y la estrategia de pruebas, y el detalle operativo está en [[arquitectura-frontend-malphasos]] y [[sistema-de-diseno-malphasos]].
+
+Seguía siendo cierto lo que esta nota decía de fondo: técnicamente **no estaba bloqueado por nada** y podía empezar contra los módulos que ya publican API.
+
+> **Y aquí esta nota se equivocó, corregido el 2026-09-13.** Decía que «el arranque no parte de cero» porque `Frontend/src/auth/` del original era «un starter completo y portable». **Al elegir Angular dejó de serlo**: esas cuatro piezas son React y hay que reescribirlas contra `keycloak-angular`. Lo que se porta es el **patrón**, no el código. Ver las correcciones en [[integracion-keycloak-frontend]] y [[arquitectura-frontend]].
+
+Lo que sí se hereda sin discusión es el **manual de marca**, que llegó ya hecho y es la autoridad del sistema visual.
 
 ## Un efecto lateral que ya venció: la ERS quedó desactualizada
 

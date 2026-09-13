@@ -1,0 +1,128 @@
+---
+name: arquitectura-frontend-malphasos
+description: Como se construye el frontend de MalphasOS -Angular, por modulo de negocio, cliente generado desde OpenAPI- y por que cada pieza es el espejo de una del backend
+tags: [frontend, arquitectura, angular, "describe:malphasos"]
+source: Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex
+estado: estable
+updated: 2026-09-13
+---
+
+# Arquitectura del frontend de MalphasOS
+
+**Esta nota dice cómo se escribe código de frontend aquí.** Las decisiones y su porqué están en el documento oficial, `Documentation/wiki/documentos/declaracion-diseno-frontend.md` en `Documentation/`; esta nota es la versión operativa para quien va a construir. El sistema visual tiene nota aparte: [[sistema-de-diseno-malphasos]].
+
+**Estado al 2026-09-13: decidido y sin escribir.** No existe todavía el proyecto.
+
+## El stack, y dónde vive
+
+| Pieza | Elección |
+|---|---|
+| Framework | **Angular**. La versión se fija al crear el proyecto, no de memoria |
+| Estilos | **Tailwind** con los tokens del manual de marca |
+| Componentes | **spartan/ui** sobre Angular CDK |
+| Datos de servidor | **TanStack Query**, adaptador de Angular |
+| Formularios | Reactivos de Angular |
+| Autenticación | `keycloak-angular` |
+| Contrato | Cliente TypeScript **generado desde OpenAPI** y versionado |
+| Pruebas | Unitarias · integración contra API simulada · extremo a extremo en login y crear orden |
+
+**Vive en `malphasos-frontend/`**, hermano de `malphasos/`. Es una decisión de esta nota, no del documento oficial: el `CLAUDE.md` de la raíz decía que el código vivía **exclusivamente** en `malphasos/`, y esa frase se corrigió el mismo día porque describía un proyecto sin frontend.
+
+## Por qué Angular: el espejo del backend
+
+La razón de la elección no fue popularidad sino **correspondencia estructural**. Cada pieza del frontend tiene su equivalente exacto en el backend hexagonal, y eso permite razonar las dos mitades con el mismo vocabulario:
+
+| En el backend | En el frontend |
+|---|---|
+| Puerto de entrada (`WorkOrderServicePort`) | Servicio inyectable del módulo (`WorkOrderApiService`) |
+| `@PreAuthorize("hasAuthority('work-order.write')")` | Guard de ruta con la misma autoridad |
+| Catálogo de errores por módulo | Catálogo de traducción por módulo |
+| Módulo hexagonal (`workorder/`) | Carpeta de feature (`features/workOrder/`) |
+
+**Lo que costó, y está escrito para que no se olvide**: el starter de autenticación del proyecto original estaba clasificado como `reusable:alta` y es React. Angular lo descarta. Es la **primera vez que el proyecto desecha algo marcado como reutilizable**. Ver la corrección en [[integracion-keycloak-frontend]].
+
+## Estructura
+
+```
+malphasos-frontend/src/app/
+  core/       sesion, interceptores, traduccion de errores
+  shared/     componentes de interfaz, utilidades
+  features/
+    client/   equipment/   person/   location/   workOrder/
+```
+
+**Por módulo de negocio, con los nombres del backend**, y no por tipo técnico. Dos razones:
+
+- El frontend del original está organizado en `pages/`, `services/` y `auth/`, y [[arquitectura-frontend]] dice explícitamente que ahí **no hay convención que copiar**.
+- La matriz de trazabilidad relaciona requisitos con código. Si `features/workOrder/` se llama igual que el paquete del backend, la relación se lee sin traducir.
+
+## Las capas dentro de un módulo, y la regla que las sostiene
+
+| Capa | Responsabilidad |
+|---|---|
+| Cliente generado | Tipos y llamadas, producidos desde OpenAPI. **No se edita a mano** |
+| Servicio del módulo | Encapsula TanStack Query y el cliente generado. Única puerta al servidor |
+| Componentes | Presentación e interacción |
+| Modelo de vista | Traduce entre lo que el API devuelve y lo que la pantalla necesita, cuando no coinciden |
+
+> **Un componente nunca llama al API directamente.** Siempre pasa por el servicio de su módulo.
+
+Esa regla no es estética: **es lo que acota el riesgo de TanStack Query**, cuyo adaptador de Angular se distribuye con el sufijo `experimental` en el nombre del paquete. Si su API cambia entre versiones, lo que se toca son los servicios de módulo y no cada pantalla.
+
+## Autenticación y autorización
+
+El patrón del original se conserva aunque su código no: instancia única, inicio de sesión al arrancar, refresco del token antes de que expire, cierre de sesión si el refresco falla. Flujo de código de autorización con **PKCE**, que es el correcto para un cliente público.
+
+Dos precisiones que evitan un malentendido peligroso:
+
+- **El frontend no autoriza: oculta.** Esconder un botón mejora la experiencia; el permiso lo comprueba el servidor en cada llamada. Un frontend que «protege» una operación no protege nada.
+- **El vocabulario de autoridades no se duplica a mano.** Sale del token y se contrasta con el del backend. Dos listas escritas por separado se desincronizan, y este proyecto ya tiene precedentes documentados de eso.
+
+Las 19 autoridades y qué protege cada una, en [[modelo-de-permisos]].
+
+## El contrato se genera, no se escribe
+
+Los tipos y las firmas salen de los documentos OpenAPI que el backend publica por módulo. **Si el backend renombra un campo, el frontend deja de compilar.** Escribirlos a mano convierte ese mismo cambio en un fallo en ejecución, o en ninguno.
+
+**Lo generado se versiona.** Así el proyecto compila sin backend levantado y los cambios del contrato aparecen como diferencias revisables.
+
+Encaja con lo que el backend ya hace: tres de sus grupos de OpenAPI —`client`, `equipment` y `work-order`— tienen prueba que verifica que el grupo contiene sus recursos. Ver [[openapi-swagger]].
+
+## Traducción de errores
+
+Un catálogo por módulo traduce cada código a un mensaje en español, con uno genérico de respaldo.
+
+El backend se tomó el trabajo de mantener **tres familias distintas** —«no existe», «datos inválidos» y «conflicto de estado»— y nunca comparte códigos entre ellas. **Si el frontend las funde en «ha ocurrido un error», tira a la basura esa decisión.** Se presentan distinto: lo que no existe dice qué referencia falló; lo inválido señala el campo; el conflicto dice qué impide la operación **ahora**.
+
+La redacción sigue el tono del manual de marca — ver [[sistema-de-diseno-malphasos]].
+
+## Pruebas
+
+Mismo listón que el backend, que llega a este punto con 624 pruebas y la costumbre de verificar por mutación.
+
+| Nivel | Qué cubre |
+|---|---|
+| Unitarias | Validación de formularios, guards, traducción de errores, lógica de los servicios |
+| Integración | La pantalla completa contra un API simulado, **con los códigos de error reales** |
+| Extremo a extremo | Login y crear una orden, contra el sistema real |
+| Accesibilidad | Analizador automático sobre cada pantalla, dentro de las de integración |
+
+**El API simulado responde con los códigos reales.** Simular un error genérico probaría que la pantalla muestra algo, no que muestra lo correcto.
+
+## Por dónde se empieza
+
+**Rebanada vertical: arranque de la aplicación, autenticación y el flujo completo de órdenes de trabajo.** Atraviesa sesión, datos, formularios, errores y accesibilidad de una vez, de modo que una decisión equivocada aparece en la primera semana y no en la quinta.
+
+El formulario de una orden arrastra consigo el selector de cliente, el de sede, la selección múltiple de áreas y la de equipos — piezas que los demás módulos reutilizarán.
+
+**Cierra cuatro requisitos** que hoy están abiertos sólo por falta de formulario: RF-03, RF-04, RF-06 y RF-07. Ver [[hoja-de-ruta-producto]].
+
+## Lo que está decidido y aplazado
+
+**Instalación en el dispositivo y consulta sin conexión**: la aplicación las tendrá, no entran ahora. Aplazarlas no incumple nada —la ERS pide acceso desde el teléfono **sin instalar nada nativo**, y una web responsiva lo cumple literalmente—.
+
+**La escritura sin conexión es otra cosa y tiene un bloqueo real**: no hay claves de idempotencia ni bloqueo optimista en el backend, comprobado sobre las seis migraciones. Un reintento duplicaría órdenes. Si se retoma, la decisión ya tomada es que **el cliente genere el identificador de la orden**, y entonces el backend deja de estar cerrado.
+
+## Notas relacionadas
+
+[[sistema-de-diseno-malphasos]] · [[arquitectura-frontend]] · [[integracion-keycloak-frontend]] · [[hoja-de-ruta-producto]] · [[modelo-de-permisos]] · [[openapi-swagger]] · [[patron-catalogo-errores-por-contexto]] · [[arquitectura-hexagonal]] · [[seguridad-keycloak-backend]]

@@ -1,10 +1,10 @@
 ---
 name: arquitectura-frontend
 description: React 19 + TS + Vite, proyecto en etapa de bootstrap — organización por tipo técnico, sin estado global ni UI kit todavía
-tags: [frontend, "reusable:media", "describe:original"]
+tags: [frontend, "reusable:baja", "describe:original"]
 source: Frontend/src/
 estado: incompleto
-updated: 2026-08-27
+updated: 2026-09-13
 ---
 
 # Arquitectura del frontend
@@ -19,8 +19,15 @@ React 19.2 + TypeScript, bootstrapeado con Vite 8, `react-router-dom` v7 para ru
 
 ## Reutilizable en MalphasOS
 
-`reusable:media` — el starter kit (Vite + React 19 + TS + react-router v7) es una base moderna y válida para arrancar MalphasOS, pero **no hay todavía un sistema de diseño ni convención de organización por feature que copiar** — es responsabilidad de MalphasOS decidir eso desde cero. Lo que sí es directamente portable y maduro es el patrón de autenticación completo, ver [[integracion-keycloak-frontend]].
+> **Corregido el 2026-09-13.** Esta sección decía que el starter —Vite + React 19 + TS + react-router v7— era «una base moderna y válida para arrancar MalphasOS». **Dejó de serlo ese día**: MalphasOS eligió **Angular**, de modo que nada de este stack se porta. Ver [[arquitectura-frontend-malphasos]] y, para el porqué, `Documentation/wiki/documentos/declaracion-diseno-frontend.md`.
+
+`reusable:baja` — el stack no se reutiliza. **Lo que sí siguió valiendo es lo que esta nota acertó**: que aquí **no había un sistema de diseño ni una convención de organización por feature que copiar**, y que decidirlos era responsabilidad de MalphasOS. Las dos cosas se decidieron el 2026-09-13, y en las dos se hizo lo contrario de lo que el original hacía:
+
+- **Organización por módulo de negocio**, con los nombres del backend, en vez de por tipo técnico (`pages/`, `services/`, `auth/`).
+- **Sistema de diseño propio**, derivado del manual de marca, que no existía cuando se escribió esta nota.
+
+El patrón de autenticación se conserva **como patrón, no como código** — ver la corrección en [[integracion-keycloak-frontend]].
 
 ## Notas relacionadas
 
-[[integracion-keycloak-frontend]] · [[stack-tecnologico]]
+[[integracion-keycloak-frontend]] · [[arquitectura-frontend-malphasos]] · [[sistema-de-diseno-malphasos]] · [[stack-tecnologico]]
