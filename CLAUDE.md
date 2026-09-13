@@ -73,21 +73,17 @@ Las cifras de arriba son el **número de elementos `<testcase>` de los XML de Su
 
 **Verificar ejecutando, no compilando.** Varios de los defectos encontrados compilaban perfectamente. Las pruebas de esquema y de persistencia corren contra un PostgreSQL real vía Testcontainers.
 
-## Reparto del trabajo
+## Quién hace el trabajo
 
-Tres subagentes con dominios que no se solapan, invocados con la herramienta Agent y en este orden:
+**Una sola sesión, sin subagentes.** Hubo cuatro —`documentador`, `desarrollador`, `tester` y `wikista`— retirados el 2026-09-12. El ciclo que imponían sigue valiendo como **disciplina de trabajo**, aunque ya no lo reparta nadie:
 
-1. **`desarrollador`** — `malphasos/src/main/`, las migraciones y `docker/`. No escribe pruebas.
-2. **`tester`** — `malphasos/src/test/`. No toca producción: si encuentra un defecto, lo reporta y el ciclo vuelve al desarrollador.
-3. **`wikista`** — `SecondBrain/` y este archivo. Trabaja el último, con la batería en verde.
+1. **Escribir producción.** No dar por terminado lo que no compila y no arranca.
+2. **Verificar aparte.** Escribir las pruebas mirando el código como si lo hubiera escrito otro, y no ajustar lo esperado hasta que pasen. Una prueba que se dobla para pasar describe el defecto en vez de detectarlo.
+3. **Registrar al final**, con la batería en verde, en `SecondBrain/` y en este archivo.
 
-Los tres trabajan en ramas propias y **no mergean a `main`**: dejan la rama y reportan, para que el usuario revise.
+Lo que aquella separación demostró y conviene conservar aun sin ella: **el verde de la batería no prueba que una regla se ejerza** —una prueba con un doble sin estubar pasa comparando `null` contra `null`, y Mockito estricto no lo delata—, y **los defectos aparecen al comparar** dos módulos entre sí, o un documento contra el código, no al leer el módulo donde viven.
 
-**`Documentation/` no tiene dueño asignado.** Existió un subagente `documentador`, retirado el 2026-09-05 tras entregar la ERS marcada, el plan de gestión del alcance, las matrices de trazabilidad e interesados y la wiki de `Documentation/`. Todo ello está ya en `main`.
-
-Quien vaya a escribir ahí debe leer antes **`Documentation/wiki/`**, un wiki de 28 notas con el patrón de `SecondBrain/`: qué dice cada documento oficial, las convenciones de LaTeX y la paleta, el estado real de los requisitos y los defectos conocidos de la ERS. Quedan dos notas por escribir —el glosario del dominio y los defectos conocidos—, marcadas como enlaces sin destino.
-
-Se trabaja en el worktree `MalphasOS-Documentation`, sobre la rama del mismo nombre.
+**`Documentation/` es territorio aparte**, con sus propias convenciones. Quien escriba ahí debe leer antes **`Documentation/wiki/`**, un wiki de 28 notas con el patrón de `SecondBrain/`: qué dice cada documento oficial, las convenciones de LaTeX y la paleta, el estado real de los requisitos y los defectos conocidos de la ERS. Quedan dos notas por escribir —el glosario del dominio y los defectos conocidos—, marcadas como enlaces sin destino.
 
 ## Convenciones de código establecidas
 
