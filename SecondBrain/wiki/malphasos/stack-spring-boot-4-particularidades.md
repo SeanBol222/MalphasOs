@@ -3,7 +3,7 @@ name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
 tags: [malphasos, stack, backend, hallazgo, "describe:malphasos"]
 source: malphasos/pom.xml (MalphasOS)
-updated: 2026-09-12
+updated: 2026-09-13
 ---
 
 # Particularidades de Spring Boot 4 y el stack moderno
@@ -113,6 +113,21 @@ Medido con `./mvnw test` y `rm -rf target/surefire-reports` antes de cada corrid
 Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la única clase con nombres de método repetidos entre `@Nested`. Las dos primeras columnas dan lo mismo porque **`3c002b2` no añadió ninguna prueba**: ver [[regla-traslado-mismo-cliente]] para qué significa —y qué no significa— ese verde.
 
 **Ampliación del 2026-09-12, segunda pasada**: la cuarta columna es `feat/work-order-schema`, que desciende de `43de295`, así que **541 = 509 + 32** también es una suma legítima. La clase 43 es `WorkOrderSchemaTest` —23 métodos, 32 ejecuciones, cuatro de ellos `@ParameterizedTest`—. La diferencia `<testcase>` – atributo **sigue siendo 2**, de modo que después de cinco tandas el desajuste sigue viniendo entero de `CatalogAggregatesTest`. Los `.txt` saltan de 386 a 418, exactamente +32: `WorkOrderSchemaTest` **no tiene clases `@Nested`**, y ahí se ve el contraste con las columnas anteriores. Medido con `./mvnw test` y `rm -rf target/surefire-reports` antes.
+
+**Ampliación del 2026-09-13, el módulo de órdenes de trabajo completo.** Dos columnas más, medidas igual:
+
+| Fuente | `main` (`97ef74f`) | `feat/work-order-rest` (`ceadba1`) |
+|---|---|---|
+| elementos `<testcase>` — **el conteo honesto** | **580** | **612** |
+| atributo `tests=` de los `<testsuite>` | 578 | **609** |
+| `target/surefire-reports/*.txt` | **418** | 433 |
+| clases · fallos · errores · omitidas | 44 · 0 · 0 · 0 | 46 · 0 · 0 · 0 |
+
+**Dos cosas de esta tabla valen más que las cifras.**
+
+**Los `.txt` no se movieron ni un punto entre `24e7640` y `97ef74f`**: 418 y 418, mientras los `<testcase>` subían de 541 a 580. Las 39 pruebas de `WorkOrderTest` son **invisibles** para esa fuente, porque la clase tiene **13 clases `@Nested`** y ninguna prueba suelta. Es el caso extremo de lo que esta nota ya decía —los `.txt` no cuentan las `@Nested`— y el mejor argumento disponible para no volver a citarlos: aquí habrían dicho que una tanda entera no añadió nada.
+
+**Y el desajuste `<testcase>` – atributo pasa de 2 a 3, por primera vez desde que se mide.** Durante cinco tandas vino entero de `CatalogAggregatesTest`; ahora hay un **segundo** caso: `WorkOrderServiceTest` declara `tests="16"` y trae 17 `<testcase>`, porque **`ordenInexistente` aparece en dos de sus clases `@Nested`**. Confirma que el desajuste no es una rareza de una clase concreta sino el comportamiento normal de Surefire ante nombres de método repetidos entre anidadas, y que **crece sin avisar** a medida que se escriben pruebas — que es justo por lo que el número que se publica tiene que ser el de contar `<testcase>`.
 
 > **Y una corrección sobre las etiquetas de la tabla, del 2026-09-12**: la primera columna, «`main` (`01c3277`)», **ya no describe `main`**. `feat/relocation-same-client` se mergeó ese mismo día (`1ef55cf`) y `main` está en `55e0a5d`, con el contenido de la tercera columna: **509**, no 496. Las cifras de cada columna siguen siendo correctas para el commit que nombran; lo que caducó es la equivalencia «primera columna = línea principal».
 
