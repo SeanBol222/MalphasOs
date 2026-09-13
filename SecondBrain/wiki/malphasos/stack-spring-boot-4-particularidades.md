@@ -135,6 +135,20 @@ El fallo habría sido en los `.txt`, y por la razón que esta nota lleva repitie
 
 **Es la mejor defensa que hay de la regla**: no es que deducir esté mal por principio, es que aquí falla **una de cada dos veces**, y la que falla es la que uno creería tener entendida.
 
+### Los `.txt` llevan tres tandas seguidas sin enterarse
+
+| Punto | `<testcase>` | `tests=` | `.txt` |
+|---|---|---|---|
+| `24e7640` (esquema) | 541 | 539 | **418** |
+| `97ef74f` (dominio, +39 pruebas) | 580 | 578 | **418** |
+| `af38d2a` (REST, la regla y la persistencia, +44) | **624** | 621 | **433** |
+
+De **83 pruebas** añadidas entre el primer punto y el último, los `.txt` recogen **15**. Las tres clases grandes de la tanda —`WorkOrderTest` (39), `WorkOrderServiceTest` (17) y `WorkOrderPersistenceAdapterTest` (10)— **son enteramente `@Nested`, sin una sola prueba suelta**, y esa fuente no las cuenta.
+
+El caso más claro es el último: **+10 pruebas y los `.txt` no se movieron ni un punto**, 433 y 433.
+
+No es una rareza que convenga recordar sino **una fuente que hoy miente por defecto**, porque el estilo del proyecto —`@Nested` para agrupar por escenario— es justamente el que la ciega. Se sigue anotando en las tablas por continuidad histórica, no porque sirva para decidir nada.
+
 **Dos cosas de esta tabla valen más que las cifras.**
 
 **Los `.txt` no se movieron ni un punto entre `24e7640` y `97ef74f`**: 418 y 418, mientras los `<testcase>` subían de 541 a 580. Las 39 pruebas de `WorkOrderTest` son **invisibles** para esa fuente, porque la clase tiene **13 clases `@Nested`** y ninguna prueba suelta. Es el caso extremo de lo que esta nota ya decía —los `.txt` no cuentan las `@Nested`— y el mejor argumento disponible para no volver a citarlos: aquí habrían dicho que una tanda entera no añadió nada.
