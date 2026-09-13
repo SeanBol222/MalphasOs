@@ -607,3 +607,25 @@ Por eso «614 medidos sobre `b9563a9`» y «mergeada por `1ef55cf`» **se quedan
 **Deuda: 27 registradas, 17 abiertas.** Se cierran dos —la persistencia sin probar y el `@Transactional` ausente— y se abre una: **`equipment` tampoco prueba su persistencia**, la misma ausencia que se señaló en dos módulos y se cerró en uno.
 
 **Tocadas**: [[dominio-orden-trabajo]], [[deuda-tecnica-y-riesgos]], [[stack-spring-boot-4-particularidades]] y el `CLAUDE.md` de la raíz.
+
+## [2026-09-13] ingest | El frontend se decide, y una etiqueta `reusable:alta` resulta ser falsa
+
+**El proyecto pasa del backend al frontend.** Hay documento oficial —`Documentation/FrontendDesign/`— y un manual de marca que llegó ya hecho. Esta pasada traduce lo decidido a algo con lo que se pueda escribir código: **dos notas nuevas**, [[arquitectura-frontend-malphasos]] y [[sistema-de-diseno-malphasos]].
+
+**Angular**, y la razón no fue popularidad: **correspondencia estructural con el backend**. Un servicio inyectable es un puerto, un guard de ruta es un `@PreAuthorize`, una carpeta de feature es un módulo hexagonal. Las dos mitades se razonan con el mismo vocabulario. Alrededor: Tailwind con los tokens de la marca, spartan/ui sobre Angular CDK, TanStack Query aislado tras un servicio por módulo, y **cliente TypeScript generado desde OpenAPI** — si el backend renombra un campo, el frontend deja de compilar.
+
+**Lo que cuesta, y es el hallazgo de la pasada.** [[integracion-keycloak-frontend]] llevaba desde el 2026-08-27 marcada `reusable:alta`, con la frase «portable sin cambios estructurales, sólo actualizando `realm`/`clientId`». **Elegir Angular la vuelve falsa**: esas cuatro piezas son React. Es la **primera vez que el proyecto desecha algo clasificado como reutilizable**.
+
+La corrección no fue bajar la etiqueta y callar. Se separó **lo que se porta de lo que no**: el código no, pero sí el diseño —cuatro responsabilidades únicas, PKCE, refresco anticipado, cierre de sesión si el refresco falla—. `reusable:media`, y dicho por qué.
+
+**La lección de método**: `reusable:*` **describe una relación entre dos sistemas, no una propiedad del código evaluado**. Cambia el sistema de destino y la etiqueta caduca sin que el archivo evaluado se haya tocado. Las 49 notas anteriores asumían implícitamente un destino que nadie había fijado.
+
+**Corregidas por el mismo motivo** [[arquitectura-frontend]] —decía que el starter de Vite era «una base moderna y válida para arrancar MalphasOS»— y [[hoja-de-ruta-producto]], que daba por bueno que «el arranque no parte de cero». Las dos acertaban en lo que era responsabilidad de MalphasOS decidir; ninguna podía saber qué se decidiría.
+
+**El sistema visual tiene autoridad nueva y no es este wiki.** El manual de marca manda: radio cero, espaciado en múltiplos de 8, retícula 12/24/48, una sola familia (Archivo), iconos Lucide, y el acento **nunca por encima del 10 %** de una composición. Su decisión más contraria al reflejo habitual: **los estados operativos se distinguen por peso tipográfico y regla, no por colores nuevos** — una orden vencida **no se pinta de rojo**.
+
+**Y un número que hubo que medir.** El manual ya traía su regla de contraste —`#AE1800` para texto en acento— y funciona: 6,41:1. Pero describe la acción principal como «relleno acento», y con `#EC3013` de relleno la etiqueta da **3,76:1**: el control más repetido de una interfaz no alcanzaría el AA que el propio documento declara. Se resolvió **extendiendo la regla del manual** a ese caso, no corrigiéndola. Todas las cifras están medidas, no estimadas — la primera estimación que hice a ojo, «4,3:1», resultó ser 4,2 y encima miraba el par equivocado.
+
+**Aplazado con su porqué**: instalación en el dispositivo y consulta sin conexión. No incumple nada —la ERS pide acceso desde el teléfono **sin instalar nada nativo**, y una web responsiva lo cumple literalmente—. La **escritura** sin conexión sí tiene bloqueo real: sin idempotencia ni bloqueo optimista en el backend, un reintento duplicaría órdenes.
+
+**Tocadas**: [[arquitectura-frontend]], [[integracion-keycloak-frontend]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz, que decía que el código vivía **exclusivamente** en `malphasos/`. **Nuevas**: [[arquitectura-frontend-malphasos]], [[sistema-de-diseno-malphasos]].

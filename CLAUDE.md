@@ -4,16 +4,18 @@ MalphasOS es la aplicación de **gestión de clientes** y **gestión de mantenim
 
 ```
 MalphasOS/
-├── malphasos/     -> el proyecto real: backend Spring Boot 4.1.1, Java 21, groupId com.malphasos
-├── SecondBrain/   -> wiki técnico de referencia (patrón LLM Wiki). NO es código del proyecto
-└── docker/        -> Keycloak (realm de desarrollo) y init de PostgreSQL
+├── malphasos/          -> el backend: Spring Boot 4.1.1, Java 21, groupId com.malphasos
+├── malphasos-frontend/ -> el frontend: Angular. DECIDIDO el 2026-09-13, todavía sin crear
+├── Documentation/      -> documentación oficial: ERS, constitución, alcance, diseño del frontend y manual de marca
+├── SecondBrain/        -> wiki técnico de referencia (patrón LLM Wiki). NO es código del proyecto
+└── docker/             -> Keycloak (realm de desarrollo) y init de PostgreSQL
 ```
 
-El código de MalphasOS vive **exclusivamente** en `malphasos/`.
+(Este archivo decía que el código vivía **exclusivamente** en `malphasos/`: cierto mientras no hubo frontend, **falso desde el 2026-09-13**, cuando se decidió dónde va el suyo.)
 
 ## Antes de decidir nada de arquitectura, dominio o patrones
 
-Consulta **`SecondBrain/`**: 49 notas interconectadas. **Reenfocado el 2026-09-09**: nació para decidir qué portar de `bolivarbioingenieria-app` —pregunta ya contestada, la migración terminó— y hoy responde cómo funciona MalphasOS y qué falta por construir. Cada nota declara con la etiqueta `describe:*` si habla de MalphasOS, del sistema original, o del camino de uno al otro.
+Consulta **`SecondBrain/`**: 51 notas interconectadas. **Reenfocado el 2026-09-09**: nació para decidir qué portar de `bolivarbioingenieria-app` —pregunta ya contestada, la migración terminó— y hoy responde cómo funciona MalphasOS y qué falta por construir. Cada nota declara con la etiqueta `describe:*` si habla de MalphasOS, del sistema original, o del camino de uno al otro.
 
 Punto de entrada: `SecondBrain/index.md` (catálogo) y `SecondBrain/CLAUDE.md` (convenciones del wiki). Las notas que más se usan:
 
@@ -124,6 +126,20 @@ Lo que aquella separación demostró y conviene conservar aun sin ella: **el ver
 **REST**: `@PreAuthorize` en todas las operaciones, **con la autoridad del recurso y una sola, nombrada literalmente** — `hasAuthority('client.read')`, nunca `admin.full` ni `hasAnyAuthority`. Quien es administrador lo decide `ApiAuthority.expand(...)` en un solo sitio, y una prueba por reflexión impide que un controlador vuelva a nombrarlo. (Hasta el 2026-09-08 aquí decía `hasAuthority('admin.full')` en todas: era cierto y dejó de serlo.) Solo `PATCH`, sin `PUT` — **también en las rutas de sub-recurso**. (La convención se fijó al migrar `location`; `person`, migrado antes, **conserva tres `PUT`** del original y nadie volvió sobre ellos — comprobado el 2026-09-09 sobre los 83 mappings.) `DELETE` responde 204 pero retira sin borrar. El identificador sale de la ruta, nunca del cuerpo. Catálogo de errores propio por módulo, con el advice limitado por `assignableTypes`; **un código de "no existe" nunca se comparte con uno de "datos inválidos"**, y cada referencia hacia otro módulo lleva el suyo.
 
 **OpenAPI**: cada módulo declara su grupo en `OpenApiConfig`, y **cada grupo debe llevar una prueba que consulte `/v3/api-docs/<grupo>` y exija que aparezcan todos sus recursos** — hoy la tienen `client`, `equipment` y `work-order`; siguen sin ella `location`, `person` y `reports`. En `work-order` la prueba se escribió **a la vez** que el grupo, y se comprobó rompiendo el patrón a propósito para verla fallar: una prueba contra un fallo silencioso hay que verla fallar una vez. Un patrón de `pathsToMatch` que no casa con ninguna ruta no falla ni avisa: deja el recurso fuera de Swagger en silencio. Pasó cuatro veces antes de que hubiera pruebas.
+
+## Frontend
+
+**Decidido el 2026-09-13 y sin escribir todavía.** El documento oficial es `Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex`; lo operativo, [[arquitectura-frontend-malphasos]] y [[sistema-de-diseno-malphasos]].
+
+**Angular**, Tailwind con los tokens del manual de marca, **spartan/ui** sobre Angular CDK, **TanStack Query** aislado tras un servicio por módulo, formularios reactivos y **cliente TypeScript generado desde OpenAPI y versionado**.
+
+- **Por módulo de negocio, con los nombres del backend** (`features/workOrder/`), nunca por tipo técnico. La estructura del frontend original no es para copiar.
+- **Un componente nunca llama al API directamente**: siempre por el servicio de su módulo. Es lo que acota que el adaptador de TanStack Query sea `experimental`.
+- **El frontend no autoriza, oculta.** El permiso lo comprueba el servidor en cada llamada.
+- **La autoridad del sistema visual es el manual de marca**, no este archivo ni el wiki. Radio cero, escala de 8, una sola familia (Archivo), y **los estados operativos se distinguen por peso tipográfico, no por colores nuevos**.
+- **WCAG 2.1 AA declarado y verificado** con analizador automático en la batería. El acento `#EC3013` **no alcanza AA como relleno de botón** —3,76:1 medido—: para eso va `#AE1800`.
+- **Instalación y uso sin conexión: decididos y aplazados.** La escritura sin conexión exigiría reabrir el backend, que hoy no tiene idempotencia ni bloqueo optimista.
+- **Primer bloque**: rebanada vertical de arranque, autenticación y órdenes de trabajo. Cierra RF-03, RF-04, RF-06 y RF-07.
 
 ## Deuda propia conocida
 
