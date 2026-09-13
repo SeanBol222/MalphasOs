@@ -37,23 +37,23 @@ El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/In
 | `location` | Completo: esquema, dominio, aplicación, persistencia, REST |
 | `client` | Completo: esquema, cuatro agregados, aplicación, persistencia y REST |
 | `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos. El traslado no cruza de cliente — regla construida el 2026-09-09, **verificada el 2026-09-10** con 13 pruebas y **en `main` desde `1ef55cf`**; esta tabla la dio por «construida y sin verificar» hasta el **2026-09-12** y por «en rama sin mergear» hasta **más tarde ese mismo día**. Ver [[regla-traslado-mismo-cliente]] |
-| `work-order` | **Completo en sus cuatro tandas**, 2026-09-12 y 13: esquema `V6`, agregado de Generación 2 con siete eventos, servicio con las reglas cruzadas, persistencia con conciliación del alcance y **nueve** operaciones REST. Las tandas 1 y 2 están en `main`; 3 y 4 en `feat/work-order-rest`, **sin mergear**. Las **siete reglas** que el esquema dejó al servicio están construidas —la última, en `fix/work-order-headquarter-scope`—, pero **nada prueba su persistencia**. De sus siete requisitos cuentan **tres**: los otros cuatro describen un formulario. Ver [[dominio-orden-trabajo]] |
+| `work-order` | **Completo en sus cuatro tandas**, 2026-09-12 y 13: esquema `V6`, agregado de Generación 2 con siete eventos, servicio con las reglas cruzadas, persistencia con conciliación del alcance y **nueve** operaciones REST. **Todo en `main`** desde `b9563a9`. Las **siete reglas** que el esquema dejó al servicio están construidas, pero **nada prueba su persistencia**. De sus siete requisitos cuentan **tres**: los otros cuatro describen un formulario. Ver [[dominio-orden-trabajo]] |
 
 Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog` y `V6__work_order`. (Este archivo hablaba de **cinco**: cierto hasta el **2026-09-12**. Y situaba `V6` **fuera de `main`**: cierto hasta el **2026-09-13**, entró con `97ef74f`.)
 
 **Corrección del 2026-09-09**: este archivo hablaba de **dos ramas de código fuera de `main`**, `feat/permission-model` y `fix/person-identity-sync`. **Las dos están dentro** desde ese día —`e6dda32` y `258cd81`— y se borraron tras el merge.
 
-**Corrección del 2026-09-13**: la tabla de abajo situaba `main` en `55e0a5d` con **509** pruebas y listaba `feat/work-order-schema` como la única rama fuera. **Las dos cosas dejaron de ser ciertas el mismo 2026-09-12**: `main` está en **`97ef74f`** y trae dentro el esquema (`49b6453`), su pasada de wiki (`1fd32a4`), la retirada de los subagentes (`862caa7`) y **el dominio del módulo** (`97ef74f`). Es la segunda vez seguida que la tabla de ramas caduca en menos de un día; ver la lección al final de [[log.md]].
+**Corrección del 2026-09-13**: la tabla de abajo situaba `main` en `55e0a5d` con **509** pruebas y listaba `feat/work-order-schema` como la única rama fuera. Dejó de ser cierto el 2026-09-12, y **volvió a dejarlo de ser el 2026-09-13**, cuando entraron las tandas 3 y 4, la regla que faltaba y sus dos pasadas de wiki. **Es la tercera vez seguida que esta tabla caduca en menos de un día**; la lección está al final de [[log.md]] y se resume en una línea: toda pasada de wiki empieza por `git log main..HEAD`, no por lo que dijo la pasada anterior.
 
-| Rama | Qué trae | Pruebas |
+**No queda ninguna rama de código fuera de `main`.**
+
+| Rama | Estado | Pruebas |
 |---|---|---|
-| `main` (`97ef74f`) | Los cuatro módulos migrados, el modelo de permisos, la sincronización con Keycloak, el traslado dentro del mismo cliente, y **el esquema y el dominio de órdenes de trabajo** | **580** |
-| `feat/work-order-rest` (`ceadba1`) | Las tandas 3 y 4 del quinto módulo: aplicación, persistencia y REST. `WorkOrderServiceTest` (17) y `WorkOrderRestAdapterTest` (14), más el neto +1 del centinela retirado y sustituido por dos pruebas | **612** |
-| `fix/work-order-headquarter-scope` (`0cf56c5`) | La séptima regla del servicio: el alcance de una orden no sale de su sede. Desciende de `ceadba1` | **614** |
-| ~~`feat/work-order-schema` (`24e7640`)~~ | **Mergeada** por `49b6453`. Daba 541 | — |
-| ~~`feat/relocation-same-client` (`43de295`)~~ | **Mergeada** por `1ef55cf`. Ver [[regla-traslado-mismo-cliente]] | — |
+| `main` (`b9563a9`) | Los cinco módulos completos, el modelo de permisos, la sincronización con Keycloak, el traslado dentro del mismo cliente y **órdenes de trabajo de extremo a extremo** | **614** |
+| ~~`feat/work-order-rest`~~ · ~~`fix/work-order-headquarter-scope`~~ · ~~`docs/wiki-work-order-modulo`~~ | **Mergeadas** el 2026-09-13 por `e69437d`, `1adc2fc` y `b9563a9`, y borradas | — |
+| ~~`feat/work-order-schema`~~ · ~~`feat/relocation-same-client`~~ | Mergeadas antes, por `49b6453` y `1ef55cf` | — |
 
-Las tres cifras vivas están **medidas**, no sumadas, borrando `target/surefire-reports` antes de cada corrida: 580 sobre `main`, 612 sobre `ceadba1` y 614 sobre `0cf56c5`; 44, 46 y 46 clases, cero fallos en las tres. Los puntos intermedios que cita [[dominio-orden-trabajo]] van marcados como derivados, porque lo son.
+Los **614** están **medidos** sobre `b9563a9` borrando `target/surefire-reports` antes: 46 clases, cero fallos, cero errores, cero omitidas. El atributo `tests=` da **611** y los `.txt` **433**. Los puntos intermedios que cita [[dominio-orden-trabajo]] van marcados como derivados, porque lo son.
 
 **496 es una remedición, no una suma**: 472 + 361 habría sido un número inventado, y el aviso de remedir ya estaba escrito. **Corrección del 2026-09-12**: esta tabla apuntaba a `3c002b2` con **496** y decía que la rama no añadía ninguna prueba. Era cierto el 2026-09-09 y dejó de serlo el 2026-09-10 con `43de295`, que suma 13 pruebas y deja la rama en **509** —507 por el atributo `tests=`, 386 por los `.txt`, 42 clases, cero fallos—, medido borrando `target/surefire-reports` antes.
 

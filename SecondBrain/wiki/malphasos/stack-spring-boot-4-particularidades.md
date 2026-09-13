@@ -116,14 +116,22 @@ Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la ú
 
 **Ampliación del 2026-09-13, el módulo de órdenes de trabajo completo.** Dos columnas más, medidas igual:
 
-| Fuente | `main` (`97ef74f`) | `feat/work-order-rest` (`ceadba1`) | `fix/…-headquarter-scope` (`0cf56c5`) |
+| Fuente | `main` (`97ef74f`) | `ceadba1` (REST) | `main` (`b9563a9`, todo dentro) |
 |---|---|---|---|
 | elementos `<testcase>` — **el conteo honesto** | **580** | **612** | **614** |
-| atributo `tests=` de los `<testsuite>` | 578 | **609** | — |
-| `target/surefire-reports/*.txt` | **418** | 433 | — |
+| atributo `tests=` de los `<testsuite>` | 578 | **609** | **611** |
+| `target/surefire-reports/*.txt` | **418** | 433 | **433** |
 | clases · fallos · errores · omitidas | 44 · 0 · 0 · 0 | 46 · 0 · 0 · 0 | 46 · 0 · 0 · 0 |
 
-La tercera columna lleva guiones donde no se midió: son dos pruebas más dentro de una clase `@Nested` ya existente, y **afirmar 611 y 435 sin haberlos contado sería inventarlos**. El `<testcase>` sí está medido.
+### La vez que no deducir salió a cuenta, con número
+
+La tercera columna estuvo **con guiones durante un commit**. Al añadir las dos pruebas de la regla de la sede solo se midió `<testcase>` (614), y esta nota dijo que «afirmar **611 y 435** sin haberlos contado sería inventarlos».
+
+Al medirse de verdad tras el merge: **611 y 433**. Uno acertado y **el otro no**.
+
+El fallo habría sido en los `.txt`, y por la razón que esta nota lleva repitiendo: las dos pruebas nuevas están dentro de una clase `@Nested` ya existente, `AlAnadirUnEquipo`, de modo que **esa fuente no las cuenta y se queda clavada en 433**. Quien dedujera «+2 en todo» se equivocaría exactamente en la fuente cuyo comportamiento raro está documentado tres párrafos más arriba.
+
+**Es la mejor defensa que hay de la regla**: no es que deducir esté mal por principio, es que aquí falla **una de cada dos veces**, y la que falla es la que uno creería tener entendida.
 
 **Dos cosas de esta tabla valen más que las cifras.**
 
