@@ -22,6 +22,7 @@ updated: 2026-09-13
 | 3 · Aplicación y persistencia | `5c0a5d5`, `dd625a1` | `WorkOrderService` con las reglas cruzadas, siete *commands*, el mapper a mano y el adaptador |
 | 4 · REST | `ceadba1` | Nueve operaciones, catálogo de errores propio, grupo de OpenAPI y la retirada de la centinela |
 | — · La regla que faltaba | `0cf56c5` | El alcance de una orden no sale de su sede. Ver «La regla 1 faltaba» |
+| — · La persistencia probada | `307d410`, `af38d2a` | 10 pruebas contra PostgreSQL real, y el `@Transactional` que faltaba en el adaptador |
 
 ## Por qué este módulo es distinto de los cuatro anteriores
 
@@ -296,6 +297,7 @@ Todas las cifras son el **número de elementos `<testcase>` de los XML de Surefi
 | `ceadba1` (tanda 4) | **612** | 46 | `WorkOrderRestAdapterTest`: **14**, más el neto +1 del centinela sustituido por dos |
 | `0cf56c5` (la regla 1) | **614** | 46 | Las dos pruebas de la regla que faltaba |
 | `b9563a9` (todo mergeado) | **614** | 46 | Remedido tras los tres merges: el mismo código, la misma cifra |
+| `af38d2a` (la persistencia) | **624** | 47 | `WorkOrderPersistenceAdapterTest`: **10**, y un defecto encontrado |
 
 Para `main` y `ceadba1`, las otras dos fuentes de conteo: el atributo `tests=` da **578** y **609**, y los `.txt` **418** y **433**. Los `.txt` **no se movieron entre `24e7640` y `main`** —418 y 418— pese a las 39 pruebas de `WorkOrderTest`, porque esa clase tiene 13 clases `@Nested` y ninguna prueba suelta: esa fuente las ignora por completo. Y el desajuste con el atributo pasa de 2 a 3 porque **`ordenInexistente` aparece en dos `@Nested` de `WorkOrderServiceTest`**, el segundo caso del proyecto tras `CatalogAggregatesTest`. Ver [[stack-spring-boot-4-particularidades]].
 
@@ -326,20 +328,52 @@ Producción restaurada en ambos casos. La primera importa especialmente porque e
 
 Los valores inválidos de los `CHECK` en `WorkOrderSchemaTest` son **cortos a propósito**. Las tres columnas están dimensionadas justas —`varchar(10)` para `TRIMESTRAL`, `varchar(11)` para `CALIBRACION`, `varchar(12)` para `EN_EJECUCION`—, así que un valor inválido más largo fallaría **por longitud y no por el `CHECK`**, dejando la prueba en verde afirmando algo que no ocurrió. Es una prueba que pasa por el motivo equivocado, primo hermano de la que pasa en vacío de [[regla-traslado-mismo-cliente]].
 
-### ⚠️ La persistencia de este módulo no la prueba nada
+### La persistencia, y el defecto que apareció al probarla
 
-`grep` sobre `src/test` no devuelve **ni una** mención de `WorkOrderPersistenceAdapter`, `WorkOrderPersistenceMapper` ni `WorkOrderRepository`, comprobado el 2026-09-13. `WorkOrderServiceTest` usa dobles de Mockito para el puerto, así que no los toca.
+**Cubierta el 2026-09-13** con `WorkOrderPersistenceAdapterTest`: **10 pruebas** contra un PostgreSQL real. Hasta ese día `grep` sobre `src/test` no devolvía **ni una** mención de `WorkOrderPersistenceAdapter`, `WorkOrderPersistenceMapper` ni `WorkOrderRepository`.
 
-Eso deja **sin ejercer la pieza con más lógica del módulo fuera del dominio**: la conciliación de `sincronizarEquipos` —desactivar en vez de borrar, reactivar con el área nueva— y la consulta `findByEquipment`, que filtra por `estadoActivo` con un `@Query` propio.
+#### El defecto lo destapó la primera llamada directa
 
-`client`, `location` y `person` sí tienen `…PersistenceAdapterTest`. `equipment` tampoco lo tiene salvo para el traslado. Anotado en [[deuda-tecnica-y-riesgos]].
+La primera ejecución no falló por una aserción sino con **`LazyInitializationException`**: `WorkOrderPersistenceAdapter` **no llevaba `@Transactional`**, y el mapper recorre el alcance, que es una colección perezosa con `open-in-view` desactivado.
+
+**No se veía desde el API** porque `WorkOrderService` siempre abre transacción, así que la falta era invisible mientras nadie llamara al adaptador por su cuenta — y nadie lo hacía, porque no había pruebas. Lo llevan ya los adaptadores de `client` y de `person`, **los otros dos con colecciones propias**; de los tres, éste era el único sin él. Corregido en producción, no rodeado en la prueba: envolver la prueba en una transacción habría descrito el defecto en vez de detectarlo.
+
+**La forma general**: un adaptador que mapea una colección perezosa **necesita su propia transacción**, y el día que no la tiene el fallo no aparece hasta que alguien lo llama fuera de un servicio. Es una dependencia sobre el llamante que el tipo no declara.
+
+#### Qué comprueban las diez
+
+Lo que aportan no es el ida y vuelta —eso lo garantizaría casi cualquier mapeo— sino la **conciliación del alcance**, que es donde vive la lógica:
+
+- **Retirar un equipo deja su fila inactiva, no la borra**, comprobado con `SELECT` sobre `orden_trabajo_equipo`: la fila sigue ahí con `b_estado_activo = false`.
+- **Readmitirlo reactiva esa misma fila con el área nueva**, y sigue habiendo **una sola**. Es la única forma de corregir un área congelada.
+- **`toDomain` no vuelve a cargar lo retirado**: la fila está, el agregado no la trae.
+- **Guardar dos veces no duplica el alcance**, que es exactamente para lo que el adaptador lee la fila existente antes de guardar.
+- **Un traslado del equipo no reescribe el área que la orden congeló**, comprobado ahora **desde el lado de la orden** — la prueba de esquema ya lo miraba desde el otro.
+- **`findByEquipment` no devuelve la orden de la que el equipo salió**, que es lo que justifica su `@Query` escrito a mano.
+
+**Las comprobaciones van contra la tabla con SQL directo a propósito.** Preguntarle al agregado si el equipo está lo contestaría el mapper, que es la pieza bajo prueba.
+
+#### Verificadas por mutación
+
+| Mutación | Qué se puso en rojo |
+|---|---|
+| El adaptador deja de leer la fila existente | Las tres de retirada y la de consulta por equipo |
+| El `@Query` deja de filtrar por `estadoActivo` | `buscarPorEquipoIgnoraLoRetirado`, **solo ésa** |
+| `sincronizarEquipos` no desactiva la fila que salió | Las tres de retirada |
+| El equipo readmitido no toma el área nueva | `readmitirloReactivaConElAreaNueva`, **solo ésa** |
+
+#### Lo que sigue sin cubrir en el proyecto
+
+`equipment` **tampoco tiene** pruebas de su persistencia salvo `ClientEquipmentRelocationPersistenceTest`. La ausencia que este módulo acaba de cerrar sigue viva en el vecino. Anotado en [[deuda-tecnica-y-riesgos]].
 
 ## Lo que falta
 
-1. **Pruebas de persistencia**, contra PostgreSQL real vía Testcontainers, para la conciliación del alcance. Es lo único que queda sin cubrir del módulo.
-2. **El consumidor de los eventos**: el reporte de servicio, que es el módulo siguiente en [[hoja-de-ruta-producto]].
+**El módulo no tiene ya nada sin cubrir.** Lo que queda es de fuera:
 
-~~La regla 1~~ — **cerrada el 2026-09-13**, ver arriba.
+1. **El consumidor de los eventos**: el reporte de servicio, que es el módulo siguiente en [[hoja-de-ruta-producto]]. Los siete se emiten ya y nadie los escucha.
+2. **El formulario**, que es lo que cierra los cuatro RF que siguen abiertos.
+
+~~La regla 1~~ y ~~las pruebas de persistencia~~ — **cerradas las dos el 2026-09-13**, ver arriba.
 
 ## Notas relacionadas
 

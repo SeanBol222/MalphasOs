@@ -586,3 +586,24 @@ Por eso «614 medidos sobre `b9563a9`» y «mergeada por `1ef55cf`» **se quedan
 **El log no se toca.** Sus entradas están fechadas y eran ciertas al escribirse; reescribirlas para que sigan siendo ciertas hoy sería justo lo contrario de lo que un registro cronológico hace. La regla vale para las notas que describen el presente, no para las que fechan el pasado.
 
 **Tocadas**: `CLAUDE.md` de la raíz (con la tabla de la distinción), `SecondBrain/CLAUDE.md` (regla dura nueva), [[dominio-orden-trabajo]] y [[stack-spring-boot-4-particularidades]].
+
+
+## [2026-09-13] ingest | La persistencia probada, y el defecto que la prueba destapó antes de pasar
+
+**Cierra el último pendiente del quinto módulo.** `WorkOrderPersistenceAdapterTest`, **10 pruebas** contra un PostgreSQL real vía Testcontainers. Hasta hoy `grep` sobre `src/test` no devolvía ni una mención del adaptador, el mapper ni el repositorio de `work-order`.
+
+**La primera ejecución no falló por una aserción: falló con `LazyInitializationException`.** `WorkOrderPersistenceAdapter` **no llevaba `@Transactional`** y el mapper recorre el alcance, que es una colección perezosa con `open-in-view` desactivado.
+
+**Por qué sobrevivió a cuatro tandas**: `WorkOrderService` siempre abre transacción, así que desde el API no se veía. El adaptador era inservible por su cuenta **y nadie lo llamaba por su cuenta, precisamente porque no había pruebas**. El defecto y su invisibilidad tenían la misma causa. De los **tres** adaptadores con colecciones propias —`client`, `person`, `work-order`— era el único sin la anotación, y el de `client` hasta lo explica en su javadoc.
+
+**Se arregló en producción, no se rodeó en la prueba.** Envolver el test en una transacción lo habría puesto en verde describiendo el defecto en vez de detectarlo, que es exactamente lo que `CLAUDE.md` prohíbe. La regla entró como convención de persistencia: **un adaptador que mapea una colección perezosa lleva `@Transactional`**; sin él depende de que el llamante abra una, y eso es una dependencia que el tipo no declara.
+
+**Qué comprueban las diez**, y por qué no es el ida y vuelta: la **conciliación del alcance**. Retirar deja la fila **inactiva y no la borra**; readmitir **reactiva esa misma con el área nueva** y sigue habiendo una sola; `toDomain` no vuelve a cargar lo retirado; guardar dos veces no duplica; un traslado del equipo no reescribe el área congelada —comprobado ahora desde el lado de la orden, no solo desde el del esquema—; y `findByEquipment` ignora lo que salió. **Las comprobaciones van contra la tabla con SQL directo**: preguntarle al agregado lo contestaría el mapper, que es la pieza bajo prueba.
+
+**Cuatro mutaciones, cuatro señales.** Quitar la lectura previa del adaptador, quitar el filtro `estadoActivo` del `@Query`, dejar de desactivar la fila que sale, y no actualizar el área del readmitido. Cada una la detecta la prueba que le toca, y dos de ellas **solo** esa prueba.
+
+**Un tercer dato sobre el conteo, y ya es tendencia.** Los `.txt` dan **433 antes y después** de añadir diez pruebas, porque la clase nueva es enteramente `@Nested`. Sumando la tanda: de **83** pruebas añadidas desde `24e7640`, esa fuente recoge **15**. Deja de ser una rareza y pasa a ser **una fuente que miente por defecto** con el estilo de pruebas de este proyecto. Registrado con la tabla en [[stack-spring-boot-4-particularidades]].
+
+**Deuda: 27 registradas, 17 abiertas.** Se cierran dos —la persistencia sin probar y el `@Transactional` ausente— y se abre una: **`equipment` tampoco prueba su persistencia**, la misma ausencia que se señaló en dos módulos y se cerró en uno.
+
+**Tocadas**: [[dominio-orden-trabajo]], [[deuda-tecnica-y-riesgos]], [[stack-spring-boot-4-particularidades]] y el `CLAUDE.md` de la raíz.
