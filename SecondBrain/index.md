@@ -36,7 +36,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[openapi-swagger]] — Un grupo por módulo, y el fallo silencioso de un `pathsToMatch` que no casa con ninguna ruta.
 - [[antipatron-open-in-view]] — Por qué está apagado y qué hacer en su lugar.
 
-### Los cuatro módulos de dominio
+### Los módulos de dominio
 
 - [[dominio-cliente]] — Client / Headquarter / ServiceArea / Manager. Reconstruido en cuatro agregados pequeños.
 - [[dominio-persona-identidad]] — Person + Keycloak Admin API. El único módulo que se quedó en Generación 1, por decisión explícita.
@@ -44,12 +44,14 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[dominio-equipo-mantenimiento]] ⭐ — El núcleo del negocio. Catálogo e inventario construidos; **faltan verificaciones técnicas y datos metrológicos**.
 - [[regla-traslado-mismo-cliente]] — Una unidad solo se traslada a áreas de su propio cliente. Construida el 2026-09-09 y **verificada el 2026-09-10** con 13 pruebas; esta línea la marcaba con ⚠️ como «sin verificar» hasta el **2026-09-12**. Leer antes de tocar `ClientEquipmentService`: recoge además por qué una prueba pasaba en vacío sin que Mockito estricto lo delatara.
 - [[relacion-manager-persona]] — Un encargado ES una persona por clave primaria compartida.
+- [[dominio-orden-trabajo]] — **El quinto módulo, empezado el 2026-09-12 y a un cuarto**: solo el esquema `V6`, en rama sin mergear. El núcleo del negocio de mantenimiento, del que cuelgan reportes, firma e historial. Trae la lista de las **siete reglas que el esquema deja al servicio** y la trampa que espera a la tanda REST.
 
 ### Datos y esquema
 
 - [[esquema-bd-v4]] — Las 27 tablas del original y las convenciones que MalphasOS heredó: prefijos por tipo, PK UUID, borrado lógico.
 - [[patron-soft-delete]] — `b_estado_activo` universal: aquí nada se borra.
 - [[reglas-de-negocio-en-el-esquema]] — Los seis sitios donde un esquema SQL esconde reglas de negocio. Revisar antes de dar por migrado un módulo.
+- [[congelar-una-referencia-historica]] — Cuando una columna guarda *dónde estaba* algo, la clave foránea compuesta que parece faltar bloquearía el cambio legítimo. Leer antes de «arreglar» `orden_trabajo_equipo`.
 
 ### Seguridad e identidad
 
@@ -99,8 +101,8 @@ Valor histórico. Explican por qué una decisión es como es, no qué hace Malph
 
 Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no la tiene.
 
-- `[[esquema-malphasos]]` — **el hueco más notorio**: no hay ninguna nota que describa el esquema real de MalphasOS. [[esquema-bd-v4]] describe el del original, y las cinco migraciones `V1`–`V5` solo están contadas de refilón en las notas de migración.
+- `[[esquema-malphasos]]` — **el hueco más notorio**: no hay ninguna nota que describa el esquema real de MalphasOS. [[esquema-bd-v4]] describe el del original, y las **seis** migraciones `V1`–`V6` solo están contadas de refilón en las notas de migración. (Decía «cinco» y `V1`–`V5`: **cierto hasta el 2026-09-12**, cuando entró `V6__work_order.sql`; lo más cercano a esa nota que existe hoy para `V6` es [[dominio-orden-trabajo]].)
 
 ---
 
-**47 notas** · reorganizado el 2026-09-09 · última corrección el 2026-09-12 · ver [[log.md]] para el historial.
+**49 notas** · reorganizado el 2026-09-09 · última corrección el 2026-09-12 · ver [[log.md]] para el historial.

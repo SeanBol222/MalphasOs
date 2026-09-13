@@ -101,16 +101,20 @@ Corolario práctico: **el número honesto es el del resumen de Maven**, que coin
 
 Esta nota y el `CLAUDE.md` de la raíz avisaban de que **el día que se mergearan las dos ramas habría que remedir, no sumar**. Se mergearon ese mismo día (`e6dda32` y `258cd81`), y el resultado es el dato que faltaba:
 
-| Fuente | `main` (`01c3277`) | `feat/relocation-same-client` (`3c002b2`) | `feat/relocation-same-client` (`43de295`) |
-|---|---|---|---|
-| elementos `<testcase>` — **el conteo honesto** | **496** | **496** | **509** |
-| atributo `tests=` de los `<testsuite>` | 494 | 494 | 507 |
-| `target/surefire-reports/*.txt` | 380 | 380 | 386 |
-| clases · fallos · errores · omitidas | 41 · 0 · 0 · 0 | 41 · 0 · 0 · 0 | 42 · 0 · 0 · 0 |
+| Fuente | `main` (`01c3277`) | `feat/relocation-same-client` (`3c002b2`) | `feat/relocation-same-client` (`43de295`) | `feat/work-order-schema` (`24e7640`) |
+|---|---|---|---|---|
+| elementos `<testcase>` — **el conteo honesto** | **496** | **496** | **509** | **541** |
+| atributo `tests=` de los `<testsuite>` | 494 | 494 | 507 | 539 |
+| `target/surefire-reports/*.txt` | 380 | 380 | 386 | 418 |
+| clases · fallos · errores · omitidas | 41 · 0 · 0 · 0 | 41 · 0 · 0 · 0 | 42 · 0 · 0 · 0 | 43 · 0 · 0 · 0 |
 
 Medido con `./mvnw test` y `rm -rf target/surefire-reports` antes de cada corrida. **496 no es 472 + 361 menos nada**: sumar habría dado un número inventado, que es exactamente contra lo que avisaba la nota.
 
 Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la única clase con nombres de método repetidos entre `@Nested`. Las dos primeras columnas dan lo mismo porque **`3c002b2` no añadió ninguna prueba**: ver [[regla-traslado-mismo-cliente]] para qué significa —y qué no significa— ese verde.
+
+**Ampliación del 2026-09-12, segunda pasada**: la cuarta columna es `feat/work-order-schema`, que desciende de `43de295`, así que **541 = 509 + 32** también es una suma legítima. La clase 43 es `WorkOrderSchemaTest` —23 métodos, 32 ejecuciones, cuatro de ellos `@ParameterizedTest`—. La diferencia `<testcase>` – atributo **sigue siendo 2**, de modo que después de cinco tandas el desajuste sigue viniendo entero de `CatalogAggregatesTest`. Los `.txt` saltan de 386 a 418, exactamente +32: `WorkOrderSchemaTest` **no tiene clases `@Nested`**, y ahí se ve el contraste con las columnas anteriores. Medido con `./mvnw test` y `rm -rf target/surefire-reports` antes.
+
+> **Y una corrección sobre las etiquetas de la tabla, del 2026-09-12**: la primera columna, «`main` (`01c3277`)», **ya no describe `main`**. `feat/relocation-same-client` se mergeó ese mismo día (`1ef55cf`) y `main` está en `55e0a5d`, con el contenido de la tercera columna: **509**, no 496. Las cifras de cada columna siguen siendo correctas para el commit que nombran; lo que caducó es la equivalencia «primera columna = línea principal».
 
 **Ampliación del 2026-09-12**: la tercera columna es la misma rama tras la pasada del `tester` (`43de295`, 2026-09-10) y **sí es una suma legítima**, 496 + 13, porque es la misma base con pruebas añadidas encima; sumar solo está prohibido entre ramas que no descienden una de otra. La clase 42 es `ClientEquipmentRelocationPersistenceTest`, nueva. La diferencia `<testcase>` – atributo se mantiene en 2, así que el desajuste sigue viniendo entero de `CatalogAggregatesTest` y las pruebas nuevas no añaden nombres repetidos entre `@Nested`. Medido aquí con `./mvnw test` y `rm -rf target/surefire-reports` antes.
 
