@@ -3,3 +3,14 @@
 .env
 .env.local
 .env.*.local
+
+# Dependencias y productos de compilacion del frontend. Van en la raiz y no solo
+# en malphasos-frontend/ a proposito: una rama que salga de antes de que ese
+# directorio existiera no tiene su .gitignore, y ahi un `git add -A` se traga
+# node_modules entero. Paso el 2026-09-13, con 20.368 archivos.
+node_modules/
+dist/
+.angular/
+
+# Productos de compilacion del backend.
+target/
