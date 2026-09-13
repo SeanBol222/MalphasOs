@@ -234,10 +234,30 @@ Detalle completo en [[regla-traslado-mismo-cliente]]. Aquí solo las decisiones 
 
 > **Corrección del 2026-09-12.** El párrafo de arriba fue cierto durante un día: el `tester` pasó por la rama el 2026-09-10 (`43de295`) y la regla quedó verificada con 13 pruebas, dejando la rama en **509** ejecuciones. Se conserva porque la decisión de proceso se tomó de verdad y **su coste quedó medido**: la regla estuvo un día en el repositorio sin que nada la ejerciera, y el wiki tuvo que publicarlo como pendiente. Lo que **no** cambió al repararla es igual de informativo: **no había ningún defecto detrás, la guarda funcionaba**.
 
+## Módulo de órdenes de trabajo, esquema (2026-09-12)
+
+Primera de cuatro tandas. Detalle completo en [[dominio-orden-trabajo]]; aquí solo las decisiones y su coste.
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Cliente y sede en la orden, aunque sean deducibles por sus equipos | **Guardarlos** | Un equipo puede trasladarse a otra sede del mismo cliente ([[regla-traslado-mismo-cliente]]) y sin esas columnas una orden **ya ejecutada cambiaría de sede retroactivamente**. Coste aceptado: dos columnas que el servicio tiene que mantener coherentes con los equipos |
+| Cómo se garantiza que la sede es de ese cliente | **Clave foránea compuesta**, con un `UNIQUE (k_id_sede, k_id_cliente)` sobre `sede` añadido en `V6` | Deja de ser convención y pasa a comprobarlo el motor. El `UNIQUE` no añade regla alguna sobre `sede` —la PK ya la hace única— solo expone el par como destino referenciable. **Es la única regla cruzada de este módulo que el esquema puede sostener sin desnormalizar más**, y **la propuso el `desarrollador`**: no estaba en el encargo |
+| Dónde se añade ese `UNIQUE` | **En `V6`, no editando `V4`** | Una migración ya aplicada no se toca: Flyway la tiene sellada por *checksum* y editarla rompe cualquier base existente |
+| El área de la tabla puente | **Congelada**: la que tenía el equipo al seleccionarlo | Un traslado posterior no debe reescribir dónde se prestó el servicio |
+| Clave foránea compuesta del puente contra `equipo_cliente` | **No ponerla**, a propósito | Parece la restricción correcta, pero PostgreSQL la comprobaría también al **actualizar** la fila referenciada, y **una orden vieja bloquearía un traslado legítimo**. Verificado contra Postgres real y **fijado con una prueba que se pondrá roja si alguien la añade**. Nota propia: [[congelar-una-referencia-historica]] |
+| Las áreas del paso intermedio del formulario (RF-04) | **No se persisten** | Quedan implícitas en los equipos elegidos. Dos listas que deben concordar se desincronizan, y no hay ninguna pregunta que la de áreas conteste y la de equipos no |
+| Tipo de `f_fecha_mantenimiento` | **`date`**, no `timestamp` | El original la declaraba `timestamp` y la comentaba como la fecha de **creación** de la orden: dos cosas distintas. El formulario de la ERS pide un **día de servicio** |
+| Ingeniero asignado | **Anulable** | Una orden se crea antes de asignarse. Es lo que justifica que `work-order.assign` sea una autoridad aparte de `work-order.write` en [[modelo-de-permisos]] |
+| Idioma de las tres enumeraciones | **Español** | Convención del proyecto para el vocabulario propio del dominio (`NIT_juridico`, `patron_constante`). Evita además repetir el `BIANNUAL` del original, ambiguo en inglés entre «dos veces al año» y «cada dos años» |
+| De dónde salen los valores | **Del `CHECK` del esquema heredado** (periodicidades y estados) y **del vocabulario de la ERS** (tipos de servicio) | No se inventaron. Ver abajo, porque el **cómo** vale más que el qué |
+| Las siete reglas que el esquema no puede expresar | **Al servicio, en la tanda 3** | Cada una cruza tablas que no guardan juntos los datos a comparar, o depende del estado y no de la existencia. Están listadas en [[dominio-orden-trabajo]] y anotadas en [[deuda-tecnica-y-riesgos]] para que la migración en verde no se lea como un esquema que las defiende |
+
+**Y una decisión de método, que es lo más reutilizable de la tanda.** Los valores de las tres enumeraciones se le **preguntaron al usuario tres veces** antes de que apareciera que dos de las tres estaban escritas en un `CHECK` del esquema heredado que nadie había abierto. El original no servía de plantilla para casi nada de este módulo —no tiene cliente, ni sede, ni tipo de servicio, ni vínculo con los equipos, y ninguna restricción lo referencia— y **precisamente por eso nadie fue a mirarlo**. La regla: antes de pedir una decisión de vocabulario del dominio, agotar el original; un esquema puede ser inútil como diseño y seguir siendo la única fuente escrita del diccionario.
+
 ## Pendientes de decidir
 
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
 
 ## Notas relacionadas
 
-[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[regla-traslado-mismo-cliente]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[regla-traslado-mismo-cliente]] · [[dominio-orden-trabajo]] · [[congelar-una-referencia-historica]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

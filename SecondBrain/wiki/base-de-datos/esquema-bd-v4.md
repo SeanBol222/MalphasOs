@@ -3,7 +3,7 @@ name: esquema-bd-v4
 description: Esquema PostgreSQL actual — 27 tablas, convención de prefijos por tipo de dato, soft-delete universal
 tags: [base-de-datos, "reusable:alta", "describe:ambos"]
 source: DataBase/v4/initdb/A_Sigma_DB_V4.sql
-updated: 2026-08-27
+updated: 2026-09-12
 ---
 
 # Esquema de base de datos v4 (PostgreSQL)
@@ -28,7 +28,11 @@ updated: 2026-08-27
 
 ## Mantenimiento / órdenes — núcleo de "gestión de mantenimientos preventivos"
 
-`orden_trabajo` (FK a persona=ingeniero; `n_periodicidad`, `t_estado_ejecucion` default `'CREATED'`) → `reporte_servicio` (FK a orden_trabajo + equipo_cliente) → `reporte_servicio_snapshot` (JSONB — snapshot inmutable, patrón de auditoría/historial) → `protocolo_mantenimiento` (FK a reporte_servicio), `verificacion_ingreso`, `verificacion_metrologica` (FK a reporte_servicio).
+`orden_trabajo` (FK a persona=ingeniero; `n_periodicidad`, `t_estado_ejecucion` default `'CREATED'`) → `reporte_servicio` → `reporte_servicio_snapshot` (JSONB — snapshot inmutable, patrón de auditoría/historial) → `protocolo_mantenimiento` (FK a reporte_servicio), `verificacion_ingreso`, `verificacion_metrologica` (FK a reporte_servicio).
+
+> ⚠️ **Corrección del 2026-09-12.** Esta línea decía que `reporte_servicio` tenía «FK a orden_trabajo + equipo_cliente». **Es falso, y se descubrió al abrir el módulo de órdenes de trabajo de MalphasOS.** En `A_Sigma_DB_V4.sql`, `reporte_servicio` tiene declarada **únicamente su `PRIMARY KEY`**: no hay ninguna clave foránea. Sus dos columnas de referencia son **`varchar(10)` contra llaves primarias `uuid`**, así que la restricción no podría declararse aunque alguien la escribiera; solo el comentario de columna afirma que son claves foráneas. Y `grep "REFERENCES orden_trabajo"` sobre el archivo **no devuelve nada**: ninguna restricción del esquema apunta a esa tabla. La afirmación de arriba salió de leer los comentarios del SQL en vez de las restricciones, que es exactamente el error que este wiki registra una y otra vez. Detalle en [[dominio-orden-trabajo]] y fila propia en [[deuda-tecnica-y-riesgos]].
+>
+> La frase de más arriba «todas las FKs son `ON DELETE No Action`… con su índice» hay que leerla, por lo tanto, como *todas las que existen*, que no son todas las que los comentarios prometen.
 
 ## Reutilizable en MalphasOS
 
@@ -36,4 +40,4 @@ updated: 2026-08-27
 
 ## Notas relacionadas
 
-[[evolucion-esquema-v1-v4]] · [[patron-soft-delete]] · [[dominio-cliente]] · [[dominio-equipo-mantenimiento]] · [[dominio-persona-identidad]] · [[alcance-malphasos]]
+[[evolucion-esquema-v1-v4]] · [[dominio-orden-trabajo]] · [[patron-soft-delete]] · [[dominio-cliente]] · [[dominio-equipo-mantenimiento]] · [[dominio-persona-identidad]] · [[alcance-malphasos]]

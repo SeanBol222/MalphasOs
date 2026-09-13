@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-09-09
+updated: 2026-09-12
 ---
 
 # Hoja de ruta del producto
@@ -49,6 +49,8 @@ RF-01 a RF-07. **Todo lo que necesita existe**: `cliente`, `sede`, `area_servici
 
 Lo que sí hay que crear con ella: **tipo de servicio y periodicidad no tienen columna en ningún sitio** (RF-03). No es una tabla más de la orden, es vocabulario nuevo del dominio.
 
+> **Corregido el 2026-09-12**: la frase anterior era cierta hasta esa fecha y **dejó de serlo** con `V6__work_order.sql`, en la rama `feat/work-order-schema`. Las dos columnas existen ya, con `CHECK` propio: `n_periodicidad` y `t_tipo_servicio`. Y **el vocabulario no era tan nuevo como esta nota suponía**: las periodicidades y los estados estaban escritos en un `CHECK` del esquema heredado; solo los tipos de servicio salieron de la ERS. Ver [[dominio-orden-trabajo]].
+
 ⚠️ **El grafo declarado contiene un ciclo, y está dentro de esta categoría.** RF-05 depende de RF-07; RF-07 de RF-06; RF-06 de RF-05 —y además de RF-09, que es de reportes y a su vez depende de RF-05 y RF-07—. Leído al pie de la letra, ninguno de los cuatro puede empezar. **Es un defecto de la ERS, no un bloqueo real**: identificar la orden, elegir sus áreas y elegir sus equipos son partes de un mismo agregado y se construyen juntas. Se anota aquí porque quien planifique leyendo solo el documento se detendrá en seco.
 
 ### De órdenes de trabajo cuelga casi todo lo demás
@@ -91,8 +93,8 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 
 | # | Bloque | Desbloquea | Estado de sus dependencias |
 |---|---|---|---|
-| ~~0~~ | ~~**Mergear las dos ramas pendientes**~~ | Todo lo demás | **Hecho el 2026-09-09**: `e6dda32` y `258cd81`. `main` está en `01c3277` con las dos dentro y la batería remedida en **496** |
-| 1 | **Órdenes de trabajo** (RF-01…07) | Reportes, firma, comercial, inventario | Todas cumplidas |
+| ~~0~~ | ~~**Mergear las dos ramas pendientes**~~ | Todo lo demás | **Hecho el 2026-09-09**: `e6dda32` y `258cd81`, con `main` en `01c3277` y la batería remedida en **496**. **Actualizado el 2026-09-12**: `main` está hoy en **`55e0a5d`**, con `feat/relocation-same-client` también dentro (`1ef55cf`) y **509** pruebas |
+| 1 | **Órdenes de trabajo** (RF-01…07) | Reportes, firma, comercial, inventario | Todas cumplidas. **Empezado el 2026-09-12**: tanda 1 de 4 —el esquema, `V6`— en `feat/work-order-schema`, sin mergear. Faltan dominio, aplicación y REST, y **los siete requisitos siguen contando como no implementados**: un esquema no cumple ninguno |
 | 2 | **Reportes de mantenimiento** (RF-09, 11, 13, 15) | Historial de hojas de vida, PDF, alertas | Requiere el bloque 1 (+ RF-14, disponible ya) |
 | 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | Ninguna pendiente. Puede ir en paralelo al 1 y al 2 |
 | 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | Requiere el bloque 2 |
@@ -106,6 +108,8 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 ### Por qué el bloque 0 no es burocracia
 
 **Ya no aplica desde el 2026-09-09, y lo que sigue explica por qué importaba.** `feat/permission-model` incluía una prueba, `RestAuthorizationCoverageTest` —hoy en `main`—, que **falla a propósito el día que aparezca el primer endpoint de órdenes de trabajo**: `ApiAuthority` ya declara `work-order.read`, `work-order.write` y `work-order.assign`, el realm ya se las concede al grupo `engineers`, y la prueba fija que hoy no protegen nada. Construir órdenes de trabajo **antes** de mergear esa rama habría significado escribir los controladores sin ese vocabulario y volver luego. Con la rama ya en `main`, la prueba avisa en el momento justo: **el bloque 1 puede empezar**.
+
+**Nota del 2026-09-12, para quien llegue a la tanda REST**: esa prueba —`lasAutoridadesDeWorkOrderSiguenSinModulo`— **sigue verde**, porque el esquema de `V6` no añade endpoints. Se pondrá roja con el primer controlador del módulo, y entonces hay que **retirarla en el mismo commit**, no investigarla como una regresión. Está comprobado que vive en `main`. Ver [[dominio-orden-trabajo]].
 
 ## Lo que esta hoja de ruta no puede decidir: cuándo entra el frontend
 
@@ -132,4 +136,4 @@ RF-53 está marcado `[IMPLEMENTADO]` con la salvedad escrita de que **su tercer 
 
 ## Notas relacionadas
 
-[[checklist-reutilizacion]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[dominio-equipo-mantenimiento]] · [[integracion-keycloak-frontend]] · [[arquitectura-frontend]] · [[alcance-malphasos]]
+[[checklist-reutilizacion]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[dominio-orden-trabajo]] · [[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[dominio-equipo-mantenimiento]] · [[integracion-keycloak-frontend]] · [[arquitectura-frontend]] · [[alcance-malphasos]]

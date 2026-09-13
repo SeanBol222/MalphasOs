@@ -1,6 +1,6 @@
 ---
 name: regla-traslado-mismo-cliente
-description: Una unidad de equipo solo se traslada a áreas de su propio cliente. Construida el 2026-09-09 y verificada el 2026-09-10 con 13 pruebas; la nota la dio por sin verificar hasta el 2026-09-12
+description: Una unidad de equipo solo se traslada a áreas de su propio cliente. Construida el 2026-09-09, verificada el 2026-09-10 con 13 pruebas y en main desde 1ef55cf; la nota la dio por sin verificar y luego por sin mergear hasta el 2026-09-12
 tags: [dominio, equipment, client, invariantes, fronteras-entre-modulos, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/equipment/application/services/clientEquipment/ClientEquipmentService.java
 estado: estable
@@ -9,7 +9,11 @@ updated: 2026-09-12
 
 # El traslado de una unidad no cruza de cliente
 
-Construido el **2026-09-09** en `3c002b2` y **verificado el 2026-09-10** en `43de295`, los dos en la rama `feat/relocation-same-client`, que sigue **sin mergear a `main`**.
+Construido el **2026-09-09** en `3c002b2` y **verificado el 2026-09-10** en `43de295`, los dos en la rama `feat/relocation-same-client`.
+
+> **Corrección del 2026-09-12, más tarde el mismo día.** Esta línea decía que la rama seguía **sin mergear a `main`**, y también lo decían el `CLAUDE.md` de la raíz y [[checklist-reutilizacion]]. **Ya no es cierto**: `feat/relocation-same-client` entró en `main` por `1ef55cf`, y la pasada de wiki que la documentó por `55e0a5d`. `main` está hoy en **`55e0a5d`** y no en `01c3277`, y su batería es **509**, no 496 —no se remidió: `git diff 43de295 main -- malphasos/` sale vacío, así que el código es el ya medido—. Se detectó al comprobar de qué desciende `feat/work-order-schema`, no leyendo esta nota.
+>
+> **Todo lo que sigue se escribió cuando la rama estaba fuera** y se conserva tal cual, con los identificadores de commit intactos: los commits son los mismos, solo cambió dónde viven.
 
 ## El agujero
 
@@ -22,6 +26,8 @@ Por qué importa más de lo que parece: [[migracion-equipment-hallazgos]] ya reg
 Una unidad solo se traslada a áreas del **mismo cliente**, incluidas las de **otras sedes** de ese cliente. Cruzar de cliente se rechaza.
 
 Vive en `ClientEquipmentService.requireSameClient(...)`, y con ella van **seis reglas de este tipo** en el proyecto: dos en `client` —no abrir un área en una sede cerrada, no poner a nadie al frente de algo cerrado— y cuatro en `equipment` —modelo sobre asociación retirada, unidad de modelo retirado, área cerrada, y ésta—. Ver [[migracion-client-hallazgos]] y [[migracion-equipment-hallazgos]].
+
+**Ampliación del 2026-09-12**: siguen siendo seis **construidas**, pero el esquema de órdenes de trabajo (`V6`, en `feat/work-order-schema`) deja **siete más previstas** para el servicio de su tanda 3, lo que llevaría el total a trece. Están listadas en [[dominio-orden-trabajo]]. Una de ellas —que el equipo sea del cliente de la orden— es hermana de ésta y probablemente reutilice el mismo `findOwningClient`.
 
 **Es la primera de las seis que no pregunta si algo está activo.** Las cinco anteriores existen porque una clave foránea comprueba que una fila exista y no que esté activa, y con borrado lógico esas dos cosas dejan de ser la misma ([[patron-soft-delete]]). Ésta es distinta: compara **dos clientes que ninguna tabla guarda juntos**.
 
@@ -119,4 +125,4 @@ Todos verificados sobre el código de `3c002b2`, y **recomprobados el 2026-09-12
 
 ## Notas relacionadas
 
-[[dominio-equipo-mantenimiento]] · [[dominio-cliente]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[reglas-de-negocio-en-el-esquema]] · [[patron-catalogo-errores-por-contexto]] · [[manejo-global-excepciones]] · [[patron-soft-delete]] · [[arquitectura-hexagonal]]
+[[dominio-equipo-mantenimiento]] · [[dominio-cliente]] · [[dominio-orden-trabajo]] · [[congelar-una-referencia-historica]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[reglas-de-negocio-en-el-esquema]] · [[patron-catalogo-errores-por-contexto]] · [[manejo-global-excepciones]] · [[patron-soft-delete]] · [[arquitectura-hexagonal]]

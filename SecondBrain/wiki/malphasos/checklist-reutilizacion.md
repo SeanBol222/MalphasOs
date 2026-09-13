@@ -19,10 +19,11 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 > | ~~`feat/permission-model` (`2de115f`)~~ | **Sí, `e6dda32`** | ~~472~~ | El modelo de permisos |
 > | ~~`fix/person-identity-sync` (`5fde17c`)~~ | **Sí, `258cd81`** | ~~361~~ | La sincronización con Keycloak |
 > | **`main` (`01c3277`)** | — | **496** | Todo lo anterior, remedido |
+> | **`main` (`55e0a5d`)** | — | **509** | **Corrección del 2026-09-12**: `main` avanzó al mergear `feat/relocation-same-client` (`1ef55cf`) y su pasada de wiki (`55e0a5d`). Las 509 **no se remidieron**: `git diff 43de295 main -- malphasos/` sale vacío, el código es el ya medido el 2026-09-12 |
 >
 > **Remedido, no sumado**, tal como se había anotado: `./mvnw test` el 2026-09-09 sobre `01c3277`, borrando `target/surefire-reports` antes — que `mvn test` **no** limpia—, da **496 ejecuciones**, 41 clases, cero fallos y cero errores. Las cifras viejas eran el atributo `tests=` de los XML; **496 es el número de elementos `<testcase>`, que es el conteo honesto** —el atributo da 494 y los `.txt` 380—. Ver [[stack-spring-boot-4-particularidades]].
 >
-> Fuera de `main` queda hoy **una** rama de código: `feat/relocation-same-client`, el traslado que no cruza de cliente. Esta línea decía «(`3c002b2`), **también 496**, porque no añadió ninguna prueba»: era cierto el 2026-09-09 y **dejó de serlo el 2026-09-10** — corregido el **2026-09-12**. La rama está hoy en `43de295`, con 13 pruebas del `tester` encima y **509** elementos `<testcase>`, 42 clases, cero fallos. Ver [[regla-traslado-mismo-cliente]].
+> ~~Fuera de `main` queda hoy **una** rama de código: `feat/relocation-same-client`, el traslado que no cruza de cliente.~~ **Segunda corrección del 2026-09-12, más tarde el mismo día: esa rama entró en `main` por `1ef55cf`.** La rama de código que queda fuera es otra, `feat/work-order-schema` — ver [[dominio-orden-trabajo]]. Lo que se escribió esa mañana se conserva y hay que leerlo con su fecha: «Esta línea decía “(`3c002b2`), **también 496**, porque no añadió ninguna prueba”: era cierto el 2026-09-09 y dejó de serlo el 2026-09-10. La rama está hoy en `43de295`, con 13 pruebas del `tester` encima y **509** elementos `<testcase>`, 42 clases, cero fallos». Los commits y las cifras siguen siendo correctos; lo único que cambió es dónde viven. Ver [[regla-traslado-mismo-cliente]].
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 
