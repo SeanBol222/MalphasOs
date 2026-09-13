@@ -1,6 +1,6 @@
 ---
 name: dominio-orden-trabajo
-description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatro tandas -esquema, dominio, aplicacion y REST-, con las decisiones que se apartan del original y el estado real de las siete reglas que el esquema dejo al servicio
+description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatro tandas -esquema, dominio, aplicacion y REST- y con sus siete reglas de servicio construidas, incluida la que falto hasta el 2026-09-13
 tags: [dominio, work-order, esquema, mantenimiento, "describe:ambos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/workorder/ y malphasos/src/main/resources/db/migration/V6__work_order.sql
 estado: estable
@@ -9,7 +9,7 @@ updated: 2026-09-13
 
 # Órdenes de trabajo — el módulo completo
 
-**Estado**: las **cuatro tandas** están construidas —esquema, dominio, aplicación y persistencia, REST— en la rama `feat/work-order-rest`, **sin mergear**. El módulo se puede usar de extremo a extremo desde el API.
+**Estado**: las **cuatro tandas** están construidas —esquema, dominio, aplicación y persistencia, REST— en la rama `feat/work-order-rest`, y **las siete reglas del servicio** desde `fix/work-order-headquarter-scope` (`0cf56c5`). Ninguna de las dos está mergeada. El módulo se puede usar de extremo a extremo desde el API.
 
 > **Precisión del 2026-09-13**: el mensaje del commit `ceadba1` dice «ocho operaciones». **Son nueve** —contadas sobre los `@GetMapping`/`@PostMapping`/`@PatchMapping`/`@DeleteMapping` del adaptador—. El error es del mensaje, no del código; queda anotado aquí porque un cuerpo de commit no se puede corregir sin reescribir la historia.
 
@@ -21,6 +21,7 @@ updated: 2026-09-13
 | 2 · Dominio | `647de0b`, `6043091`, `c484522` | El agregado `WorkOrder`, tres enumeraciones, `SelectedEquipment` y siete eventos. **En `main` desde `97ef74f`** |
 | 3 · Aplicación y persistencia | `5c0a5d5`, `dd625a1` | `WorkOrderService` con las reglas cruzadas, siete *commands*, el mapper a mano y el adaptador |
 | 4 · REST | `ceadba1` | Nueve operaciones, catálogo de errores propio, grupo de OpenAPI y la retirada de la centinela |
+| — · La regla que faltaba | `0cf56c5` | El alcance de una orden no sale de su sede. Ver «La regla 1 faltaba» |
 
 ## Por qué este módulo es distinto de los cuatro anteriores
 
@@ -175,7 +176,7 @@ La tanda 1 dejó listadas siete reglas que el esquema no podía defender. Éste 
 
 | # | Regla | Estado | Dónde |
 |---|---|---|---|
-| 1 | El área del equipo pertenece **a la sede de la orden** | ❌ **No construida** | — |
+| 1 | El área del equipo pertenece **a la sede de la orden** | ✅ | `requireEquipmentInScopeOf` |
 | 2 | El equipo **estaba en esa área** al añadirlo | ✅ Hecha **imposible de violar** | El área no viaja en el comando |
 | 3 | El equipo es **del cliente de la orden** | ✅ | `requireEquipmentBelongsTo` |
 | 4 | La persona asignada es **de tipo `ENGINEER`** | ✅ | `requireActiveEngineer` |
@@ -183,7 +184,7 @@ La tanda 1 dejó listadas siete reglas que el esquema no podía defender. Éste 
 | 6 | Las **transiciones de estado** válidas | ✅ | `ExecutionState` + `avanzarA`, en el dominio |
 | 7 | No se modifica una orden ya **`EJECUTADA`** | ✅ | `exigirModificable`, en el dominio |
 
-Seis de siete. La séptima tiene sección propia porque el modo en que falta es instructivo.
+**Siete de siete desde el 2026-09-13** (`0cf56c5`). La regla 1 **faltaba** y se cerró ese mismo día; conserva sección propia más abajo porque el modo en que faltó es más instructivo que la regla.
 
 ### La regla 2 no se comprueba: se hace imposible
 
@@ -197,17 +198,40 @@ public record AddEquipmentToWorkOrderCommand(UUID id, UUID idEquipoCliente) { }
 
 Una regla comprobada puede comprobarse mal. Una regla que no se puede expresar no puede violarse. Cuando exista la opción, **quitar el campo gana a validarlo** — y el sitio donde esto se ve es el `record` del comando y el `record` de la petición REST, que tampoco lo lleva.
 
-### ⚠️ El hueco de la regla 1
+### La regla 1 faltaba, y cómo se encontró
 
-**La regla 1 no está construida, y el dato para construirla ya está en la mano.**
+**Cerrada el 2026-09-13 con `0cf56c5`.** Lo que sigue se conserva porque el hallazgo vale más que el arreglo.
 
-`requireEquipmentBelongsTo` recibe la unidad, pide su área con `serviceAreaServicePort.findById(...)`, comprueba que **el área esté abierta**, y después pregunta por el **cliente dueño** con `findOwningClient`. Lo que **nunca hace** es comparar el `idSede` de esa área —que el agregado `ServiceArea` ya trae— contra el `idSede` de la orden.
+`requireEquipmentBelongsTo` —así se llamaba— recibía la unidad, pedía su área, comprobaba que **el área estuviera abierta**, y después preguntaba por el **cliente dueño** con `findOwningClient`. Lo que **nunca hacía** era comparar el `idSede` de esa área —que el agregado `ServiceArea` ya trae— contra el `idSede` de la orden.
 
-La consecuencia concreta: **una orden del cliente A en la sede Norte admite un equipo del cliente A que está en la sede Sur.** Pasa las tres comprobaciones —activo, área abierta, mismo cliente— y entra. La orden dice que el servicio es en Norte y el equipo está en otro sitio.
+La consecuencia concreta: **una orden del cliente A en la sede Norte admitía un equipo del cliente A que estaba en la sede Sur.** Pasaba las tres comprobaciones —activo, área abierta, mismo cliente— y entraba. La orden decía que el servicio era en Norte y el equipo estaba en otro sitio. **El mismo tipo de mentira histórica** que el módulo entero se diseñó para impedir, un nivel más abajo.
 
-Es **el mismo tipo de mentira histórica** que el módulo entero se diseñó para impedir, un nivel más abajo. Y es barato de cerrar: el `ServiceArea` ya está cargado en esa línea, así que la comprobación no cuesta ni una consulta más.
+El arreglo salió barato como estaba previsto: el `ServiceArea` ya se cargaba en esa línea para mirar si estaba abierto, así que la sede venía en la mano y **la comprobación no cuesta ninguna consulta más**. El método pasa a llamarse `requireEquipmentInScopeOf` y recibe la orden entera, porque ahora mira dos de sus campos.
 
-Cómo apareció: **contrastando esta nota contra el código**, no leyendo el servicio. Es literalmente lo que dice la disciplina del proyecto en `CLAUDE.md` —«los defectos aparecen al comparar»— funcionando sobre el propio wiki. La tabla de arriba existe para que esto no vuelva a pasar inadvertido: **una lista de reglas sin columna de estado es una lista que nadie contrasta**.
+#### El orden de las guardas es una decisión, no un detalle
+
+Al añadir la comprobación de sede apareció que **una de las dos podía quedar muerta**: un equipo de otro cliente está *necesariamente* en otra sede —si el área fuera de la sede de la orden, su cliente sería el de la sede, y la clave foránea compuesta garantiza que ése es el de la orden—, así que las dos negativas serían ciertas a la vez.
+
+Se comprueba **el dueño antes que la sede**, y con ese orden las dos siguen siendo alcanzables:
+
+| Caso | Qué responde |
+|---|---|
+| Equipo de otro cliente | «es del cliente X y la orden es del cliente Y» |
+| Equipo del mismo cliente, otra sede | «está en la sede X y el mantenimiento se presta en la sede Y» |
+
+Al revés, el primer caso daría el mensaje de sede —cierto pero menos informativo— y la comprobación de cliente no se alcanzaría nunca. Lo fija la prueba `elClienteSeCompruebaAntesQueLaSede`, con un `withMessageNotContaining`.
+
+**La regla general que deja esto**: cuando una guarda nueva subsume a una vieja, la pregunta no es cuál borrar sino **en qué orden dejarlas para que cada una siga contestando su caso**. Borrar la subsumida pierde el mensaje bueno; dejarla detrás la mata en silencio.
+
+#### Cómo apareció, que es lo reutilizable
+
+**Contrastando esta nota contra el código**, no leyendo el servicio. Es literalmente lo que dice la disciplina del proyecto en `CLAUDE.md` —«los defectos aparecen al comparar»— funcionando sobre el propio wiki.
+
+Lo que lo permitió: la lista de siete reglas se escribió en la tanda 1 **sin columna de estado**. Una lista así **se lee como inventario y no como pendiente**, y nadie la volvió a mirar entre que se escribió y que se dio el módulo por cerrado. La tabla de arriba, con su columna «Estado» y su columna «Dónde», existe para eso.
+
+#### Y una prueba que fija un estado imposible
+
+De paso apareció que `equipoDeOtroCliente` —anterior a este arreglo— monta un mundo que no puede existir: un área **en la sede de la orden** pero **de otro cliente**. Sigue en verde porque la guarda de cliente salta primero, pero lo que pincha no es alcanzable por el API. No se tocó; queda anotado.
 
 ### El ingeniero puede tener dos tipos
 
@@ -270,6 +294,7 @@ Todas las cifras son el **número de elementos `<testcase>` de los XML de Surefi
 | `main` `97ef74f` (tanda 2) | **580** | 44 | `WorkOrderTest`: **39** |
 | `dd625a1` (tanda 3) | 597 ᵈ | 45 | `WorkOrderServiceTest`: **17** ᵈ |
 | `ceadba1` (tanda 4) | **612** | 46 | `WorkOrderRestAdapterTest`: **14**, más el neto +1 del centinela sustituido por dos |
+| `0cf56c5` (la regla 1) | **614** | 46 | Las dos pruebas de la regla que faltaba |
 
 Para `main` y `ceadba1`, las otras dos fuentes de conteo: el atributo `tests=` da **578** y **609**, y los `.txt` **418** y **433**. Los `.txt` **no se movieron entre `24e7640` y `main`** —418 y 418— pese a las 39 pruebas de `WorkOrderTest`, porque esa clase tiene 13 clases `@Nested` y ninguna prueba suelta: esa fuente las ignora por completo. Y el desajuste con el atributo pasa de 2 a 3 porque **`ordenInexistente` aparece en dos `@Nested` de `WorkOrderServiceTest`**, el segundo caso del proyecto tras `CatalogAggregatesTest`. Ver [[stack-spring-boot-4-particularidades]].
 
@@ -291,6 +316,8 @@ El verde no prueba que una regla se ejerza. Antes de cerrar la tanda 4 se rompi�
 |---|---|
 | `pathsToMatch` → `/workorders/**` | `recursoDocumentado` falla |
 | `if (filtros > 1)` → `> 99` | `filtrosExcluyentes` falla |
+| Anular la comprobación de sede | `equipoDeOtraSedeDelMismoCliente` falla, **y solo ésa** |
+| Intercambiar las guardas de cliente y sede | `elClienteSeCompruebaAntesQueLaSede` falla, y Mockito estricto marca además `findOwningClient` como estubado que sobra |
 
 Producción restaurada en ambos casos. La primera importa especialmente porque el fallo que imita —un grupo de OpenAPI que no casa con ninguna ruta— **no da ningún error**: deja el recurso fuera de Swagger en silencio, y pasó cuatro veces en este proyecto antes de que hubiera pruebas. Ver [[openapi-swagger]].
 
@@ -308,9 +335,10 @@ Eso deja **sin ejercer la pieza con más lógica del módulo fuera del dominio**
 
 ## Lo que falta
 
-1. **La regla 1**, arriba. Es lo primero y es pequeño.
-2. **Pruebas de persistencia**, contra PostgreSQL real vía Testcontainers, para la conciliación del alcance.
-3. **El consumidor de los eventos**: el reporte de servicio, que es el módulo siguiente en [[hoja-de-ruta-producto]].
+1. **Pruebas de persistencia**, contra PostgreSQL real vía Testcontainers, para la conciliación del alcance. Es lo único que queda sin cubrir del módulo.
+2. **El consumidor de los eventos**: el reporte de servicio, que es el módulo siguiente en [[hoja-de-ruta-producto]].
+
+~~La regla 1~~ — **cerrada el 2026-09-13**, ver arriba.
 
 ## Notas relacionadas
 

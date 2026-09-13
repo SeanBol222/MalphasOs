@@ -530,3 +530,25 @@ Nota nueva: [[regla-traslado-mismo-cliente]]. Actualizadas [[decisiones-tecnicas
 **Tocadas**: [[dominio-orden-trabajo]] (reescrita), [[deuda-tecnica-y-riesgos]], [[modelo-de-permisos]], [[hoja-de-ruta-producto]], [[openapi-swagger]], [[decisiones-tecnicas-malphasos]], [[stack-spring-boot-4-particularidades]], [[regla-traslado-mismo-cliente]], [[checklist-reutilizacion]], `index.md` y el `CLAUDE.md` de la raíz.
 
 **Comprobado al empezar, siguiendo la lección de la pasada anterior**: `git branch --contains` y `git log main..HEAD` antes de escribir nada sobre ramas. Sirvió — el `CLAUDE.md` de la raíz situaba `main` en `55e0a5d` con una sola rama fuera, y **estaba en `97ef74f`** con el dominio ya dentro.
+
+## [2026-09-13] ingest | La regla que faltaba, cerrada el mismo día que se encontró
+
+**Cierre de lo que abrió la entrada anterior.** La regla 1 de las siete —que el área del equipo sea de la sede de la orden— estaba sin construir, y se cerró con `0cf56c5` en `fix/work-order-headquarter-scope`. Van **siete de siete**, y trece de trece contando todo el proyecto.
+
+**El arreglo fue tan barato como se había previsto**: el `ServiceArea` ya se cargaba en esa misma línea para comprobar que el área estuviera abierta, así que la sede venía en la mano y la comprobación **no cuesta ninguna consulta más**. `requireEquipmentBelongsTo` pasa a `requireEquipmentInScopeOf` y recibe la orden entera, porque ahora mira dos de sus campos.
+
+**Lo que no estaba previsto, y es lo que vale de esta tanda: la guarda nueva subsumía a la vieja.** Un equipo de otro cliente está **necesariamente** en otra sede —si el área fuera de la sede de la orden, su cliente sería el de la sede, y la clave foránea compuesta garantiza que ése es el de la orden—, así que las dos negativas son ciertas a la vez y **una de las dos comprobaciones iba a quedar muerta**.
+
+La salida no fue borrar ninguna sino **ordenarlas**: el dueño se comprueba delante, porque «es del cliente X y la orden es del cliente Y» es más informativo que «está en la sede X», y con ese orden las dos siguen alcanzables y cada una contesta su caso. Lo fija `elClienteSeCompruebaAntesQueLaSede` con un `withMessageNotContaining`.
+
+**La regla general que deja**: cuando una guarda nueva subsume a una vieja, la pregunta no es cuál borrar sino **en qué orden dejarlas**. Borrar la subsumida pierde el mensaje bueno; ponerla delante la mata en silencio. Registrada en [[decisiones-tecnicas-malphasos]].
+
+**Verificado por mutación, dos veces.** Anular la comprobación de sede deja **una sola** prueba en rojo, `equipoDeOtraSedeDelMismoCliente`. Intercambiar las dos guardas pone en rojo `elClienteSeCompruebaAntesQueLaSede` y además hace que Mockito estricto marque `findOwningClient` como estubado que sobra — dos señales independientes del mismo cambio. Producción restaurada en ambos casos.
+
+**Y una prueba que fija un estado imposible**, encontrada de paso: `equipoDeOtroCliente` monta un área **en la sede de la orden** pero **de otro cliente**, que no puede existir. Sigue en verde porque la guarda de cliente salta primero, pero lo que pincha no es alcanzable por el API. No se tocó; queda anotado en [[dominio-orden-trabajo]].
+
+**Conteo**: **614** elementos `<testcase>`, 46 clases, cero fallos, medido borrando `target/surefire-reports` antes. Las otras dos fuentes **no se midieron** en este punto y se dejan con guiones en [[stack-spring-boot-4-particularidades]] en vez de deducirlas: restar de memoria es cómo se inventan cifras.
+
+**Deuda: el total se queda en 25 filas y las abiertas bajan de 18 a 17.** La fila de la regla se tacha el mismo día que se abrió, pero no desaparece: el porqué de un defecto sigue valiendo después de arreglarlo, y por eso esa lista cuenta **lo registrado y no lo pendiente** — algo que este log había dado por equivalente. La que queda viva de esta tanda es **la persistencia de `work-order` sin pruebas**, ahora lo único del módulo sin cubrir.
+
+**Tocadas**: [[dominio-orden-trabajo]], [[deuda-tecnica-y-riesgos]], [[regla-traslado-mismo-cliente]], [[decisiones-tecnicas-malphasos]], [[stack-spring-boot-4-particularidades]] y el `CLAUDE.md` de la raíz.

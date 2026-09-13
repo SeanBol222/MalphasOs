@@ -272,7 +272,11 @@ Las tres tandas restantes. Detalle en [[dominio-orden-trabajo]].
 | Filtros del listado | **Mutuamente excluyentes**, 400 si llegan dos | Combinarlos exigiría un puerto por combinación. La respuesta a «¿y si quiero dos?» es una consulta nueva y explícita |
 | Operación de cambio general sobre la orden | **No existe** | Una orden no se edita: se le añaden o quitan equipos, se le asigna un ingeniero y avanza de estado. Un `PATCH` sobre la orden entera confundiría cuatro hechos distintos en uno |
 
-**El coste que quedó sin pagar, y conviene que se vea aquí.** De las siete reglas que la tanda 1 dejó al servicio, **seis se construyeron y una no**: el área del equipo no se comprueba contra la sede de la orden. Apareció el 2026-09-13 **contrastando [[dominio-orden-trabajo]] contra el servicio**, no leyendo el servicio. La lista de siete se había escrito sin columna de estado, y una lista así es una lista que nadie contrasta. Ver la fila en [[deuda-tecnica-y-riesgos]].
+**El coste que quedó sin pagar, y se pagó el mismo día.** De las siete reglas que la tanda 1 dejó al servicio, **seis se construyeron y una no**: el área del equipo no se comprobaba contra la sede de la orden. Apareció el 2026-09-13 **contrastando [[dominio-orden-trabajo]] contra el servicio**, no leyendo el servicio — la lista de siete se había escrito sin columna de estado, y una lista así es una lista que nadie contrasta. **Cerrada con `0cf56c5`**, y con una decisión que merece quedar:
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Qué hacer cuando una guarda nueva **subsume** a una vieja | **Ordenarlas, no borrar la subsumida** | Un equipo de otro cliente está por fuerza en otra sede, así que la comprobación de sede taparía a la de cliente. Borrar la vieja pierde el mensaje más informativo; dejarla detrás la mata en silencio. Se deja el dueño **delante** y una prueba fija ese orden con `withMessageNotContaining`, de modo que **las dos siguen siendo alcanzables** |
 
 ## Pendientes de decidir
 

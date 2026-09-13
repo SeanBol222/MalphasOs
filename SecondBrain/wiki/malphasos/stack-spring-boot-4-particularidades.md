@@ -116,12 +116,14 @@ Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la ú
 
 **Ampliación del 2026-09-13, el módulo de órdenes de trabajo completo.** Dos columnas más, medidas igual:
 
-| Fuente | `main` (`97ef74f`) | `feat/work-order-rest` (`ceadba1`) |
-|---|---|---|
-| elementos `<testcase>` — **el conteo honesto** | **580** | **612** |
-| atributo `tests=` de los `<testsuite>` | 578 | **609** |
-| `target/surefire-reports/*.txt` | **418** | 433 |
-| clases · fallos · errores · omitidas | 44 · 0 · 0 · 0 | 46 · 0 · 0 · 0 |
+| Fuente | `main` (`97ef74f`) | `feat/work-order-rest` (`ceadba1`) | `fix/…-headquarter-scope` (`0cf56c5`) |
+|---|---|---|---|
+| elementos `<testcase>` — **el conteo honesto** | **580** | **612** | **614** |
+| atributo `tests=` de los `<testsuite>` | 578 | **609** | — |
+| `target/surefire-reports/*.txt` | **418** | 433 | — |
+| clases · fallos · errores · omitidas | 44 · 0 · 0 · 0 | 46 · 0 · 0 · 0 | 46 · 0 · 0 · 0 |
+
+La tercera columna lleva guiones donde no se midió: son dos pruebas más dentro de una clase `@Nested` ya existente, y **afirmar 611 y 435 sin haberlos contado sería inventarlos**. El `<testcase>` sí está medido.
 
 **Dos cosas de esta tabla valen más que las cifras.**
 
