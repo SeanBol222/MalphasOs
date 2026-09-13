@@ -3,7 +3,7 @@ name: openapi-swagger
 description: Configuración de OpenAPI con un GroupedOpenApi por dominio, separando Swagger UI en pestañas por módulo
 tags: [arquitectura, backend, documentacion, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../bootstrap/config/open_api/OpenApiConfig.java
-updated: 2026-09-02
+updated: 2026-09-13
 ---
 
 # OpenAPI / Swagger
@@ -32,6 +32,18 @@ En MalphasOS ocurrió cuatro veces, porque `OpenApiConfig` se escribió al porta
 **Las cuatro quedaron corregidas el 2026-09-02**, cada módulo con una prueba que consulta su propio documento generado y exige que aparezcan todos sus recursos. La de `managers` apareció justamente al buscar más instancias de las tres primeras, que es la única forma en que este fallo se encuentra: nunca se manifiesta solo.
 
 **La lección de método**: escribir el grupo *antes* que el controlador invierte el orden de la verificación. Si el grupo se declara primero, la única forma de saber que casa es una prueba que consulte el documento generado; leer las dos listas en paralelo es exactamente lo que falló cuatro veces.
+
+> **Precisión del 2026-09-02, ampliada el 2026-09-13**: aquí se leyó que «las cuatro quedaron corregidas» como si el problema estuviera cerrado. **No lo estaba**: `location` y `reports` siguen sin prueba de cobertura, y `reports` apunta a un módulo que no existe, así que su grupo está vacío. Es el mismo fallo silencioso vivo dentro del propio proyecto. Ver [[deuda-tecnica-y-riesgos]].
+
+## El grupo de `work-order`, y la mutación que lo comprobó (2026-09-13)
+
+`work-order` es el **tercer** grupo con prueba de cobertura, tras `client` y `equipment`. Entró con la tanda REST del módulo, y esta vez la prueba se escribió **a la vez** que el grupo en lugar de después.
+
+Lo que merece quedar no es la prueba sino cómo se comprobó que sirve: se rompió el patrón a propósito, de `/v1/api/work-orders/**` a `/v1/api/workorders/**`, y `recursoDocumentado` **falló**. Después se restauró.
+
+Eso importa más aquí que en otras pruebas porque **este fallo no produce ninguna señal**. Una prueba de cobertura que estuviera mal escrita —que buscara una cadena que siempre aparece, por ejemplo— pasaría siempre, y el proyecto volvería a estar exactamente donde estaba antes de tener pruebas, pero creyendo lo contrario. Una prueba contra un fallo silencioso hay que **verla fallar una vez**.
+
+**Un detalle de Ant que conviene saber**: `/v1/api/work-orders/**` casa también con `/v1/api/work-orders` a secas, sin segmento siguiente. El endpoint de la colección entra en el grupo sin necesidad de un segundo patrón.
 
 ## Notas relacionadas
 

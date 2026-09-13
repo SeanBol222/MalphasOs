@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-09-12
+updated: 2026-09-13
 ---
 
 # Hoja de ruta del producto
@@ -17,11 +17,31 @@ updated: 2026-09-12
 
 | | Total | Implementado | Fuente |
 |---|---|---|---|
-| Requisitos funcionales | 31 | **8** | ERS 3.2, verificada dos veces contra el código |
+| Requisitos funcionales | 31 | **11** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
 | Frontend | — | **Nada.** No existe el directorio | Comprobado sobre el árbol del repositorio |
 
-Los 8 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar) y **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios). Todo lo demás está `[PREVISTO]`.
+Los 11 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios) y **RF-01, RF-02 y RF-05** de órdenes de trabajo. Todo lo demás está `[PREVISTO]`.
+
+> **Actualizado el 2026-09-13**: el marcador estaba en **8** y pasa a **11** con el módulo de órdenes de trabajo, completo en sus cuatro tandas. **No son siete de golpe, y el porqué importa** — ver el desglose justo debajo.
+
+### Por qué el módulo completo no cierra sus siete requisitos
+
+El backend de órdenes de trabajo está terminado, y aun así **solo tres de los siete RF cuentan como implementados**. La razón es que **cuatro de ellos describen un formulario**, no una capacidad del sistema, y no hay frontend.
+
+| RF | Qué pide | Estado | Por qué |
+|---|---|---|---|
+| RF-01 | Crear orden directa, sin solicitud previa | ✅ | `POST /v1/api/work-orders` |
+| RF-02 | Eliminar la dependencia de solicitud | ✅ | Satisfecho **por construcción**: la palabra «solicitud» no existe en el esquema ni en el código, no había nada que retirar |
+| RF-03 | Formulario con cliente, sede, áreas, tipo y periodicidad | ⏳ | Los cinco datos existen en el backend; **el formulario no** |
+| RF-04 | Selección múltiple de **áreas** de la sede | ⏳ | Es un paso de interfaz, y además **las áreas elegidas no se persisten a propósito**: quedan implícitas en los equipos. Ver [[dominio-orden-trabajo]] |
+| RF-05 | Identificador único (UUID) de la orden | ✅ | `k_id_orden_trabajo uuid` |
+| RF-06 | Visualización de equipos por área seleccionada | ⏳ | La consulta ya existía antes del módulo; falta la interfaz que agrupe |
+| RF-07 | Selección múltiple de equipos | ⏳ | El API añade **de uno en uno**, `POST /{id}/equipments`. La selección múltiple es del formulario |
+
+**El criterio que se ha aplicado, para que se pueda discutir**: cuenta como implementado el requisito que el backend satisface por completo. El que describe una pantalla se queda abierto aunque el dato que necesita ya exista, porque darlo por hecho inflaría el marcador y haría que el trabajo de frontend desapareciera de la cuenta sin haberse hecho.
+
+Es el mismo criterio que ya deja **RF-22 y RF-24 como implementados y RF-26 no**, y conviene aplicarlo igual cuando lleguen los reportes.
 
 Del backend queda además, fuera de la numeración de la ERS, **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos.
 
@@ -30,7 +50,8 @@ Detalle por categoría en `Documentation/wiki/requisitos/estado-de-implementacio
 ## Decisiones ya tomadas por el usuario
 
 - **La tanda de seguridad está hecha** (`fix/person-identity-sync`, **en `main` desde `258cd81`**; esta nota la daba por sin mergear, **corregido el 2026-09-09**): dar de baja a una persona ya deshabilita su cuenta de Keycloak. Ver [[sincronizacion-con-proveedor-de-identidad]].
-- **El siguiente bloque es órdenes de trabajo.**
+- **El siguiente bloque era órdenes de trabajo**, y **está construido**: las cuatro tandas, del esquema al REST, entre el 2026-09-12 y el 2026-09-13. Ver [[dominio-orden-trabajo]].
+- **Lo siguiente, por dependencias, son los reportes de servicio.** Es lo que cuelga directamente de la orden, y el módulo ya emite los siete eventos que un reporte querría escuchar — sin consumidor todavía.
 
 Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué arrastra cada pieza.
 
@@ -43,7 +64,7 @@ Hay que distinguir **dos grafos que no coinciden**, y confundirlos es el error f
 
 Donde discrepan, manda el segundo — pero el primero explica por qué alguien esperaría otra cosa.
 
-### Órdenes de trabajo: no depende de nada que no esté construido
+### Órdenes de trabajo: no dependía de nada que no estuviera construido — y ya está hecho
 
 RF-01 a RF-07. **Todo lo que necesita existe**: `cliente`, `sede`, `area_servicio` y `equipo_cliente` son tablas reales, y las dos consultas que el dominio pide ya están publicadas —`GET /v1/api/headquarters/{idSede}/service-areas` y `GET /v1/api/service-areas/{idAreaServicio}/equipments`—. Sus dependencias declaradas hacia fuera de la categoría son RF-08, RF-49 y RF-50: **las tres implementadas**.
 
@@ -52,6 +73,8 @@ Lo que sí hay que crear con ella: **tipo de servicio y periodicidad no tienen c
 > **Corregido el 2026-09-12**: la frase anterior era cierta hasta esa fecha y **dejó de serlo** con `V6__work_order.sql`, en la rama `feat/work-order-schema`. Las dos columnas existen ya, con `CHECK` propio: `n_periodicidad` y `t_tipo_servicio`. Y **el vocabulario no era tan nuevo como esta nota suponía**: las periodicidades y los estados estaban escritos en un `CHECK` del esquema heredado; solo los tipos de servicio salieron de la ERS. Ver [[dominio-orden-trabajo]].
 
 ⚠️ **El grafo declarado contiene un ciclo, y está dentro de esta categoría.** RF-05 depende de RF-07; RF-07 de RF-06; RF-06 de RF-05 —y además de RF-09, que es de reportes y a su vez depende de RF-05 y RF-07—. Leído al pie de la letra, ninguno de los cuatro puede empezar. **Es un defecto de la ERS, no un bloqueo real**: identificar la orden, elegir sus áreas y elegir sus equipos son partes de un mismo agregado y se construyen juntas. Se anota aquí porque quien planifique leyendo solo el documento se detendrá en seco.
+
+> **Confirmado el 2026-09-13**: el módulo se construyó **ignorando ese ciclo** y no hubo ningún bloqueo. Identificar la orden, elegir sus áreas y elegir sus equipos salieron juntas como partes del mismo agregado, exactamente como esta nota predijo. Es la prueba de que el grafo declarado y el real no coinciden, y de cuál de los dos manda.
 
 ### De órdenes de trabajo cuelga casi todo lo demás
 

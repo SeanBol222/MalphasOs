@@ -44,7 +44,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[dominio-equipo-mantenimiento]] ⭐ — El núcleo del negocio. Catálogo e inventario construidos; **faltan verificaciones técnicas y datos metrológicos**.
 - [[regla-traslado-mismo-cliente]] — Una unidad solo se traslada a áreas de su propio cliente. Construida el 2026-09-09 y **verificada el 2026-09-10** con 13 pruebas; esta línea la marcaba con ⚠️ como «sin verificar» hasta el **2026-09-12**. Leer antes de tocar `ClientEquipmentService`: recoge además por qué una prueba pasaba en vacío sin que Mockito estricto lo delatara.
 - [[relacion-manager-persona]] — Un encargado ES una persona por clave primaria compartida.
-- [[dominio-orden-trabajo]] — **El quinto módulo, empezado el 2026-09-12 y a un cuarto**: solo el esquema `V6`, en rama sin mergear. El núcleo del negocio de mantenimiento, del que cuelgan reportes, firma e historial. Trae la lista de las **siete reglas que el esquema deja al servicio** y la trampa que espera a la tanda REST.
+- [[dominio-orden-trabajo]] — **El quinto módulo, completo en sus cuatro tandas** entre el 2026-09-12 y el 2026-09-13; el REST, en rama sin mergear. El núcleo del negocio de mantenimiento, del que cuelgan reportes, firma e historial. Trae el estado **verificado** de las siete reglas que el esquema dejó al servicio —**seis hechas y una no**— y el porqué de que un módulo terminado cierre solo tres de sus siete requisitos.
 
 ### Datos y esquema
 
@@ -105,4 +105,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**49 notas** · reorganizado el 2026-09-09 · última corrección el 2026-09-12 · ver [[log.md]] para el historial.
+**49 notas** · reorganizado el 2026-09-09 · última corrección el 2026-09-13 · ver [[log.md]] para el historial.

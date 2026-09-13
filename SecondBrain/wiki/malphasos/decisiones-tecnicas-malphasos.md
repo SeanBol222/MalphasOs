@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-09-12
+updated: 2026-09-13
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -253,6 +253,30 @@ Primera de cuatro tandas. Detalle completo en [[dominio-orden-trabajo]]; aquí s
 | Las siete reglas que el esquema no puede expresar | **Al servicio, en la tanda 3** | Cada una cruza tablas que no guardan juntos los datos a comparar, o depende del estado y no de la existencia. Están listadas en [[dominio-orden-trabajo]] y anotadas en [[deuda-tecnica-y-riesgos]] para que la migración en verde no se lea como un esquema que las defiende |
 
 **Y una decisión de método, que es lo más reutilizable de la tanda.** Los valores de las tres enumeraciones se le **preguntaron al usuario tres veces** antes de que apareciera que dos de las tres estaban escritas en un `CHECK` del esquema heredado que nadie había abierto. El original no servía de plantilla para casi nada de este módulo —no tiene cliente, ni sede, ni tipo de servicio, ni vínculo con los equipos, y ninguna restricción lo referencia— y **precisamente por eso nadie fue a mirarlo**. La regla: antes de pedir una decisión de vocabulario del dominio, agotar el original; un esquema puede ser inútil como diseño y seguir siendo la única fuente escrita del diccionario.
+
+## Módulo de órdenes de trabajo, dominio, aplicación y REST (2026-09-12 / 13)
+
+Las tres tandas restantes. Detalle en [[dominio-orden-trabajo]].
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Los equipos de la orden | **Parte del agregado**, no un agregado aparte | Un equipo seleccionado no tiene sentido fuera de su orden y su ciclo de vida es el de ella. Por eso viven dentro y no se referencian por identificador como el cliente o la sede |
+| Identidad de `SelectedEquipment` | **El equipo solo, no el par equipo+área** | Añadir un equipo que ya está no hace nada **ni siquiera con otra área**: dentro de una orden, el mismo equipo dos veces con dos áreas no es dos cosas, es un intento de reescribir un área congelada. Corregirla exige retirarlo y volver a añadirlo, que es exactamente lo que significa |
+| Dónde viven las transiciones de estado | **En `ExecutionState`** (`siguiente`, `avanzaA`, `esFinal`), no en el `CHECK` | Una restricción de columna mira la fila que se escribe, no la que había antes: puede fijar **qué valores existen** y no **cómo se pasa de uno a otro** |
+| Qué exige `start()` | **Ingeniero asignado y al menos un equipo** | Sin lo primero no hay quien lo haga, sin lo segundo no hay sobre qué. Se comprueba al empezar y no al crear, porque el formulario de la ERS elige los equipos en un paso posterior |
+| Modificar el alcance con la orden **en ejecución** | **Permitido** | En campo aparece un equipo no previsto, o uno de los elegidos resulta inaccesible. Lo que no se admite es cambiar una orden **ejecutada**: su registro dejaría de describir lo que se hizo |
+| Cancelar una orden ya `EJECUTADA` | **Permitido** | Cancelar no es lo contrario de ejecutar: retirar del listado un registro histórico no reescribe lo que ocurrió |
+| Cómo se garantiza que el área congelada es la real | **Quitando el campo del comando y de la petición REST** | `AddEquipmentToWorkOrderCommand` no tiene dónde poner el área: la averigua el servicio. **Una regla que no se puede expresar no puede violarse**, y eso gana a comprobarla. Es la decisión más importante del módulo |
+| Persistencia del alcance | **Conciliar contra la fila existente**, no reconstruirla | El adaptador lee la entidad antes de guardar. El equipo retirado **queda inactivo, no se borra** —la llave compuesta impide reinsertarlo y el historial dejaría de ser cierto—; el que vuelve reactiva su fila con el área **nueva** |
+| Estado que devuelve un choque de momento | **409**, separado del 400 de datos inválidos | Los datos son válidos y no falta ninguno: lo que choca es el momento. Compartir código impediría distinguir «lo has escrito mal» de «ahora no se puede». Es el primer módulo del proyecto con un estado que puede chocar |
+| Filtros del listado | **Mutuamente excluyentes**, 400 si llegan dos | Combinarlos exigiría un puerto por combinación. La respuesta a «¿y si quiero dos?» es una consulta nueva y explícita |
+| Operación de cambio general sobre la orden | **No existe** | Una orden no se edita: se le añaden o quitan equipos, se le asigna un ingeniero y avanza de estado. Un `PATCH` sobre la orden entera confundiría cuatro hechos distintos en uno |
+
+**El coste que quedó sin pagar, y se pagó el mismo día.** De las siete reglas que la tanda 1 dejó al servicio, **seis se construyeron y una no**: el área del equipo no se comprobaba contra la sede de la orden. Apareció el 2026-09-13 **contrastando [[dominio-orden-trabajo]] contra el servicio**, no leyendo el servicio — la lista de siete se había escrito sin columna de estado, y una lista así es una lista que nadie contrasta. **Cerrada con `0cf56c5`**, y con una decisión que merece quedar:
+
+| Decisión | Elegido | Por qué |
+|---|---|---|
+| Qué hacer cuando una guarda nueva **subsume** a una vieja | **Ordenarlas, no borrar la subsumida** | Un equipo de otro cliente está por fuerza en otra sede, así que la comprobación de sede taparía a la de cliente. Borrar la vieja pierde el mensaje más informativo; dejarla detrás la mata en silencio. Se deja el dueño **delante** y una prueba fija ese orden con `withMessageNotContaining`, de modo que **las dos siguen siendo alcanzables** |
 
 ## Pendientes de decidir
 

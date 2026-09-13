@@ -2,7 +2,7 @@
 name: checklist-reutilizacion
 description: Orden priorizado sugerido de qué portar primero al construir MalphasOS, basado en el análisis de todo el wiki
 tags: [malphasos, checklist, planificacion, "describe:ambos"]
-updated: 2026-09-12
+updated: 2026-09-13
 ---
 
 # Checklist priorizado de reutilización
@@ -23,7 +23,7 @@ Orden sugerido para la construcción de MalphasOS. **La construcción ya arranc�
 >
 > **Remedido, no sumado**, tal como se había anotado: `./mvnw test` el 2026-09-09 sobre `01c3277`, borrando `target/surefire-reports` antes — que `mvn test` **no** limpia—, da **496 ejecuciones**, 41 clases, cero fallos y cero errores. Las cifras viejas eran el atributo `tests=` de los XML; **496 es el número de elementos `<testcase>`, que es el conteo honesto** —el atributo da 494 y los `.txt` 380—. Ver [[stack-spring-boot-4-particularidades]].
 >
-> ~~Fuera de `main` queda hoy **una** rama de código: `feat/relocation-same-client`, el traslado que no cruza de cliente.~~ **Segunda corrección del 2026-09-12, más tarde el mismo día: esa rama entró en `main` por `1ef55cf`.** La rama de código que queda fuera es otra, `feat/work-order-schema` — ver [[dominio-orden-trabajo]]. Lo que se escribió esa mañana se conserva y hay que leerlo con su fecha: «Esta línea decía “(`3c002b2`), **también 496**, porque no añadió ninguna prueba”: era cierto el 2026-09-09 y dejó de serlo el 2026-09-10. La rama está hoy en `43de295`, con 13 pruebas del `tester` encima y **509** elementos `<testcase>`, 42 clases, cero fallos». Los commits y las cifras siguen siendo correctos; lo único que cambió es dónde viven. Ver [[regla-traslado-mismo-cliente]].
+> ~~Fuera de `main` queda hoy **una** rama de código: `feat/relocation-same-client`, el traslado que no cruza de cliente.~~ **Segunda corrección del 2026-09-12, más tarde el mismo día: esa rama entró en `main` por `1ef55cf`.** La rama de código que queda fuera es otra, `feat/work-order-schema` — ver [[dominio-orden-trabajo]]. **Tercera corrección, del 2026-09-13: también ésa entró en `main`** (`49b6453`), y con ella el dominio del módulo (`97ef74f`). La rama de código fuera es ahora `feat/work-order-rest`, con las tandas 3 y 4. **Tres correcciones seguidas a la misma línea en dos días** dicen algo que conviene leer: el estado de las ramas es lo que más rápido caduca de todo lo que este wiki escribe, y ninguna nota avisa cuando lo hace. Comprobarlo con `git log main..HEAD` al empezar cada pasada es más barato que corregirlo después. Lo que se escribió esa mañana se conserva y hay que leerlo con su fecha: «Esta línea decía “(`3c002b2`), **también 496**, porque no añadió ninguna prueba”: era cierto el 2026-09-09 y dejó de serlo el 2026-09-10. La rama está hoy en `43de295`, con 13 pruebas del `tester` encima y **509** elementos `<testcase>`, 42 clases, cero fallos». Los commits y las cifras siguen siendo correctos; lo único que cambió es dónde viven. Ver [[regla-traslado-mismo-cliente]].
 
 ## 1. Infraestructura base primero (sin esto no hay nada que construir encima)
 

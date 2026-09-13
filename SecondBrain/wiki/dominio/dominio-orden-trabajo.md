@@ -1,17 +1,27 @@
 ---
 name: dominio-orden-trabajo
-description: El modulo de ordenes de trabajo de MalphasOS, primera de cuatro tandas -el esquema V6-, con las decisiones que se apartan del original y las siete reglas que el esquema deja al servicio
+description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatro tandas -esquema, dominio, aplicacion y REST- y con sus siete reglas de servicio construidas, incluida la que falto hasta el 2026-09-13
 tags: [dominio, work-order, esquema, mantenimiento, "describe:ambos"]
-source: malphasos/src/main/resources/db/migration/V6__work_order.sql
-estado: incompleto
-updated: 2026-09-12
+source: malphasos/src/main/java/com/malphasos/malphasos/workorder/ y malphasos/src/main/resources/db/migration/V6__work_order.sql
+estado: estable
+updated: 2026-09-13
 ---
 
-# Órdenes de trabajo — el esquema (tanda 1 de 4)
+# Órdenes de trabajo — el módulo completo
 
-**Estado**: existe el esquema y nada más. No hay agregados, ni servicios, ni controladores. Los **siete requisitos** de la categoría (RF-01 a RF-07) siguen contando como **no implementados**, y el marcador del producto sigue en **8 de 31** — ver [[hoja-de-ruta-producto]].
+**Estado**: las **cuatro tandas** están construidas —esquema, dominio, aplicación y persistencia, REST— en la rama `feat/work-order-rest`, y **las siete reglas del servicio** desde `fix/work-order-headquarter-scope` (`0cf56c5`). Ninguna de las dos está mergeada. El módulo se puede usar de extremo a extremo desde el API.
 
-Construido el **2026-09-12** en la rama `feat/work-order-schema`, **sin mergear**: `378cab2` (migración `V6__work_order.sql`, 132 líneas) y `24e7640` (`WorkOrderSchemaTest`, 571 líneas).
+> **Precisión del 2026-09-13**: el mensaje del commit `ceadba1` dice «ocho operaciones». **Son nueve** —contadas sobre los `@GetMapping`/`@PostMapping`/`@PatchMapping`/`@DeleteMapping` del adaptador—. El error es del mensaje, no del código; queda anotado aquí porque un cuerpo de commit no se puede corregir sin reescribir la historia.
+
+> **Corregido el 2026-09-13**: esta nota decía «existe el esquema y nada más» y describía solo la tanda 1. Era cierto el 2026-09-12 y dejó de serlo el mismo día con `647de0b`. La nota se quedó atrás **tres tandas**: el dominio se mergeó a `main` sin pasada de wiki, y la aplicación y el REST se escribieron después. Lo que sigue cubre las cuatro.
+
+| Tanda | Commits | Qué trae |
+|---|---|---|
+| 1 · Esquema | `378cab2`, `24e7640` | `V6__work_order.sql`, 132 líneas, y `WorkOrderSchemaTest` |
+| 2 · Dominio | `647de0b`, `6043091`, `c484522` | El agregado `WorkOrder`, tres enumeraciones, `SelectedEquipment` y siete eventos. **En `main` desde `97ef74f`** |
+| 3 · Aplicación y persistencia | `5c0a5d5`, `dd625a1` | `WorkOrderService` con las reglas cruzadas, siete *commands*, el mapper a mano y el adaptador |
+| 4 · REST | `ceadba1` | Nueve operaciones, catálogo de errores propio, grupo de OpenAPI y la retirada de la centinela |
+| — · La regla que faltaba | `0cf56c5` | El alcance de una orden no sale de su sede. Ver «La regla 1 faltaba» |
 
 ## Por qué este módulo es distinto de los cuatro anteriores
 
@@ -19,7 +29,7 @@ Los cuatro módulos que hay en `main` —`person`, `location`, `client`, `equipm
 
 Es además el núcleo del negocio: de las órdenes de trabajo cuelgan los reportes de servicio, la firma digital y el historial de intervenciones de las hojas de vida. El grafo está en [[hoja-de-ruta-producto]].
 
-Las cuatro tandas, en el mismo orden que llevaron los otros módulos: **esquema** → dominio → aplicación y persistencia → REST.
+Y es **el módulo con más vecinos del proyecto**: pregunta a `client` por el cliente, la sede y el área, a `equipment` por cada unidad, y a `person` por el ingeniero. **Nadie le pregunta a él**, así que sigue sin haber ciclos entre módulos.
 
 ## Lo que el original tenía, y por qué no sirve de plantilla
 
@@ -54,7 +64,7 @@ Los dos se podrían deducir recorriendo los equipos de la orden. Se guardan igua
 - Hace comprobable "una orden pertenece a un solo cliente", que sin columna propia no es afirmable.
 - Evita que la consulta más frecuente sea un *join* de cuatro tablas.
 
-El coste aceptado: dos columnas que pueden contradecir a los equipos de la orden si el servicio las deja. **Impedirlo es trabajo del servicio**, y está en la lista de siete de más abajo.
+El coste aceptado: dos columnas que pueden contradecir a los equipos de la orden si el servicio las deja. **Impedirlo es trabajo del servicio**, y ahí es exactamente donde quedó el hueco que documenta la sección «El hueco de la regla 1».
 
 ### Y esa pertenencia la comprueba el motor, no la convención
 
@@ -70,7 +80,7 @@ CONSTRAINT "FK_orden_trabajo_sede_del_cliente"
 Dos detalles que merecen quedar:
 
 - **Se añade en `V6`, no editando `V4`.** Una migración ya aplicada no se toca; Flyway la tiene sellada por *checksum*.
-- **No estaba en el encargo.** La propuso el `desarrollador` al escribir la migración. Es la **única regla cruzada de este módulo que el esquema puede sostener sin desnormalizar más**, y por eso es la única que no aparece en la lista de siete.
+- Es la **única regla cruzada de este módulo que el esquema puede sostener sin desnormalizar más**, y por eso es la única que no aparece en la lista de siete.
 
 ### La tabla puente congela el área
 
@@ -87,6 +97,8 @@ El motivo es el de siempre con los datos duplicados: **dos listas que deben conc
 ### La fecha es `date`, no `timestamp`
 
 El original la declaraba `timestamp without time zone` y la comentaba como *«la fecha en la que se creó la orden de trabajo»*. **Son dos cosas distintas**: la columna se llama `f_fecha_mantenimiento` y el formulario de la ERS pide un **día de servicio**, no el instante del registro. Aquí es `date`, sin hora, y es la del servicio.
+
+**Y no se acota por ningún extremo.** A diferencia de la fecha de compra de un equipo, que no puede estar en el futuro, la de un mantenimiento suele estarlo —se programa— y a veces está en el pasado, cuando la orden se registra después de haber ido. Ninguno de los dos extremos es un error, y el agregado solo exige que exista.
 
 ### El ingeniero asignado es anulable
 
@@ -112,63 +124,222 @@ Van en español siguiendo la convención del proyecto para el vocabulario propio
 
 ### El método: buscar antes de preguntar
 
-**Lo más reutilizable de esta tanda.** Los valores de las enumeraciones se le preguntaron al usuario **tres veces** antes de que apareciera que la respuesta estaba escrita en un `CHECK` del esquema heredado que nadie había abierto.
+**Lo más reutilizable de la tanda 1.** Los valores de las enumeraciones se le preguntaron al usuario **tres veces** antes de que apareciera que la respuesta estaba escrita en un `CHECK` del esquema heredado que nadie había abierto.
 
 La regla que queda: **antes de pedir una decisión de vocabulario del dominio, agotar el original**. Aquí el sistema viejo no servía de plantilla para casi nada de este módulo —cuatro ausencias y una FK rota— y precisamente por eso nadie fue a mirarlo. Un esquema puede ser inútil como diseño y seguir siendo la única fuente escrita del vocabulario.
 
 Es la misma familia de hallazgos que ya registra este wiki: [[reglas-de-negocio-en-el-esquema]] dice que un `CHECK` es uno de los seis sitios donde un esquema esconde reglas. Aquí escondía, además, un diccionario.
 
-## Las siete reglas que el esquema permite a propósito
+## Tanda 2 — el agregado
 
-El esquema **no las defiende y no puede**: cada una cruza tablas que no guardan juntos los datos que hay que comparar, o depende del estado y no de la existencia. Van al servicio en la tanda 3. **Se listan aquí para que nadie las dé por cubiertas al leer la migración en verde.**
+`WorkOrder` es de **Generación 2**, con lo que eso implica en este proyecto: sin setters, entrada por `schedule(...)` —que registra evento— o `rehydrate(...)` —que no—, igualdad por identidad y colecciones devueltas como copia inmutable. Ver [[evolucion-arquitectonica-crud-a-cqrs]] y [[aggregate-root-pattern]].
 
-1. Que el área de una fila del puente **pertenezca a la sede de la orden**.
-2. Que el equipo **estuviera en esa área** en el momento de añadirlo.
-3. Que el equipo **sea del cliente de la orden**.
-4. Que la persona asignada sea **de tipo `ENGINEER`**.
-5. Que las referencias —cliente, sede, área, equipo, ingeniero— **estén activas**, no solo que existan.
-6. Las **transiciones de estado** válidas: `CREADA → EN_EJECUCION → EJECUTADA`, y no al revés.
-7. Que **no se modifique una orden ya `EJECUTADA`**.
+### Los equipos son parte del agregado, no un agregado aparte
 
-La 5 es el caso de siempre con [[patron-soft-delete]]: una clave foránea comprueba que una fila exista, no que esté activa, y con borrado lógico esas dos cosas dejaron de ser la misma.
+La decisión que más se podía haber ido por el otro lado. **Un equipo seleccionado no tiene sentido fuera de su orden** y su ciclo de vida es el de ella: se elige al planificar y deja de poder cambiarse cuando el trabajo termina. Por eso viven dentro y no se referencian por identificador como el cliente o la sede.
 
-Con éstas, el proyecto pasa de **seis** reglas de este tipo ya construidas —dos en `client`, cuatro en `equipment`, ver [[regla-traslado-mismo-cliente]]— a **trece previstas**. Es el módulo que más carga sobre el servicio, y no por descuido: es el que más veces cruza de agregado.
+`SelectedEquipment` tiene **identidad por el equipo solo, no por el par**. La consecuencia se lee en `addEquipment`: añadir un equipo que ya está **no hace nada, ni siquiera si el área que se pasa es otra**. Dentro de una orden, el mismo equipo dos veces con dos áreas distintas no es dos cosas: es un intento de reescribir un área ya congelada. Para corregirla hay que retirarlo y volver a añadirlo — y eso es exactamente lo que significa hacerlo.
+
+### El estado sabe avanzar; la columna no podría
+
+`ExecutionState` lleva `siguiente()`, `avanzaA()` y `esFinal()`. El `CHECK` del esquema fija **qué valores existen**; no puede fijar **cómo se pasa de uno a otro**, porque una restricción de columna mira la fila que se escribe y no la que había antes. Por eso el avance vive en el dominio.
+
+El recorrido es en un solo sentido y sin saltos: `CREADA → EN_EJECUCION → EJECUTADA`. No se salta de creada a ejecutada porque entonces nadie sabría cuándo empezó, y no se vuelve de ejecutada porque el trabajo ya se hizo; si hace falta intervenir otra vez, se crea otra orden.
+
+`avanzarA` **distingue dos negativas que un solo mensaje confundiría**: la de una orden que ya terminó y la de un salto de estado. Quien recibe el error necesita saber cuál de las dos es.
+
+### Tres decisiones del ciclo de vida que no son obvias
+
+- **`start()` exige ingeniero y al menos un equipo**, y lo exige ahí y no al crear. Sin lo primero no hay quien lo haga; sin lo segundo no hay sobre qué. Son las dos condiciones que convierten una orden planificada en trabajo real. Crearla vacía sí se permite, porque el formulario de la ERS elige los equipos en un paso posterior al de la sede.
+- **El alcance se puede tocar en ejecución, no solo al planificar.** En campo aparece un equipo que no estaba previsto, o uno de los elegidos resulta inaccesible. Lo que no se admite es cambiar una orden **ejecutada**, porque entonces su registro dejaría de describir lo que se hizo.
+- **Cancelar se permite incluso sobre una orden ya ejecutada.** No es lo mismo que ejecutarla: una ejecutada se hizo, una cancelada no. Retirar del listado un registro histórico no reescribe lo que ocurrió. Y cancelar dos veces no emite dos eventos, siguiendo la regla del proyecto de que **un cambio que no cambia nada no emite evento**.
+
+### Siete eventos
+
+`WorkOrderCreated`, `Assigned`, `EquipmentAdded`, `EquipmentRemoved`, `Started`, `Executed` y `Deactivated` —de baja, no `Deleted`, porque aquí nada se borra—. Los de equipo llevan `WorkOrderEquipmentPayload`; el resto, `WorkOrderPayload`. Ver [[eventos-de-dominio]].
+
+**Nadie los consume todavía.** El destinatario natural será el reporte de servicio, y el mecanismo de despacho ya existe y está en uso: ver [[patron-event-dispatcher-dual]].
+
+### Un defecto encontrado y corregido en esta tanda
+
+`SelectedEquipment` rechazaba un equipo nulo con `Objects.requireNonNull`, que lanza `NullPointerException`. Ningún advice mapea esa excepción, así que **habría salido como 500 en vez de 400**: un dato inválido del llamante presentado como un fallo del servidor. Corregido en `c484522` cambiándolo a `IllegalArgumentException`, la forma que el resto del proyecto usa y que el advice sí traduce. Comprobado después que no queda ningún otro `requireNonNull` en producción. Ver [[traduccion-de-fallos-de-adaptadores]].
+
+## Tanda 3 — las reglas que exigen preguntar fuera
+
+Ésta es la razón de ser del servicio de este módulo. Las reglas viven en `WorkOrderService` porque **todas exigen consultar otro módulo**, y el agregado solo decide con lo que la propia orden tiene delante.
+
+**Las referencias se comprueban activas, no solo existentes.** Una clave foránea confirma que la fila está; con borrado lógico eso deja de significar que siga en uso. Es la misma distinción que ya obligó a subir reglas al servicio en `client` y en `equipment`, y el caso de siempre de [[patron-soft-delete]].
+
+### Estado real de las siete reglas
+
+La tanda 1 dejó listadas siete reglas que el esquema no podía defender. Éste es su estado **verificado el 2026-09-13 leyendo el servicio**, no dado por hecho:
+
+| # | Regla | Estado | Dónde |
+|---|---|---|---|
+| 1 | El área del equipo pertenece **a la sede de la orden** | ✅ | `requireEquipmentInScopeOf` |
+| 2 | El equipo **estaba en esa área** al añadirlo | ✅ Hecha **imposible de violar** | El área no viaja en el comando |
+| 3 | El equipo es **del cliente de la orden** | ✅ | `requireEquipmentBelongsTo` |
+| 4 | La persona asignada es **de tipo `ENGINEER`** | ✅ | `requireActiveEngineer` |
+| 5 | Las referencias están **activas**, no solo existen | ✅ | Las cuatro guardas privadas |
+| 6 | Las **transiciones de estado** válidas | ✅ | `ExecutionState` + `avanzarA`, en el dominio |
+| 7 | No se modifica una orden ya **`EJECUTADA`** | ✅ | `exigirModificable`, en el dominio |
+
+**Siete de siete desde el 2026-09-13** (`0cf56c5`). La regla 1 **faltaba** y se cerró ese mismo día; conserva sección propia más abajo porque el modo en que faltó es más instructivo que la regla.
+
+### La regla 2 no se comprueba: se hace imposible
+
+**La decisión de diseño más importante del módulo.** `AddEquipmentToWorkOrderCommand` es:
+
+```java
+public record AddEquipmentToWorkOrderCommand(UUID id, UUID idEquipoCliente) { }
+```
+
+**No tiene campo para el área.** La averigua el servicio consultando dónde está el equipo ahora, y la congela. Si el llamante pudiera declararla, podría declarar una donde el equipo no está, y el registro histórico **nacería mintiendo** sobre dónde se prestó el servicio.
+
+Una regla comprobada puede comprobarse mal. Una regla que no se puede expresar no puede violarse. Cuando exista la opción, **quitar el campo gana a validarlo** — y el sitio donde esto se ve es el `record` del comando y el `record` de la petición REST, que tampoco lo lleva.
+
+### La regla 1 faltaba, y cómo se encontró
+
+**Cerrada el 2026-09-13 con `0cf56c5`.** Lo que sigue se conserva porque el hallazgo vale más que el arreglo.
+
+`requireEquipmentBelongsTo` —así se llamaba— recibía la unidad, pedía su área, comprobaba que **el área estuviera abierta**, y después preguntaba por el **cliente dueño** con `findOwningClient`. Lo que **nunca hacía** era comparar el `idSede` de esa área —que el agregado `ServiceArea` ya trae— contra el `idSede` de la orden.
+
+La consecuencia concreta: **una orden del cliente A en la sede Norte admitía un equipo del cliente A que estaba en la sede Sur.** Pasaba las tres comprobaciones —activo, área abierta, mismo cliente— y entraba. La orden decía que el servicio era en Norte y el equipo estaba en otro sitio. **El mismo tipo de mentira histórica** que el módulo entero se diseñó para impedir, un nivel más abajo.
+
+El arreglo salió barato como estaba previsto: el `ServiceArea` ya se cargaba en esa línea para mirar si estaba abierto, así que la sede venía en la mano y **la comprobación no cuesta ninguna consulta más**. El método pasa a llamarse `requireEquipmentInScopeOf` y recibe la orden entera, porque ahora mira dos de sus campos.
+
+#### El orden de las guardas es una decisión, no un detalle
+
+Al añadir la comprobación de sede apareció que **una de las dos podía quedar muerta**: un equipo de otro cliente está *necesariamente* en otra sede —si el área fuera de la sede de la orden, su cliente sería el de la sede, y la clave foránea compuesta garantiza que ése es el de la orden—, así que las dos negativas serían ciertas a la vez.
+
+Se comprueba **el dueño antes que la sede**, y con ese orden las dos siguen siendo alcanzables:
+
+| Caso | Qué responde |
+|---|---|
+| Equipo de otro cliente | «es del cliente X y la orden es del cliente Y» |
+| Equipo del mismo cliente, otra sede | «está en la sede X y el mantenimiento se presta en la sede Y» |
+
+Al revés, el primer caso daría el mensaje de sede —cierto pero menos informativo— y la comprobación de cliente no se alcanzaría nunca. Lo fija la prueba `elClienteSeCompruebaAntesQueLaSede`, con un `withMessageNotContaining`.
+
+**La regla general que deja esto**: cuando una guarda nueva subsume a una vieja, la pregunta no es cuál borrar sino **en qué orden dejarlas para que cada una siga contestando su caso**. Borrar la subsumida pierde el mensaje bueno; dejarla detrás la mata en silencio.
+
+#### Cómo apareció, que es lo reutilizable
+
+**Contrastando esta nota contra el código**, no leyendo el servicio. Es literalmente lo que dice la disciplina del proyecto en `CLAUDE.md` —«los defectos aparecen al comparar»— funcionando sobre el propio wiki.
+
+Lo que lo permitió: la lista de siete reglas se escribió en la tanda 1 **sin columna de estado**. Una lista así **se lee como inventario y no como pendiente**, y nadie la volvió a mirar entre que se escribió y que se dio el módulo por cerrado. La tabla de arriba, con su columna «Estado» y su columna «Dónde», existe para eso.
+
+#### Y una prueba que fija un estado imposible
+
+De paso apareció que `equipoDeOtroCliente` —anterior a este arreglo— monta un mundo que no puede existir: un área **en la sede de la orden** pero **de otro cliente**. Sigue en verde porque la guarda de cliente salta primero, pero lo que pincha no es alcanzable por el API. No se tocó; queda anotado.
+
+### El ingeniero puede tener dos tipos
+
+`requireActiveEngineer` acepta que **cualquiera de los dos** tipos de la persona sea `ENGINEER`. El modelo permite `tipoPersona` y `segundoTipoPersona`, de modo que alguien que es a la vez ingeniero y encargado sigue pudiendo ejecutar un mantenimiento. Ver [[relacion-manager-persona]].
+
+### La persistencia concilia, no reemplaza
+
+`WorkOrderPersistenceMapper.sincronizarEquipos` es la pieza con más lógica del módulo fuera del dominio, y no es un mapeo:
+
+- El adaptador **lee la fila existente antes de guardar** y se la pasa al mapper. Construir una entidad nueva en cada guardado haría que Hibernate insertara duplicados del alcance.
+- El equipo que ya no está en el agregado **queda inactivo, no desaparece**: la llave compuesta impide volver a insertarlo, y el historial de un equipo —en qué órdenes se le intervino— dejaría de ser cierto si se borrara.
+- El que vuelve **reactiva su fila con el área que traiga el agregado**, que para un equipo readmitido es la de ese momento. Es la única forma de corregir un área congelada, y es coherente con que retirarlo y volver a añadirlo sea precisamente eso.
+- `toDomain` **solo carga los equipos activos**: el agregado responde «sobre qué se trabaja en esta orden», y los retirados son historial.
+
+## Tanda 4 — el API
+
+`/v1/api/work-orders`, **nueve** operaciones — 2 de lectura, 6 de escritura y 1 de asignación, contadas sobre las anotaciones el 2026-09-13. **No hay operación de cambio general**: una orden no se «edita». Se le añaden o quitan equipos, se le asigna un ingeniero y avanza de estado; cada uno es un hecho distinto, con su ruta, su autoridad y su evento. Un `PATCH` sobre la orden entera los confundiría a todos.
+
+| Operación | Ruta | Autoridad |
+|---|---|---|
+| Listar (filtros excluyentes) | `GET /` | `work-order.read` |
+| Obtener | `GET /{id}` | `work-order.read` |
+| Programar | `POST /` → 201 | `work-order.write` |
+| Añadir equipo | `POST /{id}/equipments` → 201 | `work-order.write` |
+| Retirar equipo | `DELETE /{id}/equipments/{idEquipoCliente}` | `work-order.write` |
+| **Asignar ingeniero** | `PATCH /{id}/engineer/{idIngeniero}` | **`work-order.assign`** |
+| Empezar · Ejecutar | `PATCH /{id}/start` · `/execute` | `work-order.write` |
+| Cancelar | `DELETE /{id}` → 204 | `work-order.write` |
+
+**Que asignar tenga autoridad propia es lo que permite que un coordinador reparta trabajo sin poder alterar lo que se va a hacer.** Sin esa separación, `work-order.write` lo cubriría todo y el permiso no significaría nada distinto. Ver [[modelo-de-permisos]].
+
+Los **cuatro filtros del listado son mutuamente excluyentes** —cliente, sede, ingeniero, equipo— y pasar dos responde 400. Combinarlos exigiría un puerto por combinación, y la respuesta correcta a «¿y si quiero dos?» es una consulta nueva y explícita, no un producto cartesiano implícito.
+
+### El catálogo distingue tres cosas que un solo código confundiría
+
+Ocho códigos, `ERR_WORK_ORDER_001` a `008`. Lo que merece quedar es el reparto, no la lista:
+
+- **404 con código propio por cada referencia externa** —cliente, sede, área, equipo, persona—. El advice de este módulo maneja las excepciones de los cuatro módulos que consulta: llegan por su controlador y de otro modo escaparían como un 500. Es el hueco que se descubrió en la tanda del traslado por no declarar una de ellas. Ver [[patron-catalogo-errores-por-contexto]].
+- **409 para el conflicto de estado**, separado del 400 de datos inválidos. Los datos recibidos son válidos y no falta ninguno; lo que choca es el momento — arrancar una orden ya ejecutada, tocar el alcance de una cancelada. Compartir el código de «datos inválidos» impediría al llamante distinguir **«lo has escrito mal»** de **«ahora no se puede»**.
+- **400 para las reglas** del agregado y del servicio, que llegan como `IllegalArgumentException`.
+
+Ese 409 es nuevo en el proyecto: los cuatro módulos anteriores no tenían un estado que pudiera chocar.
+
+### La centinela se rompió como estaba previsto
+
+`RestAuthorizationCoverageTest.lasAutoridadesDeWorkOrderSiguenSinModulo` afirmaba que ninguna autoridad `work-order.*` protegía nada. **Falló con el primer controlador del módulo, que es exactamente lo que se le pedía**, y se retiró en el mismo commit junto con el `filter(a -> !a.startsWith("work-order."))` de `ningunaAutoridadSobra`.
+
+La sustituyen dos pruebas: que las tres autoridades protegen ya sus endpoints, y que **`assign` es la única operación que exige `work-order.assign`** — porque si mañana otra la exige, esa separación de permisos deja de existir en silencio.
+
+El patrón de omisión consciente funcionó de punta a punta: se anotó cuándo se rompería, se rompió entonces, y el aviso estaba escrito en `CLAUDE.md` y en esta nota. Es el segundo caso del proyecto, tras la centinela de `equipo_cliente` de [[migracion-equipment-hallazgos]].
 
 ## La verificación
 
-`WorkOrderSchemaTest`, contra un PostgreSQL real vía Testcontainers: **23 métodos, 32 ejecuciones** —cuatro son `@ParameterizedTest`—. **Cero defectos encontrados**: nada de lo que la prueba pedía al esquema faltaba.
+Todas las cifras son el **número de elementos `<testcase>` de los XML de Surefire**, medidas con `rm -rf target/surefire-reports` **antes** de cada corrida — sin eso se suman informes de ramas anteriores, ver [[stack-spring-boot-4-particularidades]].
 
-Batería completa sobre `24e7640`, medida el 2026-09-12 con `./mvnw test` y `rm -rf target/surefire-reports` **antes** —sin eso se suman informes de corridas anteriores, ver [[stack-spring-boot-4-particularidades]]—: **541** elementos `<testcase>`, **43 clases**, cero fallos, cero errores, cero omitidas. Antes eran 509 sobre `43de295`; 509 + 32 = 541 y aquí la suma cuadra porque es la misma rama con pruebas encima. El atributo `tests=` da **539** y los `.txt` **418**, por el desajuste ya conocido.
+| Punto | Pruebas | Clases | Lo que añade |
+|---|---|---|---|
+| `43de295` (antes del módulo) | 509 | 42 | — |
+| `24e7640` (tanda 1) | 541 | 43 | `WorkOrderSchemaTest`: 23 métodos, **32** ejecuciones |
+| `main` `97ef74f` (tanda 2) | **580** | 44 | `WorkOrderTest`: **39** |
+| `dd625a1` (tanda 3) | 597 ᵈ | 45 | `WorkOrderServiceTest`: **17** ᵈ |
+| `ceadba1` (tanda 4) | **612** | 46 | `WorkOrderRestAdapterTest`: **14**, más el neto +1 del centinela sustituido por dos |
+| `0cf56c5` (la regla 1) | **614** | 46 | Las dos pruebas de la regla que faltaba |
 
-**Las dos pruebas que más valen** no son de columnas:
+Para `main` y `ceadba1`, las otras dos fuentes de conteo: el atributo `tests=` da **578** y **609**, y los `.txt` **418** y **433**. Los `.txt` **no se movieron entre `24e7640` y `main`** —418 y 418— pese a las 39 pruebas de `WorkOrderTest`, porque esa clase tiene 13 clases `@Nested` y ninguna prueba suelta: esa fuente las ignora por completo. Y el desajuste con el atributo pasa de 2 a 3 porque **`ordenInexistente` aparece en dos `@Nested` de `WorkOrderServiceTest`**, el segundo caso del proyecto tras `CatalogAggregatesTest`. Ver [[stack-spring-boot-4-particularidades]].
 
-- `ordenConSedeDeOtroClienteFalla` — arma dos clientes con sede propia e inserta una orden con el cliente A y la sede de B. Es lo que convierte «una orden pertenece a un solo cliente» en algo comprobado por el motor.
-- `trasladarElEquipoNoReescribeElAreaCongelada` — inserta una fila del puente con el área actual del equipo, **traslada el equipo después**, y comprueba dos cosas a la vez: que el traslado **no falla**, y que el área guardada **sigue siendo la vieja**. Si algún día alguien añade la clave foránea compuesta que «falta», **esta prueba se pone roja y explica por qué no debe estar**. Ver [[congelar-una-referencia-historica]].
+Cero fallos, cero errores, cero omitidas en todas.
 
-**Un detalle de método que se repite y conviene copiar**: los valores inválidos de los `CHECK` son **cortos a propósito**. Las tres columnas están dimensionadas justas —`varchar(10)` para `TRIMESTRAL`, `varchar(11)` para `CALIBRACION`, `varchar(12)` para `EN_EJECUCION`—, así que un valor inválido más largo fallaría **por longitud y no por el `CHECK`**, dejando la prueba en verde afirmando algo que no ocurrió. Es una prueba que pasa por el motivo equivocado, primo hermano de la que pasa en vacío de [[regla-traslado-mismo-cliente]].
+**Las marcadas con ᵈ son derivadas, no medidas**, y conviene decirlo: se corrieron `24e7640`, `main` y `ceadba1`; el punto intermedio sale de restar. 580 + 17 + 14 + 1 = 612 cuadra exactamente con lo medido, y ese +1 es el centinela que se fue sustituido por dos pruebas. Una suma que no cuadre con una medición es una cifra inventada — este wiki ya tuvo una.
 
-Las siete reglas de arriba **no se prueban aquí** a propósito: viven en el servicio de la tanda 3 y una prueba hoy daría rojo por el motivo equivocado.
+### Las pruebas que más valen
 
-## ⚠️ Una trampa esperando a la tanda REST
+- `ordenConSedeDeOtroClienteFalla` (esquema) — arma dos clientes con sede propia e inserta una orden con el cliente A y la sede de B. Convierte «una orden pertenece a un solo cliente» en algo comprobado por el motor.
+- `trasladarElEquipoNoReescribeElAreaCongelada` (esquema) — inserta una fila del puente, **traslada el equipo después**, y comprueba dos cosas a la vez: que el traslado **no falla**, y que el área guardada **sigue siendo la vieja**. Si algún día alguien añade la clave foránea compuesta que «falta», **esta prueba se pone roja y explica por qué no debe estar**. Ver [[congelar-una-referencia-historica]].
+- `elAreaNoViajaEnLaPeticion` (REST) — no ejerce una petición: comprueba por reflexión que `WorkOrderEquipmentRequest` tiene **un solo componente**. Es la forma de fijar una regla que consiste en una **ausencia**; una prueba de comportamiento no puede ejercer un campo que no existe.
 
-`RestAuthorizationCoverageTest` tiene una prueba centinela, `lasAutoridadesDeWorkOrderSiguenSinModulo`, con este cuerpo:
+### Dos verificaciones por mutación
 
-```java
-assertThat(citadas).noneMatch(a -> a.startsWith("work-order."));
-```
+El verde no prueba que una regla se ejerza. Antes de cerrar la tanda 4 se rompió la producción a propósito para ver si algo se quejaba:
 
-**Se pondrá roja el día que aparezca el primer `@PreAuthorize("hasAuthority('work-order.…')")` del módulo**, que es la tanda 4. Es el patrón de omisión consciente funcionando exactamente como se diseñó —igual que la centinela de `equipo_cliente` que se rompió al aparecer la tabla, ver [[migracion-equipment-hallazgos]]—, pero **si quien la ve no lo sabe, parecerá una regresión**. Hay que **retirarla en el mismo commit** que introduce el primer controlador, y sustituirla por las pruebas de cobertura de las tres autoridades.
+| Mutación | Señal |
+|---|---|
+| `pathsToMatch` → `/workorders/**` | `recursoDocumentado` falla |
+| `if (filtros > 1)` → `> 99` | `filtrosExcluyentes` falla |
+| Anular la comprobación de sede | `equipoDeOtraSedeDelMismoCliente` falla, **y solo ésa** |
+| Intercambiar las guardas de cliente y sede | `elClienteSeCompruebaAntesQueLaSede` falla, y Mockito estricto marca además `findOwningClient` como estubado que sobra |
 
-La acompaña `ningunaAutoridadSobra`, que hoy **excluye explícitamente** las autoridades de `work-order` con un `filter(a -> !a.startsWith("work-order."))`. Ese filtro también sobra a partir de la tanda 4.
+Producción restaurada en ambos casos. La primera importa especialmente porque el fallo que imita —un grupo de OpenAPI que no casa con ninguna ruta— **no da ningún error**: deja el recurso fuera de Swagger en silencio, y pasó cuatro veces en este proyecto antes de que hubiera pruebas. Ver [[openapi-swagger]].
 
-> **Precisión sobre un informe previo**: el `tester` afirmó el 2026-09-12 que esa prueba «no vive en esta rama». **Es falso** y quedó comprobado el mismo día: `RestAuthorizationCoverageTest` entró en `main` con `feat/permission-model` (`e6dda32`, 2026-09-09) y `git show main:…/RestAuthorizationCoverageTest.java` la devuelve. No afectó a su trabajo —no escribió nada partiendo de eso— pero se deja anotado para que no se repita la afirmación.
+### Un detalle de método que se repite y conviene copiar
+
+Los valores inválidos de los `CHECK` en `WorkOrderSchemaTest` son **cortos a propósito**. Las tres columnas están dimensionadas justas —`varchar(10)` para `TRIMESTRAL`, `varchar(11)` para `CALIBRACION`, `varchar(12)` para `EN_EJECUCION`—, así que un valor inválido más largo fallaría **por longitud y no por el `CHECK`**, dejando la prueba en verde afirmando algo que no ocurrió. Es una prueba que pasa por el motivo equivocado, primo hermano de la que pasa en vacío de [[regla-traslado-mismo-cliente]].
+
+### ⚠️ La persistencia de este módulo no la prueba nada
+
+`grep` sobre `src/test` no devuelve **ni una** mención de `WorkOrderPersistenceAdapter`, `WorkOrderPersistenceMapper` ni `WorkOrderRepository`, comprobado el 2026-09-13. `WorkOrderServiceTest` usa dobles de Mockito para el puerto, así que no los toca.
+
+Eso deja **sin ejercer la pieza con más lógica del módulo fuera del dominio**: la conciliación de `sincronizarEquipos` —desactivar en vez de borrar, reactivar con el área nueva— y la consulta `findByEquipment`, que filtra por `estadoActivo` con un `@Query` propio.
+
+`client`, `location` y `person` sí tienen `…PersistenceAdapterTest`. `equipment` tampoco lo tiene salvo para el traslado. Anotado en [[deuda-tecnica-y-riesgos]].
 
 ## Lo que falta
 
-- **Tanda 2, dominio**: el agregado `WorkOrder` de Generación 2, con `create`/`rehydrate`, los métodos que dicen qué ocurrió (`assignEngineer`, `start`, `execute`, `addEquipment`, `removeEquipment`) y sus eventos. Decidir si la colección de equipos es parte del agregado o un agregado aparte.
-- **Tanda 3, aplicación y persistencia**: los *commands*, el mapper a mano, el adaptador, y **las siete reglas**.
-- **Tanda 4, REST**: los controladores, el catálogo de errores propio, el grupo de OpenAPI **con su prueba de cobertura** —[[openapi-swagger]] registra que un `pathsToMatch` que no casa no avisa— y la retirada de la centinela.
+1. **Pruebas de persistencia**, contra PostgreSQL real vía Testcontainers, para la conciliación del alcance. Es lo único que queda sin cubrir del módulo.
+2. **El consumidor de los eventos**: el reporte de servicio, que es el módulo siguiente en [[hoja-de-ruta-producto]].
+
+~~La regla 1~~ — **cerrada el 2026-09-13**, ver arriba.
 
 ## Notas relacionadas
 
-[[congelar-una-referencia-historica]] · [[hoja-de-ruta-producto]] · [[decisiones-tecnicas-malphasos]] · [[regla-traslado-mismo-cliente]] · [[dominio-equipo-mantenimiento]] · [[dominio-cliente]] · [[dominio-reportes]] · [[esquema-bd-v4]] · [[reglas-de-negocio-en-el-esquema]] · [[patron-soft-delete]] · [[modelo-de-permisos]] · [[deuda-tecnica-y-riesgos]] · [[stack-spring-boot-4-particularidades]] · [[openapi-swagger]] · [[evolucion-arquitectonica-crud-a-cqrs]]
+[[congelar-una-referencia-historica]] · [[hoja-de-ruta-producto]] · [[decisiones-tecnicas-malphasos]] · [[regla-traslado-mismo-cliente]] · [[dominio-equipo-mantenimiento]] · [[dominio-cliente]] · [[dominio-reportes]] · [[esquema-bd-v4]] · [[reglas-de-negocio-en-el-esquema]] · [[patron-soft-delete]] · [[modelo-de-permisos]] · [[deuda-tecnica-y-riesgos]] · [[stack-spring-boot-4-particularidades]] · [[openapi-swagger]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[aggregate-root-pattern]] · [[eventos-de-dominio]] · [[patron-event-dispatcher-dual]] · [[patron-catalogo-errores-por-contexto]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[migracion-equipment-hallazgos]]

@@ -3,7 +3,7 @@ name: modelo-de-permisos
 description: Las 19 autoridades del API de MalphasOS, la regla de expansión del administrador aplicada en dos capas, y qué recibe cada grupo del realm
 tags: [malphasos, seguridad, keycloak, autorizacion, "reusable:media", "describe:malphasos"]
 estado: estable
-updated: 2026-09-08
+updated: 2026-09-13
 ---
 
 # Modelo de permisos de MalphasOS
@@ -47,13 +47,15 @@ Las 17 de recurso, con las operaciones que protegen a fecha de hoy (contado sobr
 | `equipment.read` | 13 | |
 | `equipment.write` | 17 | |
 | `equipment.assign` | 2 | Vincular una unidad a un área y trasladarla a otra. Asignar cambia quién responde por un equipo, y es lo que un ingeniero de campo hace y un administrativo no |
-| `work-order.read` | 0 | |
-| `work-order.write` | 0 | |
-| `work-order.assign` | 0 | |
+| `work-order.read` | 2 | |
+| `work-order.write` | 6 | Programar, cambiar el alcance, avanzar de estado y cancelar |
+| `work-order.assign` | 1 | **Solo poner la orden en manos de un ingeniero.** Es lo que permite que un coordinador reparta trabajo sin poder alterar lo que se va a hacer |
 
-**Total: 83 operaciones** — 27 lecturas (`GET`) y 56 escrituras. Verificado el 2026-09-08 contando las anotaciones sobre `feat/permission-model`.
+**Total: 92 operaciones** — 83 verificadas el 2026-09-08 sobre `feat/permission-model`, más las **9** de órdenes de trabajo, añadidas el 2026-09-13 con `ceadba1`. Los 83 y su reparto 27/56 quedan como la cifra de aquella tanda; los umbrales de las pruebas van como mínimos, así que no se rompen al crecer.
 
-Las tres de `work-order` están en el catálogo **sin módulo detrás**: ya estaban en el realm y asignadas al grupo `engineers`. Incluirlas ahora evita que el día que aparezcan sus endpoints el administrador se quede fuera por olvido. Una prueba fija que hoy no protegen nada, y fallará el día que lo hagan — que es cuando toca revisar esta nota.
+> **Actualizado el 2026-09-13.** Aquí decía que las tres de `work-order` estaban en el catálogo **sin módulo detrás**, y que una prueba fijaba que no protegían nada y fallaría el día que lo hicieran — «que es cuando toca revisar esta nota». **Eso ocurrió**: el módulo llegó, la centinela `lasAutoridadesDeWorkOrderSiguenSinModulo` se puso roja, se retiró en el mismo commit, y ésta es la revisión que pedía. Haber incluido las tres por adelantado hizo lo que se esperaba: el administrador no se quedó fuera por olvido, porque `ApiAuthority.expand(...)` ya las conocía.
+
+**Por qué `assign` merece autoridad propia.** Sin ella, `work-order.write` cubriría también asignar y el permiso no significaría nada distinto de «puede tocar la orden». Con ella, repartir trabajo y decidir qué trabajo es son dos capacidades separables. Una prueba lo fija: **`assign` es la única operación que la exige**, de modo que si mañana otra la reclama la separación no desaparece en silencio. Es el mismo razonamiento que ya justificaba `equipment.assign` y `engineer.assign`, y el tercer caso del proyecto.
 
 ## La decisión central: expandir en un sitio, no repetir en 83
 
@@ -108,7 +110,8 @@ Lo que más pesa no son los casos, sino dos invariantes, y la razón importa: **
 - la autoridad citada existe en `ApiAuthority` (`hasAuthority('equipmentt.read')` compila, arranca y responde 403 a todo el mundo para siempre);
 - ningún controlador nombra al administrador;
 - toda consulta `GET` se protege con una autoridad `.read`, y ninguna escritura se conforma con una;
-- toda autoridad de un módulo ya construido protege algún endpoint, y las de `work-order` todavía no.
+- toda autoridad del catálogo protege algún endpoint — **sin excepciones desde el 2026-09-13**, cuando `work-order` dejó de ser una y se retiró el filtro que la eximía;
+- `work-order.assign` protege **una sola** operación, y es `assign`.
 
 Los umbrales van como **mínimos** (`>= 83`, `>= 27`, `>= 56`), no como igualdades: sirven de guarda de no vacuidad —que la comprobación siguiente no pase por lista vacía— sin romperse cada vez que se añade un endpoint legítimo.
 
@@ -118,7 +121,6 @@ Los umbrales van como **mínimos** (`>= 83`, `>= 27`, `>= 56`), no como igualdad
 
 - **No hay filtrado por dueño.** Un usuario del grupo `clients` con `client.read` ve **todos** los clientes y el catálogo entero, no solo el suyo. Fue una decisión explícita de dejarlo fuera de esta tanda, no un olvido. Verificado el 2026-09-08: **ninguna clase fuera de `bootstrap/config` toca `Authentication`, `SecurityContextHolder` ni `@AuthenticationPrincipal`**, de modo que ningún servicio sabe quién llama. Implementarlo no es añadir un `WHERE`: exige decidir cómo se ata una cuenta de Keycloak a un cliente del dominio.
 - **No es verificable que el realm que Keycloak importa coincida con el JSON del repositorio.** Las pruebas leen el archivo versionado subiendo directorios desde el módulo; una edición hecha a mano en la consola de administración no la ve nadie. El contrato es con el archivo, no con el servidor.
-- `work-order` tiene tres autoridades y ningún módulo.
 
 ## Reutilizable
 
