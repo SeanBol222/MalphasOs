@@ -569,3 +569,20 @@ El fallo habría sido en los `.txt`, y por la razón que [[stack-spring-boot-4-p
 **Cuarta corrección en dos días a la línea de «qué rama queda fuera»**, en [[checklist-reutilizacion]] y en el `CLAUDE.md` de la raíz. A estas alturas la reincidencia ya no es un dato sino una regla: **toda pasada de wiki empieza por `git log main..HEAD`**, nunca por lo que dijo la anterior.
 
 **Tocadas**: [[stack-spring-boot-4-particularidades]], [[dominio-orden-trabajo]], [[checklist-reutilizacion]] y el `CLAUDE.md` de la raíz.
+
+## [2026-09-13] lint | El hash de una rama no se escribe; el de un commit sí
+
+**Convención nueva, nacida de un error propio cometido horas antes.** El `CLAUDE.md` de la raíz fijó el hash de `main` cuatro veces en dos días y las cuatro caducó. La cuarta es la que enseña algo: **caducó por su propio merge** — la pasada de wiki que anotaba «`main` está en `b9563a9`» dejaba `main` en otro commit al mergearse. Es regresión infinita, y ninguna cantidad de `git log main..HEAD` la arregla, porque la regla anterior —comprobar antes de escribir— no cubre el caso en que **escribir es lo que invalida el dato**.
+
+La distinción que queda, y que no es «no escribir hashes»:
+
+| Un hash que nombra… | ¿Se escribe? |
+|---|---|
+| un commit concreto: una medición, un merge, un arreglo | **Sí.** Es inmutable y verificable |
+| el valor de hoy de un puntero que se mueve (`main`) | **No.** Caduca sola, y a veces al escribirla |
+
+Por eso «614 medidos sobre `b9563a9`» y «mergeada por `1ef55cf`» **se quedan**, y las tablas de conteo pasan a nombrar **commits en vez de ramas**: una medición pertenece al commit donde se contó y ahí se queda, mientras que `main` apunta cada día a otro sitio.
+
+**El log no se toca.** Sus entradas están fechadas y eran ciertas al escribirse; reescribirlas para que sigan siendo ciertas hoy sería justo lo contrario de lo que un registro cronológico hace. La regla vale para las notas que describen el presente, no para las que fechan el pasado.
+
+**Tocadas**: `CLAUDE.md` de la raíz (con la tabla de la distinción), `SecondBrain/CLAUDE.md` (regla dura nueva), [[dominio-orden-trabajo]] y [[stack-spring-boot-4-particularidades]].

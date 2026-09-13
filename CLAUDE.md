@@ -37,7 +37,7 @@ El original está en `/home/sean-omarchy/Documents/UDistrital/SeptimoSemestre/In
 | `location` | Completo: esquema, dominio, aplicación, persistencia, REST |
 | `client` | Completo: esquema, cuatro agregados, aplicación, persistencia y REST |
 | `equipment` | Completo en primera tanda: esquema, seis agregados, aplicación, persistencia y REST. **Falta la segunda tanda**: verificaciones técnicas y datos metrológicos. El traslado no cruza de cliente — regla construida el 2026-09-09, **verificada el 2026-09-10** con 13 pruebas y **en `main` desde `1ef55cf`**; esta tabla la dio por «construida y sin verificar» hasta el **2026-09-12** y por «en rama sin mergear» hasta **más tarde ese mismo día**. Ver [[regla-traslado-mismo-cliente]] |
-| `work-order` | **Completo en sus cuatro tandas**, 2026-09-12 y 13: esquema `V6`, agregado de Generación 2 con siete eventos, servicio con las reglas cruzadas, persistencia con conciliación del alcance y **nueve** operaciones REST. **Todo en `main`** desde `b9563a9`. Las **siete reglas** que el esquema dejó al servicio están construidas, pero **nada prueba su persistencia**. De sus siete requisitos cuentan **tres**: los otros cuatro describen un formulario. Ver [[dominio-orden-trabajo]] |
+| `work-order` | **Completo en sus cuatro tandas**, 2026-09-12 y 13: esquema `V6`, agregado de Generación 2 con siete eventos, servicio con las reglas cruzadas, persistencia con conciliación del alcance y **nueve** operaciones REST. **Mergeado entero** el 2026-09-13, por `e69437d`, `1adc2fc` y `b9563a9`. Las **siete reglas** que el esquema dejó al servicio están construidas, pero **nada prueba su persistencia**. De sus siete requisitos cuentan **tres**: los otros cuatro describen un formulario. Ver [[dominio-orden-trabajo]] |
 
 Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__equipment_catalog` y `V6__work_order`. (Este archivo hablaba de **cinco**: cierto hasta el **2026-09-12**. Y situaba `V6` **fuera de `main`**: cierto hasta el **2026-09-13**, entró con `97ef74f`.)
 
@@ -49,11 +49,22 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__eq
 
 | Rama | Estado | Pruebas |
 |---|---|---|
-| `main` (`b9563a9`) | Los cinco módulos completos, el modelo de permisos, la sincronización con Keycloak, el traslado dentro del mismo cliente y **órdenes de trabajo de extremo a extremo** | **614** |
+| `main` | Los cinco módulos completos, el modelo de permisos, la sincronización con Keycloak, el traslado dentro del mismo cliente y **órdenes de trabajo de extremo a extremo** | **614** en `b9563a9` |
 | ~~`feat/work-order-rest`~~ · ~~`fix/work-order-headquarter-scope`~~ · ~~`docs/wiki-work-order-modulo`~~ | **Mergeadas** el 2026-09-13 por `e69437d`, `1adc2fc` y `b9563a9`, y borradas | — |
 | ~~`feat/work-order-schema`~~ · ~~`feat/relocation-same-client`~~ | Mergeadas antes, por `49b6453` y `1ef55cf` | — |
 
-Los **614** están **medidos** sobre `b9563a9` borrando `target/surefire-reports` antes: 46 clases, cero fallos, cero errores, cero omitidas. El atributo `tests=` da **611** y los `.txt` **433**. Los puntos intermedios que cita [[dominio-orden-trabajo]] van marcados como derivados, porque lo son.
+**Esta tabla ya no fija el hash de `main`, a propósito** — ver abajo. Los **614** están **medidos** sobre `b9563a9`, el commit donde se contaron, borrando `target/surefire-reports` antes: 46 clases, cero fallos, cero errores, cero omitidas. El atributo `tests=` da **611** y los `.txt` **433**. Los puntos intermedios que cita [[dominio-orden-trabajo]] van marcados como derivados, porque lo son.
+
+**Por qué ya no se escribe el hash de `main`.** Este archivo lo fijó cuatro veces en dos días y las cuatro caducó, la última **por su propio merge**: la pasada de wiki que anotaba «`main` está en X» dejaba `main` en X+1 al mergearse. No es falta de diligencia, es regresión infinita, y ninguna cantidad de `git log main..HEAD` la arregla.
+
+La distinción que sí sirve, y vale para todo el wiki:
+
+| Un hash que nombra… | Ejemplo | ¿Se escribe? |
+|---|---|---|
+| **un commit concreto** — una medición, un merge, un arreglo | «614 medidos sobre `b9563a9`», «mergeada por `1ef55cf`» | **Sí.** Es inmutable y verificable |
+| **el valor de hoy de un puntero que se mueve** | «`main` está en `b9563a9`» | **No.** Caduca sola, y a veces al escribirla |
+
+`main` se describe **por contenido**; su hash lo da `git`, que para eso está.
 
 **496 es una remedición, no una suma**: 472 + 361 habría sido un número inventado, y el aviso de remedir ya estaba escrito. **Corrección del 2026-09-12**: esta tabla apuntaba a `3c002b2` con **496** y decía que la rama no añadía ninguna prueba. Era cierto el 2026-09-09 y dejó de serlo el 2026-09-10 con `43de295`, que suma 13 pruebas y deja la rama en **509** —507 por el atributo `tests=`, 386 por los `.txt`, 42 clases, cero fallos—, medido borrando `target/surefire-reports` antes.
 

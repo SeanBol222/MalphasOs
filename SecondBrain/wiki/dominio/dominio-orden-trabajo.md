@@ -9,7 +9,7 @@ updated: 2026-09-13
 
 # Órdenes de trabajo — el módulo completo
 
-**Estado**: las **cuatro tandas** están construidas —esquema, dominio, aplicación y persistencia, REST— y las **siete reglas del servicio** con ellas. **Todo en `main`** desde `b9563a9`, el 2026-09-13. El módulo se puede usar de extremo a extremo desde el API.
+**Estado**: las **cuatro tandas** están construidas —esquema, dominio, aplicación y persistencia, REST— y las **siete reglas del servicio** con ellas. **Todo mergeado** el 2026-09-13, por `e69437d`, `1adc2fc` y `b9563a9`. El módulo se puede usar de extremo a extremo desde el API.
 
 > **Precisión del 2026-09-13**: el mensaje del commit `ceadba1` dice «ocho operaciones». **Son nueve** —contadas sobre los `@GetMapping`/`@PostMapping`/`@PatchMapping`/`@DeleteMapping` del adaptador—. El error es del mensaje, no del código; queda anotado aquí porque un cuerpo de commit no se puede corregir sin reescribir la historia.
 
@@ -295,7 +295,7 @@ Todas las cifras son el **número de elementos `<testcase>` de los XML de Surefi
 | `dd625a1` (tanda 3) | 597 ᵈ | 45 | `WorkOrderServiceTest`: **17** ᵈ |
 | `ceadba1` (tanda 4) | **612** | 46 | `WorkOrderRestAdapterTest`: **14**, más el neto +1 del centinela sustituido por dos |
 | `0cf56c5` (la regla 1) | **614** | 46 | Las dos pruebas de la regla que faltaba |
-| `main` `b9563a9` (todo dentro) | **614** | 46 | Remedido tras los tres merges: el mismo código, la misma cifra |
+| `b9563a9` (todo mergeado) | **614** | 46 | Remedido tras los tres merges: el mismo código, la misma cifra |
 
 Para `main` y `ceadba1`, las otras dos fuentes de conteo: el atributo `tests=` da **578** y **609**, y los `.txt` **418** y **433**. Los `.txt` **no se movieron entre `24e7640` y `main`** —418 y 418— pese a las 39 pruebas de `WorkOrderTest`, porque esa clase tiene 13 clases `@Nested` y ninguna prueba suelta: esa fuente las ignora por completo. Y el desajuste con el atributo pasa de 2 a 3 porque **`ordenInexistente` aparece en dos `@Nested` de `WorkOrderServiceTest`**, el segundo caso del proyecto tras `CatalogAggregatesTest`. Ver [[stack-spring-boot-4-particularidades]].
 
