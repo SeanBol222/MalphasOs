@@ -1,0 +1,822 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\setlength{\headheight}{15pt}
+\addtolength{\topmargin}{-3pt}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{amssymb}
+
+% Color definitions. Identicas a las de la ERS y el plan de alcance: los tres
+% documentos son piezas del mismo entregable y deben verse como tales.
+\definecolor{mainRed}{HTML}{EC3013}
+\definecolor{mainGray}{HTML}{6b6866}
+\definecolor{mainWhite}{HTML}{F3F2F2}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\textcolor{mainGray}{Declaración de Diseño del Frontend — MSO}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\color{mainRed}\hrule}
+
+% Saltos de titulo mas cortos que los de article, por el mismo motivo que en el
+% Plan de Gestion del Alcance: este documento acumula subsecciones cortas y el
+% espaciado por omision las estira sin anadir informacion.
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+  {-2.2ex \@plus -1ex \@minus -.2ex}{1.0ex \@plus.2ex}%
+  {\normalfont\Large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {-1.7ex \@plus -.8ex \@minus -.2ex}{0.5ex \@plus.2ex}%
+  {\normalfont\large\bfseries}}
+\def\@listi{\leftmargin\leftmargini \parsep 0\p@ \topsep 4\p@ \itemsep 2\p@}
+\let\@listI\@listi
+\makeatother
+
+% Title formatting
+\newcommand{\sectiontitle}[1]{%
+  \section*{#1}
+  \addcontentsline{toc}{section}{#1}
+}
+
+\newcommand{\subsectiontitle}[1]{%
+  \subsection*{#1}
+  \addcontentsline{toc}{subsection}{#1}
+}
+
+% Rutas y codigos. \texttt es indivisible y una ruta larga se sale de la caja.
+\urlstyle{tt}
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\-}
+\makeatother
+\newcommand{\ruta}[1]{\nolinkurl{#1}}
+
+% Marcas de estado, con el mismo significado y color que en el apartado 3.2 de
+% la ERS, de donde proceden.
+\newcommand{\estadoImplementado}{\textcolor{mainRed}{\textbf{[IMPLEMENTADO]}}}
+\newcommand{\estadoPrevisto}{\textcolor{mainGray}{\textbf{[PREVISTO]}}}
+
+% Marca de decision. Este documento decide, y conviene que se vea cual es la
+% frase que decide y cual la que explica.
+\newcommand{\decision}[1]{\textcolor{mainRed}{\textbf{#1}}}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\Large\textbf{UNIVERSIDAD DISTRITAL}\\
+   \textbf{FRANCISCO JOSÉ DE CALDAS}}\par
+
+  \vspace{3cm}
+
+  {\Huge\textbf{Declaración de Diseño del Frontend}}\par
+
+  \vspace{2cm}
+
+  {\Large\textbf{MalphasOS}}\\
+  {\large Gestión de Clientes}\par
+
+  \vspace{3cm}
+
+  {\large Sean Sebastián Bolívar Calderón - 20231020135}\par
+
+  \vfill
+
+  {\large 13 de septiembre de 2026}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% =====================================================================
+\sectiontitle{Nota preliminar}
+
+\textbf{Qué es este documento.} La declaración de las decisiones de diseño del
+frontend de MalphasOS: plataforma, arquitectura, sistema visual, accesibilidad,
+comportamiento sin conexión y estrategia de pruebas. Cada decisión va con su
+porqué y con su coste, porque una decisión sin coste escrito se relee más tarde
+como si no lo hubiera tenido.
+
+\textbf{Qué no es.} No es un manual de estilo ni una guía de componentes: eso se
+escribirá cuando los componentes existan. Tampoco es una lista de pantallas. Y
+no sustituye a la ERS: \decision{este documento no introduce ningún requisito
+nuevo}, sólo decide cómo se satisfacen los que ya están escritos.
+
+\textbf{Por qué existe y por qué ahora.} El backend está terminado en sus cinco
+módulos y no hay una sola línea de frontend. Esa asimetría tiene un efecto
+medible: de los 31 requisitos funcionales de la ERS hay 11 implementados, y
+\textbf{cuatro de los que faltan en órdenes de trabajo están abiertos únicamente
+porque no existe el formulario}, no porque falte nada en el servidor. Seis
+requisitos no funcionales enteros —RNF-12 a RNF-17— no tienen relación alguna
+con el backend. Un backend completo con cero frontend cumple cero de ellos.
+
+\textbf{De dónde salen las restricciones.} De la ERS, no de la preferencia de
+quien escribe. El apartado 2.1 exige que el sistema sea accesible desde el
+teléfono del ingeniero \textbf{sin instalar aplicaciones nativas}; el 3.1.2 lista
+la pantalla táctil entre las interfaces de hardware; el 3.1.1 recoge los seis
+requisitos de interfaz. Donde este documento decide algo que la ERS no dice, se
+señala explícitamente como decisión propia.
+
+% =====================================================================
+\sectiontitle{1. Alcance}
+
+\subsectiontitle{1.1. Qué cubre}
+
+La \textbf{aplicación operativa} de MalphasOS: la interfaz con la que los
+administradores gestionan clientes, equipos y órdenes de trabajo, y con la que
+los ingenieros consultan y ejecutan su trabajo en campo. Cubre las decisiones
+transversales que afectan a todas sus pantallas.
+
+\subsectiontitle{1.2. Qué queda fuera, y por qué}
+
+\textbf{La \textit{landing page} de la empresa queda fuera de esta
+declaración.} El cronograma del documento de constitución la sitúa en la semana
+1, de modo que su ausencia aquí podría leerse como un olvido. No lo es:
+
+\begin{itemize}
+  \item Es \textbf{otro producto}. Es pública, no tiene autenticación, no
+        consume el API y su objetivo es comercial, no operativo.
+  \item \textbf{No avanza ninguno de los seis requisitos de interfaz.} RNF-12 a
+        RNF-17 hablan de la aplicación que un ingeniero usa, no de una página
+        de presentación.
+  \item \textbf{Pide un stack distinto.} Una página pública necesita
+        indexación por buscadores, y una aplicación de página única es
+        precisamente la peor forma de conseguirla. Construirla dentro de la
+        aplicación operativa la perjudicaría.
+\end{itemize}
+
+Se decidirá por separado cuando la aplicación esté en pie. Lo único que este
+documento fija sobre ella es que \decision{heredará la paleta oficial}, para que
+los dos productos se reconozcan como de la misma casa.
+
+\textbf{Queda fuera del primer alcance, pero decidido}, el comportamiento sin
+conexión y la instalación en el dispositivo. No se descartan: la aplicación los
+tendrá. Se aplazan, y la sección 7 deja escrito con qué forma entrarán y por qué
+aplazarlos no incumple ningún requisito.
+
+\textbf{También queda fuera} todo lo que dependa de módulos de backend que no
+existen: reportes de servicio, firma digital, hojas de vida, inventario, alertas
+y módulo comercial. Sus pantallas se diseñarán cuando exista contra qué
+construirlas.
+
+% =====================================================================
+\sectiontitle{2. Lo que la especificación impone}
+
+Esta sección no decide nada. Recoge lo que ya está escrito y que el diseño tiene
+que satisfacer, para que las decisiones de las secciones siguientes se lean
+contra algo y no en el vacío.
+
+\subsectiontitle{2.1. Los seis requisitos de interfaz}
+
+\begin{longtable}{p{1.8cm} p{6cm} p{6.2cm}}
+\textbf{Código} & \textbf{Qué pide} & \textbf{Qué obliga a decidir} \\
+\hline
+\endhead
+RNF-12 & Accesibilidad web & Un nivel concreto; la ERS no fija ninguno \\
+RNF-13 & Diseño responsivo & Un orden: móvil primero o escritorio primero \\
+RNF-14 & Interacción por pantalla táctil & Un tamaño mínimo de área táctil \\
+RNF-15 & Procesos en $\leq$ 6 pasos & Cómo se cuenta un paso \\
+RNF-16 & Listas, autocompletado y selección múltiple & De dónde salen esos componentes \\
+RNF-17 & Mensajes de error claros & Quién traduce los códigos del backend \\
+\end{longtable}
+
+RNF-17 merece una precisión, porque es el único de los seis que tiene ya media
+solución construida: el backend emite códigos estables por módulo
+(\ruta{ERR_WORK_ORDER_001} y sus hermanos), con la regla explícita de que un
+código de ``no existe'' nunca se comparte con uno de ``datos inválidos''. Lo que
+falta no es el catálogo sino \textbf{quien lo traduzca a una frase que una
+persona lea}. Esa pieza es responsabilidad del frontend y de nadie más.
+
+\subsectiontitle{2.2. Los umbrales de tiempo}
+
+\begin{longtable}{p{3cm} p{10.8cm}}
+\textbf{Umbral} & \textbf{Dónde aparece} \\
+\hline
+\endhead
+2 segundos & RNF-03, RNF-04, RNF-09, RNF-10, RNF-18, RNF-22 — respuesta a consultas \\
+3 segundos & Apartado 3.3 de la ERS, OBJ-07 y CE-08 del documento de constitución \\
+3 minutos & RNF-01 y RNF-20 — procesos completos de usuario \\
+\end{longtable}
+
+Los dos primeros son compatibles: dos segundos satisfacen un umbral de tres.
+\textbf{Ningún documento lo dice}, y esta lectura es de quien contrasta, no un
+hecho declarado. Este documento adopta \decision{el umbral más exigente, dos
+segundos}, porque satisface a los dos y evita tener que reconciliarlos.
+
+\subsectiontitle{2.3. El trabajo en campo}
+
+Tres apartados de la ERS describen el escenario real de uso, y juntos son la
+restricción de diseño más fuerte del documento:
+
+\begin{itemize}
+  \item \textbf{Apartado 1.2}: el sistema ``facilitará el trabajo en campo de
+        los ingenieros mediante el uso de dispositivos móviles''.
+  \item \textbf{Apartado 2.1}: accesible desde el teléfono del ingeniero
+        \textbf{sin instalar aplicaciones nativas}.
+  \item \textbf{Apartado 3.1.2}: la pantalla táctil figura entre las interfaces
+        de hardware del sistema, junto a la cámara.
+\end{itemize}
+
+La consecuencia es que \textbf{el caso principal no es un escritorio}. Un
+ingeniero de pie en el pasillo de un hospital, con una mano ocupada, es el
+usuario que el diseño debe servir primero.
+
+\subsectiontitle{2.4. Los requisitos que sólo esperan un formulario}
+
+Cuatro requisitos de órdenes de trabajo están abiertos con el backend completo:
+
+\begin{longtable}{p{1.8cm} p{6cm} p{6.2cm}}
+\textbf{Código} & \textbf{Qué pide} & \textbf{Qué falta} \\
+\hline
+\endhead
+RF-03 & Formulario de orden: cliente, sede, áreas, tipo y periodicidad & Los cinco datos existen en el API; el formulario no \\
+RF-04 & Selección múltiple de áreas de la sede & Es un paso de interfaz. Las áreas elegidas \textbf{no se persisten a propósito}: quedan implícitas en los equipos \\
+RF-06 & Visualización de equipos por área & La consulta existe; falta la interfaz que agrupe \\
+RF-07 & Selección múltiple de equipos & El API añade de uno en uno; la selección múltiple es del formulario \\
+\end{longtable}
+
+Cerrar estos cuatro es el objetivo del primer bloque de construcción (sección 9).
+
+% =====================================================================
+\sectiontitle{3. Decisiones de plataforma}
+
+\subsectiontitle{3.1. Framework: Angular}
+
+\decision{La aplicación se construye con Angular.}
+
+\textbf{Por qué.} Angular impone inyección de dependencias y una estructura de
+módulos y servicios que \textbf{es el espejo natural de la arquitectura
+hexagonal del backend}. Un servicio inyectable que encapsula las llamadas de un
+módulo es lo que en el backend es un puerto; un guard de ruta es lo que allí es
+una anotación de autorización. Esa correspondencia hace que las dos mitades del
+sistema se puedan razonar con el mismo vocabulario, lo que importa en un
+proyecto cuya documentación insiste en que las decisiones se comparen entre
+capas.
+
+\textbf{Qué cuesta, y queda escrito.} El proyecto original
+(\ruta{bolivarbioingenieria-app}) tiene un starter de autenticación en
+\ruta{Frontend/src/auth/} —instancia de Keycloak, proveedor de contexto, guard
+de ruta y ayudante de peticiones— que la documentación técnica clasificó como
+\textbf{directamente reutilizable}. Elegir Angular lo descarta: es React. Hay
+que reescribirlo contra \ruta{keycloak-angular}.
+
+Son cuatro piezas pequeñas y el patrón se conserva, pero \textbf{es la primera
+vez que este proyecto desecha algo marcado como reutilizable}, y se hace con los
+ojos abiertos: la coherencia estructural con el backend se consideró más
+valiosa que ahorrar la reescritura de cuatro archivos.
+
+\textbf{Versión.} \decision{No se fija aquí una versión de memoria.} Se adopta
+la estable en el momento de crear el proyecto y \textbf{se anota en este mismo
+apartado al crearlo}, igual que el backend fija Spring Boot 4.1.1. Una versión
+escrita de antemano y nunca comprobada es una afirmación que nace falsa.
+
+\subsectiontitle{3.2. Estilos: Tailwind con la paleta oficial como tokens}
+
+\decision{Tailwind CSS, con los colores oficiales del proyecto declarados como
+tokens del tema.}
+
+La paleta no se inventa: ya existe y es la de la ERS, el documento de
+constitución y la matriz de trazabilidad. Reutilizarla es lo que hace que la
+aplicación y sus documentos se reconozcan como del mismo producto. El detalle
+del sistema visual va en la sección 5, incluido \textbf{un conflicto real entre
+esa paleta y el nivel de accesibilidad que este documento declara}.
+
+\subsectiontitle{3.3. Componentes: spartan/ui sobre Angular CDK}
+
+\decision{Los componentes de interfaz se toman de spartan/ui.}
+
+El planteamiento importa más que la librería: \textbf{el código de cada
+componente se copia al repositorio} en vez de consumirse como caja negra, y
+debajo van las primitivas del Angular CDK, que resuelven lo difícil de verdad
+—superposiciones, atrapado de foco, navegación de listas por teclado, anuncios
+para lectores de pantalla—.
+
+\textbf{Por qué no una librería cerrada.} RNF-14 exige uso táctil y RNF-12
+accesibilidad verificable. Las dos cosas obligan a ajustar áreas de pulsación y
+comportamiento de foco componente a componente. Con el código en el repositorio
+eso es una edición; con una librería cerrada es una pelea contra su sistema de
+temas.
+
+\textbf{Qué cubre de RNF-16.} Los tres componentes que el requisito nombra
+—listas, autocompletado y selección múltiple— existen como primitivas
+accesibles y no hay que escribirlos desde cero.
+
+\textbf{Lo que hay que rehacer, y es trabajo real.} Las plantillas de spartan/ui
+traen esquinas redondeadas y una escala de color propias. \textbf{El manual de
+marca exige radio cero} y su propia paleta, de modo que cada componente que se
+incorpore se re-viste antes de usarse. Que el código viva en el repositorio es
+precisamente lo que hace eso posible: con una librería cerrada habría que pelear
+contra su sistema de temas para conseguir lo mismo.
+
+\subsectiontitle{3.4. Datos: TanStack Query, aislado tras un servicio por módulo}
+
+\decision{El estado de servidor se gestiona con TanStack Query.}
+
+Resuelve caché, deduplicación de peticiones, reintentos, estados de carga y
+error, e invalidación después de escribir. Eso último es lo que impide el
+defecto clásico de dos pantallas que muestran la misma lista y sólo una se
+entera del cambio.
+
+\textbf{El riesgo, declarado.} El adaptador de Angular se distribuye con el
+sufijo \textit{experimental} en el nombre del paquete. Es una dependencia
+inestable en el centro de la capa de datos y no se oculta.
+
+\textbf{Cómo se acota.} \decision{Ningún componente usa TanStack Query
+directamente.} Cada módulo expone un servicio inyectable propio
+—\ruta{WorkOrderApiService} y sus hermanos— y la librería vive dentro de él. Si
+su API cambia entre versiones, lo que se toca son esos servicios y no cada
+pantalla. Es la misma idea por la que el backend publica puertos en vez de
+dejar que un módulo llame al almacén de otro.
+
+\subsectiontitle{3.5. Formularios: los reactivos de Angular}
+
+\decision{Formularios reactivos, con validación declarada en el modelo.}
+
+La razón no es de gusto sino de requisito: \textbf{RNF-07 pide impedir editar
+manualmente los datos autocompletados}. Eso no es un atributo visual de
+``sólo lectura'' sino una regla del formulario, y un formulario reactivo la
+puede expresar y probar sin montar la pantalla.
+
+\subsectiontitle{3.6. Contrato: el cliente se genera desde OpenAPI}
+
+\decision{Los tipos y los clientes de llamada se generan a partir de los
+documentos OpenAPI que el backend publica, y no se escriben a mano.}
+
+El backend declara un grupo por módulo y \textbf{tres de ellos ya tienen prueba
+que verifica que el grupo contiene sus recursos}. Generar desde ahí extiende esa
+garantía al frontend: si el backend renombra un campo, el frontend \textbf{deja
+de compilar}. Escribir los tipos a mano convierte ese mismo cambio en un fallo
+en tiempo de ejecución, o en ninguno.
+
+\textbf{Lo generado se versiona} en el repositorio. Así el proyecto compila sin
+necesidad de un backend levantado, y los cambios del contrato aparecen como
+diferencias revisables en lugar de como un resultado distinto del generador.
+
+% =====================================================================
+\sectiontitle{4. Arquitectura}
+
+\subsectiontitle{4.1. Organización por módulo de negocio}
+
+\decision{El código se organiza por módulo de negocio, con los mismos nombres
+que el backend}, y no por tipo técnico.
+
+\begin{verbatim}
+src/app/
+  core/         sesion, interceptores, traduccion de errores
+  shared/       componentes de interfaz, utilidades
+  features/
+    client/     equipment/     person/
+    location/   workOrder/
+\end{verbatim}
+
+\textbf{Por qué no por tipo técnico.} El frontend del proyecto original está
+organizado en \ruta{pages/}, \ruta{services/} y \ruta{auth/}, y la documentación
+técnica dice explícitamente que \textbf{no hay ahí una convención que copiar} y
+que corresponde a MalphasOS decidirla. Repetir esa estructura reparte cada
+módulo entre tres carpetas y obliga a saltar entre ellas para leer una función
+completa.
+
+\textbf{Qué gana espejar los nombres.} La matriz de trazabilidad relaciona
+requisitos con código. Si \ruta{features/workOrder/} se llama igual que el
+paquete del backend, la relación se lee sin traducción.
+
+\subsectiontitle{4.2. Capas dentro de un módulo}
+
+\begin{longtable}{p{3.6cm} p{10.2cm}}
+\textbf{Capa} & \textbf{Responsabilidad} \\
+\hline
+\endhead
+Cliente generado & Tipos y llamadas, producidos desde OpenAPI. No se edita a mano \\
+Servicio del módulo & Encapsula TanStack Query y el cliente generado. Es la única puerta al servidor \\
+Componentes & Presentación e interacción. No conocen la librería de datos ni el transporte \\
+Modelo de vista & Traduce entre lo que el API devuelve y lo que la pantalla necesita, cuando no coinciden \\
+\end{longtable}
+
+La regla que sostiene el conjunto: \decision{un componente nunca llama al API
+directamente}. Siempre pasa por el servicio de su módulo.
+
+\subsectiontitle{4.3. Autenticación y autorización}
+
+\textbf{Autenticación} con \ruta{keycloak-angular} sobre el flujo de código de
+autorización con PKCE, que es el correcto para un cliente público. El patrón del
+proyecto original se conserva aunque su código no: instancia única, inicio de
+sesión al arrancar, refresco automático del token antes de que expire y cierre
+de sesión si el refresco falla.
+
+\textbf{Autorización.} El backend define 19 autoridades y exige una sola,
+nombrada literalmente, en cada una de sus 92 operaciones. El frontend
+\decision{refleja esas mismas autoridades en los guards de ruta y en la
+visibilidad de los controles}.
+
+Dos precisiones que evitan malentendidos peligrosos:
+
+\begin{itemize}
+  \item \textbf{El frontend no autoriza: oculta.} Esconder un botón mejora la
+        experiencia; el permiso lo sigue comprobando el servidor en cada
+        llamada. Un frontend que ``protege'' una operación no protege nada.
+  \item \textbf{El vocabulario no se duplica a mano.} Las autoridades salen del
+        token, y la lista se contrasta con la del backend. Dos listas escritas
+        por separado se desincronizan, y ésta ya tiene un precedente
+        documentado en el propio proyecto.
+\end{itemize}
+
+\subsectiontitle{4.4. Traducción de errores}
+
+\decision{Un catálogo por módulo traduce cada código del backend a un mensaje en
+español}, con un mensaje genérico de respaldo para los códigos que aún no tenga.
+
+Esto satisface RNF-17 y respeta una distinción que el backend se tomó el trabajo
+de mantener: un código de ``no existe'' y uno de ``datos inválidos'' nunca se
+comparten, y el de conflicto de estado —arrancar una orden ya ejecutada— es un
+tercero distinto de los dos. \textbf{Si el frontend los funde en un ``ha ocurrido
+un error'', tira a la basura una decisión de diseño del servidor.}
+
+Las tres familias se presentan de forma distinta: lo que no existe explica qué
+referencia falló; lo inválido señala el campo; el conflicto de estado dice qué
+impide la operación \textbf{ahora}.
+
+La redacción sigue el tono de voz del manual de marca (5.5): directa e
+instructiva, sin disculpas. ``Esta orden ya se ejecutó y no admite cambios'' y
+no ``¡Ups! Algo salió mal''.
+
+% =====================================================================
+\sectiontitle{5. Sistema visual}
+
+\subsectiontitle{5.1. La fuente es el manual de marca}
+
+\decision{El sistema visual no se define en este documento: lo define el
+\textit{Manual de Marca de MalphasOS} v1.0, y aquí sólo se declara cómo se
+traduce a una interfaz.}
+
+Vive en \ruta{Documentation/FrontendDesign/BrandManual/}. Es un documento
+cerrado y anterior a esta declaración, de modo que \textbf{donde los dos
+discrepen, manda el manual}, salvo en lo que la sección 5.3 señala
+explícitamente como extensión y no como cambio.
+
+Lo que el manual fija y esta declaración adopta sin discutir:
+
+\begin{itemize}
+  \item \textbf{Una paleta monocroma} —tinta y grises sobre papel— con
+        \textbf{un solo rojo de acento}, reservado a la acción principal y a
+        las alertas, que \textbf{nunca cubre más del 10\,\% de una
+        composición}.
+  \item \textbf{Radio cero.} Ángulos rectos en todo: botones, campos,
+        tarjetas, imágenes.
+  \item \textbf{Alineación a la izquierda siempre.} No se centra ni se
+        justifica.
+  \item \textbf{Una sola familia tipográfica}, Archivo, con tres pesos.
+  \item \textbf{Los estados operativos se distinguen por peso tipográfico y
+        por regla, no por colores nuevos.}
+\end{itemize}
+
+Ese último punto es el que más cambia una interfaz respecto de lo habitual, y
+se recoge tal cual: \textbf{una orden vencida no se pinta de rojo}, se compone
+con otro peso. El acento señala acciones y alertas, no clasifica estados.
+
+\subsectiontitle{5.2. Color}
+
+\begin{longtable}{p{3.1cm} p{2.1cm} p{8.6cm}}
+\textbf{Nombre} & \textbf{Hex} & \textbf{Papel en la interfaz} \\
+\hline
+\endhead
+Tinta & \#201E1D & Texto principal \\
+Negro marca & \#2D2B2B & Superficies oscuras, paso 900 de la escala neutra \\
+Papel & \#F3F2F2 & Fondo \\
+Acento & \#EC3013 & Bordes, anillo de foco, iconografía de alerta, texto grande \\
+Acento 700 & \#AE1800 & \textbf{Texto en acento y relleno de la acción principal} \\
+\end{longtable}
+
+Más dos escalas de nueve pasos, neutra y de acento, que el manual define y de
+las que salen los grises intermedios y los fondos de aviso.
+
+\subsectiontitle{5.2.1. La regla de contraste del manual, y el caso que no nombra}
+
+El manual ya trae su propia regla de contraste: \textit{``El rojo \#EC3013 no se
+usa para texto de párrafo sobre papel. Para texto en acento emplear \#AE1800
+(paso 700)''}. Medido, funciona:
+
+\begin{longtable}{p{6.6cm} p{2.4cm} p{4.4cm}}
+\textbf{Combinación} & \textbf{Contraste} & \textbf{AA texto normal} \\
+\hline
+\endhead
+Tinta \#201E1D sobre papel & 14,86:1 & Cumple \\
+Negro marca \#2D2B2B sobre papel & 12,60:1 & Cumple \\
+Acento 700 \#AE1800 sobre papel & 6,41:1 & Cumple \\
+Acento \#EC3013 sobre papel & 3,76:1 & No cumple — por eso existe la regla \\
+\end{longtable}
+
+\textbf{El caso que el manual no cubre es el botón.} Describe la acción
+principal como ``relleno acento, etiqueta a la izquierda''. Con el relleno en
+\#EC3013 y la etiqueta en papel, el contraste es \textbf{3,76:1}: el control más
+repetido de la aplicación no alcanzaría el nivel declarado en la sección 6.
+
+\decision{Resolución: el relleno de la acción principal usa el paso 700,
+\#AE1800, con la etiqueta en papel.} Da 6,41:1.
+
+\textbf{No es una corrección del manual sino su propia regla aplicada un caso
+más allá}: el manual ya había decidido que el acento puro no sostiene texto
+encima; sólo no nombró el relleno sólido entre esos casos. El acento se queda
+exactamente donde el manual lo pone para todo lo demás —bordes, anillo de foco,
+iconografía de alerta—, y ahí \textbf{sí cumple}: para elementos no textuales el
+umbral es 3,0 y \#EC3013 da 3,76:1.
+
+\subsectiontitle{5.3. Tipografía, retícula y espaciado}
+
+Todo lo de esta subsección viene del manual; sólo el último punto es una
+extensión propia, y se señala como tal.
+
+\begin{longtable}{p{3.6cm} p{10.2cm}}
+\textbf{Aspecto} & \textbf{Regla} \\
+\hline
+\endhead
+Familia & Archivo. Sustitutas: Helvetica Neue, luego Arial \\
+Pesos & Títulos 700, subtítulos 600, cuerpo 400 \\
+Interlineado & Títulos 0,95--1,05; cuerpo 1,5--1,6 \\
+Medida de lectura & Máximo 70 caracteres \\
+Retícula & 12 columnas, medianil 24 px, márgenes 48 px \\
+Espaciado & Múltiplos de 8 px \\
+Radio de esquina & Cero, en todo \\
+Iconografía & Lucide, trazo 2 px, esquinas rectas, 16 / 20 / 24 px \\
+\end{longtable}
+
+\textbf{Extensión propia:} el manual fija retícula y márgenes pensando en
+composiciones de escritorio y no habla de pantallas estrechas.
+\decision{En anchos de teléfono la retícula se reduce a 4 columnas y los
+márgenes a 16 px, conservando el medianil de 24 px y el espaciado en múltiplos
+de 8.} Se declara aquí porque la aplicación es móvil primero (5.4) y el manual
+no resuelve ese caso.
+
+\subsectiontitle{5.4. Densidad táctil y orden de diseño}
+
+\begin{itemize}
+  \item \decision{Área táctil mínima de 44 por 44 píxeles} para todo control
+        accionable. Es lo que convierte RNF-14 en algo medible en lugar de una
+        intención. \textbf{Es compatible con el radio cero y con el espaciado de
+        8}: 44 no es múltiplo de 8, pero es una superficie mínima de
+        interacción, no una medida de maquetación.
+  \item \textbf{Móvil primero.} Las pantallas se diseñan para el teléfono y se
+        expanden hacia el escritorio. Se sigue del apartado 2.1 de la ERS: el
+        teléfono del ingeniero no es un caso degradado, es el caso principal.
+  \item \textbf{Tamaño base de 16 píxeles} en el cuerpo. Por debajo, los
+        navegadores móviles amplían al enfocar un campo, que es un salto visual
+        que confunde.
+\end{itemize}
+
+\subsectiontitle{5.5. Tono de los textos de la interfaz}
+
+El manual fija el tono de voz y afecta directamente a RNF-17:
+\textbf{directo e instructivo}, nunca entusiasta ni publicitario. Su propio
+ejemplo —``Orden cerrada. Próximo mantenimiento: 14 días''— es el modelo para
+los mensajes del sistema.
+
+\decision{Los mensajes de error siguen ese tono: dicen qué pasó y qué hacer, sin
+disculpas ni signos de exclamación.} La traducción de los códigos del backend
+(4.4) se redacta bajo esta regla.
+
+\subsectiontitle{5.6. Cómo se cuenta un paso (RNF-15)}
+
+RNF-15 pide procesos en seis pasos o menos y no define qué es un paso. Este
+documento lo define para poder comprobarlo:
+
+\decision{Un paso es cada interacción que el usuario debe completar para
+avanzar: abrir una pantalla, rellenar un campo obligatorio, elegir de una lista
+o confirmar.} No cuentan la navegación de vuelta, las acciones opcionales ni los
+datos que el sistema rellena solo.
+
+Bajo esa definición, crear una orden de trabajo son cinco pasos: cliente, sede,
+áreas, equipos, y datos del servicio con la confirmación. Queda uno de margen.
+
+\sectiontitle{6. Accesibilidad}
+
+\decision{La aplicación declara conformidad con WCAG 2.1 nivel AA, y se verifica
+automáticamente.}
+
+La ERS pide accesibilidad sin fijar nivel (RNF-12). Sin un nivel, el requisito no
+tiene criterio de aceptación y no se puede decir si se cumplió. Este documento lo
+fija.
+
+\begin{longtable}{p{5.2cm} p{8.6cm}}
+\textbf{Criterio} & \textbf{Cómo se cumple y se comprueba} \\
+\hline
+\endhead
+Contraste $\geq$ 4,5:1 en texto & Acento 700 \#AE1800 para texto y para el relleno de la acción principal (5.2.1) \\
+Área táctil $\geq$ 44 px & Tamaño mínimo en los componentes base \\
+Foco siempre visible & Indicador de foco propio, nunca suprimido \\
+Operable por teclado & Heredado de las primitivas del CDK, verificado en pruebas \\
+Formularios etiquetados & Etiqueta asociada y error vinculado a su campo \\
+Errores anunciados & Región de anuncio para lectores de pantalla \\
+\end{longtable}
+
+\textbf{La verificación no es opcional.} Las pruebas de integración ejecutan un
+analizador automático de accesibilidad sobre cada pantalla, y un fallo rompe la
+batería. La razón está aprendida en este mismo proyecto: \textbf{una regla
+declarada y no ejercitada envejece sola}, y ya ocurrió con una regla de negocio
+que se dio por construida durante una jornada entera sin estarlo.
+
+Queda dicho lo que la comprobación automática no cubre: detecta una parte de los
+problemas, no todos. El orden de lectura, la claridad del lenguaje y la
+utilidad real para un lector de pantalla exigen revisión humana.
+
+% =====================================================================
+\sectiontitle{7. Movilidad y comportamiento sin conexión}
+
+\subsectiontitle{7.1. Lo que se construye ahora}
+
+\decision{La aplicación se construye como una aplicación web responsiva y
+táctil. No es instalable y no funciona sin conexión.}
+
+\textbf{Las dos capacidades están decididas y aplazadas, no descartadas}: la
+aplicación tendrá instalación en el dispositivo y consulta sin conexión para el
+trabajo en campo. Se añadirán más adelante, y esta sección deja escrito el
+diseño con el que entrarán para que quien lo retome no vuelva a decidirlo.
+
+\subsectiontitle{7.2. Por qué aplazarlo no incumple la especificación}
+
+Conviene que quede dicho, porque el apartado 2.1 de la ERS habla de movilidad y
+podría leerse como que exige una aplicación instalable.
+
+No la exige. Lo que pide es que el sistema sea accesible desde el teléfono del
+ingeniero \textbf{sin instalar aplicaciones nativas}. \textbf{Una página web
+responsiva abierta en el navegador del teléfono satisface ese requisito por
+completo}, y de hecho lo satisface de la forma más literal posible: no hay nada
+que instalar.
+
+Lo mismo con el apartado 3.1.2, que lista la pantalla táctil entre las
+interfaces de hardware: eso lo cubre el diseño táctil de la sección 5.4, que sí
+entra desde el primer día.
+
+\textbf{Ningún requisito de la ERS pide instalación ni uso sin conexión.} Son
+mejoras del escenario de campo, no obligaciones, y por eso se pueden aplazar sin
+dejar nada incumplido.
+
+\subsectiontitle{7.3. Lo que se añadirá después, y con qué forma}
+
+\begin{itemize}
+  \item \textbf{Instalación en el dispositivo.} Manifiesto e icono para que el
+        ingeniero pueda anclar la aplicación a su pantalla de inicio y abrirla
+        a pantalla completa. Sigue sin instalarse nada nativo.
+  \item \textbf{Consulta sin conexión, de solo lectura.} Órdenes asignadas al
+        ingeniero, con sus equipos, sedes y áreas. Cubre el escenario de campo
+        más valioso: \textbf{llegar al hospital sabiendo qué hay que hacer}.
+  \item \textbf{Escritura sin conexión: no}, y no por falta de tiempo. Ver 7.4.
+\end{itemize}
+
+\subsectiontitle{7.4. Por qué la escritura sin conexión no entrará sin tocar el backend}
+
+Se evaluó permitir crear y avanzar órdenes sin señal, encolando los envíos, y
+\textbf{se descartó porque la factura sería del backend}. Lo que sigue está
+comprobado sobre el código, no supuesto:
+
+\begin{itemize}
+  \item \textbf{No hay claves de idempotencia.} Una orden creada sin señal y
+        reintentada al reconectar se crearía dos veces: el identificador lo
+        genera hoy el servidor en cada llamada.
+  \item \textbf{No hay bloqueo optimista.} No existe columna de versión en
+        ninguna de las seis migraciones, de modo que dos ediciones simultáneas
+        no se detectan.
+  \item \textbf{Reintroduciría una mentira histórica que el diseño ya impide.}
+        Una unidad de equipo puede trasladarse de área. Una orden creada sin
+        conexión congelaría el área que el dispositivo tenía en caché, que puede
+        no ser la real. El módulo de órdenes se diseñó explícitamente para que
+        el área congelada sea siempre la verdadera, y la escritura sin conexión
+        abriría esa puerta por detrás.
+\end{itemize}
+
+\textbf{Mientras la escritura exija conexión, el backend se mantiene cerrado.}
+Ésa es la razón de fondo por la que la consulta sin conexión es de solo lectura.
+
+\subsectiontitle{7.5. Decisiones ya tomadas para cuando se retome}
+
+Para que retomarlo sea construir y no volver a decidir:
+
+\begin{itemize}
+  \item \textbf{Si algún día entra la escritura sin conexión}, el camino
+        decidido es que \decision{el cliente genere el identificador de la orden
+        y el backend lo acepte en lugar de generarlo}. Reenviar la misma orden
+        escribiría entonces sobre la misma fila. Es un cambio acotado —el
+        agregado ya usa identificadores universales— pero toca dominio,
+        aplicación y capa de servicios con sus pruebas, y \textbf{el backend
+        dejaría de estar cerrado}.
+  \item \textbf{Qué se guardará en el dispositivo}: únicamente lo asignado al
+        ingeniero que ha iniciado sesión, y se borrará al cerrar sesión. Sin
+        cifrado propio: se confía en el del dispositivo, que es lo honesto,
+        porque una clave que vive en la misma página que descifra los datos
+        protege menos de lo que aparenta.
+  \item \textbf{Un supuesto que conviene no perder}: ese límite lo impondría el
+        cliente, \textbf{no el servidor}. El backend no filtra por propietario
+        —es deuda conocida y declarada— de modo que un usuario con permiso de
+        lectura puede solicitar el conjunto completo. La caché respetaría un
+        límite que nadie obliga a respetar.
+\end{itemize}
+
+\sectiontitle{8. Estrategia de pruebas}
+
+El backend llega a este punto con 624 pruebas, cero fallos y la costumbre de
+\textbf{verificar por mutación}: romper la producción a propósito para
+comprobar que algo se queja. El frontend adopta el mismo listón.
+
+\begin{longtable}{p{3.4cm} p{10.4cm}}
+\textbf{Nivel} & \textbf{Qué cubre} \\
+\hline
+\endhead
+Unitarias & Validación de formularios, guards, traducción de errores, lógica de los servicios de módulo \\
+Integración & La pantalla completa contra un API simulado, \textbf{con los códigos de error reales del backend} \\
+Extremo a extremo & Inicio de sesión y creación de una orden, contra el sistema real \\
+Accesibilidad & Analizador automático sobre cada pantalla, dentro de las pruebas de integración \\
+\end{longtable}
+
+Tres decisiones sobre cómo se prueba:
+
+\begin{itemize}
+  \item \textbf{El API simulado responde con los códigos reales.} Simular un
+        error genérico probaría que la pantalla muestra algo, no que muestra lo
+        correcto. La prueba de que \ruta{ERR_WORK_ORDER_002} se convierte en una
+        frase útil sólo vale si usa ese código.
+  \item \textbf{Las pruebas de extremo a extremo son pocas y deliberadas.} Sólo
+        cubren lo que ningún otro nivel puede: que Keycloak y el API se hablen
+        de verdad. Es justamente el tipo de integración que compila y no
+        funciona.
+  \item \textbf{Una prueba que se dobla para pasar describe el defecto en vez
+        de detectarlo.} Regla heredada del backend, donde ya evitó cerrar en
+        falso un fallo real.
+\end{itemize}
+
+% =====================================================================
+\sectiontitle{9. Plan de construcción}
+
+\decision{El primer bloque es una rebanada vertical: arranque de la aplicación,
+autenticación y el flujo completo de órdenes de trabajo.}
+
+\textbf{Por qué vertical y no por capas.} Atraviesa todo el sistema de una vez
+—sesión, datos, formularios, errores, accesibilidad— y cualquier decisión
+equivocada de este documento aparece en la primera semana y no en la quinta.
+
+\textbf{Qué arrastra consigo.} El formulario de una orden obliga a construir, de
+camino, el selector de cliente, el de sede de ese cliente, la selección múltiple
+de áreas de la sede y la de equipos del área. Son piezas que otros módulos
+reutilizarán.
+
+\textbf{Qué cierra.} Los cuatro requisitos que hoy están abiertos únicamente por
+falta de formulario: RF-03, RF-04, RF-06 y RF-07.
+
+Después, por dependencias: clientes y equipos completos, y luego los módulos que
+esperan backend.
+
+% =====================================================================
+\sectiontitle{10. Riesgos asumidos y lo que este documento no decide}
+
+\begin{longtable}{p{4.6cm} p{9.2cm}}
+\textbf{Riesgo} & \textbf{Por qué se acepta} \\
+\hline
+\endhead
+Dependencia de datos marcada como experimental & Aislada tras un servicio por módulo: si cambia, se tocan los servicios y no las pantallas \\
+Se descarta un componente reutilizable & La coherencia estructural con el backend se consideró más valiosa que ahorrar cuatro archivos \\
+El acento no alcanza AA como relleno de botón & Medido, no estimado. Resuelto con el paso 700 del propio manual, \#AE1800, que es su regla aplicada a un caso que no nombraba \\
+La caché respetaría un límite que el servidor no impone & Declarado en 7.5. No es un riesgo vivo mientras la caché esté aplazada \\
+\end{longtable}
+
+\textbf{Lo que este documento deja abierto a propósito:} la versión exacta del
+framework, que se fija al crear el proyecto; el diseño de cada pantalla, que
+corresponde al momento de construirla; la \textit{landing page}; los módulos
+cuyo backend no existe; y \textbf{cuándo entran la instalación y el uso sin
+conexión}, que están decididos en forma pero no en fecha.
+
+% =====================================================================
+\sectiontitle{11. Trazabilidad}
+
+\begin{longtable}{p{2.4cm} p{11.4cm}}
+\textbf{Requisito} & \textbf{Dónde lo atiende este documento} \\
+\hline
+\endhead
+RNF-02 & 3.5 y 3.3 — formularios reactivos y componentes de autocompletado \\
+RNF-05 & 9 — una sola entrada de los datos generales en el flujo de la orden \\
+RNF-07 & 3.5 — regla del formulario, no atributo visual \\
+RNF-12 & 6 — nivel AA declarado y verificado \\
+RNF-13 & 5.3 y 5.4 — retícula reducida en teléfono, y móvil primero \\
+RNF-14 & 5.4 — área táctil mínima de 44 píxeles \\
+RNF-15 & 5.6 — definición de paso y recuento del flujo principal \\
+RNF-16 & 3.3 — primitivas accesibles de lista, autocompletado y selección múltiple \\
+RNF-17 & 4.4 y 5.5 — catálogo de traducción por módulo, con el tono de voz del manual \\
+RNF-03, 04 & 3.4 — caché e invalidación como vía para los umbrales de tiempo \\
+RF-03, 04, 06, 07 & 9 — objetivo explícito del primer bloque \\
+ERS 2.1 & 7.1 y 7.2 — web responsiva en el navegador del teléfono, sin nada que instalar \\
+ERS 3.1.2 & 5.4 — diseño táctil \\
+\end{longtable}
+
+\vspace{1em}
+
+Este documento se revisa cuando una de sus decisiones resulte falsa. La
+corrección se escribe dejando constancia de qué decía antes y cuándo dejó de ser
+cierto, que es la convención del resto de la documentación del proyecto.
+
+\end{document}

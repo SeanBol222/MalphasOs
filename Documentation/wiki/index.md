@@ -38,6 +38,8 @@ Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la no
 - [[ers-ieee830]] — La Especificación de Requisitos de Software. Estructura completa, apartado por apartado.
 - [[documento-constitucion]] — El Project Charter. Objetivos, criterios, interesados, riesgos, Gantt.
 - [[plan-gestion-alcance]] — Cómo se define, descompone, verifica y controla el alcance de MSO.
+- [[declaracion-diseno-frontend]] ⭐ — Cómo se construye la interfaz: Angular, Tailwind, accesibilidad AA, offline aplazado. Y los tres costes que declara.
+- [[manual-de-marca]] ⭐ — **La autoridad del sistema visual.** Logotipo, color, tipografía, retícula y tono de voz.
 - [[matriz-de-trazabilidad]] ⭐ — El documento más nuevo y el que centraliza casi todos los defectos conocidos.
 - [[matriz-de-interesados]] — Análisis de interesados (Poder vs. Interés), expectativas, trazabilidad y riesgos.
 
@@ -54,4 +56,4 @@ Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la no
 
 ---
 
-**25 notas de contenido** más `CLAUDE.md` y `log.md` · última actualización 2026-09-05 · ver [[log.md]] para el historial.
+**27 notas de contenido** más `CLAUDE.md` y `log.md` · última actualización 2026-09-13 · ver [[log.md]] para el historial.

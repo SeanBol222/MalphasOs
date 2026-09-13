@@ -14,4 +14,6 @@ Todo lo que hace falta saber para escribir o corregir un documento de aquí —q
 
 ## Dónde se trabaja
 
-Worktree propio sobre la rama `MalphasOS-Documentation`; `malphasos/` y `SecondBrain/` son de solo lectura, incluso la copia que se ve desde aquí. Micro-commits en ramas `docs/<tema>`, sin mergear a `main`. El detalle completo —convenciones de commit, compilación, estructura de carpetas— está en la wiki, no aquí: este archivo se carga entero al abrir el worktree y debe orientar en treinta segundos, no contarlo todo.
+Micro-commits en ramas `docs/<tema>` desde `main` actualizado, y merge con `--no-ff`, igual que el resto del proyecto. El detalle completo —convenciones de commit, compilación, estructura de carpetas— está en la wiki, no aquí: este archivo debe orientar en treinta segundos, no contarlo todo.
+
+> **Corregido el 2026-09-13.** Aquí decía que se trabajaba en un «worktree propio sobre la rama `MalphasOS-Documentation`», con ramas que **no se mergeaban a `main`**. Esa rama y ese worktree **ya no existen**: se retiraron junto con los subagentes el 2026-09-12, y desde entonces `Documentation/` se trata como el resto del repositorio. La regla que sí sigue viva es la de más arriba: no se documenta como existente algo que no está implementado.
