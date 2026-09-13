@@ -133,6 +133,15 @@ public class OpenApiConfig {
                 .build();
     }
 
+    /** Ordenes de trabajo: el mantenimiento programado y su alcance. */
+    @Bean
+    public GroupedOpenApi workOrderApi() {
+        return GroupedOpenApi.builder()
+                .group("work-order")
+                .pathsToMatch(API + "/work-orders/**")
+                .build();
+    }
+
     /** Reportes que agregan datos de varios módulos. */
     @Bean
     public GroupedOpenApi reportsApi() {

@@ -206,7 +206,6 @@ class RestAuthorizationCoverageTest {
                 todasLasOperaciones().stream().map(RestAuthorizationCoverageTest::autoridadDe).collect(Collectors.toSet());
 
         Set<String> sinUsar = ApiAuthority.RESOURCE_AUTHORITIES.stream()
-                .filter(a -> !a.startsWith("work-order."))
                 .filter(a -> !citadas.contains(a))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
@@ -216,15 +215,30 @@ class RestAuthorizationCoverageTest {
     }
 
     @Test
-    @DisplayName("las autoridades de work-order todavia no protegen ningun endpoint")
-    void lasAutoridadesDeWorkOrderSiguenSinModulo() {
-        // Omision consciente: figuran en el catalogo y en el realm porque el grupo de ingenieros ya
-        // las tiene, pero el modulo no existe. Esta prueba falla el dia que aparezcan sus endpoints,
-        // que es cuando hay que venir aqui y sustituirla por las suyas.
+    @DisplayName("las tres autoridades de work-order protegen ya sus endpoints")
+    void lasAutoridadesDeWorkOrderProtegenSuModulo() {
+        // Hasta el 2026-09-12 esta prueba afirmaba lo contrario —que no protegian nada— como
+        // omision consciente: las tres figuraban en el catalogo y en el realm porque el grupo de
+        // ingenieros ya las tenia, pero el modulo no existia. Fallo el dia que aparecieron sus
+        // endpoints, que es exactamente lo que se le pedia, y se sustituyo por esta.
         Set<String> citadas =
                 todasLasOperaciones().stream().map(RestAuthorizationCoverageTest::autoridadDe).collect(Collectors.toSet());
 
-        assertThat(citadas).noneMatch(a -> a.startsWith("work-order."));
+        assertThat(citadas).contains("work-order.read", "work-order.write", "work-order.assign");
+    }
+
+    @Test
+    @DisplayName("asignar es la unica operacion que exige work-order.assign")
+    void workOrderAssignProtegeSoloLaAsignacion() {
+        // Es lo que permite que un coordinador reparta trabajo sin poder alterar lo que se va a
+        // hacer. Si algun dia otra operacion la exige, esa separacion deja de existir en silencio.
+        List<Method> conAssign = todasLasOperaciones().stream()
+                .filter(m -> "work-order.assign".equals(autoridadDe(m)))
+                .toList();
+
+        assertThat(conAssign).singleElement()
+                .extracting(Method::getName)
+                .isEqualTo("assign");
     }
 
     @Test
