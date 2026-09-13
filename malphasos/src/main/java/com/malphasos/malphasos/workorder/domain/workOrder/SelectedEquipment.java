@@ -1,6 +1,5 @@
 package com.malphasos.malphasos.workorder.domain.workOrder;
 
-import java.util.Objects;
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -34,7 +33,23 @@ public class SelectedEquipment {
 
     public static SelectedEquipment of(UUID idEquipoCliente, UUID idAreaServicio) {
         return new SelectedEquipment(
-                Objects.requireNonNull(idEquipoCliente, "Un equipo de la orden necesita su unidad"),
-                Objects.requireNonNull(idAreaServicio, "Un equipo de la orden necesita su area"));
+                exigir(idEquipoCliente, "unidad"), exigir(idAreaServicio, "area de servicio"));
+    }
+
+    /**
+     * Rechaza el nulo como dato inválido y no como fallo de programación.
+     *
+     * <p>{@code Objects.requireNonNull} sería lo natural si el nulo delatara un error de quien
+     * escribió el código, pero aquí llega de fuera: alguien envía una petición sin el identificador
+     * del equipo. La diferencia se paga en el API — cada módulo traduce
+     * {@code IllegalArgumentException} a un 400 en su advice, y nadie traduce
+     * {@code NullPointerException}, que saldría como 500 fuera del contrato de error.
+     */
+    private static UUID exigir(UUID valor, String campo) {
+        if (valor == null) {
+            throw new IllegalArgumentException("Un equipo de la orden necesita su " + campo);
+        }
+
+        return valor;
     }
 }

@@ -222,14 +222,16 @@ class WorkOrderTest {
         }
 
         @Test
-        @DisplayName("el equipo y su area son obligatorios")
+        @DisplayName("el equipo y su area son obligatorios, y se rechazan como dato invalido")
         void exigeEquipoYArea() {
+            // IllegalArgumentException y no NullPointerException: el advice de cada modulo
+            // traduce la primera a un 400, y la segunda saldria como 500 fuera del contrato.
             WorkOrder orden = unaOrden();
 
-            assertThat(catchNullPointer(() -> orden.addEquipment(null, UUID.randomUUID())))
-                    .isTrue();
-            assertThat(catchNullPointer(() -> orden.addEquipment(UUID.randomUUID(), null)))
-                    .isTrue();
+            assertThatIllegalArgumentException()
+                    .isThrownBy(() -> orden.addEquipment(null, UUID.randomUUID()));
+            assertThatIllegalArgumentException()
+                    .isThrownBy(() -> orden.addEquipment(UUID.randomUUID(), null));
         }
 
         @Test
@@ -243,15 +245,6 @@ class WorkOrderTest {
             assertThatCode(() -> copia.clear())
                     .isInstanceOf(UnsupportedOperationException.class);
             assertThat(orden.getEquipos()).hasSize(1);
-        }
-
-        private static boolean catchNullPointer(Runnable accion) {
-            try {
-                accion.run();
-                return false;
-            } catch (NullPointerException e) {
-                return true;
-            }
         }
     }
 
