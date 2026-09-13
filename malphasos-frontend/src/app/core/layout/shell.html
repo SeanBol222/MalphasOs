@@ -1,0 +1,42 @@
+<!--
+  El manual de marca: alineado a la izquierda, radio cero, el acento solo para
+  senalar. La retícula son 12 columnas con margenes de 48 px en escritorio; en
+  telefono, 4 columnas y 16 px -extension propia, el manual no resuelve anchos
+  estrechos-.
+-->
+<a
+  class="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:m-1 focus:bg-ink focus:px-2 focus:py-1 focus:text-paper"
+  href="#contenido"
+>
+  Saltar al contenido
+</a>
+
+<header class="border-b border-neutral-300 bg-paper">
+  <div class="mx-auto flex max-w-[1440px] items-center gap-2 px-2 py-2 md:px-6">
+    <span class="text-lg font-bold tracking-tight">
+      Malphas<span class="text-accent-700">OS</span>
+    </span>
+    <span class="text-sm text-neutral-700">Gestión de mantenimiento</span>
+  </div>
+
+  <nav aria-label="Navegación principal" class="mx-auto max-w-[1440px] px-2 md:px-6">
+    <ul class="flex list-none gap-1">
+      @for (entrada of navegacion; track entrada.ruta) {
+        <li>
+          <a
+            class="flex min-h-tactil items-center border-b-2 border-transparent px-2 font-semibold text-neutral-800 hover:text-ink"
+            routerLinkActive="border-accent text-ink"
+            ariaCurrentWhenActive="page"
+            [routerLink]="entrada.ruta"
+          >
+            {{ entrada.etiqueta }}
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+</header>
+
+<main id="contenido" class="mx-auto max-w-[1440px] px-2 py-3 md:px-6" tabindex="-1">
+  <router-outlet />
+</main>
