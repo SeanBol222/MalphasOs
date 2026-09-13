@@ -116,7 +116,7 @@ Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la ú
 
 **Ampliación del 2026-09-13, el módulo de órdenes de trabajo completo.** Dos columnas más, medidas igual:
 
-| Fuente | `main` (`97ef74f`) | `ceadba1` (REST) | `main` (`b9563a9`, todo dentro) |
+| Fuente | `97ef74f` (el dominio) | `ceadba1` (REST) | `b9563a9` (todo mergeado) |
 |---|---|---|---|
 | elementos `<testcase>` — **el conteo honesto** | **580** | **612** | **614** |
 | atributo `tests=` de los `<testsuite>` | 578 | **609** | **611** |
@@ -128,6 +128,8 @@ Los dos que separan 496 de 494 siguen saliendo de `CatalogAggregatesTest`, la ú
 La tercera columna estuvo **con guiones durante un commit**. Al añadir las dos pruebas de la regla de la sede solo se midió `<testcase>` (614), y esta nota dijo que «afirmar **611 y 435** sin haberlos contado sería inventarlos».
 
 Al medirse de verdad tras el merge: **611 y 433**. Uno acertado y **el otro no**.
+
+Las columnas nombran **commits y no ramas**, también a propósito: una medición pertenece al commit en el que se contó y ahí se queda, mientras que «`main`» apunta cada día a otro sitio. Ver la tabla de la sección «Por qué ya no se escribe el hash de `main`» del `CLAUDE.md` de la raíz.
 
 El fallo habría sido en los `.txt`, y por la razón que esta nota lleva repitiendo: las dos pruebas nuevas están dentro de una clase `@Nested` ya existente, `AlAnadirUnEquipo`, de modo que **esa fuente no las cuenta y se queda clavada en 433**. Quien dedujera «+2 en todo» se equivocaría exactamente en la fuente cuyo comportamiento raro está documentado tres párrafos más arriba.
 
