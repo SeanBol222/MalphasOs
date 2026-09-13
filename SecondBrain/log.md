@@ -552,3 +552,20 @@ La salida no fue borrar ninguna sino **ordenarlas**: el dueño se comprueba dela
 **Deuda: el total se queda en 25 filas y las abiertas bajan de 18 a 17.** La fila de la regla se tacha el mismo día que se abrió, pero no desaparece: el porqué de un defecto sigue valiendo después de arreglarlo, y por eso esa lista cuenta **lo registrado y no lo pendiente** — algo que este log había dado por equivalente. La que queda viva de esta tanda es **la persistencia de `work-order` sin pruebas**, ahora lo único del módulo sin cubrir.
 
 **Tocadas**: [[dominio-orden-trabajo]], [[deuda-tecnica-y-riesgos]], [[regla-traslado-mismo-cliente]], [[decisiones-tecnicas-malphasos]], [[stack-spring-boot-4-particularidades]] y el `CLAUDE.md` de la raíz.
+
+
+## [2026-09-13] lint | Los tres merges, y la vez que no deducir salió a cuenta con número
+
+**El quinto módulo entra en `main`.** Tres merges `--no-ff` en orden —`e69437d` las tandas 3 y 4, `1adc2fc` la regla que faltaba, `b9563a9` las dos pasadas de wiki— y las cuatro ramas borradas, incluida `feat/work-order-application`, que llevaba colgada apuntando a un ancestro. **No queda ninguna rama de código fuera de `main`**, por primera vez desde el 2026-09-09.
+
+`main` (`b9563a9`) mide **614** elementos `<testcase>`, 46 clases, cero fallos, cero errores, cero omitidas. `git fsck --strict` limpio, sin stashes y sin worktrees.
+
+**Y una comprobación que esta vez tiene número.** La pasada anterior dejó dos casillas de la tabla de conteos **con guiones**, diciendo que afirmar «**611 y 435**» sin haberlos medido sería inventarlos. Medidos tras el merge: **611 y 433**. **Uno acertado y el otro no.**
+
+El fallo habría sido en los `.txt`, y por la razón que [[stack-spring-boot-4-particularidades]] lleva repitiendo: las dos pruebas nuevas viven dentro de una clase `@Nested` ya existente, así que esa fuente **no las cuenta y se queda clavada en 433**. Quien dedujera «+2 en todo» se equivocaría justo en la fuente cuyo comportamiento raro está documentado en la misma nota, tres párrafos más arriba.
+
+**Es la mejor defensa que ha tenido la regla de no deducir**: no falla por principio, falla **una de cada dos veces**, y la que falla es la que uno cree tener entendida. Registrado con la cifra en [[stack-spring-boot-4-particularidades]].
+
+**Cuarta corrección en dos días a la línea de «qué rama queda fuera»**, en [[checklist-reutilizacion]] y en el `CLAUDE.md` de la raíz. A estas alturas la reincidencia ya no es un dato sino una regla: **toda pasada de wiki empieza por `git log main..HEAD`**, nunca por lo que dijo la anterior.
+
+**Tocadas**: [[stack-spring-boot-4-particularidades]], [[dominio-orden-trabajo]], [[checklist-reutilizacion]] y el `CLAUDE.md` de la raíz.
