@@ -52,9 +52,22 @@ public class PersonService implements PersonServicePort {
     }
 
     @Override
+    /**
+     * Alta de una persona <b>sin acceso al sistema</b>.
+     *
+     * <p>Solo admite {@link PersonType#MANAGER}. Los demás tipos tienen su propia puerta, cada una
+     * con su propia autoridad, y esta es la única que no crea usuario en el proveedor de identidad:
+     * dejarla aceptar cualquier tipo permitía escribir una fila que dice ser un administrador sin
+     * serlo, y saltarse de paso la escalera que las otras puertas imponen.
+     *
+     * <p>Es exactamente lo que un encargado necesita: existir como contacto de una sede sin entrar
+     * nunca a la aplicación. Sus dos llamantes —el alta directa y el registro de un encargado desde
+     * {@code client}— traen ya ese tipo.
+     */
     @Transactional
     public Person save(Person person) {
 
+        requireWithoutAccess(person);
         person.validateRoles();
 
         person.setIdentificador(UUID.randomUUID());
@@ -100,6 +113,16 @@ public class PersonService implements PersonServicePort {
      * <p>En el original este método estaba escrito tres veces, una por rol, con cuerpos idénticos
      * salvo el valor del rol.
      */
+    /** Esta puerta no crea usuario, de modo que solo sirve para quien no lo necesita. */
+    private void requireWithoutAccess(Person person) {
+        if (person == null || person.getTipoPersona() != PersonType.MANAGER) {
+            throw new IllegalArgumentException(
+                    "Esta alta es solo para encargados, que no acceden al sistema. Para "
+                            + "ingenieros, administradores y representantes de cliente hay una ruta "
+                            + "propia que ademas crea su usuario");
+        }
+    }
+
     private Person register(PersonUseCaseRequest request, PersonType tipoPersona, RoleType roleType) {
 
         String userId = personIdentityPort.createUser(identityRequestFrom(request), roleType);

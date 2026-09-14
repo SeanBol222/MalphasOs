@@ -76,7 +76,7 @@ public class PersonRestAdapter {
     @Operation(
             summary = "Registrar un ingeniero",
             description = "Crea la persona y su usuario en el proveedor de identidad.")
-    @PreAuthorize("hasAuthority('person.write')")
+    @PreAuthorize("hasAuthority('super.person.write')")
     @PostMapping("/engineers")
     public ResponseEntity<PersonResponse> registerEngineer(
             @Valid @RequestBody PersonRegisterRequest request) {
@@ -87,7 +87,7 @@ public class PersonRestAdapter {
     @Operation(
             summary = "Registrar un administrador",
             description = "Crea la persona y su usuario en el proveedor de identidad.")
-    @PreAuthorize("hasAuthority('person.write')")
+    @PreAuthorize("hasAuthority('super.person.write')")
     @PostMapping("/admins")
     public ResponseEntity<PersonResponse> registerAdmin(
             @Valid @RequestBody PersonRegisterRequest request) {
@@ -107,7 +107,7 @@ public class PersonRestAdapter {
     }
 
     @Operation(summary = "Actualizar los datos de una persona")
-    @PreAuthorize("hasAuthority('person.write')")
+    @PreAuthorize("@personWriteGuard.canWrite(#id, authentication)")
     @PutMapping("/{id}")
     public PersonResponse updatePerson(
             @Parameter(description = "Identificador de la persona") @PathVariable UUID id,
@@ -120,7 +120,7 @@ public class PersonRestAdapter {
     @Operation(
             summary = "Desactivar una persona",
             description = "No la elimina: la marca como inactiva y conserva su historial.")
-    @PreAuthorize("hasAuthority('person.write')")
+    @PreAuthorize("@personWriteGuard.canWrite(#id, authentication)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePerson(
             @Parameter(description = "Identificador de la persona") @PathVariable UUID id) {

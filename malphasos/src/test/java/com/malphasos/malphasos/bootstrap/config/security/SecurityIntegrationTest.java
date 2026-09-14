@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.bootstrap.config.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -8,11 +9,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
+import com.malphasos.malphasos.person.domain.person.Person;
+import com.malphasos.malphasos.person.domain.person.PersonType;
 import java.time.Instant;
+import java.util.UUID;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,6 +76,57 @@ class SecurityIntegrationTest {
     @MockitoBean private JwtDecoder jwtDecoder;
 
     @MockitoBean private PersonServicePort personServicePort;
+
+    /**
+     * La persona sobre la que se escribe en estas pruebas es un representante de cliente.
+     *
+     * <p>Desde que la escalera de usuarios existe, escribir sobre alguien depende de <b>qué es</b>
+     * esa persona: {@code PersonWriteGuard} la consulta antes de dejar pasar. Sin este doble el
+     * puerto devuelve {@code null} y la peticion muere con un 500 que se leeria como un fallo de
+     * autorizacion.
+     */
+    @BeforeEach
+    void laPersonaDelIdentificadorEsUnRepresentante() {
+        when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.CEO_CLIENT));
+    }
+
+    /**
+     * Un alta valida.
+     *
+     * <p>Tiene que serlo: la validacion del cuerpo se resuelve <b>antes</b> que
+     * {@code @PreAuthorize}, de modo que un cuerpo incompleto responde 400 y tapa el 403 que estas
+     * pruebas buscan. Con {@code {}} la prueba del super usuario pasaba sin ejercer nada.
+     */
+    private static final String ALTA_VALIDA =
+            """
+            {
+              "cedula": "1000000001",
+              "primerNombre": "Sean",
+              "primerApellido": "Bolivar",
+              "nombreUsuario": "sbolivar",
+              "password": "ContrasenaLarga123",
+              "emailPersonList": [{"correoPersona": "sean@example.com"}]
+            }
+            """;
+
+    /** Una edicion valida, por el mismo motivo que {@link #ALTA_VALIDA}. */
+    private static final String EDICION_VALIDA =
+            """
+            {
+              "cedula": "1000000001",
+              "primerNombre": "Sean",
+              "primerApellido": "Bolivar",
+              "tipoPersona": "ENGINEER"
+            }
+            """;
+
+    private static Person personaDeTipo(PersonType tipo) {
+        Person persona = new Person();
+        persona.setIdentificador(UUID.fromString(ID));
+        persona.setTipoPersona(tipo);
+
+        return persona;
+    }
 
     /** Construye el claim con la forma exacta en que Keycloak publica los roles de un client. */
     private static Map<String, Object> resourceAccessWith(String... roles) {
@@ -147,6 +203,84 @@ class SecurityIntegrationTest {
 
     private void prohibido(MockHttpServletRequestBuilder peticion) throws Exception {
         mockMvc.perform(peticion).andExpect(status().isForbidden());
+    }
+
+    @Nested
+    @DisplayName("La escalera de usuarios")
+    class LaEscaleraDeUsuarios {
+
+        @Test
+        @DisplayName("el administrador da de alta representantes de cliente")
+        void elAdministradorAltaRepresentantes() throws Exception {
+            autorizado(post("/v1/api/persons/ceo-clients")
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(ALTA_VALIDA));
+        }
+
+        @Test
+        @DisplayName("pero NO da de alta ingenieros ni administradores")
+        void elAdministradorNoAltaGenteDeLaCasa() throws Exception {
+            // Es el escalon entero. El grupo admins trae admin.full, que expande a las diecisiete
+            // autoridades de recurso: si super.person.write estuviera entre ellas, esto pasaria.
+            for (String ruta : new String[] {"/v1/api/persons/engineers", "/v1/api/persons/admins"}) {
+                prohibido(post(ruta)
+                        .with(comoElGrupo("admins"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ALTA_VALIDA));
+            }
+        }
+
+        @Test
+        @DisplayName("el super usuario si da de alta ingenieros y administradores")
+        void elSuperUsuarioAltaGenteDeLaCasa() throws Exception {
+            for (String ruta : new String[] {"/v1/api/persons/engineers", "/v1/api/persons/admins"}) {
+                autorizado(post(ruta)
+                        .with(conRoles(ApiAuthority.SUPER_ADMIN_FULL))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ALTA_VALIDA));
+            }
+        }
+
+        @Test
+        @DisplayName("el administrador edita y retira a un representante de cliente")
+        void elAdministradorTocaAlRepresentante() throws Exception {
+            // El doble devuelve un CEO_CLIENT, de modo que basta person.write.
+            autorizado(delete("/v1/api/persons/" + ID).with(comoElGrupo("admins")));
+        }
+
+        @Test
+        @DisplayName("pero NO puede tocar a un ingeniero, aunque la ruta sea la misma")
+        void elAdministradorNoTocaAlIngeniero() throws Exception {
+            // La ruta no dice de que tipo es: lo dice la fila. Es justamente el caso que una
+            // autoridad literal en la anotacion no puede distinguir.
+            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.ENGINEER));
+
+            prohibido(delete("/v1/api/persons/" + ID).with(comoElGrupo("admins")));
+            prohibido(put("/v1/api/persons/" + ID)
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(EDICION_VALIDA));
+        }
+
+        @Test
+        @DisplayName("ni tocar sus correos ni sus telefonos, que cuelgan de la misma persona")
+        void elAdministradorNoTocaLosContactosDelIngeniero() throws Exception {
+            // Los sub-recursos llevan la persona en la ruta, asi que la escalera les aplica igual.
+            // Sin esto quedaria una puerta trasera para editar a alguien que no se puede editar.
+            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.ENGINEER));
+
+            prohibido(delete("/v1/api/persons/" + ID + "/emails/" + ID).with(comoElGrupo("admins")));
+            prohibido(delete("/v1/api/persons/" + ID + "/phones/" + ID).with(comoElGrupo("admins")));
+        }
+
+        @Test
+        @DisplayName("el super usuario si puede tocar a un ingeniero")
+        void elSuperUsuarioTocaAlIngeniero() throws Exception {
+            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.ENGINEER));
+
+            autorizado(delete("/v1/api/persons/" + ID).with(conRoles(ApiAuthority.SUPER_ADMIN_FULL)));
+        }
     }
 
     @Test
