@@ -1,0 +1,121 @@
+/*
+ * Sistema de diseño de MalphasOS.
+ *
+ * La autoridad es el Manual de Marca v1.0, en Documentation/FrontendDesign/BrandManual/.
+ * Este archivo no decide nada: traduce el manual a tokens de Tailwind. Donde discrepen,
+ * manda el manual. Ver SecondBrain/wiki/frontend/sistema-de-diseno-malphasos.md.
+ */
+
+@import 'tailwindcss';
+@import '@fontsource-variable/archivo';
+
+@theme {
+  /* --- Tipografia ------------------------------------------------------
+   * Una sola familia. Las sustitutas son las que el manual nombra, en su orden.
+   */
+  --font-sans: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Interlineados del manual: titulos apretados, cuerpo holgado. */
+  --leading-titulo: 1;
+  --leading-cuerpo: 1.55;
+
+  /* --- Color -----------------------------------------------------------
+   * Los cuatro nombrados del manual, mas el paso 700 del acento, que es el
+   * unico rojo que sostiene texto encima. Ver la nota de contraste abajo.
+   */
+  --color-ink: #201e1d;
+  --color-paper: #f3f2f2;
+  --color-brand-black: #2d2b2b;
+  --color-accent: #ec3013;
+
+  /* Escala neutra, 100 a 900. El paso 900 es el negro de marca. */
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
+
+  /* Escala de acento, 100 a 900. El paso 600 es el acento de marca. */
+  --color-accent-100: #fff2ef;
+  --color-accent-200: #ffe0d9;
+  --color-accent-300: #ffc4b8;
+  --color-accent-400: #ff9783;
+  --color-accent-500: #ff563c;
+  --color-accent-600: #ec3013;
+  --color-accent-700: #ae1800;
+  --color-accent-800: #7c1405;
+  --color-accent-900: #4d170e;
+
+  /* --- Espaciado -------------------------------------------------------
+   * El manual manda multiplos de 8 px. Aqui no se recomienda: se hace
+   * imposible expresar otra cosa. Con la base en 8, p-1 son 8 px y p-2 son
+   * 16; los 4 px ya no se pueden escribir con la escala.
+   *
+   * Es el mismo principio que el backend aplico al area de una orden de
+   * trabajo: una regla que no se puede expresar no se puede violar.
+   */
+  --spacing: 0.5rem;
+
+  /* El area tactil minima de 44 px NO es multiplo de 8, y no pasa nada:
+   * es una superficie minima de interaccion, no una medida de maquetacion.
+   * Va como token propio para que se pueda escribir min-h-tactil.
+   */
+  --spacing-tactil: 2.75rem;
+
+  /* Reticula del manual. */
+  --spacing-medianil: 1.5rem; /* 24 px, igual en telefono y escritorio */
+  --spacing-margen: 6rem; /* 48 px de margen en escritorio */
+  --spacing-margen-movil: 2rem; /* 16 px, extension propia: el manual no
+                                 * resuelve anchos estrechos */
+
+  /* --- Forma -----------------------------------------------------------
+   * Radio cero en todo. Se anulan los radios que Tailwind trae por omision
+   * para que rounded-* deje de existir como utilidad.
+   */
+  --radius-*: initial;
+  --radius-none: 0;
+}
+
+@layer base {
+  /* El manual: tinta sobre papel, alineado a la izquierda, nunca centrado
+   * ni justificado. */
+  html {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    /* 16 px. Por debajo, los navegadores moviles amplian al enfocar un
+     * campo y producen un salto visual que confunde. */
+    font-size: 1rem;
+    line-height: var(--leading-cuerpo);
+    text-align: left;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 700;
+    line-height: var(--leading-titulo);
+  }
+
+  /* Foco siempre visible. WCAG 2.1 AA, y el manual lo quiere en acento.
+   * Como elemento no textual el umbral es 3,0 y #EC3013 da 3,76:1 sobre
+   * papel: aqui si cumple. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* Medida maxima de lectura del manual: 70 caracteres. */
+  p {
+    max-width: 70ch;
+  }
+}

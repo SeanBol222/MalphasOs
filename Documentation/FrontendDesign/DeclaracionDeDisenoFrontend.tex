@@ -276,9 +276,42 @@ ojos abiertos: la coherencia estructural con el backend se consideró más
 valiosa que ahorrar la reescritura de cuatro archivos.
 
 \textbf{Versión.} \decision{No se fija aquí una versión de memoria.} Se adopta
-la estable en el momento de crear el proyecto y \textbf{se anota en este mismo
-apartado al crearlo}, igual que el backend fija Spring Boot 4.1.1. Una versión
-escrita de antemano y nunca comprobada es una afirmación que nace falsa.
+la estable en el momento de crear el proyecto y se anota en este mismo apartado
+al crearlo, igual que el backend fija Spring Boot 4.1.1. Una versión escrita de
+antemano y nunca comprobada es una afirmación que nace falsa.
+
+\textbf{Anotado el 2026-09-13, al crear el proyecto:}
+
+\begin{longtable}{p{5cm} p{2.8cm} p{5.8cm}}
+\textbf{Pieza} & \textbf{Versión} & \textbf{Nota} \\
+\hline
+\endhead
+Angular & 22.1.0 & CLI 22.1.8 \\
+TypeScript & 6.0.2 & \\
+Tailwind CSS & 4.1.12 & Configuración en CSS; \textbf{no hay} \ruta{tailwind.config.js} \\
+Vitest & 4.0.8 & Ejecutor de pruebas \textbf{por omisión} del CLI \\
+Node & 26.2.0 & \\
+\end{longtable}
+
+\textbf{Y una decisión que este documento no había tomado, porque el CLI la
+ofrece de primera clase: la aplicación es \emph{zoneless}.} No incluye
+\ruta{zone.js}; la detección de cambios se apoya en señales. Es la dirección
+hacia la que Angular empuja y encaja con que la capa de datos —TanStack Query—
+sea también de señales. \textbf{Es reversible} con una línea si alguna
+dependencia de terceros resultara incompatible.
+
+Tres cosas salieron mejor de lo previsto, y conviene anotarlas porque este
+documento las daba por trabajo pendiente:
+
+\begin{itemize}
+  \item \textbf{Tailwind lo instala el propio CLI} con \ruta{--style=tailwind}.
+        No hay que cablearlo a mano.
+  \item \textbf{Vitest es el ejecutor por omisión}, no Karma. El apartado 8
+        contemplaba cualquiera de los dos.
+  \item \textbf{La versión real es la 22}, no la 19 que se manejó como ejemplo
+        al discutir este documento. Es exactamente el motivo por el que no se
+        fijó de memoria.
+\end{itemize}
 
 \subsectiontitle{3.2. Estilos: Tailwind con la paleta oficial como tokens}
 
