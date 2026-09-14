@@ -56,7 +56,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 ### Seguridad e identidad
 
 - [[seguridad-keycloak-backend]] — Resource server + admin client, dos piezas separadas. Incluye la ventana del token ya emitido.
-- [[modelo-de-permisos]] — Las 19 autoridades del API y la expansión del administrador en dos capas. (Decía «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `e6dda32`.)
+- [[modelo-de-permisos]] ⭐ — Las **20** autoridades, la expansión en **dos escalones**, la **escalera de usuarios** —quién crea a quién— y la única excepción acotada a la autoridad literal. (Decía «19 autoridades» y «en dos capas»: cierto hasta el **2026-09-13**. Y antes «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `e6dda32`.)
 - [[sincronizacion-con-proveedor-de-identidad]] — Dos sistemas de registro sin transacción compartida: en qué orden llamarlos y qué queda sin cerrar. (Decía «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `258cd81`.)
 - [[issuer-uri-vs-jwk-set-uri]] — Por qué Keycloak en Docker devuelve 401 con tokens válidos.
 - [[keycloak-configuracion]] — El realm, sus clients y sus grupos.
