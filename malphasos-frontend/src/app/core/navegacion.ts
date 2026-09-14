@@ -23,6 +23,7 @@ export interface EntradaDeNavegacion {
  */
 export const NAVEGACION: readonly EntradaDeNavegacion[] = [
   { ruta: 'inicio', etiqueta: 'Inicio' },
+  { ruta: 'clientes', etiqueta: 'Clientes' },
 ] as const;
 
 /** Las rutas hijas del armazon, derivadas de {@link NAVEGACION}. */
@@ -42,6 +43,8 @@ function cargarPagina(ruta: string): Promise<any> {
   switch (ruta) {
     case 'inicio':
       return import('../features/home/inicio').then((m) => m.Inicio);
+    case 'clientes':
+      return import('../features/client/lista/lista-clientes').then((m) => m.ListaClientes);
     default:
       throw new Error(`La entrada de navegacion "${ruta}" no tiene pagina asociada`);
   }

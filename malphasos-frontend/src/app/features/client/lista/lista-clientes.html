@@ -1,0 +1,52 @@
+<div class="flex flex-wrap items-center justify-between gap-2">
+  <h1 class="text-2xl font-bold">Clientes</h1>
+
+  <a
+    class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+    routerLink="/clientes/nuevo"
+  >
+    Nuevo cliente
+  </a>
+</div>
+
+@if (clientes.isPending()) {
+  <p class="mt-3 text-neutral-700" role="status">Cargando clientes…</p>
+} @else if (clientes.isError()) {
+  <!-- El tono del manual: que paso y que hacer, sin disculpas. -->
+  <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+    <p class="font-semibold">{{ mensajeDeError() }}</p>
+  </div>
+} @else if (clientes.data()?.length === 0) {
+  <p class="mt-3 text-neutral-700">
+    Todavía no hay clientes registrados. Empiece dando de alta el primero.
+  </p>
+} @else {
+  <table class="mt-3 w-full border-collapse text-left">
+    <caption class="sr-only">Clientes registrados</caption>
+    <thead>
+      <tr class="border-b border-neutral-300">
+        <th scope="col" class="py-1 pr-2 font-semibold">Razón social</th>
+        <th scope="col" class="py-1 pr-2 font-semibold">Documento</th>
+        <th scope="col" class="py-1 font-semibold">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (cliente of clientes.data(); track cliente.id) {
+        <tr class="border-b border-neutral-200">
+          <td class="py-1 pr-2">{{ cliente.razonSocial }}</td>
+          <td class="py-1 pr-2">
+            {{ cliente.documento }}
+            <span class="text-neutral-700">· {{ etiqueta(cliente.tipoIdentificacion) }}</span>
+          </td>
+          <!--
+            El manual: los estados se distinguen por peso tipografico y no por colores nuevos.
+            Un cliente retirado NO se pinta de rojo.
+          -->
+          <td class="py-1" [class.font-semibold]="cliente.estadoActivo">
+            {{ cliente.estadoActivo ? 'Activo' : 'Retirado' }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

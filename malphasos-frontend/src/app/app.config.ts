@@ -1,5 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-experimental';
 import { provideRouter } from '@angular/router';
 import {
   INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG,
@@ -36,5 +37,13 @@ export const appConfig: ApplicationConfig = {
       ],
     }),
     provideHttpClient(withInterceptors([includeBearerTokenInterceptor])),
+    // La cache que ataca los umbrales de dos segundos de la ERS: una lista ya vista no se vuelve a
+    // pedir. Los reintentos van a uno: con el token caducado, reintentar tres veces solo retrasa
+    // el momento en que el usuario se entera.
+    provideTanStackQuery(
+      new QueryClient({
+        defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+      }),
+    ),
   ],
 };
