@@ -7,6 +7,8 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.UUID;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,6 +44,20 @@ class RestAuthorizationCoverageTest {
 
     /** La única forma admitida: una sola autoridad, nombrada literalmente. */
     private static final Pattern UNA_SOLA_AUTORIDAD = Pattern.compile("^hasAuthority\\('([^']+)'\\)$");
+
+    /**
+     * La segunda forma valida: delegar en un bean cuando la autoridad exigida depende del dato.
+     *
+     * <p>Existe desde el 2026-09-13 por la escalera de usuarios: al editar o retirar a alguien, lo
+     * que se puede hacer depende de <b>que tipo de persona es</b>, y eso no esta en la ruta sino en
+     * la fila. Una autoridad literal no lo puede expresar.
+     *
+     * <p><b>Es una excepcion acotada, no una puerta abierta.</b> Otra prueba fija que solo la usen
+     * las operaciones que reciben un identificador de persona: en cuanto sirva para esquivar una
+     * autoridad literal en otro sitio, el modelo de permisos vuelve a estar repartido.
+     */
+    private static final Pattern DELEGA_EN_UN_BEAN =
+            Pattern.compile("^@(\\w+)\\.\\w+\\([^)]*\\)$");
 
     /** Vocabulario real, leído de las constantes de {@link ApiAuthority}. */
     private static final Set<String> VOCABULARIO = vocabularioDeclarado();
@@ -100,6 +116,25 @@ class RestAuthorizationCoverageTest {
         Matcher m = UNA_SOLA_AUTORIDAD.matcher(anotacion.value().trim());
 
         return m.matches() ? m.group(1) : null;
+    }
+
+    /** Si la anotacion delega la decision en un bean en vez de nombrar una autoridad. */
+    private static boolean delegaEnUnBean(Method operacion) {
+        PreAuthorize anotacion = AnnotatedElementUtils.findMergedAnnotation(operacion, PreAuthorize.class);
+
+        return anotacion != null && DELEGA_EN_UN_BEAN.matcher(anotacion.value().trim()).matches();
+    }
+
+    /** Si la operacion vive bajo una ruta de personas y recibe el identificador de una. */
+    private static boolean recibeUnaPersonaPorIdentificador(Method operacion) {
+        RequestMapping mapeo = AnnotatedElementUtils.findMergedAnnotation(
+                operacion.getDeclaringClass(), RequestMapping.class);
+        boolean bajoPersonas = mapeo != null
+                && Arrays.stream(mapeo.value()).anyMatch(ruta -> ruta.startsWith("/v1/api/persons"));
+
+        return bajoPersonas
+                && Arrays.stream(operacion.getParameters())
+                        .anyMatch(p -> p.getType() == UUID.class);
     }
 
     private static String nombre(Method operacion) {
@@ -163,12 +198,13 @@ class RestAuthorizationCoverageTest {
     @DisplayName("toda operacion exige exactamente una autoridad, nombrada literalmente")
     void todaOperacionExigeUnaSolaAutoridad() {
         List<String> conFormaRara = todasLasOperaciones().stream()
-                .filter(m -> autoridadDe(m) == null)
+                .filter(m -> autoridadDe(m) == null && !delegaEnUnBean(m))
                 .map(RestAuthorizationCoverageTest::nombre)
                 .toList();
 
         assertThat(conFormaRara)
-                .describedAs("Se espera hasAuthority('<recurso>.<accion>'), sin hasAnyAuthority ni hasRole")
+                .describedAs("Se espera hasAuthority('<recurso>.<accion>'), o delegar en un bean "
+                        + "cuando la autoridad depende del dato. Sin hasAnyAuthority ni hasRole")
                 .isEmpty();
     }
 
@@ -178,11 +214,30 @@ class RestAuthorizationCoverageTest {
         // Un nombre mal escrito no falla al arrancar: deja el endpoint inaccesible para siempre,
         // porque nadie puede traer en el token una autoridad que el realm no define.
         List<String> desconocidas = todasLasOperaciones().stream()
+                .filter(m -> !delegaEnUnBean(m))
                 .map(m -> nombre(m) + " -> " + autoridadDe(m))
                 .filter(par -> !VOCABULARIO.contains(par.substring(par.indexOf(" -> ") + 4)))
                 .toList();
 
         assertThat(desconocidas).isEmpty();
+    }
+
+    @Test
+    @DisplayName("delegar en un bean solo se admite donde el tipo del objetivo no esta en la ruta")
+    void laExcepcionEstaAcotada() {
+        // Sin esto, la forma de bean seria la via para esquivar cualquier autoridad literal, y el
+        // modelo de permisos volveria a estar repartido por los controladores. Solo las operaciones
+        // que reciben una persona por identificador pueden usarla, porque son las unicas donde la
+        // autoridad exigida no se puede saber leyendo la ruta.
+        List<String> indebidas = todasLasOperaciones().stream()
+                .filter(RestAuthorizationCoverageTest::delegaEnUnBean)
+                .filter(m -> !recibeUnaPersonaPorIdentificador(m))
+                .map(RestAuthorizationCoverageTest::nombre)
+                .toList();
+
+        assertThat(indebidas)
+                .describedAs("Delegar en un bean solo vale si la autoridad depende de la fila")
+                .isEmpty();
     }
 
     @Test

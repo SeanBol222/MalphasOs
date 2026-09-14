@@ -54,6 +54,24 @@ Dos cosas siguen **sin** hacer, ninguna por olvido: **cambiar `tipoPersona` no m
 
 `reusable:alta` para todo el patrón de integración Keycloak (`PersonIdentityPort`/Adapter, traducción de códigos HTTP a excepciones de dominio) — es directamente portable cambiando el nombre del realm. `reusable:media` para `RoleType` y los nombres de grupos concretos (`engineers`/`clients`/`admins`), que son específicos de este negocio pero sirven como plantilla de cuántos roles definir. Completar `createSuperAdminUser` es tarea pendiente a resolver en MalphasOS, no algo que se pueda copiar ya hecho.
 
+## Los cinco tipos, y cuáles son usuarios (2026-09-13)
+
+`PersonType` tiene cinco valores y `RoleType` tres, **y la diferencia no es un olvido**: el javadoc de los dos lo dice. `PersonType` describe **qué es alguien para el negocio**; `RoleType`, **con qué permisos entra**. No toda persona registrada necesita usuario.
+
+| `PersonType` | ¿Usuario? | Grupo | ¿Se crea por el API? |
+|---|---|---|---|
+| `ENGINEER` | Sí | `engineers` | Sí, con `super.person.write` |
+| `ADMIN` | Sí | `admins` | Sí, con `super.person.write` |
+| `CEO_CLIENT` | Sí | `clients` | Sí, con `person.write` |
+| `MANAGER` | **No** | — | Sí, por `POST /persons`, que no crea cuenta |
+| `SUPER_ADMIN` | Sí | — | **No. Solo a mano en Keycloak** |
+
+**`MANAGER` no es un cabo suelto.** Su razón está escrita: *«un encargado puede existir como contacto de una sede sin acceder nunca a la aplicación»*. Y no se pide por el API: lo fija `ManagerService` al registrar a alguien como encargado de una sede o de un área —*«el tipo de persona lo fija este servicio, no quien llama»*—.
+
+Es además **el único segundo tipo válido**, impuesto en tres capas: una constante del agregado, un `CHECK` del esquema y una prueba de regresión. Eso es lo que permite que **un ingeniero sea además encargado**, que es lo que `WorkOrderService` contempla al aceptar que cualquiera de los dos tipos sea `ENGINEER`.
+
+**`SUPER_ADMIN` sí era un cabo suelto**, y ahora es una decisión. `RoleType` dice que el alta *«quedó sin implementar en el original»*; desde el 2026-09-13 esa ausencia es deliberada: el super usuario se crea entrando a Keycloak, y por eso `super.admin.full` no cuelga de ningún grupo. Ver [[modelo-de-permisos]] para la escalera completa.
+
 ## Notas relacionadas
 
 [[sincronizacion-con-proveedor-de-identidad]] · [[seguridad-keycloak-backend]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[keycloak-configuracion]] · [[deuda-tecnica-y-riesgos]]

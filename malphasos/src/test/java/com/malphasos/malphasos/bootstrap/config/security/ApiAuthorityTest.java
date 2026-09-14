@@ -22,8 +22,9 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class ApiAuthorityTest {
 
-    /** Las diecisiete autoridades de recurso más las dos que las conceden. */
-    private static final int VOCABULARIO_COMPLETO = 19;
+    /** Las autoridades de recurso, las que solo concede el super usuario, y las dos que mandan. */
+    private static final int VOCABULARIO_COMPLETO =
+            ApiAuthority.RESOURCE_AUTHORITIES.size() + ApiAuthority.SUPER_AUTHORITIES.size() + 2;
 
     @Test
     @DisplayName("admin.full a solas concede las diecisiete autoridades de recurso")
@@ -46,8 +47,38 @@ class ApiAuthorityTest {
 
         assertThat(concedidas)
                 .containsAll(ApiAuthority.RESOURCE_AUTHORITIES)
+                .containsAll(ApiAuthority.SUPER_AUTHORITIES)
                 .contains(ApiAuthority.ADMIN_FULL, ApiAuthority.SUPER_ADMIN_FULL)
                 .hasSize(VOCABULARIO_COMPLETO);
+    }
+
+    @Test
+    @DisplayName("admin.full NO concede lo que solo es del super usuario")
+    void adminFullNoAlcanzaElEscalonDeArriba() {
+        // El escalon entero se sostiene sobre esta ausencia. Hasta el 2026-09-13 los dos roles
+        // concedian lo mismo y esta prueba habria sido imposible de escribir.
+        Set<String> concedidas = ApiAuthority.expand(List.of(ApiAuthority.ADMIN_FULL));
+
+        assertThat(concedidas).doesNotContainAnyElementsOf(ApiAuthority.SUPER_AUTHORITIES);
+    }
+
+    @Test
+    @DisplayName("ninguna autoridad de super esta entre las de recurso")
+    void losDosConjuntosNoSeTocan() {
+        // Es el invariante estructural que protege al de arriba. Anadir super.person.write a
+        // RESOURCE_AUTHORITIES parece lo correcto -es una autoridad mas- y devolveria al
+        // administrador justo lo que se le acaba de quitar, sin que nada fallara.
+        assertThat(ApiAuthority.RESOURCE_AUTHORITIES)
+                .doesNotContainAnyElementsOf(ApiAuthority.SUPER_AUTHORITIES);
+    }
+
+    @Test
+    @DisplayName("el prefijo super. es el que marca el escalon, y se cumple")
+    void elPrefijoDiceLaVerdad() {
+        // La regla se lee en los nombres sin abrir el codigo. Si alguien anadiera al conjunto una
+        // autoridad sin ese prefijo, el nombre dejaria de decir donde vive.
+        assertThat(ApiAuthority.SUPER_AUTHORITIES).allSatisfy(a -> assertThat(a).startsWith("super."));
+        assertThat(ApiAuthority.RESOURCE_AUTHORITIES).noneMatch(a -> a.startsWith("super."));
     }
 
     @Test

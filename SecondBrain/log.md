@@ -629,3 +629,35 @@ La corrección no fue bajar la etiqueta y callar. Se separó **lo que se porta d
 **Aplazado con su porqué**: instalación en el dispositivo y consulta sin conexión. No incumple nada —la ERS pide acceso desde el teléfono **sin instalar nada nativo**, y una web responsiva lo cumple literalmente—. La **escritura** sin conexión sí tiene bloqueo real: sin idempotencia ni bloqueo optimista en el backend, un reintento duplicaría órdenes.
 
 **Tocadas**: [[arquitectura-frontend]], [[integracion-keycloak-frontend]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz, que decía que el código vivía **exclusivamente** en `malphasos/`. **Nuevas**: [[arquitectura-frontend-malphasos]], [[sistema-de-diseno-malphasos]].
+
+## [2026-09-13] ingest | La escalera de usuarios, y un rol que llevaba meses esperando titular
+
+**Quién puede crear a quién.** El SuperUsuario da de alta administradores, representantes de cliente e ingenieros; el administrador solo representantes; el resto, a nadie. Y el SuperUsuario **se crea a mano en Keycloak**, nunca por el API. Crear, editar y retirar siguen la misma escalera.
+
+**Lo mejor de esta tanda es que el código la había anticipado.** El javadoc de `ApiAuthority` decía que `super.admin.full` y `admin.full` se conservaban separados «porque el realm los distingue y un realm futuro podría dar al segundo capacidades que el primero no tenga». **Ese futuro era esto.** No hubo que inventar el mecanismo: estaba escrito, esperando. La expansión pasó de un escalón a dos y `super.admin.full` dejó de ser un rol sin consecuencia.
+
+**Basta una autoridad nueva, no cuatro**, porque la escalera tiene dos peldaños. `super.person.write` cubre a la gente de la casa —ingenieros y administradores— y `person.write` a la del cliente —representantes y encargados—. **La línea tiene significado**, y es la misma que sostendrá el cupo cuando llegue.
+
+**El prefijo `super.` no es decorativo**: marca lo que `admin.full` no concede. Tres invariantes lo sostienen, y el segundo es el que importa: **que los dos conjuntos no se toquen**. Añadir `super.person.write` a `RESOURCE_AUTHORITIES` parece lo correcto —es una autoridad más— y devolvería al administrador justo lo que se le acaba de quitar, sin que nada fallara. Ahora falla.
+
+**No se llama `engineer.write`**, y merece quedar por qué: `engineer.read` y `engineer.assign` ya existen y hablan del *encargado* —lo que el código llama `Manager` y la ERS «profesional responsable»—. Ese nombre ya estaba tomado por otro concepto, y meter un cuarto sinónimo en esa confusión habría sido peor que un nombre largo.
+
+**La primera excepción a «una autoridad literal y una sola».** Al crear, el tipo está en la ruta; al editar o retirar, está en la fila, y una anotación estática no lo puede saber. Esas operaciones delegan en `PersonWriteGuard`.
+
+Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
+
+1. **El bean vive en el módulo de personas, no en `bootstrap`.** Se comprobó que `bootstrap` no importa nada de ningún módulo de negocio —lleva cinco siéndolo— y ponerlo allí habría invertido esa dependencia.
+2. **El servicio sigue sin saber quién llama.** Ninguna clase de `application` ni de `domain` toca `Authentication`.
+3. **La excepción está acotada por una prueba.** Solo vale bajo `/v1/api/persons` y recibiendo un identificador. Sin ese límite sería la vía para esquivar cualquier autoridad literal.
+
+**Dos puertas traseras cerradas.** Los correos y teléfonos delegan igual, porque cuelgan de la misma persona: sin eso se podían editar los contactos de alguien a quien no se puede editar. Y `POST /persons` —la única alta que no crea usuario— aceptaba cualquier tipo, incluido `SUPER_ADMIN`: no daba acceso, pero permitía escribir una fila que dice ser algo que no es. Ahora solo admite encargados.
+
+**Dos hallazgos al escribir las pruebas.** La **validación del cuerpo corre antes que `@PreAuthorize`**, de modo que un cuerpo incompleto responde 400 y tapa el 403: la prueba del super usuario **pasaba sin ejercer nada**, porque el ayudante `autorizado()` acepta cualquier cosa por debajo de 500. Y `SecurityIntegrationTest` tenía un doble sin estubar que ahora devolvía `null` al guard, con un 500 que se habría leído como fallo de autorización. Misma familia que la prueba que pasaba comparando `null` con `null`.
+
+**`MANAGER` no era un cabo suelto y `SUPER_ADMIN` sí lo era.** Se investigaron los dos antes de decidir: el primero tiene razón escrita —«un encargado puede existir como contacto de una sede sin acceder nunca a la aplicación»—, uso real y respaldo de esquema en tres capas. Del segundo, `RoleType` dice que el alta «quedó sin implementar en el original». Desde hoy esa ausencia es deliberada. Registrado en [[dominio-persona-identidad]].
+
+**Y una discrepancia de la ERS, encontrada al agotar la fuente antes de nombrar nada.** El documento declara **tres roles** —SuperUsuario, Administrador, Ingeniero Técnico— y el representante de cliente no figura como rol en ninguna parte, pese a tener grupo en el realm y ser el centro de la escalera. Es trabajo de `Documentation/` y queda anotado como deuda.
+
+**Conteo**: **636** elementos `<testcase>`, 47 clases, cero fallos. Ocho pruebas nuevas, verificadas por mutación: el ingeniero cambiado de peldaño, el alta devuelta a `person.write`, y el bean usado en otro módulo para esquivar una autoridad —esta última la caza la prueba que acota la excepción—.
+
+**Tocadas**: [[modelo-de-permisos]], [[dominio-persona-identidad]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.

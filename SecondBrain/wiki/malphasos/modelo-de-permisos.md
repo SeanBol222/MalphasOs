@@ -1,6 +1,6 @@
 ---
 name: modelo-de-permisos
-description: Las 19 autoridades del API de MalphasOS, la regla de expansión del administrador aplicada en dos capas, y qué recibe cada grupo del realm
+description: Las 20 autoridades del API, la expansion en dos escalones que separa al super usuario del administrador, la escalera de quien puede crear a quien, y la unica excepcion a la autoridad literal
 tags: [malphasos, seguridad, keycloak, autorizacion, "reusable:media", "describe:malphasos"]
 estado: estable
 updated: 2026-09-13
@@ -18,7 +18,7 @@ Es el mismo defecto que [[keycloak-configuracion]] ya registraba del original �
 
 **Por qué nadie lo vio durante meses**: todas las pruebas de seguridad construían el token con `admin.full`, el único rol que sí funcionaba. Una batería que solo recorre el camino del administrador no dice absolutamente nada sobre los demás perfiles. El hallazgo salió de contrastar la ERS contra el código (2026-09-02), no de leer los controladores.
 
-## El vocabulario: 19 autoridades
+## El vocabulario: 20 autoridades
 
 `bootstrap/config/security/ApiAuthority.java` reúne el vocabulario completo. Los nombres **no los inventa la clase: reflejan los roles que el realm define** sobre el client `malphasos-api`.
 
@@ -27,14 +27,20 @@ Dos autoridades de mando, que no protegen ningún endpoint:
 | Autoridad | Qué es |
 |---|---|
 | `admin.full` | Concede las 17 de recurso al expandirse. Es el permiso del grupo `admins` |
-| `super.admin.full` | Implica `admin.full`. Hoy conceden lo mismo, y se conservan separados porque el realm los distingue y un realm futuro podría darle al segundo algo que el primero no tenga. **Ningún grupo lo recibe** |
+| `super.admin.full` | Implica `admin.full` **y algo más desde el 2026-09-13**. Hasta esa fecha concedían lo mismo y esta tabla decía que se conservaban separados por si «un realm futuro» daba al segundo capacidades propias: ese futuro llegó. **Ningún grupo lo recibe**: un super usuario se crea a mano en Keycloak |
+
+Y una que **sí protege endpoints pero que `admin.full` no concede** — el escalón de arriba, desde el 2026-09-13:
+
+| Autoridad | Operaciones | Notas |
+|---|---|---|
+| `super.person.write` | 2 | Alta de ingenieros y administradores. Las de editar y retirar no la nombran: dependen del tipo de la persona y delegan en un bean. Ver «La escalera de usuarios» |
 
 Las 17 de recurso, con las operaciones que protegen a fecha de hoy (contado sobre los controladores, no sobre el catálogo):
 
 | Autoridad | Operaciones | Notas |
 |---|---|---|
 | `person.read` | 2 | |
-| `person.write` | 12 | Los sub-recursos (correos, teléfonos) no llevan autoridad propia: un correo no se gestiona sin gestionar a su dueño |
+| `person.write` | 2 | **Era 12 hasta el 2026-09-13.** Ahora cubre el alta de representantes de cliente y la de encargados; las altas de la gente de la casa subieron de escalón, y editar y retirar —incluidos correos y teléfonos— delegan en un bean porque dependen del tipo de la persona |
 | `location.read` | 4 | |
 | `location.write` | 6 | |
 | `client.read` | 4 | |
@@ -63,7 +69,7 @@ Cada operación declara **únicamente la autoridad de su recurso**: `hasAuthorit
 
 La alternativa era que cada una nombrara además al administrador, `hasAnyAuthority('admin.full','client.read')`. Se descartó porque deja el modelo de permisos **repetido 83 veces**, y basta olvidarse de una para abrir un agujero que no rompe nada visible. Quién es administrador se decide en un solo sitio: `ApiAuthority.expand(...)`.
 
-Una prueba estructural impide deshacer la decisión sin enterarse: **ningún controlador puede nombrar al administrador**, y cada operación debe exigir exactamente una autoridad nombrada literalmente.
+Una prueba estructural impide deshacer la decisión sin enterarse: **ningún controlador puede nombrar al administrador**, y cada operación debe exigir exactamente una autoridad nombrada literalmente — **con una única excepción acotada**, la de la escalera de usuarios, que se explica más abajo.
 
 ## Por qué la regla se aplica en dos capas
 
@@ -90,7 +96,7 @@ Verificado el 2026-09-08 sobre `docker/keycloak/import/malphasos-realm-realm.jso
 
 | Grupo | Roles | Perfil |
 |---|---|---|
-| `admins` | 18 de 19 | Todo menos `super.admin.full`, que no tiene grupo |
+| `admins` | 18 de 20 | Todo menos las dos de `super.*`, que no tiene ningún grupo |
 | `engineers` | 11 (antes 4) | Lectura completa (`person`, `location`, `client`, `service-area`, `equipment`, `engineer`) + `equipment.write` + `equipment.assign` + los tres de `work-order` |
 | `clients` | 4 (sin cambios) | Solo lectura: `client.read`, `equipment.read`, `service-area.read`, `work-order.read` |
 
@@ -116,6 +122,49 @@ Lo que más pesa no son los casos, sino dos invariantes, y la razón importa: **
 Los umbrales van como **mínimos** (`>= 83`, `>= 27`, `>= 56`), no como igualdades: sirven de guarda de no vacuidad —que la comprobación siguiente no pase por lista vacía— sin romperse cada vez que se añade un endpoint legítimo.
 
 **`RealmAuthorityContractTest`** confronta el vocabulario del código con el JSON del realm: ni un rol de más ni de menos, y qué recibe cada grupo. Si divergen, hoy el administrador se quedaría sin algo **sin que nada fallara**.
+
+## La escalera de usuarios (2026-09-13)
+
+**Quién puede crear, editar y retirar a quién.** Los tres actos siguen la misma escalera: quien puede crear un tipo puede corregirlo y retirarlo.
+
+| Quién | Sobre quién |
+|---|---|
+| **SuperUsuario** (`super.admin.full`) | Administrador · Representante de cliente · Ingeniero |
+| **Administrador** (`admin.full`) | Representante de cliente · Encargado |
+| **Representante · Ingeniero** | nadie |
+| *SuperUsuario* | **se crea solo a mano en Keycloak** |
+
+La línea que separa los dos escalones **tiene significado**: `MANAGER` y `CEO_CLIENT` son personas **del cliente**; `ENGINEER` y `ADMIN` son personal **de BolívarBioingeniería**. No es una división arbitraria, y es la misma que sostendrá el cupo de representantes por cliente cuando llegue.
+
+### Por qué basta una autoridad nueva y no cuatro
+
+La escalera tiene **dos peldaños**, no cuatro, de modo que no hace falta una autoridad por tipo. `person.write` cubre la gente del cliente; `super.person.write`, la de la casa.
+
+**El prefijo `super.` no es decorativo**: marca exactamente lo que `admin.full` **no** concede al expandirse. La regla se lee en los nombres sin abrir el código, y tres invariantes la sostienen —que `admin.full` no la alcance, que los dos conjuntos no se toquen, y que ningún grupo del realm la conceda—.
+
+**No se llama `engineer.write`** a propósito: `engineer.read` y `engineer.assign` ya existen y hablan del *encargado*, que es lo que el código llama `Manager`. Ese nombre ya estaba tomado por otro concepto, y meter un cuarto sinónimo en esa confusión habría sido peor que el nombre largo.
+
+### La única excepción a la autoridad literal
+
+Al **crear**, el tipo está en la ruta —`/persons/engineers`, `/persons/ceo-clients`— y la anotación basta. Al **editar o retirar**, no: `PUT /persons/{id}` no dice de qué tipo es esa persona, lo dice la fila.
+
+Esas operaciones delegan en un bean:
+
+```java
+@PreAuthorize("@personWriteGuard.canWrite(#id, authentication)")
+```
+
+Tres decisiones que conviene no perder:
+
+- **El bean vive en `person/infrastructure/input/security/`, no en `bootstrap`.** Necesita `PersonType` y el puerto de personas, y **`bootstrap` no importa nada de ningún módulo de negocio** —comprobado, y lleva cinco módulos siéndolo—. Ponerlo allí habría invertido esa dependencia.
+- **El servicio sigue sin saber quién llama.** Ninguna clase de `application` ni de `domain` toca `Authentication`. La decisión se toma antes de entrar, en la capa que ya autorizaba.
+- **La excepción está acotada por una prueba.** `laExcepcionEstaAcotada` exige que la forma de bean solo aparezca bajo `/v1/api/persons` y en operaciones que reciben un identificador. Sin ese límite sería la vía para esquivar cualquier autoridad literal, y el modelo volvería a estar repartido por los controladores.
+
+Los **correos y teléfonos delegan igual**. Cuelgan de `/persons/{personId}/…`, así que la persona está en la ruta; sin eso quedaba una puerta trasera para editar los contactos de alguien a quien no se puede editar.
+
+### `POST /persons` quedó acotado a encargados
+
+Es la única alta que **no crea usuario**. Aceptaba cualquier `PersonType`, incluido `SUPER_ADMIN`: no daba acceso —sin cuenta no se entra— pero permitía escribir una fila que dice ser algo que no es, y saltarse la escalera que las otras puertas imponen. Ahora solo admite `MANAGER`, que es justo para lo que sirve.
 
 ## Lo que este modelo todavía no hace
 

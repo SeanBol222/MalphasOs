@@ -477,6 +477,15 @@
           "clientRole": true,
           "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
           "attributes": {}
+        },
+        {
+          "id": "b7f3c2d1-4a5e-4c6b-9d8f-super0person0w",
+          "name": "super.person.write",
+          "description": "Alta, edicion y baja de ingenieros y administradores. Solo el super usuario.",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
         }
       ],
       "malphasos-frontend": [],
