@@ -1,0 +1,861 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "MalphasOS API",
+    "description" : "API REST para la gestión de mantenimientos preventivos y clientes",
+    "license" : {
+      "name" : "GNU GPL v3",
+      "url" : "https://www.gnu.org/licenses/gpl-3.0.html"
+    },
+    "version" : "v0.0.1"
+  },
+  "servers" : [ {
+    "url" : "http://localhost",
+    "description" : "Generated server url"
+  } ],
+  "security" : [ {
+    "keycloak-oauth" : [ ]
+  }, {
+    "bearer-jwt" : [ ]
+  } ],
+  "tags" : [ {
+    "name" : "WorkOrder",
+    "description" : "Mantenimientos programados y su alcance"
+  } ],
+  "paths" : {
+    "/v1/api/work-orders" : {
+      "get" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Listar ordenes de trabajo",
+        "description" : "Los parametros filtran por cliente, sede, ingeniero o equipo. Solo se admite uno a la vez.",
+        "operationId" : "getAll",
+        "parameters" : [ {
+          "name" : "idCliente",
+          "in" : "query",
+          "description" : "Filtra por cliente",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "idSede",
+          "in" : "query",
+          "description" : "Filtra por sede",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "idIngeniero",
+          "in" : "query",
+          "description" : "Filtra por ingeniero asignado",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "idEquipoCliente",
+          "in" : "query",
+          "description" : "Filtra por equipo incluido en el alcance",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WorkOrderResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Programar un mantenimiento",
+        "description" : "La orden nace creada, sin ingeniero y sin equipos. El cliente y la sede deben estar activos, y la sede ser de ese cliente.",
+        "operationId" : "schedule",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorkOrderScheduleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/work-orders/{id}/equipments" : {
+      "post" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Anadir un equipo al alcance",
+        "description" : "El area se toma de donde esta el equipo ahora; no se envia. El equipo debe estar activo, en un area abierta y ser del mismo cliente.",
+        "operationId" : "addEquipment",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorkOrderEquipmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/work-orders/{id}/start" : {
+      "patch" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Arrancar el trabajo",
+        "description" : "Exige ingeniero asignado y al menos un equipo en el alcance.",
+        "operationId" : "start",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/work-orders/{id}/execute" : {
+      "patch" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Dar el trabajo por terminado",
+        "description" : "Desde aqui la orden ya no admite cambios de alcance ni de ingeniero.",
+        "operationId" : "execute",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/work-orders/{id}/engineer/{idIngeniero}" : {
+      "patch" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Poner la orden en manos de un ingeniero",
+        "description" : "La persona debe estar activa y ser de tipo ingeniero.",
+        "operationId" : "assign",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "idIngeniero",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/work-orders/{id}" : {
+      "get" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Obtener una orden por su identificador",
+        "operationId" : "getById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Cancelar una orden",
+        "description" : "No la borra: la deja inactiva. No es lo mismo que ejecutarla.",
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/v1/api/work-orders/{id}/equipments/{idEquipoCliente}" : {
+      "delete" : {
+        "tags" : [ "WorkOrder" ],
+        "summary" : "Sacar un equipo del alcance",
+        "description" : "No borra el historial: la fila queda inactiva.",
+        "operationId" : "removeEquipment",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "idEquipoCliente",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "GlobalErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "WorkOrderErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "WorkOrderScheduleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idCliente" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "idSede" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fechaMantenimiento" : {
+            "type" : "string",
+            "format" : "date",
+            "description" : "Dia para el que se programa el servicio, no la fecha de registro"
+          },
+          "periodicidad" : {
+            "type" : "string",
+            "enum" : [ "MENSUAL", "TRIMESTRAL", "SEMESTRAL", "ANUAL" ]
+          },
+          "tipoServicio" : {
+            "type" : "string",
+            "enum" : [ "PREVENTIVO", "CORRECTIVO", "CALIBRACION" ]
+          }
+        },
+        "required" : [ "fechaMantenimiento", "idCliente", "idSede", "periodicidad", "tipoServicio" ]
+      },
+      "WorkOrderEquipmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "idEquipoCliente" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "idAreaServicio" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Area donde estaba el equipo al anadirlo, no donde esta hoy"
+          }
+        }
+      },
+      "WorkOrderResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "idCliente" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "idSede" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fechaMantenimiento" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "periodicidad" : {
+            "type" : "string",
+            "enum" : [ "MENSUAL", "TRIMESTRAL", "SEMESTRAL", "ANUAL" ]
+          },
+          "tipoServicio" : {
+            "type" : "string",
+            "enum" : [ "PREVENTIVO", "CORRECTIVO", "CALIBRACION" ]
+          },
+          "estadoEjecucion" : {
+            "type" : "string",
+            "enum" : [ "CREADA", "EN_EJECUCION", "EJECUTADA" ]
+          },
+          "idIngeniero" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Nulo mientras la orden esta creada pero sin asignar"
+          },
+          "equipos" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/WorkOrderEquipmentResponse"
+            }
+          },
+          "estadoActivo" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "WorkOrderEquipmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "idEquipoCliente" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "idEquipoCliente" ]
+      }
+    },
+    "securitySchemes" : {
+      "keycloak-oauth" : {
+        "type" : "oauth2",
+        "description" : "Inicia sesion en Keycloak y usa el token en cada peticion",
+        "flows" : {
+          "authorizationCode" : {
+            "authorizationUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/auth",
+            "tokenUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/token",
+            "scopes" : {
+              "openid" : "Identificacion del usuario",
+              "profile" : "Datos basicos del perfil",
+              "email" : "Correo electronico"
+            }
+          }
+        }
+      },
+      "bearer-jwt" : {
+        "type" : "http",
+        "description" : "Alternativa: pegar un token obtenido por otro medio",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}

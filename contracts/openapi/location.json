@@ -1,0 +1,888 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "MalphasOS API",
+    "description" : "API REST para la gestión de mantenimientos preventivos y clientes",
+    "license" : {
+      "name" : "GNU GPL v3",
+      "url" : "https://www.gnu.org/licenses/gpl-3.0.html"
+    },
+    "version" : "v0.0.1"
+  },
+  "servers" : [ {
+    "url" : "http://localhost",
+    "description" : "Generated server url"
+  } ],
+  "security" : [ {
+    "keycloak-oauth" : [ ]
+  }, {
+    "bearer-jwt" : [ ]
+  } ],
+  "tags" : [ {
+    "name" : "Country",
+    "description" : "Gestion de paises"
+  }, {
+    "name" : "City",
+    "description" : "Gestion de ciudades"
+  } ],
+  "paths" : {
+    "/v1/api/countries" : {
+      "get" : {
+        "tags" : [ "Country" ],
+        "summary" : "Listar todos los paises",
+        "operationId" : "getAllCountries",
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CountryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Country" ],
+        "summary" : "Registrar un pais",
+        "operationId" : "createCountry",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CountryCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CountryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/cities" : {
+      "get" : {
+        "tags" : [ "City" ],
+        "summary" : "Listar ciudades",
+        "description" : "Con el parametro idPais, solo las de ese pais. Sin el, todas.",
+        "operationId" : "getCities",
+        "parameters" : [ {
+          "name" : "idPais",
+          "in" : "query",
+          "description" : "Filtra por pais",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CityResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "City" ],
+        "summary" : "Registrar una ciudad",
+        "operationId" : "createCity",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CityCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/countries/{id}" : {
+      "get" : {
+        "tags" : [ "Country" ],
+        "summary" : "Obtener un pais por su identificador",
+        "operationId" : "getCountryById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identificador del pais",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CountryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Country" ],
+        "summary" : "Retirar un pais",
+        "description" : "No lo borra: lo deja inactivo, conservando el historial.",
+        "operationId" : "deactivateCountry",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identificador del pais",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Country" ],
+        "summary" : "Cambiar el nombre de un pais",
+        "description" : "Los campos ausentes conservan su valor. El codigo ISO no se puede cambiar.",
+        "operationId" : "updateCountry",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identificador del pais",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CountryUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CountryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/cities/{id}" : {
+      "get" : {
+        "tags" : [ "City" ],
+        "summary" : "Obtener una ciudad por su identificador",
+        "operationId" : "getCityById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identificador de la ciudad",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CityResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "City" ],
+        "summary" : "Retirar una ciudad",
+        "description" : "No la borra: la deja inactiva, conservando el historial.",
+        "operationId" : "deactivateCity",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identificador de la ciudad",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "City" ],
+        "summary" : "Cambiar el nombre de una ciudad o trasladarla de pais",
+        "description" : "Los campos ausentes conservan su valor. Cada cambio registra su propio hecho.",
+        "operationId" : "updateCity",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Identificador de la ciudad",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CityUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "GlobalErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "LocationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CountryCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "codigoIso" : {
+            "type" : "string",
+            "description" : "Codigo ISO 3166-1 alfa-3",
+            "example" : "COL",
+            "minLength" : 1,
+            "pattern" : "^[A-Za-z]{3}$"
+          },
+          "nombre" : {
+            "type" : "string",
+            "description" : "Nombre del pais",
+            "example" : "Colombia",
+            "maxLength" : 50,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "codigoIso", "nombre" ]
+      },
+      "CountryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "codigoIso" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "estadoActivo" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CityCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string",
+            "description" : "Nombre de la ciudad",
+            "example" : "Bogota",
+            "maxLength" : 50,
+            "minLength" : 0
+          },
+          "idPais" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Pais al que pertenece"
+          }
+        },
+        "required" : [ "idPais", "nombre" ]
+      },
+      "CityResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "idPais" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "estadoActivo" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CountryUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string",
+            "description" : "Nuevo nombre. Ausente lo deja como esta",
+            "example" : "Republica de Colombia",
+            "maxLength" : 50,
+            "minLength" : 0
+          }
+        }
+      },
+      "CityUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "nombre" : {
+            "type" : "string",
+            "description" : "Nuevo nombre. Ausente lo deja como esta",
+            "example" : "Bogota D.C.",
+            "maxLength" : 50,
+            "minLength" : 0
+          },
+          "idPais" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Pais al que se traslada. Ausente la deja donde esta"
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "keycloak-oauth" : {
+        "type" : "oauth2",
+        "description" : "Inicia sesion en Keycloak y usa el token en cada peticion",
+        "flows" : {
+          "authorizationCode" : {
+            "authorizationUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/auth",
+            "tokenUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/token",
+            "scopes" : {
+              "openid" : "Identificacion del usuario",
+              "profile" : "Datos basicos del perfil",
+              "email" : "Correo electronico"
+            }
+          }
+        }
+      },
+      "bearer-jwt" : {
+        "type" : "http",
+        "description" : "Alternativa: pegar un token obtenido por otro medio",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "MalphasOS API",
+    "description" : "API REST para la gestión de mantenimientos preventivos y clientes",
+    "license" : {
+      "name" : "GNU GPL v3",
+      "url" : "https://www.gnu.org/licenses/gpl-3.0.html"
+    },
+    "version" : "v0.0.1"
+  },
+  "servers" : [ {
+    "url" : "http://localhost",
+    "description" : "Generated server url"
+  } ],
+  "security" : [ {
+    "keycloak-oauth" : [ ]
+  }, {
+    "bearer-jwt" : [ ]
+  } ],
+  "paths" : { },
+  "components" : {
+    "schemas" : { },
+    "securitySchemes" : {
+      "keycloak-oauth" : {
+        "type" : "oauth2",
+        "description" : "Inicia sesion en Keycloak y usa el token en cada peticion",
+        "flows" : {
+          "authorizationCode" : {
+            "authorizationUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/auth",
+            "tokenUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/token",
+            "scopes" : {
+              "openid" : "Identificacion del usuario",
+              "profile" : "Datos basicos del perfil",
+              "email" : "Correo electronico"
+            }
+          }
+        }
+      },
+      "bearer-jwt" : {
+        "type" : "http",
+        "description" : "Alternativa: pegar un token obtenido por otro medio",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}
