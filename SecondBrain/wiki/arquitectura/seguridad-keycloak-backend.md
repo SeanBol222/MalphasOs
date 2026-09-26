@@ -3,7 +3,7 @@ name: seguridad-keycloak-backend
 description: Resource server OAuth2/JWT + admin client de Keycloak, dos piezas separadas con responsabilidades distintas
 tags: [arquitectura, backend, seguridad, keycloak, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../bootstrap/config/keycloak/, bootstrap/config/security/
-updated: 2026-09-09
+updated: 2026-09-26
 ---
 
 # Seguridad — Keycloak en el backend
@@ -59,10 +59,48 @@ Medido contra un **Keycloak 26.6.1 real** el 2026-09-09, al implementar la baja 
 Es decir: retirar el acceso a alguien surte efecto **para las autenticaciones nuevas, no para las ya emitidas**. Cerrar la ventana del todo exigiría introspección del token en cada petición, un coste por petición que hoy no se paga. Ver [[sincronizacion-con-proveedor-de-identidad]].
 
 
+## CORS: la pieza que faltaba porque no había navegador (2026-09-26)
+
+`CorsConfig` **no existió hasta el 2026-09-26**, y la razón está en el orden en que se construyó el proyecto: el backend se hizo entero antes de que hubiera frontend, de modo que **nadie hizo nunca una petición desde un navegador en otro puerto**. Las pruebas usan `MockMvc` y `curl` no manda `Origin`. La ausencia era invisible por construcción.
+
+El primer intento real desde Angular falló así:
+
+```
+Cross-Origin Request Blocked ... (Reason: CORS header 'Access-Control-Allow-Origin' missing). Status code: 401.
+```
+
+**Ese 401 no era del token**, y ahí estaba la trampa: era del **preflight**. Un `OPTIONS` no lleva cabecera `Authorization`, así que caía en `anyRequest().authenticated()` y se rechazaba antes de que nadie mirase ningún token. El navegador no informa del 401: informa de que falta la cabecera.
+
+Tres decisiones, y las tres tienen porqué:
+
+1. **La configuración vive fuera de las dos cadenas de seguridad.** CORS es un asunto del navegador, no de si el API exige token: hace falta igual con `app.security.enabled` en `true` que en `false`. Meterlo dentro de `SecurityConfig` habría dejado el frontend roto justo en el modo que se usa para desarrollar sin Keycloak, que es el más probable. Las dos cadenas se limitan a habilitarlo; la política se declara una vez.
+2. **Los orígenes se declaran por configuración y nunca con comodín.** `app.security.cors.allowed-origins`, sin valor por omisión **en el `@Value`**: si la propiedad falta, la aplicación no arranca. Un comodín habría arrancado y no habría dicho nada. El contenedor los recibe por `APP_CORS_ALLOWED_ORIGINS` desde el `compose`, como el resto de su configuración: **dónde se sirve el frontend es una decisión del despliegue, no del código**.
+3. **No se habilita `allowCredentials`.** El API se consume con un token en la cabecera, no con cookies de sesión. Es la misma razón por la que CSRF está deshabilitado, y activarlo obligaría a una política más laxa sin ganar nada.
+
+### Lo que la verificación por mutación destapó, y no era lo esperado
+
+`CorsConfigTest` enciende la seguridad a propósito, porque el defecto **solo existe con la seguridad encendida**. Al romper la producción para ver la prueba fallar, las tres mutaciones dijeron cosas distintas:
+
+| Mutación | Resultado | Qué significa |
+|---|---|---|
+| Quitar `.cors(...)` de `SecurityConfig` | **Las tres siguen en verde** | `HttpSecurityConfiguration.applyCorsIfAvailable` lo aplica solo en cuanto existe el bean. Esa línea es **redundante hoy** |
+| Quitar el `@Configuration` de `CorsConfig`, dejando `.cors(...)` | Las tres caen; el preflight responde **200 sin cabeceras** | El caso más engañoso: **borra el 401 que era la única pista** |
+| Quitar las dos cosas | **401** | Exactamente el número que apareció en el navegador |
+
+**La línea redundante se queda, y el porqué importa**: la aplicación automática mira el tipo **concreto** del bean —`UrlBasedCorsConfigurationSource`—. Si `CorsConfig` pasara a devolver un `CorsConfigurationSource` cualquiera, una lambda por ejemplo, dejaría de aplicarse y el preflight volvería al 401 sin que nada en `SecurityConfig` hubiera cambiado. Declararlo explícitamente hace que la cadena no dependa del tipo de retorno de otra clase.
+
+Y **una prueba que pasa con la línea quitada no es una prueba mala**: fija el *resultado* —que el navegador reciba sus cabeceras— y no el mecanismo. Es el que importa. Lo que sí habría sido malo es no haber hecho la mutación y creer que fijaba el mecanismo.
+
+Verificado además contra el servidor en marcha, que es donde ocurrió el fallo: preflight del origen permitido **200** con `Access-Control-Allow-Origin`, `Allow-Methods`, `Allow-Headers` y `Max-Age: 1800`; preflight de un origen ajeno **403 sin cabeceras**; y un `GET` sin token sigue dando **401, pero ya con la cabecera de origen**, de modo que el navegador puede leer el estado real en lugar de informar de un fallo de CORS.
+
+### El fichero de pruebas no hereda del de producción
+
+Añadir la propiedad a `src/main/resources/application.yaml` no basta: `src/test/resources/application.yaml` **tiene el mismo nombre y lo sustituye entero**, no se mezclan. Sin la clave allí también, el `@Value` no resuelve y **el contexto no arranca en ninguna prueba**, tenga o no que ver con seguridad. Ver [[stack-spring-boot-4-particularidades]].
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — el patrón completo (resource server + admin client + role converter desde `resource_access`) es portable prácticamente sin cambios, solo actualizando `CLIENT_ID`, nombre de realm y prefijos de propiedades. Es una de las piezas más maduras y consistentes de todo el backend original. Ya está migrado.
 
 ## Notas relacionadas
 
-[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[dominio-persona-identidad]] · [[integracion-keycloak-frontend]] · [[keycloak-configuracion]] · [[stack-tecnologico]]
+[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[dominio-persona-identidad]] · [[integracion-keycloak-frontend]] · [[arquitectura-frontend-malphasos]] · [[keycloak-configuracion]] · [[stack-tecnologico]]

@@ -5,7 +5,7 @@ MalphasOS es la aplicación de **gestión de clientes** y **gestión de mantenim
 ```
 MalphasOS/
 ├── malphasos/          -> el backend: Spring Boot 4.1.1, Java 21, groupId com.malphasos
-├── malphasos-frontend/ -> el frontend: Angular. DECIDIDO el 2026-09-13, todavía sin crear
+├── malphasos-frontend/ -> el frontend: Angular 22, Tailwind 4, zoneless. EXISTE desde el 2026-09-13
 ├── Documentation/      -> documentación oficial: ERS, constitución, alcance, diseño del frontend y manual de marca
 ├── SecondBrain/        -> wiki técnico de referencia (patrón LLM Wiki). NO es código del proyecto
 └── docker/             -> Keycloak (realm de desarrollo) y init de PostgreSQL
@@ -51,11 +51,11 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__eq
 
 | Rama | Estado | Pruebas |
 |---|---|---|
-| `main` | Los cinco módulos completos, el modelo de permisos, la sincronización con Keycloak, el traslado dentro del mismo cliente y **órdenes de trabajo de extremo a extremo, con su persistencia probada** | **624** en `af38d2a` |
+| `main` | Los cinco módulos completos, el modelo de permisos, la sincronización con Keycloak, el traslado dentro del mismo cliente, **órdenes de trabajo de extremo a extremo, con su persistencia probada**, y **un frontend que ya habla con el API desde un navegador** | **645** medidos el 2026-09-26 |
 | ~~`feat/work-order-rest`~~ · ~~`fix/work-order-headquarter-scope`~~ · ~~`docs/wiki-work-order-modulo`~~ | **Mergeadas** el 2026-09-13 por `e69437d`, `1adc2fc` y `b9563a9`, y borradas | — |
 | ~~`feat/work-order-schema`~~ · ~~`feat/relocation-same-client`~~ | Mergeadas antes, por `49b6453` y `1ef55cf` | — |
 
-**Esta tabla ya no fija el hash de `main`, a propósito** — ver abajo. Los **624** están **medidos** sobre `af38d2a`, el commit donde se contaron, borrando `target/surefire-reports` antes: 47 clases, cero fallos, cero errores, cero omitidas. El atributo `tests=` da **621** y los `.txt` **433** — los mismos 433 que antes de añadir diez pruebas, porque `WorkOrderPersistenceAdapterTest` es toda `@Nested`. Tercera vez seguida que esa fuente no se entera; ver [[stack-spring-boot-4-particularidades]]. Los puntos intermedios que cita [[dominio-orden-trabajo]] van marcados como derivados, porque lo son.
+**Esta tabla ya no fija el hash de `main`, a propósito** — ver abajo. Los **645** están **medidos el 2026-09-26**, borrando `target/surefire-reports` antes: **49** clases, cero fallos, cero errores, cero omitidas. (Decía **624** sobre `af38d2a`: cierto al medirlo, y **caducado el 2026-09-26** con el contrato de OpenAPI publicado, la sección de clientes y las tres pruebas de CORS.) La medición anterior, para referencia, fue sobre `af38d2a`, borrando `target/surefire-reports` antes: 47 clases, cero fallos, cero errores, cero omitidas. El atributo `tests=` da **621** y los `.txt` **433** — los mismos 433 que antes de añadir diez pruebas, porque `WorkOrderPersistenceAdapterTest` es toda `@Nested`. Tercera vez seguida que esa fuente no se entera; ver [[stack-spring-boot-4-particularidades]]. Los puntos intermedios que cita [[dominio-orden-trabajo]] van marcados como derivados, porque lo son.
 
 **Por qué ya no se escribe el hash de `main`.** Este archivo lo fijó cuatro veces en dos días y las cuatro caducó, la última **por su propio merge**: la pasada de wiki que anotaba «`main` está en X» dejaba `main` en X+1 al mergearse. No es falta de diligencia, es regresión infinita, y ninguna cantidad de `git log main..HEAD` la arregla.
 
@@ -72,7 +72,7 @@ La distinción que sí sirve, y vale para todo el wiki:
 
 Las cifras de arriba son el **número de elementos `<testcase>` de los XML de Surefire**, que es el conteo honesto. (Este párrafo daba los equivalentes de `55e0a5d` y `24e7640`; se dejan de citar porque ninguno de los dos describe ya una rama viva.) Los `.txt` dan menos porque **no cuentan las clases `@Nested`** — un `@ParameterizedTest` sí lo cuentan, al contrario de lo que este archivo afirmó hasta el 2026-09-08 —, y el atributo `tests=` se queda corto cuando dos clases `@Nested` tienen un método con el mismo nombre. Y `mvn test` **no borra `target/surefire-reports`**: antes de citar un conteo hay que borrarlo, o se suman informes de corridas y ramas anteriores. Ver [[stack-spring-boot-4-particularidades]].
 
-**La migración del backend está cerrada** salvo esa segunda tanda de `equipment`, y **órdenes de trabajo —el primer módulo construido y no migrado— está terminado** desde el 2026-09-13. **Eso no es lo mismo que el producto terminado**: de los 31 requisitos funcionales de la ERS hay **11** implementados —eran 8—, de los 23 no funcionales **1**, y **no existe una sola línea de frontend**.
+**La migración del backend está cerrada** salvo esa segunda tanda de `equipment`, y **órdenes de trabajo —el primer módulo construido y no migrado— está terminado** desde el 2026-09-13. **Eso no es lo mismo que el producto terminado**: de los 31 requisitos funcionales de la ERS hay **11** implementados —eran 8—, de los 23 no funcionales **1**, y el frontend **ya existe y ya llama al API**, aunque de sus pantallas solo estén la autenticación y la sección de clientes. (Aquí decía «no existe una sola línea de frontend»: cierto hasta el **2026-09-13**.)
 
 **Que el módulo esté completo y solo sume tres requisitos no es un error de cuenta.** Cuatro de sus siete RF describen un **formulario** —elegir áreas, ver equipos por área, seleccionar varios— y eso es frontend. El criterio aplicado: cuenta como implementado lo que el backend satisface por completo; dar por hecho lo demás inflaría la cifra y haría desaparecer de la cuenta trabajo que no se ha hecho. Está escrito en [[hoja-de-ruta-producto]] para poder discutirlo.
 
@@ -131,7 +131,7 @@ Lo que aquella separación demostró y conviene conservar aun sin ella: **el ver
 
 ## Frontend
 
-**Decidido el 2026-09-13 y sin escribir todavía.** El documento oficial es `Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex`; lo operativo, [[arquitectura-frontend-malphasos]] y [[sistema-de-diseno-malphasos]].
+**Decidido y arrancado el 2026-09-13; hablando con el API desde el 2026-09-26.** (Este apartado decía «sin escribir todavía»: caducó el mismo día que se escribió.) Existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak y la sección de clientes contra un contrato de OpenAPI publicado y versionado en `contracts/openapi/`. El documento oficial es `Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex`; lo operativo, [[arquitectura-frontend-malphasos]] y [[sistema-de-diseno-malphasos]].
 
 **Angular**, Tailwind con los tokens del manual de marca, **spartan/ui** sobre Angular CDK, **TanStack Query** aislado tras un servicio por módulo, formularios reactivos y **cliente TypeScript generado desde OpenAPI y versionado**.
 
@@ -141,6 +141,7 @@ Lo que aquella separación demostró y conviene conservar aun sin ella: **el ver
 - **La autoridad del sistema visual es el manual de marca**, no este archivo ni el wiki. Radio cero, escala de 8, una sola familia (Archivo), y **los estados operativos se distinguen por peso tipográfico, no por colores nuevos**.
 - **WCAG 2.1 AA declarado y verificado** con analizador automático en la batería. El acento `#EC3013` **no alcanza AA como relleno de botón** —3,76:1 medido—: para eso va `#AE1800`.
 - **Instalación y uso sin conexión: decididos y aplazados.** La escritura sin conexión exigiría reabrir el backend, que hoy no tiene idempotencia ni bloqueo optimista.
+- **Lo que el primer arranque real enseñó, y vale para lo que venga**: dos defectos que **ninguna prueba podía ver**, porque `curl` no manda `Origin` y `MockMvc` no tiene inyector de Angular. `withAutoRefreshToken` exige dos servicios que la librería no declara como `providedIn: 'root'` —sin ellos, página en blanco sin mensaje—, y **el backend no tenía CORS**, con un 401 de preflight que mandaba a buscar al sitio equivocado. Desde el 2026-09-26 `CorsConfig` lo declara **fuera de las dos cadenas de seguridad**, sin comodín y sin `allowCredentials`. Ver [[seguridad-keycloak-backend]] e [[integracion-keycloak-frontend]].
 - **Primer bloque**: rebanada vertical de arranque, autenticación y órdenes de trabajo. Cierra RF-03, RF-04, RF-06 y RF-07.
 
 ## Deuda propia conocida
