@@ -19,9 +19,9 @@ updated: 2026-09-13
 |---|---|---|---|
 | Requisitos funcionales | 31 | **11** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
-| Frontend | — | **Sesión, autenticación y la sección de clientes cerrada entera** | Comprobado sobre el árbol del repositorio |
+| Frontend | — | **Sesión, autenticación, clientes cerrado entero y el catálogo de equipos con su registro** | Comprobado sobre el árbol del repositorio |
 
-> **Corregido el 2026-09-26.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak y **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados—, con **154** pruebas. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
+> **Corregido el 2026-09-26, dos veces el mismo día.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak, **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados— y **seis más** del catálogo de equipos con el registro de un equipo en un área, con **210** pruebas. **Con eso existe ya todo lo que una orden de trabajo necesita tocar**: sedes, áreas y equipos por área. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
 
 Los 11 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios) y **RF-01, RF-02 y RF-05** de órdenes de trabajo. Todo lo demás está `[PREVISTO]`.
 

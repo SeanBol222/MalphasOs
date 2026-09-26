@@ -713,3 +713,25 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 **Conteo**: **154** pruebas de frontend, 20 archivos, cero fallos; el backend sigue en **645**. El `build` de producción no da avisos de presupuesto: cada pantalla es su propio trozo diferido, el mayor de 12,5 kB.
 
 **Tocadas**: [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-26] ingest | Todo lo necesario para crear un equipo, que resultó ser una cadena de cinco piezas
+
+**Lo que se pidió fue «crear un equipo» y lo que hacía falta eran seis pantallas**, porque un equipo de un cliente no se crea solo: exige un **modelo**, que exige un **equipo del catálogo** —tipo × marca— y un **fabricante**. Saltarse cualquiera deja el desplegable siguiente vacío, y sin explicación nadie adivina que lo que falta está dos pantallas atrás.
+
+**La cadena es ahora la pantalla.** El catálogo es una sola página con sus cinco secciones **en el orden en que se usan**, y cada una dice para qué sirve la siguiente. Se prefirió a cinco rutas separadas por una razón concreta: las cinco listas se consultan juntas de todos modos —ninguna respuesta trae nombres y hay que cruzarlas para pintar una fila legible—, así que separarlas costaría lo mismo y esconderería la dependencia.
+
+**«Equipo» significa dos cosas y esa es la confusión probable del módulo.** `Equipment` es una **categoría** —«tensiómetro Welch Allyn»— y `ClientEquipment` es **una máquina**, con su serie. La pantalla lo dice en voz alta en lugar de dejar que alguien busque su tensiómetro en el catálogo.
+
+**Cuatro listas para una etiqueta.** `ModelResponse` trae `idEquipo` e `idFabricante`; `EquipmentResponse`, `idTipoEquipo` e `idMarca`. Para ofrecer «Tensiómetro · Welch Allyn · Medtronic» en un desplegable hay que cruzar cuatro. Es la **segunda vez** que un módulo devuelve identificadores sin nombres —la primera fue `ManagerResponse`—, y por eso la fila de deuda pide decidirlo como convención antes de que sea la tercera.
+
+**La modalidad de verificación tiene ruta propia y no está en el cuerpo de edición.** Un formulario que la incluyera parecería funcionar y el cambio se perdería en silencio, así que la pantalla de edición **no la ofrece** y hay una prueba que fija esa ausencia. El cambio se hace desde la lista, que es donde vive la operación.
+
+**Lo obligatorio del alta son dos campos**, `idModelo` y `serie`, y los otros tres no viajan si están vacíos: una cadena vacía no es un número de inventario y un cero no es «no se sabe». Verificado por mutación —mandarlos siempre pone rojas dos pruebas—, igual que el recorte a piezas activas, porque el backend rechaza una referencia retirada.
+
+**Instalar exige `equipment.assign`, no `equipment.write`.** Es del backend y la distinción es buena: repartir una máquina a un área no es editar un catálogo. La prueba de autoridades contra el realm cubrió las cuatro rutas nuevas sin que hubiera que tocarla, que es para lo que se escribió ayer.
+
+**Aplazado con nombre**: el **traslado** entre áreas. El backend lo publica con su regla de no cruzar de cliente, y ofrecerlo exige listar las áreas de todas las sedes del cliente, que hoy son N peticiones. Es la pantalla que ejercería [[regla-traslado-mismo-cliente]] desde un navegador.
+
+**Conteo**: **210** pruebas de frontend, de 154. El backend sigue en **645**. El `build` no da avisos: el catálogo entero son 28 kB en su propio trozo diferido, 5,2 kB transferidos.
+
+**Tocadas**: [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz.

@@ -3,7 +3,7 @@ name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
 tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
-updated: 2026-09-12
+updated: 2026-09-26
 ---
 
 # Dominio Equipo y Mantenimiento Preventivo (`equipment_hexagon`)
@@ -67,10 +67,31 @@ Cada agregado hereda `AggregateRoot` ([[aggregate-root-pattern]]) y registra eve
 /v1/api/technical-verifications  GET, GET/{id}, POST, PUT/{id}, PATCH/{id}, DELETE/{id}
 ```
 
+## La cadena del catálogo, vista desde el frontend (2026-09-26)
+
+Las pantallas del catálogo dejaron clara una cosa que el modelo de dominio expresa pero que **nadie lee en un diagrama**: para registrar un equipo de un cliente hay que recorrer cinco piezas en orden, y **saltarse una deja el desplegable siguiente vacío sin explicación**.
+
+```
+Marca ──┐
+        ├─→ Equipo (tipo × marca) ──┐
+Tipo  ──┘                           ├─→ Modelo ──→ Equipo del cliente (en un área)
+                    Fabricante ─────┘
+```
+
+Tres consecuencias que el frontend tuvo que resolver, y que valen para cualquier cliente del API:
+
+- **Ninguna de las seis respuestas trae nombres, solo identificadores.** Una fila legible de modelos —«Tensiómetro · Welch Allyn · Medtronic»— se compone cruzando **cuatro** listas. Es la misma ausencia que en los encargados, y está anotada como deuda en [[deuda-tecnica-y-riesgos]].
+- **«Equipo» significa dos cosas distintas** y es la confusión más probable del módulo: `Equipment` es una **categoría** —un tipo con una marca— y `ClientEquipment` es **una máquina**, con su serie. La pantalla lo dice en voz alta, porque quien no lo sepa buscará su tensiómetro en el catálogo.
+- **La modalidad de verificación tiene ruta propia** (`PATCH /equipment-types/{id}/verification-mode`) y **no está en `EquipmentTypeUpdateRequest`**. Un formulario de edición que la incluyera parecería funcionar y el cambio se perdería en silencio: hay una prueba que fija su ausencia.
+
+**Lo que el alta de un equipo del cliente exige de verdad** es menos de lo que parece: `idModelo` y `serie`. El número de inventario, la fecha y el valor de compra son opcionales, porque un equipo se registra cuando llega y esos datos aparecen después. El frontend **no manda las claves vacías**: un cero no es «no se sabe».
+
+**Instalar un equipo exige `equipment.assign`, no `equipment.write`** — igual que el traslado. Es del backend, y la distinción es buena: repartir una máquina a un área no es editar un catálogo. Ver [[modelo-de-permisos]].
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — **debería portarse casi completo**, y así se hizo con la primera tanda. El modelo de dominio (`Equipment`, `EquipmentType`, `Brand`, `Manufacturer`, `Model`, `TechnicalVerification`, `MetrologicalData`) es genérico y no acopla nada de facturación/gestión ajena al mantenimiento en sí. Es, junto con `location_hexagon`, la plantilla arquitectónica a seguir para todos los módulos nuevos de MalphasOS — no la de `client_hexagon`.
 
 ## Notas relacionadas
 
-[[migracion-equipment-hallazgos]] · [[regla-traslado-mismo-cliente]] · [[patron-cqrs-commands]] · [[aggregate-root-pattern]] · [[eventos-de-dominio]] · [[dominio-reportes]] · [[esquema-bd-v4]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[alcance-malphasos]] · [[checklist-reutilizacion]]
+[[migracion-equipment-hallazgos]] · [[regla-traslado-mismo-cliente]] · [[arquitectura-frontend-malphasos]] · [[patron-cqrs-commands]] · [[aggregate-root-pattern]] · [[eventos-de-dominio]] · [[dominio-reportes]] · [[esquema-bd-v4]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[alcance-malphasos]] · [[checklist-reutilizacion]]
