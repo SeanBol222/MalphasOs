@@ -16,6 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.cfg.JsonNodeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -63,17 +64,25 @@ class OpenApiContractDumpTest {
     }
 
     /**
-     * Escribe el contrato con sangría estable.
+     * Escribe el contrato con sangría estable y las claves ordenadas.
      *
      * <p>Sin formatear, springdoc lo devuelve en una sola línea y cualquier cambio produce una
      * diferencia de un único renglón ilegible. Con sangría, la diferencia señala el campo que
      * cambió, que es para lo que se versiona.
+     *
+     * <p><b>Y sin ordenar las claves, el archivo cambiaba en cada corrida sin que el API cambiara.</b>
+     * Descubierto el 2026-09-26: springdoc construye los códigos de respuesta en un mapa sin orden
+     * garantizado, de modo que dos ejecuciones seguidas intercambiaban {@code 409} y {@code 500} y
+     * producían 376 líneas de diferencia falsa. Un archivo que se ensucia solo no se puede revisar,
+     * y revisarlo es la única razón por la que se versiona: el defecto vaciaba de sentido a esta
+     * clase entera. {@code WRITE_PROPERTIES_SORTED} lo deja determinista.
      */
     private void escribir(String grupo, JsonNode documento) throws Exception {
         Path destino = raizDelRepositorio().resolve(DESTINO);
         Files.createDirectories(destino);
 
         String formateado = JsonMapper.builder()
+                .enable(JsonNodeFeature.WRITE_PROPERTIES_SORTED)
                 .build()
                 .writerWithDefaultPrettyPrinter()
                 .writeValueAsString(documento);
