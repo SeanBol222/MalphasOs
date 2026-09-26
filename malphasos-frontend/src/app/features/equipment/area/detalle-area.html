@@ -1,0 +1,113 @@
+@if (area.isPending()) {
+  <p class="text-neutral-700" role="status">Cargando el área…</p>
+} @else {
+  @if (hayError()) {
+    <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  @if (area.data(); as datos) {
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h1 class="text-2xl font-bold">{{ datos.nombre }}</h1>
+        <p class="text-neutral-700" [class.font-semibold]="datos.estadoActivo">
+          {{ datos.estadoActivo ? 'Área abierta' : 'Área cerrada' }}
+        </p>
+      </div>
+
+      @if (puedeRegistrar() && datos.estadoActivo) {
+        <a
+          class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+          [routerLink]="['/areas', id(), 'equipos', 'nuevo']"
+        >
+          Registrar equipo
+        </a>
+      }
+    </div>
+
+    <section class="mt-3">
+      <h2 class="text-xl font-bold">Equipos instalados</h2>
+
+      @if (cargando()) {
+        <p class="text-neutral-700" role="status">Cargando los equipos…</p>
+      } @else if (!filas().length) {
+        <p class="text-neutral-700">
+          Esta área no tiene equipos. Cada equipo se registra con su serie, sobre un modelo del
+          catálogo.
+        </p>
+      } @else {
+        <table class="mt-1 w-full border-collapse text-left">
+          <caption class="sr-only">Equipos instalados en esta área</caption>
+          <thead>
+            <tr class="border-b border-neutral-300">
+              <th scope="col" class="py-1 pr-2 font-semibold">Serie</th>
+              <th scope="col" class="py-1 pr-2 font-semibold">Modelo</th>
+              <th scope="col" class="py-1 pr-2 font-semibold">Inventario</th>
+              <th scope="col" class="py-1 pr-2 font-semibold">Estado</th>
+              @if (puedeEditar()) {
+                <th scope="col" class="py-1 font-semibold">
+                  <span class="sr-only">Acciones</span>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of filas(); track fila.id) {
+              <tr class="border-b border-neutral-200">
+                <td class="py-1 pr-2 font-semibold">{{ fila.serie }}</td>
+                <td class="py-1 pr-2">{{ fila.modelo }}</td>
+                <td class="py-1 pr-2">{{ fila.numeroInventario || '—' }}</td>
+                <td class="py-1 pr-2" [class.font-semibold]="fila.estadoActivo">
+                  {{ fila.estadoActivo ? 'En servicio' : 'De baja' }}
+                </td>
+                @if (puedeEditar()) {
+                  <td class="py-1">
+                    @if (fila.estadoActivo) {
+                      @if (confirmandoBaja() === fila.id) {
+                        <button
+                          class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+                          type="button"
+                          [disabled]="baja.isPending()"
+                          (click)="darDeBaja(fila.id)"
+                        >
+                          Confirmar baja
+                        </button>
+                        <button
+                          class="min-h-tactil px-1 font-semibold underline"
+                          type="button"
+                          (click)="confirmandoBaja.set(null)"
+                        >
+                          Cancelar
+                        </button>
+                      } @else {
+                        <button
+                          class="min-h-tactil px-1 font-semibold underline"
+                          type="button"
+                          (click)="confirmandoBaja.set(fila.id)"
+                        >
+                          Dar de baja
+                        </button>
+                      }
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @if (confirmandoBaja()) {
+          <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
+            El equipo queda fuera de servicio con su historia intacta. No se borra, y sigue apareciendo
+            en esta lista.
+          </p>
+        }
+      }
+    </section>
+
+    <p class="mt-3">
+      <a class="font-semibold underline" [routerLink]="['/sedes', datos.idSede]">Volver a la sede</a>
+    </p>
+  }
+}

@@ -1,0 +1,125 @@
+<h1 class="text-2xl font-bold">Registrar equipo</h1>
+@if (area.data(); as datos) {
+  <p class="text-neutral-700">en el área {{ datos.nombre }}</p>
+}
+
+<form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+  @if (mensajeDeError()) {
+    <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+      @if (detalles().length) {
+        <ul class="mt-1 list-disc pl-3">
+          @for (detalle of detalles(); track detalle) {
+            <li>{{ detalle }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (sinModelos()) {
+    <!--
+      No es un fallo de esta pantalla: es la cadena del catalogo. Un desplegable vacio sin explicacion
+      dejaria a quien lo abre sin saber que hacer.
+    -->
+    <div class="mb-3 border-l-2 border-ink bg-neutral-200 p-2">
+      <p class="font-semibold">No hay modelos en el catálogo.</p>
+      <p>
+        Un equipo se registra sobre un modelo, y un modelo necesita una marca, un tipo, su combinación
+        y un fabricante.
+        <a class="font-semibold underline" routerLink="/catalogo">Complete el catálogo</a> y vuelva.
+      </p>
+    </div>
+  }
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="idModelo">Modelo</label>
+    <select
+      id="idModelo"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idModelo"
+      [attr.aria-invalid]="malo('idModelo') || null"
+      [attr.aria-describedby]="malo('idModelo') ? 'idModelo-error' : null"
+    >
+      <option value="">Elija un modelo</option>
+      @for (modelo of modelosOfrecidos(); track modelo.id) {
+        <option [value]="modelo.id">{{ modelo.etiqueta }}</option>
+      }
+    </select>
+    @if (malo('idModelo')) {
+      <p class="mt-1 font-semibold text-accent-700" id="idModelo-error">
+        Elija el modelo del equipo.
+      </p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="serie">Serie</label>
+    <input
+      id="serie"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="serie"
+      maxlength="50"
+      [attr.aria-invalid]="malo('serie') || null"
+      [attr.aria-describedby]="malo('serie') ? 'serie-error' : null"
+    />
+    @if (malo('serie')) {
+      <p class="mt-1 font-semibold text-accent-700" id="serie-error">
+        La serie es obligatoria y no pasa de 50 caracteres: es lo que identifica a esta máquina.
+      </p>
+    }
+  </div>
+
+  <h2 class="mb-1 text-xl font-bold">Datos opcionales</h2>
+  <p class="mb-2 text-neutral-700">
+    Un equipo se registra cuando llega; estos datos suelen aparecer después.
+  </p>
+
+  <div class="mb-3 grid gap-3 sm:grid-cols-3">
+    <div>
+      <label class="block font-semibold" for="numeroInventario">N.º de inventario</label>
+      <input
+        id="numeroInventario"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="numeroInventario"
+        maxlength="50"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="fechaCompra">Fecha de compra</label>
+      <input
+        id="fechaCompra"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        type="date"
+        formControlName="fechaCompra"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="valorCompra">Valor de compra</label>
+      <input
+        id="valorCompra"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        type="number"
+        inputmode="numeric"
+        formControlName="valorCompra"
+      />
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <button
+      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      type="submit"
+      [disabled]="enviando()"
+    >
+      {{ enviando() ? 'Guardando…' : 'Registrar equipo' }}
+    </button>
+
+    <a
+      class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold"
+      [routerLink]="['/areas', id()]"
+    >
+      Cancelar
+    </a>
+  </div>
+</form>

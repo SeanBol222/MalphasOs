@@ -1,0 +1,78 @@
+<section>
+  <h2 class="text-xl font-bold">Fabricantes</h2>
+  <p class="text-neutral-700">
+    Quién produce el equipo, y en qué país. No es lo mismo que la marca: un modelo junta las dos cosas.
+  </p>
+
+  @if (hayError()) {
+    <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  @if (fabricantes.isPending()) {
+    <p class="mt-1 text-neutral-700" role="status">Cargando fabricantes…</p>
+  } @else if (!fabricantes.data()?.length) {
+    <p class="mt-1 text-neutral-700">Todavía no hay fabricantes registrados.</p>
+  } @else {
+    <ul class="mt-1">
+      @for (fabricante of fabricantes.data(); track fabricante.id) {
+        <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
+          <span class="grow" [class.font-semibold]="fabricante.estadoActivo">
+            {{ fabricante.nombre }}
+            <span class="font-normal text-neutral-700">· {{ pais(fabricante.idPais) }}</span>
+          </span>
+          @if (puedeEscribir() && fabricante.estadoActivo) {
+            <button
+              class="min-h-tactil px-1 font-semibold underline"
+              type="button"
+              [disabled]="baja.isPending()"
+              (click)="retirar(fabricante.id!)"
+            >
+              Retirar
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  @if (puedeEscribir()) {
+    <form class="mt-2 flex flex-wrap items-end gap-2" [formGroup]="formulario" (ngSubmit)="agregar()">
+      <div class="grow">
+        <label class="block font-semibold" for="fabricanteNuevo">Nombre del fabricante</label>
+        <input
+          id="fabricanteNuevo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="nombre"
+          maxlength="50"
+        />
+      </div>
+      <div class="grow">
+        <label class="block font-semibold" for="paisFabricante">País</label>
+        <select
+          id="paisFabricante"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="idPais"
+        >
+          <option value="">Sin especificar</option>
+          @for (pais of paises.data(); track pais.id) {
+            <option [value]="pais.id">{{ pais.nombre }}</option>
+          }
+        </select>
+      </div>
+      <button
+        class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+        type="submit"
+        [disabled]="alta.isPending()"
+      >
+        Añadir
+      </button>
+    </form>
+    @if (formulario.get('nombre')!.invalid && formulario.get('nombre')!.touched) {
+      <p class="mt-1 font-semibold text-accent-700">
+        El nombre es obligatorio y no pasa de 50 caracteres.
+      </p>
+    }
+  }
+</section>

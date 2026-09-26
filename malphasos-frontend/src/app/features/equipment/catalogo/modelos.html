@@ -1,0 +1,95 @@
+<section>
+  <h2 class="text-xl font-bold">Modelos</h2>
+  <p class="text-neutral-700">
+    Un equipo del catálogo más su fabricante. <strong>Es lo único que se puede instalar</strong>: sin
+    modelos, el alta de un equipo aparece sin opciones.
+  </p>
+
+  @if (hayError()) {
+    <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  @if (cargando()) {
+    <p class="mt-1 text-neutral-700" role="status">Cargando modelos…</p>
+  } @else if (!filas().length) {
+    <p class="mt-1 text-neutral-700">Todavía no hay modelos. Combine un equipo con un fabricante.</p>
+  } @else {
+    <ul class="mt-1">
+      @for (fila of filas(); track fila.id) {
+        <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
+          <span class="grow" [class.font-semibold]="fila.estadoActivo">
+            {{ fila.equipo }}
+            <span class="font-normal text-neutral-700">
+              · {{ fila.fabricante }}
+              @if (fila.invima) {
+                · INVIMA {{ fila.invima }}
+              }
+            </span>
+          </span>
+          @if (puedeEscribir() && fila.estadoActivo) {
+            <button
+              class="min-h-tactil px-1 font-semibold underline"
+              type="button"
+              [disabled]="baja.isPending()"
+              (click)="retirar(fila.id)"
+            >
+              Retirar
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  @if (puedeEscribir()) {
+    <form class="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]" [formGroup]="formulario" (ngSubmit)="agregar()">
+      <div>
+        <label class="block font-semibold" for="equipoDelModelo">Equipo del catálogo</label>
+        <select
+          id="equipoDelModelo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="idEquipo"
+        >
+          <option value="">Elija un equipo</option>
+          @for (equipo of equiposActivos(); track equipo.id) {
+            <option [value]="equipo.id">{{ equipo.etiqueta }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="block font-semibold" for="fabricanteDelModelo">Fabricante</label>
+        <select
+          id="fabricanteDelModelo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="idFabricante"
+        >
+          <option value="">Elija un fabricante</option>
+          @for (fabricante of fabricantesActivos(); track fabricante.id) {
+            <option [value]="fabricante.id">{{ fabricante.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
+        <input
+          id="invimaDelModelo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="invima"
+          maxlength="50"
+        />
+      </div>
+      <button
+        class="min-h-tactil self-end bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+        type="submit"
+        [disabled]="alta.isPending()"
+      >
+        Crear modelo
+      </button>
+    </form>
+    @if (formulario.invalid && formulario.touched) {
+      <p class="mt-1 font-semibold text-accent-700">Elija un equipo del catálogo y un fabricante.</p>
+    }
+  }
+</section>

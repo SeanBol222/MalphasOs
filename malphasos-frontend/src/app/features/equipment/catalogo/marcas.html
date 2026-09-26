@@ -1,0 +1,100 @@
+<section>
+  <h2 class="text-xl font-bold">Marcas</h2>
+  <p class="text-neutral-700">Quién fabrica la línea del equipo. Se combinan con un tipo.</p>
+
+  @if (hayError()) {
+    <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  @if (marcas.isPending()) {
+    <p class="mt-1 text-neutral-700" role="status">Cargando marcas…</p>
+  } @else if (!marcas.data()?.length) {
+    <p class="mt-1 text-neutral-700">Todavía no hay marcas registradas.</p>
+  } @else {
+    <ul class="mt-1">
+      @for (marca of marcas.data(); track marca.id) {
+        <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
+          @if (renombrando() === marca.id) {
+            <label class="sr-only" [attr.for]="'marca-' + marca.id">Nuevo nombre de la marca</label>
+            <input
+              class="min-h-tactil grow border border-neutral-400 bg-paper px-1"
+              [id]="'marca-' + marca.id"
+              [formControl]="nombreEditado"
+              maxlength="50"
+            />
+            <button
+              class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+              type="button"
+              [disabled]="cambio.isPending()"
+              (click)="renombrar(marca.id!)"
+            >
+              Guardar
+            </button>
+            <button
+              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="renombrando.set(null)"
+            >
+              Cancelar
+            </button>
+          } @else {
+            <span class="grow" [class.font-semibold]="marca.estadoActivo">{{ marca.nombre }}</span>
+            <span class="text-neutral-700">{{ marca.estadoActivo ? 'Activa' : 'Retirada' }}</span>
+            @if (puedeEscribir()) {
+              <button
+                class="min-h-tactil px-1 font-semibold underline"
+                type="button"
+                (click)="empezarARenombrar(marca.id!, marca.nombre)"
+              >
+                Renombrar
+              </button>
+              @if (marca.estadoActivo) {
+                <button
+                  class="min-h-tactil px-1 font-semibold underline"
+                  type="button"
+                  [disabled]="baja.isPending()"
+                  (click)="retirar(marca.id!)"
+                >
+                  Retirar
+                </button>
+              }
+            }
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  @if (puedeEscribir()) {
+    <div class="mt-2 flex flex-wrap items-end gap-2">
+      <div class="grow">
+        <label class="block font-semibold" for="marcaNueva">Añadir una marca</label>
+        <input
+          id="marcaNueva"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          [formControl]="nombreNuevo"
+          maxlength="50"
+          [attr.aria-invalid]="nombreNuevo.invalid && nombreNuevo.touched ? 'true' : null"
+          [attr.aria-describedby]="
+            nombreNuevo.invalid && nombreNuevo.touched ? 'marcaNueva-error' : null
+          "
+        />
+      </div>
+      <button
+        class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+        type="button"
+        [disabled]="alta.isPending()"
+        (click)="agregar()"
+      >
+        Añadir
+      </button>
+    </div>
+    @if (nombreNuevo.invalid && nombreNuevo.touched) {
+      <p class="mt-1 font-semibold text-accent-700" id="marcaNueva-error">
+        El nombre es obligatorio y no pasa de 50 caracteres.
+      </p>
+    }
+  }
+</section>

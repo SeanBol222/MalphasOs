@@ -42,6 +42,19 @@ export class AreaApi {
     }));
   }
 
+  /**
+   * Un area por su identificador.
+   *
+   * <p>La necesita la pantalla de equipos de un area, que llega por la ruta del area y no desde su
+   * sede: sin esto habria que traerse la lista de la sede para sacar un nombre.
+   */
+  detalle(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...SedeApi.CLAVE, 'area', id()],
+      queryFn: () => firstValueFrom(this.http.get<AreaDeServicio>(`${this.url}/${id()}`)),
+    }));
+  }
+
   crear() {
     return injectMutation(() => ({
       mutationFn: ({ idSede, area }: { idSede: string; area: NuevaArea }) =>

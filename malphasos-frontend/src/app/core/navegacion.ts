@@ -24,6 +24,10 @@ export interface EntradaDeNavegacion {
 export const NAVEGACION: readonly EntradaDeNavegacion[] = [
   { ruta: 'inicio', etiqueta: 'Inicio' },
   { ruta: 'clientes', etiqueta: 'Clientes' },
+  // El catalogo es del menu y no de la ficha de un cliente: no pertenece a ninguno. Marcas, tipos,
+  // fabricantes y modelos los comparten todos los clientes, y es lo que permite que dos hospitales
+  // tengan el mismo modelo sin duplicar nada.
+  { ruta: 'catalogo', etiqueta: 'Catálogo' },
 ] as const;
 
 /** Las rutas hijas del armazon, derivadas de {@link NAVEGACION}. */
@@ -45,6 +49,8 @@ function cargarPagina(ruta: string): Promise<any> {
       return import('../features/home/inicio').then((m) => m.Inicio);
     case 'clientes':
       return import('../features/client/lista/lista-clientes').then((m) => m.ListaClientes);
+    case 'catalogo':
+      return import('../features/equipment/catalogo/catalogo').then((m) => m.Catalogo);
     default:
       throw new Error(`La entrada de navegacion "${ruta}" no tiene pagina asociada`);
   }
