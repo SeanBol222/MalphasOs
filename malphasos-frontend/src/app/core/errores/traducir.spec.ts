@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { detallesDe, traducirError } from './traducir';
-import { MENSAJE_DE_RESPALDO } from './catalogo-client';
+import { MENSAJE_DE_RESPALDO } from './catalogos';
 
 /** Un fallo con la forma exacta en que el backend devuelve sus errores. */
 function fallo(code: string | undefined, details: string[] = [], status = 400): HttpErrorResponse {

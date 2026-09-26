@@ -1,6 +1,7 @@
 import { components } from './client.contrato';
 import { components as ubicacion } from './location.contrato';
 import { components as personas } from './person.contrato';
+import { components as equipos } from './equipment.contrato';
 
 /**
  * Nombres legibles para lo que el contrato genera.
@@ -57,6 +58,54 @@ export type Ciudad = ubicacion['schemas']['CityResponse'];
  * encargados de una sede seria una columna de UUID. La seccion de personas no existe todavia.
  */
 export type Persona = personas['schemas']['PersonResponse'];
+
+/**
+ * El catalogo de equipos, que son cinco piezas y no una.
+ *
+ * <p>Registrar un equipo de un cliente exige una cadena entera: una <b>marca</b> y un <b>tipo</b> se
+ * combinan en un <b>equipo</b> del catalogo; ese equipo y un <b>fabricante</b> se combinan en un
+ * <b>modelo</b>; y es el modelo lo que se instala en un area como <b>equipo del cliente</b>. Ninguna
+ * de esas respuestas trae nombres, solo identificadores: las pantallas los resuelven cruzando listas.
+ */
+export type Marca = equipos['schemas']['BrandResponse'];
+export type NuevoNombre = equipos['schemas']['NamedRequest'];
+
+export type TipoDeEquipo = equipos['schemas']['EquipmentTypeResponse'];
+export type NuevoTipoDeEquipo = equipos['schemas']['EquipmentTypeCreateRequest'];
+export type CambioDeTipoDeEquipo = equipos['schemas']['EquipmentTypeUpdateRequest'];
+export type ModalidadDeVerificacion = NonNullable<NuevoTipoDeEquipo['modalidadVerificacion']>;
+
+export type Fabricante = equipos['schemas']['ManufacturerResponse'];
+export type NuevoFabricante = equipos['schemas']['ManufacturerRequest'];
+
+export type EquipoDeCatalogo = equipos['schemas']['EquipmentResponse'];
+export type NuevoEquipoDeCatalogo = equipos['schemas']['EquipmentCreateRequest'];
+
+export type Modelo = equipos['schemas']['ModelResponse'];
+export type NuevoModelo = equipos['schemas']['ModelCreateRequest'];
+
+export type EquipoDeCliente = equipos['schemas']['ClientEquipmentResponse'];
+export type NuevoEquipoDeCliente = equipos['schemas']['ClientEquipmentRegisterRequest'];
+export type CambioDeEquipoDeCliente = equipos['schemas']['ClientEquipmentUpdateRequest'];
+
+/** Las tres modalidades de verificacion, en el orden en que el esquema las declara. */
+export const MODALIDADES_DE_VERIFICACION: readonly ModalidadDeVerificacion[] = [
+  'PATRON_CONSTANTE',
+  'EQUIPO_CONSTANTE',
+  'PATRON_EQUIPO_VARIABLE',
+] as const;
+
+/**
+ * Como se nombra cada modalidad en pantalla.
+ *
+ * <p>Los codigos describen <b>que se mantiene constante durante la verificacion</b>, y eso no se
+ * deduce del nombre: se explica aqui una vez en lugar de esperar que cada pantalla lo adivine.
+ */
+export const ETIQUETA_DE_MODALIDAD: Readonly<Record<ModalidadDeVerificacion, string>> = {
+  PATRON_CONSTANTE: 'Patrón constante',
+  EQUIPO_CONSTANTE: 'Equipo constante',
+  PATRON_EQUIPO_VARIABLE: 'Patrón y equipo variables',
+};
 
 /** Los tipos de documento que el contrato admite, en el orden en que se ofrecen. */
 export const TIPOS_DE_IDENTIFICACION: readonly TipoIdentificacion[] = [

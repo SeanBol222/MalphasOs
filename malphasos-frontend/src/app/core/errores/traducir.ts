@@ -1,5 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { CATALOGO_CLIENT, CATALOGO_LOCATION, MENSAJE_DE_RESPALDO } from './catalogo-client';
+import {
+  CATALOGO_CLIENT,
+  CATALOGO_EQUIPMENT,
+  CATALOGO_LOCATION,
+  MENSAJE_DE_RESPALDO,
+} from './catalogos';
 
 /** La forma en que todos los modulos del backend devuelven un error. */
 interface ErrorDelApi {
@@ -25,7 +30,11 @@ export function traducirError(fallo: unknown): string {
 
   const codigo = (fallo.error as ErrorDelApi | null)?.code;
 
-  return (codigo && (CATALOGO_CLIENT[codigo] ?? CATALOGO_LOCATION[codigo])) || MENSAJE_DE_RESPALDO;
+  return (
+    (codigo &&
+      (CATALOGO_CLIENT[codigo] ?? CATALOGO_LOCATION[codigo] ?? CATALOGO_EQUIPMENT[codigo])) ||
+    MENSAJE_DE_RESPALDO
+  );
 }
 
 /**
