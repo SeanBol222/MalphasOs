@@ -3,9 +3,11 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-experimental';
 import { provideRouter } from '@angular/router';
 import {
+  AutoRefreshTokenService,
   INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG,
   includeBearerTokenInterceptor,
   provideKeycloak,
+  UserActivityService,
   withAutoRefreshToken,
 } from 'keycloak-angular';
 import { routes } from './app.routes';
@@ -34,6 +36,11 @@ export const appConfig: ApplicationConfig = {
       ],
       providers: [
         { provide: INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG, useValue: [tokenSoloHaciaElApi] },
+        // withAutoRefreshToken los exige y ninguno es providedIn: 'root'. Sin ellos la
+        // aplicacion no arranca: el inyector falla antes de pintar nada y la pagina queda en
+        // blanco sin redirigir. Lo dice el README de la libreria; no leerlo costo este fallo.
+        AutoRefreshTokenService,
+        UserActivityService,
       ],
     }),
     provideHttpClient(withInterceptors([includeBearerTokenInterceptor])),
