@@ -661,3 +661,29 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 **Conteo**: **636** elementos `<testcase>`, 47 clases, cero fallos. Ocho pruebas nuevas, verificadas por mutación: el ingeniero cambiado de peldaño, el alta devuelta a `person.write`, y el bean usado en otro módulo para esquivar una autoridad —esta última la caza la prueba que acota la excepción—.
 
 **Tocadas**: [[modelo-de-permisos]], [[dominio-persona-identidad]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-26] ingest | El frontend habla con el API: dos defectos que solo aparecen con un navegador delante
+
+**El backend llevaba cinco módulos y la batería en verde sin que una sola petición hubiera salido de un navegador.** Al abrir el frontend por primera vez contra el API real aparecieron dos fallos seguidos, y **ninguno de los dos era detectable con lo que había**: `curl` no manda `Origin` y `MockMvc` no tiene inyector de Angular.
+
+**1. Página en blanco, sin redirección y sin error.** `withAutoRefreshToken` exige `AutoRefreshTokenService` y `UserActivityService`, y **ninguno es `providedIn: 'root'`**. Sin declararlos en `providers`, el inyector falla antes de pintar nada. Está en el README de la librería: no leerlo costó el fallo entero.
+
+**2. `Access-Control-Allow-Origin missing`, con un 401 que engañaba.** El 401 **no era del token: era del preflight.** Un `OPTIONS` no lleva cabecera de autorización, así que caía en `anyRequest().authenticated()` y se rechazaba antes de que nadie mirase ningún token. El navegador no informa de ese 401, informa de la cabecera que falta, y eso manda a buscar al sitio equivocado.
+
+**La configuración de CORS va fuera de las dos cadenas de seguridad**, y es la decisión que más se va a agradecer: CORS es un asunto del navegador, no de si el API exige token. Dentro de `SecurityConfig` habría dejado el frontend roto justo con `app.security.enabled=false`, que es el modo en que se desarrolla sin Keycloak.
+
+**Sin comodín y sin `allowCredentials`.** Los orígenes se declaran en `app.security.cors.allowed-origins`, y el `@Value` **no tiene valor por omisión**: desplegar sin declararlos tumba el arranque en vez de servir una política equivocada en silencio. Las cookies no se piden porque el token va en la cabecera — misma razón que CSRF apagado.
+
+**La mutación dijo algo que no se esperaba.** Quitar `.cors(...)` de `SecurityConfig` **dejó las tres pruebas en verde**: `HttpSecurityConfiguration.applyCorsIfAvailable` lo aplica solo en cuanto existe el bean. La línea es redundante hoy y **se queda**, porque esa aplicación automática mira el tipo **concreto** del bean: si `CorsConfig` devolviera una lambda, dejaría de aplicarse y el preflight volvería al 401 sin que nada en la cadena cambiase. Las otras dos mutaciones fueron las que contaron: sin el bean y con `.cors(...)`, **200 sin cabeceras** —borra el 401, que era la única pista—; sin las dos cosas, **401**, el número exacto del navegador.
+
+**Una prueba que sigue verde al quitar una línea no es mala si fija el resultado y no el mecanismo.** Lo malo habría sido no hacer la mutación y creer que fijaba el mecanismo.
+
+**Y una trampa de configuración que habría tumbado la batería entera**: `src/test/resources/application.yaml` **no hereda** del de producción, lo sustituye. Sin la clave también allí, el `@Value` no resuelve y no arranca ni una prueba, tenga o no que ver con seguridad.
+
+**Verificado contra el servidor en marcha**, que es donde ocurrió el fallo: preflight permitido **200** con las cuatro cabeceras y `Max-Age: 1800`; origen ajeno **403 sin cabeceras**; `GET` sin token **401 pero ya con la cabecera de origen**, de modo que el navegador puede leer el estado real.
+
+**Deuda nueva anotada, y una es de seguridad**: el realm de desarrollo lleva **credenciales en claro versionadas** —la contraseña de `dev.admin` y los secretos de los clients—, dentro de `origin/main` desde el 2026-08-28. Empujar no expone nada nuevo; lo que hay que hacer es rotarlas y sacarlas a variables de entorno.
+
+**Conteo**: **645** elementos `<testcase>`, 49 clases, cero fallos, medido borrando `target/surefire-reports` antes. Tres pruebas nuevas.
+
+**Tocadas**: [[seguridad-keycloak-backend]], [[integracion-keycloak-frontend]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
