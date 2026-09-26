@@ -67,6 +67,16 @@ malphasos-frontend/src/app/
 
 > **Un componente nunca llama al API directamente.** Siempre pasa por el servicio de su módulo.
 
+**Un servicio por agregado, no uno por módulo** — precisado el 2026-09-26 al construir la sección de clientes. Esta nota decía «servicio del módulo», y con cuatro agregados dentro de `client` —cliente, sede, área de servicio y encargado— eso habría sido el archivo más grande del frontend. El backend tampoco lo hace así: separa en `application/services/<agregado>/`. Lo que la regla protege —que TanStack Query no se escape a las pantallas— se cumple igual.
+
+### Las claves de caché son jerárquicas, y eso es lo que evita el defecto clásico
+
+`['clientes'] → ['clientes', id] → ['clientes', id, 'sedes'] → ['sedes', id] → ['sedes', id, 'areas']`.
+
+TanStack Query invalida **por prefijo**, así que una escritura sobre un cliente alcanza sola a su ficha y a su lista de sedes. Sin eso hay que acordarse de invalidar cada pantalla que mira el mismo dato, y el día que alguien lo olvide el síntoma es «creé algo y no aparece hasta recargar». Está fijado por pruebas: cada escritura comprueba que **sale una segunda consulta**, y quitar la invalidación las pone rojas.
+
+Lo que **no** se invalida también es una decisión: renombrar un área no toca la rama del cliente, porque la lista de sedes de un cliente no dice nada de sus áreas.
+
 Esa regla no es estética: **es lo que acota el riesgo de TanStack Query**, cuyo adaptador de Angular se distribuye con el sufijo `experimental` en el nombre del paquete. Si su API cambia entre versiones, lo que se toca son los servicios de módulo y no cada pantalla.
 
 ## Autenticación y autorización
@@ -77,6 +87,11 @@ Dos precisiones que evitan un malentendido peligroso:
 
 - **El frontend no autoriza: oculta.** Esconder un botón mejora la experiencia; el permiso lo comprueba el servidor en cada llamada. Un frontend que «protege» una operación no protege nada.
 - **El vocabulario de autoridades no se duplica a mano.** Sale del token y se contrasta con el del backend. Dos listas escritas por separado se desincronizan, y este proyecto ya tiene precedentes documentados de eso.
+- **Y desde el 2026-09-26 hay prueba de que los literales de las rutas existen.** Ocurrió lo que la advertencia anterior anunciaba: las rutas de las sedes se escribieron con `headquarter.read` y `headquarter.write`, que **no existen** —las sedes las protege `client.*`—. Nada fallaba: el guard mandaba a `/sin-permiso` y la pantalla quedaba inalcanzable para todo el mundo, incluido el administrador. Una prueba lee ahora `app.routes.ts`, extrae cada `requiereAutoridad('…')` y exige que el realm conceda ese rol; otra comprueba que la lista no esté vacía, para que no pase en vacío. Es el equivalente de `RestAuthorizationCoverageTest` en el otro extremo de la línea.
+
+**Ocultar exige saber qué se puede**, y eso se lee con `Sesion.puede(...)` **como señal calculada**, no como booleano: las autoridades se releen en cada evento de Keycloak —renovación de token incluida—, y un valor calculado en el constructor se quedaría con el de entonces.
+
+**Lo que un grupo no puede leer no se disimula.** El grupo `clients` no tiene `location.read` ni `person.read`, de modo que para esos usuarios el catálogo de países y la lista de personas responden 403. La pantalla distingue entonces **«no tiene» de «no se pudo consultar»**: decir «sin país» de un cliente que sí lo tiene es afirmar algo falso, y es lo que hacía la primera versión.
 
 Las 19 autoridades y qué protege cada una, en [[modelo-de-permisos]].
 
@@ -98,7 +113,7 @@ La redacción sigue el tono del manual de marca — ver [[sistema-de-diseno-malp
 
 ## Pruebas
 
-Mismo listón que el backend, que llega a este punto con 624 pruebas y la costumbre de verificar por mutación.
+Mismo listón que el backend, que llega a este punto con **645** pruebas y la costumbre de verificar por mutación. El frontend va por **154**, contadas el 2026-09-26. (Decía 624 y no citaba las del frontend, que entonces no existían.)
 
 | Nivel | Qué cubre |
 |---|---|
@@ -109,9 +124,17 @@ Mismo listón que el backend, que llega a este punto con 624 pruebas y la costum
 
 **El API simulado responde con los códigos reales.** Simular un error genérico probaría que la pantalla muestra algo, no que muestra lo correcto.
 
+### Zoneless: `whenStable()` no se puede esperar con una petición en vuelo
+
+Encontrado el 2026-09-26, y costó una tanda de pruebas que **agotaban su tiempo en vez de fallar**: la aplicación es zoneless y una petición HTTP sin responder cuenta como **tarea pendiente**, así que `await fixture.whenStable()` mientras hay una en vuelo no termina nunca. Se espera por **tics vacíos** —`setTimeout(0)` más `detectChanges()`— hasta que la señal llega al DOM, y por tics y no por milisegundos porque un retardo fijo es una carrera lenta.
+
+Los ayudantes viven en `src/testing/pantalla.ts` —`asentar`, `responderA`, `atenderRefresco`— en lugar de copiarse en cada pantalla, que es lo que estaba a punto de pasar.
+
 ## Por dónde se empieza
 
 **Rebanada vertical: arranque de la aplicación, autenticación y el flujo completo de órdenes de trabajo.** Atraviesa sesión, datos, formularios, errores y accesibilidad de una vez, de modo que una decisión equivocada aparece en la primera semana y no en la quinta.
+
+> **Lo que se hizo de verdad, y por qué el orden cambió.** Tras el arranque y la autenticación entró **clientes** y no órdenes de trabajo, por decisión del usuario el 2026-09-13, y se **cerró entera** el 2026-09-26: ficha, edición, baja, contactos, sedes, áreas de servicio y encargados. No fue un desvío: sin sedes ni áreas no hay dónde registrar un equipo, y **una orden de trabajo solo puede tocar equipos de áreas de su propia sede**, de modo que el formulario de órdenes —que es lo que cierra sus cuatro RF de pantalla— no tenía contra qué construirse. La rebanada vertical ya se había atravesado con la primera versión de clientes.
 
 El formulario de una orden arrastra consigo el selector de cliente, el de sede, la selección múltiple de áreas y la de equipos — piezas que los demás módulos reutilizarán.
 

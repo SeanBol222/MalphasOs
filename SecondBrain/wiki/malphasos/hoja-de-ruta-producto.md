@@ -19,7 +19,9 @@ updated: 2026-09-13
 |---|---|---|---|
 | Requisitos funcionales | 31 | **11** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
-| Frontend | — | **Nada.** No existe el directorio | Comprobado sobre el árbol del repositorio |
+| Frontend | — | **Sesión, autenticación y la sección de clientes cerrada entera** | Comprobado sobre el árbol del repositorio |
+
+> **Corregido el 2026-09-26.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak y **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados—, con **154** pruebas. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
 
 Los 11 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios) y **RF-01, RF-02 y RF-05** de órdenes de trabajo. Todo lo demás está `[PREVISTO]`.
 
@@ -122,7 +124,7 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 | 2 | **Reportes de mantenimiento** (RF-09, 11, 13, 15) | Historial de hojas de vida, PDF, alertas | Requiere el bloque 1 (+ RF-14, disponible ya) |
 | 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | Ninguna pendiente. Puede ir en paralelo al 1 y al 2 |
 | 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | Requiere el bloque 2 |
-| 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora** |
+| 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora.** Arrancado ese mismo día; **la sección de clientes quedó cerrada el 2026-09-26**, y con ella existe ya dónde registrar sedes y áreas, que es lo que el formulario de órdenes necesita para poder construirse |
 | 6 | **Firma digital** (RF-18, RF-21) → **PDF** (RF-17) | Cierra reportes | Requiere los bloques 2 y 5 |
 | 7 | **Alertas y calibración** (RF-40, RF-41) | — | Requiere el bloque 3 + tareas programadas. **Won't Have** |
 | 8 | **Inventario y módulo comercial** | — | **Requisitos ausentes que hay que escribir primero.** Inventario es Won't Have |

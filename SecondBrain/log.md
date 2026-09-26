@@ -687,3 +687,29 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 **Conteo**: **645** elementos `<testcase>`, 49 clases, cero fallos, medido borrando `target/surefire-reports` antes. Tres pruebas nuevas.
 
 **Tocadas**: [[seguridad-keycloak-backend]], [[integracion-keycloak-frontend]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-26] ingest | La sección de clientes, cerrada entera, y una autoridad inventada que nadie habría notado
+
+**Se cerró lo que estaba a medias**, por decisión del usuario y antes de seguir con órdenes de trabajo: ficha del cliente, edición, retiro, correos y teléfonos, **sedes**, **áreas de servicio** y **encargados**. Nueve pantallas, cuatro puertas al API —una por agregado— y **154** pruebas de frontend, de 84 que había.
+
+**No fue un desvío del plan sino su condición**: sin sedes ni áreas no hay dónde registrar un equipo, y una orden de trabajo **solo puede tocar equipos de áreas de su propia sede**. El formulario de órdenes —que es lo que cierra sus cuatro RF de pantalla— no tenía contra qué construirse.
+
+**El hallazgo de la tanda: una autoridad que no existe no falla, desaparece.** Las rutas de las sedes se escribieron con `headquarter.read` y `headquarter.write` por simetría con el nombre del recurso. **Las sedes las protege `client.*`**: el guard mandaba a `/sin-permiso` y la pantalla quedaba inalcanzable para todo el mundo, incluido el administrador, sin un solo error en ninguna consola. Es exactamente el riesgo que [[arquitectura-frontend-malphasos]] tenía escrito —«dos listas escritas por separado se desincronizan»— ocurriendo en la primera ocasión que tuvo.
+
+**Ahora lo caza una prueba**, y se escribió **antes** de corregir la ruta para verla fallar: lee `app.routes.ts`, extrae cada `requiereAutoridad('…')` y exige que el realm conceda ese rol. La acompaña otra que comprueba que la lista no esté vacía, porque una prueba que recorre cero elementos pasa siempre y este proyecto ya sabe lo que cuesta eso.
+
+**Un servicio por agregado y no por módulo.** El wiki decía «servicio del módulo»; con cuatro agregados dentro de `client` habría sido el archivo más grande del frontend, y el backend tampoco lo hace así. Lo que la regla protege —que TanStack Query no se escape a las pantallas— se cumple igual.
+
+**Las claves de caché son jerárquicas**, y es lo que evita el defecto de «creé algo y no aparece hasta recargar»: invalidar `['clientes']` alcanza por prefijo a la ficha y a su lista de sedes. Lo que **no** se invalida también está decidido: renombrar un área no toca la rama del cliente. Verificado por mutación: quitar la invalidación del alta de un correo pone roja la prueba que exige la segunda consulta.
+
+**Zoneless: `whenStable()` no se puede esperar con una petición en vuelo.** Una petición sin responder cuenta como tarea pendiente, así que las primeras pruebas **agotaban su tiempo en vez de fallar**, que es la peor forma de romperse. Se espera por tics vacíos, y los ayudantes viven ahora en `src/testing/pantalla.ts` en lugar de copiarse en cada pantalla.
+
+**Dos decisiones de honestidad en pantalla.** Los identificadores no se escriben nunca: país y ciudad se eligen de un catálogo, y **las ciudades se recortan al país del cliente** —abrir una sede colombiana en Lima es un error que nadie detecta hasta que un ingeniero viaja—. Y se distingue **«no tiene» de «no se pudo consultar»**: el grupo `clients` no tiene `location.read`, y decir «sin país» de un cliente que sí lo tiene es afirmar algo falso.
+
+**Lo que el backend no da, se dice.** `ManagerResponse` no trae el nombre de la persona y `GET /managers` no admite filtros, de modo que la pantalla se trae las dos listas y las cruza en memoria. Queda como deuda con su porqué: la alternativa eran N peticiones para pintar N filas.
+
+**Aplazado con nombre**: los **representantes** se ven y no se tocan. Darlos de alta exige la sección de personas, que no existe, y arrastra el **cupo** por cliente que el usuario aplazó el 2026-09-13.
+
+**Conteo**: **154** pruebas de frontend, 20 archivos, cero fallos; el backend sigue en **645**. El `build` de producción no da avisos de presupuesto: cada pantalla es su propio trozo diferido, el mayor de 12,5 kB.
+
+**Tocadas**: [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz.

@@ -81,7 +81,7 @@ Los hallazgos de cada migración. Se leen por lo que enseñan sobre **cómo apar
 Notas que describen piezas del sistema original **no construidas aquí**. Son el punto de partida cuando les llegue el turno; ver [[hoja-de-ruta-producto]] para cuándo.
 
 - [[arquitectura-frontend]] — React 19 + TS + Vite **del original**. Su conclusión de reutilización caducó el 2026-09-13 al elegirse Angular.
-- [[arquitectura-frontend-malphasos]] ⭐ — **Cómo se escribe frontend aquí**: Angular, por módulo de negocio con los nombres del backend, cliente generado desde OpenAPI. Y por qué cada pieza es el espejo de una del backend.
+- [[arquitectura-frontend-malphasos]] ⭐ — **Cómo se escribe frontend aquí**: Angular, por módulo de negocio con los nombres del backend, cliente generado desde OpenAPI. Y por qué cada pieza es el espejo de una del backend. Desde el 2026-09-26, también: **un servicio por agregado**, claves de caché jerárquicas, y por qué `whenStable()` no sirve en zoneless con una petición en vuelo.
 - [[sistema-de-diseno-malphasos]] ⭐ — El manual de marca traducido a interfaz: tokens, contrastes **medidos**, radio cero, escala de 8, y los estados que se distinguen por peso y no por color.
 - [[integracion-keycloak-frontend]] — `keycloak-js` + `AuthProvider` + `PrivateRoute` + `apiFetch`: un starter de autenticación completo y portable. Y, desde el 2026-09-26, **lo que costó el primer arranque real contra `keycloak-angular`**: dos providers que la librería no declara y una página en blanco sin mensaje.
 - [[dominio-reportes]] — El agregador cross-dominio del original. En MalphasOS el grupo de OpenAPI existe y el módulo no.
