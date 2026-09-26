@@ -33,7 +33,13 @@
     <tbody>
       @for (cliente of clientes.data(); track cliente.id) {
         <tr class="border-b border-neutral-200">
-          <td class="py-1 pr-2">{{ cliente.razonSocial }}</td>
+          <td class="py-1 pr-2">
+            <!-- La razon social es el enlace: es lo que alguien busca con la vista al recorrer la
+                 tabla, y hace de la fila algo mas que texto. -->
+            <a class="font-semibold underline" [routerLink]="['/clientes', cliente.id]">
+              {{ cliente.razonSocial }}
+            </a>
+          </td>
           <td class="py-1 pr-2">
             {{ cliente.documento }}
             <span class="text-neutral-700">· {{ etiqueta(cliente.tipoIdentificacion) }}</span>

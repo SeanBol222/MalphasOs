@@ -6,26 +6,69 @@ import { proveerApiSimulado } from '../../../../testing/entorno';
 import { NuevoClienteComponent } from './nuevo-cliente';
 
 const URL = 'http://localhost:8081/v1/api/clients';
+const URL_PAISES = 'http://localhost:8081/v1/api/countries';
 
-/** Destino de la vuelta al listado. Vacio a proposito: no se prueba el listado aqui. */
+/** Los paises que el catalogo devuelve en estas pruebas. */
+const PAISES = [
+  { id: 'co', nombre: 'Colombia', codigoIso: 'CO', estadoActivo: true },
+  { id: 'pe', nombre: 'Perú', codigoIso: 'PE', estadoActivo: true },
+];
+
+/** Destinos de la navegacion posterior al alta. Vacios a proposito: aqui no se prueban esas pantallas. */
 @Component({ selector: 'app-listado-falso', template: '' })
 class ListadoFalso {}
+
+@Component({ selector: 'app-ficha-falsa', template: '' })
+class FichaFalsa {}
 
 describe('Alta de un cliente', () => {
   let fixture: ComponentFixture<NuevoClienteComponent>;
   let http: HttpTestingController;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
-        provideRouter([{ path: 'clientes', component: ListadoFalso }]),
+        provideRouter([
+          { path: 'clientes', component: ListadoFalso },
+          { path: 'clientes/:id', component: FichaFalsa },
+        ]),
       ],
     });
     fixture = TestBed.createComponent(NuevoClienteComponent);
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
+    // El catalogo de paises se pide al abrir la pantalla. Se responde aqui para que cada prueba
+    // parta de un desplegable ya cargado; las que miran el fallo del catalogo lo hacen aparte.
+    await responderPaises(PAISES);
   });
+
+  /** Responde a la consulta del catalogo, que sale sola al construir la pantalla. */
+  async function responderPaises(
+    cuerpo: object,
+    opciones?: { status: number; statusText: string },
+  ): Promise<void> {
+    for (let intento = 0; intento < 20; intento += 1) {
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const pendientes = http.match(URL_PAISES);
+      if (pendientes.length) {
+        if (opciones) {
+          pendientes[0].flush(cuerpo, opciones);
+        } else {
+          pendientes[0].flush(cuerpo);
+        }
+        // Una vuelta no basta: la consulta resuelve por promesa y la senal tarda varios tics en
+        // llegar al DOM. Esperar un numero fijo de tics seria una carrera.
+        await asentar();
+
+        return;
+      }
+      await new Promise((seguir) => setTimeout(seguir, 0));
+    }
+
+    throw new Error('La pantalla no pidio el catalogo de paises');
+  }
 
   const raiz = () => fixture.nativeElement as HTMLElement;
   const texto = () => raiz().textContent ?? '';
@@ -101,15 +144,62 @@ describe('Alta de un cliente', () => {
     expect(raiz().querySelector<HTMLInputElement>('#razonSocial')!.maxLength).toBe(50);
   });
 
-  it('al guardar, vuelve al listado', async () => {
+  it('al guardar, lleva a la ficha del cliente creado', async () => {
     // Se navega de verdad contra una ruta real en vez de espiar al router: asi se comprueba que el
     // destino existe. Con un espia, una ruta mal escrita pasaria la prueba y fallaria en uso.
+    //
+    // Y el destino es la ficha, no el listado: lo siguiente que hace quien registra un cliente es
+    // anadirle un correo o una sede, y las dos cosas estan ahi. Eso exige que el identificador de
+    // la respuesta llegue a la ruta, que es lo que esta prueba fija.
     rellenarValido();
     await enviar();
     http.expectOne(URL).flush({ id: '1' });
     await asentar();
 
-    expect(TestBed.inject(Router).url).toBe('/clientes');
+    expect(TestBed.inject(Router).url).toBe('/clientes/1');
+  });
+
+  describe('El país se elige, no se teclea', () => {
+    it('ofrece los países del catálogo, con "sin especificar" primero', () => {
+      const opciones = [...raiz().querySelectorAll<HTMLOptionElement>('#idPais option')];
+
+      // Un campo de texto obligaria a teclear un UUID. Y la primera opcion es la ausencia, porque
+      // el contrato declara el pais opcional.
+      expect(opciones[0].value).toBe('');
+      expect(opciones.map((o) => o.textContent?.trim())).toEqual([
+        'Sin especificar',
+        'Colombia',
+        'Perú',
+      ]);
+    });
+
+    it('cuando se elige un país, va en el cuerpo como identificador', async () => {
+      rellenarValido();
+      escribir('idPais', 'co');
+      await enviar();
+
+      const peticion = http.expectOne(URL);
+
+      expect(peticion.request.body).toEqual({
+        razonSocial: 'Hospital Central',
+        tipoIdentificacion: 'NIT_JURIDICO',
+        documento: '900123456',
+        idPais: 'co',
+      });
+      peticion.flush({ id: '1' });
+    });
+
+    it('sin país elegido, la clave no viaja: una cadena vacía no es un identificador', async () => {
+      // Mandar idPais: "" haria que el backend lo tratara como una referencia inexistente y
+      // devolviera "ese pais no existe" en lugar de entender que no se sabe.
+      rellenarValido();
+      await enviar();
+
+      const peticion = http.expectOne(URL);
+
+      expect(peticion.request.body).not.toHaveProperty('idPais');
+      peticion.flush({ id: '1' });
+    });
   });
 
   it('un fallo del servidor se ensena traducido y con su detalle, y no se pierde lo escrito', async () => {

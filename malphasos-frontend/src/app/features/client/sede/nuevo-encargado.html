@@ -1,0 +1,151 @@
+<h1 class="text-2xl font-bold">Registrar encargado</h1>
+@if (sede.data(); as datos) {
+  <p class="text-neutral-700">en {{ datos.nombre }}</p>
+}
+
+<form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+  @if (mensajeDeError()) {
+    <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+      @if (detalles().length) {
+        <ul class="mt-1 list-disc pl-3">
+          @for (detalle of detalles(); track detalle) {
+            <li>{{ detalle }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  <p class="mb-3 border-l-2 border-ink bg-neutral-200 p-2">
+    El encargado queda como responsable de la sede o del área, y
+    <strong>no recibe acceso a la aplicación</strong>. Es un contacto, no un usuario.
+  </p>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="asignacion">A cargo de</label>
+    <select
+      id="asignacion"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="asignacion"
+      [attr.aria-invalid]="malo('asignacion') || null"
+      [attr.aria-describedby]="malo('asignacion') ? 'asignacion-error' : null"
+    >
+      <option value="">Elija la sede o un área</option>
+      @for (opcion of asignaciones(); track opcion.valor) {
+        <option [value]="opcion.valor">{{ opcion.etiqueta }}</option>
+      }
+    </select>
+    @if (malo('asignacion')) {
+      <p class="mt-1 font-semibold text-accent-700" id="asignacion-error">
+        Elija de qué se hace cargo esta persona.
+      </p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="cedula">Cédula</label>
+    <input
+      id="cedula"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="cedula"
+      inputmode="numeric"
+      maxlength="11"
+      [attr.aria-invalid]="malo('cedula') || null"
+      [attr.aria-describedby]="malo('cedula') ? 'cedula-error' : null"
+    />
+    @if (malo('cedula')) {
+      <p class="mt-1 font-semibold text-accent-700" id="cedula-error">
+        La cédula es obligatoria y no pasa de 11 caracteres.
+      </p>
+    }
+  </div>
+
+  <div class="mb-3 grid gap-3 sm:grid-cols-2">
+    <div>
+      <label class="block font-semibold" for="primerNombre">Primer nombre</label>
+      <input
+        id="primerNombre"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="primerNombre"
+        [attr.aria-invalid]="malo('primerNombre') || null"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="segundoNombre">Segundo nombre</label>
+      <input
+        id="segundoNombre"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="segundoNombre"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="primerApellido">Primer apellido</label>
+      <input
+        id="primerApellido"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="primerApellido"
+        [attr.aria-invalid]="malo('primerApellido') || null"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="segundoApellido">Segundo apellido</label>
+      <input
+        id="segundoApellido"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="segundoApellido"
+      />
+    </div>
+  </div>
+  @if (malo('primerNombre') || malo('primerApellido')) {
+    <p class="mb-3 font-semibold text-accent-700">
+      El primer nombre y el primer apellido son obligatorios.
+    </p>
+  }
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="correo">Correo</label>
+    <input
+      id="correo"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      type="email"
+      inputmode="email"
+      formControlName="correo"
+      [attr.aria-invalid]="malo('correo') || null"
+      [attr.aria-describedby]="malo('correo') ? 'correo-error' : null"
+    />
+    @if (malo('correo')) {
+      <p class="mt-1 font-semibold text-accent-700" id="correo-error">
+        Escriba un correo con la forma nombre&#64;dominio.
+      </p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="telefono">Teléfono</label>
+    <input
+      id="telefono"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      inputmode="tel"
+      formControlName="telefono"
+    />
+    <p class="mt-1 text-neutral-700">Opcional.</p>
+  </div>
+
+  <div class="flex gap-2">
+    <button
+      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      type="submit"
+      [disabled]="enviando()"
+    >
+      {{ enviando() ? 'Guardando…' : 'Registrar encargado' }}
+    </button>
+
+    <a
+      class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold"
+      [routerLink]="['/sedes', id()]"
+    >
+      Cancelar
+    </a>
+  </div>
+</form>
