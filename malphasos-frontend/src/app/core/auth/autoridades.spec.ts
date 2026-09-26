@@ -55,6 +55,25 @@ describe('Autoridades', () => {
       expect(roles).toContain(ADMINISTRADOR);
     });
 
+    it('toda autoridad que una ruta exige es un rol real del realm', () => {
+      // El agujero que esta prueba tapa se abrio de verdad: al escribir las rutas de las sedes se
+      // pusieron 'headquarter.read' y 'headquarter.write', que no existen —las sedes las protege
+      // 'client.*'—. Nada fallaba: el guard mandaba a /sin-permiso y la pantalla quedaba
+      // inalcanzable para todo el mundo, incluido el administrador. Es el mismo riesgo que el
+      // backend persigue con RestAuthorizationCoverageTest, en el otro extremo de la linea.
+      const roles = realm.roles.client[CLIENT_API].map((r) => r.name);
+
+      for (const autoridad of autoridadesExigidasPorLasRutas()) {
+        expect(roles, `la ruta exige "${autoridad}", que el realm no concede`).toContain(autoridad);
+      }
+    });
+
+    it('las rutas exigen alguna autoridad: si esto da cero, la prueba de arriba no mira nada', () => {
+      // Una prueba que recorre una lista vacia pasa siempre. Este proyecto ya tiene escrito lo que
+      // cuesta una prueba que pasa en vacio, y no vale la pena repetirlo.
+      expect(autoridadesExigidasPorLasRutas().length).toBeGreaterThan(0);
+    });
+
     it('el client publico del frontend admite el puerto en el que se sirve', () => {
       // El realm apunta al 5173, que es donde el servidor de desarrollo escucha
       // porque angular.json se ajusto a el. Si alguien cambia el puerto sin
@@ -69,6 +88,19 @@ describe('Autoridades', () => {
 });
 
 // ---------------------------------------------------------------------------
+
+/**
+ * Las autoridades que las rutas nombran, leidas del propio archivo de rutas.
+ *
+ * <p>Se lee el fuente en vez de importar {@code routes} porque lo que hay que comprobar es el
+ * <b>literal escrito</b>: importarlo obligaria a ejecutar cada {@code loadComponent} para llegar a
+ * los guards, y un guard es una funcion cerrada sobre su cadena, de la que no se puede recuperar.
+ */
+function autoridadesExigidasPorLasRutas(): string[] {
+  const fuente = readFileSync(resolve(process.cwd(), 'src/app/app.routes.ts'), 'utf8');
+
+  return [...fuente.matchAll(/requiereAutoridad\('([^']+)'\)/g)].map(([, autoridad]) => autoridad);
+}
 
 interface Realm {
   clients: { clientId: string; publicClient: boolean; redirectUris: string[];
