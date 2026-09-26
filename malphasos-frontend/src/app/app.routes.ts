@@ -58,6 +58,32 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('client.read')],
       },
       {
+        path: 'catalogo/tipos/nuevo',
+        loadComponent: () =>
+          import('./features/equipment/catalogo/nuevo-tipo').then((m) => m.NuevoTipo),
+        canActivate: [requiereAutoridad('equipment.write')],
+      },
+      {
+        path: 'catalogo/tipos/:id/editar',
+        loadComponent: () =>
+          import('./features/equipment/catalogo/editar-tipo').then((m) => m.EditarTipo),
+        canActivate: [requiereAutoridad('equipment.write')],
+      },
+      {
+        path: 'areas/:id/equipos/nuevo',
+        loadComponent: () =>
+          import('./features/equipment/area/nuevo-equipo').then((m) => m.NuevoEquipo),
+        // Instalar un equipo en un area exige equipment.assign y no equipment.write: es repartir algo
+        // a alguien, no editar el catalogo. Lo declara ClientEquipmentRestAdapter.
+        canActivate: [requiereAutoridad('equipment.assign')],
+      },
+      {
+        path: 'areas/:id',
+        loadComponent: () =>
+          import('./features/equipment/area/detalle-area').then((m) => m.DetalleArea),
+        canActivate: [requiereAutoridad('equipment.read')],
+      },
+      {
         path: 'sin-permiso',
         loadComponent: () => import('./core/layout/sin-permiso').then((m) => m.SinPermiso),
       },

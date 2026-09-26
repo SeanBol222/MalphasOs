@@ -1,0 +1,106 @@
+<section>
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-xl font-bold">Tipos de equipo</h2>
+    @if (puedeEscribir()) {
+      <a
+        class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+        routerLink="/catalogo/tipos/nuevo"
+      >
+        Nuevo tipo
+      </a>
+    }
+  </div>
+  <p class="text-neutral-700">
+    Qué clase de aparato es, con su ficha técnica y cómo se verifica.
+  </p>
+
+  @if (hayError()) {
+    <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  @if (tipos.isPending()) {
+    <p class="mt-1 text-neutral-700" role="status">Cargando tipos…</p>
+  } @else if (!tipos.data()?.length) {
+    <p class="mt-1 text-neutral-700">Todavía no hay tipos de equipo registrados.</p>
+  } @else {
+    <ul class="mt-1">
+      @for (tipo of tipos.data(); track tipo.id) {
+        <li class="border-b border-neutral-200 py-1">
+          <div class="flex min-h-tactil flex-wrap items-center gap-2">
+            <span class="grow" [class.font-semibold]="tipo.estadoActivo">
+              {{ tipo.nombre }}
+              <span class="font-normal text-neutral-700">
+                · {{ tipo.tecnologiaPredominante }}
+                · {{ etiquetaDeModalidad(tipo.modalidadVerificacion) }}
+                @if (tipo.verificable) {
+                  · verificable
+                }
+              </span>
+            </span>
+            @if (puedeEscribir()) {
+              <a
+                class="flex min-h-tactil items-center px-1 font-semibold underline"
+                [routerLink]="['/catalogo/tipos', tipo.id, 'editar']"
+              >
+                Editar
+              </a>
+              <button
+                class="min-h-tactil px-1 font-semibold underline"
+                type="button"
+                (click)="empezarACambiar(tipo.id!, tipo.modalidadVerificacion)"
+              >
+                Modalidad
+              </button>
+              @if (tipo.estadoActivo) {
+                <button
+                  class="min-h-tactil px-1 font-semibold underline"
+                  type="button"
+                  [disabled]="baja.isPending()"
+                  (click)="retirar(tipo.id!)"
+                >
+                  Retirar
+                </button>
+              }
+            }
+          </div>
+
+          @if (cambiando() === tipo.id) {
+            <div class="mt-1 flex flex-wrap items-end gap-2">
+              <div class="grow">
+                <label class="block font-semibold" [attr.for]="'modalidad-' + tipo.id">
+                  Modalidad de verificación
+                </label>
+                <select
+                  class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+                  [id]="'modalidad-' + tipo.id"
+                  [formControl]="modalidadElegida"
+                >
+                  @for (modalidad of modalidades; track modalidad) {
+                    <option [value]="modalidad">{{ etiquetas[modalidad] }}</option>
+                  }
+                </select>
+              </div>
+              <button
+                class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+                type="button"
+                [disabled]="cambioDeModalidad.isPending()"
+                (click)="cambiarModalidad(tipo.id!)"
+              >
+                Guardar
+              </button>
+              <button
+                class="min-h-tactil border-2 border-ink px-3 font-semibold"
+                type="button"
+                (click)="cambiando.set(null)"
+              >
+                Cancelar
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

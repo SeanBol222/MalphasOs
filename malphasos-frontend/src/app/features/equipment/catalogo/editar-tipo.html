@@ -1,0 +1,127 @@
+<h1 class="text-2xl font-bold">Editar tipo de equipo</h1>
+
+<form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+  @if (mensajeDeError()) {
+    <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+      @if (detalles().length) {
+        <ul class="mt-1 list-disc pl-3">
+          @for (detalle of detalles(); track detalle) {
+            <li>{{ detalle }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="nombre">Nombre</label>
+    <input
+      id="nombre"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="nombre"
+      maxlength="50"
+      [attr.aria-invalid]="malo('nombre') || null"
+    />
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="tecnologiaPredominante">Tecnología predominante</label>
+    <input
+      id="tecnologiaPredominante"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="tecnologiaPredominante"
+      maxlength="50"
+      [attr.aria-invalid]="malo('tecnologiaPredominante') || null"
+    />
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="definicionTecnica">Definición técnica</label>
+    <textarea
+      id="definicionTecnica"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      rows="3"
+      formControlName="definicionTecnica"
+      maxlength="250"
+      [attr.aria-invalid]="malo('definicionTecnica') || null"
+    ></textarea>
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="recomendacionesCuidado">Recomendaciones de cuidado</label>
+    <textarea
+      id="recomendacionesCuidado"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      rows="3"
+      formControlName="recomendacionesCuidado"
+      maxlength="250"
+      [attr.aria-invalid]="malo('recomendacionesCuidado') || null"
+    ></textarea>
+  </div>
+
+  @if (
+    malo('nombre') ||
+    malo('tecnologiaPredominante') ||
+    malo('definicionTecnica') ||
+    malo('recomendacionesCuidado')
+  ) {
+    <p class="mb-3 font-semibold text-accent-700">
+      El nombre, la tecnología, la definición técnica y las recomendaciones son obligatorios.
+    </p>
+  }
+
+  <h2 class="mb-1 text-xl font-bold">Datos opcionales</h2>
+  <p class="mb-2 text-neutral-700">Se pueden completar después; ninguno impide guardar.</p>
+
+  <!--
+    La modalidad de verificacion no esta aqui: el backend la dejo fuera de la edicion general y le
+    dio ruta propia. Se cambia desde la lista del catalogo.
+  -->
+  <div class="mb-3 grid gap-3 sm:grid-cols-3">
+    <div>
+      <label class="block font-semibold" for="voltaje">Voltaje</label>
+      <input
+        id="voltaje"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        type="number"
+        inputmode="numeric"
+        formControlName="voltaje"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="amperaje">Amperaje</label>
+      <input
+        id="amperaje"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        type="number"
+        step="0.01"
+        formControlName="amperaje"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="valorUnitarioMantenimiento">Valor mantenimiento</label>
+      <input
+        id="valorUnitarioMantenimiento"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        type="number"
+        inputmode="numeric"
+        formControlName="valorUnitarioMantenimiento"
+      />
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <button
+      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      type="submit"
+      [disabled]="enviando()"
+    >
+      {{ enviando() ? 'Guardando…' : 'Guardar cambios' }}
+    </button>
+
+    <a class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold" routerLink="/catalogo">
+      Cancelar
+    </a>
+  </div>
+</form>

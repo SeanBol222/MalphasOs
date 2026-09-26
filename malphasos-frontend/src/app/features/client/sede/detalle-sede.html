@@ -108,7 +108,10 @@
                   Cancelar
                 </button>
               } @else {
-                <span class="grow" [class.font-semibold]="area.estadoActivo">{{ area.nombre }}</span>
+                <!-- El area enlaza a sus equipos: es lo que se viene a hacer con ella. -->
+                <a class="grow font-semibold underline" [routerLink]="['/areas', area.id]">
+                  {{ area.nombre }}
+                </a>
                 <span class="text-neutral-700">{{ area.estadoActivo ? 'Abierta' : 'Cerrada' }}</span>
                 <button
                   class="min-h-tactil px-1 font-semibold underline"
