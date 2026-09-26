@@ -1,7 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-experimental';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import {
   AutoRefreshTokenService,
   INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG,
@@ -17,7 +17,10 @@ import { tokenSoloHaciaElApi } from './core/auth/token-de-api';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    // withComponentInputBinding pasa los parametros de la ruta como entradas del componente, de
+    // modo que una pantalla de detalle declara `id = input.required<string>()` y no tiene que
+    // conocer al router. Es lo que permite que el identificador sea una senal.
+    provideRouter(routes, withComponentInputBinding()),
     provideKeycloak({
       config: environment.keycloak,
       initOptions: {

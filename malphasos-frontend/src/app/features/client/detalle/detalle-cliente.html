@@ -1,0 +1,232 @@
+@if (cliente.isPending()) {
+  <p class="text-neutral-700" role="status">Cargando el cliente…</p>
+} @else {
+  @if (hayError()) {
+    <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+      @if (detalles().length) {
+        <ul class="mt-1 list-disc pl-3">
+          @for (detalle of detalles(); track detalle) {
+            <li>{{ detalle }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (cliente.data(); as datos) {
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h1 class="text-2xl font-bold">{{ datos.razonSocial }}</h1>
+        <!-- El estado por peso tipografico, no por color. Lo manda el manual de marca. -->
+        <p class="text-neutral-700" [class.font-semibold]="datos.estadoActivo">
+          {{ datos.estadoActivo ? 'Activo' : 'Retirado' }}
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <a
+          class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold"
+          [routerLink]="['/clientes', id(), 'editar']"
+        >
+          Editar
+        </a>
+
+        @if (datos.estadoActivo) {
+          @if (confirmandoBaja()) {
+            <button
+              class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+              type="button"
+              [disabled]="baja.isPending()"
+              (click)="retirar()"
+            >
+              {{ baja.isPending() ? 'Retirando…' : 'Confirmar retiro' }}
+            </button>
+            <button
+              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="confirmandoBaja.set(false)"
+            >
+              Cancelar
+            </button>
+          } @else {
+            <button
+              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="confirmandoBaja.set(true)"
+            >
+              Retirar
+            </button>
+          }
+        }
+      </div>
+    </div>
+
+    @if (confirmandoBaja()) {
+      <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
+        El cliente deja de estar activo y sigue en el listado con su historia. No se borra nada.
+      </p>
+    }
+
+    <dl class="mt-3 grid max-w-[640px] grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+      <dt class="font-semibold">Documento</dt>
+      <dd>{{ datos.documento }} · {{ etiqueta(datos.tipoIdentificacion) }}</dd>
+
+      <dt class="font-semibold">País</dt>
+      <dd>{{ pais() }}</dd>
+
+      <!--
+        Los representantes se ven y no se tocan: darlos de alta exige una persona que ya exista, y
+        la seccion de personas no esta construida. Ensenar un boton que no puede funcionar seria
+        peor que no ensenar ninguno.
+      -->
+      <dt class="font-semibold">Representantes</dt>
+      <dd>{{ datos.representantes?.length || 'Ninguno' }}</dd>
+    </dl>
+
+    <section class="mt-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-xl font-bold">Sedes</h2>
+        <a
+          class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+          [routerLink]="['/clientes', id(), 'sedes', 'nueva']"
+        >
+          Nueva sede
+        </a>
+      </div>
+
+      @if (sedes.isPending()) {
+        <p class="text-neutral-700" role="status">Cargando las sedes…</p>
+      } @else if (!sedes.data()?.length) {
+        <p class="text-neutral-700">
+          Este cliente no tiene sedes. Abra la primera para poder registrar sus equipos.
+        </p>
+      } @else {
+        <ul>
+          @for (sede of sedes.data(); track sede.id) {
+            <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
+              <a class="grow font-semibold underline" [routerLink]="['/sedes', sede.id]">
+                {{ sede.nombre }}
+              </a>
+              <!-- Igual que en el listado: el estado por peso, no por color. -->
+              <span class="text-neutral-700" [class.font-semibold]="sede.estadoActivo">
+                {{ sede.estadoActivo ? 'Abierta' : 'Cerrada' }}
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="mt-3">
+      <h2 class="text-xl font-bold">Correos</h2>
+
+      @if (!datos.correos?.length) {
+        <p class="text-neutral-700">Sin correos registrados.</p>
+      } @else {
+        <ul>
+          @for (correo of datos.correos; track correo.id) {
+            <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
+              <span class="grow">{{ correo.valor }}</span>
+              <button
+                class="min-h-tactil px-1 font-semibold underline"
+                type="button"
+                [disabled]="bajaDeCorreo.isPending()"
+                (click)="quitarCorreo(correo.id!)"
+              >
+                Quitar
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="mt-2 flex flex-wrap items-end gap-2">
+        <div class="grow">
+          <label class="block font-semibold" for="correoNuevo">Añadir un correo</label>
+          <input
+            id="correoNuevo"
+            class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+            type="email"
+            inputmode="email"
+            [formControl]="correoNuevo"
+            [attr.aria-invalid]="correoNuevo.invalid && correoNuevo.touched ? 'true' : null"
+            [attr.aria-describedby]="
+              correoNuevo.invalid && correoNuevo.touched ? 'correoNuevo-error' : null
+            "
+          />
+        </div>
+        <button
+          class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+          type="button"
+          [disabled]="altaDeCorreo.isPending()"
+          (click)="agregarCorreo()"
+        >
+          Añadir
+        </button>
+      </div>
+      @if (correoNuevo.invalid && correoNuevo.touched) {
+        <p class="mt-1 font-semibold text-accent-700" id="correoNuevo-error">
+          Escriba un correo con la forma nombre&#64;dominio.
+        </p>
+      }
+    </section>
+
+    <section class="mt-3">
+      <h2 class="text-xl font-bold">Teléfonos</h2>
+
+      @if (!datos.telefonos?.length) {
+        <p class="text-neutral-700">Sin teléfonos registrados.</p>
+      } @else {
+        <ul>
+          @for (telefono of datos.telefonos; track telefono.id) {
+            <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
+              <span class="grow">{{ telefono.valor }}</span>
+              <button
+                class="min-h-tactil px-1 font-semibold underline"
+                type="button"
+                [disabled]="bajaDeTelefono.isPending()"
+                (click)="quitarTelefono(telefono.id!)"
+              >
+                Quitar
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="mt-2 flex flex-wrap items-end gap-2">
+        <div class="grow">
+          <label class="block font-semibold" for="telefonoNuevo">Añadir un teléfono</label>
+          <input
+            id="telefonoNuevo"
+            class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+            inputmode="tel"
+            [formControl]="telefonoNuevo"
+            [attr.aria-invalid]="telefonoNuevo.invalid && telefonoNuevo.touched ? 'true' : null"
+            [attr.aria-describedby]="
+              telefonoNuevo.invalid && telefonoNuevo.touched ? 'telefonoNuevo-error' : null
+            "
+          />
+        </div>
+        <button
+          class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+          type="button"
+          [disabled]="altaDeTelefono.isPending()"
+          (click)="agregarTelefono()"
+        >
+          Añadir
+        </button>
+      </div>
+      @if (telefonoNuevo.invalid && telefonoNuevo.touched) {
+        <p class="mt-1 font-semibold text-accent-700" id="telefonoNuevo-error">
+          El teléfono es obligatorio.
+        </p>
+      }
+    </section>
+
+    <p class="mt-3">
+      <a class="font-semibold underline" routerLink="/clientes">Volver al listado</a>
+    </p>
+  }
+}

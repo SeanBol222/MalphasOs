@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ClienteApi } from '../cliente-api';
+import { UbicacionApi } from '../../location/ubicacion-api';
 import {
   ETIQUETA_DE_IDENTIFICACION,
   NuevoCliente,
@@ -15,6 +16,11 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  * <p>Las cotas de los campos no se inventan: salen del contrato que el backend publica —documento
  * de 11 caracteres, razon social de 50—. Si el backend las cambia, se regeneran los tipos y esto
  * queda desalineado a la vista en vez de fallar en produccion.
+ *
+ * <p><b>El pais se elige de una lista y no se escribe.</b> El contrato lo pide como identificador, de
+ * modo que un campo de texto obligaria a teclear un UUID: la pantalla seria inservible sin consultar
+ * la base de datos. Es opcional en el contrato y aqui tambien, porque hay clientes de los que solo se
+ * conoce el documento cuando se registran.
  */
 @Component({
   selector: 'app-nuevo-cliente',
@@ -29,11 +35,13 @@ export class NuevoClienteComponent {
   protected readonly etiquetas = ETIQUETA_DE_IDENTIFICACION;
 
   protected readonly alta = inject(ClienteApi).crear();
+  protected readonly paises = inject(UbicacionApi).listarPaises();
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
     razonSocial: ['', [Validators.required, Validators.maxLength(50)]],
     tipoIdentificacion: ['NIT_JURIDICO' as NuevoCliente['tipoIdentificacion'], Validators.required],
     documento: ['', [Validators.required, Validators.maxLength(11)]],
+    idPais: [''],
   });
 
   protected readonly enviando = computed(() => this.alta.isPending());
@@ -58,8 +66,14 @@ export class NuevoClienteComponent {
       return;
     }
 
-    this.alta.mutate(this.formulario.getRawValue(), {
-      onSuccess: () => void this.router.navigate(['/clientes']),
+    const { idPais, ...resto } = this.formulario.getRawValue();
+
+    // Sin pais elegido no se manda la clave: una cadena vacia no es un identificador, y el backend
+    // la rechazaria como referencia inexistente en vez de entenderla como «no se sabe».
+    // Se va a la ficha del cliente creado y no al listado: lo siguiente que hace quien registra un
+    // cliente es anadirle un correo o una sede, y las dos cosas estan ahi.
+    this.alta.mutate(idPais ? { ...resto, idPais } : resto, {
+      onSuccess: (cliente) => void this.router.navigate(['/clientes', cliente.id]),
     });
   }
 }

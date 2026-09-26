@@ -1,0 +1,115 @@
+<h1 class="text-2xl font-bold">Nueva sede</h1>
+@if (cliente.data(); as datos) {
+  <p class="text-neutral-700">de {{ datos.razonSocial }}</p>
+}
+
+<form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+  @if (mensajeDeError()) {
+    <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+      @if (detalles().length) {
+        <ul class="mt-1 list-disc pl-3">
+          @for (detalle of detalles(); track detalle) {
+            <li>{{ detalle }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="nombre">Nombre de la sede</label>
+    <input
+      id="nombre"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="nombre"
+      maxlength="50"
+      [attr.aria-invalid]="malo('nombre') || null"
+      [attr.aria-describedby]="malo('nombre') ? 'nombre-error' : null"
+    />
+    @if (malo('nombre')) {
+      <p class="mt-1 font-semibold text-accent-700" id="nombre-error">
+        El nombre es obligatorio y no pasa de 50 caracteres.
+      </p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="idCiudad">Ciudad</label>
+    <select
+      id="idCiudad"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idCiudad"
+      [attr.aria-invalid]="malo('idCiudad') || null"
+      [attr.aria-describedby]="malo('idCiudad') ? 'idCiudad-error' : null"
+    >
+      <option value="">Elija una ciudad</option>
+      @for (ciudad of ciudadesOfrecidas(); track ciudad.id) {
+        <option [value]="ciudad.id">{{ ciudad.nombre }}</option>
+      }
+    </select>
+    @if (malo('idCiudad')) {
+      <p class="mt-1 font-semibold text-accent-700" id="idCiudad-error">
+        Elija la ciudad de la sede.
+      </p>
+    }
+    @if (sinCiudadesDelPais()) {
+      <!-- Un desplegable con una sola opcion vacia no explica nada. Aqui se dice por que. -->
+      <p class="mt-1 text-neutral-700">
+        No hay ciudades registradas para el país de este cliente. Regístrelas antes de abrir la sede.
+      </p>
+    }
+  </div>
+
+  <div class="mb-3 grid gap-3 sm:grid-cols-3">
+    <div>
+      <label class="block font-semibold" for="calle">Calle</label>
+      <input
+        id="calle"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="calle"
+        [attr.aria-invalid]="malo('calle') || null"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="carrera">Carrera</label>
+      <input
+        id="carrera"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="carrera"
+        [attr.aria-invalid]="malo('carrera') || null"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="numero">Número</label>
+      <input
+        id="numero"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="numero"
+        [attr.aria-invalid]="malo('numero') || null"
+      />
+    </div>
+  </div>
+  @if (malo('calle') || malo('carrera') || malo('numero')) {
+    <p class="mb-3 font-semibold text-accent-700">
+      La dirección necesita calle, carrera y número.
+    </p>
+  }
+
+  <div class="flex gap-2">
+    <button
+      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      type="submit"
+      [disabled]="enviando()"
+    >
+      {{ enviando() ? 'Guardando…' : 'Guardar sede' }}
+    </button>
+
+    <a
+      class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold"
+      [routerLink]="['/clientes', id()]"
+    >
+      Cancelar
+    </a>
+  </div>
+</form>

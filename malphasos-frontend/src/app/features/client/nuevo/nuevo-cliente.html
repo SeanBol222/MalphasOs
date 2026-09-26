@@ -62,6 +62,28 @@
     }
   </div>
 
+  <div class="mb-3">
+    <label class="block font-semibold" for="idPais">País</label>
+    <select
+      id="idPais"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idPais"
+      [attr.aria-describedby]="paises.isError() ? 'idPais-aviso' : null"
+    >
+      <option value="">Sin especificar</option>
+      @for (pais of paises.data(); track pais.id) {
+        <option [value]="pais.id">{{ pais.nombre }}</option>
+      }
+    </select>
+    @if (paises.isError()) {
+      <!-- Que el catalogo no cargue no impide registrar al cliente: el pais es opcional. Decirlo
+           es mejor que dejar un desplegable vacio sin explicacion. -->
+      <p class="mt-1 text-neutral-700" id="idPais-aviso">
+        No se pudo cargar la lista de países. Puede guardar sin país y completarlo después.
+      </p>
+    }
+  </div>
+
   <div class="flex gap-2">
     <button
       class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
