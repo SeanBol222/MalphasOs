@@ -116,6 +116,10 @@ services:
       KEYCLOAK_SERVER_URL: http://keycloak:8080
       KEYCLOAK_REALM: ${KC_REALM:-malphasos-realm}
       KEYCLOAK_CLIENT_ID: malphasos-api
+      # El origen del navegador que llama al API. Se declara aqui y no se hereda del
+      # application.yaml a proposito: el contenedor es lo que se despliega, y donde se sirve el
+      # frontend es una decision del despliegue, no del codigo.
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:5173}
       KEYCLOAK_ADMIN_CLIENT_ID: malphasos-backend-admin
       KEYCLOAK_ADMIN_CLIENT_SECRET: ${MALPHASOS_BACKEND_ADMIN_SECRET:-}
     ports:

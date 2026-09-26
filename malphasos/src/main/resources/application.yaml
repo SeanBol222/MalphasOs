@@ -61,6 +61,11 @@ app:
     enabled: ${APP_SECURITY_ENABLED:true}
     # Client de Keycloak cuyos roles se leen del claim resource_access del token.
     client-id: ${KEYCLOAK_CLIENT_ID:malphasos-api}
+    cors:
+      # Origenes del navegador a los que se abre el API. Nunca un comodin: una regla explicita dice
+      # a quien se le abre la puerta. El 5173 es el del frontend en desarrollo, y es el mismo que el
+      # realm declara en las URI de retorno de malphasos-frontend.
+      allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 # Cliente administrativo de Keycloak (Admin API), para crear usuarios y asignar roles.
 # El cliente se construye sin conectarse: el bean existe aunque Keycloak no este disponible, y solo
