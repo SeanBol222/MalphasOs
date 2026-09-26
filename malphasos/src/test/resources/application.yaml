@@ -19,6 +19,11 @@ app:
     # proteccion de los endpoints se verifica aparte, en SecurityIntegrationTest.
     enabled: false
     client-id: malphasos-api
+    cors:
+      # El fichero de pruebas NO hereda del de produccion: comparten nombre, y el del classpath de
+      # pruebas lo sustituye entero. Sin esta clave el @Value de CorsConfig no resuelve y el
+      # contexto no arranca en NINGUNA prueba, seguridad encendida o apagada.
+      allowed-origins: http://localhost:5173
 
 keycloak:
   admin:

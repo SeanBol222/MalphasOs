@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -21,6 +22,10 @@ import org.springframework.security.web.SecurityFilterChain;
  *
  * <p>La API es stateless y se consume con token, por eso CSRF queda deshabilitado: la protección
  * CSRF cubre ataques basados en cookies de sesión, que aquí no existen.
+ *
+ * <p>CORS se habilita aquí pero se declara en {@link CorsConfig}, fuera de esta clase: hace falta
+ * igual cuando la seguridad está apagada, y atarlo a esta configuración habría dejado el frontend
+ * roto justo en ese modo.
  *
  * <p>{@code @EnableMethodSecurity} habilita {@code @PreAuthorize} en los controladores, de modo que
  * la autorización se declara operación por operación y no solo por ruta. Cada operación nombra
@@ -58,6 +63,17 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http.csrf(AbstractHttpConfigurer::disable)
+                // Con esto el preflight lo responde la capa de CORS antes de que la autorizacion
+                // opine. Sin ello, un OPTIONS -que no lleva token- caia en authenticated() y
+                // devolvia 401 sin cabeceras, que el navegador presenta como un fallo de CORS.
+                //
+                // Medido el 2026-09-26: esta linea es REDUNDANTE hoy, porque
+                // HttpSecurityConfiguration.applyCorsIfAvailable la aplica sola en cuanto existe un
+                // bean de tipo UrlBasedCorsConfigurationSource. Se queda porque esa aplicacion
+                // automatica mira el tipo CONCRETO del bean: si CorsConfig pasara a devolver un
+                // CorsConfigurationSource cualquiera -una lambda, por ejemplo- dejaria de aplicarse
+                // y el preflight volveria al 401 sin que nada en esta clase hubiera cambiado.
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated())

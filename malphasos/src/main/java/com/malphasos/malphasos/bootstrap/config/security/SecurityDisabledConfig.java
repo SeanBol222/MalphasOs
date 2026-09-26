@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -43,6 +44,11 @@ public class SecurityDisabledConfig {
     public SecurityFilterChain permitAllFilterChain(HttpSecurity http) throws Exception {
 
         http.csrf(AbstractHttpConfigurer::disable)
+                // Tambien aqui: el navegador exige cabeceras de CORS aunque el API no exija token,
+                // y este es precisamente el modo en que se desarrolla sin Keycloak en marcha.
+                // Redundante por el mismo motivo que en SecurityConfig, y por el mismo motivo se
+                // queda; alli esta escrito el porque.
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
 
         return http.build();
