@@ -108,6 +108,50 @@ La razón de automatizarlo está aprendida aquí: **una regla declarada y no eje
 
 Lo que la comprobación automática **no** cubre y exige ojo humano: el orden de lectura, la claridad del lenguaje y la utilidad real para un lector de pantalla.
 
+## Se marca lo obligatorio, no lo opcional (2026-09-26)
+
+La primera versión hacía lo contrario: cada campo que no era obligatorio llevaba debajo la palabra «Opcional.». En un formulario con tres, eso son **tres líneas de ruido** para decir que no pasa nada, y el ojo se acostumbra a saltarlas.
+
+La convención, invertida por decisión del usuario:
+
+| | |
+|---|---|
+| **Obligatorio** | `*` en la etiqueta, en `accent-700`, más `aria-required="true"` en el control |
+| **Opcional** | nada |
+| **Una vez por formulario** | «Los campos marcados con `*` son obligatorios» |
+
+**El asterisco solo no basta y por eso van las tres cosas.** Un símbolo es información visual: quien no ve la pantalla se enteraría por `aria-required`, y quien lo ve pero no conoce la convención, por la leyenda. El `*` va con `aria-hidden="true"` para que un lector no lea «asterisco» en cada etiqueta.
+
+## Un componente que el manual no nombra: el campo que predice (2026-09-26)
+
+**El manual especifica el desplegable, y con 249 países o 1.350 ciudades el desplegable no sirve**: hay que recorrerlo con la vista, adivinar la inicial, y en un teléfono se abre una rueda infinita. Va contra RNF-02 —minimizar la entrada manual— y contra RNF-05, la carga cognitiva.
+
+`app-buscador` es un campo de texto que predice sobre el catálogo, y sus tres decisiones tienen porqué:
+
+| Decisión | Por qué |
+|---|---|
+| **Sin escribir nada, solo lo ya usado** en este navegador | Abrir el campo y encontrarse mil opciones no ayuda. El historial vive en `localStorage`, por decisión del usuario: instantáneo, sin consultas, y empieza vacío |
+| **Al escribir, busca en el catálogo completo** | Si solo buscara entre lo usado, el primer cliente de Boyacá no se podría registrar nunca |
+| **No inventa valores** | El backend exige un identificador que exista. Un texto que no case deja el campo vacío y el formulario lo rechaza diciendo por qué |
+
+**Se compara sin tildes y sin mayúsculas.** Quien teclea «medellin» en un teléfono espera encontrar Medellín, y no hacerlo es la queja más segura de este tipo de campo.
+
+### El mismo campo sirve para una lista cerrada de texto
+
+La **tecnología predominante** de un tipo de equipo usa este campo aunque el backend la guarde como **texto libre** y no como referencia a un catálogo. El truco es que el identificador de cada opción **es su nombre**: el formulario envía la tecnología tal cual y a la vez rechaza lo que no esté en la lista.
+
+**Es una lista cerrada por decisión del usuario**, y la restricción vive solo en el frontend — el servidor aceptaría cualquier cosa. Lo que evita es real: con texto libre, la misma tecnología acaba escrita de cuatro maneras —«electronica», «Electrónica», «ELECTRONICO», «electro»— y agrupar por ella deja de servir. Para autorizar una nueva **se edita `tecnologias.ts`**: es vocabulario, no dato.
+
+**Lo que la empresa ya usa cuenta como autorizado y va primero.** Dos razones: su grafía vale más que cualquier lista escrita de antemano, y sin eso abrir un tipo registrado con una tecnología que no esté en la lista dejaría el campo en blanco y el formulario inválido sin explicar nada.
+
+> **Hubo un modo libre** —aceptaba cualquier texto y usaba las opciones como sugerencias— construido y **retirado el mismo día**, el 2026-09-26, al decidirse que la lista fuera cerrada. Un modo sin ningún uso es mantenimiento a cambio de nada.
+
+**Es un `ControlValueAccessor`**, de modo que los formularios reactivos lo usan con su `formControlName` y sus validadores como cualquier otro control. Lo contrario sería un campo que obliga a tratarlo distinto en cada pantalla, y ya son seis.
+
+**Accesibilidad, que aquí no es opcional**: `role="combobox"` con `aria-expanded`, la lista con `role="listbox"`, `aria-activedescendant` apuntando a la opción resaltada, y flechas, Enter y Escape. Sin `aria-activedescendant`, quien no ve la pantalla escribe a ciegas. Está todo fijado por pruebas.
+
+**Y un hallazgo del entorno**: el corredor de pruebas de Angular **no expone `localStorage`** —acceder a él da `undefined`—, aunque sí expone `document`. El navegador lo tiene, así que lo que falta es el doble, y vive en `src/testing/almacenamiento.ts`. Es también la razón de que cada acceso vaya envuelto en producción: si el propio corredor puede no tenerlo, una ventana privada tampoco.
+
 ## Las dos extensiones propias
 
 Señaladas como tales porque el manual manda:

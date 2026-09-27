@@ -82,7 +82,7 @@ Notas que describen piezas del sistema original **no construidas aquí**. Son el
 
 - [[arquitectura-frontend]] — React 19 + TS + Vite **del original**. Su conclusión de reutilización caducó el 2026-09-13 al elegirse Angular.
 - [[arquitectura-frontend-malphasos]] ⭐ — **Cómo se escribe frontend aquí**: Angular, por módulo de negocio con los nombres del backend, cliente generado desde OpenAPI. Y por qué cada pieza es el espejo de una del backend. Desde el 2026-09-26, también: **un servicio por agregado**, claves de caché jerárquicas, y por qué `whenStable()` no sirve en zoneless con una petición en vuelo.
-- [[sistema-de-diseno-malphasos]] ⭐ — El manual de marca traducido a interfaz: tokens, contrastes **medidos**, radio cero, escala de 8, y los estados que se distinguen por peso y no por color.
+- [[sistema-de-diseno-malphasos]] ⭐ — El manual de marca traducido a interfaz: tokens, contrastes **medidos**, radio cero, escala de 8, y los estados que se distinguen por peso y no por color. Desde el 2026-09-26, el componente que el manual no nombra: **el campo que predice** sobre un catálogo de 1.350 filas.
 - [[integracion-keycloak-frontend]] — `keycloak-js` + `AuthProvider` + `PrivateRoute` + `apiFetch`: un starter de autenticación completo y portable. Y, desde el 2026-09-26, **lo que costó el primer arranque real contra `keycloak-angular`**: dos providers que la librería no declara y una página en blanco sin mensaje.
 - [[dominio-reportes]] — El agregador cross-dominio del original. En MalphasOS el grupo de OpenAPI existe y el módulo no.
 - [[patron-report-data-provider]] — El puerto genérico que ese módulo usaba.
@@ -103,7 +103,7 @@ Valor histórico. Explican por qué una decisión es como es, no qué hace Malph
 
 Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no la tiene.
 
-- `[[esquema-malphasos]]` — **el hueco más notorio**: no hay ninguna nota que describa el esquema real de MalphasOS. [[esquema-bd-v4]] describe el del original, y las **seis** migraciones `V1`–`V6` solo están contadas de refilón en las notas de migración. (Decía «cinco» y `V1`–`V5`: **cierto hasta el 2026-09-12**, cuando entró `V6__work_order.sql`; lo más cercano a esa nota que existe hoy para `V6` es [[dominio-orden-trabajo]].)
+- `[[esquema-malphasos]]` — **el hueco más notorio**: no hay ninguna nota que describa el esquema real de MalphasOS. [[esquema-bd-v4]] describe el del original, y las **siete** migraciones `V1`–`V7` solo están contadas de refilón en las notas de migración. (Decía «cinco» y `V1`–`V5`: **cierto hasta el 2026-09-12**; «seis», hasta el **2026-09-26**, cuando entró `V7__seed_location_reference_data.sql`, la primera de datos y no de esquema — está descrita en [[dominio-ubicacion]].)
 
 ---
 

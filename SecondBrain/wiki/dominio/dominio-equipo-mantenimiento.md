@@ -84,6 +84,26 @@ Tres consecuencias que el frontend tuvo que resolver, y que valen para cualquier
 - **«Equipo» significa dos cosas distintas** y es la confusión más probable del módulo: `Equipment` es una **categoría** —un tipo con una marca— y `ClientEquipment` es **una máquina**, con su serie. La pantalla lo dice en voz alta, porque quien no lo sepa buscará su tensiómetro en el catálogo.
 - **La modalidad de verificación tiene ruta propia** (`PATCH /equipment-types/{id}/verification-mode`) y **no está en `EquipmentTypeUpdateRequest`**. Un formulario de edición que la incluyera parecería funcionar y el cambio se perdería en silencio: hay una prueba que fija su ausencia.
 
+### La cadena no debe obligar a recorrerla (corregido el 2026-09-26, el mismo día)
+
+La primera versión del frontend puso el **catálogo** como entrada de menú y dejó el registro de un equipo dentro del área. Funcionaba y **estaba mal enfocada**: lo que se consulta a diario es «qué equipos hay», no «qué marcas existen», y quien registra un equipo que acaba de llegar no debería abandonar el formulario, recorrer cuatro pantallas y volver a empezar.
+
+Tres cambios, por decisión del usuario:
+
+| Antes | Ahora |
+|---|---|
+| Menú: Clientes · Catálogo | Menú: Clientes · **Equipos** · Catálogo |
+| Los equipos solo se veían área por área | **Listado de todos los equipos de cliente**, con serie, modelo, inventario, área y estado |
+| El alta solo se entraba desde un área | **Dos caminos**: desde el área, o desde el listado eligiendo cliente → sede → área encadenados |
+| Faltaba una pieza → al catálogo y volver | **Se crea desde el formulario**, y el modelo nuevo queda elegido |
+| El catálogo era una página con las cinco piezas | **Cinco páginas**, con `Catálogo ▾` en el menú y subnavegación dentro. Corregido el mismo día: con treinta marcas, llegar a los fabricantes eran cuatro pantallas |
+
+**El catálogo conserva su entrada propia**, y eso era parte de lo pedido: administrarlo es una tarea aparte y no puede exigir empezar a registrar un equipo para crear una marca.
+
+**El panel que crea un modelo no pregunta por el «equipo del catálogo»: lo deduce.** Si la combinación de tipo y marca ya existe, la reutiliza; si no, la crea. Preguntarlo obligaría a explicar un concepto intermedio que a quien rellena el formulario no le dice nada, y duplicar combinaciones sería peor que ocultarlas.
+
+**Y lo que crea, queda creado.** Son hasta cinco llamadas y el backend no las envuelve en ninguna transacción: si falla la última, la marca nueva ya existe. La pantalla lo dice, porque la alternativa es que alguien reintente a ciegas y acabe con la misma marca tres veces. **Es una razón concreta para que el backend ofreciera un alta compuesta**, y queda anotada.
+
 **Lo que el alta de un equipo del cliente exige de verdad** es menos de lo que parece: `idModelo` y `serie`. El número de inventario, la fecha y el valor de compra son opcionales, porque un equipo se registra cuando llega y esos datos aparecen después. El frontend **no manda las claves vacías**: un cero no es «no se sabe».
 
 **Instalar un equipo exige `equipment.assign`, no `equipment.write`** — igual que el traslado. Es del backend, y la distinción es buena: repartir una máquina a un área no es editar un catálogo. Ver [[modelo-de-permisos]].
