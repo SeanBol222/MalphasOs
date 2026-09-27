@@ -831,3 +831,30 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 **Conteo**: **274** pruebas de frontend, de 265. Las nuevas cubren el desplegable, la subnavegación, la redirección de `/catalogo` y que **solo se vea una pieza a la vez**. Verificado por mutación: quitar la redirección y escribir mal el destino de una hija ponen rojas seis.
 
 **Tocadas**: [[arquitectura-frontend-malphasos]], [[dominio-equipo-mantenimiento]] y el `CLAUDE.md` de la raíz.
+
+## [2026-09-27] ingest | Arranca la segunda tanda de equipment: con qué y cuántas veces se verifica
+
+**Lo pidió el usuario para poder llenar el reporte**, y no era un cambio de formulario: **esos dos datos no existían** —ni en el esquema, ni en el dominio, ni en el contrato—. Un tipo decía *cómo* se verifica y no *con qué* ni *cuántas veces*. Es el primer trozo de la segunda tanda del módulo, la única parte del backend que seguía sin construirse, y el javadoc de `EquipmentType` la tenía anunciada desde el 2026-09-02.
+
+**Cuatro decisiones de modelado se preguntaron antes de escribir una línea**, porque una columna es caro cambiarla después: viven **en el tipo** —no en cada equipo—, la cantidad aplica **solo a las dos modalidades constantes**, los puntos son **varios** y llevan **unidad**. De ahí sale la lectura del modelo: **N lecturas en cada punto**, que es la práctica metrológica normal y lo que dice la pantalla, porque confundirlo daría un reporte con un tercio de los datos.
+
+**Los tres datos se cambian juntos, en una sola ruta.** Por separado existiría el instante en que un tipo dice verificarse contra un patrón constante **sin decir contra qué valor**, y ese estado no debe poder escribirse.
+
+**Dos trampas de SQL, y las dos las delató una prueba escrita a propósito para ellas:**
+
+1. **Un `CHECK` se satisface con `NULL`, no solo con `TRUE`.** La primera versión unía tres ramas con `OR` y para un tipo no verificable con cantidad fijada daba `NULL OR NULL OR FALSE` = `NULL`: **pasaba**. Con `CASE` el resultado es siempre `TRUE` o `FALSE`. El comentario de la migración afirmaba justo lo contrario, y queda corregido ahí mismo.
+2. **Un `CHECK` nuevo se aplica a lo que ya está.** En una instalación con tipos constantes ya registrados, la migración **habría fallado al arrancar**. Rellena antes con `1`, que es la afirmación más débil posible: cualquier valor mayor sería inventarse una práctica.
+
+**El `@Transactional` del adaptador se puso antes de que doliera**, y es la primera vez. El tipo tiene ahora una colección perezosa, que es exactamente lo que hizo fallar a `work-order` el 2026-09-13; verificado quitándolo, tres pruebas caen con `LazyInitializationException`. La convención dejó de pagarse después del defecto.
+
+**Reconfigurar retira los puntos anteriores, no los borra**, porque con ellos se hicieron los reportes anteriores. Y por eso el índice de unicidad es **parcial**: con una restricción normal, **volver a un punto anterior sería imposible**. Hay prueba que va a 200 mmHg y regresa a 100.
+
+**El frontend lo refleja en un solo componente** usado en dos sitios —el alta de un tipo y el panel de la lista—, porque tener la regla en dos habría sido la vía directa a que se desviaran. Oculta lo que no aplica en vez de ofrecerlo para que el servidor lo rechace.
+
+**Y una trampa del DOM que costó un rato**: la opción elegida se marca **en la opción** y no con `[value]` en el `select`. Al abrir el panel con algo ya guardado, la asignación del valor ocurre antes de que existan las opciones y el navegador la descarta **en silencio**. Lo delató la prueba que abre el panel de un tipo ya configurado.
+
+**Dos mutaciones, y la segunda encontró un hueco**: quitar el recorte de «solo con modalidad constante» no rompía nada, porque ninguna prueba cubría que **un dato incoherente venido del servidor no se reenvíe**. Es alcanzable de verdad —una fila con puntos y modalidad variable—, así que ahora tiene su prueba.
+
+**Conteo**: backend **684** —de 659, con 25 nuevas entre esquema, dominio, persistencia y REST—; frontend **293**, de 278. `V8` aplicada al contenedor en marcha.
+
+**Tocadas**: [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]] y el `CLAUDE.md` de la raíz.
