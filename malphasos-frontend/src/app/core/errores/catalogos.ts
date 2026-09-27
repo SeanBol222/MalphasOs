@@ -79,5 +79,28 @@ export const CATALOGO_WORK_ORDER: Readonly<Record<string, string>> = {
   ERR_WORK_ORDER_008: 'Esa persona no existe o fue retirada.',
 };
 
+/**
+ * Y los del modulo de reportes de servicio.
+ *
+ * <p>El tercero cubre tres situaciones distintas que tienen en comun no ser culpa de lo escrito: la orden
+ * no ha empezado, el reporte ya esta cerrado, o la verificacion esta a medias. El mensaje las nombra las
+ * tres porque el codigo no las distingue, y «el estado no lo permite» a secas no dice nada.
+ *
+ * <p>Los tres ultimos hablan de eslabones del catalogo que <b>el usuario nunca nombra</b>: el servidor los
+ * recorre para averiguar como se verifica el equipo. Si aparecen, no es que se haya elegido mal algo, es
+ * que la cadena del catalogo esta rota — y el mensaje tiene que decir eso y no «revise los datos».
+ */
+export const CATALOGO_SERVICE_REPORT: Readonly<Record<string, string>> = {
+  ERR_SERVICE_REPORT_001: 'Ese reporte no existe o fue retirado.',
+  ERR_SERVICE_REPORT_002: 'Revise los datos del reporte.',
+  ERR_SERVICE_REPORT_003:
+    'Ahora no se puede: la orden tiene que haber empezado, un reporte cerrado ya no se toca, y para cerrarlo hace falta la verificación completa.',
+  ERR_SERVICE_REPORT_004: 'Esa orden de trabajo no existe o fue anulada.',
+  ERR_SERVICE_REPORT_005: 'Ese equipo no existe o fue dado de baja.',
+  ERR_SERVICE_REPORT_006: 'El modelo de ese equipo no existe o fue retirado.',
+  ERR_SERVICE_REPORT_007: 'El equipo del catálogo al que pertenece no existe o fue retirado.',
+  ERR_SERVICE_REPORT_008: 'El tipo de equipo no existe o fue retirado: sin él no se sabe cómo verificarlo.',
+};
+
 /** Lo que se dice cuando no hay nada mejor que decir. */
 export const MENSAJE_DE_RESPALDO = 'No se pudo completar la operación. Intente de nuevo.';

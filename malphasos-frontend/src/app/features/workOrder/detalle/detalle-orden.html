@@ -160,6 +160,10 @@
           Esta orden no tiene equipos. Solo se pueden añadir equipos de áreas de su propia sede.
         </p>
       } @else {
+        <!--
+          Cada equipo de la orden lleva su reporte al lado, que es como RF-09 pide llegar a el: «se puede
+          acceder al reporte desde la orden de trabajo». Hay uno por equipo, no uno por orden.
+        -->
         <ul>
           @for (equipo of alcance(); track equipo.id) {
             <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
@@ -167,6 +171,27 @@
                 <span class="font-semibold">{{ equipo.serie }}</span>
                 <span class="text-neutral-700">· {{ equipo.area }}</span>
               </span>
+
+              @if (equipo.idReporte) {
+                <a
+                  class="min-h-tactil px-1 font-semibold underline"
+                  [routerLink]="['/reportes', equipo.idReporte]"
+                >
+                  Reporte · {{ equipo.estadoDelReporte }}
+                </a>
+              } @else if (puedeReportar() && sePuedeReportar()) {
+                <button
+                  class="min-h-tactil px-1 font-semibold underline"
+                  type="button"
+                  [disabled]="apertura.isPending()"
+                  (click)="abrirReporte(equipo.id)"
+                >
+                  Abrir reporte
+                </button>
+              } @else {
+                <span class="text-neutral-700">Sin reporte</span>
+              }
+
               @if (puedeEscribir() && datos.estadoActivo) {
                 <button
                   class="min-h-tactil px-1 font-semibold underline"
@@ -180,6 +205,16 @@
             </li>
           }
         </ul>
+
+        @if (!sePuedeReportar() && datos.estadoActivo) {
+          <!--
+            Es la regla del servidor, no una decision de esta pantalla: un reporte cuenta lo que se hizo,
+            y en una orden que nadie ha empezado no se ha hecho nada.
+          -->
+          <p class="mt-1 text-neutral-700">
+            Los reportes se abren cuando la orden empieza: primero hay que iniciar el trabajo.
+          </p>
+        }
       }
     </section>
 

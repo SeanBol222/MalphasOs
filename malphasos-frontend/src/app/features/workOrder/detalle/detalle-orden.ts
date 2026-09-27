@@ -6,10 +6,12 @@ import { ClienteApi } from '../../client/cliente-api';
 import { SedeApi } from '../../client/sede-api';
 import { EquipoApi } from '../../equipment/equipo-api';
 import { OrdenApi } from '../orden-api';
+import { ReporteApi } from '../../report/reporte-api';
 import { nombreCompleto, PersonaApi } from '../../person/persona-api';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   ETIQUETA_DE_ESTADO,
+  ETIQUETA_DE_ESTADO_DE_REPORTE,
   ETIQUETA_DE_PERIODICIDAD,
   ETIQUETA_DE_TIPO_DE_SERVICIO,
 } from '../../../core/api/tipos';
@@ -71,8 +73,21 @@ export class DetalleOrden {
   private readonly equipos = inject(EquipoApi).listarTodos();
   private readonly personas = inject(PersonaApi).listar();
 
+  private readonly reporteApi = inject(ReporteApi);
+  private readonly reportes = this.reporteApi.porOrden(this.id);
+  protected readonly apertura = this.reporteApi.abrir();
+
   protected readonly puedeEscribir = computed(() => this.sesion.puede('work-order.write'));
   protected readonly puedeAsignar = computed(() => this.sesion.puede('work-order.assign'));
+  protected readonly puedeReportar = computed(() => this.sesion.puede('report.write'));
+
+  /**
+   * Un reporte cuenta lo que se hizo, y en una orden sin empezar no se ha hecho nada: es la regla que
+   * el servidor impone al abrirlo. Aqui se refleja para no ofrecer un boton que responderia 409.
+   */
+  protected readonly sePuedeReportar = computed(
+    () => this.orden.data()?.estadoEjecucion !== 'CREADA' && !!this.orden.data()?.estadoActivo,
+  );
 
   protected readonly confirmandoAnulacion = signal(false);
   protected readonly asignando = signal(false);
@@ -147,16 +162,34 @@ export class DetalleOrden {
       .map((persona) => ({ id: persona.identificador!, etiqueta: nombreCompleto(persona) })),
   );
 
-  /** El alcance: qué equipos toca esta orden, con su serie y su área. */
+  /**
+   * El alcance: qué equipos toca esta orden, con su serie, su área y su reporte.
+   *
+   * <p>El reporte que cuenta es <b>el vivo</b>: la consulta trae también los retirados, porque el API
+   * devuelve el historial completo de la orden, y un equipo cuyo reporte se retiró vuelve a estar sin
+   * reporte. Quedarse con el primero de la lista mostraría el retirado y el botón de abrir
+   * desaparecería para siempre.
+   */
   protected readonly alcance = computed(() => {
     const equipos = new Map((this.equipos.data() ?? []).map((equipo) => [equipo.id, equipo.serie]));
     const areas = new Map((this.areas.data() ?? []).map((area) => [area.id, area.nombre]));
+    const reportes = new Map(
+      (this.reportes.data() ?? [])
+        .filter((reporte) => reporte.estadoActivo)
+        .map((reporte) => [reporte.idEquipoCliente, reporte]),
+    );
 
-    return (this.orden.data()?.equipos ?? []).map((equipo) => ({
-      id: equipo.idEquipoCliente!,
-      serie: equipos.get(equipo.idEquipoCliente!) ?? 'Equipo no disponible',
-      area: areas.get(equipo.idAreaServicio!) ?? 'Área no disponible',
-    }));
+    return (this.orden.data()?.equipos ?? []).map((equipo) => {
+      const reporte = reportes.get(equipo.idEquipoCliente!);
+
+      return {
+        id: equipo.idEquipoCliente!,
+        serie: equipos.get(equipo.idEquipoCliente!) ?? 'Equipo no disponible',
+        area: areas.get(equipo.idAreaServicio!) ?? 'Área no disponible',
+        idReporte: reporte?.id,
+        estadoDelReporte: reporte?.estado ? ETIQUETA_DE_ESTADO_DE_REPORTE[reporte.estado] : '',
+      };
+    });
   });
 
   protected readonly hayError = computed(
@@ -166,7 +199,8 @@ export class DetalleOrden {
       this.ejecucion.isError() ||
       this.anulacion.isError() ||
       this.bajaDeEquipo.isError() ||
-      this.asignacion.isError(),
+      this.asignacion.isError() ||
+      this.apertura.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
     traducirError(
@@ -175,7 +209,8 @@ export class DetalleOrden {
         this.ejecucion.error() ??
         this.anulacion.error() ??
         this.bajaDeEquipo.error() ??
-        this.asignacion.error(),
+        this.asignacion.error() ??
+        this.apertura.error(),
     ),
   );
 
@@ -196,6 +231,16 @@ export class DetalleOrden {
 
   protected quitarEquipo(idEquipoCliente: string): void {
     this.bajaDeEquipo.mutate({ id: this.id(), idEquipoCliente });
+  }
+
+  /** Abre el reporte de un equipo y lleva a él: lo que sigue es llenarlo, no volver al listado. */
+  protected abrirReporte(idEquipoCliente: string): void {
+    this.apertura.mutate(
+      { idOrdenTrabajo: this.id(), idEquipoCliente },
+      {
+        onSuccess: (reporte) => void this.router.navigate(['/reportes', reporte.id]),
+      },
+    );
   }
 
   protected asignar(): void {
