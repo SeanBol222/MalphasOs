@@ -9,6 +9,7 @@ import {
   TIPOS_DE_IDENTIFICACION,
 } from '../../../core/api/tipos';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
+import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
 
 /**
  * Alta de un cliente. Cierra la mitad de escritura de RF-08.
@@ -17,14 +18,14 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  * de 11 caracteres, razon social de 50—. Si el backend las cambia, se regeneran los tipos y esto
  * queda desalineado a la vista en vez de fallar en produccion.
  *
- * <p><b>El pais se elige de una lista y no se escribe.</b> El contrato lo pide como identificador, de
- * modo que un campo de texto obligaria a teclear un UUID: la pantalla seria inservible sin consultar
- * la base de datos. Es opcional en el contrato y aqui tambien, porque hay clientes de los que solo se
- * conoce el documento cuando se registran.
+ * <p><b>El pais se busca escribiendo, no se despliega.</b> El contrato lo pide como identificador, de
+ * modo que un campo de texto libre obligaria a teclear un UUID; un desplegable con los 249 paises
+ * tampoco sirve, porque hay que recorrerlo con la vista. Se escribe «col» y aparece Colombia. Es
+ * opcional en el contrato y aqui tambien, porque hay clientes de los que solo se conoce el documento.
  */
 @Component({
   selector: 'app-nuevo-cliente',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Buscador],
   templateUrl: './nuevo-cliente.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -35,7 +36,11 @@ export class NuevoClienteComponent {
   protected readonly etiquetas = ETIQUETA_DE_IDENTIFICACION;
 
   protected readonly alta = inject(ClienteApi).crear();
-  protected readonly paises = inject(UbicacionApi).listarPaises();
+  private readonly paises = inject(UbicacionApi).listarPaises();
+
+  /** El pais se escribe y se predice: un desplegable de 249 opciones no se recorre con la vista. */
+  protected readonly opcionesDePais = computed(() => opcionesDe(this.paises.data()));
+  protected readonly falloDelCatalogo = computed(() => this.paises.isError());
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
     razonSocial: ['', [Validators.required, Validators.maxLength(50)]],

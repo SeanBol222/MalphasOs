@@ -8,6 +8,8 @@ import {
   MODALIDADES_DE_VERIFICACION,
 } from '../../../core/api/tipos';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
+import { Buscador } from '../../../shared/buscador/buscador';
+import { tecnologiasAutorizadas } from './tecnologias';
 
 /**
  * Alta de un tipo de equipo, la unica pieza del catalogo con ficha tecnica.
@@ -22,14 +24,26 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-nuevo-tipo',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Buscador],
   templateUrl: './nuevo-tipo.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NuevoTipo {
   private readonly router = inject(Router);
 
-  protected readonly alta = inject(CatalogoApi).crearTipo();
+  private readonly api = inject(CatalogoApi);
+
+  protected readonly alta = this.api.crearTipo();
+
+  /**
+   * Las tecnologias autorizadas: las que esta empresa ya usa, y despues las de partida.
+   *
+   * <p><b>Lista cerrada</b>: no se admite una que no este. Sin eso, la misma tecnologia acaba escrita
+   * de cuatro maneras y agrupar por ella deja de servir. Ver {@code tecnologias.ts}.
+   */
+  protected readonly tecnologias = computed(() => tecnologiasAutorizadas(this.tipos.data()));
+
+  private readonly tipos = this.api.listarTipos();
 
   protected readonly modalidades = MODALIDADES_DE_VERIFICACION;
   protected readonly etiquetas = ETIQUETA_DE_MODALIDAD;

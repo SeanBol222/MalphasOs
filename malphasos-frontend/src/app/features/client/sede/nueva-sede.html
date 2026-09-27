@@ -4,6 +4,10 @@
 }
 
 <form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+
+  <p class="mb-3 text-neutral-700">
+    Los campos marcados con <span class="text-accent-700" aria-hidden="true">*</span> son obligatorios.
+  </p>
   @if (mensajeDeError()) {
     <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
       <p class="font-semibold">{{ mensajeDeError() }}</p>
@@ -18,7 +22,7 @@
   }
 
   <div class="mb-3">
-    <label class="block font-semibold" for="nombre">Nombre de la sede</label>
+    <label class="block font-semibold" for="nombre">Nombre de la sede <span class="text-accent-700" aria-hidden="true">*</span></label>
     <input
       id="nombre"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -26,6 +30,7 @@
       maxlength="50"
       [attr.aria-invalid]="malo('nombre') || null"
       [attr.aria-describedby]="malo('nombre') ? 'nombre-error' : null"
+      aria-required="true"
     />
     @if (malo('nombre')) {
       <p class="mt-1 font-semibold text-accent-700" id="nombre-error">
@@ -35,26 +40,18 @@
   </div>
 
   <div class="mb-3">
-    <label class="block font-semibold" for="idCiudad">Ciudad</label>
-    <select
-      id="idCiudad"
-      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+    <app-buscador
       formControlName="idCiudad"
-      [attr.aria-invalid]="malo('idCiudad') || null"
-      [attr.aria-describedby]="malo('idCiudad') ? 'idCiudad-error' : null"
-    >
-      <option value="">Elija una ciudad</option>
-      @for (ciudad of ciudadesOfrecidas(); track ciudad.id) {
-        <option [value]="ciudad.id">{{ ciudad.nombre }}</option>
-      }
-    </select>
+      campo="idCiudad"
+      etiqueta="Ciudad"
+      historial="ciudad"
+      [opciones]="opcionesDeCiudad()"
+    />
     @if (malo('idCiudad')) {
-      <p class="mt-1 font-semibold text-accent-700" id="idCiudad-error">
-        Elija la ciudad de la sede.
-      </p>
+      <p class="mt-1 font-semibold text-accent-700">Elija la ciudad de la sede.</p>
     }
     @if (sinCiudadesDelPais()) {
-      <!-- Un desplegable con una sola opcion vacia no explica nada. Aqui se dice por que. -->
+      <!-- Un campo que no puede ofrecer nada no explica nada. Aqui se dice por que. -->
       <p class="mt-1 text-neutral-700">
         No hay ciudades registradas para el país de este cliente. Regístrelas antes de abrir la sede.
       </p>
@@ -63,30 +60,33 @@
 
   <div class="mb-3 grid gap-3 sm:grid-cols-3">
     <div>
-      <label class="block font-semibold" for="calle">Calle</label>
+      <label class="block font-semibold" for="calle">Calle <span class="text-accent-700" aria-hidden="true">*</span></label>
       <input
         id="calle"
         class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
         formControlName="calle"
         [attr.aria-invalid]="malo('calle') || null"
+      aria-required="true"
       />
     </div>
     <div>
-      <label class="block font-semibold" for="carrera">Carrera</label>
+      <label class="block font-semibold" for="carrera">Carrera <span class="text-accent-700" aria-hidden="true">*</span></label>
       <input
         id="carrera"
         class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
         formControlName="carrera"
         [attr.aria-invalid]="malo('carrera') || null"
+      aria-required="true"
       />
     </div>
     <div>
-      <label class="block font-semibold" for="numero">Número</label>
+      <label class="block font-semibold" for="numero">Número <span class="text-accent-700" aria-hidden="true">*</span></label>
       <input
         id="numero"
         class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
         formControlName="numero"
         [attr.aria-invalid]="malo('numero') || null"
+      aria-required="true"
       />
     </div>
   </div>

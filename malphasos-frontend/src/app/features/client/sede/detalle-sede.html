@@ -139,7 +139,7 @@
       @if (datos.estadoActivo) {
         <div class="mt-2 flex flex-wrap items-end gap-2">
           <div class="grow">
-            <label class="block font-semibold" for="areaNueva">Añadir un área</label>
+            <label class="block font-semibold" for="areaNueva">Añadir un área <span class="text-accent-700" aria-hidden="true">*</span></label>
             <input
               id="areaNueva"
               class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -149,6 +149,7 @@
               [attr.aria-describedby]="
                 areaNueva.invalid && areaNueva.touched ? 'areaNueva-error' : null
               "
+      aria-required="true"
             />
           </div>
           <button

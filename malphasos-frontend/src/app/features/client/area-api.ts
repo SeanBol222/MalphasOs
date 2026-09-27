@@ -39,6 +39,9 @@ export class AreaApi {
         firstValueFrom(
           this.http.get<AreaDeServicio[]>(`${this.urlSedes}/${idSede()}/service-areas`),
         ),
+      // Sin sede elegida no se consulta nada: la usan formularios encadenados, donde el primer
+      // desplegable esta vacio hasta que alguien elige. Sin esto se pediria /headquarters//...
+      enabled: !!idSede(),
     }));
   }
 
@@ -52,6 +55,34 @@ export class AreaApi {
     return injectQuery(() => ({
       queryKey: [...SedeApi.CLAVE, 'area', id()],
       queryFn: () => firstValueFrom(this.http.get<AreaDeServicio>(`${this.url}/${id()}`)),
+      // Vacio mientras el alta de un equipo no sepa todavia en que area se instala: sin esto se
+      // pediria /service-areas/ a secas, que no es la ficha de nada.
+      enabled: !!id(),
+    }));
+  }
+
+  /**
+   * Varias areas por sus identificadores, en una sola consulta de cache.
+   *
+   * <p><b>Emite una peticion por area</b>, y no es por gusto: el API no publica ni un listado global de
+   * areas ni una consulta por lote, solo {@code /headquarters/{idSede}/service-areas} y el detalle por
+   * identificador. El listado de equipos necesita el nombre del area de cada fila, y lo unico que trae
+   * la respuesta del equipo es el identificador.
+   *
+   * <p>Se agrupan en una sola consulta con clave derivada de los identificadores <b>ordenados</b>: sin
+   * ordenar, dos listas con los mismos elementos en otro orden se cachearian por separado. Queda
+   * anotado como deuda; es la tercera vez que una respuesta devuelve identificadores sin nombres.
+   */
+  variasPorId(ids: Signal<readonly string[]>) {
+    return injectQuery(() => ({
+      queryKey: [...SedeApi.CLAVE, 'areas-por-id', [...ids()].sort().join(',')],
+      queryFn: () =>
+        Promise.all(
+          ids().map((id) =>
+            firstValueFrom(this.http.get<AreaDeServicio>(`${this.url}/${id}`)),
+          ),
+        ),
+      enabled: ids().length > 0,
     }));
   }
 

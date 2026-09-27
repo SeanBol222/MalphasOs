@@ -5,22 +5,22 @@ import { ClienteApi } from '../cliente-api';
 import { SedeApi } from '../sede-api';
 import { UbicacionApi } from '../../location/ubicacion-api';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
+import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
 
 /**
  * Alta de una sede de un cliente.
  *
- * <p><b>La ciudad se elige de una lista, y la lista se recorta al pais del cliente.</b> Es
- * obligatoria en el contrato, de modo que sin selector esta pantalla exigiria teclear un UUID: seria
- * inservible sin abrir la base de datos al lado. Y recortarla no es cosmetico: el catalogo entero
- * incluye ciudades de otros paises, y una sede en la ciudad equivocada es un error que nadie detecta
- * hasta que un ingeniero viaja.
+ * <p><b>La ciudad se busca escribiendo, y lo que se busca esta recortado al pais del cliente.</b> Es
+ * obligatoria en el contrato, de modo que sin buscador esta pantalla exigiria teclear un UUID. Y el
+ * recorte no es cosmetico: el catalogo trae 1.103 municipios de Colombia y la capital de cada otro
+ * pais, y una sede en la ciudad equivocada es un error que nadie detecta hasta que un ingeniero viaja.
  *
  * <p>Si el cliente no tiene pais —el contrato lo permite— se ofrecen todas, porque no hay con que
  * recortar. Es la unica lectura posible de «no se sabe».
  */
 @Component({
   selector: 'app-nueva-sede',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Buscador],
   templateUrl: './nueva-sede.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -50,6 +50,9 @@ export class NuevaSede {
 
     return pais ? todas.filter((ciudad) => ciudad.idPais === pais) : todas;
   });
+
+  /** Lo que el buscador ofrece: las ciudades del pais del cliente, ya en forma de opcion. */
+  protected readonly opcionesDeCiudad = computed(() => opcionesDe(this.ciudadesOfrecidas()));
 
   /** Que el recorte deje la lista vacia no es lo mismo que que el catalogo no haya cargado. */
   protected readonly sinCiudadesDelPais = computed(

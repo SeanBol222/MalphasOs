@@ -70,6 +70,14 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('equipment.write')],
       },
       {
+        // Alta desde el listado de equipos: el area se elige en el formulario, encadenada al cliente y
+        // su sede. Es la misma pantalla que la de abajo; lo unico que cambia es de donde sale el area.
+        path: 'equipos/nuevo',
+        loadComponent: () =>
+          import('./features/equipment/area/nuevo-equipo').then((m) => m.NuevoEquipo),
+        canActivate: [requiereAutoridad('equipment.assign')],
+      },
+      {
         path: 'areas/:id/equipos/nuevo',
         loadComponent: () =>
           import('./features/equipment/area/nuevo-equipo').then((m) => m.NuevoEquipo),

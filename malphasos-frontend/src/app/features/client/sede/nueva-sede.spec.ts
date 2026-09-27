@@ -3,7 +3,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
-import { asentar, responderA } from '../../../../testing/pantalla';
+import {
+  asentar,
+  elegirEnBuscador,
+  escribirEnBuscador,
+  responderA,
+  sugerenciasDe,
+} from '../../../../testing/pantalla';
+import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
 import { NuevaSede } from './nueva-sede';
 
 const ID_CLIENTE = '11111111-1111-1111-1111-111111111111';
@@ -29,7 +36,10 @@ describe('Alta de una sede', () => {
   let fixture: ComponentFixture<NuevaSede>;
   let http: HttpTestingController;
 
+  let desinstalarAlmacenamiento: () => void;
+
   beforeEach(() => {
+    desinstalarAlmacenamiento = instalarAlmacenamiento();
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -57,9 +67,9 @@ describe('Alta de una sede', () => {
     fixture.detectChanges();
   }
 
-  function rellenarValido(): void {
+  async function rellenarValido(): Promise<void> {
     escribir('nombre', 'Sede Norte');
-    escribir('idCiudad', 'c1');
+    await elegirEnBuscador(fixture, 'idCiudad', 'Bogotá');
     escribir('calle', '100');
     escribir('carrera', '15');
     escribir('numero', '20-30');
@@ -70,10 +80,17 @@ describe('Alta de una sede', () => {
     await asentar(fixture);
   }
 
-  const ciudadesOfrecidas = () =>
-    [...raiz().querySelectorAll<HTMLOptionElement>('#idCiudad option')].map((o) =>
-      o.textContent?.trim(),
-    );
+  /**
+   * Lo que el buscador ofrece al escribir algo.
+   *
+   * <p>Se escribe en vez de abrir el campo a secas: sin texto solo se ofrece el historial, que en una
+   * prueba recien montada esta vacio a proposito.
+   */
+  async function ofrecidasAlEscribir(texto: string): Promise<string[]> {
+    await escribirEnBuscador(fixture, 'idCiudad', texto);
+
+    return sugerenciasDe(fixture, 'idCiudad');
+  }
 
   it('dice de que cliente es la sede', async () => {
     await abrir();
@@ -81,18 +98,20 @@ describe('Alta de una sede', () => {
     expect(texto()).toContain('Hospital Central');
   });
 
-  it('ofrece solo las ciudades del pais del cliente', async () => {
+  it('busca solo entre las ciudades del pais del cliente', async () => {
     // Es lo que evita el error que nadie detecta hasta que un ingeniero viaja: abrir una sede de un
-    // cliente colombiano en Lima porque las tres ciudades estaban en la misma lista.
+    // cliente colombiano en Lima porque las tres ciudades estaban en el mismo catalogo.
     await abrir();
 
-    expect(ciudadesOfrecidas()).toEqual(['Elija una ciudad', 'Bogotá', 'Medellín']);
+    // 'lim' y no 'li': Medellín contiene «li», y buscar por trozos es justo lo que se quiere.
+    expect(await ofrecidasAlEscribir('lim')).toEqual([]);
+    expect(await ofrecidasAlEscribir('me')).toEqual(['Medellín']);
   });
 
-  it('si el cliente no tiene pais, ofrece todas: no hay con que recortar', async () => {
+  it('si el cliente no tiene pais, busca en todas: no hay con que recortar', async () => {
     await abrir({ ...CLIENTE, idPais: undefined });
 
-    expect(ciudadesOfrecidas()).toEqual(['Elija una ciudad', 'Bogotá', 'Medellín', 'Lima']);
+    expect(await ofrecidasAlEscribir('lim')).toEqual(['Lima']);
   });
 
   it('si el pais del cliente no tiene ciudades registradas, lo dice', async () => {
@@ -105,7 +124,7 @@ describe('Alta de una sede', () => {
 
   it('manda exactamente lo que el contrato declara', async () => {
     await abrir();
-    rellenarValido();
+    await rellenarValido();
     await enviar();
 
     const peticion = http.expectOne({ method: 'POST', url: URL_SEDES });
@@ -147,7 +166,7 @@ describe('Alta de una sede', () => {
 
   it('al guardar, lleva a la ficha de la sede creada', async () => {
     await abrir();
-    rellenarValido();
+    await rellenarValido();
     await enviar();
     http.expectOne({ method: 'POST', url: URL_SEDES }).flush({ id: 's1' });
     await asentar(fixture);
@@ -175,5 +194,8 @@ describe('Alta de una sede', () => {
     });
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    desinstalarAlmacenamiento();
+  });
 });

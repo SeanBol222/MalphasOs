@@ -22,15 +22,58 @@
   <nav aria-label="Navegación principal" class="mx-auto max-w-[1440px] px-2 md:px-6">
     <ul class="flex list-none gap-1">
       @for (entrada of navegacion; track entrada.ruta) {
-        <li>
-          <a
-            class="flex min-h-tactil items-center border-b-2 border-transparent px-2 font-semibold text-neutral-800 hover:text-ink"
-            routerLinkActive="border-accent text-ink"
-            ariaCurrentWhenActive="page"
-            [routerLink]="entrada.ruta"
-          >
-            {{ entrada.etiqueta }}
-          </a>
+        <li class="relative">
+          @if (entrada.hijos) {
+            <!--
+              Un boton y no un enlace: «catalogo» no es una pantalla. Y se abre al pulsar, no al pasar
+              el raton, porque con el raton por encima no se navega con el teclado y en un telefono no
+              hay raton.
+            -->
+            <button
+              class="flex min-h-tactil items-center gap-1 border-b-2 border-transparent px-2 font-semibold text-neutral-800 hover:text-ink"
+              [class.border-accent]="desplegada() === entrada.ruta"
+              [class.text-ink]="desplegada() === entrada.ruta"
+              type="button"
+              [attr.aria-expanded]="desplegada() === entrada.ruta"
+              [attr.aria-controls]="entrada.ruta + '-submenu'"
+              (click)="alternar(entrada)"
+              (keydown.escape)="cerrar()"
+            >
+              {{ entrada.etiqueta }}
+              <span aria-hidden="true">{{ desplegada() === entrada.ruta ? '▴' : '▾' }}</span>
+            </button>
+
+            @if (desplegada() === entrada.ruta) {
+              <ul
+                class="absolute z-10 min-w-[12rem] list-none border border-neutral-400 bg-paper"
+                [id]="entrada.ruta + '-submenu'"
+                (keydown.escape)="cerrar()"
+              >
+                @for (hija of entrada.hijos; track hija.ruta) {
+                  <li>
+                    <a
+                      class="flex min-h-tactil items-center px-2 font-semibold text-neutral-800 hover:bg-neutral-200 hover:text-ink"
+                      routerLinkActive="bg-neutral-200 text-ink"
+                      ariaCurrentWhenActive="page"
+                      [routerLink]="[entrada.ruta, hija.ruta]"
+                      (click)="cerrar()"
+                    >
+                      {{ hija.etiqueta }}
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+            <a
+              class="flex min-h-tactil items-center border-b-2 border-transparent px-2 font-semibold text-neutral-800 hover:text-ink"
+              routerLinkActive="border-accent text-ink"
+              ariaCurrentWhenActive="page"
+              [routerLink]="entrada.ruta"
+            >
+              {{ entrada.etiqueta }}
+            </a>
+          }
         </li>
       }
     </ul>

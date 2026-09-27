@@ -13,6 +13,19 @@ const URL_EQUIPOS_DEL_AREA = `${URL_AREA}/equipments`;
 
 const AREA = { id: ID_AREA, nombre: 'Urgencias', idSede: 's1', estadoActivo: true };
 
+const API = 'http://localhost:8081/v1/api';
+const ID_CLIENTE = 'c1';
+const ID_SEDE = 's1';
+const CLIENTES = [{ id: ID_CLIENTE, razonSocial: 'Hospital Central', estadoActivo: true }];
+const SEDES = [
+  { id: ID_SEDE, nombre: 'Sede Norte', idCliente: ID_CLIENTE, estadoActivo: true },
+  { id: 's2', nombre: 'Sede cerrada', idCliente: ID_CLIENTE, estadoActivo: false },
+];
+const AREAS = [
+  AREA,
+  { id: 'a2', nombre: 'Bodega cerrada', idSede: ID_SEDE, estadoActivo: false },
+];
+
 @Component({ selector: 'app-ficha-area-falsa', template: '' })
 class FichaAreaFalsa {}
 
@@ -195,6 +208,157 @@ describe('Registro de un equipo en un area', () => {
       for (const control of raiz().querySelectorAll('input, select, button, form a')) {
         expect(control.className).toContain('min-h-tactil');
       }
+    });
+  });
+
+  describe('Entrando desde el listado de equipos, sin area fijada', () => {
+    beforeEach(() => {
+      // Se vuelve a montar sin el parametro de ruta: es el otro camino de entrada, y la pantalla es
+      // la misma a proposito. Duplicarla habria sido la via directa a que uno de los dos se quedara
+      // sin un arreglo.
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          ...proveerApiSimulado(),
+          provideRouter([{ path: 'areas/:id', component: FichaAreaFalsa }]),
+        ],
+      });
+      fixture = TestBed.createComponent(NuevoEquipo);
+      http = TestBed.inject(HttpTestingController);
+    });
+
+    /** Abre la pantalla en modo encadenado y responde al catalogo y a la lista de clientes. */
+    async function abrirEncadenado(): Promise<void> {
+      fixture.detectChanges();
+      await responderA(fixture, http, `${API}/clients`, CLIENTES);
+      await responderAlCatalogo(fixture, http);
+    }
+
+    it('pregunta cliente, sede y area, porque quien llega aqui no viene de un cliente', async () => {
+      await abrirEncadenado();
+
+      for (const id of ['idCliente', 'idSede', 'idAreaElegida']) {
+        expect(raiz().querySelector(`#${id}`)).toBeTruthy();
+      }
+    });
+
+    it('la sede no se consulta hasta elegir cliente, y el area hasta elegir sede', async () => {
+      // Sin esto se pediria /clients//headquarters con un identificador vacio, que es un 404 seguro.
+      await abrirEncadenado();
+
+      http.expectNone(`${API}/clients/${ID_CLIENTE}/headquarters`);
+
+      escribir('idCliente', ID_CLIENTE);
+      await asentar(fixture);
+      await responderA(fixture, http, `${API}/clients/${ID_CLIENTE}/headquarters`, SEDES);
+
+      http.expectNone(`${API}/headquarters/${ID_SEDE}/service-areas`);
+
+      escribir('idSede', ID_SEDE);
+      await asentar(fixture);
+      await responderA(fixture, http, `${API}/headquarters/${ID_SEDE}/service-areas`, AREAS);
+
+      expect([...raiz().querySelectorAll<HTMLOptionElement>('#idAreaElegida option')].length).toBe(2);
+    });
+
+    it('solo ofrece sedes y areas abiertas: el backend rechaza una cerrada', async () => {
+      await abrirEncadenado();
+      escribir('idCliente', ID_CLIENTE);
+      await asentar(fixture);
+      await responderA(fixture, http, `${API}/clients/${ID_CLIENTE}/headquarters`, SEDES);
+      escribir('idSede', ID_SEDE);
+      await asentar(fixture);
+      await responderA(fixture, http, `${API}/headquarters/${ID_SEDE}/service-areas`, AREAS);
+
+      expect(texto()).not.toContain('Sede cerrada');
+      expect(texto()).not.toContain('Bodega cerrada');
+    });
+
+    it('cambiar de cliente borra la sede y el area elegidas', async () => {
+      // Sin esto quedaria una sede de otro cliente seleccionada y el alta iria a un area ajena.
+      await abrirEncadenado();
+      escribir('idCliente', ID_CLIENTE);
+      await asentar(fixture);
+      await responderA(fixture, http, `${API}/clients/${ID_CLIENTE}/headquarters`, SEDES);
+      escribir('idSede', ID_SEDE);
+      await asentar(fixture);
+      await responderA(fixture, http, `${API}/headquarters/${ID_SEDE}/service-areas`, AREAS);
+      escribir('idAreaElegida', ID_AREA);
+      await asentar(fixture);
+      // Al fijarse el area, la pantalla consulta su ficha para poder nombrarla.
+      http.match(`${API}/service-areas/${ID_AREA}`).forEach((p) => p.flush(AREA));
+
+      escribir('idCliente', '');
+      await asentar(fixture);
+
+      expect(raiz().querySelector<HTMLSelectElement>('#idSede')!.value).toBe('');
+      expect(raiz().querySelector<HTMLSelectElement>('#idAreaElegida')!.value).toBe('');
+    });
+
+    it('sin area elegida no llega al servidor, y lo dice', async () => {
+      await abrirEncadenado();
+      escribir('idModelo', ID_MODELO);
+      escribir('serie', 'SN-0001');
+      await enviar();
+
+      http.expectNone({ method: 'POST', url: `${API}/service-areas/${ID_AREA}/equipments` });
+      expect(texto()).toContain('Elija el área en la que se instala');
+    });
+
+    it('registra en el area elegida, y vuelve a su ficha', async () => {
+      await abrirEncadenado();
+      escribir('idCliente', ID_CLIENTE);
+      await asentar(fixture);
+      await responderA(fixture, http, `${API}/clients/${ID_CLIENTE}/headquarters`, SEDES);
+      escribir('idSede', ID_SEDE);
+      await asentar(fixture);
+      await responderA(fixture, http, `${API}/headquarters/${ID_SEDE}/service-areas`, AREAS);
+      escribir('idAreaElegida', ID_AREA);
+      await asentar(fixture);
+      // Al fijarse el area, la pantalla consulta su detalle igual que en el otro camino.
+      http.match(`${API}/service-areas/${ID_AREA}`).forEach((p) => p.flush(AREA));
+      escribir('idModelo', ID_MODELO);
+      escribir('serie', 'SN-0001');
+      await enviar();
+
+      const alta = http.expectOne({
+        method: 'POST',
+        url: `${API}/service-areas/${ID_AREA}/equipments`,
+      });
+
+      expect(alta.request.body).toEqual({ idModelo: ID_MODELO, serie: 'SN-0001' });
+      alta.flush({ id: 'ec1' });
+      await asentar(fixture);
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+
+      expect(TestBed.inject(Router).url).toBe(`/areas/${ID_AREA}`);
+    });
+  });
+
+  describe('Crear el modelo sin salir', () => {
+    it('ofrece crearlo aqui mismo, en vez de mandar al catalogo y perder lo escrito', async () => {
+      // Se entra con area fijada, que es el caso simple: el otro camino ya esta probado arriba.
+      await abrir();
+
+      const boton = [...raiz().querySelectorAll('button')].find((b) =>
+        (b.textContent ?? '').includes('crearlo aquí'),
+      );
+
+      expect(boton).toBeTruthy();
+
+      boton!.click();
+      fixture.detectChanges();
+      await asentar(fixture);
+
+      // El panel repite las consultas del catalogo y pide paises para el fabricante nuevo. Las repite
+      // porque la cache de estas pruebas se vacia al instante -gcTime en cero-, para que el orden de
+      // ejecucion no cambie el resultado.
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+
+      expect(texto()).toContain('Crear un modelo');
+      expect(raiz().querySelector('#idTipo')).toBeTruthy();
     });
   });
 

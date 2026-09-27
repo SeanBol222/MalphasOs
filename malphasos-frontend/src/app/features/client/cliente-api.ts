@@ -42,10 +42,18 @@ export class ClienteApi {
     return [...ClienteApi.CLAVE_LISTA, id] as const;
   }
 
-  listar() {
+  /**
+   * La lista de clientes.
+   *
+   * <p>Admite una senal que la apaga, y no es un adorno: el alta de un equipo la usa para su primer
+   * desplegable, pero cuando se entra ya sabiendo el area esa lista no se ensena y pedirla seria una
+   * consulta entera para nada.
+   */
+  listar(habilitada?: Signal<boolean>) {
     return injectQuery(() => ({
       queryKey: ClienteApi.CLAVE_LISTA,
       queryFn: () => firstValueFrom(this.http.get<Cliente[]>(this.url)),
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 

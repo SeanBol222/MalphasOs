@@ -1,27 +1,31 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { EquiposDeCatalogo } from './equipos';
-import { Fabricantes } from './fabricantes';
-import { Marcas } from './marcas';
-import { Modelos } from './modelos';
-import { TiposDeEquipo } from './tipos';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NAVEGACION } from '../../../core/navegacion';
 
 /**
- * El catalogo de equipos, sus cinco piezas en el orden en que se usan.
+ * El sitio donde viven las cinco piezas del catalogo, con una a la vista cada vez.
  *
- * <p><b>El orden de las secciones es la leccion de la pantalla.</b> Registrar un equipo de un cliente
- * exige una cadena: marca y tipo se combinan en un equipo del catalogo; ese equipo con un fabricante
- * forma un modelo; y solo un modelo se puede instalar en un area. Quien llegue sin saberlo descubre la
- * dependencia al encontrarse el desplegable vacio, asi que se recorre de arriba abajo y cada seccion
- * dice para que sirve la siguiente.
+ * <p><b>Antes eran las cinco en la misma pagina</b>, una debajo de otra, y con treinta marcas
+ * registradas llegar a los fabricantes eran cuatro pantallas de desplazamiento. Ahora cada pieza tiene
+ * su propia ruta —{@code /catalogo/marcas}, {@code /catalogo/fabricantes}—, de modo que se puede
+ * enlazar, recargar y volver con el boton de atras, tres cosas que unas pestanas con estado interno no
+ * dan.
  *
- * <p>Es una pagina con cinco componentes y no cinco rutas: las cinco listas se consultan juntas de
- * todos modos —ninguna respuesta trae nombres y hay que cruzarlas para pintar una fila legible—, de
- * modo que separarlas en cinco pantallas costaria las mismas consultas y esconderia la cadena.
+ * <p>La subnavegacion se deriva de {@link NAVEGACION}, la misma lista de la que salen el menu y las
+ * rutas: escribirla aparte seria una segunda lista que se desincroniza, y este proyecto ya tiene
+ * precedentes anotados de eso.
+ *
+ * <p>Esta pantalla no consulta nada: cada pieza se trae lo suyo. Entrar en {@code /catalogo} redirige a
+ * la primera, porque una pagina que solo tiene un menu no es una pagina.
  */
 @Component({
   selector: 'app-catalogo',
-  imports: [Marcas, TiposDeEquipo, Fabricantes, EquiposDeCatalogo, Modelos],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './catalogo.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Catalogo {}
+export class Catalogo {
+  /** Las cinco piezas, tal como las declara la navegacion. */
+  protected readonly piezas =
+    NAVEGACION.find((entrada) => entrada.ruta === 'catalogo')?.hijos ?? [];
+}

@@ -143,7 +143,7 @@
 
       <div class="mt-2 flex flex-wrap items-end gap-2">
         <div class="grow">
-          <label class="block font-semibold" for="correoNuevo">Añadir un correo</label>
+          <label class="block font-semibold" for="correoNuevo">Añadir un correo <span class="text-accent-700" aria-hidden="true">*</span></label>
           <input
             id="correoNuevo"
             class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -154,6 +154,7 @@
             [attr.aria-describedby]="
               correoNuevo.invalid && correoNuevo.touched ? 'correoNuevo-error' : null
             "
+      aria-required="true"
           />
         </div>
         <button
@@ -197,7 +198,7 @@
 
       <div class="mt-2 flex flex-wrap items-end gap-2">
         <div class="grow">
-          <label class="block font-semibold" for="telefonoNuevo">Añadir un teléfono</label>
+          <label class="block font-semibold" for="telefonoNuevo">Añadir un teléfono <span class="text-accent-700" aria-hidden="true">*</span></label>
           <input
             id="telefonoNuevo"
             class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -207,6 +208,7 @@
             [attr.aria-describedby]="
               telefonoNuevo.invalid && telefonoNuevo.touched ? 'telefonoNuevo-error' : null
             "
+      aria-required="true"
           />
         </div>
         <button

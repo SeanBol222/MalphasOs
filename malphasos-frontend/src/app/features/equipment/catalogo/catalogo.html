@@ -1,21 +1,27 @@
 <h1 class="text-2xl font-bold">Catálogo de equipos</h1>
 
-<p class="mt-1 max-w-[70ch]">
-  Lo que se instala en un área es un <strong>modelo</strong>, y un modelo se construye por partes. Cada
-  sección alimenta a la siguiente:
-</p>
+<!--
+  Subnavegacion propia de la seccion, ademas del desplegable del menu: una vez dentro, saltar de marcas
+  a fabricantes no deberia exigir volver a la cabecera. aria-current lo pone routerLinkActive, no un
+  calculo propio.
+-->
+<nav aria-label="Piezas del catálogo" class="mt-2 border-b border-neutral-300">
+  <ul class="flex list-none flex-wrap gap-1">
+    @for (pieza of piezas; track pieza.ruta) {
+      <li>
+        <a
+          class="flex min-h-tactil items-center border-b-2 border-transparent px-2 font-semibold text-neutral-800 hover:text-ink"
+          routerLinkActive="border-accent text-ink"
+          ariaCurrentWhenActive="page"
+          [routerLink]="['/catalogo', pieza.ruta]"
+        >
+          {{ pieza.etiqueta }}
+        </a>
+      </li>
+    }
+  </ul>
+</nav>
 
-<ol class="mt-2 list-decimal pl-4">
-  <li><strong>Marcas</strong> y <strong>tipos</strong>: la línea comercial y la clase de aparato.</li>
-  <li><strong>Equipos del catálogo</strong>: un tipo con una marca.</li>
-  <li><strong>Fabricantes</strong>: quién lo produce, y dónde.</li>
-  <li><strong>Modelos</strong>: un equipo del catálogo con su fabricante. Esto es lo que se instala.</li>
-</ol>
-
-<div class="mt-3 flex flex-col gap-3">
-  <app-marcas />
-  <app-tipos-de-equipo />
-  <app-fabricantes />
-  <app-equipos-de-catalogo />
-  <app-modelos />
+<div class="mt-3">
+  <router-outlet />
 </div>

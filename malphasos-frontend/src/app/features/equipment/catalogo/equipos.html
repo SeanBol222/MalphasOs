@@ -18,7 +18,7 @@
       Todavía no hay combinaciones. Registre un tipo y una marca, y combínelos aquí.
     </p>
   } @else {
-    <ul class="mt-1">
+    <ul class="mt-1 max-h-64 overflow-y-auto">
       @for (fila of filas(); track fila.id) {
         <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
           <span class="grow" [class.font-semibold]="fila.estadoActivo">
@@ -43,11 +43,12 @@
   @if (puedeEscribir()) {
     <form class="mt-2 flex flex-wrap items-end gap-2" [formGroup]="formulario" (ngSubmit)="agregar()">
       <div class="grow">
-        <label class="block font-semibold" for="tipoDelEquipo">Tipo</label>
+        <label class="block font-semibold" for="tipoDelEquipo">Tipo <span class="text-accent-700" aria-hidden="true">*</span></label>
         <select
           id="tipoDelEquipo"
           class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
           formControlName="idTipoEquipo"
+      aria-required="true"
         >
           <option value="">Elija un tipo</option>
           @for (tipo of tiposActivos(); track tipo.id) {
@@ -56,11 +57,12 @@
         </select>
       </div>
       <div class="grow">
-        <label class="block font-semibold" for="marcaDelEquipo">Marca</label>
+        <label class="block font-semibold" for="marcaDelEquipo">Marca <span class="text-accent-700" aria-hidden="true">*</span></label>
         <select
           id="marcaDelEquipo"
           class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
           formControlName="idMarca"
+      aria-required="true"
         >
           <option value="">Elija una marca</option>
           @for (marca of marcasActivas(); track marca.id) {

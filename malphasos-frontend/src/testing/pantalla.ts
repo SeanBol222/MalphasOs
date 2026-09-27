@@ -80,6 +80,77 @@ export async function atenderRefresco(
   await asentar(fixture);
 }
 
+/**
+ * Elige una opcion en un campo de busqueda, como lo haria una persona: escribe y pulsa la sugerencia.
+ *
+ * <p>Los paises y las ciudades dejaron de ser desplegables el 2026-09-26 —con 249 y 1.350 opciones no
+ * se pueden recorrer con la vista—, y con ello dejo de valer el {@code select.value = x} de las
+ * pruebas. Esto pasa por donde pasa el usuario: el texto, la lista de sugerencias y el clic. Comprobar
+ * el valor del formulario a mano se saltaria justo lo que puede romperse.
+ */
+export async function elegirEnBuscador(
+  fixture: ComponentFixture<unknown>,
+  campo: string,
+  etiqueta: string,
+): Promise<void> {
+  const raiz = fixture.nativeElement as HTMLElement;
+  const entrada = raiz.querySelector<HTMLInputElement>(`#${campo}`);
+
+  if (!entrada) {
+    throw new Error(`No hay ningun campo de busqueda con id "${campo}"`);
+  }
+
+  entrada.dispatchEvent(new Event('focus'));
+  entrada.value = etiqueta;
+  entrada.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+  await tic();
+  fixture.detectChanges();
+
+  const opciones = [...raiz.querySelectorAll<HTMLElement>(`#${campo}-lista [role="option"]`)];
+  const buscada = opciones.find((opcion) => (opcion.textContent ?? '').trim() === etiqueta);
+
+  if (!buscada) {
+    throw new Error(
+      `"${etiqueta}" no aparecio entre las sugerencias de ${campo}: ` +
+        opciones.map((o) => o.textContent?.trim()).join(', '),
+    );
+  }
+
+  // mousedown y no click: el campo se cierra al perder el foco, y el clic llegaria despues.
+  buscada.dispatchEvent(new MouseEvent('mousedown'));
+  fixture.detectChanges();
+  await tic();
+  fixture.detectChanges();
+}
+
+/** Las sugerencias que un campo de busqueda ofrece ahora mismo, en orden. */
+export function sugerenciasDe(fixture: ComponentFixture<unknown>, campo: string): string[] {
+  const raiz = fixture.nativeElement as HTMLElement;
+
+  return [...raiz.querySelectorAll(`#${campo}-lista [role="option"]`)].map(
+    (opcion) => opcion.textContent?.trim() ?? '',
+  );
+}
+
+/** Escribe en un campo de busqueda sin elegir nada, para ver que ofrece. */
+export async function escribirEnBuscador(
+  fixture: ComponentFixture<unknown>,
+  campo: string,
+  texto: string,
+): Promise<void> {
+  const entrada = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
+    `#${campo}`,
+  )!;
+
+  entrada.dispatchEvent(new Event('focus'));
+  entrada.value = texto;
+  entrada.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+  await tic();
+  fixture.detectChanges();
+}
+
 function tic(): Promise<void> {
   return new Promise((seguir) => setTimeout(seguir, 0));
 }

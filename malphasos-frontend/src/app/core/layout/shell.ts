@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { NAVEGACION } from '../navegacion';
+import { EntradaDeNavegacion, NAVEGACION } from '../navegacion';
 
 /**
  * El armazon de la aplicacion: cabecera, navegacion principal y el contenido.
@@ -19,6 +19,11 @@ import { NAVEGACION } from '../navegacion';
  * y no un calculo propio. Hubo uno, con una senal que leia {@code router.url}:
  * sobraba y ademas fallaba, porque al construirse el componente la navegacion
  * todavia no habia terminado.
+ *
+ * <p><b>Una entrada con hijas se despliega</b> en lugar de enlazar: el catalogo de equipos tiene cinco
+ * piezas y «catalogo» no es una pantalla, es el sitio donde estan. El desplegable es un boton con
+ * {@code aria-expanded} y no un menu de CSS que se abre al pasar el raton: con el raton por encima no se
+ * puede navegar con el teclado, y en un telefono no hay raton.
  */
 @Component({
   selector: 'app-shell',
@@ -28,4 +33,15 @@ import { NAVEGACION } from '../navegacion';
 })
 export class Shell {
   protected readonly navegacion = NAVEGACION;
+
+  /** La entrada cuyo desplegable esta abierto, si hay alguno. Solo uno a la vez. */
+  protected readonly desplegada = signal<string | null>(null);
+
+  protected alternar(entrada: EntradaDeNavegacion): void {
+    this.desplegada.update((abierta) => (abierta === entrada.ruta ? null : entrada.ruta));
+  }
+
+  protected cerrar(): void {
+    this.desplegada.set(null);
+  }
 }

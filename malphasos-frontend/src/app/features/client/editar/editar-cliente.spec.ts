@@ -94,7 +94,9 @@ describe('Edicion de un cliente', () => {
     await abrir();
 
     expect(raiz().querySelector<HTMLInputElement>('#razonSocial')!.value).toBe('Hospital Central');
-    expect(raiz().querySelector<HTMLSelectElement>('#idPais')!.value).toBe(ID_PAIS);
+    // El campo de busqueda ensena el NOMBRE y guarda el identificador: si ensenara el UUID, quien
+    // edita no sabria que pais tiene puesto.
+    expect(raiz().querySelector<HTMLInputElement>('#idPais')!.value).toBe('Colombia');
   });
 
   it('no ofrece el documento, porque el backend no admite cambiarlo', async () => {
