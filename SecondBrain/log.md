@@ -858,3 +858,25 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 **Conteo**: backend **684** —de 659, con 25 nuevas entre esquema, dominio, persistencia y REST—; frontend **293**, de 278. `V8` aplicada al contenedor en marcha.
 
 **Tocadas**: [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]] y el `CLAUDE.md` de la raíz.
+
+## [2026-09-27] ingest | Las órdenes de trabajo se pueden usar, y el marcador de requisitos sube por el frontend
+
+**El módulo estaba terminado desde el 2026-09-13 y no se podía usar.** Cuatro de sus siete requisitos describen un formulario, y era el trabajo que la cuenta de requisitos tenía marcado como pendiente a propósito para que no desapareciera. Ahora existen cuatro pantallas: listado, alta, ficha con el ciclo de vida, y la elección del alcance.
+
+**El estado no se edita, se avanza.** Dos botones —iniciar y ejecutar—, y cada uno aparece **solo cuando el estado lo permite**, que es lo mismo que comprueba el backend. Un desplegable de estados habría invitado a saltarse el orden y a que el servidor rechazara lo que la pantalla acababa de ofrecer.
+
+**La séptima regla se ejerce por fin desde un navegador.** La pantalla de alcance pregunta las áreas de la sede de la orden y **solo** ofrece equipos de ellas: es la regla que se construyó el 2026-09-13 al descubrir que faltaba, y hasta hoy ninguna interfaz la había puesto a prueba. Tampoco ofrece lo que ya está en la orden, ni las áreas cerradas.
+
+**Asignar el ingeniero se ve solo con `work-order.assign`.** La separación es del backend y es buena —repartir trabajo no es alterarlo—, y hay allí una prueba que impide que otra operación se cuele en esa autoridad. Aquí se refleja sin inventar nada: el resto de la ficha sigue disponible con `work-order.write`.
+
+**Varias altas sin transacción, y la pantalla lo dice.** El API suma un equipo por llamada: elegir diez son diez llamadas en serie, y si la séptima falla las seis primeras quedan dentro. Se informa de cuántas entraron. Mismo patrón que el panel del modelo, y misma conclusión: lo que el backend no ofrece compuesto, el frontend solo puede contarlo con honestidad.
+
+**La invalidación que se espera, otra vez.** La prueba del alcance se quedaba colgada en la segunda alta: `onSuccess` aguardaba la recarga completa de la orden antes de resolver la mutación. Es la **segunda** vez que este proyecto lo paga —la primera fue `CatalogoApi`—, así que queda escrito en los dos sitios: en una cadena, la invalidación se lanza y no se espera.
+
+**Y un manejador que no se llamaba nunca.** Limpiar la sede al cambiar de cliente se intentó con `(change)` en el campo del cliente, que es el buscador y **no emite ese evento**: el formulario aceptaba un cliente nuevo dejando puesta la sede del anterior. Va en un efecto, con el cliente anterior guardado para no limpiar en bucle.
+
+**El marcador sube de 11 a 14 requisitos, y RF-04 NO entra.** Es una desviación consciente: el requisito describe elegir áreas y después ver sus equipos, y la pantalla muestra todas las áreas de la sede a la vez con «marcar toda el área». Se llega al mismo sitio con un paso menos, pero no es lo que el requisito dice, y darlo por bueno sería justo lo que la cuenta de requisitos existe para evitar. **Es la primera vez que el marcador sube por trabajo de frontend.**
+
+**Conteo**: **330** pruebas de frontend, de 293 —37 nuevas entre las cuatro pantallas—. Backend sin tocar, en 684. Verificado por mutación: los botones que dejan de mirar el estado y el filtro de lo que ya está en la orden ponen rojas tres pruebas.
+
+**Tocadas**: [[dominio-orden-trabajo]], [[hoja-de-ruta-producto]] y el `CLAUDE.md` de la raíz.
