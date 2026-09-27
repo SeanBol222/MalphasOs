@@ -91,6 +91,13 @@ services:
       retries: 5
       start_period: 20s
 
+  # El backend. Aplica sus migraciones de Flyway al arrancar, y eso incluye V7, que siembra los 249
+  # paises y las 1.350 ciudades: una instalacion nueva tiene desde el primer arranque lo que hace falta
+  # para registrar un fabricante o abrir una sede, sin un paso manual.
+  #
+  # No hay nada que anadir aqui para conseguirlo, y conviene saber por que no se hizo de otra forma:
+  # un script en docker/postgres/init solo se ejecuta al CREAR el volumen, de modo que no habria tocado
+  # una base de datos que ya existe -como la de este equipo- y no volveria a correr nunca.
   app:
     container_name: malphasos-app
     build:
