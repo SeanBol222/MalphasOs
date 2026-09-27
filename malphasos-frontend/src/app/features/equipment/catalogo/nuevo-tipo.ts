@@ -1,14 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
-import {
-  ETIQUETA_DE_MODALIDAD,
-  ModalidadDeVerificacion,
-  MODALIDADES_DE_VERIFICACION,
-} from '../../../core/api/tipos';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
 import { Buscador } from '../../../shared/buscador/buscador';
+import { ConfiguracionDeVerificacion, Verificacion } from './verificacion';
 import { tecnologiasAutorizadas } from './tecnologias';
 
 /**
@@ -24,7 +20,7 @@ import { tecnologiasAutorizadas } from './tecnologias';
  */
 @Component({
   selector: 'app-nuevo-tipo',
-  imports: [ReactiveFormsModule, RouterLink, Buscador],
+  imports: [ReactiveFormsModule, RouterLink, Buscador, Verificacion],
   templateUrl: './nuevo-tipo.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -45,15 +41,27 @@ export class NuevoTipo {
 
   private readonly tipos = this.api.listarTipos();
 
-  protected readonly modalidades = MODALIDADES_DE_VERIFICACION;
-  protected readonly etiquetas = ETIQUETA_DE_MODALIDAD;
+  /**
+   * Como se verifica, tal como lo tiene el bloque de verificacion ahora mismo.
+   *
+   * <p>Fuera del formulario reactivo a proposito: sus tres campos se condicionan entre si -la cantidad y
+   * los puntos solo existen con una modalidad constante- y expresarlo con validadores dinamicos habria
+   * sido mas codigo y menos legible que un componente que se valida solo.
+   */
+  protected readonly verificacion = signal<ConfiguracionDeVerificacion>({
+    modalidad: null,
+    cantidadDatos: null,
+    puntos: [],
+    valida: true,
+  });
+
+  private readonly bloqueDeVerificacion = viewChild(Verificacion);
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(50)]],
     tecnologiaPredominante: ['', [Validators.required, Validators.maxLength(50)]],
     definicionTecnica: ['', [Validators.required, Validators.maxLength(250)]],
     recomendacionesCuidado: ['', [Validators.required, Validators.maxLength(250)]],
-    modalidadVerificacion: ['' as ModalidadDeVerificacion | ''],
     voltaje: [null as number | null],
     amperaje: [null as number | null],
     valorUnitarioMantenimiento: [null as number | null],
@@ -72,8 +80,12 @@ export class NuevoTipo {
   }
 
   protected enviar(): void {
-    if (this.formulario.invalid) {
+    const verificacion = this.verificacion();
+
+    if (this.formulario.invalid || !verificacion.valida) {
       this.formulario.markAllAsTouched();
+      // Que el bloque pinte sus propios errores: hasta que se intenta guardar no se le reprocha nada.
+      this.bloqueDeVerificacion()?.marcarIntento();
 
       return;
     }
@@ -88,8 +100,15 @@ export class NuevoTipo {
         tecnologiaPredominante: datos.tecnologiaPredominante,
         definicionTecnica: datos.definicionTecnica,
         recomendacionesCuidado: datos.recomendacionesCuidado,
-        ...(datos.modalidadVerificacion
-          ? { modalidadVerificacion: datos.modalidadVerificacion }
+        // Los tres datos de la verificacion viajan juntos, y solo si hay modalidad.
+        ...(verificacion.modalidad
+          ? {
+              modalidadVerificacion: verificacion.modalidad,
+              ...(verificacion.cantidadDatos === null
+                ? {}
+                : { cantidadDatos: verificacion.cantidadDatos }),
+              ...(verificacion.puntos.length ? { puntosVerificacion: [...verificacion.puntos] } : {}),
+            }
           : {}),
         ...(datos.voltaje === null ? {} : { voltaje: datos.voltaje }),
         ...(datos.amperaje === null ? {} : { amperaje: datos.amperaje }),

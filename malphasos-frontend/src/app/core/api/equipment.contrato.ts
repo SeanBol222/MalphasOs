@@ -409,6 +409,12 @@ export interface components {
         };
         EquipmentTypeCreateRequest: {
             amperaje?: number;
+            /**
+             * Format: int32
+             * @description Lecturas que se toman EN CADA PUNTO. Solo con modalidad constante
+             * @example 3
+             */
+            cantidadDatos?: number;
             definicionTecnica: string;
             /**
              * @description Como se verifica. Ausente significa que este tipo no se verifica
@@ -416,6 +422,8 @@ export interface components {
              */
             modalidadVerificacion?: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
             nombre: string;
+            /** @description Valores constantes en los que se verifica. Solo con modalidad constante */
+            puntosVerificacion?: components["schemas"]["VerificationPointRequest"][];
             recomendacionesCuidado: string;
             tecnologiaPredominante: string;
             /** Format: int64 */
@@ -425,6 +433,12 @@ export interface components {
         };
         EquipmentTypeResponse: {
             amperaje?: number;
+            /**
+             * Format: int32
+             * @description Lecturas por punto. Solo con modalidad constante
+             * @example 3
+             */
+            cantidadDatos?: number;
             definicionTecnica?: string;
             estadoActivo?: boolean;
             /** Format: uuid */
@@ -432,6 +446,7 @@ export interface components {
             /** @enum {string} */
             modalidadVerificacion?: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
             nombre?: string;
+            puntosVerificacion?: components["schemas"]["VerificationPointResponse"][];
             recomendacionesCuidado?: string;
             tecnologiaPredominante?: string;
             /** Format: int64 */
@@ -500,10 +515,38 @@ export interface components {
         };
         VerificationModeRequest: {
             /**
+             * Format: int32
+             * @description Lecturas que se toman EN CADA PUNTO. Solo con modalidad constante
+             * @example 3
+             */
+            cantidadDatos?: number;
+            /**
              * @description Ausente o nula significa que el tipo deja de verificarse
              * @enum {string}
              */
             modalidad?: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
+            /** @description Valores constantes en los que se verifica. Solo con modalidad constante */
+            puntosVerificacion?: components["schemas"]["VerificationPointRequest"][];
+        };
+        VerificationPointRequest: {
+            /** @example mmHg */
+            unidad: string;
+            /**
+             * @description Valor en el que se mantiene lo constante. Admite negativos
+             * @example 100.0
+             */
+            valor: number;
+        };
+        VerificationPointResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @example mmHg */
+            unidad?: string;
+            /**
+             * @description Valor en el que se mantiene lo constante
+             * @example 100.0000
+             */
+            valor?: number;
         };
     };
     responses: never;

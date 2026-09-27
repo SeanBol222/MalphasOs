@@ -34,8 +34,12 @@
               <span class="font-normal text-neutral-700">
                 · {{ tipo.tecnologiaPredominante }}
                 · {{ etiquetaDeModalidad(tipo.modalidadVerificacion) }}
-                @if (tipo.verificable) {
-                  · verificable
+                @if (tipo.cantidadDatos) {
+                  <!-- Por punto, no en total: con 3 lecturas y 2 puntos el reporte lleva 6 datos. -->
+                  · {{ tipo.cantidadDatos }} lecturas por punto
+                }
+                @if (tipo.puntosVerificacion?.length) {
+                  · {{ tipo.puntosVerificacion!.length }} punto(s)
                 }
               </span>
             </span>
@@ -49,7 +53,7 @@
               <button
                 class="min-h-tactil px-1 font-semibold underline"
                 type="button"
-                (click)="empezarACambiar(tipo.id!, tipo.modalidadVerificacion)"
+                (click)="empezarACambiar(tipo)"
               >
                 Modalidad
               </button>
@@ -67,36 +71,33 @@
           </div>
 
           @if (cambiando() === tipo.id) {
-            <div class="mt-1 flex flex-wrap items-end gap-2">
-              <div class="grow">
-                <label class="block font-semibold" [attr.for]="'modalidad-' + tipo.id">
-                  Modalidad de verificación
-                </label>
-                <select
-                  class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
-                  [id]="'modalidad-' + tipo.id"
-                  [formControl]="modalidadElegida"
+            <!--
+              El mismo bloque que el alta: modalidad, cuantas lecturas y en que valores. Tenerlo en un
+              solo componente es lo que evita que las dos pantallas se desvien.
+            -->
+            <div class="mt-2 border-l-2 border-ink bg-neutral-100 p-2">
+              <app-verificacion
+                [inicial]="configuracionGuardada()"
+                (cambio)="configuracion.set($event)"
+              />
+
+              <div class="flex flex-wrap gap-2">
+                <button
+                  class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+                  type="button"
+                  [disabled]="cambioDeModalidad.isPending()"
+                  (click)="cambiarModalidad(tipo.id!)"
                 >
-                  @for (modalidad of modalidades; track modalidad) {
-                    <option [value]="modalidad">{{ etiquetas[modalidad] }}</option>
-                  }
-                </select>
+                  {{ cambioDeModalidad.isPending() ? 'Guardando…' : 'Guardar' }}
+                </button>
+                <button
+                  class="min-h-tactil border-2 border-ink px-3 font-semibold"
+                  type="button"
+                  (click)="cambiando.set(null)"
+                >
+                  Cancelar
+                </button>
               </div>
-              <button
-                class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
-                type="button"
-                [disabled]="cambioDeModalidad.isPending()"
-                (click)="cambiarModalidad(tipo.id!)"
-              >
-                Guardar
-              </button>
-              <button
-                class="min-h-tactil border-2 border-ink px-3 font-semibold"
-                type="button"
-                (click)="cambiando.set(null)"
-              >
-                Cancelar
-              </button>
             </div>
           }
         </li>

@@ -46,19 +46,25 @@ describe('Tipos de equipo', () => {
     expect(texto()).not.toContain('PATRON_CONSTANTE');
   });
 
-  it('cambiar la modalidad usa su ruta propia, no la edicion general', async () => {
+  it('cambiar la modalidad usa su ruta propia, y lleva la cantidad y los puntos', async () => {
     // El backend le dio ruta aparte porque decide como se verifica el equipo. Si esto se fuera al
-    // PATCH general, el cambio se perderia en silencio: ese cuerpo no admite el campo.
+    // PATCH general, el cambio se perderia en silencio: ese cuerpo no admite los campos.
     await abrir();
     pulsar('Modalidad');
+    // El bloque se crea en este ciclo y su efecto -el que lo abre con lo ya guardado- corre en el
+    // siguiente: sin dejar pasar un tic, se leeria el desplegable antes de que nadie lo rellene.
+    await asentar(fixture);
 
-    const selector = raiz().querySelector<HTMLSelectElement>(`#modalidad-${ID_TIPO}`)!;
+    const selector = raiz().querySelector<HTMLSelectElement>('#modalidadVerificacion')!;
 
-    // Llega con la modalidad actual puesta.
+    // Llega con lo que el tipo ya tiene puesto: reconfigurar no empieza de cero.
     expect(selector.value).toBe('PATRON_CONSTANTE');
+    expect(raiz().querySelector<HTMLInputElement>('#cantidadDatos')!.value).toBe('3');
+    expect(raiz().querySelector<HTMLInputElement>('#punto-valor-0')!.value).toBe('100');
 
-    selector.value = 'EQUIPO_CONSTANTE';
-    selector.dispatchEvent(new Event('change'));
+    const cantidad = raiz().querySelector<HTMLInputElement>('#cantidadDatos')!;
+    cantidad.value = '5';
+    cantidad.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     pulsar('Guardar');
     await asentar(fixture);
@@ -68,10 +74,22 @@ describe('Tipos de equipo', () => {
       url: `${URL_TIPOS}/${ID_TIPO}/verification-mode`,
     });
 
-    expect(cambio.request.body).toEqual({ modalidad: 'EQUIPO_CONSTANTE' });
+    expect(cambio.request.body).toEqual({
+      modalidad: 'PATRON_CONSTANTE',
+      cantidadDatos: 5,
+      puntosVerificacion: [{ valor: 100, unidad: 'mmHg' }],
+    });
     cambio.flush({ id: ID_TIPO });
     await asentar(fixture);
     await atenderRefresco(fixture, http, URL_TIPOS, TIPOS);
+  });
+
+  it('el resumen de la fila dice cuantas lecturas por punto y cuantos puntos hay', async () => {
+    // Es lo que permite ver de un golpe si un tipo esta configurado para llenar un reporte.
+    await abrir();
+
+    expect(texto()).toContain('3 lecturas por punto');
+    expect(texto()).toContain('1 punto');
   });
 
   it('el alta y la edicion tienen pagina propia: la ficha tecnica no cabe en una linea', async () => {

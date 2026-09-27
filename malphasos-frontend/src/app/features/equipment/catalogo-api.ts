@@ -13,6 +13,7 @@ import {
   Fabricante,
   Marca,
   ModalidadDeVerificacion,
+  NuevoPuntoDeVerificacion,
   Modelo,
   NuevoEquipoDeCatalogo,
   NuevoFabricante,
@@ -104,17 +105,33 @@ export class CatalogoApi {
   }
 
   /**
-   * Cambia la modalidad de verificacion de un tipo.
+   * Declara como se verifica un tipo: modalidad, cuantas lecturas por punto y en que valores.
    *
    * <p>Tiene ruta propia y no entra en la edicion general porque no es un dato mas: decide como se
    * verifica el equipo, y el backend la separo para que cambiarla sea una decision explicita.
+   *
+   * <p><b>Los tres datos viajan juntos</b>, y el backend los exige asi: por separado existiria el
+   * instante en que un tipo dice verificarse contra un patron constante sin decir contra que valor.
+   * Una modalidad nula significa que el tipo deja de verificarse, y entonces los otros dos van vacios.
    */
   cambiarModalidad() {
     return injectMutation(() => ({
-      mutationFn: ({ id, modalidad }: { id: string; modalidad: ModalidadDeVerificacion }) =>
+      mutationFn: ({
+        id,
+        modalidad,
+        cantidadDatos,
+        puntos,
+      }: {
+        id: string;
+        modalidad: ModalidadDeVerificacion | null;
+        cantidadDatos: number | null;
+        puntos: readonly NuevoPuntoDeVerificacion[];
+      }) =>
         firstValueFrom(
           this.http.patch<TipoDeEquipo>(`${this.api}/equipment-types/${id}/verification-mode`, {
             modalidad,
+            cantidadDatos,
+            puntosVerificacion: puntos,
           }),
         ),
       onSuccess: () => this.invalidar(),

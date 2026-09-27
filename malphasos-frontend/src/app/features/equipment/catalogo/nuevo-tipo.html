@@ -85,19 +85,7 @@
   <h2 class="mb-1 text-xl font-bold">Datos opcionales</h2>
   <p class="mb-2 text-neutral-700">Se pueden completar después; ninguno impide guardar.</p>
 
-  <div class="mb-3">
-    <label class="block font-semibold" for="modalidadVerificacion">Modalidad de verificación</label>
-    <select
-      id="modalidadVerificacion"
-      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
-      formControlName="modalidadVerificacion"
-    >
-      <option value="">Sin definir</option>
-      @for (modalidad of modalidades; track modalidad) {
-        <option [value]="modalidad">{{ etiquetas[modalidad] }}</option>
-      }
-    </select>
-  </div>
+  <app-verificacion (cambio)="verificacion.set($event)" />
 
   <div class="mb-3 grid gap-3 sm:grid-cols-3">
     <div>

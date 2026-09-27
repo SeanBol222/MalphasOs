@@ -1,0 +1,121 @@
+<div class="mb-3">
+  <label class="block font-semibold" for="modalidadVerificacion">Modalidad de verificación</label>
+  <!--
+    La opcion elegida se marca en la propia opcion y NO con [value] en el select: cuando este bloque se
+    abre con algo ya guardado, la asignacion del valor ocurre antes de que las opciones existan y el
+    navegador la descarta en silencio. Lo delato la prueba que abre el panel de un tipo ya configurado.
+  -->
+  <select
+    id="modalidadVerificacion"
+    class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+    (change)="elegirModalidad($any($event.target).value)"
+  >
+    <option value="" [selected]="modalidad() === ''">No se verifica</option>
+    @for (opcion of modalidades; track opcion) {
+      <option [value]="opcion" [selected]="modalidad() === opcion">{{ etiquetas[opcion] }}</option>
+    }
+  </select>
+</div>
+
+@if (constante()) {
+  <!--
+    Solo con una modalidad constante: con patron y equipo variables no hay nada constante que declarar y
+    cuantas lecturas tomar lo decide el ingeniero en campo. Ocultarlo es mejor que ofrecerlo para que el
+    servidor lo rechace.
+  -->
+  <div class="mb-3">
+    <label class="block font-semibold" for="cantidadDatos">
+      Lecturas por punto <span class="text-accent-700" aria-hidden="true">*</span>
+    </label>
+    <input
+      id="cantidadDatos"
+      class="mt-1 min-h-tactil w-full max-w-[12rem] border border-neutral-400 bg-paper px-1"
+      type="number"
+      inputmode="numeric"
+      min="1"
+      max="100"
+      aria-required="true"
+      [value]="cantidad() ?? ''"
+      (input)="escribirCantidad($any($event.target).value)"
+      [attr.aria-invalid]="intentado() && cantidadFueraDeRango() ? 'true' : null"
+    />
+    <!-- Que sea por punto y no en total no es evidente, y confundirlo da un reporte incompleto. -->
+    <p class="mt-1 text-neutral-700">
+      En cada punto se toman estas lecturas. Con 3 lecturas y 2 puntos, el reporte lleva 6 datos.
+    </p>
+    @if (intentado() && cantidadFueraDeRango()) {
+      <p class="mt-1 font-semibold text-accent-700">Indique entre 1 y 100 lecturas por punto.</p>
+    }
+  </div>
+
+  <fieldset class="mb-3 border border-neutral-300 p-2">
+    <legend class="px-1 font-semibold">
+      Puntos de verificación <span class="text-accent-700" aria-hidden="true">*</span>
+    </legend>
+    <p class="text-neutral-700">
+      Los valores en los que se mantiene constante el patrón o el equipo. Admiten negativos: un
+      congelador se verifica a −20 °C.
+    </p>
+
+    @for (punto of puntos(); track $index) {
+      <div class="mt-2 flex flex-wrap items-end gap-2">
+        <div class="grow">
+          <label class="block font-semibold" [attr.for]="'punto-valor-' + $index">Valor</label>
+          <input
+            class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+            [id]="'punto-valor-' + $index"
+            type="number"
+            step="0.0001"
+            aria-required="true"
+            [value]="punto.valor"
+            (input)="escribirPunto($index, 'valor', $any($event.target).value)"
+          />
+        </div>
+        <div class="grow">
+          <label class="block font-semibold" [attr.for]="'punto-unidad-' + $index">Unidad</label>
+          <input
+            class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+            [id]="'punto-unidad-' + $index"
+            maxlength="20"
+            aria-required="true"
+            placeholder="mmHg"
+            [value]="punto.unidad"
+            (input)="escribirPunto($index, 'unidad', $any($event.target).value)"
+          />
+        </div>
+        <button
+          class="min-h-tactil px-1 font-semibold underline"
+          type="button"
+          [attr.aria-label]="'Quitar el punto ' + ($index + 1)"
+          (click)="quitarPunto($index)"
+        >
+          Quitar
+        </button>
+      </div>
+    }
+
+    <button
+      class="mt-2 min-h-tactil border-2 border-ink px-3 font-semibold"
+      type="button"
+      (click)="agregarPunto()"
+    >
+      Añadir un punto
+    </button>
+
+    @if (intentado() && faltanPuntos()) {
+      <p class="mt-1 font-semibold text-accent-700">
+        Hace falta al menos un punto: es el valor en el que se mantiene lo constante.
+      </p>
+    }
+    @if (intentado() && hayIncompletos()) {
+      <p class="mt-1 font-semibold text-accent-700">
+        Cada punto necesita su valor y su unidad: un número sin unidad no se puede poner en un reporte.
+      </p>
+    }
+    @if (hayRepetidos()) {
+      <p class="mt-1 font-semibold text-accent-700">
+        Hay un punto declarado dos veces. Con el mismo valor y la misma unidad es el mismo punto.
+      </p>
+    }
+  </fieldset>
+}
