@@ -3,6 +3,7 @@ import { components as ubicacion } from './location.contrato';
 import { components as personas } from './person.contrato';
 import { components as equipos } from './equipment.contrato';
 import { components as ordenes } from './work-order.contrato';
+import { components as reportes } from './reports.contrato';
 
 /**
  * Nombres legibles para lo que el contrato genera.
@@ -202,3 +203,66 @@ export const ETIQUETA_DE_TIPO_DE_SERVICIO: Readonly<Record<TipoDeServicio, strin
   CORRECTIVO: 'Correctivo',
   CALIBRACION: 'Calibración',
 };
+
+/**
+ * Reportes de servicio: lo que se hizo sobre cada equipo de una orden.
+ *
+ * <p>Hay <b>uno por equipo de la orden</b>, no uno por orden. Nace en {@code BORRADOR} y vacio, se llena
+ * en campo y se cierra; desde ahi ya no cambia, y corregirlo es retirarlo y abrir otro.
+ *
+ * <p>El reporte <b>no trae cliente, sede ni responsables</b>: se consultan por el identificador de la
+ * orden, que es lo que RF-11 llama autocompletar. Copiarlos seria una tercera copia que mantener.
+ */
+export type ReporteDeServicio = reportes['schemas']['ServiceReportResponse'];
+export type LlenarReporte = reportes['schemas']['ServiceReportFillRequest'];
+export type LecturaDeVerificacion = reportes['schemas']['VerificationReadingResponse'];
+export type NuevaLectura = reportes['schemas']['VerificationReadingRequest'];
+
+export type EstadoDeReporte = NonNullable<ReporteDeServicio['estado']>;
+
+/**
+ * Como queda el equipo tras la intervencion.
+ *
+ * <p>⚠️ <b>Estas tres palabras no salen de la ERS</b>, que enumera «resultado» entre los campos del
+ * reporte sin decir que valores admite. Son una propuesta del backend, y estan marcadas como tal en su
+ * migracion: cambiarlas mientras no haya datos es una linea.
+ */
+export type ResultadoDeServicio = NonNullable<LlenarReporte['resultado']>;
+
+/** Los dos estados, en el orden en que ocurren. */
+export const ESTADOS_DE_REPORTE: readonly EstadoDeReporte[] = ['BORRADOR', 'FINALIZADO'] as const;
+
+export const ETIQUETA_DE_ESTADO_DE_REPORTE: Readonly<Record<EstadoDeReporte, string>> = {
+  BORRADOR: 'Borrador',
+  FINALIZADO: 'Finalizado',
+};
+
+export const RESULTADOS_DE_SERVICIO: readonly ResultadoDeServicio[] = [
+  'OPERATIVO',
+  'OPERATIVO_CON_RESTRICCIONES',
+  'FUERA_DE_SERVICIO',
+] as const;
+
+export const ETIQUETA_DE_RESULTADO: Readonly<Record<ResultadoDeServicio, string>> = {
+  OPERATIVO: 'Operativo',
+  OPERATIVO_CON_RESTRICCIONES: 'Operativo con restricciones',
+  FUERA_DE_SERVICIO: 'Fuera de servicio',
+};
+
+/**
+ * Si un reporte se puede cerrar con lo que tiene escrito.
+ *
+ * <p>Es la misma pareja que exige el backend —procedimientos y resultado—, y esta aqui para poder
+ * desactivar el boton en vez de dejar que el servidor responda 409 a algo que la pantalla ofrecio. <b>No
+ * cubre la verificacion metrologica</b>, que el servidor comprueba contra el tipo del equipo y la
+ * pantalla no puede saber sin consultarlo.
+ */
+export function sePuedeCerrar(reporte: ReporteDeServicio | undefined): boolean {
+  return (
+    !!reporte &&
+    reporte.estado === 'BORRADOR' &&
+    !!reporte.estadoActivo &&
+    !!reporte.procedimientos?.trim() &&
+    !!reporte.resultado
+  );
+}

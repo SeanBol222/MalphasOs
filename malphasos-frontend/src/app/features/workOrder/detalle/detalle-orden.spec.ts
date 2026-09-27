@@ -25,12 +25,27 @@ import {
   urlArea,
   urlSede,
 } from '../../../../testing/ordenes';
+import {
+  ID_REPORTE,
+  reporte,
+  urlAbrirReporte,
+  urlReportesDeOrden,
+} from '../../../../testing/reportes';
 import { DetalleOrden } from './detalle-orden';
 
 const URL = `${URL_ORDENES}/${ID_ORDEN}`;
 
-/** Todas las autoridades del módulo: un administrador. */
-const TODAS = ['work-order.read', 'work-order.write', 'work-order.assign', 'person.read'];
+/** Todas las autoridades que esta pantalla mira: un administrador. */
+const TODAS = [
+  'work-order.read',
+  'work-order.write',
+  'work-order.assign',
+  'person.read',
+  // Los reportes cuelgan de la orden y se abren desde aquí: report.write es del módulo de reportes,
+  // no de este, y el realm se la da a ingenieros y administradores.
+  'report.read',
+  'report.write',
+];
 
 @Component({ selector: 'app-listado-falso', template: '' })
 class ListadoFalso {}
@@ -61,13 +76,23 @@ describe('Ficha de una orden de trabajo', () => {
   const raiz = () => fixture.nativeElement as HTMLElement;
   const texto = () => raiz().textContent ?? '';
 
-  /** Abre la ficha y responde a las cinco consultas que necesita para poner nombres. */
-  async function abrir(datos: object = orden()): Promise<void> {
+  /**
+   * Abre la ficha y responde a las consultas que necesita para poner nombres.
+   *
+   * <p>Son seis desde que los reportes cuelgan de aquí: la orden, los clientes, los equipos, las
+   * personas, la sede y el área — más los reportes de la orden. Ninguna trae nombres, que es la
+   * ausencia ya anotada cuatro veces.
+   */
+  async function abrir(
+    datos: object = orden(),
+    reportes: readonly object[] = [],
+  ): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, URL, datos);
     await responderA(fixture, http, URL_CLIENTES, CLIENTES);
     await responderA(fixture, http, URL_EQUIPOS_DE_CLIENTE, EQUIPOS);
     await responderA(fixture, http, URL_PERSONAS, PERSONAS);
+    http.match(urlReportesDeOrden(ID_ORDEN)).forEach((peticion) => peticion.flush(reportes));
     http.match(urlSede(ID_SEDE)).forEach((peticion) => peticion.flush(SEDE));
     http.match(urlArea(ID_AREA)).forEach((peticion) => peticion.flush(AREAS[0]));
     await asentar(fixture);
@@ -285,6 +310,74 @@ describe('Ficha de una orden de trabajo', () => {
       await asentar(fixture);
       http.match(() => true).forEach((p) => p.flush([]));
       await asentar(fixture);
+    });
+
+    it('cada equipo enseña su reporte con el estado en que va', async () => {
+      await abrir(
+        orden({
+          estadoEjecucion: 'EN_EJECUCION',
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+        }),
+        [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO' })],
+      );
+
+      const enlace = [...raiz().querySelectorAll('a')].find((a) =>
+        (a.textContent ?? '').includes('Reporte'),
+      );
+      expect(enlace?.textContent).toContain('Finalizado');
+      expect(enlace?.getAttribute('href')).toBe(`/reportes/${ID_REPORTE}`);
+    });
+
+    it('un equipo sin reporte ofrece abrirlo, y abrirlo lleva al reporte', async () => {
+      const router = TestBed.inject(Router);
+      const viaje = vi.spyOn(router, 'navigate');
+      await abrir(
+        orden({
+          estadoEjecucion: 'EN_EJECUCION',
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+        }),
+      );
+
+      pulsar('Abrir reporte');
+      await asentar(fixture);
+
+      const peticion = http.expectOne(urlAbrirReporte(ID_ORDEN));
+      expect(peticion.request.method).toBe('POST');
+      expect(peticion.request.body).toEqual({ idEquipoCliente: ID_EQUIPO });
+      peticion.flush(reporte({ idEquipoCliente: ID_EQUIPO }));
+      await asentar(fixture);
+
+      // Se va al reporte: lo que sigue a abrirlo es llenarlo, no volver al listado.
+      expect(viaje).toHaveBeenCalledWith(['/reportes', ID_REPORTE]);
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+    });
+
+    it('con la orden todavía creada no se abre ningún reporte, y dice por qué', async () => {
+      // Es la regla del servidor: un reporte cuenta lo que se hizo, y en una orden sin empezar no se ha
+      // hecho nada. Ofrecer el boton seria ofrecer un 409.
+      await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
+
+      expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).not.toContain(
+        'Abrir reporte',
+      );
+      expect(texto()).toContain('Los reportes se abren cuando la orden empieza');
+    });
+
+    it('un reporte retirado deja volver a abrir otro: el que cuenta es el vivo', async () => {
+      await abrir(
+        orden({
+          estadoEjecucion: 'EN_EJECUCION',
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+        }),
+        // El API devuelve el historial de la orden, retirados incluidos. Si la pantalla se quedara con
+        // el primero, este equipo aparecería con reporte para siempre.
+        [reporte({ idEquipoCliente: ID_EQUIPO, estadoActivo: false })],
+      );
+
+      expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).toContain(
+        'Abrir reporte',
+      );
     });
 
     it('una orden anulada no ofrece tocar su alcance', async () => {

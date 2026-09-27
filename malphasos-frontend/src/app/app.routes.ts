@@ -104,6 +104,14 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('work-order.write')],
       },
       {
+        // El reporte cuelga de la orden -se llega desde su ficha, que es lo que pide RF-09- pero tiene
+        // ruta propia para poder enlazarlo, recargarlo y volver atras. Es un documento, no un panel.
+        path: 'reportes/:id',
+        loadComponent: () =>
+          import('./features/report/detalle/detalle-reporte').then((m) => m.DetalleReporte),
+        canActivate: [requiereAutoridad('report.read')],
+      },
+      {
         path: 'ordenes/:id',
         loadComponent: () =>
           import('./features/workOrder/detalle/detalle-orden').then((m) => m.DetalleOrden),
