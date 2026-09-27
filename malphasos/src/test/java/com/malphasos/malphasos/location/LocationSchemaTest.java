@@ -25,6 +25,11 @@ import org.springframework.test.context.jdbc.Sql;
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
+// ⚠️ Esta limpieza se lleva por delante los datos de referencia de V7 -249 paises y 1.350 ciudades-,
+// y desde el 2026-09-26 eso importa: al terminar esta clase, el contenedor de pruebas se queda sin
+// ninguno. Hoy no rompe nada porque cada prueba crea lo que necesita, pero una prueba futura que
+// cuente filas de pais o de ciudad pasaria o fallaria segun el orden de ejecucion. El contenido del
+// seed se verifica contra el archivo, en LocationSeedDataTest, precisamente por esto.
 @Sql(
         statements = {"DELETE FROM ciudad", "DELETE FROM pais"},
         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
