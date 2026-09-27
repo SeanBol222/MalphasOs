@@ -108,6 +108,39 @@ Tres cambios, por decisión del usuario:
 
 **Instalar un equipo exige `equipment.assign`, no `equipment.write`** — igual que el traslado. Es del backend, y la distinción es buena: repartir una máquina a un área no es editar un catálogo. Ver [[modelo-de-permisos]].
 
+## La segunda tanda arranca: con qué y cuántas veces se verifica (2026-09-27)
+
+El javadoc de `EquipmentType` lo tenía anunciado desde el 2026-09-02 —«los datos metrológicos y las verificaciones técnicas llegarán con la segunda tanda»— y lo que abrió la puerta fue una petición concreta: **poder llenar el reporte**. Un tipo decía *cómo* se verifica y no *con qué* ni *cuántas veces*.
+
+`V8__verification_points.sql` añade dos cosas a `tipo_equipo` y una tabla:
+
+| Dato | Dónde | Regla |
+|---|---|---|
+| **Cuántas lecturas** | `tipo_equipo.i_cantidad_datos` | 1 a 100, y **solo** con modalidad constante |
+| **En qué valores** | tabla `punto_verificacion` | al menos uno con modalidad constante; ninguno sin ella |
+
+**Las lecturas son por punto, no en total.** Se verifica a 50, a 100 y a 150 mmHg, y en cada valor se toman las lecturas declaradas: con 3 lecturas y 2 puntos, el reporte lleva **6** datos. Confundirlo daría un reporte con un tercio de lo que hacía falta, y por eso lo dice la pantalla y lo dice la columna.
+
+**Viven en el tipo y no en cada equipo**, por decisión del usuario: todos los tensiómetros de un tipo se verifican igual, la modalidad ya vivía ahí, y configurarlo una vez sirve para mil equipos.
+
+**Los tres datos se cambian juntos** —hay una sola ruta, `PATCH /equipment-types/{id}/verification-mode`— porque por separado existiría el instante en que un tipo dice verificarse contra un patrón constante **sin decir contra qué valor**, y ese estado no debe poder escribirse.
+
+### Cuatro decisiones que el esquema hace cumplir, y una que no puede
+
+- **El valor admite negativos.** Un congelador se verifica a −20 °C; un `CHECK` de positividad habría dejado fuera media cadena de frío.
+- **La unidad es obligatoria.** Un número sin unidad no se puede escribir en un reporte, y el mismo tipo mide en unidades distintas según el fabricante.
+- **`numeric` y no `double`.** Una lectura se compara y se imprime: el redondeo binario convierte 0,1 en 0,09999999.
+- **El índice de unicidad es parcial** —`WHERE b_estado_activo`—: aquí nada se borra, así que reconfigurar retira los puntos anteriores y los deja en la tabla; con una restricción normal, **volver a un punto anterior sería imposible**.
+- Lo que el `CHECK` **no** puede exigir es «al menos un punto»: no ve la otra tabla. Esa regla vive en el agregado, y es la decimocuarta de las que el esquema delega.
+
+### Dos trampas que costaron un rato y valen para lo que venga
+
+**Un `CHECK` se satisface con `NULL`, no solo con `TRUE`.** La primera versión encadenaba tres ramas con `OR`, y para un tipo no verificable con cantidad fijada daba `NULL OR NULL OR FALSE` = `NULL`: **pasaba**. Lo delató la prueba escrita justo para esa rama. Va con `CASE`, que siempre devuelve `TRUE` o `FALSE`.
+
+**Añadir un `CHECK` se aplica también a lo que ya está.** En una instalación con tipos constantes ya registrados, la migración habría **fallado al arrancar**. Rellena antes con `1` —la afirmación más débil posible; cualquier valor mayor sería inventarse una práctica— y lo dice en voz alta.
+
+**Y el `@Transactional` del adaptador se puso antes de que doliera.** El tipo tiene ahora una colección perezosa, que es exactamente lo que hizo fallar a `work-order` el 2026-09-13. Verificado quitándolo: `LazyInitializationException` en tres pruebas. Es la primera vez que la convención se aplica por adelantado en lugar de después del defecto.
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — **debería portarse casi completo**, y así se hizo con la primera tanda. El modelo de dominio (`Equipment`, `EquipmentType`, `Brand`, `Manufacturer`, `Model`, `TechnicalVerification`, `MetrologicalData`) es genérico y no acopla nada de facturación/gestión ajena al mantenimiento en sí. Es, junto con `location_hexagon`, la plantilla arquitectónica a seguir para todos los módulos nuevos de MalphasOS — no la de `client_hexagon`.
