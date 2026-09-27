@@ -283,6 +283,34 @@ class RestAuthorizationCoverageTest {
     }
 
     @Test
+    @DisplayName("las dos autoridades de report protegen ya sus endpoints")
+    void lasAutoridadesDeReportProtegenSuModulo() {
+        // Entraron en el catalogo el mismo dia que sus rutas -2026-09-27-, justamente porque
+        // ningunaAutoridadSobra habria fallado si se hubieran adelantado. Es lo contrario de lo que
+        // se hizo con work-order, donde las tres esperaron en el catalogo a que el modulo existiera.
+        Set<String> citadas =
+                todasLasOperaciones().stream().map(RestAuthorizationCoverageTest::autoridadDe).collect(Collectors.toSet());
+
+        assertThat(citadas).contains("report.read", "report.write");
+    }
+
+    @Test
+    @DisplayName("cerrar un reporte no tiene autoridad propia: la escribe quien lo llena")
+    void cerrarUnReporteNoTieneAutoridadPropia() {
+        // A diferencia de asignar una orden, que si la tiene. Quien llena el reporte es quien lo
+        // firma en campo, y separar las dos describiria un reparto de trabajo que no existe. Si
+        // algun dia hace falta separarlas -la firma digital de RF-21-, esta prueba avisa.
+        List<Method> deReportes = todasLasOperaciones().stream()
+                .filter(m -> String.valueOf(autoridadDe(m)).startsWith("report."))
+                .toList();
+
+        assertThat(deReportes)
+                .describedAs("El modulo de reportes usa dos autoridades, no tres")
+                .isNotEmpty()
+                .allSatisfy(m -> assertThat(autoridadDe(m)).isIn("report.read", "report.write"));
+    }
+
+    @Test
     @DisplayName("asignar es la unica operacion que exige work-order.assign")
     void workOrderAssignProtegeSoloLaAsignacion() {
         // Es lo que permite que un coordinador reparta trabajo sin poder alterar lo que se va a

@@ -1,6 +1,210 @@
 {
   "components" : {
-    "schemas" : { },
+    "schemas" : {
+      "GlobalErrorResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "details" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "RecordVerificationRequest" : {
+        "properties" : {
+          "lecturas" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VerificationReadingRequest"
+            },
+            "minItems" : 1,
+            "type" : "array"
+          }
+        },
+        "required" : [ "lecturas" ],
+        "type" : "object"
+      },
+      "ServiceReportErrorResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "details" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ServiceReportFillRequest" : {
+        "properties" : {
+          "diagnostico" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "fallaReportada" : {
+            "description" : "Que reporto el cliente. Nulo deja el valor, blanco lo borra",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "observaciones" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "procedimientos" : {
+            "description" : "Que se hizo. Obligatorio para poder cerrar el reporte",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "resultado" : {
+            "description" : "Como queda el equipo. Obligatorio para poder cerrar el reporte",
+            "enum" : [ "OPERATIVO", "OPERATIVO_CON_RESTRICCIONES", "FUERA_DE_SERVICIO" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ServiceReportOpenRequest" : {
+        "properties" : {
+          "idEquipoCliente" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "idEquipoCliente" ],
+        "type" : "object"
+      },
+      "ServiceReportResponse" : {
+        "properties" : {
+          "diagnostico" : {
+            "type" : "string"
+          },
+          "estado" : {
+            "enum" : [ "BORRADOR", "FINALIZADO" ],
+            "type" : "string"
+          },
+          "estadoActivo" : {
+            "type" : "boolean"
+          },
+          "fallaReportada" : {
+            "type" : "string"
+          },
+          "finalizado" : {
+            "description" : "Cuando se cerro el reporte. Nulo mientras es borrador",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idEquipoCliente" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idOrdenTrabajo" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "lecturas" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VerificationReadingResponse"
+            },
+            "type" : "array"
+          },
+          "observaciones" : {
+            "type" : "string"
+          },
+          "procedimientos" : {
+            "type" : "string"
+          },
+          "resultado" : {
+            "enum" : [ "OPERATIVO", "OPERATIVO_CON_RESTRICCIONES", "FUERA_DE_SERVICIO" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "VerificationReadingRequest" : {
+        "properties" : {
+          "idPuntoVerificacion" : {
+            "description" : "Punto en el que se tomo. Nulo solo con patron y equipo variables",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "secuencia" : {
+            "description" : "Cual de las N lecturas de ese punto es",
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "unidadSinPunto" : {
+            "description" : "Solo si la lectura no tiene punto; con punto se toma la del punto",
+            "type" : "string"
+          },
+          "valorEquipo" : {
+            "type" : "number"
+          },
+          "valorPatron" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "valorEquipo", "valorPatron" ],
+        "type" : "object"
+      },
+      "VerificationReadingResponse" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idPuntoVerificacion" : {
+            "description" : "Nulo si la modalidad no declara puntos",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "secuencia" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "unidad" : {
+            "type" : "string"
+          },
+          "valorEquipo" : {
+            "type" : "number"
+          },
+          "valorPatron" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      }
+    },
     "securitySchemes" : {
       "bearer-jwt" : {
         "bearerFormat" : "JWT",
@@ -35,7 +239,522 @@
     "version" : "v0.0.1"
   },
   "openapi" : "3.1.0",
-  "paths" : { },
+  "paths" : {
+    "/v1/api/reports" : {
+      "get" : {
+        "description" : "Hay que indicar uno de los dos filtros, y solo uno: un reporte no se consulta suelto, sino dentro de su orden o del historial de su equipo.",
+        "operationId" : "getAll",
+        "parameters" : [ {
+          "description" : "Los reportes de esta orden de trabajo",
+          "in" : "query",
+          "name" : "idOrdenTrabajo",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "El historial de reportes de este equipo",
+          "in" : "query",
+          "name" : "idEquipoCliente",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ServiceReportResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Listar reportes de una orden o de un equipo",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/work-orders/{idOrdenTrabajo}" : {
+      "post" : {
+        "description" : "Nace en borrador y vacio. La orden debe haber empezado y el equipo seguir en su alcance; un equipo no tiene dos reportes vivos en la misma orden.",
+        "operationId" : "open",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "idOrdenTrabajo",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceReportOpenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Abrir el reporte de un equipo de una orden",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}" : {
+      "delete" : {
+        "description" : "No lo borra: lo deja inactivo. Es la unica forma de corregir uno ya cerrado, retirandolo y abriendo otro.",
+        "operationId" : "discard",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Retirar un reporte",
+        "tags" : [ "ServiceReport" ]
+      },
+      "get" : {
+        "operationId" : "getById",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Obtener un reporte por su identificador",
+        "tags" : [ "ServiceReport" ]
+      },
+      "patch" : {
+        "description" : "Un campo ausente deja el valor como estaba y uno en blanco lo borra. Un reporte cerrado ya no se llena.",
+        "operationId" : "fill",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceReportFillRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Registrar la informacion tecnica (RF-15)",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/finish" : {
+      "patch" : {
+        "description" : "Exige procedimientos y resultado, y la verificacion completa si el tipo del equipo se verifica. Un equipo que queda fuera de servicio se cierra sin lecturas: no se le puede medir nada. Desde aqui el reporte ya no cambia.",
+        "operationId" : "finish",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Cerrar el reporte",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/verification" : {
+      "patch" : {
+        "description" : "Sustituye la verificacion anterior entera; las lecturas corregidas quedan retiradas, no borradas. Cada lectura se comprueba contra los puntos y la cantidad de datos que declara el tipo del equipo.",
+        "operationId" : "recordVerification",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecordVerificationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Registrar la verificacion metrologica",
+        "tags" : [ "ServiceReport" ]
+      }
+    }
+  },
   "security" : [ {
     "keycloak-oauth" : [ ]
   }, {
@@ -44,5 +763,9 @@
   "servers" : [ {
     "description" : "Generated server url",
     "url" : "http://localhost"
+  } ],
+  "tags" : [ {
+    "description" : "Lo que se hizo sobre cada equipo de una orden",
+    "name" : "ServiceReport"
   } ]
 }

@@ -47,7 +47,7 @@ class RealmAuthorityContractTest {
     }
 
     @Test
-    @DisplayName("el grupo de administradores trae admin.full y las diecisiete autoridades de recurso")
+    @DisplayName("el grupo de administradores trae admin.full y las diecinueve autoridades de recurso")
     void elGrupoDeAdministradoresLoTraeTodo() {
         Set<String> esperado = new LinkedHashSet<>(ApiAuthority.RESOURCE_AUTHORITIES);
         esperado.add(ApiAuthority.ADMIN_FULL);
@@ -88,7 +88,11 @@ class RealmAuthorityContractTest {
                         ApiAuthority.EQUIPMENT_ASSIGN,
                         ApiAuthority.WORK_ORDER_READ,
                         ApiAuthority.WORK_ORDER_WRITE,
-                        ApiAuthority.WORK_ORDER_ASSIGN);
+                        ApiAuthority.WORK_ORDER_ASSIGN,
+                        // El ingeniero es quien llena el reporte en campo, asi que escribe reportes
+                        // aunque no escriba clientes ni sedes.
+                        ApiAuthority.REPORT_READ,
+                        ApiAuthority.REPORT_WRITE);
     }
 
     @Test
@@ -99,7 +103,9 @@ class RealmAuthorityContractTest {
                         ApiAuthority.CLIENT_READ,
                         ApiAuthority.SERVICE_AREA_READ,
                         ApiAuthority.EQUIPMENT_READ,
-                        ApiAuthority.WORK_ORDER_READ);
+                        ApiAuthority.WORK_ORDER_READ,
+                        // El cliente lee los reportes de sus equipos; llenarlos no es suyo.
+                        ApiAuthority.REPORT_READ);
     }
 
     @Test
@@ -116,5 +122,8 @@ class RealmAuthorityContractTest {
 
         assertThat(RealmFixture.rolesDelGrupo("engineers")).doesNotContainAnyElementsOf(vedadas);
         assertThat(RealmFixture.rolesDelGrupo("clients")).doesNotContainAnyElementsOf(vedadas);
+        // report.write no esta en la lista de vedadas a proposito: el ingeniero si la tiene, porque
+        // llenar el reporte es su oficio. El cliente no, y eso se comprueba aparte.
+        assertThat(RealmFixture.rolesDelGrupo("clients")).doesNotContain(ApiAuthority.REPORT_WRITE);
     }
 }

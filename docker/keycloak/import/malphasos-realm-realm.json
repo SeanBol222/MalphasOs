@@ -434,6 +434,24 @@
           "attributes": {}
         },
         {
+          "id": "3f9c1b54-2e7a-4d18-9b06-51a7c4e0d2f1",
+          "name": "report.read",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
+        },
+        {
+          "id": "b1d7e604-5c3f-49a2-8e11-7d06f2a9c483",
+          "name": "report.write",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
+        },
+        {
           "id": "4d5d80bb-4aa8-43ee-a7d0-f06fccaf1334",
           "name": "equipment.read",
           "description": "",
@@ -615,6 +633,8 @@
           "location.write",
           "person.read",
           "person.write",
+          "report.read",
+          "report.write",
           "service-area.read",
           "service-area.write",
           "work-order.assign",
@@ -636,7 +656,8 @@
           "service-area.read",
           "client.read",
           "work-order.read",
-          "equipment.read"
+          "equipment.read",
+          "report.read"
         ]
       }
     },
@@ -657,6 +678,8 @@
           "equipment.write",
           "location.read",
           "person.read",
+          "report.read",
+          "report.write",
           "service-area.read",
           "work-order.assign",
           "work-order.read",
