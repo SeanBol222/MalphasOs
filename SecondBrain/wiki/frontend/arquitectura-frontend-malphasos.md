@@ -69,6 +69,22 @@ malphasos-frontend/src/app/
 
 **Un servicio por agregado, no uno por módulo** — precisado el 2026-09-26 al construir la sección de clientes. Esta nota decía «servicio del módulo», y con cuatro agregados dentro de `client` —cliente, sede, área de servicio y encargado— eso habría sido el archivo más grande del frontend. El backend tampoco lo hace así: separa en `application/services/<agregado>/`. Lo que la regla protege —que TanStack Query no se escape a las pantallas— se cumple igual.
 
+### La navegación tiene un solo origen, y desde el 2026-09-26 tiene dos niveles
+
+`NAVEGACION` es la única fuente: **el menú y las rutas se derivan de la misma lista**, de modo que no puede haber un destino en el menú que no exista ni una página que el menú no ofrezca. Lo fija una prueba, y es el equivalente de `RestAuthorizationCoverageTest` del backend.
+
+Una entrada puede tener **hijas**, y entonces cambia de naturaleza: **no tiene página propia**. `catalogo` no es una pantalla, es el sitio donde están sus cinco piezas, así que su ruta redirige a la primera y el menú la pinta como un **botón que despliega**, no como un enlace.
+
+| Dónde | Qué hay |
+|---|---|
+| Cabecera | `Catálogo ▾` despliega las cinco piezas, cada una con su dirección |
+| Dentro de la sección | Una subnavegación con las mismas cinco, para saltar sin volver a la cabecera |
+| URL | `/catalogo/fabricantes` — **se puede enlazar, recargar y volver con el botón de atrás** |
+
+**Rutas y no pestañas con estado interno**, y las tres cosas de esa última fila son la razón. Además, cada pieza se convierte en **su propio trozo diferido**: quien entra a corregir una marca ya no descarga los modelos.
+
+**El desplegable se abre al pulsar, no al pasar el ratón.** Con el ratón por encima no se puede navegar con el teclado y en un teléfono no hay ratón. Es un `button` con `aria-expanded` y `aria-controls`: sin lo segundo, un lector de pantalla se entera de que algo se abrió pero no de qué.
+
 ### Las claves de caché son jerárquicas, y eso es lo que evita el defecto clásico
 
 `['clientes'] → ['clientes', id] → ['clientes', id, 'sedes'] → ['sedes', id] → ['sedes', id, 'areas']`.
@@ -128,7 +144,15 @@ Mismo listón que el backend, que llega a este punto con **645** pruebas y la co
 
 Encontrado el 2026-09-26, y costó una tanda de pruebas que **agotaban su tiempo en vez de fallar**: la aplicación es zoneless y una petición HTTP sin responder cuenta como **tarea pendiente**, así que `await fixture.whenStable()` mientras hay una en vuelo no termina nunca. Se espera por **tics vacíos** —`setTimeout(0)` más `detectChanges()`— hasta que la señal llega al DOM, y por tics y no por milisegundos porque un retardo fijo es una carrera lenta.
 
-Los ayudantes viven en `src/testing/pantalla.ts` —`asentar`, `responderA`, `atenderRefresco`— en lugar de copiarse en cada pantalla, que es lo que estaba a punto de pasar.
+Los ayudantes viven en `src/testing/pantalla.ts` —`asentar`, `responderA`, `atenderRefresco`— en lugar de copiarse en cada pantalla, que es lo que estaba a punto de pasar. Los del catálogo de equipos, en `src/testing/catalogo.ts`, y ahí está escrita otra trampa: **`http.match()` consume las peticiones que casan**, así que no sirve para preguntar si una existe — preguntar y responder tienen que ser la misma operación.
+
+### Un formulario reactivo no es una señal
+
+Un `computed()` que lea `formulario.getRawValue()` **no vuelve a calcularse nunca**: no tiene de qué depender, y con `OnPush` se queda con el primer valor para siempre. Los métodos llamados desde la plantilla sí se reevalúan en cada ciclo; los calculados, no. Donde hace falta reaccionar a lo que se escribe —desplegables encadenados, avisos que dependen de lo elegido— el valor entra como señal con `toSignal(formulario.valueChanges)`. Encontrado el 2026-09-26 escribiendo el panel que crea un modelo.
+
+### La invalidación de caché no siempre se espera
+
+TanStack aguarda la promesa que devuelve `onSuccess` antes de resolver la mutación. En un servicio normal eso es lo correcto: cuando la mutación termina, la lista ya está fresca. **En una cadena de cinco altas seguidas es un freno**: cada paso esperaba la recarga completa del catálogo que no necesitaba. En `CatalogoApi` la invalidación se lanza sin esperarla, y lleva escrito el porqué. Se descubrió porque la prueba del panel **se colgaba en el segundo paso en vez de fallar**.
 
 ## Por dónde se empieza
 

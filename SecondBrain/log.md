@@ -735,3 +735,99 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 **Conteo**: **210** pruebas de frontend, de 154. El backend sigue en **645**. El `build` no da avisos: el catálogo entero son 28 kB en su propio trozo diferido, 5,2 kB transferidos.
 
 **Tocadas**: [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-26] ingest | El listado de equipos toma el sitio del catálogo, y el modelo se crea sin salir del alta
+
+**Tres cambios pedidos por el usuario sobre lo que se había hecho horas antes**, y los tres apuntan a lo mismo: la cadena del catálogo existe, pero **no debe obligar a recorrerla**.
+
+1. **El menú pasa a Clientes · Equipos · Catálogo.** Lo que se consulta a diario es qué equipos hay, no qué marcas existen. El listado muestra todos los equipos de cliente con serie, modelo, inventario, área y estado.
+2. **El catálogo conserva entrada propia**, y era parte de lo pedido: administrarlo es una tarea aparte y no puede exigir empezar a registrar un equipo para crear una marca.
+3. **El alta se entra por dos caminos** —desde un área, o desde el listado eligiendo cliente → sede → área encadenados— **con una sola pantalla**. Duplicarla habría sido la vía directa a que uno de los dos se quedara sin un arreglo.
+
+**Y lo que más cambia el uso: el modelo se crea desde el formulario.** El panel elige o crea tipo, marca y fabricante, **deduce el equipo del catálogo** —reutiliza la combinación si existe, la crea si no— y deja el modelo nuevo ya seleccionado. Preguntar por ese eslabón intermedio obligaría a explicar un concepto que a quien rellena el formulario no le dice nada.
+
+**Tres defectos encontrados construyéndolo, y ninguno se veía leyendo el código.**
+
+**Un formulario reactivo no es una señal.** Un `computed()` sobre `getRawValue()` no vuelve a calcularse nunca —no tiene de qué depender— y con `OnPush` se queda con el primer valor para siempre. Los avisos del panel y los desplegables encadenados dependen de lo que se escribe, así que el valor entra con `toSignal(valueChanges)`.
+
+**La invalidación de caché se esperaba, y en una cadena eso es un freno.** TanStack aguarda la promesa de `onSuccess` antes de resolver la mutación: cada una de las cinco altas se quedaba esperando la recarga completa del catálogo que no necesitaba. **Se descubrió porque la prueba se colgaba en el segundo paso en vez de fallar**, que es la peor forma de romperse — la misma familia que el `whenStable()` de ayer.
+
+**Una consulta con identificador vacío es un 404 seguro.** Los desplegables encadenados empiezan sin elección, así que las consultas de sedes, áreas y ficha de área llevan ahora `enabled`. Sin eso se pedía `/clients//headquarters` y `/service-areas/` a secas.
+
+**Dos deudas nuevas, las dos del backend y las dos con su razón escrita**: crear un modelo con sus piezas son hasta cinco llamadas **sin transacción** —si falla la última, la marca nueva ya existe, y la pantalla lo avisa porque es lo único que puede hacer—, y **no existe consulta para listar áreas**, de modo que el listado emite una petición por área distinta.
+
+**Conteo**: **232** pruebas de frontend, de 210. Verificado por mutación lo que importa: quitar la reutilización de la combinación existente y quitar el borrado de la sede al cambiar de cliente ponen rojas sus pruebas.
+
+**Tocadas**: [[dominio-equipo-mantenimiento]], [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-26] ingest | Países y ciudades de verdad, y una restricción que se escribió mirando dos países
+
+**Una instalación nueva nacía inservible**: sin países no se puede registrar un fabricante, sin ciudades no se puede abrir una sede, y **no hay pantalla que los cree** —el catálogo de ubicaciones se consulta, no se administra—. `V7__seed_location_reference_data.sql` siembra **249 países** y **1.350 ciudades**.
+
+**Es una migración y no un script suelto, a propósito.** Flyway la aplica al arrancar la aplicación, una vez y en cualquier base de datos, que es lo que se pedía. Un script en `docker/postgres/init` solo corre **al crear el volumen**: no habría tocado la base de datos de este equipo y no volvería a correr nunca. **No hubo que tocar el `compose`** para conseguirlo; lleva ahora un comentario que lo explica, porque es donde alguien lo buscará.
+
+**Los datos salen de fuentes verificables, no de la memoria**: los países de `iso-codes` —con su **traducción oficial al español**, que es lo que se lee en un desplegable—, los municipios de un dataset de departamentos de Colombia, y las capitales del dataset `mledoze/countries`. Las tres fuentes quedan escritas en la cabecera del archivo por si hay que regenerarlo.
+
+**El hallazgo: `UQ_ciudad_nombre_por_pais` se escribió razonando sobre dos países.** El comentario de `V3__location.sql` dice que «el nombre de una ciudad solo es único dentro de su país: hay un Córdoba en España y otro en Argentina». Es cierto entre países y **falso dentro de Colombia**: hay **64 nombres de municipio compartidos entre departamentos**, con La Unión, Villanueva y Buenavista repetidos **cuatro veces cada uno**. La salida aplicada es meter el departamento en el nombre —`La Unión (Nariño)`—, porque es lo único que cabe sin cambiar el esquema; **lo correcto es un nivel de división administrativa**, y queda como deuda.
+
+**Lo que vale de esto**: la restricción llevaba dos meses escrita y ninguna prueba la habría delatado, porque **todas creaban una ciudad cada una**. Apareció al contrastarla con los datos reales del país donde opera la empresa.
+
+**Un defecto de la fuente, corregido al generar**: el dataset trae `Chibolo` dos veces en Magdalena. Los pares departamento-municipio se deduplican antes de etiquetarlos, de modo que la migración no depende de que la fuente esté limpia.
+
+**La prueba lee el archivo y no la base de datos**, y también por un motivo concreto: **`LocationSchemaTest` hace `DELETE FROM ciudad` y `DELETE FROM pais` tras cada método**, así que al terminar esa clase el contenedor se queda sin datos de referencia. Contar filas habría dado una prueba que pasa o falla **según el orden de ejecución**. Queda avisado en la propia clase y anotado como trampa.
+
+**Aplicado y comprobado sobre la base de datos en marcha**: `V7` en 97 ms, 249 países y 1.350 ciudades, de las cuales 1.103 municipios colombianos.
+
+**Conteo**: **659** elementos `<testcase>`, 50 clases, cero fallos —14 nuevas—. Verificado por mutación: quitar la traducción al español y repetir un municipio ponen rojas las suyas.
+
+**Tocadas**: [[dominio-ubicacion]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-26] ingest | El desplegable deja de servir cuando el catálogo tiene 1.350 filas
+
+Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo día**: 249 países y 1.350 ciudades no se recorren con la vista, y en un teléfono se abren como una rueda infinita. Pedido por el usuario y construido como **un campo de texto que predice**, `app-buscador`, usado ya en seis pantallas.
+
+**Tres decisiones, las tres del usuario y las tres con consecuencia técnica:**
+
+1. **Sin escribir nada solo se ofrece lo ya usado**, y «usado» es **lo que se eligió antes en este navegador** —`localStorage`—, no lo que existe en los datos. Lo segundo se comparte entre compañeros pero cuesta consultas: hoy no hay forma de pedir todas las sedes de una vez. Lo elegido: instantáneo, empieza vacío, y cuando está vacío **lo dice** en lugar de parecer roto.
+2. **Al escribir se busca en el catálogo completo.** Si solo buscara entre lo usado, el primer cliente de Boyacá no se podría registrar nunca.
+3. **No inventa valores**: un texto que no case con nada deja el formulario sin valor y lo dice. Ofrecer «crear esta ciudad» abriría la puerta a un Bogota sin tilde junto al Bogotá con tilde.
+
+**Se compara sin tildes y sin mayúsculas**, porque quien teclea «medellin» en un teléfono espera encontrar Medellín.
+
+**Es un `ControlValueAccessor`** y no un campo con su propio protocolo: las seis pantallas lo usan con `formControlName` y sus validadores, como cualquier otro control. Y **muestra el nombre mientras guarda el identificador**, incluso cuando el catálogo llega después que el valor —el caso de toda pantalla de edición—, lo que exigió derivar el texto del valor con un efecto.
+
+**Hallazgo del entorno: el corredor de pruebas de Angular no expone `localStorage`.** Acceder a él da `undefined`, aunque `document` sí está. El navegador lo tiene, así que lo que faltaba era el doble, y vive en `src/testing/almacenamiento.ts`. Es además la confirmación de por qué el código envuelve cada acceso: si el propio corredor puede no tenerlo, una ventana privada tampoco, y un formulario no puede caerse por no recordar la última elección.
+
+**Dos trampas al reescribir las pruebas viejas**, y las dos por escribir el filtro de memoria: «Medellín» contiene «li», así que buscar Lima con «li» lo trae también; y no hay ninguna letra común a Bogotá, Medellín y Lima, de modo que el ayudante que «escribe una vocal para ver todo» no existía. Las pruebas ahora buscan por trozos concretos.
+
+**Y una corrección de convención en el mismo repaso**: se marca **lo obligatorio** con `*` —más `aria-required` en el control y una leyenda por formulario— en vez de escribir «Opcional.» bajo cada campo que no lo es. Con tres opcionales en un formulario eran tres líneas de ruido, y el ojo aprende a saltarlas. El `*` va `aria-hidden`, para que un lector no lea «asterisco» quince veces.
+
+**Conteo**: **265** pruebas de frontend, de 245 —17 del campo nuevo y su historial, 3 de la convención—. Verificado por mutación: ofrecer el catálogo entero sin escribir, y dejar de aceptar el nombre exacto tecleado, ponen rojas seis pruebas entre las nuevas y las viejas.
+
+**Tocadas**: [[sistema-de-diseno-malphasos]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-26] ingest | El catálogo deja de ser una página con cinco secciones y pasa a ser cinco páginas
+
+**Tercera corrección del mismo día sobre la misma pantalla**, y las tres del usuario: primero el catálogo dejó de ocupar la entrada del menú, luego sus cinco piezas se metieron en cajas con desplazamiento propio, y ahora **cada pieza tiene su propia página**. Lo que no funcionaba era el fondo: cinco listas que crecen no caben en una pantalla, y con treinta marcas registradas llegar a los fabricantes eran cuatro pantallas de desplazamiento.
+
+**`Catálogo ▾` se despliega en la cabecera** con las cinco piezas, y ya dentro hay una **subnavegación** con las mismas, para saltar sin volver arriba. Las dos salen de `NAVEGACION`, que sigue siendo la única fuente del menú y de las rutas.
+
+**Rutas y no pestañas con estado interno**, y el motivo es concreto: `/catalogo/fabricantes` **se puede enlazar, recargar y volver con el botón de atrás**. Unas pestañas habrían dejado una sola URL que siempre cae en la primera. Efecto lateral que no se buscaba y se agradece: **cada pieza es ahora su propio trozo diferido**, así que quien entra a corregir una marca no descarga los modelos.
+
+**`NAVEGACION` gana un nivel, y con él una distinción:** una entrada con hijas **no tiene página propia**. `catalogo` no es una pantalla, es el sitio donde están cinco, de modo que su ruta redirige a la primera y el menú la pinta como **botón** y no como enlace. Entrar en `/catalogo` y encontrarse una página con solo un menú habría sido peor que no tenerla.
+
+**El desplegable se abre al pulsar, no al pasar el ratón.** Con el ratón por encima no se navega con el teclado, y en un teléfono no hay ratón. Es un `button` con `aria-expanded` y `aria-controls`: sin lo segundo, un lector se entera de que algo se abrió pero no de qué.
+
+**La tecnología predominante pasa a ser el mismo campo de búsqueda, con lista cerrada.** El backend la guarda como texto y aceptaría cualquier cosa, así que la restricción vive solo en el frontend: es vocabulario, no regla de negocio. Evita que la misma tecnología acabe escrita de cuatro maneras y que agrupar por ella deje de servir. **Lo que la empresa ya usa cuenta como autorizado y va primero**, porque su grafía vale más que una lista escrita de antemano y porque sin eso abrir un tipo antiguo dejaría el campo en blanco sin explicar nada. Para autorizar una nueva se edita `tecnologias.ts`.
+
+**Y un modo que nació y murió el mismo día.** La primera versión lo hizo al contrario —texto libre con sugerencias— y el usuario pidió lo opuesto una hora después. El modo libre se retiró entero: sin ningún uso, es mantenimiento a cambio de nada. El truco que permite la lista cerrada con un dato de texto es que **el identificador de cada opción es su nombre**.
+
+**Y una prueba que pasaba en vacío, detectada por mutación.** «Una tecnología ya usada está autorizada» usaba «Electrónica», que **también** está en la lista de partida: quitar del código la parte que autoriza lo ya usado no la ponía roja. Se reescribió con «Peristáltica», que solo cuenta por estar en los datos, y entonces sí falla. Es el mismo patrón que este proyecto ya tiene anotado dos veces —la prueba del traslado y la del super usuario—: **la mutación es lo único que distingue una prueba que verifica de una que acompaña**.
+
+**Y un orden que no es alfabético ni casual**: «Tipos de equipo» va antes que «Marcas», pedido por el usuario. Es la pieza que describe **qué es** el aparato y la que más trabajo cuesta dar de alta —cuatro campos obligatorios y su ficha técnica—; la marca es un nombre. Es también el orden en que se piensa: primero «un tensiómetro», después «de qué marca». Con ello, entrar en `/catalogo` deja en `/catalogo/tipos`.
+
+**Y las cajas de ayer se retiran, porque ya no hacen falta**: delimitaban una pieza de las otras cuatro, y ahora no comparten página. El tope de alto de cada lista se queda —subido a 512 px—, para que el formulario de alta no se vaya de la pantalla con mil filas.
+
+**Conteo**: **274** pruebas de frontend, de 265. Las nuevas cubren el desplegable, la subnavegación, la redirección de `/catalogo` y que **solo se vea una pieza a la vez**. Verificado por mutación: quitar la redirección y escribir mal el destino de una hija ponen rojas seis.
+
+**Tocadas**: [[arquitectura-frontend-malphasos]], [[dominio-equipo-mantenimiento]] y el `CLAUDE.md` de la raíz.
