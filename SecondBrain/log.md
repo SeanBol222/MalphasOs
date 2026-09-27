@@ -880,3 +880,27 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 **Conteo**: **330** pruebas de frontend, de 293 —37 nuevas entre las cuatro pantallas—. Backend sin tocar, en 684. Verificado por mutación: los botones que dejan de mirar el estado y el filtro de lo que ya está en la orden ponen rojas tres pruebas.
 
 **Tocadas**: [[dominio-orden-trabajo]], [[hoja-de-ruta-producto]] y el `CLAUDE.md` de la raíz.
+
+## [2026-09-27] ingest | Reportes de servicio: el sexto módulo, y dos predicciones de este wiki que salieron falsas
+
+**Cuatro tandas en un día, del esquema al REST**, con el mismo corte que `work-order`: `V9` + pruebas de esquema, agregado + eventos, aplicación + persistencia juntas —un `@Service` sin adaptador tumba el contexto—, y REST + autoridades. Mergeadas por `08038862`, `6849f463`, `c9142635` y `baf4a8db`.
+
+**Un reporte por equipo de la orden**, que es lo que RF-09 dice literalmente y lo que ocurre en campo. La llave foránea es **compuesta contra el puente** `orden_trabajo_equipo`: con dos foráneas sueltas cabría un reporte de un equipo que la orden nunca incluyó, y contra el puente lo impide el esquema solo porque el par ya es su llave primaria.
+
+**El reporte no copia nada de la orden, y eso *es* RF-11.** Consultar por el identificador de la orden es autocompletar; copiar cliente, sede, tipo de servicio y responsables sería una tercera copia que mantener de acuerdo. El original sí copiaba el cliente, y tenía el vínculo hacia la orden roto por tipos —`varchar(10)` contra `uuid`—.
+
+**El resultado de verificar vive con el reporte, no con el equipo.** `V8` había configurado *dónde* y *cuántas veces* se mide; `dato_verificacion` guarda *lo que salió*, y va aquí porque se mide durante el servicio y se imprime en el reporte de ese servicio. Eso **parte en dos la «segunda tanda de `equipment`»** y deja solo el vencimiento de calibración pendiente.
+
+**El hallazgo que costó una escritura extra: el orden en que una ORM escribe no es el del código.** Corregir una lectura retira la vieja e inserta la nueva, y **Hibernate vacía los `INSERT` antes que los `UPDATE`**: la base veía dos lecturas activas del mismo punto con el mismo número y saltaba `UQ_dato_verificacion_activo`. Un índice único **parcial** no se puede declarar diferido en PostgreSQL —`DEFERRABLE` es de las restricciones y una restricción no admite `WHERE`—, así que el adaptador vuelca lo existente, hace `saveAndFlush` y solo entonces inserta. **Lo encontró la prueba de persistencia antes de pasar ninguna vez**, y con dobles no habría aparecido nunca. Por eso esta tanda trajo sus pruebas de persistencia desde el primer día y no cuatro tandas después, como `work-order`.
+
+**Dos mutaciones corrigieron comentarios míos, y las dos están escritas donde las puse.** El `CASE` del `CHECK` de cierre **no** está ahí por la trampa de `V8`: `t_estado_reporte` es `NOT NULL`, así que la versión con `OR` es equivalente —comprobado, batería verde—. Y `compareTo` sobre `BigDecimal` en lugar de `equals` no cambia hoy ningún resultado, porque `of()` y `rehydrate()` ya normalizan la escala. Las dos precauciones se conservan por ser correctas, no por tener una prueba que las exija.
+
+**Se cierra una deuda propia de las viejas**: el grupo `reports` de OpenAPI llevaba **desde el principio** apuntando a un módulo que no existía —un `pathsToMatch` que no casa no falla ni avisa—, y era el fallo silencioso que la convención del proyecto persigue, vivo dentro del propio proyecto. Ahora tiene rutas y prueba de cobertura, **vista fallar** a propósito. `contracts/openapi/reports.json` pasa de dos líneas a 727.
+
+**Dos predicciones falsas de este wiki, corregidas donde estaban escritas**: que el reporte sería «el consumidor natural de los siete eventos de la orden» —no escucha ninguno, los siete **siguen sin consumidor**—, y que `ReportDataProviderPort` del original sería el patrón a usar — aquello agrega datos de varios hexágonos y esto es una entidad con ciclo de vida, así que el patrón **sigue sin gastar** para el PDF de RF-17.
+
+**Requisitos: 14 → 16.** Entran RF-09 y RF-15. **RF-11 no**, con el criterio estricto de siempre: el backend hace imposible teclear esos datos, pero «mostrarlos» es una pantalla y no hay ninguna. Lo mismo que dejó cuatro requisitos de la orden esperando su formulario.
+
+**Conteo**: backend **810** elementos `<testcase>`, de 684 —33 de esquema, 34 de dominio, 37 de aplicación y persistencia, 20 de REST y las de contrato de seguridad ajustadas—, 55 clases, cero fallos, borrando `target/surefire-reports` antes. Frontend sin tocar, en 330.
+
+**Tocadas**: nueva [[dominio-reporte-servicio]] —el wiki pasa a **52** notas—, más [[dominio-reportes]], [[dominio-orden-trabajo]], [[dominio-equipo-mantenimiento]], [[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], [[modelo-de-permisos]], `index.md` y el `CLAUDE.md` de la raíz.
