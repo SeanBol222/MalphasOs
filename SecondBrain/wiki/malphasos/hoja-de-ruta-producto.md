@@ -17,13 +17,15 @@ updated: 2026-09-13
 
 | | Total | Implementado | Fuente |
 |---|---|---|---|
-| Requisitos funcionales | 31 | **11** | ERS 3.2, verificada dos veces contra el código |
+| Requisitos funcionales | 31 | **14** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
-| Frontend | — | **Sesión, autenticación, clientes cerrado entero, y equipos: listado, catálogo y registro** | Comprobado sobre el árbol del repositorio |
+| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, y órdenes de trabajo de extremo a extremo** | Comprobado sobre el árbol del repositorio |
 
 > **Corregido el 2026-09-26, dos veces el mismo día.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak, **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados— y **seis más** del catálogo de equipos con el registro de un equipo en un área, con **262** pruebas. **Con eso existe ya todo lo que una orden de trabajo necesita tocar**: sedes, áreas y equipos por área. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
 
-Los 11 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios) y **RF-01, RF-02 y RF-05** de órdenes de trabajo. Todo lo demás está `[PREVISTO]`.
+Los 14 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios) y **RF-01 a RF-03, RF-05, RF-06 y RF-07** de órdenes de trabajo. **RF-04 queda marcado como desviación**, no como implementado. Todo lo demás está `[PREVISTO]`.
+
+> **Actualizado el 2026-09-27**: eran **11**. Los tres que entran —RF-03, RF-06 y RF-07— son de los cuatro que describían un formulario, construido ese día. El cuarto, RF-04, **se desvía a propósito** y por eso no cuenta: el criterio de esta nota es estricto, y darlo por hecho sería justo lo que esta tabla existe para evitar.
 
 > **Actualizado el 2026-09-13**: el marcador estaba en **8** y pasa a **11** con el módulo de órdenes de trabajo, completo en sus cuatro tandas. **No son siete de golpe, y el porqué importa** — ver el desglose justo debajo.
 
@@ -35,11 +37,11 @@ El backend de órdenes de trabajo está terminado, y aun así **solo tres de los
 |---|---|---|---|
 | RF-01 | Crear orden directa, sin solicitud previa | ✅ | `POST /v1/api/work-orders` |
 | RF-02 | Eliminar la dependencia de solicitud | ✅ | Satisfecho **por construcción**: la palabra «solicitud» no existe en el esquema ni en el código, no había nada que retirar |
-| RF-03 | Formulario con cliente, sede, áreas, tipo y periodicidad | ⏳ | Los cinco datos existen en el backend; **el formulario no** |
-| RF-04 | Selección múltiple de **áreas** de la sede | ⏳ | Es un paso de interfaz, y además **las áreas elegidas no se persisten a propósito**: quedan implícitas en los equipos. Ver [[dominio-orden-trabajo]] |
+| RF-03 | Formulario con cliente, sede, áreas, tipo y periodicidad | ✅ | **Construido el 2026-09-27**, en dos pasos: se programa la visita —cliente, sede, fecha, tipo y periodicidad— y los equipos se añaden después. Es lo que el API ofrece y lo que ocurre de verdad: se acuerda la visita y luego se decide sobre qué se trabaja |
+| RF-04 | Selección múltiple de **áreas** de la sede | ⚠️ | **Desviación consciente, 2026-09-27.** La pantalla no pide elegir áreas y después mostrar sus equipos: muestra **todas las áreas abiertas de la sede a la vez**, agrupadas, y se marcan equipos dentro —con «marcar toda el área» como equivalente de elegir una—. Se llega al mismo sitio con un paso menos, pero **el paso intermedio que el requisito describe no existe**. Queda así para poder discutirlo; el dato no cambia, porque las áreas elegidas nunca se persistieron a propósito. Ver [[dominio-orden-trabajo]] |
 | RF-05 | Identificador único (UUID) de la orden | ✅ | `k_id_orden_trabajo uuid` |
-| RF-06 | Visualización de equipos por área seleccionada | ⏳ | La consulta ya existía antes del módulo; falta la interfaz que agrupe |
-| RF-07 | Selección múltiple de equipos | ⏳ | El API añade **de uno en uno**, `POST /{id}/equipments`. La selección múltiple es del formulario |
+| RF-06 | Visualización de equipos por área seleccionada | ✅ | **2026-09-27**: la pantalla de alcance agrupa por área y ofrece **solo** equipos de áreas de la sede de la orden, que es la regla que el backend construyó el 2026-09-13 y que hasta ahora no se ejercía desde un navegador |
+| RF-07 | Selección múltiple de equipos | ✅ | **2026-09-27**: casillas por equipo y «marcar toda el área». El API suma **de uno en uno**, así que la pantalla manda las llamadas en serie y **dice cuántas entraron** si alguna falla: no hay transacción que las envuelva |
 
 **El criterio que se ha aplicado, para que se pueda discutir**: cuenta como implementado el requisito que el backend satisface por completo. El que describe una pantalla se queda abierto aunque el dato que necesita ya exista, porque darlo por hecho inflaría el marcador y haría que el trabajo de frontend desapareciera de la cuenta sin haberse hecho.
 
@@ -124,7 +126,7 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 | 2 | **Reportes de mantenimiento** (RF-09, 11, 13, 15) | Historial de hojas de vida, PDF, alertas | Requiere el bloque 1 (+ RF-14, disponible ya) |
 | 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | Ninguna pendiente. Puede ir en paralelo al 1 y al 2 |
 | 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | Requiere el bloque 2 |
-| 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora.** Arrancado ese mismo día; **la sección de clientes quedó cerrada el 2026-09-26**, y con ella existe ya dónde registrar sedes y áreas, que es lo que el formulario de órdenes necesita para poder construirse |
+| 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora.** Clientes cerrado el 2026-09-26, equipos y catálogo ese mismo día, y **las órdenes de trabajo el 2026-09-27**: con eso el primer bloque está completo y el marcador de requisitos sube por primera vez gracias al frontend |
 | 6 | **Firma digital** (RF-18, RF-21) → **PDF** (RF-17) | Cierra reportes | Requiere los bloques 2 y 5 |
 | 7 | **Alertas y calibración** (RF-40, RF-41) | — | Requiere el bloque 3 + tareas programadas. **Won't Have** |
 | 8 | **Inventario y módulo comercial** | — | **Requisitos ausentes que hay que escribir primero.** Inventario es Won't Have |

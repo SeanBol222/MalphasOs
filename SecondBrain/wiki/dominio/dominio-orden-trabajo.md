@@ -105,6 +105,20 @@ El original la declaraba `timestamp without time zone` y la comentaba como *«la
 
 `k_identificador` admite nulo porque **una orden se crea antes de asignarse**. Eso es lo que justifica que el realm y `ApiAuthority` tengan `work-order.assign` separada de `work-order.write`: asignar es una operación distinta de crear, con su propio permiso. Ver [[modelo-de-permisos]].
 
+## El formulario, construido el 2026-09-27
+
+El módulo estaba terminado desde el 2026-09-13 y **no se podía usar**: cuatro de sus siete requisitos describen un formulario. Ahora existe, y hay tres cosas que conviene saber de él.
+
+**El estado no se edita, se avanza.** La ficha ofrece «iniciar» y «marcar como ejecutada», y cada botón aparece **solo cuando el estado lo permite** — que es lo mismo que comprueba el backend antes de responder «el estado no lo permite». Un desplegable de estados invitaría a saltarse el orden y a que el servidor rechazara lo que la pantalla acababa de ofrecer.
+
+**La regla de la sede se ejerce por fin desde un navegador.** La pantalla de alcance pregunta las áreas de la sede de la orden y solo ofrece equipos de ellas: es la séptima regla, la que se construyó el 2026-09-13 al descubrir que faltaba, y hasta hoy ninguna interfaz la había puesto a prueba.
+
+**Y una desviación consciente respecto a RF-04**, anotada en [[hoja-de-ruta-producto]] y sin contar como implementada: el requisito describe elegir áreas y después ver sus equipos; la pantalla muestra **todas las áreas de la sede a la vez**, agrupadas, con «marcar toda el área» como equivalente de elegir una. Un paso menos para el mismo resultado, pero no es lo que el requisito dice.
+
+### Varias altas sin transacción, y la pantalla lo dice
+
+El API suma **un equipo por llamada**. Elegir diez son diez llamadas en serie y **no hay transacción que las envuelva**: si la séptima falla, las seis primeras quedan dentro. La pantalla informa de cuántas entraron en lugar de afirmar un resultado que no ocurrió. Es el mismo patrón que el panel que crea un modelo con sus piezas, y la misma conclusión: **lo que el backend no ofrece compuesto, el frontend solo puede contarlo con honestidad**.
+
 ## Las tres enumeraciones, y de dónde salieron
 
 ```
