@@ -4,6 +4,7 @@ import { CatalogoApi } from '../catalogo-api';
 import { UbicacionApi } from '../../location/ubicacion-api';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
+import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
 
 /**
  * Los fabricantes del catalogo, con su pais de origen.
@@ -18,7 +19,7 @@ import { traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-fabricantes',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, Buscador],
   templateUrl: './fabricantes.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -27,7 +28,9 @@ export class Fabricantes {
   private readonly sesion = inject(Sesion);
 
   protected readonly fabricantes = this.api.listarFabricantes();
-  protected readonly paises = inject(UbicacionApi).listarPaises();
+  private readonly paises = inject(UbicacionApi).listarPaises();
+
+  protected readonly opcionesDePais = computed(() => opcionesDe(this.paises.data()));
   protected readonly alta = this.api.crearFabricante();
   protected readonly baja = this.api.retirarFabricante();
 

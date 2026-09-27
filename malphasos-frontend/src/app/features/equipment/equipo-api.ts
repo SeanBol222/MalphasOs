@@ -42,6 +42,21 @@ export class EquipoApi {
     return [...EquipoApi.CLAVE, idArea] as const;
   }
 
+  /**
+   * Todos los equipos de cliente registrados.
+   *
+   * <p>Sin filtros, porque el API no los ofrece: es la misma ausencia que el filtrado por dueno. Con
+   * el catalogo de desarrollo no se nota; con miles de equipos habra que pedir paginacion y filtro por
+   * cliente o por area.
+   */
+  listarTodos() {
+    return injectQuery(() => ({
+      queryKey: EquipoApi.CLAVE,
+      queryFn: () =>
+        firstValueFrom(this.http.get<EquipoDeCliente[]>(`${this.api}/client-equipments`)),
+    }));
+  }
+
   listarDe(idArea: Signal<string>) {
     return injectQuery(() => ({
       queryKey: EquipoApi.claveDeArea(idArea()),

@@ -7,21 +7,79 @@ import { routes } from '../../app.routes';
 import { Shell } from './shell';
 
 describe('Armazón', () => {
+  /** El armazon de pruebas de la ruta actual, para poder detectar cambios tras pulsar algo. */
+  let armazon: RouterTestingHarness;
+
   async function pintar(destino = '/inicio'): Promise<HTMLElement> {
     TestBed.configureTestingModule({
       providers: [provideRouter(routes), ...proveerSesionFalsa()],
     });
-    const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl(destino);
-    await harness.fixture.whenStable();
+    armazon = await RouterTestingHarness.create();
+    await armazon.navigateByUrl(destino);
+    await armazon.fixture.whenStable();
 
-    return harness.routeDebugElement!.parent!.nativeElement as HTMLElement;
+    return armazon.routeDebugElement!.parent!.nativeElement as HTMLElement;
   }
 
-  it('pinta un enlace por cada entrada del menú', async () => {
+  it('pinta un destino por cada entrada del menú', async () => {
+    // Un enlace por entrada simple y un boton por entrada con hijas: «catalogo» no es una pantalla,
+    // es el sitio donde estan sus cinco piezas.
     const raiz = await pintar();
+    const simples = NAVEGACION.filter((entrada) => !entrada.hijos);
+    const desplegables = NAVEGACION.filter((entrada) => entrada.hijos);
 
-    expect(raiz.querySelectorAll('nav a')).toHaveLength(NAVEGACION.length);
+    expect(raiz.querySelectorAll('nav > ul > li > a')).toHaveLength(simples.length);
+    expect(raiz.querySelectorAll('nav > ul > li > button')).toHaveLength(desplegables.length);
+  });
+
+  describe('La entrada que se despliega', () => {
+    const boton = (raiz: HTMLElement) =>
+      [...raiz.querySelectorAll('nav button')].find((b) =>
+        (b.textContent ?? '').includes('Catálogo'),
+      ) as HTMLButtonElement;
+
+    it('empieza cerrada y no ofrece sus piezas', async () => {
+      const raiz = await pintar();
+
+      expect(boton(raiz).getAttribute('aria-expanded')).toBe('false');
+      expect(raiz.querySelector('#catalogo-submenu')).toBeNull();
+    });
+
+    it('al pulsarla ofrece las cinco piezas, cada una con su dirección', async () => {
+      const raiz = await pintar();
+      boton(raiz).click();
+      // Sin detectar cambios el desplegable no se pinta: la senal cambio, no el DOM.
+      armazon.detectChanges();
+
+      const enlaces = [...raiz.querySelectorAll('#catalogo-submenu a')];
+
+      expect(enlaces.map((a) => a.textContent?.trim())).toEqual([
+        'Tipos de equipo',
+        'Marcas',
+        'Fabricantes',
+        'Equipos del catálogo',
+        'Modelos',
+      ]);
+      expect(enlaces.map((a) => a.getAttribute('href'))).toContain('/catalogo/fabricantes');
+      expect(boton(raiz).getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('se cierra al volver a pulsarla', async () => {
+      const raiz = await pintar();
+      boton(raiz).click();
+      armazon.detectChanges();
+      boton(raiz).click();
+      armazon.detectChanges();
+
+      expect(raiz.querySelector('#catalogo-submenu')).toBeNull();
+    });
+
+    it('el botón declara qué controla, para un lector de pantalla', async () => {
+      // aria-expanded sin aria-controls deja al lector sabiendo que algo se abrio y no que.
+      const raiz = await pintar();
+
+      expect(boton(raiz).getAttribute('aria-controls')).toBe('catalogo-submenu');
+    });
   });
 
   describe('Lo que WCAG 2.1 AA exige y no se ve', () => {
@@ -49,6 +107,12 @@ describe('Armazón', () => {
       const activo = raiz.querySelector('nav a[aria-current="page"]');
 
       expect(activo?.textContent?.trim()).toBe('Inicio');
+    });
+
+    it('el botón que despliega respeta el área táctil mínima', async () => {
+      const raiz = await pintar();
+
+      expect(raiz.querySelector('nav button')!.className).toContain('min-h-tactil');
     });
 
     it('los enlaces del menú respetan el área táctil mínima', async () => {

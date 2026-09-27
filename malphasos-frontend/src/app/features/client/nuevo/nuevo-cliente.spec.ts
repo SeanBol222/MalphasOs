@@ -3,6 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
+import { elegirEnBuscador, escribirEnBuscador, sugerenciasDe } from '../../../../testing/pantalla';
+import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
 import { NuevoClienteComponent } from './nuevo-cliente';
 
 const URL = 'http://localhost:8081/v1/api/clients';
@@ -24,8 +26,12 @@ class FichaFalsa {}
 describe('Alta de un cliente', () => {
   let fixture: ComponentFixture<NuevoClienteComponent>;
   let http: HttpTestingController;
+  let desinstalarAlmacenamiento: () => void;
 
   beforeEach(async () => {
+    // El corredor de pruebas de Angular no expone localStorage, y el campo de busqueda recuerda ahi
+    // lo ya elegido. En el navegador existe; lo que falta aqui es el doble.
+    desinstalarAlmacenamiento = instalarAlmacenamiento();
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -159,23 +165,68 @@ describe('Alta de un cliente', () => {
     expect(TestBed.inject(Router).url).toBe('/clientes/1');
   });
 
-  describe('El país se elige, no se teclea', () => {
-    it('ofrece los países del catálogo, con "sin especificar" primero', () => {
-      const opciones = [...raiz().querySelectorAll<HTMLOptionElement>('#idPais option')];
+  describe('El país se busca escribiendo', () => {
+    it('predice sobre el catálogo completo, sin tildes y sin mayúsculas', async () => {
+      // Quien teclea «peru» en un telefono espera encontrar Perú. No hacerlo es la queja mas segura
+      // de este tipo de campo.
+      await escribirEnBuscador(fixture, 'idPais', 'peru');
 
-      // Un campo de texto obligaria a teclear un UUID. Y la primera opcion es la ausencia, porque
-      // el contrato declara el pais opcional.
-      expect(opciones[0].value).toBe('');
-      expect(opciones.map((o) => o.textContent?.trim())).toEqual([
-        'Sin especificar',
-        'Colombia',
-        'Perú',
-      ]);
+      expect(sugerenciasDe(fixture, 'idPais')).toEqual(['Perú']);
+    });
+
+    it('sin escribir nada no ofrece los 249 países: solo lo ya usado en este navegador', async () => {
+      // Abrir el campo y encontrarse el catalogo entero no ayuda a nadie. La primera vez no hay
+      // historial, y entonces lo dice en vez de parecer roto.
+      const campo = raiz().querySelector<HTMLInputElement>('#idPais')!;
+      campo.dispatchEvent(new Event('focus'));
+      fixture.detectChanges();
+
+      expect(sugerenciasDe(fixture, 'idPais')).toEqual([]);
+      expect(texto()).toContain('Escriba para buscar');
+    });
+
+    it('lo elegido antes se ofrece la próxima vez, sin escribir nada', async () => {
+      await elegirEnBuscador(fixture, 'idPais', 'Colombia');
+
+      // Se monta la pantalla otra vez: el historial vive en el navegador, no en el componente.
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          ...proveerApiSimulado(),
+          provideRouter([
+            { path: 'clientes', component: ListadoFalso },
+            { path: 'clientes/:id', component: FichaFalsa },
+          ]),
+        ],
+      });
+      fixture = TestBed.createComponent(NuevoClienteComponent);
+      http = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+      await responderPaises(PAISES);
+
+      const campo = raiz().querySelector<HTMLInputElement>('#idPais')!;
+      campo.dispatchEvent(new Event('focus'));
+      fixture.detectChanges();
+
+      expect(sugerenciasDe(fixture, 'idPais')).toEqual(['Colombia']);
+    });
+
+    it('un nombre que no existe se dice y no se guarda', async () => {
+      // El backend exige un identificador que exista: inventarlo daria un error tecnico al guardar.
+      rellenarValido();
+      await escribirEnBuscador(fixture, 'idPais', 'Wakanda');
+      await enviar();
+
+      const peticion = http.expectOne(URL);
+
+      expect(peticion.request.body).not.toHaveProperty('idPais');
+      expect(texto()).toContain('No hay ninguna opción con ese nombre');
+      peticion.flush({ id: '1' });
     });
 
     it('cuando se elige un país, va en el cuerpo como identificador', async () => {
       rellenarValido();
-      escribir('idPais', 'co');
+      await elegirEnBuscador(fixture, 'idPais', 'Colombia');
       await enviar();
 
       const peticion = http.expectOne(URL);
@@ -221,7 +272,7 @@ describe('Alta de un cliente', () => {
 
   describe('Lo que WCAG exige y no se ve', () => {
     it('cada campo tiene su etiqueta asociada', () => {
-      for (const id of ['razonSocial', 'tipoIdentificacion', 'documento']) {
+      for (const id of ['razonSocial', 'tipoIdentificacion', 'documento', 'idPais']) {
         expect(raiz().querySelector(`label[for="${id}"]`)).toBeTruthy();
       }
     });
@@ -236,6 +287,19 @@ describe('Alta de un cliente', () => {
       expect(raiz().querySelector(`#${campo.getAttribute('aria-describedby')}`)).toBeTruthy();
     });
 
+    it('los obligatorios llevan asterisco y el opcional no, con su leyenda', () => {
+      // La convencion se invirtio el 2026-09-26: se marca lo obligatorio en vez de repetir
+      // «opcional» en cada campo que no lo es.
+      for (const id of ['razonSocial', 'tipoIdentificacion', 'documento']) {
+        expect(raiz().querySelector(`label[for="${id}"]`)!.textContent).toContain('*');
+        expect(raiz().querySelector(`#${id}`)!.getAttribute('aria-required')).toBe('true');
+      }
+
+      expect(raiz().querySelector('label[for="idPais"]')!.textContent).not.toContain('*');
+      // Un asterisco sin leyenda es un simbolo sin significado declarado.
+      expect(texto()).toContain('son obligatorios');
+    });
+
     it('los controles respetan el area tactil minima', () => {
       for (const control of raiz().querySelectorAll('input, select, button, form a')) {
         expect(control.className).toContain('min-h-tactil');
@@ -243,5 +307,8 @@ describe('Alta de un cliente', () => {
     });
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    desinstalarAlmacenamiento();
+  });
 });

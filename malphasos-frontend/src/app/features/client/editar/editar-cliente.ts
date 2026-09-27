@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ClienteApi } from '../cliente-api';
 import { UbicacionApi } from '../../location/ubicacion-api';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
+import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
 
 /**
  * Edicion de un cliente.
@@ -14,7 +15,7 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-editar-cliente',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Buscador],
   templateUrl: './editar-cliente.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -25,7 +26,9 @@ export class EditarCliente {
   private readonly router = inject(Router);
 
   protected readonly cliente = this.api.detalle(this.id);
-  protected readonly paises = inject(UbicacionApi).listarPaises();
+  private readonly paises = inject(UbicacionApi).listarPaises();
+
+  protected readonly opcionesDePais = computed(() => opcionesDe(this.paises.data()));
   protected readonly cambio = this.api.editar();
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({

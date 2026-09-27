@@ -1,0 +1,188 @@
+<div class="border-l-2 border-ink bg-neutral-100 p-2" [formGroup]="formulario">
+  <h2 class="text-xl font-bold">Crear un modelo</h2>
+  <p class="text-neutral-700">
+    Elija las piezas que ya existan y cree las que falten. Si el tipo y la marca ya están combinados, se
+    reutiliza esa combinación.
+  </p>
+
+  @if (mensajeDeError()) {
+    <div class="mt-2 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+      <!--
+        Son cinco llamadas y el backend no las envuelve en una transaccion. Decirlo evita que alguien
+        reintente y acabe con la misma marca creada tres veces.
+      -->
+      <p>Lo que se haya creado antes del fallo sigue creado: revise el catálogo antes de reintentar.</p>
+    </div>
+  }
+
+  <div class="mt-2">
+    <label class="block font-semibold" for="idTipo">Tipo de equipo <span class="text-accent-700" aria-hidden="true">*</span></label>
+    <select
+      id="idTipo"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idTipo"
+      aria-required="true"
+    >
+      <option value="">Elija un tipo</option>
+      @for (tipo of tiposActivos(); track tipo.id) {
+        <option [value]="tipo.id">{{ tipo.nombre }}</option>
+      }
+      <option [value]="NUEVO">Crear un tipo nuevo…</option>
+    </select>
+  </div>
+
+  @if (creandoTipo()) {
+    <div class="mt-2 grid gap-2 sm:grid-cols-2">
+      <div>
+        <label class="block font-semibold" for="nombreDeTipo">Nombre del tipo</label>
+        <input
+          id="nombreDeTipo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="nombreDeTipo"
+          maxlength="50"
+        />
+      </div>
+      <div>
+        <label class="block font-semibold" for="tecnologiaDeTipo">Tecnología predominante</label>
+        <input
+          id="tecnologiaDeTipo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="tecnologiaDeTipo"
+          maxlength="50"
+        />
+      </div>
+      <div>
+        <label class="block font-semibold" for="definicionDeTipo">Definición técnica</label>
+        <textarea
+          id="definicionDeTipo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          rows="2"
+          formControlName="definicionDeTipo"
+          maxlength="250"
+        ></textarea>
+      </div>
+      <div>
+        <label class="block font-semibold" for="cuidadoDeTipo">Recomendaciones de cuidado</label>
+        <textarea
+          id="cuidadoDeTipo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          rows="2"
+          formControlName="cuidadoDeTipo"
+          maxlength="250"
+        ></textarea>
+      </div>
+    </div>
+    <p class="mt-1 text-neutral-700">
+      La modalidad de verificación y los datos eléctricos se completan después, en el catálogo.
+    </p>
+  }
+
+  <div class="mt-2">
+    <label class="block font-semibold" for="idMarca">Marca <span class="text-accent-700" aria-hidden="true">*</span></label>
+    <select
+      id="idMarca"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idMarca"
+      aria-required="true"
+    >
+      <option value="">Elija una marca</option>
+      @for (marca of marcasActivas(); track marca.id) {
+        <option [value]="marca.id">{{ marca.nombre }}</option>
+      }
+      <option [value]="NUEVO">Crear una marca nueva…</option>
+    </select>
+  </div>
+
+  @if (creandoMarca()) {
+    <div class="mt-2">
+      <label class="block font-semibold" for="nombreDeMarca">Nombre de la marca</label>
+      <input
+        id="nombreDeMarca"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="nombreDeMarca"
+        maxlength="50"
+      />
+    </div>
+  }
+
+  <div class="mt-2">
+    <label class="block font-semibold" for="idFabricante">Fabricante <span class="text-accent-700" aria-hidden="true">*</span></label>
+    <select
+      id="idFabricante"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idFabricante"
+      aria-required="true"
+    >
+      <option value="">Elija un fabricante</option>
+      @for (fabricante of fabricantesActivos(); track fabricante.id) {
+        <option [value]="fabricante.id">{{ fabricante.nombre }}</option>
+      }
+      <option [value]="NUEVO">Crear un fabricante nuevo…</option>
+    </select>
+  </div>
+
+  @if (creandoFabricante()) {
+    <div class="mt-2 grid gap-2 sm:grid-cols-2">
+      <div>
+        <label class="block font-semibold" for="nombreDeFabricante">Nombre del fabricante</label>
+        <input
+          id="nombreDeFabricante"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="nombreDeFabricante"
+          maxlength="50"
+        />
+      </div>
+      <div>
+        <app-buscador
+          formControlName="paisDeFabricante"
+          campo="paisDeFabricante"
+          etiqueta="País"
+          historial="pais"
+          [opciones]="opcionesDePais()"
+          [opcional]="true"
+        />
+      </div>
+    </div>
+  }
+
+  <div class="mt-2">
+    <label class="block font-semibold" for="invimaDelPanel">INVIMA</label>
+    <input
+      id="invimaDelPanel"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="invima"
+      maxlength="50"
+    />
+  </div>
+
+  @if (incompleto() && formulario.touched) {
+    <p class="mt-2 font-semibold text-accent-700">
+      Elija o cree el tipo, la marca y el fabricante. De un tipo nuevo hacen falta sus cuatro datos.
+    </p>
+  }
+
+  @if (piezasNuevas().length) {
+    <p class="mt-2 text-neutral-700">
+      Se creará también {{ piezasNuevas().join(', ') }}. Queda en el catálogo para los demás clientes.
+    </p>
+  }
+
+  <div class="mt-2 flex flex-wrap gap-2">
+    <button
+      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      type="button"
+      [disabled]="creando()"
+      (click)="crear()"
+    >
+      {{ creando() ? 'Creando…' : 'Crear modelo y usarlo' }}
+    </button>
+    <button
+      class="min-h-tactil border-2 border-ink px-3 font-semibold"
+      type="button"
+      (click)="cancelado.emit()"
+    >
+      Cerrar
+    </button>
+  </div>
+</div>

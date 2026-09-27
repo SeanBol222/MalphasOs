@@ -2,7 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
-import { asentar, responderA } from '../../../../testing/pantalla';
+import { asentar, elegirEnBuscador, responderA } from '../../../../testing/pantalla';
+import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
 import { FABRICANTES, URL_FABRICANTES } from '../../../../testing/catalogo';
 import { Fabricantes } from './fabricantes';
 
@@ -13,7 +14,10 @@ describe('Fabricantes del catalogo', () => {
   let fixture: ComponentFixture<Fabricantes>;
   let http: HttpTestingController;
 
+  let desinstalarAlmacenamiento: () => void;
+
   beforeEach(() => {
+    desinstalarAlmacenamiento = instalarAlmacenamiento();
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -86,7 +90,7 @@ describe('Fabricantes del catalogo', () => {
   it('crear un fabricante con pais manda las dos claves', async () => {
     await abrir();
     escribir('fabricanteNuevo', 'Philips');
-    escribir('paisFabricante', 'co');
+    await elegirEnBuscador(fixture, 'paisFabricante', 'Colombia');
     await enviar();
 
     const alta = http.expectOne({ method: 'POST', url: URL_FABRICANTES });
@@ -112,5 +116,8 @@ describe('Fabricantes del catalogo', () => {
     await asentar(fixture);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    desinstalarAlmacenamiento();
+  });
 });

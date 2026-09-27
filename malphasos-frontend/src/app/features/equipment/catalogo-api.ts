@@ -38,6 +38,12 @@ import {
  *
  * <p>Toda escritura invalida el catalogo entero. Es barato —son listas cortas— y evita razonar sobre
  * que pieza depende de cual: crear una marca cambia lo que puede elegirse al crear un equipo.
+ *
+ * <p><b>Y la invalidacion no se espera</b>, al contrario que en el resto de los servicios. TanStack
+ * aguarda la promesa que devuelve {@code onSuccess} antes de resolver la mutacion, de modo que
+ * devolverla encadenaba cada alta con la recarga completa del catalogo: el panel que crea un modelo con
+ * sus piezas hace cinco llamadas en serie, y cada una se quedaba esperando cuatro consultas que no
+ * necesitaba. Se descubrio porque la prueba de ese panel se colgaba en el segundo paso.
  */
 @Injectable({ providedIn: 'root' })
 export class CatalogoApi {
@@ -202,7 +208,8 @@ export class CatalogoApi {
     }));
   }
 
-  private invalidar() {
-    return this.queryClient.invalidateQueries({ queryKey: CatalogoApi.CLAVE });
+  private invalidar(): void {
+    // Sin `return`: ver la nota de la clase. La recarga ocurre igual, pero no bloquea a quien escribio.
+    void this.queryClient.invalidateQueries({ queryKey: CatalogoApi.CLAVE });
   }
 }

@@ -4,17 +4,19 @@ import { Router, RouterLink } from '@angular/router';
 import { SedeApi } from '../sede-api';
 import { UbicacionApi } from '../../location/ubicacion-api';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
+import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
 
 /**
  * Edicion de una sede: su nombre, su ciudad y su direccion.
  *
  * <p>Aqui la ciudad <b>no se recorta por pais</b>, al contrario que en el alta, y es a proposito: el
  * cliente no se consulta en esta pantalla y recortar con un dato que no se tiene esconderia la ciudad
- * correcta. Corregir una ciudad mal elegida es justo lo que se viene a hacer aqui.
+ * correcta. Corregir una ciudad mal elegida es justo lo que se viene a hacer aqui. Se busca escribiendo,
+ * que con 1.350 ciudades en el catalogo es la unica forma usable.
  */
 @Component({
   selector: 'app-editar-sede',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Buscador],
   templateUrl: './editar-sede.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -25,7 +27,10 @@ export class EditarSede {
   private readonly router = inject(Router);
 
   protected readonly sede = this.api.detalle(this.id);
-  protected readonly ciudades = inject(UbicacionApi).listarCiudades();
+  private readonly ciudades = inject(UbicacionApi).listarCiudades();
+
+  /** Aqui sin recortar por pais: ver la nota de la clase. */
+  protected readonly opcionesDeCiudad = computed(() => opcionesDe(this.ciudades.data()));
   protected readonly cambio = this.api.editar();
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({

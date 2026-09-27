@@ -16,7 +16,7 @@
   } @else if (!filas().length) {
     <p class="mt-1 text-neutral-700">Todavía no hay modelos. Combine un equipo con un fabricante.</p>
   } @else {
-    <ul class="mt-1">
+    <ul class="mt-1 max-h-64 overflow-y-auto">
       @for (fila of filas(); track fila.id) {
         <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
           <span class="grow" [class.font-semibold]="fila.estadoActivo">
@@ -46,11 +46,12 @@
   @if (puedeEscribir()) {
     <form class="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]" [formGroup]="formulario" (ngSubmit)="agregar()">
       <div>
-        <label class="block font-semibold" for="equipoDelModelo">Equipo del catálogo</label>
+        <label class="block font-semibold" for="equipoDelModelo">Equipo del catálogo <span class="text-accent-700" aria-hidden="true">*</span></label>
         <select
           id="equipoDelModelo"
           class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
           formControlName="idEquipo"
+      aria-required="true"
         >
           <option value="">Elija un equipo</option>
           @for (equipo of equiposActivos(); track equipo.id) {
@@ -59,11 +60,12 @@
         </select>
       </div>
       <div>
-        <label class="block font-semibold" for="fabricanteDelModelo">Fabricante</label>
+        <label class="block font-semibold" for="fabricanteDelModelo">Fabricante <span class="text-accent-700" aria-hidden="true">*</span></label>
         <select
           id="fabricanteDelModelo"
           class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
           formControlName="idFabricante"
+      aria-required="true"
         >
           <option value="">Elija un fabricante</option>
           @for (fabricante of fabricantesActivos(); track fabricante.id) {

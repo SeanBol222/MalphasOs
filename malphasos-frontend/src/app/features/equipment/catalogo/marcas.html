@@ -13,7 +13,7 @@
   } @else if (!marcas.data()?.length) {
     <p class="mt-1 text-neutral-700">Todavía no hay marcas registradas.</p>
   } @else {
-    <ul class="mt-1">
+    <ul class="mt-1 max-h-64 overflow-y-auto">
       @for (marca of marcas.data(); track marca.id) {
         <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
           @if (renombrando() === marca.id) {
@@ -70,7 +70,7 @@
   @if (puedeEscribir()) {
     <div class="mt-2 flex flex-wrap items-end gap-2">
       <div class="grow">
-        <label class="block font-semibold" for="marcaNueva">Añadir una marca</label>
+        <label class="block font-semibold" for="marcaNueva">Añadir una marca <span class="text-accent-700" aria-hidden="true">*</span></label>
         <input
           id="marcaNueva"
           class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -80,6 +80,7 @@
           [attr.aria-describedby]="
             nombreNuevo.invalid && nombreNuevo.touched ? 'marcaNueva-error' : null
           "
+      aria-required="true"
         />
       </div>
       <button

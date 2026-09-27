@@ -1,0 +1,69 @@
+<label class="block font-semibold" [attr.for]="campo()">
+  {{ etiqueta() }}
+  @if (!opcional()) {
+    <!-- El asterisco es una convencion visual: quien no ve la pantalla se entera por aria-required. -->
+    <span class="text-accent-700" aria-hidden="true">*</span>
+  }
+</label>
+
+<!--
+  role="combobox" sobre el input y una lista con role="listbox": es el patron que un lector de pantalla
+  entiende como «campo con sugerencias». Sin aria-expanded ni aria-activedescendant, quien no ve la
+  pantalla escribe a ciegas y no se entera de que hay opciones debajo.
+-->
+<div class="relative">
+  <input
+    [id]="campo()"
+    class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+    type="text"
+    role="combobox"
+    autocomplete="off"
+    aria-autocomplete="list"
+    [attr.aria-expanded]="abierto()"
+    [attr.aria-controls]="campo() + '-lista'"
+    [attr.aria-activedescendant]="
+      abierto() && resaltada() >= 0 ? campo() + '-opcion-' + resaltada() : null
+    "
+    [attr.aria-required]="opcional() ? null : 'true'"
+    [attr.aria-invalid]="sinCoincidencias() ? 'true' : null"
+    [attr.aria-describedby]="sinCoincidencias() ? campo() + '-aviso' : null"
+    [value]="texto()"
+    (input)="escribir($event)"
+    (focus)="abrir()"
+    (blur)="cerrar()"
+    (keydown)="teclear($event)"
+  />
+
+  @if (abierto() && sugerencias().length) {
+    <ul
+      class="absolute z-10 max-h-32 w-full overflow-y-auto border border-neutral-400 bg-paper"
+      role="listbox"
+      [id]="campo() + '-lista'"
+    >
+      @for (opcion of sugerencias(); track opcion.id; let indice = $index) {
+        <li
+          class="min-h-tactil cursor-pointer px-1 py-1"
+          [class.bg-neutral-200]="indice === resaltada()"
+          [class.font-semibold]="indice === resaltada()"
+          role="option"
+          [id]="campo() + '-opcion-' + indice"
+          [attr.aria-selected]="indice === resaltada()"
+          (mousedown)="elegir(opcion)"
+        >
+          {{ opcion.etiqueta }}
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+@if (sinCoincidencias()) {
+  <p class="mt-1 font-semibold text-accent-700" [id]="campo() + '-aviso'">
+    No hay ninguna opción con ese nombre. Revise cómo se escribe.
+  </p>
+} @else if (abierto() && sinHistorial()) {
+  <!-- La primera vez no hay nada que sugerir, y un desplegable vacio sin explicacion parece roto. -->
+  <p class="mt-1 text-neutral-700">Escriba para buscar; después se ofrecerá lo ya usado.</p>
+} @else if (!opciones().length && avisoSinCatalogo()) {
+  <p class="mt-1 text-neutral-700">{{ avisoSinCatalogo() }}</p>
+}

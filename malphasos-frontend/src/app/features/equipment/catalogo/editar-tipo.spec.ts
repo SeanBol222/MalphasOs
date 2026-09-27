@@ -4,6 +4,7 @@ import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { asentar, responderA } from '../../../../testing/pantalla';
+import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
 import { ID_TIPO, TIPOS, URL_TIPOS } from '../../../../testing/catalogo';
 import { EditarTipo } from './editar-tipo';
 
@@ -16,7 +17,10 @@ describe('Edicion de un tipo de equipo', () => {
   let fixture: ComponentFixture<EditarTipo>;
   let http: HttpTestingController;
 
+  let desinstalarAlmacenamiento: () => void;
+
   beforeEach(() => {
+    desinstalarAlmacenamiento = instalarAlmacenamiento();
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -33,6 +37,8 @@ describe('Edicion de un tipo de equipo', () => {
   async function abrir(): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, URL, TIPOS[0]);
+    // Y la lista de tipos, de la que salen las sugerencias de tecnología.
+    await responderA(fixture, http, URL_TIPOS, TIPOS);
   }
 
   it('llega con la ficha tecnica ya puesta', async () => {
@@ -78,5 +84,8 @@ describe('Edicion de un tipo de equipo', () => {
     expect(TestBed.inject(Router).url).toBe('/catalogo');
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    desinstalarAlmacenamiento();
+  });
 });

@@ -3,7 +3,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
-import { asentar, atenderRefresco, responderA } from '../../../../testing/pantalla';
+import {
+  asentar,
+  atenderRefresco,
+  escribirEnBuscador,
+  responderA,
+  sugerenciasDe,
+} from '../../../../testing/pantalla';
 import { EditarSede } from './editar-sede';
 
 const ID = 's1';
@@ -72,22 +78,17 @@ describe('Edicion de una sede', () => {
     await abrir();
 
     expect(raiz().querySelector<HTMLInputElement>('#nombre')!.value).toBe('Sede Norte');
-    expect(raiz().querySelector<HTMLSelectElement>('#idCiudad')!.value).toBe(ID_CIUDAD);
+    expect(raiz().querySelector<HTMLInputElement>('#idCiudad')!.value).toBe('Bogotá');
     expect(raiz().querySelector<HTMLInputElement>('#calle')!.value).toBe('100');
   });
 
-  it('ofrece todas las ciudades y no solo las del pais: corregir una mal elegida es el caso', async () => {
+  it('busca en todas las ciudades y no solo en las del pais: corregir una mal elegida es el caso', async () => {
     // Al dar de alta se recortan por el pais del cliente; aqui el cliente no se consulta, y recortar
     // con un dato que no se tiene esconderia justo la ciudad correcta.
     await abrir();
+    await escribirEnBuscador(fixture, 'idCiudad', 'li');
 
-    const opciones = [...raiz().querySelectorAll<HTMLOptionElement>('#idCiudad option')];
-
-    expect(opciones.map((o) => o.textContent?.trim())).toEqual([
-      'Elija una ciudad',
-      'Bogotá',
-      'Lima',
-    ]);
+    expect(sugerenciasDe(fixture, 'idCiudad')).toEqual(['Lima']);
   });
 
   it('manda un PATCH con los cinco campos que el contrato admite', async () => {

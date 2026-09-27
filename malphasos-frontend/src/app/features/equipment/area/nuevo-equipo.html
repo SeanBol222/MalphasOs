@@ -1,9 +1,13 @@
 <h1 class="text-2xl font-bold">Registrar equipo</h1>
-@if (area.data(); as datos) {
+@if (areaFijada() && area.data(); as datos) {
   <p class="text-neutral-700">en el área {{ datos.nombre }}</p>
 }
 
 <form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+
+  <p class="mb-3 text-neutral-700">
+    Los campos marcados con <span class="text-accent-700" aria-hidden="true">*</span> son obligatorios.
+  </p>
   @if (mensajeDeError()) {
     <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
       <p class="font-semibold">{{ mensajeDeError() }}</p>
@@ -25,10 +29,66 @@
     <div class="mb-3 border-l-2 border-ink bg-neutral-200 p-2">
       <p class="font-semibold">No hay modelos en el catálogo.</p>
       <p>
-        Un equipo se registra sobre un modelo, y un modelo necesita una marca, un tipo, su combinación
-        y un fabricante.
-        <a class="font-semibold underline" routerLink="/catalogo">Complete el catálogo</a> y vuelva.
+        Un equipo se registra sobre un modelo, y un modelo necesita un tipo, una marca y un fabricante.
+        Créelo aquí mismo con el botón de abajo, o gestione el
+        <a class="font-semibold underline" routerLink="/catalogo">catálogo completo</a>.
       </p>
+    </div>
+  }
+
+  @if (!areaFijada()) {
+    <h2 class="mb-1 text-xl font-bold">Dónde se instala</h2>
+    <p class="mb-2 text-neutral-700">
+      Un equipo vive en un área de servicio de una sede. Solo se ofrecen las abiertas.
+    </p>
+
+    <div class="mb-3">
+      <label class="block font-semibold" for="idCliente">Cliente</label>
+      <select
+        id="idCliente"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="idCliente"
+        (change)="clienteCambio()"
+      >
+        <option value="">Elija un cliente</option>
+        @for (cliente of clientes.data(); track cliente.id) {
+          <option [value]="cliente.id">{{ cliente.razonSocial }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="block font-semibold" for="idSede">Sede</label>
+      <select
+        id="idSede"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="idSede"
+        (change)="sedeCambio()"
+      >
+        <option value="">Elija una sede</option>
+        @for (sede of sedesAbiertas(); track sede.id) {
+          <option [value]="sede.id">{{ sede.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="block font-semibold" for="idAreaElegida">Área de servicio <span class="text-accent-700" aria-hidden="true">*</span></label>
+      <select
+        id="idAreaElegida"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="idAreaElegida"
+        [attr.aria-invalid]="sinDestino() && formulario.touched ? 'true' : null"
+      aria-required="true"
+      >
+        <option value="">Elija un área</option>
+        @for (area of areasAbiertas(); track area.id) {
+          <option [value]="area.id">{{ area.nombre }}</option>
+        }
+      </select>
+      @if (sinDestino() && formulario.touched) {
+        <p class="mt-1 font-semibold text-accent-700">Elija el área en la que se instala.</p>
+      }
     </div>
   }
 
@@ -51,10 +111,26 @@
         Elija el modelo del equipo.
       </p>
     }
+
+    @if (!creandoModelo()) {
+      <button
+        class="mt-1 min-h-tactil px-1 font-semibold underline"
+        type="button"
+        (click)="creandoModelo.set(true)"
+      >
+        El modelo no está en la lista: crearlo aquí
+      </button>
+    }
   </div>
 
+  @if (creandoModelo()) {
+    <div class="mb-3">
+      <app-panel-de-modelo (creado)="usarModelo($event)" (cancelado)="creandoModelo.set(false)" />
+    </div>
+  }
+
   <div class="mb-3">
-    <label class="block font-semibold" for="serie">Serie</label>
+    <label class="block font-semibold" for="serie">Serie <span class="text-accent-700" aria-hidden="true">*</span></label>
     <input
       id="serie"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -62,6 +138,7 @@
       maxlength="50"
       [attr.aria-invalid]="malo('serie') || null"
       [attr.aria-describedby]="malo('serie') ? 'serie-error' : null"
+      aria-required="true"
     />
     @if (malo('serie')) {
       <p class="mt-1 font-semibold text-accent-700" id="serie-error">
@@ -117,7 +194,7 @@
 
     <a
       class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold"
-      [routerLink]="['/areas', id()]"
+      [routerLink]="areaFijada() ? ['/areas', id()] : ['/equipos']"
     >
       Cancelar
     </a>

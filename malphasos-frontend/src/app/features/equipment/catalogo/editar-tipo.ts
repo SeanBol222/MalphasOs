@@ -3,6 +3,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
+import { Buscador } from '../../../shared/buscador/buscador';
+import { tecnologiasAutorizadas } from './tecnologias';
 
 /**
  * Edicion de un tipo de equipo.
@@ -13,7 +15,7 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-editar-tipo',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Buscador],
   templateUrl: './editar-tipo.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -24,6 +26,11 @@ export class EditarTipo {
   private readonly router = inject(Router);
 
   protected readonly tipo = this.api.detalleTipo(this.id);
+
+  /** Las mismas autorizadas que en el alta, y por el mismo motivo. */
+  protected readonly tecnologias = computed(() => tecnologiasAutorizadas(this.tipos.data()));
+
+  private readonly tipos = this.api.listarTipos();
   protected readonly cambio = this.api.editarTipo();
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({

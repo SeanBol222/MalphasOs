@@ -48,6 +48,8 @@ export class SedeApi {
       queryKey: SedeApi.claveDeCliente(idCliente()),
       queryFn: () =>
         firstValueFrom(this.http.get<Sede[]>(`${this.urlClientes}/${idCliente()}/headquarters`)),
+      // Igual que en las areas: sin cliente elegido no hay nada que pedir.
+      enabled: !!idCliente(),
     }));
   }
 

@@ -1,6 +1,10 @@
 <h1 class="text-2xl font-bold">Editar tipo de equipo</h1>
 
 <form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+
+  <p class="mb-3 text-neutral-700">
+    Los campos marcados con <span class="text-accent-700" aria-hidden="true">*</span> son obligatorios.
+  </p>
   @if (mensajeDeError()) {
     <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
       <p class="font-semibold">{{ mensajeDeError() }}</p>
@@ -15,29 +19,34 @@
   }
 
   <div class="mb-3">
-    <label class="block font-semibold" for="nombre">Nombre</label>
+    <label class="block font-semibold" for="nombre">Nombre <span class="text-accent-700" aria-hidden="true">*</span></label>
     <input
       id="nombre"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
       formControlName="nombre"
       maxlength="50"
       [attr.aria-invalid]="malo('nombre') || null"
+      aria-required="true"
     />
   </div>
 
   <div class="mb-3">
-    <label class="block font-semibold" for="tecnologiaPredominante">Tecnología predominante</label>
-    <input
-      id="tecnologiaPredominante"
-      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+    <!--
+      Lista cerrada: solo se admite una tecnologia autorizada. El truco es que el identificador de cada
+      opcion ES su nombre -el backend guarda texto-, de modo que el formulario sigue enviando la
+      tecnologia tal cual y a la vez rechaza lo que no este en la lista.
+    -->
+    <app-buscador
       formControlName="tecnologiaPredominante"
-      maxlength="50"
-      [attr.aria-invalid]="malo('tecnologiaPredominante') || null"
+      campo="tecnologiaPredominante"
+      etiqueta="Tecnología predominante"
+      historial="tecnologia"
+      [opciones]="tecnologias()"
     />
   </div>
 
   <div class="mb-3">
-    <label class="block font-semibold" for="definicionTecnica">Definición técnica</label>
+    <label class="block font-semibold" for="definicionTecnica">Definición técnica <span class="text-accent-700" aria-hidden="true">*</span></label>
     <textarea
       id="definicionTecnica"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -45,11 +54,12 @@
       formControlName="definicionTecnica"
       maxlength="250"
       [attr.aria-invalid]="malo('definicionTecnica') || null"
+      aria-required="true"
     ></textarea>
   </div>
 
   <div class="mb-3">
-    <label class="block font-semibold" for="recomendacionesCuidado">Recomendaciones de cuidado</label>
+    <label class="block font-semibold" for="recomendacionesCuidado">Recomendaciones de cuidado <span class="text-accent-700" aria-hidden="true">*</span></label>
     <textarea
       id="recomendacionesCuidado"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -57,6 +67,7 @@
       formControlName="recomendacionesCuidado"
       maxlength="250"
       [attr.aria-invalid]="malo('recomendacionesCuidado') || null"
+      aria-required="true"
     ></textarea>
   </div>
 

@@ -4,6 +4,10 @@
 }
 
 <form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+
+  <p class="mb-3 text-neutral-700">
+    Los campos marcados con <span class="text-accent-700" aria-hidden="true">*</span> son obligatorios.
+  </p>
   @if (mensajeDeError()) {
     <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
       <p class="font-semibold">{{ mensajeDeError() }}</p>
@@ -23,13 +27,14 @@
   </p>
 
   <div class="mb-3">
-    <label class="block font-semibold" for="asignacion">A cargo de</label>
+    <label class="block font-semibold" for="asignacion">A cargo de <span class="text-accent-700" aria-hidden="true">*</span></label>
     <select
       id="asignacion"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
       formControlName="asignacion"
       [attr.aria-invalid]="malo('asignacion') || null"
       [attr.aria-describedby]="malo('asignacion') ? 'asignacion-error' : null"
+      aria-required="true"
     >
       <option value="">Elija la sede o un área</option>
       @for (opcion of asignaciones(); track opcion.valor) {
@@ -44,7 +49,7 @@
   </div>
 
   <div class="mb-3">
-    <label class="block font-semibold" for="cedula">Cédula</label>
+    <label class="block font-semibold" for="cedula">Cédula <span class="text-accent-700" aria-hidden="true">*</span></label>
     <input
       id="cedula"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -53,6 +58,7 @@
       maxlength="11"
       [attr.aria-invalid]="malo('cedula') || null"
       [attr.aria-describedby]="malo('cedula') ? 'cedula-error' : null"
+      aria-required="true"
     />
     @if (malo('cedula')) {
       <p class="mt-1 font-semibold text-accent-700" id="cedula-error">
@@ -63,12 +69,13 @@
 
   <div class="mb-3 grid gap-3 sm:grid-cols-2">
     <div>
-      <label class="block font-semibold" for="primerNombre">Primer nombre</label>
+      <label class="block font-semibold" for="primerNombre">Primer nombre <span class="text-accent-700" aria-hidden="true">*</span></label>
       <input
         id="primerNombre"
         class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
         formControlName="primerNombre"
         [attr.aria-invalid]="malo('primerNombre') || null"
+      aria-required="true"
       />
     </div>
     <div>
@@ -80,12 +87,13 @@
       />
     </div>
     <div>
-      <label class="block font-semibold" for="primerApellido">Primer apellido</label>
+      <label class="block font-semibold" for="primerApellido">Primer apellido <span class="text-accent-700" aria-hidden="true">*</span></label>
       <input
         id="primerApellido"
         class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
         formControlName="primerApellido"
         [attr.aria-invalid]="malo('primerApellido') || null"
+      aria-required="true"
       />
     </div>
     <div>
@@ -104,7 +112,7 @@
   }
 
   <div class="mb-3">
-    <label class="block font-semibold" for="correo">Correo</label>
+    <label class="block font-semibold" for="correo">Correo <span class="text-accent-700" aria-hidden="true">*</span></label>
     <input
       id="correo"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
@@ -113,6 +121,7 @@
       formControlName="correo"
       [attr.aria-invalid]="malo('correo') || null"
       [attr.aria-describedby]="malo('correo') ? 'correo-error' : null"
+      aria-required="true"
     />
     @if (malo('correo')) {
       <p class="mt-1 font-semibold text-accent-700" id="correo-error">
@@ -129,7 +138,6 @@
       inputmode="tel"
       formControlName="telefono"
     />
-    <p class="mt-1 text-neutral-700">Opcional.</p>
   </div>
 
   <div class="flex gap-2">
