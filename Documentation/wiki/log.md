@@ -39,3 +39,17 @@ No se modificó ningún `.tex` ni ningún archivo de `SecondBrain/` o `malphasos
 **Corregido además el `CLAUDE.md` de este directorio**, que mandaba trabajar en un worktree sobre la rama `MalphasOS-Documentation`. Ni la rama ni el worktree existen desde el 2026-09-12.
 
 **Tocadas**: [[paleta-de-colores]] (reescrita), `index.md`, `CLAUDE.md`. **Nuevas**: [[declaracion-diseno-frontend]], [[manual-de-marca]].
+
+## [2026-09-27] ingest | Tres notas de requisitos caducadas, y la cifra agregada corregida de 8 a 16
+
+**Esta wiki llevaba tres semanas diciendo cosas falsas, y el aviso para evitarlo estaba escrito dentro de la nota que falló.** [[estado-de-implementacion]] daba **8 de 31** requisitos funcionales, medidos el 2026-09-05. Dejó de ser cierto el **2026-09-13** con el módulo de órdenes de trabajo, otra vez el **2026-09-27** con sus cuatro pantallas, y una tercera ese mismo día con los reportes de servicio. La cifra correcta, recontada contra el código y los commits, es **16**.
+
+**Lo que falló no fue la regla, fue el sitio donde estaba escrita.** La nota termina con un apartado —«antes de citar una cifra de estado»— que dice exactamente lo que había que hacer. No sirvió de nada: quien construye no abre la nota que no está buscando. Lo que sí funcionó fue el contador paralelo de `SecondBrain/wiki/malphasos/hoja-de-ruta-producto.md`, que se actualizó **en la misma sesión** de cada tanda. **Dos contadores de lo mismo en dos wikis** es la causa de fondo, y queda anotada en la propia nota.
+
+**Corregidas también las dos notas de categoría que lo decían en primera línea**: [[rf-ordenes-trabajo]] afirmaba que «ninguno de los siete requisitos tiene implementación», y [[rf-reportes-mantenimiento]] que «ninguno implementado: el reporte de mantenimiento no existe como entidad del sistema». Las dos evidencias citaban además «las cinco migraciones (`V1` a `V5`)», que hoy son nueve.
+
+**Dos desviaciones quedan registradas como tales, y no como implementadas**: **RF-04** —la pantalla no pide elegir áreas antes de mostrar sus equipos— y **RF-11** —el backend hace imposible teclear los datos de la orden, pero «mostrarlos» es una pantalla que no existe—. Es la regla de [[regla-implementado-vs-previsto]] aplicada en contra del marcador, que es cuando de verdad sirve.
+
+**Y tres cosas que la implementación añadió y la ERS no pide**, anotadas en [[rf-reportes-mantenimiento]] para que el documento las recoja o las descarte: el **estado** del reporte —borrador y finalizado—, el **catálogo cerrado** del campo «resultado» —tres valores que la ERS no enumera— y las **lecturas de la verificación metrológica**, que la ERS solo menciona para decir que no son RF-15.
+
+**Tocadas**: [[estado-de-implementacion]], [[rf-ordenes-trabajo]], [[rf-reportes-mantenimiento]], `index.md`.
