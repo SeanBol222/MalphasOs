@@ -15,9 +15,9 @@ Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la no
 ## Requisitos
 
 - [[priorizacion-moscow]] — Las cuatro listas del apartado 3.5 de la ERS, con sus 18 códigos inexistentes y 10 requisitos reales sin clasificar.
-- [[rf-ordenes-trabajo]] — RF-01 a RF-07 (3.2.1). Previstos en su totalidad.
+- [[rf-ordenes-trabajo]] — RF-01 a RF-07 (3.2.1). **Seis implementados** entre el 2026-09-13 y el 2026-09-27, y **RF-04 como desviación consciente**. (Decía «previstos en su totalidad»: cierto hasta el 2026-09-13.)
 - [[rf-clientes]] — RF-08 (3.2.2). El único de su categoría; implementado.
-- [[rf-reportes-mantenimiento]] — RF-09 a RF-17 (3.2.3). Previstos en su totalidad.
+- [[rf-reportes-mantenimiento]] — RF-09 a RF-17 (3.2.3). **RF-09 y RF-15 implementados** el 2026-09-27; RF-11 espera pantalla y RF-13 los protocolos de RF-14. (Decía «previstos en su totalidad»: cierto hasta ese día.)
 - [[rf-firma-digital]] — RF-18, RF-21 (3.2.4). Previstos.
 - [[rf-hojas-vida]] — RF-22 a RF-27 (3.2.5). Dos implementados, dos previstos.
 - [[rf-inventario]] — RF-36, RF-37 (3.2.6). Previstos, Won't Have.
@@ -26,7 +26,7 @@ Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la no
 - [[rf-usuarios-seguridad]] — RF-49 a RF-53 (3.2.9). Los cinco implementados, ninguno con objetivo que lo justifique.
 - [[requisitos-no-funcionales]] ⭐ — Los 23 RNF de 3.3 y 3.8. Solo uno implementado (RNF-23, JWT).
 - [[requisitos-de-dominio]] — RD-01 a RD-07 (sin RD-02). Los seis sin enunciado propio.
-- [[estado-de-implementacion]] ⭐ — La cifra agregada (8/31, 1/23) con su evidencia, y cómo se verificó.
+- [[estado-de-implementacion]] ⭐ — La cifra agregada (**16**/31, 1/23) con su evidencia, cómo se verificó y **por qué estuvo tres semanas caducada en 8**.
 
 ## Glosario
 
@@ -56,4 +56,4 @@ Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la no
 
 ---
 
-**27 notas de contenido** más `CLAUDE.md` y `log.md` · última actualización 2026-09-13 · ver [[log.md]] para el historial.
+**27 notas de contenido** más `CLAUDE.md` y `log.md` · última actualización 2026-09-27 · ver [[log.md]] para el historial.
