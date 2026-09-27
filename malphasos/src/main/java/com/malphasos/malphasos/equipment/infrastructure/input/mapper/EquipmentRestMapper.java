@@ -10,6 +10,7 @@ import com.malphasos.malphasos.equipment.infrastructure.input.model.response.Bra
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ClientEquipmentResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentTypeResponse;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.VerificationPointResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ManufacturerResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ModelResponse;
 import java.util.List;
@@ -52,6 +53,13 @@ public class EquipmentRestMapper {
                 .amperaje(tipo.getAmperaje())
                 .verificable(tipo.isVerificable())
                 .modalidadVerificacion(tipo.getModalidadVerificacion())
+                .cantidadDatos(tipo.getCantidadDatos())
+                // Solo los activos: los retirados se guardan por los reportes que se hicieron con
+                // ellos, y devolverlos los pondria a competir con los de ahora.
+                .puntosVerificacion(tipo.puntosActivos().stream()
+                        .map(punto -> new VerificationPointResponse(
+                                punto.id(), punto.valor(), punto.unidad()))
+                        .toList())
                 .valorUnitarioMantenimiento(tipo.getValorUnitarioMantenimiento())
                 .estadoActivo(tipo.isEstadoActivo())
                 .build();

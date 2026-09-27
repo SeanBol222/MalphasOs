@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -9,6 +10,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChangeVerificationModeCommand;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.request.VerificationPointRequest;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.equipment.application.ports.input.*;
@@ -17,6 +20,7 @@ import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.*;
@@ -53,8 +57,15 @@ class EquipmentRestAdapterTest {
     @MockitoBean private ClientEquipmentServicePort clientEquipmentServicePort;
 
     private EquipmentType unTipo(VerificationMode modalidad) {
+        // Las modalidades constantes traen su cantidad y sus puntos; las demas, ninguno de los dos.
+        boolean constante = modalidad == VerificationMode.PATRON_CONSTANTE
+                || modalidad == VerificationMode.EQUIPO_CONSTANTE;
+
         return EquipmentType.rehydrate(UUID.randomUUID(), "Monitor", "Def", "Cuid", "Electronica",
-                110, new BigDecimal("2.50"), modalidad, 150_000L, true);
+                110, new BigDecimal("2.50"), modalidad,
+                constante ? 3 : null,
+                constante ? List.of(VerificationPoint.of(new BigDecimal("100"), "mmHg")) : List.of(),
+                150_000L, true);
     }
 
     @Test
@@ -105,6 +116,67 @@ class EquipmentRestAdapterTest {
     }
 
     @Test
+    @DisplayName("la ruta de la modalidad lleva tambien la cantidad y los puntos")
+    void modalidadConCantidadYPuntos() throws Exception {
+        // Los tres datos viajan juntos a proposito: por separado existiria el instante en que un tipo
+        // dice verificarse contra un patron constante sin decir contra que valor.
+        UUID id = UUID.randomUUID();
+        ArgumentCaptor<ChangeVerificationModeCommand> comando =
+                ArgumentCaptor.forClass(ChangeVerificationModeCommand.class);
+        when(equipmentTypeServicePort.changeVerificationMode(any()))
+                .thenReturn(unTipo(VerificationMode.PATRON_CONSTANTE));
+
+        mockMvc.perform(patch("/v1/api/equipment-types/" + id + "/verification-mode")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(new VerificationModeRequest(
+                                VerificationMode.PATRON_CONSTANTE,
+                                5,
+                                List.of(new VerificationPointRequest(new BigDecimal("100"), "mmHg"),
+                                        new VerificationPointRequest(new BigDecimal("-20"), "°C"))))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cantidadDatos").value(3))
+                .andExpect(jsonPath("$.puntosVerificacion[0].unidad").value("mmHg"));
+
+        verify(equipmentTypeServicePort).changeVerificationMode(comando.capture());
+        assertThat(comando.getValue().cantidadDatos()).isEqualTo(5);
+        assertThat(comando.getValue().puntosVerificacion()).hasSize(2);
+        assertThat(comando.getValue().puntosVerificacion().getFirst().unidad()).isEqualTo("mmHg");
+    }
+
+    @Test
+    @DisplayName("un punto sin unidad no llega al servicio")
+    void puntoSinUnidadSeRechaza() {
+        // La validacion del cuerpo corre antes que el servicio, de modo que esto ni se intenta: es lo
+        // que evita un 500 por una unidad en blanco.
+        assertThatCode(() -> mockMvc.perform(patch("/v1/api/equipment-types/" + UUID.randomUUID()
+                                + "/verification-mode")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(jsonMapper.writeValueAsString(new VerificationModeRequest(
+                                        VerificationMode.PATRON_CONSTANTE,
+                                        3,
+                                        List.of(new VerificationPointRequest(
+                                                new BigDecimal("100"), "  "))))))
+                        .andExpect(status().isBadRequest()))
+                .doesNotThrowAnyException();
+
+        verify(equipmentTypeServicePort, never()).changeVerificationMode(any());
+    }
+
+    @Test
+    @DisplayName("una cantidad de lecturas fuera de rango se rechaza sin llegar al servicio")
+    void cantidadFueraDeRango() {
+        assertThatCode(() -> mockMvc.perform(patch("/v1/api/equipment-types/" + UUID.randomUUID()
+                                + "/verification-mode")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(jsonMapper.writeValueAsString(new VerificationModeRequest(
+                                        VerificationMode.PATRON_CONSTANTE, 0, List.of()))))
+                        .andExpect(status().isBadRequest()))
+                .doesNotThrowAnyException();
+
+        verify(equipmentTypeServicePort, never()).changeVerificationMode(any());
+    }
+
+    @Test
     @DisplayName("la modalidad tiene ruta propia, y quitarla revierte el tipo")
     void quitarModalidad() throws Exception {
         UUID id = UUID.randomUUID();
@@ -112,7 +184,7 @@ class EquipmentRestAdapterTest {
 
         mockMvc.perform(patch("/v1/api/equipment-types/" + id + "/verification-mode")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(new VerificationModeRequest(null))))
+                        .content(jsonMapper.writeValueAsString(new VerificationModeRequest(null, null, List.of()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verificable").value(false));
     }
@@ -123,7 +195,8 @@ class EquipmentRestAdapterTest {
         mockMvc.perform(post("/v1/api/equipment-types")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new EquipmentTypeCreateRequest(
-                                "Monitor", "Def", "Cuid", "Electronica", null, null, null, -1L))))
+                                "Monitor", "Def", "Cuid", "Electronica", null, null, null, null,
+                                List.of(), -1L))))
                 .andExpect(status().isBadRequest());
 
         verify(equipmentTypeServicePort, never()).create(any());

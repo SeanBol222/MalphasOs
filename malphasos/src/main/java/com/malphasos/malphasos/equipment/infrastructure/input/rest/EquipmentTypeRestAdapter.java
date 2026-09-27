@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.infrastructure.input.rest;
 
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChangeVerificationModeCommand;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.VerificationPointCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeactivateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.UpdateEquipmentTypeCommand;
@@ -9,6 +10,7 @@ import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRe
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.EquipmentTypeCreateRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.EquipmentTypeUpdateRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.VerificationModeRequest;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.request.VerificationPointRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentTypeResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -66,6 +68,8 @@ public class EquipmentTypeRestAdapter {
                         request.voltaje(),
                         request.amperaje(),
                         request.modalidadVerificacion(),
+                        request.cantidadDatos(),
+                        puntosDe(request.puntosVerificacion()),
                         request.valorUnitarioMantenimiento())));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
@@ -97,7 +101,20 @@ public class EquipmentTypeRestAdapter {
             @PathVariable UUID id, @Valid @RequestBody VerificationModeRequest request) {
 
         return mapper.toResponse(equipmentTypeServicePort.changeVerificationMode(
-                new ChangeVerificationModeCommand(id, request.modalidad())));
+                new ChangeVerificationModeCommand(
+                        id,
+                        request.modalidad(),
+                        request.cantidadDatos(),
+                        puntosDe(request.puntosVerificacion()))));
+    }
+
+    /** Traduce los puntos del cuerpo a comandos. Una lista ausente es una lista vacia, no un nulo. */
+    private List<VerificationPointCommand> puntosDe(List<VerificationPointRequest> puntos) {
+        return puntos == null
+                ? List.of()
+                : puntos.stream()
+                        .map(punto -> new VerificationPointCommand(punto.valor(), punto.unidad()))
+                        .toList();
     }
 
     @Operation(summary = "Retirar un tipo de equipo", description = "No lo borra: lo deja inactivo.")

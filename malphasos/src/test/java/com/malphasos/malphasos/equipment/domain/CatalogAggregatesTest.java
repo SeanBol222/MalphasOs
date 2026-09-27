@@ -11,9 +11,11 @@ import com.malphasos.malphasos.equipment.domain.clientEquipment.events.ClientEqu
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.manufacturer.Manufacturer;
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import java.math.BigDecimal;
+import java.util.List;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -34,8 +36,15 @@ class CatalogAggregatesTest {
     private static final UUID AREA = UUID.randomUUID();
 
     private EquipmentType unTipo(VerificationMode modalidad) {
+        // Las modalidades constantes exigen cantidad y al menos un punto; la variable no los admite.
+        boolean constante = modalidad == VerificationMode.PATRON_CONSTANTE
+                || modalidad == VerificationMode.EQUIPO_CONSTANTE;
+
         return EquipmentType.create("Monitor", "Definicion", "Cuidados", "Electronica",
-                110, new BigDecimal("2.50"), modalidad, 150_000L);
+                110, new BigDecimal("2.50"), modalidad,
+                constante ? 3 : null,
+                constante ? List.of(VerificationPoint.of(new BigDecimal("100"), "mmHg")) : List.of(),
+                150_000L);
     }
 
     @Nested
@@ -100,11 +109,11 @@ class CatalogAggregatesTest {
             EquipmentType tipo = unTipo(null);
             tipo.pullEvents();
 
-            tipo.changeVerificationMode(VerificationMode.EQUIPO_CONSTANTE);
+            tipo.changeVerificationMode(VerificationMode.EQUIPO_CONSTANTE, 3, List.of(VerificationPoint.of(new BigDecimal("100"), "mmHg")));
             assertThat(tipo.isVerificable()).isTrue();
             assertThat(tipo.pullEvents()).hasSize(1);
 
-            tipo.changeVerificationMode(null);
+            tipo.changeVerificationMode(null, null, List.of());
             assertThat(tipo.isVerificable()).isFalse();
             assertThat(tipo.pullEvents()).hasSize(1);
         }
@@ -115,7 +124,7 @@ class CatalogAggregatesTest {
             EquipmentType tipo = unTipo(VerificationMode.PATRON_CONSTANTE);
             tipo.pullEvents();
 
-            tipo.changeVerificationMode(VerificationMode.PATRON_CONSTANTE);
+            tipo.changeVerificationMode(VerificationMode.PATRON_CONSTANTE, 3, List.of(VerificationPoint.of(new BigDecimal("100"), "mmHg")));
 
             assertThat(tipo.pullEvents()).isEmpty();
         }
@@ -131,12 +140,12 @@ class CatalogAggregatesTest {
         @DisplayName("voltaje y amperaje, si vienen, son positivos")
         void magnitudesPositivas() {
             assertThatThrownBy(() -> EquipmentType.create("M", "D", "C", "E",
-                            0, null, null, 1000L))
+                            0, null, null, null, List.of(), 1000L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("voltaje");
 
             assertThatThrownBy(() -> EquipmentType.create("M", "D", "C", "E",
-                            110, new BigDecimal("-1"), null, 1000L))
+                            110, new BigDecimal("-1"), null, null, List.of(), 1000L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("amperaje");
         }
@@ -144,7 +153,7 @@ class CatalogAggregatesTest {
         @Test
         @DisplayName("el valor del mantenimiento no puede ser negativo")
         void valorNoNegativo() {
-            assertThatThrownBy(() -> EquipmentType.create("M", "D", "C", "E", null, null, null, -1L))
+            assertThatThrownBy(() -> EquipmentType.create("M", "D", "C", "E", null, null, null, null, List.of(), -1L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("negativo");
         }
@@ -152,10 +161,177 @@ class CatalogAggregatesTest {
         @Test
         @DisplayName("los cuatro textos descriptivos son obligatorios")
         void textosObligatorios() {
-            assertThatThrownBy(() -> EquipmentType.create(" ", "D", "C", "E", null, null, null, 0L))
+            assertThatThrownBy(() -> EquipmentType.create(" ", "D", "C", "E", null, null, null, null, List.of(), 0L))
                     .isInstanceOf(IllegalArgumentException.class);
-            assertThatThrownBy(() -> EquipmentType.create("M", " ", "C", "E", null, null, null, 0L))
+            assertThatThrownBy(() -> EquipmentType.create("M", " ", "C", "E", null, null, null, null, List.of(), 0L))
                     .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Nested
+        @DisplayName("Con que y cuantas veces se verifica")
+        class Verificacion {
+
+            private EquipmentType conModalidad(
+                    VerificationMode modalidad, Integer cantidad, List<VerificationPoint> puntos) {
+
+                return EquipmentType.create("Monitor", "D", "C", "E", null, null, modalidad,
+                        cantidad, puntos, 1000L);
+            }
+
+            private VerificationPoint punto(String valor) {
+                return VerificationPoint.of(new BigDecimal(valor), "mmHg");
+            }
+
+            @Test
+            @DisplayName("una modalidad constante exige cuantas lecturas y al menos un punto")
+            void constanteExigeAmbos() {
+                // Son los dos datos que hacen falta para llenar el reporte: sin ellos, el tipo dice
+                // como se verifica y no con que.
+                assertThatThrownBy(() -> conModalidad(
+                                VerificationMode.PATRON_CONSTANTE, null, List.of(punto("100"))))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("lecturas por punto");
+
+                assertThatThrownBy(() -> conModalidad(
+                                VerificationMode.EQUIPO_CONSTANTE, 3, List.of()))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("al menos un punto");
+            }
+
+            @Test
+            @DisplayName("la cantidad de lecturas va de 1 a 100")
+            void cantidadAcotada() {
+                for (Integer cantidad : new Integer[] {0, 101}) {
+                    assertThatThrownBy(() -> conModalidad(
+                                    VerificationMode.PATRON_CONSTANTE, cantidad, List.of(punto("100"))))
+                            .describedAs("cantidad " + cantidad)
+                            .isInstanceOf(IllegalArgumentException.class);
+                }
+            }
+
+            @Test
+            @DisplayName("la modalidad variable no admite ni cantidad ni puntos")
+            void variableNoAdmiteNinguno() {
+                // Cuantas lecturas tomar lo decide el ingeniero en campo, y no hay nada constante que
+                // declarar: los dos campos serian un dato que nadie puede cumplir.
+                assertThatThrownBy(() -> conModalidad(
+                                VerificationMode.PATRON_EQUIPO_VARIABLE, 3, List.of()))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("modalidades constantes");
+
+                assertThatThrownBy(() -> conModalidad(
+                                VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of(punto("100"))))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("puntos de verificacion");
+            }
+
+            @Test
+            @DisplayName("un tipo que no se verifica tampoco los admite")
+            void sinModalidadNoAdmiteNinguno() {
+                assertThatThrownBy(() -> conModalidad(null, 3, List.of()))
+                        .isInstanceOf(IllegalArgumentException.class);
+                assertThatThrownBy(() -> conModalidad(null, null, List.of(punto("100"))))
+                        .isInstanceOf(IllegalArgumentException.class);
+            }
+
+            @Test
+            @DisplayName("el mismo punto escrito distinto sigue siendo el mismo")
+            void puntoRepetido() {
+                // 100 y 100.0000 son el mismo punto, y equals de BigDecimal diria que no. Sin esto,
+                // el reporte tendria dos veces la misma medicion.
+                assertThatThrownBy(() -> conModalidad(VerificationMode.PATRON_CONSTANTE, 3,
+                                List.of(punto("100"), punto("100.0000"))))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("dos veces");
+            }
+
+            @Test
+            @DisplayName("un punto negativo vale: un congelador se verifica a -20 grados")
+            void puntoNegativo() {
+                EquipmentType tipo = conModalidad(VerificationMode.EQUIPO_CONSTANTE, 5,
+                        List.of(VerificationPoint.of(new BigDecimal("-20"), "°C")));
+
+                assertThat(tipo.puntosActivos()).hasSize(1);
+                assertThat(tipo.puntosActivos().getFirst().valor()).isEqualByComparingTo("-20");
+            }
+
+            @Test
+            @DisplayName("un punto sin unidad no dice nada, y se rechaza")
+            void puntoSinUnidad() {
+                assertThatThrownBy(() -> VerificationPoint.of(new BigDecimal("100"), "  "))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("unidad");
+            }
+
+            @Test
+            @DisplayName("los puntos se recorren ordenados por valor")
+            void puntosOrdenados() {
+                EquipmentType tipo = conModalidad(VerificationMode.PATRON_CONSTANTE, 3,
+                        List.of(punto("150"), punto("50"), punto("100")));
+
+                assertThat(tipo.puntosActivos().stream().map(VerificationPoint::valor))
+                        .containsExactly(
+                                new BigDecimal("50.0000"),
+                                new BigDecimal("100.0000"),
+                                new BigDecimal("150.0000"));
+            }
+
+            @Test
+            @DisplayName("reconfigurar retira los puntos anteriores, no los borra")
+            void reconfigurarRetira() {
+                // Con los de antes se hicieron los reportes anteriores: tienen que seguir existiendo.
+                EquipmentType tipo = conModalidad(
+                        VerificationMode.PATRON_CONSTANTE, 3, List.of(punto("100")));
+
+                tipo.changeVerificationMode(
+                        VerificationMode.EQUIPO_CONSTANTE, 5, List.of(punto("200")));
+
+                assertThat(tipo.puntosActivos()).hasSize(1);
+                assertThat(tipo.puntosActivos().getFirst().valor()).isEqualByComparingTo("200");
+                assertThat(tipo.getPuntosVerificacion()).hasSize(2);
+                assertThat(tipo.getPuntosVerificacion().stream().filter(p -> !p.estadoActivo()))
+                        .hasSize(1);
+                assertThat(tipo.getCantidadDatos()).isEqualTo(5);
+            }
+
+            @Test
+            @DisplayName("dejar de verificarse retira la cantidad y los puntos")
+            void dejarDeVerificarse() {
+                EquipmentType tipo = conModalidad(
+                        VerificationMode.PATRON_CONSTANTE, 3, List.of(punto("100")));
+
+                tipo.changeVerificationMode(null, null, List.of());
+
+                assertThat(tipo.isVerificable()).isFalse();
+                assertThat(tipo.getCantidadDatos()).isNull();
+                assertThat(tipo.puntosActivos()).isEmpty();
+                // Pero el punto sigue en la lista, retirado.
+                assertThat(tipo.getPuntosVerificacion()).hasSize(1);
+            }
+
+            @Test
+            @DisplayName("una configuracion identica no emite evento")
+            void configuracionIdentica() {
+                // La convencion del proyecto: un cambio que no cambia nada no es un hecho del dominio.
+                EquipmentType tipo = conModalidad(
+                        VerificationMode.PATRON_CONSTANTE, 3, List.of(punto("100")));
+                tipo.pullEvents();
+
+                tipo.changeVerificationMode(
+                        VerificationMode.PATRON_CONSTANTE, 3, List.of(punto("100.0000")));
+
+                assertThat(tipo.pullEvents()).isEmpty();
+            }
+
+            @Test
+            @DisplayName("los puntos se entregan como copia inmutable")
+            void copiaInmutable() {
+                EquipmentType tipo = conModalidad(
+                        VerificationMode.PATRON_CONSTANTE, 3, List.of(punto("100")));
+
+                assertThatThrownBy(() -> tipo.getPuntosVerificacion().clear())
+                        .isInstanceOf(UnsupportedOperationException.class);
+            }
         }
     }
 

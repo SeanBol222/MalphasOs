@@ -156,6 +156,14 @@
           "amperaje" : {
             "type" : "number"
           },
+          "cantidadDatos" : {
+            "description" : "Lecturas que se toman EN CADA PUNTO. Solo con modalidad constante",
+            "example" : 3,
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          },
           "definicionTecnica" : {
             "maxLength" : 250,
             "minLength" : 0,
@@ -170,6 +178,13 @@
             "maxLength" : 50,
             "minLength" : 0,
             "type" : "string"
+          },
+          "puntosVerificacion" : {
+            "description" : "Valores constantes en los que se verifica. Solo con modalidad constante",
+            "items" : {
+              "$ref" : "#/components/schemas/VerificationPointRequest"
+            },
+            "type" : "array"
           },
           "recomendacionesCuidado" : {
             "maxLength" : 250,
@@ -198,6 +213,12 @@
           "amperaje" : {
             "type" : "number"
           },
+          "cantidadDatos" : {
+            "description" : "Lecturas por punto. Solo con modalidad constante",
+            "example" : 3,
+            "format" : "int32",
+            "type" : "integer"
+          },
           "definicionTecnica" : {
             "type" : "string"
           },
@@ -214,6 +235,12 @@
           },
           "nombre" : {
             "type" : "string"
+          },
+          "puntosVerificacion" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VerificationPointResponse"
+            },
+            "type" : "array"
           },
           "recomendacionesCuidado" : {
             "type" : "string"
@@ -392,10 +419,60 @@
       },
       "VerificationModeRequest" : {
         "properties" : {
+          "cantidadDatos" : {
+            "description" : "Lecturas que se toman EN CADA PUNTO. Solo con modalidad constante",
+            "example" : 3,
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          },
           "modalidad" : {
             "description" : "Ausente o nula significa que el tipo deja de verificarse",
             "enum" : [ "PATRON_CONSTANTE", "EQUIPO_CONSTANTE", "PATRON_EQUIPO_VARIABLE" ],
             "type" : "string"
+          },
+          "puntosVerificacion" : {
+            "description" : "Valores constantes en los que se verifica. Solo con modalidad constante",
+            "items" : {
+              "$ref" : "#/components/schemas/VerificationPointRequest"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "VerificationPointRequest" : {
+        "properties" : {
+          "unidad" : {
+            "example" : "mmHg",
+            "maxLength" : 20,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "valor" : {
+            "description" : "Valor en el que se mantiene lo constante. Admite negativos",
+            "example" : "100.0",
+            "type" : "number"
+          }
+        },
+        "required" : [ "unidad", "valor" ],
+        "type" : "object"
+      },
+      "VerificationPointResponse" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "unidad" : {
+            "example" : "mmHg",
+            "type" : "string"
+          },
+          "valor" : {
+            "description" : "Valor en el que se mantiene lo constante",
+            "example" : "100.0000",
+            "type" : "number"
           }
         },
         "type" : "object"

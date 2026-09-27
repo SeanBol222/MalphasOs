@@ -6,8 +6,10 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.manufacturer.Manufacturer;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,8 @@ import org.springframework.test.context.jdbc.Sql;
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @Sql(
-        statements = {"DELETE FROM marca", "DELETE FROM tipo_equipo", "DELETE FROM fabricante"},
+        statements = {"DELETE FROM marca", "DELETE FROM punto_verificacion",
+            "DELETE FROM tipo_equipo", "DELETE FROM fabricante"},
         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class EquipmentCatalogPersistenceTest {
 
@@ -37,8 +40,14 @@ class EquipmentCatalogPersistenceTest {
     }
 
     private EquipmentType unTipo(VerificationMode modalidad) {
+        boolean constante = modalidad == VerificationMode.PATRON_CONSTANTE
+                || modalidad == VerificationMode.EQUIPO_CONSTANTE;
+
         return EquipmentType.create("Tipo " + unico(), "Definicion", "Cuidados", "Electronica",
-                110, new BigDecimal("2.50"), modalidad, 150_000L);
+                110, new BigDecimal("2.50"), modalidad,
+                constante ? 3 : null,
+                constante ? List.of(VerificationPoint.of(new BigDecimal("100"), "mmHg")) : List.of(),
+                150_000L);
     }
 
     @Test
@@ -84,12 +93,64 @@ class EquipmentCatalogPersistenceTest {
     }
 
     @Test
+    @DisplayName("los puntos de verificacion van y vuelven, con su valor y su unidad")
+    void puntosPersisten() {
+        EquipmentType tipo = equipmentTypeAdapter.save(EquipmentType.create(
+                "Tipo " + unico(), "D", "C", "E", null, null, VerificationMode.PATRON_CONSTANTE,
+                5,
+                List.of(
+                        VerificationPoint.of(new BigDecimal("150"), "mmHg"),
+                        VerificationPoint.of(new BigDecimal("-20.5"), "°C")),
+                1000L));
+
+        EquipmentType recuperado = equipmentTypeAdapter.findById(tipo.getId()).orElseThrow();
+
+        assertThat(recuperado.getCantidadDatos()).isEqualTo(5);
+        // Ordenados por valor, y el negativo primero: un congelador se verifica bajo cero.
+        assertThat(recuperado.puntosActivos().stream().map(VerificationPoint::unidad))
+                .containsExactly("°C", "mmHg");
+        assertThat(recuperado.puntosActivos().getFirst().valor()).isEqualByComparingTo("-20.5");
+    }
+
+    @Test
+    @DisplayName("reconfigurar retira los puntos anteriores en la base, y se puede volver a ellos")
+    void puntosAnterioresQuedanRetirados() {
+        // Dos cosas de golpe, y la segunda es la que justifica que el indice de unicidad sea PARCIAL:
+        // volver a 100 mmHg cuando ya hay una fila retirada con ese mismo valor. Con una restriccion
+        // normal, reconfigurar hacia atras seria imposible.
+        EquipmentType tipo = equipmentTypeAdapter.save(EquipmentType.create(
+                "Tipo " + unico(), "D", "C", "E", null, null, VerificationMode.PATRON_CONSTANTE,
+                3, List.of(VerificationPoint.of(new BigDecimal("100"), "mmHg")), 1000L));
+
+        EquipmentType aDoscientos = equipmentTypeAdapter.findById(tipo.getId()).orElseThrow();
+        aDoscientos.changeVerificationMode(VerificationMode.PATRON_CONSTANTE, 3,
+                List.of(VerificationPoint.of(new BigDecimal("200"), "mmHg")));
+        equipmentTypeAdapter.save(aDoscientos);
+
+        EquipmentType conDoscientos = equipmentTypeAdapter.findById(tipo.getId()).orElseThrow();
+
+        assertThat(conDoscientos.puntosActivos()).hasSize(1);
+        assertThat(conDoscientos.puntosActivos().getFirst().valor()).isEqualByComparingTo("200");
+        // El de antes sigue en la base, retirado: con el se hicieron los reportes anteriores.
+        assertThat(conDoscientos.getPuntosVerificacion()).hasSize(2);
+
+        conDoscientos.changeVerificationMode(VerificationMode.PATRON_CONSTANTE, 3,
+                List.of(VerificationPoint.of(new BigDecimal("100"), "mmHg")));
+        equipmentTypeAdapter.save(conDoscientos);
+
+        EquipmentType deVuelta = equipmentTypeAdapter.findById(tipo.getId()).orElseThrow();
+
+        assertThat(deVuelta.puntosActivos().getFirst().valor()).isEqualByComparingTo("100");
+        assertThat(deVuelta.getPuntosVerificacion()).hasSize(3);
+    }
+
+    @Test
     @DisplayName("declarar la modalidad y quitarla despues sobrevive al viaje de ida y vuelta")
     void cambiarModalidadPersiste() {
         EquipmentType tipo = equipmentTypeAdapter.save(unTipo(null));
 
         EquipmentType recuperado = equipmentTypeAdapter.findById(tipo.getId()).orElseThrow();
-        recuperado.changeVerificationMode(VerificationMode.PATRON_EQUIPO_VARIABLE);
+        recuperado.changeVerificationMode(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
         equipmentTypeAdapter.save(recuperado);
 
         EquipmentType conModalidad = equipmentTypeAdapter.findById(tipo.getId()).orElseThrow();
@@ -97,7 +158,7 @@ class EquipmentCatalogPersistenceTest {
         assertThat(conModalidad.getModalidadVerificacion())
                 .isEqualTo(VerificationMode.PATRON_EQUIPO_VARIABLE);
 
-        conModalidad.changeVerificationMode(null);
+        conModalidad.changeVerificationMode(null, null, List.of());
         equipmentTypeAdapter.save(conModalidad);
 
         assertThat(equipmentTypeAdapter.findById(tipo.getId()).orElseThrow().isVerificable())

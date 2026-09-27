@@ -1,13 +1,18 @@
 package com.malphasos.malphasos.equipment.infrastructure.output.entities;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.hibernate.annotations.BatchSize;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
@@ -54,6 +59,16 @@ public class EquipmentTypeEntity {
 
     @Column(name = "n_tipo_verificacion")
     private String tipoVerificacion;
+
+    @Column(name = "i_cantidad_datos")
+    private Integer cantidadDatos;
+
+    // orphanRemoval queda fuera a proposito, igual que en los contactos de un cliente: un punto retirado
+    // no se borra, se marca inactivo y sigue en la lista, porque con el se hicieron los reportes
+    // anteriores. @BatchSize evita una consulta por tipo al listarlos todos.
+    @BatchSize(size = 50)
+    @OneToMany(mappedBy = "tipoEquipo", cascade = CascadeType.ALL, fetch = jakarta.persistence.FetchType.LAZY)
+    private List<VerificationPointEntity> puntosVerificacion = new ArrayList<>();
 
     @Column(name = "m_valor_unitario_mantenimiento", nullable = false)
     private long valorUnitarioMantenimiento;
