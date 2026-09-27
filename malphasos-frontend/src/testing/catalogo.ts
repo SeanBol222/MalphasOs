@@ -38,6 +38,10 @@ export const TIPOS = [
     definicionTecnica: 'Mide presión arterial',
     recomendacionesCuidado: 'No golpear',
     modalidadVerificacion: 'PATRON_CONSTANTE',
+    // Desde el 2026-09-27 una modalidad constante trae consigo cuantas lecturas y en que valores: sin
+    // ellos el backend la rechaza, de modo que un tipo de prueba sin esto no describiria nada real.
+    cantidadDatos: 3,
+    puntosVerificacion: [{ id: 'pv1', valor: 100, unidad: 'mmHg' }],
     verificable: true,
     estadoActivo: true,
   },

@@ -96,7 +96,6 @@ describe('Alta de un tipo de equipo', () => {
 
   it('con los opcionales rellenos, los manda con su tipo', async () => {
     rellenarObligatorios();
-    escribir('modalidadVerificacion', 'EQUIPO_CONSTANTE');
     escribir('voltaje', '110');
     escribir('amperaje', '2.5');
     escribir('valorUnitarioMantenimiento', '80000');
@@ -109,7 +108,6 @@ describe('Alta de un tipo de equipo', () => {
       tecnologiaPredominante: 'Electrónica',
       definicionTecnica: 'Mide presión arterial',
       recomendacionesCuidado: 'No golpear',
-      modalidadVerificacion: 'EQUIPO_CONSTANTE',
       voltaje: 110,
       amperaje: 2.5,
       valorUnitarioMantenimiento: 80000,
@@ -118,6 +116,124 @@ describe('Alta de un tipo de equipo', () => {
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));
     await asentar(fixture);
+  });
+
+  describe('Como se verifica', () => {
+    /** Elige una modalidad en el bloque de verificacion, que no es parte del formulario reactivo. */
+    function elegirModalidad(valor: string): void {
+      const campo = raiz().querySelector<HTMLSelectElement>('#modalidadVerificacion')!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    }
+
+    function escribirEnPunto(indice: number, campo: 'valor' | 'unidad', valor: string): void {
+      const entrada = raiz().querySelector<HTMLInputElement>(`#punto-${campo}-${indice}`)!;
+      entrada.value = valor;
+      entrada.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    }
+
+    it('una modalidad constante pide cuantas lecturas y en que valores', () => {
+      // Con patron y equipo variables no hay nada constante que declarar, asi que los campos no estan.
+      expect(raiz().querySelector('#cantidadDatos')).toBeNull();
+
+      elegirModalidad('PATRON_EQUIPO_VARIABLE');
+
+      expect(raiz().querySelector('#cantidadDatos')).toBeNull();
+
+      elegirModalidad('PATRON_CONSTANTE');
+
+      expect(raiz().querySelector('#cantidadDatos')).toBeTruthy();
+      // Y abre con un punto en blanco, porque hace falta al menos uno.
+      expect(raiz().querySelector('#punto-valor-0')).toBeTruthy();
+    });
+
+    it('dice que las lecturas son por punto, no en total', () => {
+      // Confundirlo daria un reporte con un tercio de los datos que hacian falta.
+      elegirModalidad('PATRON_CONSTANTE');
+
+      expect(texto()).toContain('En cada punto se toman estas lecturas');
+    });
+
+    it('manda la modalidad con su cantidad y sus puntos', async () => {
+      rellenarObligatorios();
+      elegirModalidad('PATRON_CONSTANTE');
+      escribir('cantidadDatos', '5');
+      escribirEnPunto(0, 'valor', '100');
+      escribirEnPunto(0, 'unidad', 'mmHg');
+      await enviar();
+
+      const alta = http.expectOne({ method: 'POST', url: URL_TIPOS });
+
+      expect(alta.request.body.modalidadVerificacion).toBe('PATRON_CONSTANTE');
+      expect(alta.request.body.cantidadDatos).toBe(5);
+      expect(alta.request.body.puntosVerificacion).toEqual([{ valor: 100, unidad: 'mmHg' }]);
+      alta.flush({ id: 't9' });
+      await asentar(fixture);
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+    });
+
+    it('un punto negativo vale: un congelador se verifica a -20 grados', async () => {
+      rellenarObligatorios();
+      elegirModalidad('EQUIPO_CONSTANTE');
+      escribir('cantidadDatos', '3');
+      escribirEnPunto(0, 'valor', '-20');
+      escribirEnPunto(0, 'unidad', '°C');
+      await enviar();
+
+      const alta = http.expectOne({ method: 'POST', url: URL_TIPOS });
+
+      expect(alta.request.body.puntosVerificacion).toEqual([{ valor: -20, unidad: '°C' }]);
+      alta.flush({ id: 't9' });
+      await asentar(fixture);
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+    });
+
+    it('sin puntos no llega al servidor, y dice por que hacen falta', async () => {
+      rellenarObligatorios();
+      elegirModalidad('PATRON_CONSTANTE');
+      escribir('cantidadDatos', '3');
+      // El punto que abre en blanco se queda sin rellenar.
+      await enviar();
+
+      http.expectNone({ method: 'POST', url: URL_TIPOS });
+      expect(texto()).toContain('valor y su unidad');
+    });
+
+    it('el mismo punto dos veces se avisa sin esperar a guardar', async () => {
+      elegirModalidad('PATRON_CONSTANTE');
+      escribir('cantidadDatos', '3');
+      escribirEnPunto(0, 'valor', '100');
+      escribirEnPunto(0, 'unidad', 'mmHg');
+      raiz()
+        .querySelectorAll('button')
+        .forEach((boton) => {
+          if ((boton.textContent ?? '').includes('Añadir un punto')) {
+            boton.click();
+          }
+        });
+      fixture.detectChanges();
+      escribirEnPunto(1, 'valor', '100');
+      escribirEnPunto(1, 'unidad', 'mmHg');
+
+      expect(texto()).toContain('declarado dos veces');
+    });
+
+    it('cambiar a la modalidad variable borra lo que ya no significa nada', () => {
+      elegirModalidad('PATRON_CONSTANTE');
+      escribir('cantidadDatos', '3');
+      escribirEnPunto(0, 'valor', '100');
+      escribirEnPunto(0, 'unidad', 'mmHg');
+
+      elegirModalidad('PATRON_EQUIPO_VARIABLE');
+      elegirModalidad('PATRON_CONSTANTE');
+
+      expect(raiz().querySelector<HTMLInputElement>('#cantidadDatos')!.value).toBe('');
+      expect(raiz().querySelector<HTMLInputElement>('#punto-valor-0')!.value).toBe('');
+    });
   });
 
   it('sin los obligatorios no llega al servidor, y se dice una vez', async () => {

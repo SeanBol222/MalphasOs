@@ -75,6 +75,31 @@ export type NuevoTipoDeEquipo = equipos['schemas']['EquipmentTypeCreateRequest']
 export type CambioDeTipoDeEquipo = equipos['schemas']['EquipmentTypeUpdateRequest'];
 export type ModalidadDeVerificacion = NonNullable<NuevoTipoDeEquipo['modalidadVerificacion']>;
 
+/**
+ * Los puntos en los que se verifica un tipo de equipo, y cuantas lecturas se toman en cada uno.
+ *
+ * <p>Las dos cosas solo existen con una modalidad <b>constante</b>: con patron y equipo variables, cuantas
+ * lecturas tomar lo decide el ingeniero en campo y no hay nada constante que declarar. El backend lo
+ * impone en el esquema y en el dominio; aqui el formulario lo refleja para no ofrecer lo que sera
+ * rechazado.
+ */
+export type PuntoDeVerificacion = equipos['schemas']['VerificationPointResponse'];
+export type NuevoPuntoDeVerificacion = equipos['schemas']['VerificationPointRequest'];
+export type CambioDeModalidad = equipos['schemas']['VerificationModeRequest'];
+
+/** Las dos modalidades que mantienen algo constante, que son las que piden cantidad y puntos. */
+export const MODALIDADES_CONSTANTES: readonly ModalidadDeVerificacion[] = [
+  'PATRON_CONSTANTE',
+  'EQUIPO_CONSTANTE',
+] as const;
+
+/** Si una modalidad exige cantidad de lecturas y al menos un punto. */
+export function mantieneAlgoConstante(
+  modalidad: ModalidadDeVerificacion | '' | undefined,
+): boolean {
+  return !!modalidad && MODALIDADES_CONSTANTES.includes(modalidad);
+}
+
 export type Fabricante = equipos['schemas']['ManufacturerResponse'];
 export type NuevoFabricante = equipos['schemas']['ManufacturerRequest'];
 
