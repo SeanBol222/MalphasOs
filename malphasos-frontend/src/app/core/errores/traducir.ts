@@ -3,6 +3,7 @@ import {
   CATALOGO_CLIENT,
   CATALOGO_EQUIPMENT,
   CATALOGO_LOCATION,
+  CATALOGO_WORK_ORDER,
   MENSAJE_DE_RESPALDO,
 } from './catalogos';
 
@@ -32,7 +33,10 @@ export function traducirError(fallo: unknown): string {
 
   return (
     (codigo &&
-      (CATALOGO_CLIENT[codigo] ?? CATALOGO_LOCATION[codigo] ?? CATALOGO_EQUIPMENT[codigo])) ||
+      (CATALOGO_CLIENT[codigo] ??
+        CATALOGO_LOCATION[codigo] ??
+        CATALOGO_EQUIPMENT[codigo] ??
+        CATALOGO_WORK_ORDER[codigo])) ||
     MENSAJE_DE_RESPALDO
   );
 }

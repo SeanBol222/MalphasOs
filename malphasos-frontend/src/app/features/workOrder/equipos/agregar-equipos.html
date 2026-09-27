@@ -1,0 +1,105 @@
+<h1 class="text-2xl font-bold">Añadir equipos a la orden</h1>
+
+<!--
+  El limite no es de esta pantalla: el backend exige que el area del equipo sea de la sede de la orden.
+  Decirlo evita que alguien busque aqui un equipo de otra sede del mismo cliente.
+-->
+<p class="mt-1 max-w-[70ch] text-neutral-700">
+  Solo los equipos de las áreas de la sede de esta orden. Los que ya están en ella no se ofrecen.
+</p>
+
+@if (mensajeDeError()) {
+  <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+    <p class="font-semibold">{{ mensajeDeError() }}</p>
+    @if (resultado(); as resumen) {
+      <!--
+        Son varias llamadas sin transaccion: si una falla, las anteriores quedan dentro. Decir cuantas
+        entraron es lo unico honesto; callarlo dejaria la pantalla afirmando algo que no paso.
+      -->
+      <p>
+        Entraron {{ resumen.entraron }} y quedaron fuera {{ resumen.fallaron }}. Los que entraron están
+        ya en la orden.
+      </p>
+    }
+  </div>
+}
+
+@if (orden.isPending() || areas.isPending()) {
+  <p class="mt-3 text-neutral-700" role="status">Cargando las áreas de la sede…</p>
+} @else if (sinNada()) {
+  <p class="mt-3 text-neutral-700">
+    No hay equipos disponibles en las áreas de esta sede. O ya están todos en la orden, o hay que
+    registrarlos primero en su área.
+  </p>
+} @else {
+  @for (grupo of grupos(); track grupo.id) {
+    <section class="mt-3 border border-neutral-300 p-2">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-xl font-bold">{{ grupo.nombre }}</h2>
+        @if (grupo.equipos.length) {
+          <div class="flex flex-wrap gap-2">
+            <button
+              class="min-h-tactil px-1 font-semibold underline"
+              type="button"
+              (click)="marcarArea(grupo.id, true)"
+            >
+              Marcar toda el área
+            </button>
+            <button
+              class="min-h-tactil px-1 font-semibold underline"
+              type="button"
+              (click)="marcarArea(grupo.id, false)"
+            >
+              Desmarcar
+            </button>
+          </div>
+        }
+      </div>
+
+      @if (!grupo.equipos.length) {
+        <p class="text-neutral-700">Sin equipos disponibles en esta área.</p>
+      } @else {
+        <ul class="mt-1 max-h-64 overflow-y-auto">
+          @for (equipo of grupo.equipos; track equipo.id) {
+            <li class="border-b border-neutral-200">
+              <label class="flex min-h-tactil items-center gap-2">
+                <input
+                  type="checkbox"
+                  class="min-h-tactil"
+                  [checked]="marcado(equipo.id)"
+                  (change)="alternar(equipo.id)"
+                />
+                <span class="font-semibold">{{ equipo.serie }}</span>
+                <span class="text-neutral-700">{{ equipo.inventario || 'sin inventario' }}</span>
+              </label>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  <div class="mt-3 flex flex-wrap items-center gap-2">
+    <button
+      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      type="button"
+      [disabled]="enviando() || cuantos() === 0"
+      (click)="agregar()"
+    >
+      @if (enviando()) {
+        Añadiendo…
+      } @else if (cuantos() === 0) {
+        Marque los equipos que entran
+      } @else {
+        Añadir {{ cuantos() }} equipo(s)
+      }
+    </button>
+
+    <a
+      class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold"
+      [routerLink]="['/ordenes', id()]"
+    >
+      Volver a la orden
+    </a>
+  </div>
+}

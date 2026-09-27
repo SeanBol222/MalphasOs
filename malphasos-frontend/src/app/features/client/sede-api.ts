@@ -53,6 +53,24 @@ export class SedeApi {
     }));
   }
 
+  /**
+   * Varias sedes por sus identificadores, en una sola entrada de cache.
+   *
+   * <p>Misma forma y mismo motivo que {@code AreaApi.variasPorId}: el API no publica un listado global de
+   * sedes ni una consulta por lote, solo las de un cliente y el detalle por identificador. El listado de
+   * ordenes de trabajo necesita el nombre de la sede de cada fila y lo unico que trae la orden es el
+   * identificador. Queda anotado como deuda: es la tercera respuesta que devuelve identificadores sin
+   * nombres.
+   */
+  variasPorId(ids: Signal<readonly string[]>) {
+    return injectQuery(() => ({
+      queryKey: [...SedeApi.CLAVE, 'sedes-por-id', [...ids()].sort().join(',')],
+      queryFn: () =>
+        Promise.all(ids().map((id) => firstValueFrom(this.http.get<Sede>(`${this.url}/${id}`)))),
+      enabled: ids().length > 0,
+    }));
+  }
+
   detalle(id: Signal<string>) {
     return injectQuery(() => ({
       queryKey: SedeApi.claveDetalle(id()),

@@ -1,0 +1,132 @@
+<h1 class="text-2xl font-bold">Programar orden de trabajo</h1>
+
+<form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+  <p class="mb-3 text-neutral-700">
+    Los campos marcados con <span class="text-accent-700" aria-hidden="true">*</span> son obligatorios.
+  </p>
+
+  @if (mensajeDeError()) {
+    <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+      @if (detalles().length) {
+        <ul class="mt-1 list-disc pl-3">
+          @for (detalle of detalles(); track detalle) {
+            <li>{{ detalle }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  <!--
+    Los equipos no se eligen aqui: una orden se programa primero y se le suman despues, que es lo que el
+    API ofrece y lo que ocurre de verdad. Decirlo evita que alguien los busque en este formulario.
+  -->
+  <p class="mb-3 border-l-2 border-ink bg-neutral-200 p-2">
+    Primero se programa la visita. Los equipos sobre los que se trabaja se añaden después, en la ficha
+    de la orden.
+  </p>
+
+  <div class="mb-3">
+    <app-buscador
+      formControlName="idCliente"
+      campo="idCliente"
+      etiqueta="Cliente"
+      historial="cliente"
+      [opciones]="opcionesDeCliente()"
+    />
+    @if (malo('idCliente')) {
+      <p class="mt-1 font-semibold text-accent-700">Elija el cliente al que se le presta el servicio.</p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="idSede">
+      Sede <span class="text-accent-700" aria-hidden="true">*</span>
+    </label>
+    <select
+      id="idSede"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idSede"
+      aria-required="true"
+      [attr.aria-invalid]="malo('idSede') || null"
+    >
+      <option value="">Elija una sede</option>
+      @for (sede of sedesAbiertas(); track sede.id) {
+        <option [value]="sede.id">{{ sede.nombre }}</option>
+      }
+    </select>
+    @if (malo('idSede')) {
+      <p class="mt-1 font-semibold text-accent-700">Elija la sede donde se hace el trabajo.</p>
+    }
+    @if (sinSedes()) {
+      <p class="mt-1 text-neutral-700">
+        Este cliente no tiene sedes abiertas. Abra una antes de programar la orden.
+      </p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="fechaMantenimiento">
+      Fecha del mantenimiento <span class="text-accent-700" aria-hidden="true">*</span>
+    </label>
+    <input
+      id="fechaMantenimiento"
+      class="mt-1 min-h-tactil w-full max-w-[16rem] border border-neutral-400 bg-paper px-1"
+      type="date"
+      formControlName="fechaMantenimiento"
+      aria-required="true"
+      [attr.aria-invalid]="malo('fechaMantenimiento') || null"
+    />
+    @if (malo('fechaMantenimiento')) {
+      <p class="mt-1 font-semibold text-accent-700">Indique la fecha del mantenimiento.</p>
+    }
+  </div>
+
+  <div class="mb-3 grid gap-3 sm:grid-cols-2">
+    <div>
+      <label class="block font-semibold" for="tipoServicio">
+        Tipo de servicio <span class="text-accent-700" aria-hidden="true">*</span>
+      </label>
+      <select
+        id="tipoServicio"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="tipoServicio"
+        aria-required="true"
+      >
+        @for (tipo of tiposDeServicio; track tipo) {
+          <option [value]="tipo">{{ etiquetasDeServicio[tipo] }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="block font-semibold" for="periodicidad">
+        Periodicidad <span class="text-accent-700" aria-hidden="true">*</span>
+      </label>
+      <select
+        id="periodicidad"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="periodicidad"
+        aria-required="true"
+      >
+        @for (opcion of periodicidades; track opcion) {
+          <option [value]="opcion">{{ etiquetasDePeriodicidad[opcion] }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <button
+      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      type="submit"
+      [disabled]="enviando()"
+    >
+      {{ enviando() ? 'Programando…' : 'Programar orden' }}
+    </button>
+
+    <a class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold" routerLink="/ordenes">
+      Cancelar
+    </a>
+  </div>
+</form>
