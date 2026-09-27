@@ -33,7 +33,7 @@ class SecurityConfigRoleHierarchyTest {
     }
 
     @Test
-    @DisplayName("desde admin.full se alcanzan las diecisiete autoridades de recurso")
+    @DisplayName("desde admin.full se alcanzan las diecinueve autoridades de recurso")
     void adminFullAlcanzaLosRecursos() {
         assertThat(alcanzablesDesde(ApiAuthority.ADMIN_FULL))
                 .containsAll(ApiAuthority.RESOURCE_AUTHORITIES)

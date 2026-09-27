@@ -27,7 +27,7 @@ class ApiAuthorityTest {
             ApiAuthority.RESOURCE_AUTHORITIES.size() + ApiAuthority.SUPER_AUTHORITIES.size() + 2;
 
     @Test
-    @DisplayName("admin.full a solas concede las diecisiete autoridades de recurso")
+    @DisplayName("admin.full a solas concede las diecinueve autoridades de recurso")
     void adminFullConcedeTodosLosRecursos() {
         Set<String> concedidas = ApiAuthority.expand(List.of(ApiAuthority.ADMIN_FULL));
 
@@ -94,7 +94,7 @@ class ApiAuthorityTest {
     }
 
     @Test
-    @DisplayName("tener las diecisiete autoridades no convierte a nadie en administrador")
+    @DisplayName("tener las diecinueve autoridades no convierte a nadie en administrador")
     void laExpansionNoFuncionaAlReves() {
         Set<String> concedidas = ApiAuthority.expand(ApiAuthority.RESOURCE_AUTHORITIES);
 
@@ -156,7 +156,7 @@ class ApiAuthorityTest {
     void elCatalogoNoContieneAlAdministrador() {
         assertThat(ApiAuthority.RESOURCE_AUTHORITIES)
                 .doesNotContain(ApiAuthority.ADMIN_FULL, ApiAuthority.SUPER_ADMIN_FULL)
-                .hasSize(17);
+                .hasSize(19);
     }
 
     @Test

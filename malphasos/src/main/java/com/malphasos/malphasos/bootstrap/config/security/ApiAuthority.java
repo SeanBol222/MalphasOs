@@ -29,9 +29,12 @@ import java.util.Set;
  * <p>La regla se lee en los nombres sin abrir el código: <b>lo que empieza por {@code super.} es
  * justamente lo que el administrador no recibe al expandirse.</b>
  *
- * <p>Las autoridades de {@code work-order} figuran en el catálogo aunque todavía no exista ese
- * módulo: ya están en el realm y asignadas al grupo de ingenieros. Incluirlas ahora evita que el
- * día que aparezcan sus endpoints el administrador se quede fuera por olvido.
+ * <p>Este javadoc decía que las autoridades de {@code work-order} figuraban aquí <b>aunque el módulo
+ * no existiera todavía</b>, para que el día que aparecieran sus endpoints el administrador no se
+ * quedara fuera por olvido. Fue cierto hasta el 2026-09-13, cuando ese módulo se construyó. <b>Ya no
+ * hay ninguna autoridad en esa situación</b>: las dos de {@code report}, añadidas el 2026-09-27,
+ * entraron a la vez que sus rutas, porque {@code RestAuthorizationCoverageTest} exige que toda
+ * autoridad del catálogo proteja algo.
  */
 public final class ApiAuthority {
 
@@ -83,6 +86,17 @@ public final class ApiAuthority {
     public static final String WORK_ORDER_WRITE = "work-order.write";
     public static final String WORK_ORDER_ASSIGN = "work-order.assign";
 
+    public static final String REPORT_READ = "report.read";
+
+    /**
+     * Abrir, llenar, verificar, cerrar y retirar un reporte de servicio.
+     *
+     * <p><b>No hay una tercera autoridad para cerrar</b>, al contrario que en las órdenes de trabajo,
+     * donde asignar tiene la suya. Quien llena el reporte es quien lo firma en campo: separarlas
+     * describiría un reparto de trabajo que no existe. La firma digital (RF-21) traerá la suya.
+     */
+    public static final String REPORT_WRITE = "report.write";
+
     /**
      * Todo lo que el administrador recibe al expandirse. No se incluye a sí mismo ni a
      * {@link #SUPER_ADMIN_FULL}: son quién manda, no lo que se manda.
@@ -110,7 +124,9 @@ public final class ApiAuthority {
                     EQUIPMENT_ASSIGN,
                     WORK_ORDER_READ,
                     WORK_ORDER_WRITE,
-                    WORK_ORDER_ASSIGN)));
+                    WORK_ORDER_ASSIGN,
+                    REPORT_READ,
+                    REPORT_WRITE)));
 
     /**
      * Lo que solo {@link #SUPER_ADMIN_FULL} concede, y {@link #ADMIN_FULL} no.
