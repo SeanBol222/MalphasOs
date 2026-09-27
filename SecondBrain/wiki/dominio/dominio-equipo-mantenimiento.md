@@ -141,6 +141,17 @@ El javadoc de `EquipmentType` lo tenía anunciado desde el 2026-09-02 —«los d
 
 **Y el `@Transactional` del adaptador se puso antes de que doliera.** El tipo tiene ahora una colección perezosa, que es exactamente lo que hizo fallar a `work-order` el 2026-09-13. Verificado quitándolo: `LazyInitializationException` en tres pruebas. Es la primera vez que la convención se aplica por adelantado en lugar de después del defecto.
 
+### Y la otra mitad de la segunda tanda se construyó fuera de este módulo (2026-09-27)
+
+El *resultado* de verificar —lo que aquí se anunciaba como «verificaciones técnicas y datos metrológicos»— **existe ya, y no vive en `equipment`**: es `dato_verificacion`, y cuelga del reporte de servicio. El criterio, escrito en `V9`: la lectura se toma durante el servicio y se imprime en el reporte de ese servicio, así que el dato pertenece al reporte y no al catálogo. Este módulo sigue diciendo **cómo** se verifica; quien dice **qué salió** es [[dominio-reporte-servicio]].
+
+La consecuencia para lo que queda: de la segunda tanda **solo falta el vencimiento de calibración** —cuándo caduca, que es lo que las alertas de RF-40 necesitan— y no hay dónde guardarlo. Eso sí es de aquí, y está registrado en [[deuda-tecnica-y-riesgos]].
+
+Dos cosas de este módulo se ejercen ya desde fuera y conviene saberlo antes de tocarlas:
+
+- **`puntosActivos()` es lo que el reporte consulta** para comprobar que una lectura señala un punto vigente de ese tipo. Retirar un punto no rompe los reportes viejos —siguen apuntando a la fila retirada, que no se borra— pero **impide tomar lecturas nuevas en él**, que es lo que se quiere.
+- **`i_cantidad_datos` es el tope por punto**, y el servicio de reportes lo usa para dos cosas: rechazar la lectura número N+1 y **exigir las N al cerrar**. Bajarlo en un tipo con reportes abiertos dejaría reportes que no se pueden cerrar sin volver a registrar su verificación.
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — **debería portarse casi completo**, y así se hizo con la primera tanda. El modelo de dominio (`Equipment`, `EquipmentType`, `Brand`, `Manufacturer`, `Model`, `TechnicalVerification`, `MetrologicalData`) es genérico y no acopla nada de facturación/gestión ajena al mantenimiento en sí. Es, junto con `location_hexagon`, la plantilla arquitectónica a seguir para todos los módulos nuevos de MalphasOS — no la de `client_hexagon`.

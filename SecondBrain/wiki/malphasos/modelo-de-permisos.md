@@ -1,9 +1,9 @@
 ---
 name: modelo-de-permisos
-description: Las 20 autoridades del API, la expansion en dos escalones que separa al super usuario del administrador, la escalera de quien puede crear a quien, y la unica excepcion a la autoridad literal
+description: Las 22 autoridades del API, la expansion en dos escalones que separa al super usuario del administrador, la escalera de quien puede crear a quien, y la unica excepcion a la autoridad literal
 tags: [malphasos, seguridad, keycloak, autorizacion, "reusable:media", "describe:malphasos"]
 estado: estable
-updated: 2026-09-13
+updated: 2026-09-27
 ---
 
 # Modelo de permisos de MalphasOS
@@ -18,7 +18,7 @@ Es el mismo defecto que [[keycloak-configuracion]] ya registraba del original �
 
 **Por qué nadie lo vio durante meses**: todas las pruebas de seguridad construían el token con `admin.full`, el único rol que sí funcionaba. Una batería que solo recorre el camino del administrador no dice absolutamente nada sobre los demás perfiles. El hallazgo salió de contrastar la ERS contra el código (2026-09-02), no de leer los controladores.
 
-## El vocabulario: 20 autoridades
+## El vocabulario: 22 autoridades
 
 `bootstrap/config/security/ApiAuthority.java` reúne el vocabulario completo. Los nombres **no los inventa la clase: reflejan los roles que el realm define** sobre el client `malphasos-api`.
 
@@ -26,7 +26,7 @@ Dos autoridades de mando, que no protegen ningún endpoint:
 
 | Autoridad | Qué es |
 |---|---|
-| `admin.full` | Concede las 17 de recurso al expandirse. Es el permiso del grupo `admins` |
+| `admin.full` | Concede las **19** de recurso al expandirse. Es el permiso del grupo `admins`. (Decía 17: cierto hasta el **2026-09-27**, cuando entraron las dos de `report`) |
 | `super.admin.full` | Implica `admin.full` **y algo más desde el 2026-09-13**. Hasta esa fecha concedían lo mismo y esta tabla decía que se conservaban separados por si «un realm futuro» daba al segundo capacidades propias: ese futuro llegó. **Ningún grupo lo recibe**: un super usuario se crea a mano en Keycloak |
 
 Y una que **sí protege endpoints pero que `admin.full` no concede** — el escalón de arriba, desde el 2026-09-13:
@@ -56,8 +56,12 @@ Las 17 de recurso, con las operaciones que protegen a fecha de hoy (contado sobr
 | `work-order.read` | 2 | |
 | `work-order.write` | 6 | Programar, cambiar el alcance, avanzar de estado y cancelar |
 | `work-order.assign` | 1 | **Solo poner la orden en manos de un ingeniero.** Es lo que permite que un coordinador reparta trabajo sin poder alterar lo que se va a hacer |
+| `report.read` | 2 | Los reportes de una orden, o el historial de un equipo. **No hay «todos los reportes»**: esa operación no existe |
+| `report.write` | 4 | Abrir, llenar, registrar la verificación, cerrar y retirar. **No hay una tercera para cerrar**, al contrario que en las órdenes: quien llena el reporte es quien lo firma en campo, y separarlas describiría un reparto que no existe. La firma digital (RF-21) traerá la suya, y hay prueba que avisará |
 
-**Total: 92 operaciones** — 83 verificadas el 2026-09-08 sobre `feat/permission-model`, más las **9** de órdenes de trabajo, añadidas el 2026-09-13 con `ceadba1`. Los 83 y su reparto 27/56 quedan como la cifra de aquella tanda; los umbrales de las pruebas van como mínimos, así que no se rompen al crecer.
+**Total: 98 operaciones** — 83 verificadas el 2026-09-08 sobre `feat/permission-model`, más las **9** de órdenes de trabajo (2026-09-13, `ceadba1`) y las **6** de reportes de servicio (2026-09-27, `ac0233b9`). Los 83 y su reparto 27/56 quedan como la cifra de aquella tanda; los umbrales de las pruebas van como mínimos, así que no se rompen al crecer.
+
+> **Actualizado el 2026-09-27: ya no queda ninguna autoridad esperando su módulo.** Las dos de `report` entraron en el catálogo **el mismo día que sus rutas**, y no antes, porque `ningunaAutoridadSobra` habría fallado — una autoridad que no protege nada es un permiso que el realm concede en vano. Es lo contrario de lo que se hizo con `work-order`, y las dos formas funcionaron: aquélla necesitaba una centinela que avisara, ésta no necesita nada.
 
 > **Actualizado el 2026-09-13.** Aquí decía que las tres de `work-order` estaban en el catálogo **sin módulo detrás**, y que una prueba fijaba que no protegían nada y fallaría el día que lo hicieran — «que es cuando toca revisar esta nota». **Eso ocurrió**: el módulo llegó, la centinela `lasAutoridadesDeWorkOrderSiguenSinModulo` se puso roja, se retiró en el mismo commit, y ésta es la revisión que pedía. Haber incluido las tres por adelantado hizo lo que se esperaba: el administrador no se quedó fuera por olvido, porque `ApiAuthority.expand(...)` ya las conocía.
 
@@ -96,9 +100,11 @@ Verificado el 2026-09-08 sobre `docker/keycloak/import/malphasos-realm-realm.jso
 
 | Grupo | Roles | Perfil |
 |---|---|---|
-| `admins` | 18 de 20 | Todo menos las dos de `super.*`, que no tiene ningún grupo |
-| `engineers` | 11 (antes 4) | Lectura completa (`person`, `location`, `client`, `service-area`, `equipment`, `engineer`) + `equipment.write` + `equipment.assign` + los tres de `work-order` |
-| `clients` | 4 (sin cambios) | Solo lectura: `client.read`, `equipment.read`, `service-area.read`, `work-order.read` |
+| `admins` | **20** de 22 | Todo menos las dos de `super.*`, que no tiene ningún grupo. (Eran 18 de 20 hasta el **2026-09-27**) |
+| `engineers` | **13** (antes 11, y 4 al principio) | Lectura completa (`person`, `location`, `client`, `service-area`, `equipment`, `engineer`) + `equipment.write` + `equipment.assign` + los tres de `work-order` + **los dos de `report`** |
+| `clients` | **5** (antes 4) | Solo lectura: `client.read`, `equipment.read`, `service-area.read`, `work-order.read` y **`report.read`** |
+
+**El ingeniero recibe `report.write` aunque no escriba clientes ni sedes**, y no es una excepción al perfil: llenar el reporte **es** su oficio, y es el único que está delante del equipo. El cliente lee los reportes de sus equipos y no los llena. La prueba que comprueba que nadie escribe fuera de su oficio **no incluye `report.write` en la lista de vedadas** a propósito, y lo dice por escrito; que el cliente no la tenga se comprueba aparte.
 
 `admins` recibe también los cuatro roles nuevos, **pese a que la expansión de `admin.full` se los concedería igualmente**. El realm debe poder leerse sin conocer el código: un `admins` sin `person` ni `location` afirmaría por escrito que un administrador no puede tocar personas ni ciudades.
 

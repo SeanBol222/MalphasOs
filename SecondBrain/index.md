@@ -44,7 +44,8 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[dominio-equipo-mantenimiento]] ⭐ — El núcleo del negocio. Catálogo e inventario construidos; **faltan verificaciones técnicas y datos metrológicos**. Desde el 2026-09-26 incluye **la cadena del catálogo vista desde el frontend**: por qué crear un equipo exige cinco piezas y por qué «equipo» significa dos cosas.
 - [[regla-traslado-mismo-cliente]] — Una unidad solo se traslada a áreas de su propio cliente. Construida el 2026-09-09 y **verificada el 2026-09-10** con 13 pruebas; esta línea la marcaba con ⚠️ como «sin verificar» hasta el **2026-09-12**. Leer antes de tocar `ClientEquipmentService`: recoge además por qué una prueba pasaba en vacío sin que Mockito estricto lo delatara.
 - [[relacion-manager-persona]] — Un encargado ES una persona por clave primaria compartida.
-- [[dominio-orden-trabajo]] — **El quinto módulo, completo en sus cuatro tandas** entre el 2026-09-12 y el 2026-09-13; el REST, en rama sin mergear. El núcleo del negocio de mantenimiento, del que cuelgan reportes, firma e historial. Trae el estado **verificado** de las siete reglas que el esquema dejó al servicio —**seis hechas y una no**— y el porqué de que un módulo terminado cierre solo tres de sus siete requisitos.
+- [[dominio-orden-trabajo]] — **El quinto módulo, completo en sus cuatro tandas** entre el 2026-09-12 y el 2026-09-13, **todo mergeado**. El núcleo del negocio de mantenimiento, del que cuelgan reportes, firma e historial. Trae el estado **verificado** de las siete reglas que el esquema dejó al servicio —**las siete construidas**— y el porqué de que un módulo terminado cerrara al principio solo tres de sus siete requisitos. (Esta línea decía «el REST, en rama sin mergear» y «seis hechas y una no»: las dos afirmaciones eran ciertas el 2026-09-12 y **caducaron el 2026-09-13**; corregidas el **2026-09-27**.)
+- [[dominio-reporte-servicio]] ⭐ — **El sexto módulo, completo en sus cuatro tandas el 2026-09-27.** Lo que se hizo sobre cada equipo de una orden: uno por equipo, con los cinco campos de RF-15, la verificación metrológica que `V8` había dejado configurada, y sus **seis reglas cruzadas**. Trae dos cosas que valen fuera de él: por qué **el resultado de verificar vive con el reporte y no con el equipo**, y el choque entre el orden de escritura de Hibernate y un índice único parcial.
 
 ### Datos y esquema
 
@@ -56,7 +57,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 ### Seguridad e identidad
 
 - [[seguridad-keycloak-backend]] — Resource server + admin client, dos piezas separadas. Incluye la ventana del token ya emitido.
-- [[modelo-de-permisos]] ⭐ — Las **20** autoridades, la expansión en **dos escalones**, la **escalera de usuarios** —quién crea a quién— y la única excepción acotada a la autoridad literal. (Decía «19 autoridades» y «en dos capas»: cierto hasta el **2026-09-13**. Y antes «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `e6dda32`.)
+- [[modelo-de-permisos]] ⭐ — Las **22** autoridades, la expansión en **dos escalones**, la **escalera de usuarios** —quién crea a quién— y la única excepción acotada a la autoridad literal. (Decía «19 autoridades» y «en dos capas»: cierto hasta el **2026-09-13**; «20», hasta el **2026-09-27**, cuando entraron las dos de `report`. Y antes «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `e6dda32`.)
 - [[sincronizacion-con-proveedor-de-identidad]] — Dos sistemas de registro sin transacción compartida: en qué orden llamarlos y qué queda sin cerrar. (Decía «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `258cd81`.)
 - [[issuer-uri-vs-jwk-set-uri]] — Por qué Keycloak en Docker devuelve 401 con tokens válidos.
 - [[keycloak-configuracion]] — El realm, sus clients y sus grupos.
@@ -84,7 +85,7 @@ Notas que describen piezas del sistema original **no construidas aquí**. Son el
 - [[arquitectura-frontend-malphasos]] ⭐ — **Cómo se escribe frontend aquí**: Angular, por módulo de negocio con los nombres del backend, cliente generado desde OpenAPI. Y por qué cada pieza es el espejo de una del backend. Desde el 2026-09-26, también: **un servicio por agregado**, claves de caché jerárquicas, y por qué `whenStable()` no sirve en zoneless con una petición en vuelo.
 - [[sistema-de-diseno-malphasos]] ⭐ — El manual de marca traducido a interfaz: tokens, contrastes **medidos**, radio cero, escala de 8, y los estados que se distinguen por peso y no por color. Desde el 2026-09-26, el componente que el manual no nombra: **el campo que predice** sobre un catálogo de 1.350 filas.
 - [[integracion-keycloak-frontend]] — `keycloak-js` + `AuthProvider` + `PrivateRoute` + `apiFetch`: un starter de autenticación completo y portable. Y, desde el 2026-09-26, **lo que costó el primer arranque real contra `keycloak-angular`**: dos providers que la librería no declara y una página en blanco sin mensaje.
-- [[dominio-reportes]] — El agregador cross-dominio del original. En MalphasOS el grupo de OpenAPI existe y el módulo no.
+- [[dominio-reportes]] — El agregador cross-dominio del original, con su puerto genérico. **Corregido el 2026-09-27**: esta línea decía «en MalphasOS el grupo de OpenAPI existe y el módulo no», cierto hasta ese día. El módulo existe ya —[[dominio-reporte-servicio]]— y **resolvió otro problema**; este patrón sigue sin gastar, para el PDF de RF-17.
 - [[patron-report-data-provider]] — El puerto genérico que ese módulo usaba.
 - [[event-persister-outbox]] — Auditoría de eventos. En el original está construida y desconectada.
 
@@ -103,8 +104,8 @@ Valor histórico. Explican por qué una decisión es como es, no qué hace Malph
 
 Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no la tiene.
 
-- `[[esquema-malphasos]]` — **el hueco más notorio**: no hay ninguna nota que describa el esquema real de MalphasOS. [[esquema-bd-v4]] describe el del original, y las **siete** migraciones `V1`–`V7` solo están contadas de refilón en las notas de migración. (Decía «cinco» y `V1`–`V5`: **cierto hasta el 2026-09-12**; «seis», hasta el **2026-09-26**, cuando entró `V7__seed_location_reference_data.sql`, la primera de datos y no de esquema — está descrita en [[dominio-ubicacion]].)
+- `[[esquema-malphasos]]` — **el hueco más notorio**: no hay ninguna nota que describa el esquema real de MalphasOS. [[esquema-bd-v4]] describe el del original, y las **nueve** migraciones `V1`–`V9` solo están contadas de refilón en las notas de migración. (Decía «cinco» y `V1`–`V5`: **cierto hasta el 2026-09-12**; «seis», hasta el **2026-09-26**; «siete», hasta el **2026-09-27**, cuando entraron `V8__verification_points.sql` —descrita en [[dominio-equipo-mantenimiento]]— y `V9__service_report.sql` —en [[dominio-reporte-servicio]]—.)
 
 ---
 
-**51 notas** · reorganizado el 2026-09-09 · última corrección el 2026-09-26 · ver [[log.md]] para el historial.
+**52 notas** · reorganizado el 2026-09-09 · última corrección el 2026-09-27 · ver [[log.md]] para el historial.

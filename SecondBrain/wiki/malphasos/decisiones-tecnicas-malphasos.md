@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-09-13
+updated: 2026-09-27
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -278,10 +278,28 @@ Las tres tandas restantes. Detalle en [[dominio-orden-trabajo]].
 |---|---|---|
 | Qué hacer cuando una guarda nueva **subsume** a una vieja | **Ordenarlas, no borrar la subsumida** | Un equipo de otro cliente está por fuerza en otra sede, así que la comprobación de sede taparía a la de cliente. Borrar la vieja pierde el mensaje más informativo; dejarla detrás la mata en silencio. Se deja el dueño **delante** y una prueba fija ese orden con `withMessageNotContaining`, de modo que **las dos siguen siendo alcanzables** |
 
+## Módulo de reportes de servicio (2026-09-27)
+
+Cuatro tandas en un día, del esquema al REST. Las decisiones que condicionan lo que venga detrás:
+
+- **Un reporte por equipo de la orden, no uno por orden.** Es lo que dice RF-09 literalmente y lo que ocurre en campo. La consecuencia práctica: la llave del reporte es el par (orden, equipo), y la pantalla que falta es una por equipo, no una por visita.
+- **La llave foránea es compuesta contra `orden_trabajo_equipo`.** Con dos foráneas sueltas cabría un reporte de un equipo que la orden nunca incluyó. Segunda vez que este proyecto usa la técnica —la primera fue `UQ_sede_identidad_con_cliente` en `V6`— y aquí salió gratis porque el par ya era la llave primaria del puente.
+- **El reporte no copia nada de la orden**, y eso *es* RF-11: consultar por el identificador es autocompletar. El original sí copiaba el cliente, con el vínculo hacia la orden roto por tipos.
+- **El resultado de verificar vive con el reporte, no con el equipo.** `V8` configuró *dónde* y *cuántas veces* se mide; `V9` guarda *lo que salió*. El criterio: se mide durante el servicio y se imprime en el reporte de ese servicio. Esto reparte la «segunda tanda de `equipment`» en dos mitades y deja solo una pendiente — el vencimiento de calibración.
+- **`ReportDataProviderPort` del original no se usó.** Aquel patrón resuelve un agregador de consulta; esto es una entidad con ciclo de vida. Queda disponible para el PDF de RF-17, que sí agregará. Ver [[dominio-reportes]].
+- **El vocabulario del resultado se inventó, y está marcado como tal.** La ERS no enumera valores para «resultado». Va como catálogo cerrado porque de él cuelgan la hoja de vida y las alertas; queda en [[deuda-tecnica-y-riesgos]] esperando la palabra del usuario.
+- **Dos autoridades y no tres.** Cerrar no tiene la suya: quien llena el reporte es quien lo firma. Y entraron en `ApiAuthority` **el mismo día que sus rutas**, al contrario que las de `work-order`: las dos formas funcionan, pero adelantarlas exige una prueba centinela que avise, y no adelantarlas no exige nada.
+- **Sin `findAll` y sin `reopen`.** Una lista de todos los reportes del sistema no responde a ninguna pregunta del dominio, y un reporte cerrado es lo que se entregó al cliente. Las dos ausencias tienen prueba, para que añadirlas sea una decisión y no un descuido.
+- **El orden de escritura de una ORM no es el del código.** Corregir una lectura choca con el índice único parcial porque Hibernate vacía los `INSERT` antes que los `UPDATE`. Se impone el orden en el adaptador con un `saveAndFlush` intermedio, porque un índice **parcial** no se puede declarar diferido en PostgreSQL. Es el segundo caso de «la persistencia tiene reglas propias que el dominio no ve», tras el `@Transactional` de los adaptadores con colecciones perezosas.
+
+Ver [[dominio-reporte-servicio]] para el detalle.
+
 ## Pendientes de decidir
 
-- Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]].
+- Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]]. **Resuelto de hecho el 2026-09-13**: por módulo de negocio con los nombres del backend, ver [[arquitectura-frontend-malphasos]].
+- **Las tres palabras de `t_resultado`** en un reporte de servicio: son una propuesta, no vocabulario de la ERS.
+- **Si las respuestas de los módulos deben traer nombres además de identificadores.** Van ya cuatro módulos que devuelven solo identificadores —encargados, equipos, órdenes y reportes— y el frontend resuelve cada nombre con una consulta aparte. O se acepta como convención y se escribe, o se rompe una vez y se hace en todos.
 
 ## Notas relacionadas
 
-[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[regla-traslado-mismo-cliente]] · [[dominio-orden-trabajo]] · [[congelar-una-referencia-historica]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[regla-traslado-mismo-cliente]] · [[dominio-orden-trabajo]] · [[dominio-reporte-servicio]] · [[congelar-una-referencia-historica]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

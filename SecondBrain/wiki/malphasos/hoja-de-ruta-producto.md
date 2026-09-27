@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-09-13
+updated: 2026-09-27
 ---
 
 # Hoja de ruta del producto
@@ -17,13 +17,15 @@ updated: 2026-09-13
 
 | | Total | Implementado | Fuente |
 |---|---|---|---|
-| Requisitos funcionales | 31 | **14** | ERS 3.2, verificada dos veces contra el código |
+| Requisitos funcionales | 31 | **16** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
-| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, y órdenes de trabajo de extremo a extremo** | Comprobado sobre el árbol del repositorio |
+| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, y órdenes de trabajo de extremo a extremo.** Los reportes de servicio **no tienen pantalla** | Comprobado sobre el árbol del repositorio |
 
 > **Corregido el 2026-09-26, dos veces el mismo día.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak, **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados— y **seis más** del catálogo de equipos con el registro de un equipo en un área, con **262** pruebas. **Con eso existe ya todo lo que una orden de trabajo necesita tocar**: sedes, áreas y equipos por área. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
 
-Los 14 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios) y **RF-01 a RF-03, RF-05, RF-06 y RF-07** de órdenes de trabajo. **RF-04 queda marcado como desviación**, no como implementado. Todo lo demás está `[PREVISTO]`.
+Los 16 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios), **RF-01 a RF-03, RF-05, RF-06 y RF-07** de órdenes de trabajo, y **RF-09** y **RF-15** de reportes de mantenimiento. **RF-04 queda marcado como desviación**, no como implementado. Todo lo demás está `[PREVISTO]`.
+
+> **Actualizado el 2026-09-27, segunda vez ese día**: eran **14**. Entran RF-09 —un reporte por equipo de la orden, asociado a los dos y accesible desde ella— y RF-15 —los cinco campos de información técnica, guardados por separado y consultables después—, con el módulo de reportes de servicio completo en sus cuatro tandas. **RF-11 no entra**, y merece decirse por qué: el backend garantiza que cliente, sede, responsables y tipo de servicio **no se pueden teclear** —no existe columna ni campo para ellos— y que son consistentes, porque hay una sola fuente; pero el requisito dice que «los campos del reporte **muestran** automáticamente» esos datos, y mostrar es una pantalla. Mismo criterio que dejó cuatro requisitos de la orden de trabajo esperando su formulario.
 
 > **Actualizado el 2026-09-27**: eran **11**. Los tres que entran —RF-03, RF-06 y RF-07— son de los cuatro que describían un formulario, construido ese día. El cuarto, RF-04, **se desvía a propósito** y por eso no cuenta: el criterio de esta nota es estricto, y darlo por hecho sería justo lo que esta tabla existe para evitar.
 
@@ -56,7 +58,8 @@ Detalle por categoría en `Documentation/wiki/requisitos/estado-de-implementacio
 - **La tanda de seguridad está hecha** (`fix/person-identity-sync`, **en `main` desde `258cd81`**; esta nota la daba por sin mergear, **corregido el 2026-09-09**): dar de baja a una persona ya deshabilita su cuenta de Keycloak. Ver [[sincronizacion-con-proveedor-de-identidad]].
 - **El siguiente bloque era órdenes de trabajo**, y **está construido**: las cuatro tandas, del esquema al REST, entre el 2026-09-12 y el 2026-09-13. Ver [[dominio-orden-trabajo]].
 - **Lo siguiente decidido es el frontend**, el 2026-09-13, con su declaración de diseño escrita y su manual de marca. Arranca por una **rebanada vertical**: arranque de la aplicación, autenticación y el flujo de órdenes de trabajo. Ver [[arquitectura-frontend-malphasos]].
-- **Reportes de servicio** queda como el siguiente bloque de backend. Es lo que cuelga directamente de la orden, y el módulo ya emite los siete eventos que un reporte querría escuchar — sin consumidor todavía.
+- ~~**Reportes de servicio** queda como el siguiente bloque de backend.~~ **Construido el 2026-09-27**, en cuatro tandas y cuatro merges. Y la frase con que se justificaba —«el módulo de órdenes ya emite los siete eventos que un reporte querría escuchar»— **resultó no ser el motivo**: el reporte no escucha ninguno de esos eventos, los consulta por el identificador de la orden. Los siete siguen sin consumidor. Ver [[dominio-reporte-servicio]].
+- **Lo siguiente decidido, y es de frontend**: las pantallas de reportes. Es lo mismo que le pasó a las órdenes de trabajo entre el 13 y el 27 de septiembre — backend completo, nada que tocar desde un navegador — y es lo que RF-11 está esperando.
 
 Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué arrastra cada pieza.
 
@@ -96,6 +99,8 @@ ordenes de trabajo (RF-01..07)
 Precisiones que el diagrama comprime:
 
 - **El historial de la hoja de vida cuelga del reporte, no de la orden.** RF-26 depende de RF-09 y RF-15, los dos de reportes. La orden de trabajo dice *qué se va a hacer*; el reporte dice *qué se hizo*, y es eso lo que se anota en la hoja de vida. El mecanismo de soporte —el despachador de eventos de dominio— **ya está construido y en uso**; falta el evento del reporte, no el despacho.
+
+  > **Actualizado el 2026-09-27**: ese evento **ya existe**. `service-report.finished` viaja con el equipo, el resultado y la fecha de cierre, que es exactamente lo que la hoja de vida anota. Lo que falta ahora es el **consumidor**, no el evento.
 - **Exportar un reporte a PDF (RF-17) depende de la firma digital (RF-21).** Y la captura de la firma es **táctil** (RF-18): sin frontend no hay firma, y sin firma no hay PDF según el grafo declarado. Es la cadena que más lejos llega desde el frontend hacia el backend.
 
 ### Alertas y calibración: el caso donde los dos grafos discrepan
@@ -117,15 +122,17 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 
 **RF-14, la configuración de protocolos por tipo de equipo y servicio**, depende únicamente de **RF-22, que está implementado**. Es la única pieza de reportes cuyo camino está libre hoy, y es la que RF-13 necesitará después. Si el bloque de órdenes de trabajo se atasca, es lo que se puede adelantar sin deuda.
 
+> **Sigue siendo cierto el 2026-09-27, y ahora es lo único que le falta a la categoría.** El módulo de reportes se construyó sin protocolos a propósito: un protocolo es *qué hay que revisar*, y el reporte funciona sin él —se escriben los procedimientos a mano—. Con RF-14 construido, RF-13 sería cargarlos solos al abrir el reporte. Su otra mitad, **el tipo de servicio, sí existe ya** desde `V6`: la nota de requisitos que decía que no estaba modelado caducó el 2026-09-12.
+
 ## El orden propuesto
 
 | # | Bloque | Desbloquea | Estado de sus dependencias |
 |---|---|---|---|
 | ~~0~~ | ~~**Mergear las dos ramas pendientes**~~ | Todo lo demás | **Hecho el 2026-09-09**: `e6dda32` y `258cd81`, con `main` en `01c3277` y la batería remedida en **496**. **Actualizado el 2026-09-12**: `main` está hoy en **`55e0a5d`**, con `feat/relocation-same-client` también dentro (`1ef55cf`) y **509** pruebas |
 | 1 | **Órdenes de trabajo** (RF-01…07) | Reportes, firma, comercial, inventario | Todas cumplidas. **Empezado el 2026-09-12**: tanda 1 de 4 —el esquema, `V6`— en `feat/work-order-schema`, sin mergear. Faltan dominio, aplicación y REST, y **los siete requisitos siguen contando como no implementados**: un esquema no cumple ninguno |
-| 2 | **Reportes de mantenimiento** (RF-09, 11, 13, 15) | Historial de hojas de vida, PDF, alertas | Requiere el bloque 1 (+ RF-14, disponible ya) |
-| 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | Ninguna pendiente. Puede ir en paralelo al 1 y al 2 |
-| 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | Requiere el bloque 2 |
+| 2 | **Reportes de mantenimiento** (RF-09, 11, 13, 15) | Historial de hojas de vida, PDF, alertas | **Backend completo el 2026-09-27**, cuatro tandas: `V9`, agregado con cinco eventos, seis reglas cruzadas con su persistencia probada y seis operaciones REST. Cierra **RF-09 y RF-15**; **RF-11 espera pantalla** y **RF-13 espera los protocolos de RF-14**, que siguen sin construirse. Ver [[dominio-reporte-servicio]] |
+| 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | **Partida en dos el 2026-09-27, y media hecha.** El *con qué* se verifica entró con `V8`; el **resultado** de verificar entró con `V9` y **vive con el reporte**, no aquí. Queda solo el **vencimiento de calibración**, que es lo que las alertas necesitan y lo único que sigue sin tener dónde guardarse |
+| 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | **Desbloqueado el 2026-09-27**: el reporte ya existe, ya emite `service-report.finished` con el resultado y la fecha, y `GET /v1/api/reports?idEquipoCliente=` ya devuelve el historial de un equipo. Falta anotarlo en la hoja de vida, que es lo que estos dos requisitos piden |
 | 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora.** Clientes cerrado el 2026-09-26, equipos y catálogo ese mismo día, y **las órdenes de trabajo el 2026-09-27**: con eso el primer bloque está completo y el marcador de requisitos sube por primera vez gracias al frontend |
 | 6 | **Firma digital** (RF-18, RF-21) → **PDF** (RF-17) | Cierra reportes | Requiere los bloques 2 y 5 |
 | 7 | **Alertas y calibración** (RF-40, RF-41) | — | Requiere el bloque 3 + tareas programadas. **Won't Have** |
@@ -170,4 +177,4 @@ RF-53 está marcado `[IMPLEMENTADO]` con la salvedad escrita de que **su tercer 
 
 ## Notas relacionadas
 
-[[checklist-reutilizacion]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[dominio-orden-trabajo]] · [[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[dominio-equipo-mantenimiento]] · [[integracion-keycloak-frontend]] · [[arquitectura-frontend]] · [[alcance-malphasos]]
+[[checklist-reutilizacion]] · [[decisiones-tecnicas-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[dominio-orden-trabajo]] · [[dominio-reporte-servicio]] · [[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[dominio-equipo-mantenimiento]] · [[integracion-keycloak-frontend]] · [[arquitectura-frontend]] · [[alcance-malphasos]]

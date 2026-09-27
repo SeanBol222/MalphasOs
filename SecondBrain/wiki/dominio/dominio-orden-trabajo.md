@@ -4,7 +4,7 @@ description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatr
 tags: [dominio, work-order, esquema, mantenimiento, "describe:ambos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/workorder/ y malphasos/src/main/resources/db/migration/V6__work_order.sql
 estado: estable
-updated: 2026-09-13
+updated: 2026-09-27
 ---
 
 # Órdenes de trabajo — el módulo completo
@@ -173,7 +173,9 @@ El recorrido es en un solo sentido y sin saltos: `CREADA → EN_EJECUCION → EJ
 
 `WorkOrderCreated`, `Assigned`, `EquipmentAdded`, `EquipmentRemoved`, `Started`, `Executed` y `Deactivated` —de baja, no `Deleted`, porque aquí nada se borra—. Los de equipo llevan `WorkOrderEquipmentPayload`; el resto, `WorkOrderPayload`. Ver [[eventos-de-dominio]].
 
-**Nadie los consume todavía.** El destinatario natural será el reporte de servicio, y el mecanismo de despacho ya existe y está en uso: ver [[patron-event-dispatcher-dual]].
+**Nadie los consume todavía.** El mecanismo de despacho existe y está en uso: ver [[patron-event-dispatcher-dual]].
+
+> **Corregido el 2026-09-27.** Aquí decía que «el destinatario natural será el reporte de servicio». **El reporte se construyó ese día y no escucha ninguno de los siete**: consulta la orden por su identificador cuando necesita saber si empezó y qué equipos tiene, que es lo que hace cualquier módulo con sus vecinos. La predicción era razonable y salió falsa, y conviene que quede escrita: **los siete eventos siguen sin consumidor**, y el argumento de «ya emite lo que el siguiente módulo querrá escuchar» no justificó nada. Ver [[dominio-reporte-servicio]].
 
 ### Un defecto encontrado y corregido en esta tanda
 
@@ -384,11 +386,11 @@ Lo que aportan no es el ida y vuelta —eso lo garantizaría casi cualquier mape
 
 **El módulo no tiene ya nada sin cubrir.** Lo que queda es de fuera:
 
-1. **El consumidor de los eventos**: el reporte de servicio, que es el módulo siguiente en [[hoja-de-ruta-producto]]. Los siete se emiten ya y nadie los escucha.
-2. **El formulario**, que es lo que cierra los cuatro RF que siguen abiertos.
+1. **El consumidor de los eventos**, que sigue sin aparecer. Se esperaba que fuera el reporte de servicio; se construyó el 2026-09-27 y **no los escucha**. Los siete se emiten y nadie los recoge.
+2. ~~**El formulario**, que es lo que cierra los cuatro RF que siguen abiertos.~~ **Construido el 2026-09-27**: cierra tres, y RF-04 queda como desviación consciente.
 
 ~~La regla 1~~ y ~~las pruebas de persistencia~~ — **cerradas las dos el 2026-09-13**, ver arriba.
 
 ## Notas relacionadas
 
-[[congelar-una-referencia-historica]] · [[hoja-de-ruta-producto]] · [[decisiones-tecnicas-malphasos]] · [[regla-traslado-mismo-cliente]] · [[dominio-equipo-mantenimiento]] · [[dominio-cliente]] · [[dominio-reportes]] · [[esquema-bd-v4]] · [[reglas-de-negocio-en-el-esquema]] · [[patron-soft-delete]] · [[modelo-de-permisos]] · [[deuda-tecnica-y-riesgos]] · [[stack-spring-boot-4-particularidades]] · [[openapi-swagger]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[aggregate-root-pattern]] · [[eventos-de-dominio]] · [[patron-event-dispatcher-dual]] · [[patron-catalogo-errores-por-contexto]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[migracion-equipment-hallazgos]]
+[[congelar-una-referencia-historica]] · [[hoja-de-ruta-producto]] · [[decisiones-tecnicas-malphasos]] · [[regla-traslado-mismo-cliente]] · [[dominio-equipo-mantenimiento]] · [[dominio-cliente]] · [[dominio-reporte-servicio]] · [[dominio-reportes]] · [[esquema-bd-v4]] · [[reglas-de-negocio-en-el-esquema]] · [[patron-soft-delete]] · [[modelo-de-permisos]] · [[deuda-tecnica-y-riesgos]] · [[stack-spring-boot-4-particularidades]] · [[openapi-swagger]] · [[evolucion-arquitectonica-crud-a-cqrs]] · [[aggregate-root-pattern]] · [[eventos-de-dominio]] · [[patron-event-dispatcher-dual]] · [[patron-catalogo-errores-por-contexto]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[migracion-equipment-hallazgos]]
