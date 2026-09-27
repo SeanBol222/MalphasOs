@@ -28,6 +28,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM modelo",
             "DELETE FROM equipo",
             "DELETE FROM marca",
+            "DELETE FROM punto_verificacion",
             "DELETE FROM tipo_equipo",
             "DELETE FROM fabricante"
         },
@@ -55,10 +56,33 @@ class EquipmentCatalogSchemaTest {
                 INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo, t_definicion_tecnica,
                                          t_recomendaciones_cuidado, t_tecnologia_predominante,
                                          d_amperaje, b_verificable, n_tipo_verificacion,
-                                         m_valor_unitario_mantenimiento)
-                VALUES (?, ?, 'Definicion', 'Cuidados', 'Electronica', ?, ?, ?, 150000)
+                                         i_cantidad_datos, m_valor_unitario_mantenimiento)
+                VALUES (?, ?, 'Definicion', 'Cuidados', 'Electronica', ?, ?, ?, ?, 150000)
                 """,
-                id, "Tipo " + unico(), amperaje, verificable, modalidad);
+                id, "Tipo " + unico(), amperaje, verificable, modalidad, cantidadPara(modalidad));
+
+        return id;
+    }
+
+    /**
+     * La cantidad de datos que la modalidad exige, o {@code null} si no admite ninguna.
+     *
+     * <p>Desde {@code V8} las dos modalidades constantes la exigen y la variable la prohibe, de modo que
+     * este ayudante ya no puede insertar un tipo sin decidirlo.
+     */
+    private Integer cantidadPara(String modalidad) {
+        return "patron_constante".equals(modalidad) || "equipo_constante".equals(modalidad) ? 3 : null;
+    }
+
+    private UUID insertPoint(UUID tipo, String valor, String unidad, boolean activo) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO punto_verificacion (k_id_punto_verificacion, k_id_tipo_equipo, d_valor,
+                                                n_unidad, b_estado_activo)
+                VALUES (?, ?, CAST(? AS numeric), ?, ?)
+                """,
+                id, tipo, valor, unidad, activo);
 
         return id;
     }
@@ -218,5 +242,120 @@ class EquipmentCatalogSchemaTest {
                         """,
                         Integer.class))
                 .isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("una modalidad constante exige decir cuantos datos se toman")
+    void modalidadConstanteExigeCantidad() {
+        // Sin esto cabe un tipo que dice comparar contra un patron constante sin decir cuantas
+        // lecturas se toman, y el reporte no se puede llenar.
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        """
+                        INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo,
+                                                 t_definicion_tecnica, t_recomendaciones_cuidado,
+                                                 t_tecnologia_predominante, b_verificable,
+                                                 n_tipo_verificacion, m_valor_unitario_mantenimiento)
+                        VALUES (?, ?, 'D', 'C', 'E', true, 'patron_constante', 1000)
+                        """,
+                        UUID.randomUUID(), "Tipo " + unico()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("la modalidad variable no admite cantidad: la decide el ingeniero en campo")
+    void modalidadVariableProhibeCantidad() {
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        """
+                        INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo,
+                                                 t_definicion_tecnica, t_recomendaciones_cuidado,
+                                                 t_tecnologia_predominante, b_verificable,
+                                                 n_tipo_verificacion, i_cantidad_datos,
+                                                 m_valor_unitario_mantenimiento)
+                        VALUES (?, ?, 'D', 'C', 'E', true, 'patron_equipo_variable', 5, 1000)
+                        """,
+                        UUID.randomUUID(), "Tipo " + unico()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("un tipo que no se verifica tampoco lleva cantidad")
+    void noVerificableProhibeCantidad() {
+        // Es la rama que en SQL se escapa: «NOT IN (...)» con NULL da NULL, no falso.
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        """
+                        INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo,
+                                                 t_definicion_tecnica, t_recomendaciones_cuidado,
+                                                 t_tecnologia_predominante, b_verificable,
+                                                 n_tipo_verificacion, i_cantidad_datos,
+                                                 m_valor_unitario_mantenimiento)
+                        VALUES (?, ?, 'D', 'C', 'E', false, NULL, 5, 1000)
+                        """,
+                        UUID.randomUUID(), "Tipo " + unico()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("la cantidad de datos va de 1 a 100")
+    void cantidadAcotada() {
+        for (int cantidad : new int[] {0, 101}) {
+            assertThatThrownBy(() -> jdbcTemplate.update(
+                            """
+                            INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo,
+                                                     t_definicion_tecnica, t_recomendaciones_cuidado,
+                                                     t_tecnologia_predominante, b_verificable,
+                                                     n_tipo_verificacion, i_cantidad_datos,
+                                                     m_valor_unitario_mantenimiento)
+                            VALUES (?, ?, 'D', 'C', 'E', true, 'equipo_constante', ?, 1000)
+                            """,
+                            UUID.randomUUID(), "Tipo " + unico(), cantidad))
+                    .describedAs("cantidad " + cantidad)
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+    }
+
+    @Test
+    @DisplayName("un punto de verificacion admite valores negativos: un congelador se verifica a -20 grados")
+    void puntoAdmiteNegativos() {
+        // Un CHECK de positividad aqui habria dejado fuera media cadena de frio.
+        UUID tipo = insertType(true, "patron_constante", null);
+
+        assertThatCode(() -> insertPoint(tipo, "-20.0000", "°C", true)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("un punto necesita su tipo y una unidad que diga algo")
+    void puntoNecesitaTipoYUnidad() {
+        UUID tipo = insertType(true, "patron_constante", null);
+
+        assertThatThrownBy(() -> insertPoint(UUID.randomUUID(), "100", "mmHg", true))
+                .describedAs("un tipo que no existe")
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertPoint(tipo, "100", "   ", true))
+                .describedAs("una unidad en blanco")
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("dos puntos activos iguales son el mismo dos veces, pero uno retirado no estorba")
+    void puntoActivoUnico() {
+        UUID tipo = insertType(true, "patron_constante", null);
+        insertPoint(tipo, "100.0000", "mmHg", true);
+
+        assertThatThrownBy(() -> insertPoint(tipo, "100.0000", "mmHg", true))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        // El indice es parcial: con uno retirado se puede volver a dar de alta el mismo valor, que es
+        // lo que permite reconfigurar sin borrar nada.
+        insertPoint(tipo, "50.0000", "mmHg", false);
+        assertThatCode(() -> insertPoint(tipo, "50.0000", "mmHg", true)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("el mismo valor en otra unidad es otro punto")
+    void puntoDistinguePorUnidad() {
+        UUID tipo = insertType(true, "equipo_constante", null);
+        insertPoint(tipo, "100.0000", "mmHg", true);
+
+        assertThatCode(() -> insertPoint(tipo, "100.0000", "kPa", true)).doesNotThrowAnyException();
     }
 }

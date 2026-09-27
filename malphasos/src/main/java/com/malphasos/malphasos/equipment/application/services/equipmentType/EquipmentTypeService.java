@@ -4,9 +4,11 @@ import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeSe
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentTypePersistencePort;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChangeVerificationModeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.VerificationPointCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeactivateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.UpdateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
+import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
@@ -47,6 +49,8 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
                 command.voltaje(),
                 command.amperaje(),
                 command.modalidadVerificacion(),
+                command.cantidadDatos(),
+                puntosDe(command.puntosVerificacion()),
                 command.valorUnitarioMantenimiento()));
     }
 
@@ -70,9 +74,22 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
     @Transactional
     public EquipmentType changeVerificationMode(ChangeVerificationModeCommand command) {
         EquipmentType tipo = findById(command.id());
-        tipo.changeVerificationMode(command.modalidad());
+        tipo.changeVerificationMode(
+                command.modalidad(), command.cantidadDatos(), puntosDe(command.puntosVerificacion()));
 
         return persistAndPublish(tipo);
+    }
+
+    /**
+     * Traduce los puntos que llegan de fuera a los del dominio.
+     *
+     * <p>Aquí y no en el agregado porque el agregado no debe conocer la forma en que le llegan las
+     * cosas: {@code VerificationPoint.of} normaliza el valor y exige la unidad, y esto solo recorre.
+     */
+    private List<VerificationPoint> puntosDe(List<VerificationPointCommand> puntos) {
+        return puntos == null
+                ? List.of()
+                : puntos.stream().map(punto -> VerificationPoint.of(punto.valor(), punto.unidad())).toList();
     }
 
     @Override

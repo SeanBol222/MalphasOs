@@ -3,9 +3,11 @@ package com.malphasos.malphasos.equipment.infrastructure.output.mapper;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.manufacturer.Manufacturer;
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.BrandEntity;
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.EquipmentTypeEntity;
+import com.malphasos.malphasos.equipment.infrastructure.output.entities.VerificationPointEntity;
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.ManufacturerEntity;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -65,6 +67,11 @@ public class EquipmentCatalogPersistenceMapper {
                 entity.getVoltaje(),
                 entity.getAmperaje(),
                 VerificationMode.desdeEsquema(entity.getTipoVerificacion()),
+                entity.getCantidadDatos(),
+                entity.getPuntosVerificacion().stream()
+                        .map(punto -> VerificationPoint.rehydrate(
+                                punto.getId(), punto.getValor(), punto.getUnidad(), punto.isEstadoActivo()))
+                        .toList(),
                 entity.getValorUnitarioMantenimiento(),
                 entity.isEstadoActivo());
     }
@@ -76,7 +83,7 @@ public class EquipmentCatalogPersistenceMapper {
     public EquipmentTypeEntity toEntity(EquipmentType tipo) {
         VerificationMode modalidad = tipo.getModalidadVerificacion();
 
-        return new EquipmentTypeEntity(
+        EquipmentTypeEntity entity = new EquipmentTypeEntity(
                 tipo.getId(),
                 tipo.getNombre(),
                 tipo.getDefinicionTecnica(),
@@ -86,7 +93,18 @@ public class EquipmentCatalogPersistenceMapper {
                 tipo.getAmperaje(),
                 tipo.isVerificable(),
                 modalidad == null ? null : modalidad.valorEnEsquema(),
+                tipo.getCantidadDatos(),
+                new java.util.ArrayList<>(),
                 tipo.getValorUnitarioMantenimiento(),
                 tipo.isEstadoActivo());
+
+        // Los puntos se construyen despues de la entidad porque cada uno apunta a ella: es la relacion
+        // la que se guarda, y sin el lado dueno Hibernate insertaria la fila con la llave foranea nula.
+        for (VerificationPoint punto : tipo.getPuntosVerificacion()) {
+            entity.getPuntosVerificacion().add(new VerificationPointEntity(
+                    punto.id(), entity, punto.valor(), punto.unidad(), punto.estadoActivo()));
+        }
+
+        return entity;
     }
 }
