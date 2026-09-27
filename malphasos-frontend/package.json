@@ -7,11 +7,12 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "contrato": "npm run contrato:client && npm run contrato:location && npm run contrato:person && npm run contrato:equipment",
+    "contrato": "npm run contrato:client && npm run contrato:location && npm run contrato:person && npm run contrato:equipment && npm run contrato:work-order",
     "contrato:client": "npx -y openapi-typescript@7.13.0 ../contracts/openapi/client.json -o src/app/core/api/client.contrato.ts",
     "contrato:location": "npx -y openapi-typescript@7.13.0 ../contracts/openapi/location.json -o src/app/core/api/location.contrato.ts",
     "contrato:person": "npx -y openapi-typescript@7.13.0 ../contracts/openapi/person.json -o src/app/core/api/person.contrato.ts",
-    "contrato:equipment": "npx -y openapi-typescript@7.13.0 ../contracts/openapi/equipment.json -o src/app/core/api/equipment.contrato.ts"
+    "contrato:equipment": "npx -y openapi-typescript@7.13.0 ../contracts/openapi/equipment.json -o src/app/core/api/equipment.contrato.ts",
+    "contrato:work-order": "npx -y openapi-typescript@7.13.0 ../contracts/openapi/work-order.json -o src/app/core/api/work-order.contrato.ts"
   },
   "private": true,
   "packageManager": "npm@11.13.0",

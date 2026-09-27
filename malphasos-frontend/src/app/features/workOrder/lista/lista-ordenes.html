@@ -1,0 +1,61 @@
+<div class="flex flex-wrap items-center justify-between gap-2">
+  <h1 class="text-2xl font-bold">Órdenes de trabajo</h1>
+
+  @if (puedeProgramar()) {
+    <a
+      class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+      routerLink="/ordenes/nueva"
+    >
+      Programar orden
+    </a>
+  }
+</div>
+
+@if (ordenes.isPending()) {
+  <p class="mt-3 text-neutral-700" role="status">Cargando órdenes…</p>
+} @else if (hayError()) {
+  <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+    <p class="font-semibold">{{ mensajeDeError() }}</p>
+  </div>
+} @else if (!filas().length) {
+  <p class="mt-3 text-neutral-700">
+    Todavía no hay órdenes programadas. Una orden se programa para un cliente y una de sus sedes, y
+    después se le añaden los equipos sobre los que se trabaja.
+  </p>
+} @else {
+  <table class="mt-3 w-full border-collapse text-left">
+    <caption class="sr-only">Órdenes de trabajo programadas</caption>
+    <thead>
+      <tr class="border-b border-neutral-300">
+        <th scope="col" class="py-1 pr-2 font-semibold">Fecha</th>
+        <th scope="col" class="py-1 pr-2 font-semibold">Cliente</th>
+        <th scope="col" class="py-1 pr-2 font-semibold">Sede</th>
+        <th scope="col" class="py-1 pr-2 font-semibold">Servicio</th>
+        <th scope="col" class="py-1 pr-2 font-semibold">Equipos</th>
+        <th scope="col" class="py-1 font-semibold">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (fila of filas(); track fila.id) {
+        <tr class="border-b border-neutral-200">
+          <td class="py-1 pr-2">
+            <a class="font-semibold underline" [routerLink]="['/ordenes', fila.id]">
+              {{ fila.fecha }}
+            </a>
+          </td>
+          <td class="py-1 pr-2">{{ fila.cliente }}</td>
+          <td class="py-1 pr-2">{{ fila.sede }}</td>
+          <td class="py-1 pr-2">{{ fila.servicio }}</td>
+          <!-- Cero equipos es un aviso, no un dato: la orden esta programada y no dice sobre que. -->
+          <td class="py-1 pr-2" [class.font-semibold]="fila.equipos === 0">
+            {{ fila.equipos === 0 ? 'Sin equipos' : fila.equipos }}
+          </td>
+          <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
+          <td class="py-1" [class.font-semibold]="fila.estadoActivo">
+            {{ fila.estadoActivo ? fila.estado : 'Anulada' }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

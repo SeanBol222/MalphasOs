@@ -35,6 +35,9 @@ export const NAVEGACION: readonly EntradaDeNavegacion[] = [
   // es «que equipos hay», no «que marcas existen». Hasta el 2026-09-26 el catalogo ocupaba este sitio y
   // los equipos no tenian listado propio.
   { ruta: 'equipos', etiqueta: 'Equipos' },
+  // Las ordenes de trabajo cierran el primer bloque del frontend: el backend las termino el 2026-09-13 y
+  // cuatro de sus siete requisitos describen un formulario que hasta ahora no existia.
+  { ruta: 'ordenes', etiqueta: 'Órdenes' },
   // El catalogo conserva su entrada porque administrarlo es una tarea aparte: no debe exigir empezar a
   // registrar un equipo para crear una marca.
   //
@@ -102,6 +105,8 @@ function cargarPagina(camino: string): Promise<Type<unknown>> {
       return import('../features/client/lista/lista-clientes').then((m) => m.ListaClientes);
     case 'equipos':
       return import('../features/equipment/lista/lista-equipos').then((m) => m.ListaEquipos);
+    case 'ordenes':
+      return import('../features/workOrder/lista/lista-ordenes').then((m) => m.ListaOrdenes);
     case 'catalogo':
       return import('../features/equipment/catalogo/catalogo').then((m) => m.Catalogo);
     case 'catalogo/marcas':

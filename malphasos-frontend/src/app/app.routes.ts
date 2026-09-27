@@ -92,6 +92,24 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('equipment.read')],
       },
       {
+        path: 'ordenes/nueva',
+        loadComponent: () =>
+          import('./features/workOrder/nueva/nueva-orden').then((m) => m.NuevaOrden),
+        canActivate: [requiereAutoridad('work-order.write')],
+      },
+      {
+        path: 'ordenes/:id/equipos',
+        loadComponent: () =>
+          import('./features/workOrder/equipos/agregar-equipos').then((m) => m.AgregarEquipos),
+        canActivate: [requiereAutoridad('work-order.write')],
+      },
+      {
+        path: 'ordenes/:id',
+        loadComponent: () =>
+          import('./features/workOrder/detalle/detalle-orden').then((m) => m.DetalleOrden),
+        canActivate: [requiereAutoridad('work-order.read')],
+      },
+      {
         path: 'sin-permiso',
         loadComponent: () => import('./core/layout/sin-permiso').then((m) => m.SinPermiso),
       },

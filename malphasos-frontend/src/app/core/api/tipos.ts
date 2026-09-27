@@ -2,6 +2,7 @@ import { components } from './client.contrato';
 import { components as ubicacion } from './location.contrato';
 import { components as personas } from './person.contrato';
 import { components as equipos } from './equipment.contrato';
+import { components as ordenes } from './work-order.contrato';
 
 /**
  * Nombres legibles para lo que el contrato genera.
@@ -146,4 +147,58 @@ export const ETIQUETA_DE_IDENTIFICACION: Readonly<Record<TipoIdentificacion, str
   NIT_NATURAL: 'NIT natural',
   CC: 'Cédula de ciudadanía',
   CE: 'Cédula de extranjería',
+};
+
+/**
+ * Ordenes de trabajo: lo que se programa, con que equipos y en que estado va.
+ *
+ * <p>Una orden nace <b>CREADA</b>, pasa a <b>EN_EJECUCION</b> cuando el ingeniero empieza y a
+ * <b>EJECUTADA</b> cuando termina. Las tres transiciones son operaciones distintas en el API, no un
+ * campo que se edita: el backend comprueba en cada una que el estado la permita.
+ */
+export type OrdenDeTrabajo = ordenes['schemas']['WorkOrderResponse'];
+export type NuevaOrdenDeTrabajo = ordenes['schemas']['WorkOrderScheduleRequest'];
+export type EquipoDeOrden = ordenes['schemas']['WorkOrderEquipmentResponse'];
+
+export type EstadoDeEjecucion = NonNullable<OrdenDeTrabajo['estadoEjecucion']>;
+export type Periodicidad = NonNullable<NuevaOrdenDeTrabajo['periodicidad']>;
+export type TipoDeServicio = NonNullable<NuevaOrdenDeTrabajo['tipoServicio']>;
+
+/** Los estados, en el orden en que ocurren. */
+export const ESTADOS_DE_EJECUCION: readonly EstadoDeEjecucion[] = [
+  'CREADA',
+  'EN_EJECUCION',
+  'EJECUTADA',
+] as const;
+
+export const ETIQUETA_DE_ESTADO: Readonly<Record<EstadoDeEjecucion, string>> = {
+  CREADA: 'Creada',
+  EN_EJECUCION: 'En ejecución',
+  EJECUTADA: 'Ejecutada',
+};
+
+export const PERIODICIDADES: readonly Periodicidad[] = [
+  'MENSUAL',
+  'TRIMESTRAL',
+  'SEMESTRAL',
+  'ANUAL',
+] as const;
+
+export const ETIQUETA_DE_PERIODICIDAD: Readonly<Record<Periodicidad, string>> = {
+  MENSUAL: 'Mensual',
+  TRIMESTRAL: 'Trimestral',
+  SEMESTRAL: 'Semestral',
+  ANUAL: 'Anual',
+};
+
+export const TIPOS_DE_SERVICIO: readonly TipoDeServicio[] = [
+  'PREVENTIVO',
+  'CORRECTIVO',
+  'CALIBRACION',
+] as const;
+
+export const ETIQUETA_DE_TIPO_DE_SERVICIO: Readonly<Record<TipoDeServicio, string>> = {
+  PREVENTIVO: 'Preventivo',
+  CORRECTIVO: 'Correctivo',
+  CALIBRACION: 'Calibración',
 };

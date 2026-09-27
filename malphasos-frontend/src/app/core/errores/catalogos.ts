@@ -60,5 +60,24 @@ export const CATALOGO_EQUIPMENT: Readonly<Record<string, string>> = {
   ERR_EQUIPMENT_010: 'Un equipo no se puede trasladar al área de otro cliente.',
 };
 
+/**
+ * Y los del modulo de ordenes de trabajo.
+ *
+ * <p>El tercero es el que mas se va a ver y el que mas cuesta redactar: «el estado no lo permite» no
+ * dice nada por si solo, asi que el mensaje nombra las transiciones que existen. Una orden ya ejecutada
+ * no se puede volver a iniciar, y eso es una regla del dominio, no un fallo del usuario.
+ */
+export const CATALOGO_WORK_ORDER: Readonly<Record<string, string>> = {
+  ERR_WORK_ORDER_001: 'Esa orden de trabajo no existe o fue anulada.',
+  ERR_WORK_ORDER_002: 'Revise los datos de la orden.',
+  ERR_WORK_ORDER_003:
+    'El estado de la orden no permite esa acción. Una orden se inicia estando creada y se ejecuta estando en ejecución.',
+  ERR_WORK_ORDER_004: 'Ese cliente no existe o fue retirado.',
+  ERR_WORK_ORDER_005: 'Esa sede no existe o fue cerrada.',
+  ERR_WORK_ORDER_006: 'Esa área de servicio no existe o fue cerrada.',
+  ERR_WORK_ORDER_007: 'Ese equipo no existe o fue dado de baja.',
+  ERR_WORK_ORDER_008: 'Esa persona no existe o fue retirada.',
+};
+
 /** Lo que se dice cuando no hay nada mejor que decir. */
 export const MENSAJE_DE_RESPALDO = 'No se pudo completar la operación. Intente de nuevo.';
