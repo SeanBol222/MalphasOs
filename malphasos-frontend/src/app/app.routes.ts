@@ -104,6 +104,14 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('work-order.write')],
       },
       {
+        // El historial de un equipo: la consulta sobre la que se construira la hoja de vida (RF-26).
+        // Exige report.read porque lo que lista son reportes, no equipos.
+        path: 'equipos/:id/historial',
+        loadComponent: () =>
+          import('./features/report/historial/historial-equipo').then((m) => m.HistorialEquipo),
+        canActivate: [requiereAutoridad('report.read')],
+      },
+      {
         // El reporte cuelga de la orden -se llega desde su ficha, que es lo que pide RF-09- pero tiene
         // ruta propia para poder enlazarlo, recargarlo y volver atras. Es un documento, no un panel.
         path: 'reportes/:id',
