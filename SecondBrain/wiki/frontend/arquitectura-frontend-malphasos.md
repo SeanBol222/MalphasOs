@@ -4,14 +4,14 @@ description: Como se construye el frontend de MalphasOS -Angular, por modulo de 
 tags: [frontend, arquitectura, angular, "describe:malphasos"]
 source: Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex
 estado: estable
-updated: 2026-09-13
+updated: 2026-09-28
 ---
 
 # Arquitectura del frontend de MalphasOS
 
 **Esta nota dice cómo se escribe código de frontend aquí.** Las decisiones y su porqué están en el documento oficial, `Documentation/wiki/documentos/declaracion-diseno-frontend.md` en `Documentation/`; esta nota es la versión operativa para quien va a construir. El sistema visual tiene nota aparte: [[sistema-de-diseno-malphasos]].
 
-**Estado al 2026-09-13: decidido y sin escribir.** No existe todavía el proyecto.
+**Estado al 2026-09-28**: el proyecto existe, habla con el API desde un navegador y cubre **clientes, equipos con su catálogo, órdenes de trabajo y reportes de servicio**, con **368** pruebas. (Esta línea decía «decidido y sin escribir, no existe todavía el proyecto»: cierto hasta el **2026-09-13**.)
 
 ## El stack, y dónde vive
 
@@ -129,7 +129,7 @@ La redacción sigue el tono del manual de marca — ver [[sistema-de-diseno-malp
 
 ## Pruebas
 
-Mismo listón que el backend, que llega a este punto con **645** pruebas y la costumbre de verificar por mutación. El frontend va por **154**, contadas el 2026-09-26. (Decía 624 y no citaba las del frontend, que entonces no existían.)
+Mismo listón que el backend, que llega a este punto con **810** pruebas y la costumbre de verificar por mutación. El frontend va por **368**, contadas el 2026-09-28. (Decía **154** el 2026-09-26 y antes 624 del backend sin citar las del frontend, que entonces no existían.)
 
 | Nivel | Qué cubre |
 |---|---|
@@ -154,6 +154,25 @@ Un `computed()` que lea `formulario.getRawValue()` **no vuelve a calcularse nunc
 
 TanStack aguarda la promesa que devuelve `onSuccess` antes de resolver la mutación. En un servicio normal eso es lo correcto: cuando la mutación termina, la lista ya está fresca. **En una cadena de cinco altas seguidas es un freno**: cada paso esperaba la recarga completa del catálogo que no necesitaba. En `CatalogoApi` la invalidación se lanza sin esperarla, y lleva escrito el porqué. Se descubrió porque la prueba del panel **se colgaba en el segundo paso en vez de fallar**.
 
+### Un control añadido a un formulario desactivado nace activo
+
+Encontrado el 2026-09-28 en la tabla de verificación de un reporte, y **el defecto era invisible desde el código**: el formulario se desactiva cuando el reporte está cerrado, pero las casillas se crean más tarde —cuando llega el tipo del equipo, cuatro consultas después— y un control que se añade a un formulario ya desactivado **no hereda ese estado**. La tabla de un reporte cerrado se podía teclear; el servidor lo habría rechazado, pero la pantalla estaba ofreciendo algo que no existe.
+
+La regla que queda: cuando el contenido de un formulario se construye desde datos asíncronos, **el estado activo/desactivado se aplica también al reconstruirlo**, no solo cuando cambia la condición. Lo encontró la prueba del caso no editable, que es de las que parecen tontas hasta que pasa esto.
+
+### Un fallo en `afterEach` se lee como ochenta y seis
+
+También del 2026-09-28, y es la trampa de diagnóstico más caras de esta sesión. Una prueba dejó **una petición sin responder**; el `http.verify()` del `afterEach` lanzó, y esa excepción **impidió a Angular desmontar el TestBed**. Las once pruebas siguientes fallaron con «el módulo ya está instanciado», los trabajadores del corredor se contaminaron entre sí y el recuento llegó a **86 fallos en archivos que nadie había tocado** —clientes, armazón— con recuentos distintos en cada ejecución.
+
+Dos cosas que conviene llevarse:
+
+- **Un solo fallo de limpieza se disfraza de regresión general.** Ante decenas de fallos en archivos no tocados, buscar el **primero por orden de ejecución** en vez de leer el total: aquí el resto era humo.
+- **La causa era drenar las peticiones en una sola pasada.** La recarga que provoca invalidar la caché no sale en el mismo tic que la escritura, así que un único `http.match()` encuentra la lista vacía y la petición llega después. Se drena en vueltas, sin salir en la primera vacía.
+
+### Montar el TestBed dentro de la prueba solo funciona una vez
+
+El entorno de pruebas de Angular reinicia el TestBed en un `beforeEach` propio, de modo que **la primera prueba monta bien y la segunda encuentra el módulo ya instanciado**. Montar va en el `beforeEach` del archivo; para cambiar de autoridades en un caso concreto, `TestBed.resetTestingModule()` y volver a montar, que es lo que hacen las pantallas con permisos distintos.
+
 ## Por dónde se empieza
 
 **Rebanada vertical: arranque de la aplicación, autenticación y el flujo completo de órdenes de trabajo.** Atraviesa sesión, datos, formularios, errores y accesibilidad de una vez, de modo que una decisión equivocada aparece en la primera semana y no en la quinta.
@@ -164,6 +183,8 @@ El formulario de una orden arrastra consigo el selector de cliente, el de sede, 
 
 **Cierra cuatro requisitos** que hoy están abiertos sólo por falta de formulario: RF-03, RF-04, RF-06 y RF-07. Ver [[hoja-de-ruta-producto]].
 
+> **Cerró tres de los cuatro el 2026-09-27**, y RF-04 quedó como desviación consciente. Y el **2026-09-28 entraron los reportes de servicio**, en cuatro tandas: la ficha del reporte con los cinco campos de RF-15, la tabla de verificación, el historial de un equipo y el bloque que autocompleta desde la orden —que es lo que cerró **RF-11**—. El detalle de cada decisión está en [[dominio-reporte-servicio]]; lo que vale para cualquier pantalla está arriba, en las tres lecciones nuevas de pruebas.
+
 ## Lo que está decidido y aplazado
 
 **Instalación en el dispositivo y consulta sin conexión**: la aplicación las tendrá, no entran ahora. Aplazarlas no incumple nada —la ERS pide acceso desde el teléfono **sin instalar nada nativo**, y una web responsiva lo cumple literalmente—.
@@ -172,4 +193,4 @@ El formulario de una orden arrastra consigo el selector de cliente, el de sede, 
 
 ## Notas relacionadas
 
-[[sistema-de-diseno-malphasos]] · [[arquitectura-frontend]] · [[integracion-keycloak-frontend]] · [[hoja-de-ruta-producto]] · [[modelo-de-permisos]] · [[openapi-swagger]] · [[patron-catalogo-errores-por-contexto]] · [[arquitectura-hexagonal]] · [[seguridad-keycloak-backend]]
+[[sistema-de-diseno-malphasos]] · [[arquitectura-frontend]] · [[integracion-keycloak-frontend]] · [[hoja-de-ruta-producto]] · [[dominio-reporte-servicio]] · [[modelo-de-permisos]] · [[openapi-swagger]] · [[patron-catalogo-errores-por-contexto]] · [[arquitectura-hexagonal]] · [[seguridad-keycloak-backend]]
