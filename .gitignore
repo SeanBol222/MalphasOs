@@ -14,3 +14,9 @@ dist/
 
 # Productos de compilacion del backend.
 target/
+
+# Todo lo que la herramienta de sesion deja en el repositorio, que no es del proyecto y no debe
+# publicarse. Hoy solo hay `.claude/settings.local.json`, y estaba ignorado UNICAMENTE por el fichero
+# global del usuario (~/.config/git/ignore): en otro clon, o en CI, un `git add -A` se lo habria
+# tragado. Un ignore que vive fuera del repositorio no protege al repositorio.
+.claude/
