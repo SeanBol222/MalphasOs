@@ -12,7 +12,7 @@ Se añade la nota de wiki `documentos/matriz-de-interesados.md` y se actualiza e
 
 Primera versión completa. Destilada de los cuatro documentos oficiales existentes en `Documentation/` —`IEEE830/IEEE830.tex`, `constitutionDocument/constitutionDocument.tex`, `ScopeManagementPlan/PlanDeGestionDelAlcance.tex` y `TraceabilityMatrix/MatrizDeTrazabilidad.tex`— y contrastada de nuevo contra `malphasos/` para la correspondencia terminológica y para verificar que ningún estado citado había quedado desactualizado desde el 5 de septiembre.
 
-`Documentation/CLAUDE.md` deja de llevar las convenciones, los datos del proyecto y la estructura de carpetas — todo eso se muda a notas propias de esta wiki — y pasa a ser una puerta de entrada corta que apunta a `wiki/index.md`.
+`Documentation/CONVENCIONES.md` deja de llevar las convenciones, los datos del proyecto y la estructura de carpetas — todo eso se muda a notas propias de esta wiki — y pasa a ser una puerta de entrada corta que apunta a `wiki/index.md`.
 
 Un hallazgo de la construcción, no de la documentación previa: el correspondiente enum `RoleType` del módulo `person` (`malphasos/src/main/java/.../person/domain/person/RoleType.java`) documenta explícitamente en su Javadoc que **no es lo mismo que `PersonType`**, aunque comparten tres nombres por coincidencia. Es la mejor fuente de código para la nota [[correspondencia-terminologica]]: el propio código ya advierte del riesgo de confusión que esta wiki existe en parte para resolver.
 
@@ -36,9 +36,9 @@ No se modificó ningún `.tex` ni ningún archivo de `SecondBrain/` o `malphasos
 
 **Un dato que confirma que marca y documentos ya eran coherentes**: muestreado el logo `malphasos-stacked.png`, sus píxeles opacos son `#F3F2F2` en un 84,2 %, `#2D2B2B` en un 9,2 %, `#201E1D` en un 3,3 % y `#EC3013` en un 1,2 %. Lo que faltaba no era coherencia sino que alguien la escribiera.
 
-**Corregido además el `CLAUDE.md` de este directorio**, que mandaba trabajar en un worktree sobre la rama `MalphasOS-Documentation`. Ni la rama ni el worktree existen desde el 2026-09-12.
+**Corregido además el `CONVENCIONES.md` de este directorio**, que mandaba trabajar en un worktree sobre la rama `MalphasOS-Documentation`. Ni la rama ni el worktree existen desde el 2026-09-12.
 
-**Tocadas**: [[paleta-de-colores]] (reescrita), `index.md`, `CLAUDE.md`. **Nuevas**: [[declaracion-diseno-frontend]], [[manual-de-marca]].
+**Tocadas**: [[paleta-de-colores]] (reescrita), `index.md`, `CONVENCIONES.md`. **Nuevas**: [[declaracion-diseno-frontend]], [[manual-de-marca]].
 
 ## [2026-09-27] ingest | Tres notas de requisitos caducadas, y la cifra agregada corregida de 8 a 16
 
@@ -63,3 +63,11 @@ No se modificó ningún `.tex` ni ningún archivo de `SecondBrain/` o `malphasos
 **La cifra pasa de 16 a 17 de 31**, y el contraste con la corrección de ayer merece quedarse: esa nota llevaba **tres semanas** caducada en 8 porque nadie recontaba; esta caducó **en un día** porque el trabajo fue rápido. Las dos formas de caducar existen, y solo una se arregla recontando al citar.
 
 **Tocadas**: [[estado-de-implementacion]], [[rf-reportes-mantenimiento]], `index.md`.
+
+## [2026-09-28] lint | `CLAUDE.md` pasa a `CONVENCIONES.md`, aquí y en la raíz
+
+Decisión del usuario: ese nombre aparecía en la portada del repositorio en GitHub. Se renombraron los cuatro archivos del proyecto con `git mv` —el de este directorio y el de esta wiki entre ellos—, con su contenido y su historial intactos.
+
+**Las referencias de esta wiki se actualizaron todas**, incluidas las de las entradas anteriores a hoy: hablan del mismo archivo, que ahora se llama de otra manera. La convención que este directorio impone no cambia — **no se documenta como existente algo que no está implementado** — y sigue viviendo en `Documentation/CONVENCIONES.md` y en `Documentation/wiki/CONVENCIONES.md`.
+
+**Tocadas**: [[index]], las cinco notas que citaban el nombre viejo, y el propio archivo de convenciones.

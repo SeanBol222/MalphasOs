@@ -26,7 +26,7 @@ updated: 2026-09-28
 | Contrato | Cliente TypeScript **generado desde OpenAPI** y versionado |
 | Pruebas | Unitarias · integración contra API simulada · extremo a extremo en login y crear orden |
 
-**Vive en `malphasos-frontend/`**, hermano de `malphasos/`. Es una decisión de esta nota, no del documento oficial: el `CLAUDE.md` de la raíz decía que el código vivía **exclusivamente** en `malphasos/`, y esa frase se corrigió el mismo día porque describía un proyecto sin frontend.
+**Vive en `malphasos-frontend/`**, hermano de `malphasos/`. Es una decisión de esta nota, no del documento oficial: el `CONVENCIONES.md` de la raíz decía que el código vivía **exclusivamente** en `malphasos/`, y esa frase se corrigió el mismo día porque describía un proyecto sin frontend.
 
 ## Por qué Angular: el espejo del backend
 

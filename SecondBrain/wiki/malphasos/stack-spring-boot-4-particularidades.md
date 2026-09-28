@@ -64,7 +64,7 @@ Medido el **2026-09-08** sobre `feat/permission-model`, con `rm -rf target/suref
 | atributo `tests=` de `TEST-*.xml` | **472** | todas las pruebas, incluidas las de clases `@Nested` |
 | `target/surefire-reports/*.txt` | **358** | **omite por completo las pruebas que viven en clases `@Nested`** |
 
-**Los dos números son correctos según lo que miden.** Este wiki y el `CLAUDE.md` de la raíz publican el conteo de los XML. Quien reverifique con `grep "Tests run" target/surefire-reports/*.txt` obtendrá el otro y creerá que la cifra está inflada: no lo está, está contando otra cosa.
+**Los dos números son correctos según lo que miden.** Este wiki y el `CONVENCIONES.md` de la raíz publican el conteo de los XML. Quien reverifique con `grep "Tests run" target/surefire-reports/*.txt` obtendrá el otro y creerá que la cifra está inflada: no lo está, está contando otra cosa.
 
 ### Corrección: la causa del desfase no era la que decía esta nota (2026-09-08)
 
@@ -99,7 +99,7 @@ Corolario práctico: **el número honesto es el del resumen de Maven**, que coin
 
 ### La remedición que quedaba pendiente: `main` con las dos ramas dentro (2026-09-09)
 
-Esta nota y el `CLAUDE.md` de la raíz avisaban de que **el día que se mergearan las dos ramas habría que remedir, no sumar**. Se mergearon ese mismo día (`e6dda32` y `258cd81`), y el resultado es el dato que faltaba:
+Esta nota y el `CONVENCIONES.md` de la raíz avisaban de que **el día que se mergearan las dos ramas habría que remedir, no sumar**. Se mergearon ese mismo día (`e6dda32` y `258cd81`), y el resultado es el dato que faltaba:
 
 | Fuente | `main` (`01c3277`) | `feat/relocation-same-client` (`3c002b2`) | `feat/relocation-same-client` (`43de295`) | `feat/work-order-schema` (`24e7640`) |
 |---|---|---|---|---|
@@ -129,7 +129,7 @@ La tercera columna estuvo **con guiones durante un commit**. Al añadir las dos 
 
 Al medirse de verdad tras el merge: **611 y 433**. Uno acertado y **el otro no**.
 
-Las columnas nombran **commits y no ramas**, también a propósito: una medición pertenece al commit en el que se contó y ahí se queda, mientras que «`main`» apunta cada día a otro sitio. Ver la tabla de la sección «Por qué ya no se escribe el hash de `main`» del `CLAUDE.md` de la raíz.
+Las columnas nombran **commits y no ramas**, también a propósito: una medición pertenece al commit en el que se contó y ahí se queda, mientras que «`main`» apunta cada día a otro sitio. Ver la tabla de la sección «Por qué ya no se escribe el hash de `main`» del `CONVENCIONES.md` de la raíz.
 
 El fallo habría sido en los `.txt`, y por la razón que esta nota lleva repitiendo: las dos pruebas nuevas están dentro de una clase `@Nested` ya existente, `AlAnadirUnEquipo`, de modo que **esa fuente no las cuenta y se queda clavada en 433**. Quien dedujera «+2 en todo» se equivocaría exactamente en la fuente cuyo comportamiento raro está documentado tres párrafos más arriba.
 

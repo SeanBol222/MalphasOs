@@ -1,6 +1,6 @@
 # Índice — Wiki de la documentación de MalphasOS
 
-Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la nota más importante de su categoría.
+Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca la nota más importante de su categoría.
 
 ## La regla central
 
@@ -56,4 +56,4 @@ Catálogo de contenido. Ver [[CLAUDE.md]] para las convenciones. ⭐ marca la no
 
 ---
 
-**27 notas de contenido** más `CLAUDE.md` y `log.md` · última actualización 2026-09-28 · ver [[log.md]] para el historial.
+**27 notas de contenido** más `CONVENCIONES.md` y `log.md` · última actualización 2026-09-28 · ver [[log.md]] para el historial.

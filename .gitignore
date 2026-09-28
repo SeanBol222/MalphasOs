@@ -20,3 +20,9 @@ target/
 # global del usuario (~/.config/git/ignore): en otro clon, o en CI, un `git add -A` se lo habria
 # tragado. Un ignore que vive fuera del repositorio no protege al repositorio.
 .claude/
+
+# El archivo que la herramienta de sesion carga sola. NO se versiona a proposito: el usuario no quiere
+# ese nombre en el repositorio. Lo que contiene son cuatro importaciones de los CONVENCIONES.md, que si
+# estan versionados y llevan el contenido y el historial. Si se clona el proyecto, hay que recrearlo:
+# la receta esta en CONVENCIONES.md, en «Como se trabaja aqui».
+CLAUDE.md

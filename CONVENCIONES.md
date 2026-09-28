@@ -1,5 +1,20 @@
 # MalphasOS — workspace root
 
+> **Este archivo se llamaba `CLAUDE.md` hasta el 2026-09-28.** Se renombró por decisión del usuario:
+> el nombre aparecía en la portada del repositorio en GitHub y no quería verlo ahí. **El contenido, el
+> historial y la función son los mismos** —`git mv`, así que `git log --follow CONVENCIONES.md` sigue
+> entero—, de modo que cuando este archivo o cualquier nota del wiki dicen «el `CONVENCIONES.md` de la
+> raíz decía X», hablan de este mismo archivo, incluidas las entradas anteriores a la fecha del cambio.
+>
+> Lo mismo con los otros tres: `SecondBrain/CONVENCIONES.md`, `Documentation/CONVENCIONES.md` y
+> `Documentation/wiki/CONVENCIONES.md`.
+>
+> **Para que la herramienta de sesión siga leyendo esto** hay en la raíz un archivo con el nombre viejo
+> que no contiene nada más que **cuatro importaciones**, una por cada `CONVENCIONES.md`, y está **fuera
+> del control de versiones** —`.gitignore`—: existe en el disco de quien trabaja y no en el
+> repositorio. Si se clona el proyecto en otra máquina hay que recrearlo, y su contenido literal está
+> abajo, en «Cómo se trabaja aquí».
+
 MalphasOS es la aplicación de **gestión de clientes** y **gestión de mantenimientos preventivos** extraída de `bolivarbioingenieria-app`.
 
 ```
@@ -17,7 +32,7 @@ MalphasOS/
 
 Consulta **`SecondBrain/`**: **52** notas interconectadas. **Reenfocado el 2026-09-09**: nació para decidir qué portar de `bolivarbioingenieria-app` —pregunta ya contestada, la migración terminó— y hoy responde cómo funciona MalphasOS y qué falta por construir. Cada nota declara con la etiqueta `describe:*` si habla de MalphasOS, del sistema original, o del camino de uno al otro.
 
-Punto de entrada: `SecondBrain/index.md` (catálogo) y `SecondBrain/CLAUDE.md` (convenciones del wiki). Las notas que más se usan:
+Punto de entrada: `SecondBrain/index.md` (catálogo) y `SecondBrain/CONVENCIONES.md` (convenciones del wiki). Las notas que más se usan:
 
 - `wiki/malphasos/hoja-de-ruta-producto.md` — **qué falta por construir**, backend y frontend, ordenado por dependencias. Empieza por aquí si vas a abrir un módulo nuevo.
 - `wiki/malphasos/checklist-reutilizacion.md` — el registro **cerrado** de la migración. Dice qué se hizo y cuándo; no es una lista de pendientes.
@@ -98,6 +113,22 @@ Las cifras de arriba son el **número de elementos `<testcase>` de los XML de Su
 **Mensajes de commit**: asunto en inglés siguiendo Conventional Commits, cuerpo en español explicando *por qué*, no *qué*. Los nombres de funciones y clases, en inglés.
 
 **Cada commit queda en verde.** Si separar dos piezas deja la batería rota —un `@Service` sin adaptador tumba el contexto de Spring—, van juntas. Cortar por agregado antes que por capa.
+
+**El archivo que la herramienta lee no se versiona.** En la raíz hay un `CLAUDE.md` ignorado por git
+cuyo contenido completo es:
+
+```
+@CONVENCIONES.md
+@SecondBrain/CONVENCIONES.md
+@Documentation/CONVENCIONES.md
+@Documentation/wiki/CONVENCIONES.md
+```
+
+Cuatro importaciones y nada más. Se importan los cuatro y no solo el primero porque al renombrarlos
+dejaron de cargarse por estar en su directorio: la carga por carpeta depende del nombre, y el nombre es
+justo lo que se quitó. Si alguna vez ese archivo no existe, **lo primero que hay que hacer en una sesión
+nueva es leer los cuatro `CONVENCIONES.md`** — sin ellos no se conocen ni las reglas de commit ni las
+convenciones de código.
 
 **El wiki se mantiene solo.** Ante un cambio grande o un hallazgo relevante, actualizar `SecondBrain/` en la misma sesión sin que lo pidan, incluidos `index.md` y `log.md`. Si una afirmación del wiki resulta falsa, **corregirla dejando constancia** de que se corrigió y cuándo.
 

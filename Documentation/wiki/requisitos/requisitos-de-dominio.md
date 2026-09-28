@@ -30,7 +30,7 @@ El documento de constitución (`constitutionDocument.tex`, apartado 5.1, "Requis
 
 ## Por qué RD-03/RD-04 se marcan "implementado (inferido)" y no "implementado" a secas
 
-Si "registro de equipos" es la lectura correcta de lo que pedían, la cadena del catálogo ya existe y es la misma evidencia que sostiene RF-22: `equipo_cliente`, `tipo_equipo`, `fabricante`, `marca`, `modelo`. Pero **la ERS nunca confirma esa lectura con sus propias palabras**. El estado se ofrece con la salvedad explícita de que el requisito evaluado es una suposición razonable sobre qué pedía el código, no un enunciado verificado — es la diferencia entre `estado: inferido` y `estado: vigente` que usa el frontmatter de esta wiki (ver `wiki/CLAUDE.md`).
+Si "registro de equipos" es la lectura correcta de lo que pedían, la cadena del catálogo ya existe y es la misma evidencia que sostiene RF-22: `equipo_cliente`, `tipo_equipo`, `fabricante`, `marca`, `modelo`. Pero **la ERS nunca confirma esa lectura con sus propias palabras**. El estado se ofrece con la salvedad explícita de que el requisito evaluado es una suposición razonable sobre qué pedía el código, no un enunciado verificado — es la diferencia entre `estado: inferido` y `estado: vigente` que usa el frontmatter de esta wiki (ver `wiki/CONVENCIONES.md`).
 
 ## Los cuatro sin ninguna pista
 
