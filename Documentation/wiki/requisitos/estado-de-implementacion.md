@@ -1,6 +1,6 @@
 ---
 name: estado-de-implementacion
-description: La cifra agregada de implementacion de MalphasOS -16 de 31 RF, 1 de 23 RNF- con como se verifico, cuando caduco y donde esta el detalle
+description: La cifra agregada de implementacion de MalphasOS -17 de 31 RF, 1 de 23 RNF- con como se verifico, cuando caduco y donde esta el detalle
 tags: [requisitos, estado, trazabilidad]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2; Documentation/TraceabilityMatrix/MatrizDeTrazabilidad.tex"
 estado: vigente
@@ -17,11 +17,11 @@ updated: 2026-09-27
 
 | Tipo de requisito | Total | Implementado | Previsto | Fuente de la evaluación |
 |---|---|---|---|---|
-| Funcionales (RF) | 31 | **16** | 14 + 1 desviación | ERS, apartado 3.2, recontado el 2026-09-27 contra el código |
+| Funcionales (RF) | 31 | **17** | 13 + 1 desviación | ERS, apartado 3.2, recontado el 2026-09-28 contra el código |
 | No funcionales (RNF) | 23 | **1** (RNF-23, JWT) | 22 | Matriz de trazabilidad (primera evaluación; la ERS no marca RNF) |
 | De dominio (RD) | 6 | 2 inferidos (RD-03, RD-04) | 4 no verificables | Matriz de trazabilidad, con salvedad — ver [[requisitos-de-dominio]] |
 
-## Los 16 requisitos funcionales implementados
+## Los 17 requisitos funcionales implementados
 
 | Código | Categoría | Requisito |
 |---|---|---|
@@ -32,6 +32,7 @@ updated: 2026-09-27
 | RF-06 | Órdenes de Trabajo | Visualización de equipos por área (2026-09-27) |
 | RF-07 | Órdenes de Trabajo | Selección múltiple de equipos (2026-09-27) |
 | RF-09 | Reportes de Mantenimiento | Reporte individual por equipo de la orden (2026-09-27) |
+| RF-11 | Reportes de Mantenimiento | Autocompletado del reporte desde la orden (2026-09-28) |
 | RF-15 | Reportes de Mantenimiento | Registro de información técnica: los cinco campos (2026-09-27) |
 | RF-08 | Gestión de Clientes | Crear cliente |
 | RF-22 | Hojas de Vida | Crear hoja de vida |
@@ -42,7 +43,7 @@ updated: 2026-09-27
 | RF-52 | Usuarios y seguridad | Modificación de usuarios |
 | RF-53 | Usuarios y seguridad | Eliminación de usuarios |
 
-**⚠️ RF-04 no está en esa lista a propósito**: la pantalla no pide elegir áreas antes de mostrar sus equipos, sino que muestra todas las áreas abiertas de la sede a la vez. Se llega al mismo sitio con un paso menos, pero **no es lo que el requisito describe**, así que queda registrado como **desviación consciente** y no como implementado. Igual que **RF-11**: el backend hace imposible teclear los datos que vienen de la orden —no hay columna ni campo para ellos— pero el requisito dice que el reporte los «muestra», y no hay pantalla de reportes.
+**⚠️ RF-04 no está en esa lista a propósito**: la pantalla no pide elegir áreas antes de mostrar sus equipos, sino que muestra todas las áreas abiertas de la sede a la vez. Se llega al mismo sitio con un paso menos, pero **no es lo que el requisito describe**, así que queda registrado como **desviación consciente** y no como implementado. (**RF-11 estuvo en esa misma situación un día** y ya no: la ficha del reporte los muestra desde el 2026-09-28, leídos de la orden y sin control que editar.)
 
 > **Corregido el 2026-09-27.** El párrafo que seguía decía que «las seis categorías del flujo operativo —órdenes de trabajo, reportes, firma digital, inventario, alertas, módulo comercial— siguen `[PREVISTO]` en su totalidad». **Dos de esas seis ya no lo están**: órdenes de trabajo cierra 6 de 7 y reportes 2 de 6. Lo que sigue siendo cierto es el orden de dependencias que explica el porqué.
 
@@ -54,16 +55,18 @@ Tres categorías fundacionales concentraron todo lo construido al principio: ges
 |---|---|---|---|---|
 | 3.2.1 Órdenes de Trabajo | RF-01 a RF-07 | 7 | **6** + 1 desviación (RF-04) | [[rf-ordenes-trabajo]] |
 | 3.2.2 Clientes | RF-08 | 1 | 1 | [[rf-clientes]] |
-| 3.2.3 Reportes de Mantenimiento | RF-09 a RF-17 | 6 | **2** | [[rf-reportes-mantenimiento]] |
+| 3.2.3 Reportes de Mantenimiento | RF-09 a RF-17 | 6 | **3** | [[rf-reportes-mantenimiento]] |
 | 3.2.4 Firma Digital | RF-18, RF-21 | 2 | 0 | [[rf-firma-digital]] |
 | 3.2.5 Hojas de Vida | RF-22 a RF-27 | 4 | 2 | [[rf-hojas-vida]] |
 | 3.2.6 Inventario | RF-36, RF-37 | 2 | 0 | [[rf-inventario]] |
 | 3.2.7 Alertas y calibración | RF-40, RF-41 | 2 | 0 | [[rf-alertas-calibracion]] |
 | 3.2.8 Módulo Comercial | RF-45, RF-47 | 2 | 0 | [[rf-modulo-comercial]] |
 | 3.2.9 Usuarios y seguridad | RF-49 a RF-53 | 5 | 5 | [[rf-usuarios-seguridad]] |
-| **Total** | | **31** | **16** | |
+| **Total** | | **31** | **17** | |
 
 ## Cómo se verificó, y cuándo
+
+**Cuarta verificación, 28 de septiembre de 2026**: entra RF-11 con el frontend de los reportes, contra `malphasos-frontend/src/app/features/report/`. Es el primer requisito de esta wiki que **se cierra el día siguiente de anotarse como pendiente**, y sirve de contraste: la cifra caduca rápido cuando el trabajo va rápido, no solo cuando nadie mira.
 
 **Tercera verificación, 27 de septiembre de 2026**: recuento contra el código y contra los commits de `main`, no contra lo que esta nota decía. Fuentes: los controladores REST de `workorder` y `report`, las nueve migraciones `V1`–`V9`, y las pantallas de `malphasos-frontend/src/app/features/`. De ahí salen las ocho filas nuevas y las dos desviaciones registradas.
 
