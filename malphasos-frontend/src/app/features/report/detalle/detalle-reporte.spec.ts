@@ -8,6 +8,17 @@ import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar, responderA } from '../../../../testing/pantalla';
 import { EQUIPOS, ID_ORDEN, URL_EQUIPOS_DE_CLIENTE } from '../../../../testing/ordenes';
 import {
+  // El catalogo llama EQUIPOS a los del catalogo y ordenes.ts a las unidades del cliente: son dos cosas
+  // distintas con el mismo nombre, que es la ambiguedad del dominio anotada en el wiki. Se renombran
+  // aqui para que la prueba no la herede.
+  EQUIPOS as EQUIPOS_DE_CATALOGO,
+  MODELOS,
+  TIPOS,
+  URL_EQUIPOS as URL_EQUIPOS_DE_CATALOGO,
+  URL_MODELOS,
+  URL_TIPOS,
+} from '../../../../testing/catalogo';
+import {
   ID_REPORTE,
   reporte,
   reporteCerrable,
@@ -42,6 +53,14 @@ describe('Ficha de un reporte de servicio', () => {
     fixture.componentRef.setInput('id', ID_REPORTE);
   }
 
+  /**
+   * Se monta antes de cada prueba, y el caso «sin autoridad» rehace el TestBed.
+   *
+   * <p>Montar dentro de la prueba en vez de aquí no funciona, y conviene saber por qué: el entorno de
+   * pruebas de Angular reinicia el TestBed en un {@code beforeEach} propio, de modo que la primera
+   * prueba monta bien y la segunda encuentra el módulo ya instanciado. Para cambiar de autoridades hay
+   * que reiniciarlo a mano, que es lo que hace la prueba de abajo.
+   */
   beforeEach(() => montar());
 
   const raiz = () => fixture.nativeElement as HTMLElement;
@@ -49,12 +68,52 @@ describe('Ficha de un reporte de servicio', () => {
   const campo = (id: string) => raiz().querySelector<HTMLTextAreaElement>(`#${id}`)!;
   const seleccion = () => raiz().querySelector<HTMLSelectElement>('#resultado')!;
 
-  /** Abre la ficha y responde a sus dos consultas: el reporte y la lista de equipos. */
+  /**
+   * Abre la ficha y responde a sus cinco consultas.
+   *
+   * <p>Son cinco porque la tabla de verificación tiene que averiguar cómo se verifica el equipo, y eso
+   * son cuatro eslabones del catálogo: unidad → modelo → equipo del catálogo → tipo. El backend camina
+   * la misma cadena por la misma razón — ninguna tabla intermedia guarda un atajo hacia el tipo.
+   */
   async function abrir(datos: object = reporte()): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, urlReporte(ID_REPORTE), datos);
     http.match(URL_EQUIPOS_DE_CLIENTE).forEach((peticion) => peticion.flush(EQUIPOS));
+    http.match(URL_MODELOS).forEach((peticion) => peticion.flush(MODELOS));
+    http.match(URL_EQUIPOS_DE_CATALOGO).forEach((peticion) => peticion.flush(EQUIPOS_DE_CATALOGO));
+    http.match(URL_TIPOS).forEach((peticion) => peticion.flush(TIPOS));
     await asentar(fixture);
+  }
+
+  /**
+   * Responde a lo que quede abierto tras una escritura, hasta que no quede nada.
+   *
+   * <p>Se drena en vueltas y no de una pasada: la recarga que provoca invalidar la caché no sale en el
+   * mismo tic que la escritura, de modo que un único {@code match} encuentra la lista vacía y el
+   * {@code verify()} del final falla por una petición que llegó después. Cada cuerpo se elige por la
+   * URL, porque responder cualquier cosa a cualquier consulta rompe la pantalla por otro lado.
+   */
+  async function atenderTodo(datos: object = reporte()): Promise<void> {
+    const cuerpos: [string, object][] = [
+      [urlReporte(ID_REPORTE), datos],
+      [URL_EQUIPOS_DE_CLIENTE, EQUIPOS],
+      [URL_MODELOS, MODELOS],
+      [URL_EQUIPOS_DE_CATALOGO, EQUIPOS_DE_CATALOGO],
+      [URL_TIPOS, TIPOS],
+    ];
+
+    // Se dan todas las vueltas, sin salir en la primera que no encuentre nada: la recarga tarda en
+    // aparecer, asi que una vuelta vacia no significa que no vaya a llegar. Salir antes dejaba una
+    // peticion abierta, el verify() de la prueba lanzaba desde afterEach, y eso impedia que Angular
+    // desmontara el TestBed: la prueba siguiente fallaba con «el modulo ya esta instanciado» y las diez
+    // siguientes con ella. Un solo fallo real se leia como once.
+    for (let vuelta = 0; vuelta < 5; vuelta += 1) {
+      for (const [url, cuerpo] of cuerpos) {
+        http.match(url).forEach((peticion) => peticion.flush(cuerpo));
+      }
+
+      await asentar(fixture);
+    }
   }
 
   function pulsar(etiqueta: string): void {
@@ -77,7 +136,7 @@ describe('Ficha de un reporte de servicio', () => {
     fixture.detectChanges();
   }
 
-  afterEach(() => http.verify());
+  afterEach(() => http?.verify());
 
   it('enseña de qué equipo habla y en qué estado está', async () => {
     await abrir();
@@ -118,10 +177,7 @@ describe('Ficha de un reporte de servicio', () => {
     expect(peticion.request.body.fallaReportada).toBe('No enciende');
     expect(peticion.request.body.procedimientos).toBe('Cambio de fuente');
     peticion.flush(reporte({ fallaReportada: 'No enciende', procedimientos: 'Cambio de fuente' }));
-    await asentar(fixture);
-    http.match(urlReporte(ID_REPORTE)).forEach((p) => p.flush(reporte()));
-    http.match(URL_EQUIPOS_DE_CLIENTE).forEach((p) => p.flush(EQUIPOS));
-    await asentar(fixture);
+    await atenderTodo();
   });
 
   it('un campo que se vacía se manda vacío, porque vaciarlo es borrarlo', async () => {
@@ -136,10 +192,7 @@ describe('Ficha de un reporte de servicio', () => {
     const peticion = http.expectOne(urlReporte(ID_REPORTE));
     expect(peticion.request.body.fallaReportada).toBe('');
     peticion.flush(reporte());
-    await asentar(fixture);
-    http.match(urlReporte(ID_REPORTE)).forEach((p) => p.flush(reporte()));
-    http.match(URL_EQUIPOS_DE_CLIENTE).forEach((p) => p.flush(EQUIPOS));
-    await asentar(fixture);
+    await atenderTodo();
   });
 
   it('sin resultado elegido no se manda la cadena vacía, que no es un valor del catálogo', async () => {
@@ -152,10 +205,7 @@ describe('Ficha de un reporte de servicio', () => {
     const peticion = http.expectOne(urlReporte(ID_REPORTE));
     expect(peticion.request.body.resultado).toBeUndefined();
     peticion.flush(reporte({ procedimientos: 'Limpieza' }));
-    await asentar(fixture);
-    http.match(urlReporte(ID_REPORTE)).forEach((p) => p.flush(reporte()));
-    http.match(URL_EQUIPOS_DE_CLIENTE).forEach((p) => p.flush(EQUIPOS));
-    await asentar(fixture);
+    await atenderTodo();
   });
 
   it('no deja cerrar sin procedimientos ni resultado, que es lo que el servidor exige', async () => {
@@ -182,9 +232,7 @@ describe('Ficha de un reporte de servicio', () => {
     expect(peticion.request.method).toBe('PATCH');
     peticion.flush(reporteCerrable({ estado: 'FINALIZADO', finalizado: '2026-09-27T10:00:00' }));
     await asentar(fixture);
-    http.match(urlReporte(ID_REPORTE)).forEach((p) => p.flush(reporteCerrable()));
-    http.match(URL_EQUIPOS_DE_CLIENTE).forEach((p) => p.flush(EQUIPOS));
-    await asentar(fixture);
+    await atenderTodo(reporteCerrable());
   });
 
   it('un reporte cerrado se lee pero no se escribe, y dice cómo corregirlo', async () => {
