@@ -79,7 +79,7 @@ Un efecto lateral que ambos documentos registran: **contrastar la especificació
 
 ## Antes de citar una cifra de estado
 
-Verificar contra `malphasos/` directamente si ha pasado tiempo desde la fecha de este documento — esta wiki registra el estado a una fecha concreta, no lo recalcula. Si el código cambió, esta nota queda desactualizada hasta que se corrija explícitamente (ver la regla en `wiki/CLAUDE.md`).
+Verificar contra `malphasos/` directamente si ha pasado tiempo desde la fecha de este documento — esta wiki registra el estado a una fecha concreta, no lo recalcula. Si el código cambió, esta nota queda desactualizada hasta que se corrija explícitamente (ver la regla en `wiki/CONVENCIONES.md`).
 
 **Este aviso ya falló una vez**, y conviene saberlo antes de confiar en él: estuvo escrito aquí desde el 2026-09-05 y la cifra pasó tres semanas caducada de todos modos, porque quien construye no abre la nota que no está buscando. Un aviso dentro del documento que envejece no protege al documento. Lo que sí funcionó fue **actualizar el contador en la misma sesión en que se construye**, que es lo que hace la hoja de ruta del otro wiki.
 

@@ -193,6 +193,6 @@
     "wiki/arquitectura/aggregate-root-pattern.md",
     "wiki/arquitectura/manejo-global-excepciones.md",
     "wiki/arquitectura/evolucion-arquitectonica-crud-a-cqrs.md",
-    "CLAUDE.md"
+    "CONVENCIONES.md"
   ]
 }

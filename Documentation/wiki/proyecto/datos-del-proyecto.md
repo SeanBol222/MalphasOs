@@ -39,7 +39,7 @@ El sistema se llama formalmente **MalphasOS: Gestión de Clientes** (apartado 1.
 
 ## Único documento que registra cliente, duración y presupuesto
 
-Estos tres datos —el nombre del cliente, la duración estimada y el presupuesto— solo constan en `Documentation/CLAUDE.md` (ahora migrado a esta wiki) y en el documento de constitución. Ningún otro artefacto de `malphasos/` ni de `SecondBrain/` los recoge.
+Estos tres datos —el nombre del cliente, la duración estimada y el presupuesto— solo constan en `Documentation/CONVENCIONES.md` (ahora migrado a esta wiki) y en el documento de constitución. Ningún otro artefacto de `malphasos/` ni de `SecondBrain/` los recoge.
 
 ## Notas relacionadas
 

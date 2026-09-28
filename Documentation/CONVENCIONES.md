@@ -1,4 +1,4 @@
-# CLAUDE.md — Documentación de MalphasOS
+# CONVENCIONES.md — Documentación de MalphasOS
 
 Este directorio contiene la documentación formal de **MalphasOS**: la Especificación de Requisitos de Software (ERS) bajo IEEE 830, el documento de constitución, el plan de gestión del alcance, la matriz de trazabilidad, sus diagramas y los manuales que hagan falta.
 
@@ -6,7 +6,7 @@ Este directorio contiene la documentación formal de **MalphasOS**: la Especific
 
 Todo lo que hace falta saber para escribir o corregir un documento de aquí —qué pide cada requisito, cómo se llama cada convención LaTeX, qué significa cada término del dominio, qué defectos ya se conocen— está destilado en **`wiki/`**, con el mismo patrón que `SecondBrain/` en la raíz del proyecto.
 
-**Empieza por [`wiki/index.md`](wiki/index.md).** Las convenciones de la wiki misma —frontmatter, wikilinks, flujo de trabajo— están en [`wiki/CLAUDE.md`](wiki/CLAUDE.md).
+**Empieza por [`wiki/index.md`](wiki/index.md).** Las convenciones de la wiki misma —frontmatter, wikilinks, flujo de trabajo— están en [`wiki/CONVENCIONES.md`](wiki/CONVENCIONES.md).
 
 ## La regla que gobierna todo lo que se escribe aquí
 

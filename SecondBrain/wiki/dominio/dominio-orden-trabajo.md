@@ -242,7 +242,7 @@ Al revés, el primer caso daría el mensaje de sede —cierto pero menos informa
 
 #### Cómo apareció, que es lo reutilizable
 
-**Contrastando esta nota contra el código**, no leyendo el servicio. Es literalmente lo que dice la disciplina del proyecto en `CLAUDE.md` —«los defectos aparecen al comparar»— funcionando sobre el propio wiki.
+**Contrastando esta nota contra el código**, no leyendo el servicio. Es literalmente lo que dice la disciplina del proyecto en `CONVENCIONES.md` —«los defectos aparecen al comparar»— funcionando sobre el propio wiki.
 
 Lo que lo permitió: la lista de siete reglas se escribió en la tanda 1 **sin columna de estado**. Una lista así **se lee como inventario y no como pendiente**, y nadie la volvió a mirar entre que se escribió y que se dio el módulo por cerrado. La tabla de arriba, con su columna «Estado» y su columna «Dónde», existe para eso.
 
@@ -298,7 +298,7 @@ Ese 409 es nuevo en el proyecto: los cuatro módulos anteriores no tenían un es
 
 La sustituyen dos pruebas: que las tres autoridades protegen ya sus endpoints, y que **`assign` es la única operación que exige `work-order.assign`** — porque si mañana otra la exige, esa separación de permisos deja de existir en silencio.
 
-El patrón de omisión consciente funcionó de punta a punta: se anotó cuándo se rompería, se rompió entonces, y el aviso estaba escrito en `CLAUDE.md` y en esta nota. Es el segundo caso del proyecto, tras la centinela de `equipo_cliente` de [[migracion-equipment-hallazgos]].
+El patrón de omisión consciente funcionó de punta a punta: se anotó cuándo se rompería, se rompió entonces, y el aviso estaba escrito en `CONVENCIONES.md` y en esta nota. Es el segundo caso del proyecto, tras la centinela de `equipo_cliente` de [[migracion-equipment-hallazgos]].
 
 ## La verificación
 

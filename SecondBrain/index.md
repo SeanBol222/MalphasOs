@@ -1,6 +1,6 @@
 # Índice — SecondBrain de MalphasOS
 
-Catálogo del wiki, **ordenado por la pregunta con la que se llega**. Ver [[CLAUDE.md]] para las convenciones.
+Catálogo del wiki, **ordenado por la pregunta con la que se llega**. Ver [[CONVENCIONES.md]] para las convenciones.
 
 Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías técnicas de `bolivarbioingenieria-app` y clasificado por la etiqueta `reusable:*`, porque el wiki servía para decidir **qué portar**. Esa migración terminó. Hoy la pregunta es **cómo funciona MalphasOS y qué falta por construir**, y el índice sigue ese orden. Ninguna nota se borró; las que describen solo el sistema original están al final, que es el lugar que les corresponde ahora.
 

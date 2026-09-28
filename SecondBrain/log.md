@@ -266,7 +266,7 @@ Con esto los dos módulos que hablan con otros tratan sus referencias externas d
 
 **Sobre cómo aparecieron las dos.** Ninguna la encontró leer el módulo donde vivían. La primera salió de preguntarse si el fallo recién corregido en `equipment` tenía más instancias; la segunda, de verificar una afirmación que se había hecho a la ligera —que `client` ya daba código propio a cada referencia externa— y descubrir que era falsa. Es el mismo patrón que ya registraron [[migracion-location-hallazgos]] y [[migracion-client-hallazgos]]: **los defectos de las capas de fuera aparecen comparando módulos entre sí, no leyendo uno solo**.
 
-Actualizadas [[deuda-tecnica-y-riesgos]] —dos entradas de deuda propia cerradas, quedan tres—, [[openapi-swagger]], [[migracion-equipment-hallazgos]] y el `CLAUDE.md` de la raíz, cuyas convenciones REST ganan las dos reglas aprendidas hoy y estrenan una sección de OpenAPI.
+Actualizadas [[deuda-tecnica-y-riesgos]] —dos entradas de deuda propia cerradas, quedan tres—, [[openapi-swagger]], [[migracion-equipment-hallazgos]] y el `CONVENCIONES.md` de la raíz, cuyas convenciones REST ganan las dos reglas aprendidas hoy y estrenan una sección de OpenAPI.
 
 ## [2026-09-02] ingest | La ERS contrastada contra el codigo: seis defectos que ningun modulo delataba
 
@@ -298,7 +298,7 @@ Limpieza del repositorio antes de abrir un worktree, y salió una corrección qu
 
 La lección se anota en la nota de deuda porque va a volver a pasar: **"no está en el repositorio" y "no está en `main`" no son lo mismo.** Una rama vieja sin mergear puede ser la única copia de algo, y `git log --all --diff-filter=A -- '<patrón>'` responde la pregunta de verdad en un segundo.
 
-Rescatados a `main` los diez `.puml`, sus `.png`, el documento de constitución con sus imágenes, el devcontainer con la configuración de PlantUML que hace falta para compilarlos, y el `CLAUDE.md` de `Documentation/`, que resulta ser **el único sitio donde constan el cliente (BolívarBioingeniería LTDA), la duración estimada y el presupuesto del proyecto** — datos que ninguna otra parte del repositorio recoge.
+Rescatados a `main` los diez `.puml`, sus `.png`, el documento de constitución con sus imágenes, el devcontainer con la configuración de PlantUML que hace falta para compilarlos, y el `CONVENCIONES.md` de `Documentation/`, que resulta ser **el único sitio donde constan el cliente (BolívarBioingeniería LTDA), la duración estimada y el presupuesto del proyecto** — datos que ninguna otra parte del repositorio recoge.
 
 Se rescató por archivo y no mergeando la rama: su `malphasos/` es anterior al módulo `equipment` y mergearla habría borrado 8.267 líneas de código. Quedaron fuera los artefactos de compilación y su `IEEE830.tex`, anterior al marcado de requisitos.
 
@@ -333,9 +333,9 @@ Cierre en el wiki de la tanda del modelo de permisos, construida en `feat/permis
 
 Y una deuda que **no** se cierra de rebote: «una persona retirada conserva su acceso» sigue abierta, reverificada hoy sobre el código. Decidir qué puede hacer cada rol es una cosa y quitarle la entrada a quien ya no está es otra.
 
-**Y un cuarto dato falso, menor pero contable**: el `CLAUDE.md` de la raíz decía «57 defectos conocidos del original». Son **63**, contados fila a fila hoy; el log del 2026-09-02 ya daba esa cifra y el archivo de la raíz no se actualizó entonces.
+**Y un cuarto dato falso, menor pero contable**: el `CONVENCIONES.md` de la raíz decía «57 defectos conocidos del original». Son **63**, contados fila a fila hoy; el log del 2026-09-02 ya daba esa cifra y el archivo de la raíz no se actualizó entonces.
 
-Nota nueva: [[modelo-de-permisos]]. Actualizadas [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], [[seguridad-keycloak-backend]], [[keycloak-configuracion]], [[stack-spring-boot-4-particularidades]], [[checklist-reutilizacion]] y el `CLAUDE.md` de la raíz, que afirmaba `@PreAuthorize("hasAuthority('admin.full')")` en todas las operaciones y una batería de 339 pruebas.
+Nota nueva: [[modelo-de-permisos]]. Actualizadas [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], [[seguridad-keycloak-backend]], [[keycloak-configuracion]], [[stack-spring-boot-4-particularidades]], [[checklist-reutilizacion]] y el `CONVENCIONES.md` de la raíz, que afirmaba `@PreAuthorize("hasAuthority('admin.full')")` en todas las operaciones y una batería de 339 pruebas.
 
 ## [2026-09-09] ingest | Dar de baja a alguien ya le quita la entrada, pero solo a partir del proximo token
 
@@ -356,7 +356,7 @@ Cierre en el wiki de la tanda de seguridad construida en `fix/person-identity-sy
 1. Añadir `case 404` a `translateClientFailure` cambió la conducta de `deleteUser`, que ya existía: de sus **dos** caminos para un 404, el que pasa por la traducción da ahora `KeycloakUserNotFoundException`. Es inocuo —su único llamante captura `RuntimeException` y solo cambia el log—, pero era un cambio real que nadie había señalado, y deja una regla reutilizable: **un `switch` de traducción compartido tiene tantos llamantes como métodos lo usen, y añadirle un caso los modifica a todos**.
 2. **Cambiar `tipoPersona` no mueve al usuario de grupo en Keycloak.** Quien deja de ser ingeniero conserva sus permisos. Verificado que es **heredado**: el adaptador original también fija el grupo una sola vez, en `createUser`. Sigue abierto y pertenece a la línea del [[modelo-de-permisos]], no a ésta.
 
-**Y un defecto encontrado contrastando el `CLAUDE.md` de la raíz contra el código**, que no se ha arreglado: el archivo afirma «solo `PATCH`, sin `PUT`» sin acotarlo, y `person` **conserva tres `PUT`** —persona, correo y teléfono— del CRUD original. La convención se fijó al migrar `location` y nadie volvió sobre el módulo anterior. Anotado como deuda propia; el `CLAUDE.md` queda acotado.
+**Y un defecto encontrado contrastando el `CONVENCIONES.md` de la raíz contra el código**, que no se ha arreglado: el archivo afirma «solo `PATCH`, sin `PUT`» sin acotarlo, y `person` **conserva tres `PUT`** —persona, correo y teléfono— del CRUD original. La convención se fijó al migrar `location` y nadie volvió sobre el módulo anterior. Anotado como deuda propia; el `CONVENCIONES.md` queda acotado.
 
 **Sobre el conteo, medido y no copiado.** Dos ejecuciones completas de `./mvnw test` el 2026-09-09 sobre `fix/person-identity-sync`, borrando `target/surefire-reports` antes de cada una y **con nada escuchando en 5672**: idénticas, 36 clases, cero fallos, cero errores.
 
@@ -364,9 +364,9 @@ Cierre en el wiki de la tanda de seguridad construida en `fix/person-identity-sy
 
 **Corrección: la intermitencia ya no se atribuye a RabbitMQ, y ahora está cerrada por su lado.** El 2026-09-08 ya se había corregido el diagnóstico —la causa demostrada era `unico()` recortando `nanoTime()` con `substring(0, 10)`—; lo que se añade hoy es que ese arreglo **vivía solo en `feat/permission-model`**, que no está en `main`, y hubo que **traerlo por separado** a `fix/person-identity-sync` (`308cbb9`), aplicándolo además a `ClientSchemaTest`. La parte de `unico()` se da por cerrada; la de RabbitMQ sigue anotada como riesgo **sin caso reproducido**.
 
-**Y un dato de contexto que faltaba en todas partes**: hay **dos ramas de código fuera de `main` que no descienden una de otra**. `feat/permission-model` parte de un `main` anterior y `fix/person-identity-sync` del actual. 361 **no** incluye las 139 pruebas de seguridad y 472 **no** incluye la baja en Keycloak; el día que se mergeen habrá que remedir, no sumar. Queda escrito en [[checklist-reutilizacion]] y en el `CLAUDE.md` de la raíz, que hablaba de una sola rama pendiente.
+**Y un dato de contexto que faltaba en todas partes**: hay **dos ramas de código fuera de `main` que no descienden una de otra**. `feat/permission-model` parte de un `main` anterior y `fix/person-identity-sync` del actual. 361 **no** incluye las 139 pruebas de seguridad y 472 **no** incluye la baja en Keycloak; el día que se mergeen habrá que remedir, no sumar. Queda escrito en [[checklist-reutilizacion]] y en el `CONVENCIONES.md` de la raíz, que hablaba de una sola rama pendiente.
 
-Nota nueva: [[sincronizacion-con-proveedor-de-identidad]]. Actualizadas [[dominio-persona-identidad]], [[seguridad-keycloak-backend]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], [[stack-spring-boot-4-particularidades]], [[checklist-reutilizacion]], `index.md` y el `CLAUDE.md` de la raíz.
+Nota nueva: [[sincronizacion-con-proveedor-de-identidad]]. Actualizadas [[dominio-persona-identidad]], [[seguridad-keycloak-backend]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], [[stack-spring-boot-4-particularidades]], [[checklist-reutilizacion]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-09] lint | El wiki respondia una pregunta que ya estaba contestada
 
@@ -401,9 +401,9 @@ Reenfoque del wiki entero. **El eje de juicio con el que nació —qué portar d
 
 **Un hueco que este reenfoque destapó y que no se ha tapado**: **no existe ninguna nota que describa el esquema de MalphasOS.** [[esquema-bd-v4]] describe las 27 tablas del original, y las cinco migraciones `V1`–`V5` solo aparecen de refilón en las notas de migración. Queda como enlace sin destino en `index.md`, `[[esquema-malphasos]]`, que es la forma que este wiki tiene de decir «esto merece una nota».
 
-**Y una corrección de higiene**: `migracion-client-hallazgos` tenía un enlace con sintaxis de alias, `[[nota|texto]]`, que esta wiki no usa y que por tanto no apuntaba a ninguna parte. Corregido. Tras el reenfoque **no queda ningún enlace roto** salvo los dos intencionados y las plantillas del propio `CLAUDE.md`.
+**Y una corrección de higiene**: `migracion-client-hallazgos` tenía un enlace con sintaxis de alias, `[[nota|texto]]`, que esta wiki no usa y que por tanto no apuntaba a ninguna parte. Corregido. Tras el reenfoque **no queda ningún enlace roto** salvo los dos intencionados y las plantillas del propio `CONVENCIONES.md`.
 
-Nota nueva: [[hoja-de-ruta-producto]]. Actualizadas `SecondBrain/CLAUDE.md` (propósito, los dos ejes de etiquetas, reglas duras), `index.md` (reescrito), [[sintesis-malphasos]], [[migracion-client-hallazgos]], el frontmatter de las 46 notas y el `CLAUDE.md` de la raíz.
+Nota nueva: [[hoja-de-ruta-producto]]. Actualizadas `SecondBrain/CONVENCIONES.md` (propósito, los dos ejes de etiquetas, reglas duras), `index.md` (reescrito), [[sintesis-malphasos]], [[migracion-client-hallazgos]], el frontmatter de las 46 notas y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-09] ingest | El traslado que no cruza de cliente, y una prueba que pasa en vacío
 
@@ -413,7 +413,7 @@ Registro de `feat/relocation-same-client` (`3c002b2`, **sin mergear**), leído d
 
 **Lo que esta entrada NO puede afirmar, y es su punto.** **La regla está construida y sin verificar.** `EquipmentChainServiceTest.Unidad.trasladar` **pasa en vacío**: el doble de `ServiceAreaServicePort` no tiene estubado `findOwningClient`, Mockito devuelve `null` en las **dos** consultas de propiedad y `Objects.equals(null, null)` deja pasar la guarda. Comprobado leyendo la prueba y el servicio.
 
-La batería da **496 ejecuciones y cero fallos** sobre esa rama — medido aquí con `./mvnw test` y `rm -rf target/surefire-reports` antes—, **exactamente lo mismo que `main` en `01c3277`**, medido igual el mismo día, **porque no se añadió ninguna prueba**. Ese verde confirma que no se rompió nada; **no confirma que la regla funcione**, y así queda escrito en la nota, en la deuda propia y en el `CLAUDE.md` de la raíz.
+La batería da **496 ejecuciones y cero fallos** sobre esa rama — medido aquí con `./mvnw test` y `rm -rf target/surefire-reports` antes—, **exactamente lo mismo que `main` en `01c3277`**, medido igual el mismo día, **porque no se añadió ninguna prueba**. Ese verde confirma que no se rompió nada; **no confirma que la regla funcione**, y así queda escrito en la nota, en la deuda propia y en el `CONVENCIONES.md` de la raíz.
 
 **Y una circunstancia de proceso que no debe leerse como olvido**: el ciclo es `desarrollador → tester → wikista` y esta tanda **se saltó el paso central por decisión explícita del usuario**.
 
@@ -429,14 +429,14 @@ La batería da **496 ejecuciones y cero fallos** sobre esa rama — medido aquí
 
 **Correcciones de afirmaciones que resultaron falsas al verificarlas.**
 
-1. **Las dos ramas que el wiki daba por «sin mergear» están en `main`.** `feat/permission-model` entró por `e6dda32` y `fix/person-identity-sync` por `258cd81`, las dos el 2026-09-09, y se borraron tras el merge. Lo afirmaban `index.md` (dos entradas), el `CLAUDE.md` de la raíz (la tabla de ramas y la fila de `bootstrap`, que decía que `ApiAuthority` **no existe en `main`**), [[checklist-reutilizacion]], [[hoja-de-ruta-producto]] —donde eran el **bloque 0** del orden propuesto— y dos filas de [[deuda-tecnica-y-riesgos]]. Corregido en todas, **sin borrar lo anterior**: la tabla vieja del checklist queda tachada, porque su aviso era correcto.
+1. **Las dos ramas que el wiki daba por «sin mergear» están en `main`.** `feat/permission-model` entró por `e6dda32` y `fix/person-identity-sync` por `258cd81`, las dos el 2026-09-09, y se borraron tras el merge. Lo afirmaban `index.md` (dos entradas), el `CONVENCIONES.md` de la raíz (la tabla de ramas y la fila de `bootstrap`, que decía que `ApiAuthority` **no existe en `main`**), [[checklist-reutilizacion]], [[hoja-de-ruta-producto]] —donde eran el **bloque 0** del orden propuesto— y dos filas de [[deuda-tecnica-y-riesgos]]. Corregido en todas, **sin borrar lo anterior**: la tabla vieja del checklist queda tachada, porque su aviso era correcto.
 2. **La remedición que estaba anotada como pendiente, hecha.** El wiki decía «el día que se mergeen habrá que remedir, no sumar». `main` en `01c3277` da **496** elementos `<testcase>` —494 por el atributo `tests=`, 380 por los `.txt`—, 41 clases, cero fallos. **No es 472 + 361**: sumar habría producido un número inventado. Anotado en [[stack-spring-boot-4-particularidades]].
 3. **«Los equipos se mueven dentro de una sede» se quedaba corto**, y por eso el traslado tenía un agujero. Una unidad se mueve entre áreas de una sede **y entre sedes del mismo cliente**. Corregido en [[migracion-equipment-hallazgos]].
 4. **«Cinco invariantes de este tipo en el proyecto» pasa a seis**, y la sexta rompe el molde: las cinco anteriores comprueban que algo esté **activo**; ésta compara dos clientes que ninguna tabla guarda juntos. La frase «todas viven en los servicios, **con sus pruebas**» deja de ser cierta para la nueva.
 
 **Lo que se decidió omitir por no tener valor duradero**: el detalle línea a línea del diff —está en `git show 3c002b2`, cuyo cuerpo ya explica el porqué mejor que cualquier paráfrasis—, y el texto exacto del javadoc y de la descripción de OpenAPI, que envejecen con el código y se leen en el archivo.
 
-Nota nueva: [[regla-traslado-mismo-cliente]]. Actualizadas [[decisiones-tecnicas-malphasos]], [[migracion-equipment-hallazgos]], [[dominio-cliente]], [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]], [[checklist-reutilizacion]], [[hoja-de-ruta-producto]], [[stack-spring-boot-4-particularidades]], `index.md`, `SecondBrain/CLAUDE.md` y el `CLAUDE.md` de la raíz.
+Nota nueva: [[regla-traslado-mismo-cliente]]. Actualizadas [[decisiones-tecnicas-malphasos]], [[migracion-equipment-hallazgos]], [[dominio-cliente]], [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]], [[checklist-reutilizacion]], [[hoja-de-ruta-producto]], [[stack-spring-boot-4-particularidades]], `index.md`, `SecondBrain/CONVENCIONES.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-12] lint | Lo que el wiki escribió el 09 dejó de ser cierto el 10: la regla del traslado ya está verificada
 
@@ -446,9 +446,9 @@ Nota nueva: [[regla-traslado-mismo-cliente]]. Actualizadas [[decisiones-tecnicas
 
 **Tres afirmaciones del wiki quedaron falsas y se corrigieron sin borrarlas.**
 
-1. **«La regla está construida y sin verificar».** Lo estuvo un día. La prueba degenerada está reparada —`trasladar` estuba ahora `findOwningClient` para el área actual y para la de destino— y con ella entran los dos casos frágiles que dan valor a la tanda: trasladar a **otra sede del mismo cliente** se permite —quien compare sedes en vez de clientes pasa todo lo demás y solo falla ahí— y un área **inactiva que además es de otro cliente** responde **400 por cerrada y no 409 por cliente**, porque el área se comprueba antes. Corregido en [[regla-traslado-mismo-cliente]] —la sección vieja se conserva entera bajo un aviso, porque es el registro de lo que costó saltarse el paso central del ciclo—, [[dominio-equipo-mantenimiento]], [[migracion-equipment-hallazgos]], [[decisiones-tecnicas-malphasos]], `index.md` y el `CLAUDE.md` de la raíz.
+1. **«La regla está construida y sin verificar».** Lo estuvo un día. La prueba degenerada está reparada —`trasladar` estuba ahora `findOwningClient` para el área actual y para la de destino— y con ella entran los dos casos frágiles que dan valor a la tanda: trasladar a **otra sede del mismo cliente** se permite —quien compare sedes en vez de clientes pasa todo lo demás y solo falla ahí— y un área **inactiva que además es de otro cliente** responde **400 por cerrada y no 409 por cliente**, porque el área se comprueba antes. Corregido en [[regla-traslado-mismo-cliente]] —la sección vieja se conserva entera bajo un aviso, porque es el registro de lo que costó saltarse el paso central del ciclo—, [[dominio-equipo-mantenimiento]], [[migracion-equipment-hallazgos]], [[decisiones-tecnicas-malphasos]], `index.md` y el `CONVENCIONES.md` de la raíz.
 2. **«La prueba que pasa en vacío» figuraba como deuda propia pendiente.** Marcada **resuelta el 2026-09-10** en [[deuda-tecnica-y-riesgos]], con la fila conservada y tachada.
-3. **«`feat/relocation-same-client` (`3c002b2`), también 496, porque no añadió ninguna prueba».** La rama está en `43de295` y en **509**. Corregido en [[checklist-reutilizacion]], [[stack-spring-boot-4-particularidades]] —donde la tabla de conteos gana una columna— y el `CLAUDE.md` de la raíz.
+3. **«`feat/relocation-same-client` (`3c002b2`), también 496, porque no añadió ninguna prueba».** La rama está en `43de295` y en **509**. Corregido en [[checklist-reutilizacion]], [[stack-spring-boot-4-particularidades]] —donde la tabla de conteos gana una columna— y el `CONVENCIONES.md` de la raíz.
 
 **El matiz del 500 que esta sesión no tenía, y cambia cómo se lee el defecto.** El wiki registró que `findOwningClient` declara `HeadquarterNotFoundException`, que ningún advice mapea, y que por tanto saldría **500**. Sigue siendo cierto —comprobado hoy: `EquipmentControllerAdvice` tiene diez `@ExceptionHandler` y ninguno es ése, y `GlobalControllerAdvice` solo cubre tres familias—, pero **hoy es inalcanzable por el API**: `area_servicio.k_id_sede` es `NOT NULL` con `FOREIGN KEY ... REFERENCES sede` y **ninguna sede se borra de verdad** —borrado lógico universal; los puertos de `client` ni siquiera declaran `delete`—, así que un área apunta siempre a una sede existente por construcción. Es un hueco del contrato de error, **no un fallo explotable**. El `tester` lo confirmó y **decidió no escribir la prueba REST a propósito**, porque habría fijado ese 500 como el comportamiento esperado; lo que sí dejó es una prueba de que el puerto lanza lo que promete. Anotado como **precisión**, no como corrección: la afirmación no era falsa, era menos precisa de lo que debía.
 
@@ -491,7 +491,7 @@ Nota nueva: [[regla-traslado-mismo-cliente]]. Actualizadas [[decisiones-tecnicas
 
 **No se mergea nada.** El código sigue en `feat/work-order-schema` (`24e7640`); esta pasada de wiki va en `docs/wiki-work-order-schema`.
 
-**Una corrección más, encontrada al final de esta misma pasada y no por leer el wiki.** Al comprobar de qué desciende `feat/work-order-schema` —`git merge-base --is-ancestor 43de295 24e7640`— apareció que **`feat/relocation-same-client` ya está en `main`**, mergeada por `1ef55cf`, y su pasada de wiki por `55e0a5d`. Todo lo que el wiki escribió esta misma mañana la daba por **rama pendiente**. Quedaron falsas cuatro afirmaciones y se corrigieron sin borrarlas: `main` no está en `01c3277` sino en **`55e0a5d`**; su batería no es 496 sino **509**; la fila de `equipment` del `CLAUDE.md` de la raíz situaba el traslado «en rama sin mergear»; y la tabla de conteos de [[stack-spring-boot-4-particularidades]] etiquetaba como «`main`» una columna que ya no lo describe. **Las 509 de `main` no se remidieron**, y se dice así en vez de afirmar una medición que no se hizo: `git diff 43de295 main -- malphasos/` sale vacío, de modo que el código es el mismo que se midió horas antes. Tocadas [[regla-traslado-mismo-cliente]], [[checklist-reutilizacion]], [[stack-spring-boot-4-particularidades]], [[hoja-de-ruta-producto]] y el `CLAUDE.md` de la raíz.
+**Una corrección más, encontrada al final de esta misma pasada y no por leer el wiki.** Al comprobar de qué desciende `feat/work-order-schema` —`git merge-base --is-ancestor 43de295 24e7640`— apareció que **`feat/relocation-same-client` ya está en `main`**, mergeada por `1ef55cf`, y su pasada de wiki por `55e0a5d`. Todo lo que el wiki escribió esta misma mañana la daba por **rama pendiente**. Quedaron falsas cuatro afirmaciones y se corrigieron sin borrarlas: `main` no está en `01c3277` sino en **`55e0a5d`**; su batería no es 496 sino **509**; la fila de `equipment` del `CONVENCIONES.md` de la raíz situaba el traslado «en rama sin mergear»; y la tabla de conteos de [[stack-spring-boot-4-particularidades]] etiquetaba como «`main`» una columna que ya no lo describe. **Las 509 de `main` no se remidieron**, y se dice así en vez de afirmar una medición que no se hizo: `git diff 43de295 main -- malphasos/` sale vacío, de modo que el código es el mismo que se midió horas antes. Tocadas [[regla-traslado-mismo-cliente]], [[checklist-reutilizacion]], [[stack-spring-boot-4-particularidades]], [[hoja-de-ruta-producto]] y el `CONVENCIONES.md` de la raíz.
 
 **La lección de método, que es la parte reutilizable**: **el estado de las ramas caduca más rápido que ninguna otra cosa que este wiki escribe**, y no hay ninguna nota que avise cuando caduca. Lo encontró un `git merge-base` hecho para otra cosa. Conviene que toda pasada de wiki empiece comprobando `git branch --contains` de las ramas que el wiki declara pendientes, en vez de fiarse de lo que dijo la pasada anterior — aunque fuera del mismo día.
 
@@ -503,11 +503,11 @@ Nota nueva: [[regla-traslado-mismo-cliente]]. Actualizadas [[decisiones-tecnicas
 
 **El hallazgo de la pasada, y no salió de leer código.** La tanda 1 había dejado listadas **siete reglas** que el esquema no podía defender. Al construir la tabla de estado de esas siete —columna por columna, regla contra código— apareció que **una no está construida**: `requireEquipmentBelongsTo` comprueba que el equipo sea del **cliente** de la orden, y nunca que su área sea de la **sede** de la orden. Una orden del cliente A en la sede Norte admite un equipo del cliente A que está en la sede Sur. Es **la misma mentira histórica que el módulo se diseñó para impedir**, un nivel más abajo, y ahora sí es explotable porque ya hay API que crea órdenes. El arreglo es barato: el `ServiceArea` con su `idSede` **ya está cargado en esa misma línea**.
 
-**La lección de método.** La lista de siete se escribió sin columna de estado, y **una lista de reglas sin columna de estado es una lista que nadie contrasta**: se lee como inventario, no como pendiente. La tabla que ahora tiene la nota existe para eso. Es exactamente la disciplina que `CLAUDE.md` ya enunciaba —«los defectos aparecen al comparar»— aplicada al propio wiki en vez de a dos módulos.
+**La lección de método.** La lista de siete se escribió sin columna de estado, y **una lista de reglas sin columna de estado es una lista que nadie contrasta**: se lee como inventario, no como pendiente. La tabla que ahora tiene la nota existe para eso. Es exactamente la disciplina que `CONVENCIONES.md` ya enunciaba —«los defectos aparecen al comparar»— aplicada al propio wiki en vez de a dos módulos.
 
 **Segundo hallazgo, por `grep`.** **Nada prueba la persistencia de este módulo**: ni una mención de `WorkOrderPersistenceAdapter`, `WorkOrderPersistenceMapper` ni `WorkOrderRepository` en `src/test`. Queda sin ejercer la pieza con más lógica fuera del dominio —la conciliación que desactiva filas en vez de borrarlas y reactiva con el área nueva— y el `@Query` que filtra por `estadoActivo`. `client`, `location` y `person` sí tienen su `…PersistenceAdapterTest`; `equipment` tampoco. **La ausencia se repite en los dos módulos más recientes**, que es lo que la convierte en patrón y no en olvido.
 
-**La centinela hizo su trabajo de punta a punta.** `lasAutoridadesDeWorkOrderSiguenSinModulo` se puso roja con el primer controlador, tal como estaba anunciado en `CLAUDE.md`, en [[modelo-de-permisos]] y en [[dominio-orden-trabajo]]; se retiró en ese mismo commit junto con el `filter` que eximía a `work-order` en `ningunaAutoridadSobra`. La sustituyen dos pruebas, y la segunda —**`assign` es la única operación que exige `work-order.assign`**— es la que impide que la separación entre repartir trabajo y alterarlo desaparezca en silencio. Segundo caso del patrón de omisión consciente cerrándose limpiamente, tras el de `equipo_cliente`.
+**La centinela hizo su trabajo de punta a punta.** `lasAutoridadesDeWorkOrderSiguenSinModulo` se puso roja con el primer controlador, tal como estaba anunciado en `CONVENCIONES.md`, en [[modelo-de-permisos]] y en [[dominio-orden-trabajo]]; se retiró en ese mismo commit junto con el `filter` que eximía a `work-order` en `ningunaAutoridadSobra`. La sustituyen dos pruebas, y la segunda —**`assign` es la única operación que exige `work-order.assign`**— es la que impide que la separación entre repartir trabajo y alterarlo desaparezca en silencio. Segundo caso del patrón de omisión consciente cerrándose limpiamente, tras el de `equipo_cliente`.
 
 **Qué se verificó por mutación, porque el verde no basta.** Se rompió el patrón del grupo de OpenAPI (`/work-orders/**` → `/workorders/**`) y `recursoDocumentado` falló; se aflojó la guarda de filtros excluyentes (`> 1` → `> 99`) y `filtrosExcluyentes` falló. Producción restaurada en los dos casos. Importa sobre todo en el primero: **un grupo que no casa con ninguna ruta no da ninguna señal**, y una prueba mal escrita contra un fallo silencioso deja el proyecto donde estaba pero creyendo lo contrario. Ampliado [[openapi-swagger]] con el caso y con el detalle de que `/work-orders/**` casa también con `/work-orders` a secas.
 
@@ -527,9 +527,9 @@ Nota nueva: [[regla-traslado-mismo-cliente]]. Actualizadas [[decisiones-tecnicas
 
 **Y una predicción del wiki se cumplió literalmente.** [[regla-traslado-mismo-cliente]] había escrito que una de las siete reglas «es hermana de ésta y probablemente reutilice el mismo `findOwningClient`». Lo reutiliza exactamente, en `requireEquipmentBelongsTo`. Es la mejor justificación que ha dado el proyecto de haber publicado ese contrato como **puerto síncrono** y no como evento: la segunda pregunta llegó cuatro días después y no hubo que tocar `client` para contestarla.
 
-**Tocadas**: [[dominio-orden-trabajo]] (reescrita), [[deuda-tecnica-y-riesgos]], [[modelo-de-permisos]], [[hoja-de-ruta-producto]], [[openapi-swagger]], [[decisiones-tecnicas-malphasos]], [[stack-spring-boot-4-particularidades]], [[regla-traslado-mismo-cliente]], [[checklist-reutilizacion]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-orden-trabajo]] (reescrita), [[deuda-tecnica-y-riesgos]], [[modelo-de-permisos]], [[hoja-de-ruta-producto]], [[openapi-swagger]], [[decisiones-tecnicas-malphasos]], [[stack-spring-boot-4-particularidades]], [[regla-traslado-mismo-cliente]], [[checklist-reutilizacion]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
-**Comprobado al empezar, siguiendo la lección de la pasada anterior**: `git branch --contains` y `git log main..HEAD` antes de escribir nada sobre ramas. Sirvió — el `CLAUDE.md` de la raíz situaba `main` en `55e0a5d` con una sola rama fuera, y **estaba en `97ef74f`** con el dominio ya dentro.
+**Comprobado al empezar, siguiendo la lección de la pasada anterior**: `git branch --contains` y `git log main..HEAD` antes de escribir nada sobre ramas. Sirvió — el `CONVENCIONES.md` de la raíz situaba `main` en `55e0a5d` con una sola rama fuera, y **estaba en `97ef74f`** con el dominio ya dentro.
 
 ## [2026-09-13] ingest | La regla que faltaba, cerrada el mismo día que se encontró
 
@@ -551,7 +551,7 @@ La salida no fue borrar ninguna sino **ordenarlas**: el dueño se comprueba dela
 
 **Deuda: el total se queda en 25 filas y las abiertas bajan de 18 a 17.** La fila de la regla se tacha el mismo día que se abrió, pero no desaparece: el porqué de un defecto sigue valiendo después de arreglarlo, y por eso esa lista cuenta **lo registrado y no lo pendiente** — algo que este log había dado por equivalente. La que queda viva de esta tanda es **la persistencia de `work-order` sin pruebas**, ahora lo único del módulo sin cubrir.
 
-**Tocadas**: [[dominio-orden-trabajo]], [[deuda-tecnica-y-riesgos]], [[regla-traslado-mismo-cliente]], [[decisiones-tecnicas-malphasos]], [[stack-spring-boot-4-particularidades]] y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-orden-trabajo]], [[deuda-tecnica-y-riesgos]], [[regla-traslado-mismo-cliente]], [[decisiones-tecnicas-malphasos]], [[stack-spring-boot-4-particularidades]] y el `CONVENCIONES.md` de la raíz.
 
 
 ## [2026-09-13] lint | Los tres merges, y la vez que no deducir salió a cuenta con número
@@ -566,13 +566,13 @@ El fallo habría sido en los `.txt`, y por la razón que [[stack-spring-boot-4-p
 
 **Es la mejor defensa que ha tenido la regla de no deducir**: no falla por principio, falla **una de cada dos veces**, y la que falla es la que uno cree tener entendida. Registrado con la cifra en [[stack-spring-boot-4-particularidades]].
 
-**Cuarta corrección en dos días a la línea de «qué rama queda fuera»**, en [[checklist-reutilizacion]] y en el `CLAUDE.md` de la raíz. A estas alturas la reincidencia ya no es un dato sino una regla: **toda pasada de wiki empieza por `git log main..HEAD`**, nunca por lo que dijo la anterior.
+**Cuarta corrección en dos días a la línea de «qué rama queda fuera»**, en [[checklist-reutilizacion]] y en el `CONVENCIONES.md` de la raíz. A estas alturas la reincidencia ya no es un dato sino una regla: **toda pasada de wiki empieza por `git log main..HEAD`**, nunca por lo que dijo la anterior.
 
-**Tocadas**: [[stack-spring-boot-4-particularidades]], [[dominio-orden-trabajo]], [[checklist-reutilizacion]] y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[stack-spring-boot-4-particularidades]], [[dominio-orden-trabajo]], [[checklist-reutilizacion]] y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-13] lint | El hash de una rama no se escribe; el de un commit sí
 
-**Convención nueva, nacida de un error propio cometido horas antes.** El `CLAUDE.md` de la raíz fijó el hash de `main` cuatro veces en dos días y las cuatro caducó. La cuarta es la que enseña algo: **caducó por su propio merge** — la pasada de wiki que anotaba «`main` está en `b9563a9`» dejaba `main` en otro commit al mergearse. Es regresión infinita, y ninguna cantidad de `git log main..HEAD` la arregla, porque la regla anterior —comprobar antes de escribir— no cubre el caso en que **escribir es lo que invalida el dato**.
+**Convención nueva, nacida de un error propio cometido horas antes.** El `CONVENCIONES.md` de la raíz fijó el hash de `main` cuatro veces en dos días y las cuatro caducó. La cuarta es la que enseña algo: **caducó por su propio merge** — la pasada de wiki que anotaba «`main` está en `b9563a9`» dejaba `main` en otro commit al mergearse. Es regresión infinita, y ninguna cantidad de `git log main..HEAD` la arregla, porque la regla anterior —comprobar antes de escribir— no cubre el caso en que **escribir es lo que invalida el dato**.
 
 La distinción que queda, y que no es «no escribir hashes»:
 
@@ -585,7 +585,7 @@ Por eso «614 medidos sobre `b9563a9`» y «mergeada por `1ef55cf`» **se quedan
 
 **El log no se toca.** Sus entradas están fechadas y eran ciertas al escribirse; reescribirlas para que sigan siendo ciertas hoy sería justo lo contrario de lo que un registro cronológico hace. La regla vale para las notas que describen el presente, no para las que fechan el pasado.
 
-**Tocadas**: `CLAUDE.md` de la raíz (con la tabla de la distinción), `SecondBrain/CLAUDE.md` (regla dura nueva), [[dominio-orden-trabajo]] y [[stack-spring-boot-4-particularidades]].
+**Tocadas**: `CONVENCIONES.md` de la raíz (con la tabla de la distinción), `SecondBrain/CONVENCIONES.md` (regla dura nueva), [[dominio-orden-trabajo]] y [[stack-spring-boot-4-particularidades]].
 
 
 ## [2026-09-13] ingest | La persistencia probada, y el defecto que la prueba destapó antes de pasar
@@ -596,7 +596,7 @@ Por eso «614 medidos sobre `b9563a9`» y «mergeada por `1ef55cf`» **se quedan
 
 **Por qué sobrevivió a cuatro tandas**: `WorkOrderService` siempre abre transacción, así que desde el API no se veía. El adaptador era inservible por su cuenta **y nadie lo llamaba por su cuenta, precisamente porque no había pruebas**. El defecto y su invisibilidad tenían la misma causa. De los **tres** adaptadores con colecciones propias —`client`, `person`, `work-order`— era el único sin la anotación, y el de `client` hasta lo explica en su javadoc.
 
-**Se arregló en producción, no se rodeó en la prueba.** Envolver el test en una transacción lo habría puesto en verde describiendo el defecto en vez de detectarlo, que es exactamente lo que `CLAUDE.md` prohíbe. La regla entró como convención de persistencia: **un adaptador que mapea una colección perezosa lleva `@Transactional`**; sin él depende de que el llamante abra una, y eso es una dependencia que el tipo no declara.
+**Se arregló en producción, no se rodeó en la prueba.** Envolver el test en una transacción lo habría puesto en verde describiendo el defecto en vez de detectarlo, que es exactamente lo que `CONVENCIONES.md` prohíbe. La regla entró como convención de persistencia: **un adaptador que mapea una colección perezosa lleva `@Transactional`**; sin él depende de que el llamante abra una, y eso es una dependencia que el tipo no declara.
 
 **Qué comprueban las diez**, y por qué no es el ida y vuelta: la **conciliación del alcance**. Retirar deja la fila **inactiva y no la borra**; readmitir **reactiva esa misma con el área nueva** y sigue habiendo una sola; `toDomain` no vuelve a cargar lo retirado; guardar dos veces no duplica; un traslado del equipo no reescribe el área congelada —comprobado ahora desde el lado de la orden, no solo desde el del esquema—; y `findByEquipment` ignora lo que salió. **Las comprobaciones van contra la tabla con SQL directo**: preguntarle al agregado lo contestaría el mapper, que es la pieza bajo prueba.
 
@@ -606,7 +606,7 @@ Por eso «614 medidos sobre `b9563a9`» y «mergeada por `1ef55cf`» **se quedan
 
 **Deuda: 27 registradas, 17 abiertas.** Se cierran dos —la persistencia sin probar y el `@Transactional` ausente— y se abre una: **`equipment` tampoco prueba su persistencia**, la misma ausencia que se señaló en dos módulos y se cerró en uno.
 
-**Tocadas**: [[dominio-orden-trabajo]], [[deuda-tecnica-y-riesgos]], [[stack-spring-boot-4-particularidades]] y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-orden-trabajo]], [[deuda-tecnica-y-riesgos]], [[stack-spring-boot-4-particularidades]] y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-13] ingest | El frontend se decide, y una etiqueta `reusable:alta` resulta ser falsa
 
@@ -628,7 +628,7 @@ La corrección no fue bajar la etiqueta y callar. Se separó **lo que se porta d
 
 **Aplazado con su porqué**: instalación en el dispositivo y consulta sin conexión. No incumple nada —la ERS pide acceso desde el teléfono **sin instalar nada nativo**, y una web responsiva lo cumple literalmente—. La **escritura** sin conexión sí tiene bloqueo real: sin idempotencia ni bloqueo optimista en el backend, un reintento duplicaría órdenes.
 
-**Tocadas**: [[arquitectura-frontend]], [[integracion-keycloak-frontend]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz, que decía que el código vivía **exclusivamente** en `malphasos/`. **Nuevas**: [[arquitectura-frontend-malphasos]], [[sistema-de-diseno-malphasos]].
+**Tocadas**: [[arquitectura-frontend]], [[integracion-keycloak-frontend]], [[hoja-de-ruta-producto]], `index.md` y el `CONVENCIONES.md` de la raíz, que decía que el código vivía **exclusivamente** en `malphasos/`. **Nuevas**: [[arquitectura-frontend-malphasos]], [[sistema-de-diseno-malphasos]].
 
 ## [2026-09-13] ingest | La escalera de usuarios, y un rol que llevaba meses esperando titular
 
@@ -660,7 +660,7 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 
 **Conteo**: **636** elementos `<testcase>`, 47 clases, cero fallos. Ocho pruebas nuevas, verificadas por mutación: el ingeniero cambiado de peldaño, el alta devuelta a `person.write`, y el bean usado en otro módulo para esquivar una autoridad —esta última la caza la prueba que acota la excepción—.
 
-**Tocadas**: [[modelo-de-permisos]], [[dominio-persona-identidad]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[modelo-de-permisos]], [[dominio-persona-identidad]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-26] ingest | El frontend habla con el API: dos defectos que solo aparecen con un navegador delante
 
@@ -686,7 +686,7 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 
 **Conteo**: **645** elementos `<testcase>`, 49 clases, cero fallos, medido borrando `target/surefire-reports` antes. Tres pruebas nuevas.
 
-**Tocadas**: [[seguridad-keycloak-backend]], [[integracion-keycloak-frontend]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[seguridad-keycloak-backend]], [[integracion-keycloak-frontend]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-26] ingest | La sección de clientes, cerrada entera, y una autoridad inventada que nadie habría notado
 
@@ -712,7 +712,7 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 
 **Conteo**: **154** pruebas de frontend, 20 archivos, cero fallos; el backend sigue en **645**. El `build` de producción no da avisos de presupuesto: cada pantalla es su propio trozo diferido, el mayor de 12,5 kB.
 
-**Tocadas**: [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-26] ingest | Todo lo necesario para crear un equipo, que resultó ser una cadena de cinco piezas
 
@@ -734,7 +734,7 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 
 **Conteo**: **210** pruebas de frontend, de 154. El backend sigue en **645**. El `build` no da avisos: el catálogo entero son 28 kB en su propio trozo diferido, 5,2 kB transferidos.
 
-**Tocadas**: [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-26] ingest | El listado de equipos toma el sitio del catálogo, y el modelo se crea sin salir del alta
 
@@ -758,7 +758,7 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 
 **Conteo**: **232** pruebas de frontend, de 210. Verificado por mutación lo que importa: quitar la reutilización de la combinación existente y quitar el borrado de la sede al cambiar de cliente ponen rojas sus pruebas.
 
-**Tocadas**: [[dominio-equipo-mantenimiento]], [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-equipo-mantenimiento]], [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-26] ingest | Países y ciudades de verdad, y una restricción que se escribió mirando dos países
 
@@ -780,7 +780,7 @@ Tres decisiones que sostienen esa excepción sin que se convierta en un agujero:
 
 **Conteo**: **659** elementos `<testcase>`, 50 clases, cero fallos —14 nuevas—. Verificado por mutación: quitar la traducción al español y repetir un municipio ponen rojas las suyas.
 
-**Tocadas**: [[dominio-ubicacion]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-ubicacion]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-26] ingest | El desplegable deja de servir cuando el catálogo tiene 1.350 filas
 
@@ -804,7 +804,7 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 
 **Conteo**: **265** pruebas de frontend, de 245 —17 del campo nuevo y su historial, 3 de la convención—. Verificado por mutación: ofrecer el catálogo entero sin escribir, y dejar de aceptar el nombre exacto tecleado, ponen rojas seis pruebas entre las nuevas y las viejas.
 
-**Tocadas**: [[sistema-de-diseno-malphasos]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[sistema-de-diseno-malphasos]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-26] ingest | El catálogo deja de ser una página con cinco secciones y pasa a ser cinco páginas
 
@@ -830,7 +830,7 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 
 **Conteo**: **274** pruebas de frontend, de 265. Las nuevas cubren el desplegable, la subnavegación, la redirección de `/catalogo` y que **solo se vea una pieza a la vez**. Verificado por mutación: quitar la redirección y escribir mal el destino de una hija ponen rojas seis.
 
-**Tocadas**: [[arquitectura-frontend-malphasos]], [[dominio-equipo-mantenimiento]] y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[arquitectura-frontend-malphasos]], [[dominio-equipo-mantenimiento]] y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-27] ingest | Arranca la segunda tanda de equipment: con qué y cuántas veces se verifica
 
@@ -857,7 +857,7 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 
 **Conteo**: backend **684** —de 659, con 25 nuevas entre esquema, dominio, persistencia y REST—; frontend **293**, de 278. `V8` aplicada al contenedor en marcha.
 
-**Tocadas**: [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]] y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-equipo-mantenimiento]], [[deuda-tecnica-y-riesgos]] y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-27] ingest | Las órdenes de trabajo se pueden usar, y el marcador de requisitos sube por el frontend
 
@@ -879,7 +879,7 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 
 **Conteo**: **330** pruebas de frontend, de 293 —37 nuevas entre las cuatro pantallas—. Backend sin tocar, en 684. Verificado por mutación: los botones que dejan de mirar el estado y el filtro de lo que ya está en la orden ponen rojas tres pruebas.
 
-**Tocadas**: [[dominio-orden-trabajo]], [[hoja-de-ruta-producto]] y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-orden-trabajo]], [[hoja-de-ruta-producto]] y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-27] ingest | Reportes de servicio: el sexto módulo, y dos predicciones de este wiki que salieron falsas
 
@@ -903,7 +903,7 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 
 **Conteo**: backend **810** elementos `<testcase>`, de 684 —33 de esquema, 34 de dominio, 37 de aplicación y persistencia, 20 de REST y las de contrato de seguridad ajustadas—, 55 clases, cero fallos, borrando `target/surefire-reports` antes. Frontend sin tocar, en 330.
 
-**Tocadas**: nueva [[dominio-reporte-servicio]] —el wiki pasa a **52** notas—, más [[dominio-reportes]], [[dominio-orden-trabajo]], [[dominio-equipo-mantenimiento]], [[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], [[modelo-de-permisos]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: nueva [[dominio-reporte-servicio]] —el wiki pasa a **52** notas—, más [[dominio-reportes]], [[dominio-orden-trabajo]], [[dominio-equipo-mantenimiento]], [[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], [[modelo-de-permisos]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-28] ingest | El frontend de los reportes, y un fallo de limpieza que se leyó como ochenta y seis
 
@@ -926,7 +926,7 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 
 **Conteo**: frontend **368**, de 330 —38 nuevas en cuatro archivos—, 40 archivos, cero fallos. Backend sin tocar, en 810.
 
-**Tocadas**: [[dominio-reporte-servicio]], [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[dominio-reporte-servicio]], [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CONVENCIONES.md` de la raíz.
 
 ## [2026-09-28] lint | Tres deudas cerradas de un barrido, y una que no se puede cerrar desde aquí
 
@@ -942,4 +942,16 @@ Repaso de lo que quedaba abierto y se podía cerrar sin pedir nada.
 
 **Conteo**: backend **812**, de 810 —las dos pruebas nuevas de cobertura—, 55 clases, cero fallos. Frontend sin tocar, en 368. Deuda propia: **33 abiertas** de 46 filas, recontadas sobre el archivo.
 
-**Tocadas**: [[deuda-tecnica-y-riesgos]], [[arquitectura-frontend-malphasos]] y el `CLAUDE.md` de la raíz.
+**Tocadas**: [[deuda-tecnica-y-riesgos]], [[arquitectura-frontend-malphasos]] y el `CONVENCIONES.md` de la raíz.
+
+## [2026-09-28] lint | Los cuatro CLAUDE.md pasan a llamarse CONVENCIONES.md
+
+**Decisión del usuario, y es de privacidad y no técnica**: el nombre aparecía en la portada del repositorio en GitHub y no lo quería ahí. Se renombraron los cuatro con `git mv` —raíz, `SecondBrain/`, `Documentation/` y `Documentation/wiki/`—, de modo que **el contenido y el historial siguen enteros**: `git log --follow CONVENCIONES.md` los recorre.
+
+**Qué significa esto al leer el wiki.** Las 70 referencias de todo el repositorio se actualizaron, incluidas las de este registro, **también en las entradas anteriores al cambio**. No es reescribir el pasado: aquellas entradas hablan de este mismo archivo, que hoy se llama de otra manera. Queda dicho aquí y en la cabecera de [[CONVENCIONES.md]] para que nadie busque un archivo que no existe.
+
+**Lo que hay que saber si se clona el proyecto**: la herramienta de sesión carga sola un archivo con el nombre viejo, y ese archivo **está fuera del control de versiones**. En la raíz hay uno con cuatro importaciones —una por cada `CONVENCIONES.md`— y `.gitignore` lo excluye. Si no está, **lo primero en una sesión nueva es leer los cuatro**: sin ellos no se conocen las reglas de commit ni las convenciones de código. La receta literal está en «Cómo se trabaja aquí».
+
+**Por qué se importan los cuatro y no solo el de la raíz**: los de subdirectorio se cargaban **por estar en su carpeta con ese nombre**, y el nombre es justo lo que se quitó. Importarlos explícitamente es lo que conserva esa función.
+
+**Lo que este cambio NO arregla, y conviene no confundirlo**: la atribución. Ese nombre de archivo nunca convirtió a nadie en contributor de GitHub — eso lo deciden el correo del autor y los trailers `Co-authored-by`, y la auditoría del 2026-09-28 sobre los 292 commits publicados dio **cero** en las dos cosas. El renombrado es cosmético y está bien que lo sea.
