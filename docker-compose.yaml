@@ -32,7 +32,13 @@ services:
 
   keycloak:
     container_name: malphasos-keycloak
-    image: quay.io/keycloak/keycloak:26.6.1
+    # Se construye en vez de usarse la imagen tal cual, porque lleva dentro el tema de
+    # MalphasOS: el JAR se arma en una etapa con Node y Maven y se copia a providers/.
+    # La version de Keycloak la fija ese Dockerfile y tiene que seguir siendo la misma.
+    build:
+      context: ./malphasos-keycloak-theme
+      dockerfile: Dockerfile
+    image: malphasos-keycloak:26.6.1
     command:
       - start-dev
       - --import-realm
@@ -54,6 +60,19 @@ services:
     volumes:
       # Keycloak 26 (Quarkus) importa los realms desde esta ruta con --import-realm.
       # La variable KEYCLOAK_IMPORT del proyecto original es de la era WildFly y se ignora.
+      #
+      # ⚠️ --import-realm USA LA ESTRATEGIA «IGNORE_EXISTING», y esto ya costo un rato: si el realm
+      # existe en la base, el archivo NO se aplica y el arranque lo dice en una linea de INFO que se
+      # pierde entre cien -«Realm 'malphasos-realm' already exists. Import skipped»-. O sea que editar
+      # el JSON versionado no cambia nada en un entorno ya levantado, y no falla: simplemente no pasa.
+      #
+      # Para aplicar un cambio suelto sin perder los usuarios de desarrollo, va por kcadm:
+      #   docker exec malphasos-keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+      #     --server http://localhost:8080 --realm master --user "$KC_ADMIN_USER" --password "..."
+      #   docker exec malphasos-keycloak /opt/keycloak/bin/kcadm.sh update realms/malphasos-realm \
+      #     -s loginTheme=malphasos
+      #
+      # Borrar el volumen de Postgres tambien reimporta, pero se lleva por delante todo lo creado a mano.
       - ./docker/keycloak/import:/opt/keycloak/data/import:ro
     depends_on:
       postgres:
