@@ -9,13 +9,20 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { ClienteApi } from '../../client/cliente-api';
+import { EncargadoApi } from '../../client/encargado-api';
+import { SedeApi } from '../../client/sede-api';
 import { EquipoApi } from '../../equipment/equipo-api';
+import { nombreCompleto, PersonaApi } from '../../person/persona-api';
+import { OrdenApi } from '../../workOrder/orden-api';
 import { ReporteApi } from '../reporte-api';
 import { TablaDeVerificacion } from '../verificacion/tabla-de-verificacion';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   ETIQUETA_DE_ESTADO_DE_REPORTE,
+  ETIQUETA_DE_PERIODICIDAD,
   ETIQUETA_DE_RESULTADO,
+  ETIQUETA_DE_TIPO_DE_SERVICIO,
   RESULTADOS_DE_SERVICIO,
   sePuedeCerrar,
 } from '../../../core/api/tipos';
@@ -32,6 +39,12 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  * aparece cuando se puede usar, igual que iniciar y ejecutar en una orden. Y va con confirmación,
  * porque desde ahí el reporte ya no cambia — corregirlo es retirarlo y abrir otro, que es justo lo que
  * dice el aviso.
+ *
+ * <p><b>Los datos que vienen de la orden no se escriben: se muestran.</b> Cliente, sede, responsables y
+ * tipo de servicio salen de la orden de trabajo, que es literalmente lo que RF-11 pide —«autocompletar
+ * a partir de la información registrada en la orden»— y lo que RNF-07 exige al decir que lo
+ * autocompletado no se pueda editar: aquí no hay control que editar, hay una lista de datos. La única
+ * fuente sigue siendo la orden, de modo que no pueden discrepar.
  *
  * <p><b>La verificación metrológica va en su propio bloque</b> y no entre los cinco campos, porque no es
  * un campo: es una tabla que el tipo del equipo dicta y que se guarda por separado, con su propia
@@ -63,6 +76,22 @@ export class DetalleReporte {
   protected readonly retiro = this.api.retirar();
 
   private readonly equipos = inject(EquipoApi).listarTodos();
+
+  // --- Lo que se autocompleta desde la orden (RF-11) ---------------------------
+
+  private readonly orden = inject(OrdenApi).detalle(
+    computed(() => this.reporte.data()?.idOrdenTrabajo ?? ''),
+  );
+  private readonly clientes = inject(ClienteApi).listar();
+  private readonly sedes = inject(SedeApi).variasPorId(
+    computed(() => {
+      const sede = this.orden.data()?.idSede;
+
+      return sede ? [sede] : [];
+    }),
+  );
+  private readonly personas = inject(PersonaApi).listar();
+  private readonly encargados = inject(EncargadoApi).listar();
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('report.write'));
 
@@ -116,6 +145,78 @@ export class DetalleReporte {
       (this.equipos.data() ?? []).find((equipo) => equipo.id === id)?.serie ?? 'Equipo no disponible'
     );
   });
+
+  /**
+   * Los cinco datos que la orden aporta, resueltos a palabras.
+   *
+   * <p>Se resuelven aquí y no se copian en el reporte: la orden los congeló al crearse y este bloque los
+   * lee. Cada nombre cuesta un cruce contra una lista, que es la ausencia ya anotada — ninguna respuesta
+   * del API trae nombres.
+   */
+  protected readonly cliente = computed(() => {
+    const id = this.orden.data()?.idCliente;
+
+    return (
+      (this.clientes.data() ?? []).find((cliente) => cliente.id === id)?.razonSocial ??
+      'No disponible'
+    );
+  });
+
+  protected readonly sede = computed(
+    () => (this.sedes.data() ?? [])[0]?.nombre ?? 'No disponible',
+  );
+
+  protected readonly servicio = computed(() => {
+    const datos = this.orden.data();
+    const tipo = datos?.tipoServicio ? ETIQUETA_DE_TIPO_DE_SERVICIO[datos.tipoServicio] : '';
+    const cada = datos?.periodicidad ? ETIQUETA_DE_PERIODICIDAD[datos.periodicidad] : '';
+
+    return cada ? `${tipo} · ${cada}` : tipo;
+  });
+
+  protected readonly fechaProgramada = computed(
+    () => this.orden.data()?.fechaMantenimiento ?? '',
+  );
+
+  /** El ingeniero que ejecuta. Sin él la orden está programada y no repartida, y el reporte lo dice. */
+  protected readonly ingeniero = computed(() => {
+    const id = this.orden.data()?.idIngeniero;
+
+    if (!id) {
+      return '';
+    }
+
+    return this.nombreDe(id);
+  });
+
+  /**
+   * El encargado de la sede donde se presta el servicio.
+   *
+   * <p>Se filtra de la lista completa de encargados porque <b>el API no publica «los encargados de una
+   * sede»</b>: `GET /v1/api/managers` devuelve todos. Está anotado como deuda, y aquí se nota.
+   *
+   * <p>Solo los de sede, no los de área: un encargado lo es de una cosa o de la otra, y quien responde
+   * por el sitio donde se firma el servicio es el de la sede.
+   */
+  protected readonly encargado = computed(() => {
+    const idSede = this.orden.data()?.idSede;
+
+    if (!idSede) {
+      return '';
+    }
+
+    const suyo = (this.encargados.data() ?? []).find(
+      (encargado) => encargado.idSede === idSede && encargado.estadoActivo,
+    );
+
+    return suyo?.idPersona ? this.nombreDe(suyo.idPersona) : '';
+  });
+
+  private nombreDe(idPersona: string): string {
+    const persona = (this.personas.data() ?? []).find((p) => p.identificador === idPersona);
+
+    return persona ? nombreCompleto(persona) : 'No disponible';
+  }
 
   protected readonly hayError = computed(
     () =>

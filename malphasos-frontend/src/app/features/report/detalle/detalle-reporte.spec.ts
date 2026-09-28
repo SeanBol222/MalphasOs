@@ -6,7 +6,20 @@ import { QueryClient } from '@tanstack/angular-query-experimental';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar, responderA } from '../../../../testing/pantalla';
-import { EQUIPOS, ID_ORDEN, URL_EQUIPOS_DE_CLIENTE } from '../../../../testing/ordenes';
+import {
+  CLIENTES,
+  EQUIPOS,
+  ID_ORDEN,
+  ID_SEDE,
+  orden,
+  PERSONAS,
+  SEDE,
+  URL_CLIENTES,
+  URL_EQUIPOS_DE_CLIENTE,
+  URL_ORDENES,
+  URL_PERSONAS,
+  urlSede,
+} from '../../../../testing/ordenes';
 import {
   // El catalogo llama EQUIPOS a los del catalogo y ordenes.ts a las unidades del cliente: son dos cosas
   // distintas con el mismo nombre, que es la ambiguedad del dominio anotada en el wiki. Se renombran
@@ -28,7 +41,23 @@ import {
 import { ReporteApi } from '../reporte-api';
 import { DetalleReporte } from './detalle-reporte';
 
-const TODAS = ['report.read', 'report.write', 'equipment.read'];
+const TODAS = [
+  'report.read',
+  'report.write',
+  'equipment.read',
+  // Lo que RF-11 autocompleta se consulta de verdad, asi que la pantalla necesita leer esos modulos.
+  'work-order.read',
+  'client.read',
+  'person.read',
+  'engineer.read',
+];
+
+const URL_ENCARGADOS = 'http://localhost:8081/v1/api/managers';
+
+/** Un encargado de la sede de la orden, que es el responsable del cliente en ese sitio. */
+const ENCARGADOS = [
+  { idPersona: 'p2', idSede: ID_SEDE, idAreaServicio: undefined, tipo: 'SEDE', estadoActivo: true },
+];
 
 @Component({ selector: 'app-orden-falsa', template: '' })
 class OrdenFalsa {}
@@ -82,6 +111,13 @@ describe('Ficha de un reporte de servicio', () => {
     http.match(URL_MODELOS).forEach((peticion) => peticion.flush(MODELOS));
     http.match(URL_EQUIPOS_DE_CATALOGO).forEach((peticion) => peticion.flush(EQUIPOS_DE_CATALOGO));
     http.match(URL_TIPOS).forEach((peticion) => peticion.flush(TIPOS));
+    // Y lo que RF-11 autocompleta: la orden, su cliente, su sede, las personas y los encargados.
+    http.match(`${URL_ORDENES}/${ID_ORDEN}`).forEach((peticion) => peticion.flush(orden()));
+    http.match(URL_CLIENTES).forEach((peticion) => peticion.flush(CLIENTES));
+    http.match(URL_PERSONAS).forEach((peticion) => peticion.flush(PERSONAS));
+    http.match(URL_ENCARGADOS).forEach((peticion) => peticion.flush(ENCARGADOS));
+    await asentar(fixture);
+    http.match(urlSede(ID_SEDE)).forEach((peticion) => peticion.flush(SEDE));
     await asentar(fixture);
   }
 
@@ -100,6 +136,11 @@ describe('Ficha de un reporte de servicio', () => {
       [URL_MODELOS, MODELOS],
       [URL_EQUIPOS_DE_CATALOGO, EQUIPOS_DE_CATALOGO],
       [URL_TIPOS, TIPOS],
+      [`${URL_ORDENES}/${ID_ORDEN}`, orden()],
+      [URL_CLIENTES, CLIENTES],
+      [URL_PERSONAS, PERSONAS],
+      [URL_ENCARGADOS, ENCARGADOS],
+      [urlSede(ID_SEDE), SEDE],
     ];
 
     // Se dan todas las vueltas, sin salir en la primera que no encuentre nada: la recarga tarda en
@@ -144,6 +185,37 @@ describe('Ficha de un reporte de servicio', () => {
     // La serie sale de la lista de equipos: el reporte solo trae el identificador.
     expect(texto()).toContain('SN-0001');
     expect(texto()).toContain('Borrador');
+  });
+
+  it('autocompleta cliente, sede, servicio y responsables desde la orden (RF-11)', async () => {
+    await abrir();
+
+    expect(texto()).toContain('Hospital Central');
+    expect(texto()).toContain('Sede Norte');
+    expect(texto()).toContain('Preventivo · Trimestral');
+    expect(texto()).toContain('2026-10-15');
+    // El encargado de la sede sale de la lista completa de encargados: el API no publica los de una sede.
+    expect(texto()).toContain('Luis Peña');
+  });
+
+  it('lo autocompletado no tiene ningún campo que editar (RNF-07)', async () => {
+    await abrir();
+
+    // Cuatro areas de texto y un desplegable: son los cinco campos de RF-15 —el quinto, el resultado,
+    // es el desplegable— y ni uno mas. Si algun dato de la orden llegara como campo editable, aqui
+    // saldria un control de sobra. Los numericos de la verificacion no cuentan: son lecturas, no datos
+    // autocompletados.
+    expect(raiz().querySelectorAll('textarea')).toHaveLength(4);
+    expect(raiz().querySelectorAll('select')).toHaveLength(1);
+    expect(
+      [...raiz().querySelectorAll('input')].filter((i) => i.type === 'text').length,
+    ).toBe(0);
+  });
+
+  it('una orden sin ingeniero lo dice, en vez de dejar el hueco en blanco', async () => {
+    await abrir();
+
+    expect(texto()).toContain('Sin asignar en la orden');
   });
 
   it('vuelca en el formulario los cinco campos que el servidor tiene', async () => {
