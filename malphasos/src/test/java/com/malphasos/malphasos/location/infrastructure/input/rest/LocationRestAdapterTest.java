@@ -218,4 +218,23 @@ class LocationRestAdapterTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.idPais").value(espana.toString()));
     }
+
+    @Test
+    @DisplayName("los dos recursos aparecen en el grupo de OpenAPI del modulo")
+    void recursosDocumentados() throws Exception {
+        // Este grupo llevaba sin prueba desde que se declaro, y es la ausencia que la convencion del
+        // proyecto persigue: un patron de `pathsToMatch` que no casa con ninguna ruta no falla ni
+        // avisa, deja el recurso fuera de Swagger en silencio. Ya paso cuatro veces antes de que
+        // hubiera pruebas, y este modulo se quedo fuera de la cuenta por ser de los primeros.
+        String docs = mockMvc.perform(get("/v3/api-docs/location"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(docs)
+                .describedAs("Paises y ciudades deben estar en el grupo location")
+                .contains("/v1/api/countries")
+                .contains("/v1/api/cities");
+    }
 }

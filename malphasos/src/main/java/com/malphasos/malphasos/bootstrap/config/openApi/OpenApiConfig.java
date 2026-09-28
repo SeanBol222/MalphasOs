@@ -24,6 +24,12 @@ import org.springframework.context.annotation.Configuration;
  * Los patrones de cada grupo deben escribirse contra las rutas que los controladores publican de
  * verdad: uno que no case con ninguna no falla, simplemente deja el recurso fuera de la
  * documentación sin avisar.
+ *
+ * <p><b>Y por eso no se reservan patrones para lo que todavía no existe.</b> El 2026-09-28 se retiró
+ * {@code /technical-verifications/**} del grupo de equipos, que llevaba ahí desde el principio
+ * esperando una pieza que **acabó construyéndose en otro módulo**: el resultado de verificar vive con
+ * el reporte de servicio desde {@code V9}, y ese patrón no habría casado nunca. Un patrón reservado es
+ * indistinguible de un patrón roto, que es justo lo que este javadoc advierte dos párrafos arriba.
  */
 @Configuration
 public class OpenApiConfig {
@@ -97,8 +103,7 @@ public class OpenApiConfig {
                         API + "/brands/**",
                         API + "/manufacturers/**",
                         API + "/client-equipments/**",
-                        API + "/service-areas/*/equipments",
-                        API + "/technical-verifications/**")
+                        API + "/service-areas/*/equipments")
                 .build();
     }
 
