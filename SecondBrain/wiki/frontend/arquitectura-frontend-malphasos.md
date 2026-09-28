@@ -129,7 +129,7 @@ La redacción sigue el tono del manual de marca — ver [[sistema-de-diseno-malp
 
 ## Pruebas
 
-Mismo listón que el backend, que llega a este punto con **810** pruebas y la costumbre de verificar por mutación. El frontend va por **368**, contadas el 2026-09-28. (Decía **154** el 2026-09-26 y antes 624 del backend sin citar las del frontend, que entonces no existían.)
+Mismo listón que el backend, que llega a este punto con **812** pruebas y la costumbre de verificar por mutación. El frontend va por **368**, contadas el 2026-09-28. (Decía **154** el 2026-09-26 y antes 624 del backend sin citar las del frontend, que entonces no existían.)
 
 | Nivel | Qué cubre |
 |---|---|

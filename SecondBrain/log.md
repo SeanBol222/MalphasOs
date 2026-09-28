@@ -927,3 +927,19 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 **Conteo**: frontend **368**, de 330 —38 nuevas en cuatro archivos—, 40 archivos, cero fallos. Backend sin tocar, en 810.
 
 **Tocadas**: [[dominio-reporte-servicio]], [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-28] lint | Tres deudas cerradas de un barrido, y una que no se puede cerrar desde aquí
+
+Repaso de lo que quedaba abierto y se podía cerrar sin pedir nada.
+
+**Los seis grupos de OpenAPI tienen ya prueba de cobertura.** Faltaban `location` y `person`, y el de `person` enseñó una distinción que merece quedarse: había una comprobación de que `/v3/api-docs/person` **responde 200** y ninguna de que trajera algo dentro — **un grupo vacío también responde 200**. Las dos pruebas se vieron fallar cambiando el patrón del grupo a `/country/**` y `/person/**`, que es lo que este proyecto exige de una prueba contra un fallo silencioso.
+
+**Y se retiró un patrón reservado que nunca iba a casar**: `/technical-verifications/**` esperaba en el grupo de equipos desde el principio, y la pieza que esperaba **se construyó en otro módulo** —el resultado de verificar vive con el reporte desde `V9`—. Un patrón reservado es indistinguible de uno roto, así que reservarlos va contra la propia convención.
+
+**La comprobación de salud de RabbitMQ queda apagada en el perfil de pruebas**, que es lo que [[deuda-tecnica-y-riesgos]] recomendaba desde el 2026-09-08. No se apaga porque se haya demostrado que causaba la intermitencia —sigue sin caso reproducido, y la causa que sí se demostró era el ayudante `unico()`—, sino porque **una dependencia externa que ninguna prueba usa no tiene por qué poder influir en el resultado**. Ninguna prueba se dobló: la que toca `/actuator/health` solo exige que la seguridad no la bloquee, valía con 503 y vale con 200.
+
+**Lo que no se puede cerrar desde esta sesión**: no hay clave SSH disponible para `git@github.com`, de modo que ni se puede empujar ni comprobar el estado real del remoto. `main` va **34 commits por delante** del `origin/main` que este clon conoce. Queda como lo único pendiente de una acción del usuario.
+
+**Conteo**: backend **812**, de 810 —las dos pruebas nuevas de cobertura—, 55 clases, cero fallos. Frontend sin tocar, en 368. Deuda propia: **33 abiertas** de 46 filas, recontadas sobre el archivo.
+
+**Tocadas**: [[deuda-tecnica-y-riesgos]], [[arquitectura-frontend-malphasos]] y el `CLAUDE.md` de la raíz.
