@@ -53,3 +53,13 @@ No se modificó ningún `.tex` ni ningún archivo de `SecondBrain/` o `malphasos
 **Y tres cosas que la implementación añadió y la ERS no pide**, anotadas en [[rf-reportes-mantenimiento]] para que el documento las recoja o las descarte: el **estado** del reporte —borrador y finalizado—, el **catálogo cerrado** del campo «resultado» —tres valores que la ERS no enumera— y las **lecturas de la verificación metrológica**, que la ERS solo menciona para decir que no son RF-15.
 
 **Tocadas**: [[estado-de-implementacion]], [[rf-ordenes-trabajo]], [[rf-reportes-mantenimiento]], `index.md`.
+
+## [2026-09-28] ingest | RF-11 cierra un día después de anotarse como pendiente
+
+**El requisito más rápido de cerrar de todos los registrados en esta wiki.** Ayer se anotó como previsto con el razonamiento estricto —el backend hacía imposible teclear esos datos y garantizaba que no discreparan, pero «mostrar» es una pantalla y no había pantalla—. Hoy la ficha del reporte trae el bloque de datos del servicio, y los tres criterios de aceptación se cumplen.
+
+**Lo que hace que cuente, y no solo se parezca**: los datos **se leen de la orden y no se copian** —el reporte no tiene columna para ellos, lo decidió `V9`—, así que no pueden discrepar; y **no hay ningún control que editar**, que es lo que RNF-07 pide de lo autocompletado. Hay una prueba de frontend que cuenta los controles del formulario y falla si uno de esos datos aparece como campo.
+
+**La cifra pasa de 16 a 17 de 31**, y el contraste con la corrección de ayer merece quedarse: esa nota llevaba **tres semanas** caducada en 8 porque nadie recontaba; esta caducó **en un día** porque el trabajo fue rápido. Las dos formas de caducar existen, y solo una se arregla recontando al citar.
+
+**Tocadas**: [[estado-de-implementacion]], [[rf-reportes-mantenimiento]], `index.md`.
