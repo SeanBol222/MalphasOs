@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -287,5 +288,25 @@ class PersonRestAdapterTest {
                 .andExpect(status().isBadRequest());
 
         verify(personServicePort, never()).addEmail(any(), any());
+    }
+
+    @Test
+    @DisplayName("los tres recursos de persona aparecen en su grupo de OpenAPI")
+    void recursosDocumentados() throws Exception {
+        // Este grupo tenia una comprobacion de que el documento responde 200 -en SecurityIntegrationTest-
+        // y ninguna de que trajera algo dentro. Son dos cosas distintas: un grupo vacio tambien responde
+        // 200. Los sub-recursos van nombrados porque son controladores aparte, y el patron del grupo los
+        // cubre por prefijo: si alguien cambiara la ruta de uno, aqui se veria.
+        String docs = mockMvc.perform(get("/v3/api-docs/person"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(docs)
+                .describedAs("La persona y sus dos sub-recursos deben estar en el grupo person")
+                .contains("/v1/api/persons")
+                .contains("/v1/api/persons/{personId}/emails")
+                .contains("/v1/api/persons/{personId}/phones");
     }
 }
