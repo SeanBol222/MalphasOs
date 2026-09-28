@@ -904,3 +904,26 @@ Sembrar los datos de referencia dejó dos desplegables **inservibles el mismo d�
 **Conteo**: backend **810** elementos `<testcase>`, de 684 —33 de esquema, 34 de dominio, 37 de aplicación y persistencia, 20 de REST y las de contrato de seguridad ajustadas—, 55 clases, cero fallos, borrando `target/surefire-reports` antes. Frontend sin tocar, en 330.
 
 **Tocadas**: nueva [[dominio-reporte-servicio]] —el wiki pasa a **52** notas—, más [[dominio-reportes]], [[dominio-orden-trabajo]], [[dominio-equipo-mantenimiento]], [[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], [[modelo-de-permisos]], `index.md` y el `CLAUDE.md` de la raíz.
+
+## [2026-09-28] ingest | El frontend de los reportes, y un fallo de limpieza que se leyó como ochenta y seis
+
+**Cuatro tandas, y el hueco entre backend y pantalla duró un día** — contra las dos semanas que pasaron las órdenes de trabajo en ese estado. `3f3c170e` la ficha con los cinco campos de RF-15, `87b8cf3b` la tabla de verificación, `2c184d6e` el historial de un equipo, `30982c0f` el bloque que autocompleta desde la orden.
+
+**RF-11 cierra, y lo que faltaba era lo más sencillo de decir**: que el reporte **mostrara** los datos de su orden. El backend llevaba un día garantizando que no se pudieran teclear —no hay columna— y que no discreparan —una sola fuente—, pero el requisito habla de mostrar. Ahora hay un bloque de datos del servicio con cliente, sede, servicio, fecha, ingeniero y encargado de la sede, **leídos y no copiados**, y **sin un solo control que editar**, que es además lo que RNF-07 pide. Hay una prueba que cuenta los controles del formulario y falla si alguno de esos datos aparece como campo. **Requisitos: 16 → 17.**
+
+**La tabla de verificación la dicta el tipo del equipo.** Un punto por tres lecturas son tres casillas, así que los dos errores que el servidor rechazaría —una lectura en un punto ajeno, la número cuatro donde se piden tres— **no se pueden escribir**. Averiguarlo cuesta las mismas cuatro consultas que camina el backend, y hay prueba de que son cuatro para toda la tabla y no cuatro por casilla.
+
+**El historial de un equipo no es la hoja de vida, y está escrito en el javadoc.** RF-26 y RF-27 piden el historial **dentro de** una hoja de vida que no existe como entidad; esta pantalla es la consulta sobre la que se construirá. Salen también los reportes retirados —ocurrieron— y un borrador cae a la fecha programada de su orden **diciendo que es programada**, porque una fecha planificada que pasa por fecha de servicio es peor que no dar fecha.
+
+**Dos defectos propios que encontraron las pruebas:**
+
+1. **Un control añadido a un formulario ya desactivado nace activo.** La tabla de un reporte cerrado se podía teclear, porque las casillas se crean cuando llega el tipo —cuatro consultas después— y ya no heredan el estado. El servidor lo habría rechazado, pero la pantalla ofrecía algo que no existe.
+2. **Un fallo de limpieza se disfrazó de regresión general.** Una prueba dejó una petición sin responder; el `verify()` del `afterEach` lanzó, eso **impidió a Angular desmontar el TestBed**, y las once pruebas siguientes fallaron con «el módulo ya está instanciado» arrastrando a archivos que nadie había tocado: **86 fallos, con recuentos distintos en cada ejecución**. La causa era drenar las peticiones en una sola pasada, cuando la recarga llega en un tic posterior. La lección operativa: ante decenas de fallos en archivos ajenos, buscar **el primero por orden de ejecución**.
+
+**Y una tercera trampa del corredor**: montar el TestBed dentro de la prueba solo funciona en la primera, porque Angular ya lo reinicia en un `beforeEach` propio.
+
+**Verificado por mutación en las tres tandas**: cinco mutaciones en la primera —una de ellas destapó una prueba mía que pasaba en vacío por no invalidar la caché antes de mirar—, cinco en la tabla y tres en el historial. Todas rompen lo que deben.
+
+**Conteo**: frontend **368**, de 330 —38 nuevas en cuatro archivos—, 40 archivos, cero fallos. Backend sin tocar, en 810.
+
+**Tocadas**: [[dominio-reporte-servicio]], [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CLAUDE.md` de la raíz.

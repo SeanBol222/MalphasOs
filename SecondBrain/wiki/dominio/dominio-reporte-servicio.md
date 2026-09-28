@@ -1,10 +1,10 @@
 ---
 name: dominio-reporte-servicio
-description: El modulo de reportes de servicio de MalphasOS, completo en sus cuatro tandas el 2026-09-27; uno por equipo de la orden, con sus seis reglas cruzadas y el choque de orden entre Hibernate y un indice unico parcial
+description: El modulo de reportes de servicio de MalphasOS, backend completo el 2026-09-27 y frontend el 2026-09-28; uno por equipo de la orden, con sus seis reglas cruzadas, el choque de orden entre Hibernate y un indice unico parcial, y las cuatro pantallas que cierran RF-11
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
-source: malphasos/src/main/java/com/malphasos/malphasos/report/ y malphasos/src/main/resources/db/migration/V9__service_report.sql
+source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-09-27
+updated: 2026-09-28
 ---
 
 # Reportes de servicio — el módulo completo
@@ -97,12 +97,46 @@ Es el mismo tipo de choque que el proyecto ya conocía por otro lado —«un ada
 - **No hay una tercera autoridad para cerrar.** Quien llena el reporte es quien lo firma en campo: separarlas describiría un reparto de trabajo que en esta empresa no existe. La firma digital (RF-21) traerá la suya. Ver [[modelo-de-permisos]].
 - **No hay protocolos** (RF-13, RF-14). Siguen sin existir y son la pieza que falta para que el reporte se cargue solo con lo que hay que revisar.
 
+## Las cuatro pantallas (2026-09-28)
+
+El backend estuvo completo un día sin que se pudiera tocar nada desde un navegador — la misma situación que las órdenes de trabajo vivieron dos semanas. Cuatro tandas lo cerraron: `3f3c170e`, `87b8cf3b`, `2c184d6e` y `30982c0f`.
+
+| Pantalla | Dónde | Qué resuelve |
+|---|---|---|
+| Ficha del reporte | `/reportes/:id` | Los cinco campos de RF-15, cerrar y retirar |
+| Tabla de verificación | dentro de la ficha | Las lecturas, **con la forma que dicta el tipo del equipo** |
+| Historial de un equipo | `/equipos/:id/historial` | Lo que se le ha hecho a un aparato. **No es la hoja de vida** |
+| Datos del servicio | dentro de la ficha | RF-11: cliente, sede, responsables y tipo de servicio |
+
+**Se entra desde la orden**, que es lo que pide el tercer criterio de RF-09: cada equipo del alcance lleva su reporte al lado, con un enlace si existe y un botón de abrirlo si no.
+
+### Lo que la pantalla refleja del servidor, en vez de descubrirlo a golpes
+
+- **Cerrar es un botón, no un desplegable de estado**, y se desactiva sin procedimientos ni resultado — lo mismo que el servidor exige. Ofrecerlo y responder 409 sería ofrecer algo que no existe.
+- **Los reportes se abren cuando la orden empieza.** Con la orden en `CREADA` no hay botón, y la pantalla dice por qué.
+- **El reporte que cuenta es el vivo.** El API devuelve el historial de la orden, retirados incluidos; quedarse con el primero dejaría al equipo con reporte para siempre.
+- **Un reporte cerrado desactiva el formulario en vez de esconderlo**: lo escrito es el documento que se entregó.
+- **La tabla de verificación la dicta el tipo**: un punto por tres lecturas son tres casillas, así que la lectura en un punto ajeno o la número cuatro donde se piden tres **no se pueden escribir**.
+- **La unidad no se manda cuando hay punto**: la pone el servidor desde el punto, por lo mismo que el área de un equipo no viaja en el comando de la orden.
+
+### Un campo vacío borra, y eso hay que decirlo en los dos lados
+
+El backend distingue el nulo —«no lo cambies»— del blanco —«bórralo»—. La pantalla muestra todo lo que hay, de modo que **vaciar una casilla es borrar el dato**, y así está escrito en el agregado y en el componente. La distinción no existe para el resultado, que es una enumeración: sin elegir se manda **ausente** y no cadena vacía, que no es un valor del catálogo.
+
+### Averiguar cómo se verifica un equipo cuesta cuatro consultas, también aquí
+
+`equipo_cliente` → `modelo` → `equipo` del catálogo → `tipo`. El servicio del backend camina la misma cadena en un solo método, y el componente hace lo propio con las cuatro listas que ya están en caché. Hay una prueba de que son **cuatro para toda la tabla y no cuatro por casilla**.
+
 ## Qué cierra y qué no de la ERS
 
-**Cierra RF-09** —un reporte por equipo, asociado a los dos, accesible desde la orden— y **RF-15** —los cinco campos, guardados de forma independiente y consultables después—.
+**Cierra RF-09** —un reporte por equipo, asociado a los dos, accesible desde la orden—, **RF-15** —los cinco campos, guardados de forma independiente y consultables después— y, desde el **2026-09-28**, **RF-11**.
 
-**No cierra RF-11**, y conviene ser estricto: el backend garantiza que esos datos **no se pueden teclear** —no hay columna ni campo para ellos— y que son consistentes, porque hay una sola fuente. Pero el requisito dice que «los campos del reporte muestran automáticamente» esos datos, y mostrar es una pantalla. Queda pendiente del frontend, con el mismo criterio que dejó cuatro requisitos de la orden de trabajo esperando su formulario.
+> **Corregido el 2026-09-28.** Esta nota decía que RF-11 **no** se cerraba, y era cierto el día que se escribió: el backend garantizaba que esos datos no se pudieran teclear y que no discreparan, pero el requisito dice que el reporte los «muestra» y no había pantalla. Ahora la ficha trae un bloque de **datos del servicio** con cliente, sede, servicio, fecha, ingeniero y encargado de la sede, **leídos de la orden y no copiados**, y **sin un solo control que editar** — que es además lo que RNF-07 pide de lo autocompletado. Hay una prueba que cuenta los controles del formulario y falla si alguno de esos datos aparece como campo.
+
+**Siguen fuera RF-13 y RF-14** —los protocolos, que no existen ni en el esquema ni en el código— y **RF-17**, el PDF, que depende de la firma digital. Ya hay qué exportar, que es lo que faltaba.
+
+**Y el historial de un equipo no es RF-26.** Esa pantalla responde «qué se le ha hecho a este aparato», que es la consulta sobre la que se construirá la hoja de vida; RF-26 y RF-27 piden el historial **dentro de** una hoja de vida que todavía no existe como entidad.
 
 ## Notas relacionadas
 
-[[dominio-orden-trabajo]] · [[dominio-equipo-mantenimiento]] · [[dominio-reportes]] · [[congelar-una-referencia-historica]] · [[modelo-de-permisos]] · [[deuda-tecnica-y-riesgos]] · [[hoja-de-ruta-producto]] · [[patron-catalogo-errores-por-contexto]] · [[openapi-swagger]]
+[[dominio-orden-trabajo]] · [[dominio-equipo-mantenimiento]] · [[dominio-reportes]] · [[arquitectura-frontend-malphasos]] · [[congelar-una-referencia-historica]] · [[modelo-de-permisos]] · [[deuda-tecnica-y-riesgos]] · [[hoja-de-ruta-producto]] · [[patron-catalogo-errores-por-contexto]] · [[openapi-swagger]]
