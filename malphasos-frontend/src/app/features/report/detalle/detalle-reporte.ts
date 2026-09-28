@@ -11,6 +11,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { EquipoApi } from '../../equipment/equipo-api';
 import { ReporteApi } from '../reporte-api';
+import { TablaDeVerificacion } from '../verificacion/tabla-de-verificacion';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   ETIQUETA_DE_ESTADO_DE_REPORTE,
@@ -32,6 +33,10 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  * porque desde ahí el reporte ya no cambia — corregirlo es retirarlo y abrir otro, que es justo lo que
  * dice el aviso.
  *
+ * <p><b>La verificación metrológica va en su propio bloque</b> y no entre los cinco campos, porque no es
+ * un campo: es una tabla que el tipo del equipo dicta y que se guarda por separado, con su propia
+ * llamada. Ver {@link TablaDeVerificacion}.
+ *
  * <p><b>Un campo que se deja vacío se borra</b>, y eso también es del backend: manda lo que el
  * formulario muestra, de modo que vaciar una casilla en pantalla vacía el dato. La alternativa
  * —distinguir «no lo toqué» de «lo borré»— exigiría comparar contra el original en cada tecla para
@@ -39,7 +44,7 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-detalle-reporte',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TablaDeVerificacion],
   templateUrl: './detalle-reporte.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

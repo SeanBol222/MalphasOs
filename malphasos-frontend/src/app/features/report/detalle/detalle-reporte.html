@@ -200,6 +200,13 @@
       }
     </form>
 
+    <app-tabla-de-verificacion
+      [idReporte]="id()"
+      [idEquipoCliente]="datos.idEquipoCliente ?? ''"
+      [lecturas]="datos.lecturas ?? []"
+      [editable]="editable()"
+    />
+
     <p class="mt-3">
       <a class="font-semibold underline" [routerLink]="['/ordenes', datos.idOrdenTrabajo]">
         Volver a la orden
