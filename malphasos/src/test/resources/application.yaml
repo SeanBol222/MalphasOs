@@ -13,6 +13,20 @@ spring:
   # Sin issuer-uri configurado: definirlo obligaria a tener Keycloak en marcha para poder ejecutar
   # las pruebas, porque Spring consulta al emisor durante el arranque.
 
+# La comprobacion de salud de RabbitMQ intenta conectarse a localhost:5672 y en pruebas no hay nadie
+# escuchando, de modo que /actuator/health respondia 503 con toda razon. Se apaga aqui, y el motivo no
+# es cosmetico: figuraba como la causa sospechada -nunca reproducida- de que la bateria diera dos
+# resultados distintos, y una dependencia externa que ninguna prueba usa no tiene por que poder
+# influir en el resultado. La causa que SI se demostro era otra, el ayudante unico() de las pruebas,
+# corregida el 2026-09-08.
+#
+# Ninguna prueba se dobla por esto: la que toca /actuator/health solo exige que la seguridad no lo
+# bloquee -ni 401 ni 403-, asi que valia con 503 y vale con 200.
+management:
+  health:
+    rabbit:
+      enabled: false
+
 app:
   security:
     # Apagada por defecto para que cada prueba se centre en su capa y no en construir tokens. La
