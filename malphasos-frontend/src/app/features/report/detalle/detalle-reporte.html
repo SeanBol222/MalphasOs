@@ -116,6 +116,52 @@
       </p>
     }
 
+    <!--
+      RF-11: cliente, sede, responsables y tipo de servicio se autocompletan desde la orden. Van como
+      lista de datos y no como campos, que es lo que pide RNF-07 —lo autocompletado no se edita—: aqui
+      no hay nada que editar. Y no se copian en el reporte, se leen de la orden, de modo que no pueden
+      discrepar de ella.
+    -->
+    <section class="mt-3">
+      <h2 class="text-xl font-bold">Datos del servicio</h2>
+      <p class="text-neutral-700">
+        Vienen de la orden de trabajo. No se escriben aquí: para cambiarlos se cambia la orden.
+      </p>
+
+      <dl class="mt-2 grid max-w-[640px] grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+        <dt class="font-semibold">Cliente</dt>
+        <dd>{{ cliente() }}</dd>
+
+        <dt class="font-semibold">Sede</dt>
+        <dd>{{ sede() }}</dd>
+
+        <dt class="font-semibold">Servicio</dt>
+        <dd>{{ servicio() }}</dd>
+
+        <dt class="font-semibold">Fecha programada</dt>
+        <dd>{{ fechaProgramada() }}</dd>
+
+        <dt class="font-semibold">Ingeniero</dt>
+        <dd>
+          @if (ingeniero()) {
+            {{ ingeniero() }}
+          } @else {
+            <span class="text-neutral-700">Sin asignar en la orden</span>
+          }
+        </dd>
+
+        <dt class="font-semibold">Encargado de la sede</dt>
+        <dd>
+          @if (encargado()) {
+            {{ encargado() }}
+          } @else {
+            <!-- Se distingue «no tiene» de «no se pudo consultar», como en el resto de la aplicacion. -->
+            <span class="text-neutral-700">Esta sede no tiene encargado registrado</span>
+          }
+        </dd>
+      </dl>
+    </section>
+
     <form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="guardar()">
       <p class="text-neutral-700">
         Ningún campo es obligatorio para guardar: el reporte se llena mientras se trabaja.
