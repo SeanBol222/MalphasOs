@@ -1,0 +1,5 @@
+# Lo que no tiene que viajar al contexto de construccion: pesa y se regenera dentro.
+node_modules
+dist
+dist_keycloak
+storybook-static

@@ -2017,6 +2017,7 @@
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
   "smtpServer": {},
+  "loginTheme": "malphasos",
   "accountTheme": "keycloak.v3",
   "adminTheme": "",
   "emailTheme": "",
