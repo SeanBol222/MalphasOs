@@ -31,7 +31,8 @@
         <th scope="col" class="py-1 pr-2 font-semibold">Modelo</th>
         <th scope="col" class="py-1 pr-2 font-semibold">Inventario</th>
         <th scope="col" class="py-1 pr-2 font-semibold">Área</th>
-        <th scope="col" class="py-1 font-semibold">Estado</th>
+        <th scope="col" class="py-1 pr-2 font-semibold">Estado</th>
+        <th scope="col" class="py-1 font-semibold">Historial</th>
       </tr>
     </thead>
     <tbody>
@@ -47,8 +48,18 @@
             </a>
           </td>
           <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
-          <td class="py-1" [class.font-semibold]="fila.estadoActivo">
+          <td class="py-1 pr-2" [class.font-semibold]="fila.estadoActivo">
             {{ fila.estadoActivo ? 'En servicio' : 'De baja' }}
+          </td>
+          <td class="py-1">
+            <!--
+              El historial se enlaza desde aqui y no desde una ficha del equipo, porque el equipo no
+              tiene ficha: lo que hay es este listado. Se ve tambien de un equipo de baja, que es
+              justo cuando mas interesa saber que se le hizo.
+            -->
+            <a class="font-semibold underline" [routerLink]="['/equipos', fila.id, 'historial']">
+              Ver
+            </a>
           </td>
         </tr>
       }
