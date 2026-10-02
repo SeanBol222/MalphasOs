@@ -70,7 +70,14 @@ services:
       #   docker exec malphasos-keycloak /opt/keycloak/bin/kcadm.sh config credentials \
       #     --server http://localhost:8080 --realm master --user "$KC_ADMIN_USER" --password "..."
       #   docker exec malphasos-keycloak /opt/keycloak/bin/kcadm.sh update realms/malphasos-realm \
-      #     -s loginTheme=malphasos
+      #     -s loginTheme=malphasos -s adminTheme=malphasos
+      #
+      # ⚠️ Y HAY UN TERCER AJUSTE QUE NINGUN ARCHIVO PUEDE LLEVAR: el tema de la consola del realm
+      # «master». El tema se aplica POR REALM, y la consola por la que entra quien desarrolla es la de
+      # master -http://localhost:8080/admin/master/console/-, que Keycloak crea solo y no se importa
+      # de ningun sitio. Sin esto se inicia sesion y se sigue viendo el logo de Keycloak:
+      #   ... kcadm.sh update realms/master -s adminTheme=malphasos
+      # Se pierde al borrar el volumen de Postgres, y entonces hay que repetirlo.
       #
       # Borrar el volumen de Postgres tambien reimporta, pero se lleva por delante todo lo creado a mano.
       - ./docker/keycloak/import:/opt/keycloak/data/import:ro

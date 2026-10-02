@@ -1,0 +1,54 @@
+/*
+ * La marca de MalphasOS sobre la consola de administracion.
+ *
+ * La autoridad del sistema visual es el manual de marca, no este archivo: los valores de aqui son los
+ * mismos tokens que usa el frontend en src/styles.css, copiados a mano porque un tema de Keycloak no
+ * comparte build con Angular. Si cambian alli, cambian aqui.
+ *
+ * UNA REGLA DEL MANUAL QUE AQUI IMPORTA: el acento #EC3013 no alcanza AA como relleno con texto encima
+ * -3,76:1 medido-. Para eso va #AE1800. El primero se reserva para lo que no lleva texto.
+ *
+ * Se tocan variables de PatternFly, que es lo que la consola usa por dentro, en vez de perseguir
+ * selectores concretos: una clase minificada cambia con cada version de Keycloak y una variable de
+ * diseno, no. Si algo se queda sin marcar tras una actualizacion, es preferible eso a que se rompa.
+ */
+
+:root {
+  --malphasos-ink: #201e1d;
+  --malphasos-paper: #f3f2f2;
+  --malphasos-accent: #ec3013;
+  --malphasos-accent-texto: #ae1800;
+  --malphasos-neutral-200: #eae7e7;
+  --malphasos-neutral-700: #605d5d;
+
+  /* El azul de PatternFly, que es el color con el que la consola pinta enlaces, botones primarios y
+   * pestanas activas, pasa al rojo que si sostiene texto. */
+  --pf-v5-global--primary-color--100: var(--malphasos-accent-texto);
+  --pf-v5-global--primary-color--200: #7c1405;
+  --pf-v5-global--link--Color: var(--malphasos-accent-texto);
+  --pf-v5-global--link--Color--hover: #7c1405;
+  --pf-v5-global--active-color--100: var(--malphasos-accent-texto);
+  --pf-v5-global--BorderColor--100: var(--malphasos-neutral-200);
+
+  /* Tinta y papel del manual, en lugar de los grises de PatternFly. */
+  --pf-v5-global--Color--100: var(--malphasos-ink);
+  --pf-v5-global--Color--200: var(--malphasos-neutral-700);
+  --pf-v5-global--BackgroundColor--100: var(--malphasos-paper);
+
+  /* Radio cero: es lo primero que dice el manual y lo que mas se nota. */
+  --pf-v5-global--BorderRadius--sm: 0;
+  --pf-v5-global--BorderRadius--lg: 0;
+}
+
+/* La barra superior, en el negro de marca en vez del azul oscuro de Keycloak. */
+.pf-v5-c-masthead {
+  background-color: var(--malphasos-ink);
+}
+
+/* El logo del masthead viene por theme.properties; aqui solo se le da una altura sensata para que no
+ * se coma la barra ni se quede diminuto. */
+.pf-v5-c-masthead__brand img,
+.pf-v5-c-brand {
+  max-height: 32px;
+  width: auto;
+}

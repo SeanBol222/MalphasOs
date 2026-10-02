@@ -36,3 +36,12 @@ FROM quay.io/keycloak/keycloak:26.6.1
 
 COPY --from=build /build/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar \
      /opt/keycloak/providers/malphasos-theme.jar
+
+# Y el tema clasico de la consola de administracion, que no pasa por Keycloakify: son cuatro archivos
+# -propiedades, CSS y dos logos- y heredan la plantilla de la consola real. Va al directorio de temas,
+# no a providers/: los JAR van a providers, los temas en carpeta van a themes/.
+#
+# Comparte el nombre «malphasos» con el tema del JAR a proposito, y funciona porque Keycloak resuelve
+# por (nombre, tipo): el JAR responde por el login y esta carpeta por la consola. Asi el realm nombra
+# un solo tema en loginTheme y en adminTheme.
+COPY admin-theme/ /opt/keycloak/themes/

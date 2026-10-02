@@ -32,6 +32,22 @@ npm run build-keycloak-theme     # el JAR, en dist_keycloak/
 versiones intermedias—. El `docker-compose.yaml` de la raíz monta ese archivo en
 `/opt/keycloak/providers/`.
 
+## El tema se aplica por realm, y eso incluye el realm `master`
+
+El `adminTheme` hay que ponerlo en **los dos** realms, y el segundo no está en ningún archivo:
+
+- **`malphasos-realm`** lo lleva el JSON versionado de `docker/keycloak/import/`.
+- **`master`** lo crea Keycloak solo y no se importa de ninguna parte. **Es la consola por la que entra
+  quien desarrolla**, así que sin este paso se inicia sesión y se sigue viendo el logo de Keycloak:
+
+  ```bash
+  docker exec malphasos-keycloak /opt/keycloak/bin/kcadm.sh update realms/master -s adminTheme=malphasos
+  ```
+
+Y el JSON versionado tampoco se aplica solo: `--import-realm` usa **`IGNORE_EXISTING`**, de modo que si
+el realm ya está en la base, el archivo **se salta en silencio**. Las dos recetas están en el
+`docker-compose.yaml`, junto al volumen de importación.
+
 ## Lo que hay que saber antes de tocarlo
 
 - **El nombre del tema es `malphasos`** y lo fija `vite.config.ts`. El realm versionado lo nombra en
