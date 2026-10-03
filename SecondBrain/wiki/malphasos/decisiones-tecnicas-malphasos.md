@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -308,11 +308,71 @@ Ver [[dominio-reporte-servicio]] para el detalle.
 - **El tipo de persona se ve y no se cambia**: cambiarlo no mueve al usuario de grupo en Keycloak, así que ofrecerlo sería ofrecer una acción cuya consecuencia el servidor no completa.
 - **El menú oculta por autoridad**, y la autoridad la declara la **entrada de navegación**, de donde salen a la vez el menú y el guard de la ruta. Lo hizo necesario «Personas»: el primer destino que un grupo legítimo del realm no puede usar.
 
+## Un tipo de equipo se verifica en varias magnitudes (2026-10-03)
+
+Lo decidió el usuario sobre cuatro preguntas, y en las cuatro eligió la opción más expresiva. El
+contexto y el modelo están en [[dominio-equipo-mantenimiento]]; aquí van las decisiones y su coste.
+
+- **Magnitud y unidad salen de un catálogo cerrado**, no de texto libre. El motivo que pesó no es la
+  coherencia: el índice de unicidad compara la unidad **como texto**, de modo que `°C` escrito con el
+  signo de grado (U+00B0) y con el indicador ordinal masculino (U+00BA) eran dos unidades distintas para
+  la base y **la misma a la vista**. Un catálogo lo hace imposible de teclear. Coste: dos tablas
+  sembradas que nadie administra.
+- **La modalidad y la cantidad de lecturas bajan a cada verificación.** La alternativa —una por
+  aparato— era menos trabajo hoy y obligaba a remodelar el día que apareciera un equipo mixto; y esta
+  era ya la segunda pasada sobre esta pieza.
+- **`b_verificable` se va y no se sustituye.** Era exactamente `n_tipo_verificacion IS NOT NULL`,
+  atado por un `CHECK`: redundante por construcción. «Se verifica» se cuenta.
+- **Los contadores de la pantalla no se guardan.** Ni «cuántos tipos de verificación» ni «cuántos
+  puntos»: son controles que despliegan campos, y lo que se envía es la lista. Un número que tiene que
+  coincidir con el número de elementos se desincroniza el día que alguien añade uno por otro camino, y
+  la cuenta siempre se puede derivar contando. **Es la misma decisión que `verificable`**, tomada dos
+  veces el mismo día por dos caminos distintos.
+
+### Magnitud y unidad **no** son agregados, al contrario que `Country`
+
+Son datos de referencia inmutables: entran sembrados, nadie los edita y no hay operación que los cree.
+`Country` tiene sus tres eventos y su servicio de escritura porque **el sistema original ya administraba
+países**; aquí construir `create/rename/deactivate` sería maquinaria sin un solo llamante, y este
+proyecto tiene escrito que no se reserva nada para lo que no existe — un patrón reservado es
+indistinguible de uno roto.
+
+Convertirlos en agregados el día que haya que administrarlos es un cambio acotado. Lo que no se puede
+deshacer es haber construido eventos que nadie emite.
+
+### La verificación guarda las piezas enteras, no sus identificadores
+
+**Excepción razonada a la convención de referenciar por identificador**, y se corrigió a mitad de
+camino: la primera versión guardaba `magnitudId` y `unidadId`. Esa convención guarda fronteras entre
+**agregados**, y por la decisión de arriba estos no lo son. Con solo identificadores, ni el reporte ni
+la pantalla pueden decir «Temperatura en °C» sin volver a consultar el catálogo — y **el servicio ya lo
+consulta para validarlos**, así que embeberlas no cuesta una consulta más: la guarda que valida es la
+que trae la pieza.
+
+Consecuencia visible: `TypeVerificationResponse` **sí trae nombres**, rompiendo con el resto del módulo
+—ninguna otra respuesta los trae, y está anotado como fricción—. La cabecera de una tabla de
+verificación dice «Temperatura (°C)», y obligar a la pantalla a cruzar dos catálogos para pintar un
+encabezado es exactamente el problema que esa fricción describe.
+
+### El catálogo metrológico se sirve con `equipment.read`, sin autoridades nuevas
+
+Sus dos listas solo sirven para declarar cómo se verifica un tipo de equipo, de modo que quien puede
+leer el catálogo de equipos puede leer esto. Inventar `magnitude.read` obligaría a tocar el realm, los
+tres grupos y la expansión del administrador **para separar algo que nadie va a separar**. Las
+autoridades siguen en 22. Ver [[modelo-de-permisos]].
+
+### La migración se niega a correr antes que adivinar
+
+`V10` reestructura `punto_verificacion` y no hay forma automática de repartir puntos ya registrados
+entre magnitudes que nadie declaró. Las tres opciones eran adivinar, borrar en silencio o **fallar con
+un mensaje**. Falla, con los conteos dentro, y tumba el arranque — que es lo que este proyecto ya sabía
+que hace un `CHECK` nuevo sobre filas viejas, usado aquí a propósito.
+
 ## Pendientes de decidir
 
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]]. **Resuelto de hecho el 2026-09-13**: por módulo de negocio con los nombres del backend, ver [[arquitectura-frontend-malphasos]].
 - **Las tres palabras de `t_resultado`** en un reporte de servicio: son una propuesta, no vocabulario de la ERS.
-- **Si las respuestas de los módulos deben traer nombres además de identificadores.** Van ya cuatro módulos que devuelven solo identificadores —encargados, equipos, órdenes y reportes— y el frontend resuelve cada nombre con una consulta aparte. O se acepta como convención y se escribe, o se rompe una vez y se hace en todos.
+- **Si las respuestas de los módulos deben traer nombres además de identificadores.** Van ya cuatro módulos que devuelven solo identificadores —encargados, equipos, órdenes y reportes— y el frontend resuelve cada nombre con una consulta aparte. O se acepta como convención y se escribe, o se rompe una vez y se hace en todos. **Y el 2026-10-03 se rompió una vez**: `TypeVerificationResponse` trae el nombre de la magnitud y el símbolo de la unidad, por la razón de arriba. Es un precedente, no una resolución: sigue sin decidirse si los otros cuatro lo hacen.
 
 ## Notas relacionadas
 

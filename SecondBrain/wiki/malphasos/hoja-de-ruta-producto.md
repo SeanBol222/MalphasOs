@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-09-27
+updated: 2026-10-03
 ---
 
 # Hoja de ruta del producto
@@ -19,7 +19,7 @@ updated: 2026-09-27
 |---|---|---|---|
 | Requisitos funcionales | 31 | **17** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
-| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio y personas**, todo de extremo a extremo, con **395** pruebas | Comprobado sobre el árbol del repositorio |
+| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio y personas**, todo de extremo a extremo, con **409** pruebas | Medido el 2026-10-03 sobre el árbol del repositorio |
 
 > **Corregido el 2026-09-26, dos veces el mismo día.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak, **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados— y **seis más** del catálogo de equipos con el registro de un equipo en un área, con **262** pruebas. **Con eso existe ya todo lo que una orden de trabajo necesita tocar**: sedes, áreas y equipos por área. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
 
@@ -75,7 +75,27 @@ Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué a
 1. **Los números se recalculan, no se citan de memoria.** Cada cifra de este wiki que no se haya medido ese día es sospechosa: ya caducaron el hash de `main` cuatro veces, el conteo de deuda dos y la cifra de requisitos de `Documentation/` estuvo **tres semanas** en 8 cuando eran 14.
 2. **Los defectos aparecen al comparar**, no al leer. Las parejas que más han dado: el wiki contra el código, la ERS contra el código, un módulo contra otro.
 3. **Verde no es verificado.** Las mutaciones de esta sesión destaparon **cuatro** pruebas que pasaban sin ejercer nada; conviene asumir que quedan más.
-4. **Lo que falta mirar con lupa**: `equipment` sigue sin pruebas de persistencia; `person` conserva tres `PUT`; el filtrado por dueño no existe; y las credenciales del realm están publicadas.
+4. **Lo que falta mirar con lupa**: `person` conserva tres `PUT`; el filtrado por dueño no existe; y las credenciales del realm están publicadas.
+
+> **Corregido el 2026-10-03.** Este punto decía además que «`equipment` sigue sin pruebas de
+> persistencia», y **era falso**: `EquipmentCatalogPersistenceTest` existe desde el 2026-09-26 con
+> nueve casos —hoy doce— y `ClientEquipmentRelocationPersistenceTest` cubre el traslado desde el
+> 2026-09-10. La afirmación venía de la fila de deuda de `work-order`, que al cerrarse dijo «`equipment`
+> sigue sin las suyas» y nadie volvió a comprobarlo. **Es el ejemplo exacto del punto 2 de esta misma
+> lista**: el defecto apareció al comparar el wiki con el código, y lo encontró la propia revisión que
+> este apartado pedía.
+
+### Lo que la revisión ha encontrado hasta ahora (2026-10-03)
+
+La primera corrección no fue de código sino **de modelo**, y la trajo el usuario con un contraejemplo:
+un termohigrómetro mide dos cosas y el catálogo solo sabía expresar una. De ahí salió `V10` y, con
+ella, seis defectos que ninguna prueba estaba viendo —dos de ellos **latentes desde septiembre**—. Están
+en [[deuda-tecnica-y-riesgos]] y el resumen honesto es que **el punto 3 de arriba se confirmó**: el
+verde no probaba lo que parecía probar.
+
+Y un dato sobre el punto 1, porque es peor de lo que decía: el conteo de deuda propia **ya estaba mal
+el día que se escribió esta lista**. Declaraba 46 filas «contadas una a una el 2026-10-02» y el archivo
+tenía 51.
 
 ## El grafo de dependencias, y las dos versiones que existen de él
 

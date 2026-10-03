@@ -3,7 +3,7 @@ name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
 tags: [malphasos, stack, backend, hallazgo, "describe:malphasos"]
 source: malphasos/pom.xml (MalphasOS)
-updated: 2026-09-13
+updated: 2026-10-03
 ---
 
 # Particularidades de Spring Boot 4 y el stack moderno
@@ -52,6 +52,37 @@ Las clases Java **no** cambiaron de paquete: `org.testcontainers.containers.Post
 ## 5. Jackson 3 ya viene por defecto
 
 En los logs de arranque aparece `JacksonAutoConfiguration#jsonMapperBuilder` resolviendo `tools.jackson.databind.json.JsonMapper$Builder` — es decir, **Spring Boot 4 ya usa Jackson 3 de serie**. Esto explica retroactivamente la mezcla rara de Jackson 2 y 3 que [[stack-tecnologico]] marcaba como riesgo en el proyecto original: no era un experimento, era la transición del propio framework. En MalphasOS no se declaró ninguna dependencia de Jackson y funciona correctamente.
+
+## 6. Hibernate vacía los `INSERT` antes que los `UPDATE`, y un índice parcial no se puede diferir
+
+No es de Spring Boot 4 —es de Hibernate desde siempre— pero entra aquí porque **ya ha costado dos
+módulos** y no se deduce de nada: el orden de vaciado de la sesión es por tipo de operación, no por el
+orden en que se pidieron.
+
+La consecuencia es siempre la misma forma. Una tabla con **índice único parcial** `WHERE b_estado_activo`
+—el patrón de este proyecto, que permite reconfigurar sin borrar— y una operación que **sustituye** una
+fila activa por otra equivalente: la vieja pasa a inactiva (`UPDATE`) y la nueva nace activa (`INSERT`).
+Hibernate manda el `INSERT` primero, las dos están activas en ese instante y el índice salta.
+
+**Y no se arregla declarando la restricción diferida**: `DEFERRABLE` es de las restricciones, no de los
+índices, y una restricción no admite `WHERE`. Así que un índice parcial **no puede** ser diferido en
+PostgreSQL, y el orden hay que imponerlo en el adaptador:
+
+```java
+// primera pasada: solo pone al dia lo que ya existe, incluida la fila que se retira
+Entidad entity = mapper.toEntity(agregado, existente);
+if (existente != null) { repositorio.saveAndFlush(entity); }
+// y solo entonces se insertan las nuevas
+mapper.addNewXxx(agregado, entity);
+return mapper.toDomain(repositorio.save(entity));
+```
+
+Lo pagó `report` el 2026-09-27, encontrado por su primera prueba de persistencia, y `equipment` el
+2026-10-03 — donde llevaba **latente** porque ninguna prueba recorría el camino: todas las
+reconfiguraciones de la batería cambiaban el valor de la clave, y como el índice es parcial, la fila
+retirada dejaba de competir. **La lección que generaliza**: un índice parcial tiene dos caminos —con la
+clave cambiada y sin cambiar— que desde fuera se ven iguales, y una prueba que ejercita la operación no
+garantiza que ejercite los dos.
 
 ## Surefire da dos conteos distintos de la misma ejecución
 

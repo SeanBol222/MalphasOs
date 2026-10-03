@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-09-28
+updated: 2026-10-03
 ---
 
 # Reportes de servicio — el módulo completo
@@ -43,17 +43,49 @@ En `fill(...)`, **un nulo deja el campo como está y un texto en blanco lo borra
 
 `OPERATIVO`, `OPERATIVO_CON_RESTRICCIONES`, `FUERA_DE_SERVICIO`. La ERS dice «resultado» y **no enumera valores**, a diferencia de las periodicidades y los tipos de servicio de `V6`, que sí estaban escritos en el documento. Los tres son una **propuesta**, y va como catálogo cerrado y no como texto libre porque de ese dato cuelgan el historial de la hoja de vida (RF-26) y las alertas (RF-40): un texto libre no se agrupa ni dispara nada. **Mientras no haya datos, cambiar la lista es una línea**; después es una migración. Está registrado en [[deuda-tecnica-y-riesgos]].
 
-## La verificación: V8 configura, V9 registra
+## La verificación: el catálogo configura, el reporte registra
 
-`V8` dejó dicho **dónde** se verifica un tipo de equipo —`punto_verificacion`— y **cuántas lecturas** se toman en cada punto —`tipo_equipo.i_cantidad_datos`—, y su cabecera decía que eso era «con qué se verifica, no el resultado de haberlo hecho». `dato_verificacion` es ese resultado, y vive con el reporte porque se mide durante el servicio y se imprime en el reporte de ese servicio.
+El módulo de equipos dice **qué** se verifica, **en qué valores** y **cuántas lecturas** por valor;
+`dato_verificacion` guarda el resultado, y vive con el reporte porque se mide durante el servicio y se
+imprime en el reporte de ese servicio.
 
-Tres decisiones de esa tabla:
+(Este apartado se llamaba «V8 configura, V9 registra» y situaba la cantidad de lecturas en
+`tipo_equipo.i_cantidad_datos`: cierto hasta el **2026-10-03**, cuando `V10` bajó esos datos a cada
+verificación del tipo. Ver [[dominio-equipo-mantenimiento]].)
 
-- **El punto es anulable.** Con `patron_equipo_variable` el tipo no declara puntos —lo impone un `CHECK` desde `V8`— y las lecturas existen igual. Nulo significa «esta lectura no corresponde a ningún valor constante declarado», no «falta el dato».
+Cuatro decisiones de esa tabla:
+
+- **La verificación es obligatoria, y entró el 2026-10-03.** Es lo único que dice **qué se midió**
+  cuando no hay punto. Ver más abajo: es un defecto que el cambio de ese día creaba.
+- **El punto es anulable.** Con `patron_equipo_variable` no hay puntos declarados y las lecturas
+  existen igual. Nulo significa «esta lectura no corresponde a ningún valor constante declarado», no
+  «falta el dato».
 - **Se guardan las dos lecturas**, incluso la del lado que debería ser constante. Lo constante lo es por cómo se monta el ensayo: si el patrón marcó 50,2 donde el punto dice 50, el reporte tiene que decir 50,2. Y deducirla del punto obligaría a consultar una configuración que puede haber cambiado — el punto se retira, no se edita, justamente para que los reportes viejos sigan cuadrando. Ver [[congelar-una-referencia-historica]].
-- **La unidad viaja en la lectura**, copiada del punto al tomar el dato. Sin ella no hay número que imprimir, y con modalidad variable no hay punto de donde sacarla.
+- **La unidad viaja en la lectura**, copiada de su verificación al tomar el dato. Sin ella no hay número
+  que imprimir, y sigue siendo una copia y no una foránea para que reconfigurar un tipo no cambie un
+  reporte ya firmado.
 
 **`NULLS NOT DISTINCT` en el índice único no es un adorno.** Por defecto PostgreSQL considera que dos `NULL` son distintos, así que sin esa cláusula la modalidad variable —la única que deja el punto nulo— sería **la única que admitiría lecturas duplicadas**, que es justo al revés de lo que se quiere.
+
+### Un defecto que el cambio del 2026-10-03 creaba, y se arregló en la misma pasada
+
+El índice de `V9` era `(reporte, punto, secuencia)` con `NULLS NOT DISTINCT`, y **era correcto
+entonces**: había una sola modalidad por tipo de equipo, de modo que una lectura sin punto solo podía
+pertenecer a la única verificación que existía.
+
+En cuanto un termohigrómetro puede verificar temperatura **y** humedad las dos con patrón y equipo
+variables, las dos producen lecturas sin punto: **la número 1 de temperatura y la número 1 de humedad
+chocaban entre sí** aunque midieran cosas distintas, y antes de chocar eran indistinguibles — el reporte
+no sabía en qué columna imprimirlas.
+
+`V10` mete la verificación en la clave del índice y la hace `NOT NULL` en la tabla. Hay una prueba de
+esquema que fija el caso que antes fallaba: dos lecturas sin punto, con el mismo número, en
+verificaciones distintas, **pasan**.
+
+**Lo que esto enseña sobre el índice de V9**: no estaba mal escrito, estaba escrito contra un modelo que
+cambió. Un índice único codifica una afirmación sobre qué cosas son la misma cosa, y esa afirmación
+caduca cuando el modelo que la sostiene se mueve. Es la primera vez en este proyecto que un índice hay
+que rehacerlo por eso y no por un descuido.
 
 ## Las seis reglas que viven en el servicio
 
@@ -65,8 +97,8 @@ El esquema sostiene una sola de las cruzadas, y ni esa entera: la foránea compu
 | La orden no está cancelada | Lo mismo |
 | El equipo sigue en el alcance **vivo** | El borrado lógico: la foránea no distingue «existe» de «sigue en uso». Tercera vez que esta distinción sube una regla al servicio, tras `client` y `equipment` |
 | No hay ya un reporte vivo para ese par | Lo impide el índice único parcial, pero el servicio lo convierte en una frase que **dice cuál es el reporte que estorba** |
-| Las lecturas cuadran con el tipo | Cuatro comprobaciones: que el tipo se verifique, que el punto sea **activo de ese tipo** —la foránea solo comprueba que el punto exista—, que el número no pase de las lecturas declaradas, y que la unidad salga del punto |
-| Al cerrar, la verificación está completa | Exige recorrer los puntos del tipo, que está en otro módulo |
+| Las lecturas cuadran con el tipo | **Cinco** comprobaciones desde el 2026-10-03: que el tipo se verifique, que la lectura señale una **verificación activa** de ese tipo, que el punto sea activo **de esa verificación**, que el número no pase de las lecturas que **esa verificación** declara, y que la unidad salga de ella. Eran cuatro y se razonaban por tipo, porque un tipo tenía una sola modalidad |
+| Al cerrar, la verificación está completa | Exige recorrer las verificaciones del tipo y sus puntos, que están en otro módulo. **Y es más estricta que antes**: se exige por verificación, de modo que un termohigrómetro con las dos magnitudes variables ya no se puede cerrar con una lectura de temperatura y ninguna de humedad |
 
 **Una orden ya `EJECUTADA` sí admite abrir reportes**, y es deliberado: en este negocio se va a la sede y se registra después. Lo que no se admite es reportar antes de empezar.
 
@@ -74,7 +106,15 @@ El esquema sostiene una sola de las cruzadas, y ni esa entera: la foránea compu
 
 ### La unidad no se comprueba, se hace imposible de contradecir
 
-Cuando la lectura declara un punto, `VerificationReadingCommand` **no acepta su unidad**: el servicio la copia del punto. Si el llamante la declarase, podría declarar «°C» en un punto medido en mmHg y el reporte saldría impreso con una unidad que nadie midió. Es la misma técnica que la orden de trabajo usa con el área de un equipo, que tampoco viene en el comando.
+`VerificationReadingCommand` **no acepta la unidad en ningún caso**: el servicio la copia de la
+verificación. Si el llamante la declarase, podría declarar «°C» en una verificación medida en mmHg y el
+reporte saldría impreso con una unidad que nadie midió. Es la misma técnica que la orden de trabajo usa
+con el área de un equipo, que tampoco viene en el comando.
+
+**Hasta el 2026-10-03 había un hueco en esto y estaba escrito aquí como si no lo hubiera**: la unidad se
+copiaba del punto, pero con modalidad variable **no hay punto**, así que en ese caso el comando sí la
+pedía —`unidadSinPunto`— y ahí se podía inventar cualquier cosa. Al subir la unidad a la verificación el
+campo desapareció: ya no hay forma de enviarla, de modo que no hay forma de contradecirla.
 
 ### Para saber cómo se verifica un equipo hay que caminar cuatro eslabones
 
