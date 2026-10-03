@@ -71,3 +71,29 @@ Decisión del usuario: ese nombre aparecía en la portada del repositorio en Git
 **Las referencias de esta wiki se actualizaron todas**, incluidas las de las entradas anteriores a hoy: hablan del mismo archivo, que ahora se llama de otra manera. La convención que este directorio impone no cambia — **no se documenta como existente algo que no está implementado** — y sigue viviendo en `Documentation/CONVENCIONES.md` y en `Documentation/wiki/CONVENCIONES.md`.
 
 **Tocadas**: [[index]], las cinco notas que citaban el nombre viejo, y el propio archivo de convenciones.
+
+## [2026-10-03] ingest | dos notas corregidas por el remodelado del catálogo de equipos
+
+El módulo `equipment` se remodeló: un tipo de equipo se verifica ahora en **varias magnitudes**, porque
+un termohigrómetro mide temperatura y humedad relativa. El detalle vive en `SecondBrain/`; aquí entra
+solo por lo que deja falso en esta wiki, que era la regla de este directorio — **no se documenta como
+existente algo que no está implementado**, y su contrapartida es no dejar documentado como existente
+algo que dejó de estarlo.
+
+**[[rf-alertas-calibracion]] afirmaba dos cosas falsas.** Decía que `tipo_equipo` tiene las columnas
+`b_verificable` y `n_tipo_verificacion` —se fueron con la migración `V10`— y que las verificaciones
+técnicas eran «la segunda tanda pendiente» del módulo —están construidas desde el 27 de septiembre, y
+el resultado de verificar también—. Lo que sigue sin existir, y es lo único que RF-40 y RF-41
+necesitan, es **la fecha de vencimiento**: una columna y quien la vigile. Corregido dejando constancia.
+
+**[[estado-de-implementacion]] gana una quinta verificación y el marcador no se mueve**, lo que es en sí
+el dato: **ningún requisito de la ERS describe magnitudes ni unidades**, así que no hay nada que contar.
+Lo que el cambio hace es que **RF-15 deje de ser una verdad a medias** —un termohigrómetro no se podía
+reportar sin inventarse dos tipos de equipo— y el requisito se daba por implementado igualmente.
+
+Es el primer caso en esta wiki de **un requisito marcado como implementado que mejora sin cambiar de
+estado**, y conviene que quede dicho porque invita a un error de lectura: el marcador cuenta requisitos
+satisfechos, no la calidad con la que se satisfacen. Un 17 de 31 no dice que esos 17 estén igual de
+bien resueltos.
+
+**Tocadas**: [[rf-alertas-calibracion]] y [[estado-de-implementacion]].

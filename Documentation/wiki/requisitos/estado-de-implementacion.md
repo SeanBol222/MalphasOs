@@ -4,7 +4,7 @@ description: La cifra agregada de implementacion de MalphasOS -17 de 31 RF, 1 de
 tags: [requisitos, estado, trazabilidad]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2; Documentation/TraceabilityMatrix/MatrizDeTrazabilidad.tex"
 estado: vigente
-updated: 2026-09-27
+updated: 2026-10-03
 ---
 
 # Estado de implementación agregado
@@ -66,9 +66,21 @@ Tres categorías fundacionales concentraron todo lo construido al principio: ges
 
 ## Cómo se verificó, y cuándo
 
+**Quinta verificación, 3 de octubre de 2026**: el marcador **no se mueve** y conviene decir por qué. El
+catálogo de equipos se remodeló —un tipo se verifica ahora en varias magnitudes, porque un
+termohigrómetro mide temperatura y humedad— y **ningún requisito de la ERS describe eso**: el documento
+no menciona magnitudes ni unidades. Lo que el cambio hace es que **RF-15 deje de ser una verdad a
+medias**, porque un termohigrómetro no se podía reportar sin inventarse dos tipos de equipo, y el
+requisito se daba por implementado igualmente. Se anota aquí porque es el primer caso de esta wiki en
+que **un requisito marcado como implementado mejora sin cambiar de estado**, y la distinción importa:
+el marcador cuenta requisitos satisfechos, no calidad de la satisfacción.
+
+Fuentes: `V10__verification_magnitudes.sql`, las **diez** migraciones `V1`–`V10` y el bloque de
+verificación de `malphasos-frontend/src/app/features/equipment/catalogo/`.
+
 **Cuarta verificación, 28 de septiembre de 2026**: entra RF-11 con el frontend de los reportes, contra `malphasos-frontend/src/app/features/report/`. Es el primer requisito de esta wiki que **se cierra el día siguiente de anotarse como pendiente**, y sirve de contraste: la cifra caduca rápido cuando el trabajo va rápido, no solo cuando nadie mira.
 
-**Tercera verificación, 27 de septiembre de 2026**: recuento contra el código y contra los commits de `main`, no contra lo que esta nota decía. Fuentes: los controladores REST de `workorder` y `report`, las nueve migraciones `V1`–`V9`, y las pantallas de `malphasos-frontend/src/app/features/`. De ahí salen las ocho filas nuevas y las dos desviaciones registradas.
+**Tercera verificación, 27 de septiembre de 2026**: recuento contra el código y contra los commits de `main`, no contra lo que esta nota decía. Fuentes: los controladores REST de `workorder` y `report`, las nueve migraciones `V1`–`V9` (hoy **diez**, hasta `V10`), y las pantallas de `malphasos-frontend/src/app/features/`. De ahí salen las ocho filas nuevas y las dos desviaciones registradas.
 
 Las dos primeras, que dieron la cifra de 8:
 

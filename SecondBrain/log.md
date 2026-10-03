@@ -1031,3 +1031,79 @@ por coma—, y dos de los ocho bloques no habrían renderizado. El validador se 
 reintroduciendo el error, que es lo que este proyecto exige de una comprobación: el paquete modular
 `@mermaid-js/parser` **no** cubre `graph` ni `erDiagram`, así que hace falta `mermaid` entero con un DOM
 de `jsdom`.
+
+## [2026-10-03] ingest | un tipo de equipo se verifica en varias magnitudes
+
+**La primera corrección de la revisión no fue de código, fue de modelo, y la trajo el usuario con un
+contraejemplo de una línea**: «hay equipos que pueden tener dos tipos de verificación o hasta más, por
+ejemplo un termohigrómetro, pues mi temperatura y mi higrometría». El catálogo construido el 2026-09-27
+daba por supuesto que un aparato mide una sola cosa, y la consecuencia práctica era que **un
+termohigrómetro había que registrarlo como dos tipos de equipo**: dos fichas técnicas, dos valores de
+mantenimiento, dos hojas de vida, para un aparato con un reporte.
+
+`V10__verification_magnitudes.sql` mete un nivel en medio y baja a él la modalidad, la cantidad de
+lecturas y la unidad. Los detalles están en [[dominio-equipo-mantenimiento]], el modelo entero en
+[[esquema-bd-malphasos]] y las decisiones en [[decisiones-tecnicas-malphasos]].
+
+**Cuatro preguntas al usuario antes de escribir nada, y en las cuatro eligió la opción más expresiva**:
+catálogo cerrado de magnitudes, unidad filtrada por magnitud, modalidad por verificación y cantidad de
+lecturas por verificación. La primera vez que se le preguntaron fue con el widget de opciones y las
+rechazó pidiendo aclarar; se le hicieron en prosa, pidió volver al widget, y ahí las contestó. Queda
+anotado porque es información sobre cómo trabajar con él, no sobre el dominio.
+
+### Seis defectos, y dos llevaban semanas latentes
+
+Ninguno lo encontró leer el código: los seis salieron de ejecutar.
+
+1. **La trampa del vaciado de Hibernate estaba latente en `equipment` desde el 2026-09-26.** El índice
+   único parcial de los puntos tenía el mismo choque que el de las lecturas y **la batería entera
+   pasaba**, porque todas las reconfiguraciones de la batería cambiaban el **valor** del punto y un
+   índice parcial deja de ver la fila retirada. Reconfigurar manteniendo el valor habría fallado. `V10`
+   lo hizo imposible de ignorar: con la clave en `(tipo, magnitud)`, que no cambia al reconfigurar,
+   salta en el caso normal. **Lo que generaliza**: un índice parcial tiene dos caminos que desde fuera
+   se ven iguales, y una prueba que ejercita la operación no garantiza que ejercite los dos.
+2. **El índice único de las lecturas se quedó corto por el propio cambio.** `(reporte, punto,
+   secuencia)` era correcto mientras hubiera una modalidad por tipo; con dos magnitudes variables, la
+   lectura 1 de temperatura y la 1 de humedad chocaban. No estaba mal escrito: estaba escrito contra un
+   modelo que se movió. **Primera vez en este proyecto que un índice hay que rehacerlo por eso.**
+3. **Un `setter` que faltaba y compilaba perfectamente**: el mapper del reporte no escribía la columna
+   nueva, y la base la habría rechazado por `NOT NULL`. Lo encontró arrancar, no compilar.
+4. **El catálogo metrológico se quedó fuera de su grupo de OpenAPI al nacer** —controlador escrito,
+   patrón sin añadir—, y es la **quinta** vez que este proyecto se encuentra con ese fallo silencioso.
+   **Primera vez que lo caza una prueba** en vez de alguien leyendo dos listas en paralelo.
+5. **La limpieza de siete pruebas del frontend no era a prueba de fallos**: `http.verify()` y después
+   `desinstalarAlmacenamiento()`, de modo que al lanzar la primera el doble de `localStorage` se quedaba
+   instalado y **el fichero siguiente heredaba sus datos**. Así falló `historial.spec.ts`, que nadie
+   había tocado. Es la variante **con contaminación** del «fallo en `afterEach` que se lee como ochenta
+   y seis» del 2026-09-28.
+6. **Una clave de caché en el prefijo equivocado**: el catálogo metrológico se volvía a pedir en cada
+   escritura del catálogo de equipos. Lo encontró una prueba que acabó con dos peticiones abiertas.
+
+### Y un defecto del propio wiki, que es el que más conviene recordar
+
+**El conteo de deuda propia ya estaba mal el día que se escribió.** El `CONVENCIONES.md` de la raíz
+declaraba «46 filas, 37 abiertas, contadas una a una el 2026-10-02», y el archivo tenía **51 y 38**
+antes de que esta sesión añadiera nada. Cuarta vez que ese número envejece solo y **la primera en que
+envejeció en menos de un día**: lo contado el 2 de octubre no coincidía con el archivo del 2 de octubre.
+
+La lección ya estaba escrita tres veces y no bastó, así que esta vez la nota lleva **la receta del
+recuento dentro**, en una línea de `awk`. Hoy: **58 filas, 18 tachadas, 40 abiertas**.
+
+**Y una afirmación del wiki que era falsa**: la hoja de ruta decía «`equipment` sigue sin pruebas de
+persistencia» como cosa a mirar con lupa en la revisión. `EquipmentCatalogPersistenceTest` existe desde
+el 2026-09-26 con nueve casos —hoy doce—. Venía de la fila de deuda de `work-order`, que al cerrarse
+dijo «`equipment` sigue sin las suyas» y nadie volvió a comprobarlo. **Es el ejemplo exacto de lo que la
+propia revisión pedía buscar**: los defectos aparecen al comparar el wiki con el código.
+
+### Las cifras, medidas y no citadas
+
+Backend **834** pruebas en 55 clases, cero fallos, cero errores, cero omitidas, borrando
+`target/surefire-reports` antes. Frontend **409** en 42 ficheros. El esquema, **26** tablas y **35**
+foráneas. Las autoridades siguen en **22**: el catálogo metrológico se sirve con `equipment.read`, y
+añadir `magnitude.read` habría obligado a tocar el realm, los tres grupos y la expansión del
+administrador para separar algo que nadie va a separar.
+
+**El marcador de requisitos no se mueve**, y la razón merece quedar escrita: ningún RF de la ERS
+describe magnitudes ni unidades. Lo que el cambio hace es que **RF-15 deje de ser una verdad a medias**
+—un termohigrómetro no se podía reportar sin inventarse dos tipos de equipo— y el requisito se daba por
+implementado igualmente. Primer caso en que algo marcado como hecho mejora sin cambiar de estado.

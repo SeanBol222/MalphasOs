@@ -4,14 +4,14 @@ description: Como se construye el frontend de MalphasOS -Angular, por modulo de 
 tags: [frontend, arquitectura, angular, "describe:malphasos"]
 source: Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex
 estado: estable
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # Arquitectura del frontend de MalphasOS
 
 **Esta nota dice cómo se escribe código de frontend aquí.** Las decisiones y su porqué están en el documento oficial, `Documentation/wiki/documentos/declaracion-diseno-frontend.md` en `Documentation/`; esta nota es la versión operativa para quien va a construir. El sistema visual tiene nota aparte: [[sistema-de-diseno-malphasos]].
 
-**Estado al 2026-10-02**: el proyecto existe, habla con el API desde un navegador y cubre **clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio y personas**, con **395** pruebas. (Esta línea decía «decidido y sin escribir, no existe todavía el proyecto»: cierto hasta el **2026-09-13**.)
+**Estado al 2026-10-03**: el proyecto existe, habla con el API desde un navegador y cubre **clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio y personas**, con **409** pruebas en 42 ficheros. (Decía **395** el 2026-10-02, y «decidido y sin escribir, no existe todavía el proyecto»: cierto hasta el **2026-09-13**.)
 
 ## El stack, y dónde vive
 
@@ -127,9 +127,54 @@ El backend se tomó el trabajo de mantener **tres familias distintas** —«no e
 
 La redacción sigue el tono del manual de marca — ver [[sistema-de-diseno-malphasos]].
 
+## Un formulario que declara cuántas cosas tiene (2026-10-03)
+
+El bloque de verificación de un tipo de equipo es el primero de este frontend con **un contador que
+despliega paneles**, y el patrón vale para lo que venga: «Tipos de verificación: 2» crea dos paneles, y
+dentro de cada uno «Cuántos puntos: 3» crea tres casillas de valor.
+
+- **El contador no es un dato, es un control.** No se guarda ni se envía: lo que viaja es la lista. Un
+  número que tiene que coincidir con el número de elementos se desincroniza, y la cuenta se deriva
+  contando. Bajarlo quita los últimos, y la pantalla lo dice en voz alta porque nada se ha guardado
+  todavía.
+- **Un componente por panel, no un bucle dentro de uno grande.** Cada panel tiene su propia consulta de
+  unidades, que depende de **su** magnitud: con un solo componente habría que mantener a mano un mapa de
+  consultas por índice. `viewChildren` recoge los paneles para que el padre les pida pintar sus errores
+  al intentar guardar.
+- **La pantalla refleja las reglas del servidor, no las descubre a golpes.** Las unidades que ofrece son
+  las de la magnitud elegida —el esquema ata el par con una foránea compuesta, así que ofrecer otra sería
+  ofrecer un 409— y una magnitud ya usada por otro panel **no se ofrece**, porque un tipo se verifica una
+  sola vez en cada magnitud. Al cambiar de magnitud se suelta la unidad: conservarla dejaría el panel en
+  el único estado que el servidor rechaza.
+- **Cero es una respuesta, no un hueco.** Sin paneles, el formulario es válido y significa que a ese tipo
+  no se le verifica nada. Antes eso se decía dejando un desplegable vacío.
+
+### Una clave de caché puede estar en el prefijo equivocado
+
+`CatalogoApi` invalida `['catalogo']` entero en cada escritura, que es lo que evita «creé algo y no
+aparece». El catálogo metrológico entró con la clave `['catalogo','magnitudes']` y, por tanto, **se
+volvía a pedir cada vez que se daba de alta una marca** — 20 magnitudes y sus unidades que nunca cambian.
+Vive ahora en `['metrologia', ...]`, fuera del prefijo invalidable, con `staleTime: Infinity`.
+
+**Lo encontró una prueba**, no una lectura del código: acabó con dos peticiones abiertas después de
+guardar y `http.verify()` lo dijo. La regla que queda: **una clave dentro de un prefijo que se invalida
+en masa es una recarga periódica disfrazada**, y conviene preguntarse si el dato se invalida alguna vez.
+
+### Un `afterEach` que no limpia contamina el fichero siguiente
+
+Siete pruebas hacían `http.verify()` y después `desinstalarAlmacenamiento()`. Cuando `verify()` lanza
+—una petición sin responder—, **la limpieza no corre**: el doble de `localStorage` se queda instalado y
+el fichero siguiente hereda lo que el anterior guardó. Así es como `historial.spec.ts` falló con
+«expected ['a'] to deeply equal []» sin tener nada que ver con el cambio.
+
+Es la **variante con contaminación** del fallo del 2026-09-28 —«un fallo en `afterEach` se lee como
+ochenta y seis»—, y la diferencia importa: aquella bloqueaba el desmontaje del TestBed, esta deja basura
+en un global. Las siete llevan `try/finally`. **La regla: todo lo que se instala en `beforeEach` se
+desinstala en `finally`, nunca después de una aserción.**
+
 ## Pruebas
 
-Mismo listón que el backend, que llega a este punto con **812** pruebas y la costumbre de verificar por mutación. El frontend va por **368**, contadas el 2026-09-28. (Decía **154** el 2026-09-26 y antes 624 del backend sin citar las del frontend, que entonces no existían.)
+Mismo listón que el backend, que llega a este punto con **834** pruebas y la costumbre de verificar por mutación. El frontend va por **409**, contadas el 2026-10-03. (Decía **368** y 812 el 2026-09-28, **154** el 2026-09-26, y antes 624 del backend sin citar las del frontend, que entonces no existían.)
 
 | Nivel | Qué cubre |
 |---|---|

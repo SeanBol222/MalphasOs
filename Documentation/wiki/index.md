@@ -56,4 +56,4 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 
 ---
 
-**27 notas de contenido** más `CONVENCIONES.md` y `log.md` · última actualización 2026-09-28 · ver [[log.md]] para el historial.
+**27 notas de contenido** más `CONVENCIONES.md` y `log.md` · última actualización 2026-10-03 · ver [[log.md]] para el historial.
