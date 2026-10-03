@@ -186,33 +186,139 @@
       </form>
     }
 
-    <section class="mt-3">
-      <h2 class="text-xl font-bold">Correos</h2>
+    <section class="mt-3 max-w-[640px]">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-xl font-bold">Correos</h2>
+        @if (puedeEscribir() && datos.estadoActivo && anadiendo() !== 'correo') {
+          <button
+            class="min-h-tactil px-1 font-semibold underline"
+            type="button"
+            (click)="anadiendo.set('correo')"
+          >
+            Añadir correo
+          </button>
+        }
+      </div>
+
       @if (!correos().length) {
         <p class="text-neutral-700">Sin correos registrados.</p>
       } @else {
         <ul>
           @for (correo of correos(); track correo.idCorreoPersona) {
-            <li class="flex min-h-tactil items-center border-b border-neutral-200">
-              {{ correo.correoPersona }}
+            <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
+              <span class="grow">{{ correo.correoPersona }}</span>
+              @if (puedeEscribir() && datos.estadoActivo) {
+                <!--
+                  Retirar y no borrar: apaga el estado y la fila se queda, como todo aqui. El API no
+                  admite mandar la lista completa, asi que cada uno es su propia llamada.
+                -->
+                <button
+                  class="min-h-tactil px-1 font-semibold underline"
+                  type="button"
+                  [disabled]="bajaDeCorreo.isPending()"
+                  (click)="retirarCorreo(correo.idCorreoPersona!)"
+                >
+                  Retirar
+                </button>
+              }
             </li>
           }
         </ul>
       }
+
+      @if (anadiendo() === 'correo') {
+        <form class="mt-2" [formGroup]="contactoNuevo" (ngSubmit)="anadirCorreo()">
+          <label class="block font-semibold" for="correoNuevo">Correo</label>
+          <input
+            class="min-h-tactil w-full border-2 border-ink px-1"
+            id="correoNuevo"
+            type="email"
+            autocomplete="off"
+            formControlName="correo"
+          />
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button
+              class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+              type="submit"
+              [disabled]="altaDeCorreo.isPending()"
+            >
+              {{ altaDeCorreo.isPending() ? 'Añadiendo…' : 'Añadir' }}
+            </button>
+            <button
+              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="anadiendo.set(null)"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      }
     </section>
 
-    <section class="mt-3">
-      <h2 class="text-xl font-bold">Teléfonos</h2>
+    <section class="mt-3 max-w-[640px]">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-xl font-bold">Teléfonos</h2>
+        @if (puedeEscribir() && datos.estadoActivo && anadiendo() !== 'telefono') {
+          <button
+            class="min-h-tactil px-1 font-semibold underline"
+            type="button"
+            (click)="anadiendo.set('telefono')"
+          >
+            Añadir teléfono
+          </button>
+        }
+      </div>
+
       @if (!telefonos().length) {
         <p class="text-neutral-700">Sin teléfonos registrados.</p>
       } @else {
         <ul>
           @for (telefono of telefonos(); track telefono.idTelefonoPersona) {
-            <li class="flex min-h-tactil items-center border-b border-neutral-200">
-              {{ telefono.telefonoPersona }}
+            <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
+              <span class="grow">{{ telefono.telefonoPersona }}</span>
+              @if (puedeEscribir() && datos.estadoActivo) {
+                <button
+                  class="min-h-tactil px-1 font-semibold underline"
+                  type="button"
+                  [disabled]="bajaDeTelefono.isPending()"
+                  (click)="retirarTelefono(telefono.idTelefonoPersona!)"
+                >
+                  Retirar
+                </button>
+              }
             </li>
           }
         </ul>
+      }
+
+      @if (anadiendo() === 'telefono') {
+        <form class="mt-2" [formGroup]="contactoNuevo" (ngSubmit)="anadirTelefono()">
+          <label class="block font-semibold" for="telefonoNuevo">Teléfono</label>
+          <input
+            class="min-h-tactil w-full border-2 border-ink px-1"
+            id="telefonoNuevo"
+            type="tel"
+            inputmode="tel"
+            formControlName="telefono"
+          />
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button
+              class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+              type="submit"
+              [disabled]="altaDeTelefono.isPending()"
+            >
+              {{ altaDeTelefono.isPending() ? 'Añadiendo…' : 'Añadir' }}
+            </button>
+            <button
+              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="anadiendo.set(null)"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
       }
     </section>
 

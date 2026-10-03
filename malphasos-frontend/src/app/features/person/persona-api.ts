@@ -111,6 +111,90 @@ export class PersonaApi {
     }));
   }
 
+  // --- Correos y telefonos: sub-recursos con sus propias rutas -----------------
+
+  /**
+   * Las seis operaciones de contacto, que son dos juegos de tres y se comportan igual.
+   *
+   * <p>Se generan en vez de escribirse seis veces porque lo unico que cambia es el segmento de la ruta
+   * y el nombre del campo. Cada una invalida la persona entera: un correo no tiene consulta propia, vive
+   * dentro de la ficha.
+   *
+   * <p><b>Un contacto no se borra, se retira</b> —{@code DELETE} apaga su estado y la fila se queda—,
+   * como todo en este proyecto. La ficha solo pinta los vigentes.
+   */
+  anadirCorreo() {
+    return this.anadirContacto<{ correoPersona: string }>('emails');
+  }
+
+  editarCorreo() {
+    return this.editarContacto<{ correoPersona: string }>('emails');
+  }
+
+  retirarCorreo() {
+    return this.retirarContacto('emails');
+  }
+
+  anadirTelefono() {
+    return this.anadirContacto<{ telefonoPersona: string }>('phones');
+  }
+
+  editarTelefono() {
+    return this.editarContacto<{ telefonoPersona: string }>('phones');
+  }
+
+  retirarTelefono() {
+    return this.retirarContacto('phones');
+  }
+
+  private anadirContacto<C>(recurso: 'emails' | 'phones') {
+    return injectMutation(() => ({
+      mutationFn: ({ idPersona, contacto }: { idPersona: string; contacto: C }) =>
+        firstValueFrom(this.http.post<unknown>(`${this.url}/${idPersona}/${recurso}`, contacto)),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /** Tambien PUT, como la propia persona, y por el mismo motivo historico. */
+  private editarContacto<C>(recurso: 'emails' | 'phones') {
+    return injectMutation(() => ({
+      mutationFn: ({
+        idPersona,
+        idContacto,
+        contacto,
+      }: {
+        idPersona: string;
+        idContacto: string;
+        contacto: C;
+      }) =>
+        firstValueFrom(
+          this.http.put<unknown>(`${this.url}/${idPersona}/${recurso}/${idContacto}`, contacto),
+        ),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  private retirarContacto(recurso: 'emails' | 'phones') {
+    return injectMutation(() => ({
+      mutationFn: ({ idPersona, idContacto }: { idPersona: string; idContacto: string }) =>
+        firstValueFrom(
+          this.http.delete<void>(`${this.url}/${idPersona}/${recurso}/${idContacto}`),
+        ),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /**
+   * Recarga lo que cambio, sin esperarlo.
+   *
+   * <p>Invalida por PREFIJO, de modo que alcanza el listado y la ficha de una vez: las claves son
+   * jerarquicas y {@code claveDetalle} cuelga de {@code CLAVE}. Sin eso, anadir un correo recargaria el
+   * listado y dejaria la ficha —que es donde se esta mirando— con el dato viejo.
+   *
+   * <p>Y se lanza sin esperarla, como en los otros tres servicios con cadenas: TanStack aguarda la
+   * promesa de {@code onSuccess} antes de resolver la mutacion, y eso frena cada paso de un alta con
+   * varios contactos con una recarga que no necesita.
+   */
   private invalidar(): void {
     void this.queryClient.invalidateQueries({ queryKey: PersonaApi.CLAVE });
   }
