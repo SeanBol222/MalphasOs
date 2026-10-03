@@ -6,7 +6,10 @@ import { asentar } from '../../../../testing/pantalla';
 import { EQUIPOS, ID_EQUIPO } from '../../../../testing/ordenes';
 import {
   EQUIPOS as EQUIPOS_DE_CATALOGO,
+  ID_CELSIUS,
+  ID_TEMPERATURA,
   ID_TIPO,
+  ID_VERIFICACION,
   MODELOS,
   TIPOS,
   URL_EQUIPOS as URL_EQUIPOS_DE_CATALOGO,
@@ -19,8 +22,34 @@ import { TablaDeVerificacion } from './tabla-de-verificacion';
 
 const URL_EQUIPOS_DE_CLIENTE = 'http://localhost:8081/v1/api/client-equipments';
 
-/** El punto que el tipo de ejemplo declara: 100 mmHg, con tres lecturas. */
+/** El punto que la verificacion del tipo de ejemplo declara: 100 mmHg, con tres lecturas. */
 const ID_PUNTO = 'pv1';
+
+/** La misma verificacion con patron y equipo variables: sin cantidad y sin puntos. */
+const VARIABLE = {
+  id: ID_VERIFICACION,
+  magnitudId: 'mag-presion',
+  magnitud: 'Presión',
+  unidadId: 'uni-mmhg',
+  unidad: 'mmHg',
+  unidadNombre: 'milímetro de mercurio',
+  modalidad: 'PATRON_EQUIPO_VARIABLE',
+  puntos: [],
+};
+
+/** Una segunda verificacion, de temperatura: es lo que hace de un tipo un termohigrometro. */
+const ID_VERIFICACION_TEMPERATURA = 'ver2';
+const DE_TEMPERATURA = {
+  id: ID_VERIFICACION_TEMPERATURA,
+  magnitudId: ID_TEMPERATURA,
+  magnitud: 'Temperatura',
+  unidadId: ID_CELSIUS,
+  unidad: '°C',
+  unidadNombre: 'grado Celsius',
+  modalidad: 'EQUIPO_CONSTANTE',
+  cantidadDatos: 1,
+  puntos: [{ id: 'pv2', valor: 37 }],
+};
 
 describe('Tabla de verificación de un reporte', () => {
   let fixture: ComponentFixture<TablaDeVerificacion>;
@@ -91,13 +120,22 @@ describe('Tabla de verificación de un reporte', () => {
     await abrir();
 
     expect(filas()).toHaveLength(3);
-    expect(texto()).toContain('100 mmHg');
+    // La unidad va en la cabecera del bloque, una sola vez, no repetida en cada fila.
+    expect(texto()).toContain('Presión (mmHg)');
     expect(texto()).toContain('3 lecturas por punto');
   });
 
   it('prellena lo que ya se midió', async () => {
     await abrir([
-      { id: 'd1', idPuntoVerificacion: ID_PUNTO, secuencia: 2, valorPatron: 100, valorEquipo: 99.4, unidad: 'mmHg' },
+      {
+        id: 'd1',
+        idVerificacion: ID_VERIFICACION,
+        idPuntoVerificacion: ID_PUNTO,
+        secuencia: 2,
+        valorPatron: 100,
+        valorEquipo: 99.4,
+        unidad: 'mmHg',
+      },
     ]);
 
     expect(patron(1).value).toBe('100');
@@ -106,9 +144,9 @@ describe('Tabla de verificación de un reporte', () => {
     expect(patron(0).value).toBe('');
   });
 
-  it('guardar manda el punto y el número de cada lectura, y no la unidad', async () => {
-    // La unidad la pone el servidor desde el punto. Mandarla permitiría escribir «°C» en un punto
-    // medido en mmHg, y el reporte saldría impreso con una unidad que nadie midió.
+  it('guardar manda la verificacion, el punto y el número de cada lectura, y no la unidad', async () => {
+    // La unidad la pone el servidor desde la verificacion. Mandarla permitiría escribir «°C» en una
+    // verificacion medida en mmHg, y el reporte saldría impreso con una unidad que nadie midió.
     await abrir();
     escribir(patron(0), '100');
     escribir(equipo(0), '101.2');
@@ -120,11 +158,11 @@ describe('Tabla de verificación de un reporte', () => {
     expect(peticion.request.method).toBe('PATCH');
     expect(peticion.request.body.lecturas).toEqual([
       {
+        idVerificacion: ID_VERIFICACION,
         idPuntoVerificacion: ID_PUNTO,
         secuencia: 1,
         valorPatron: 100,
         valorEquipo: 101.2,
-        unidadSinPunto: undefined,
       },
     ]);
     peticion.flush({ id: ID_REPORTE, lecturas: [] });
@@ -152,44 +190,67 @@ describe('Tabla de verificación de un reporte', () => {
   });
 
   it('un tipo que no se verifica no tiene tabla, y lo dice con su nombre', async () => {
-    await abrir([], [{ ...TIPOS[0], modalidadVerificacion: undefined, cantidadDatos: undefined, puntosVerificacion: [], verificable: false }]);
+    await abrir([], [{ ...TIPOS[0], verificaciones: [], verificable: false }]);
 
     expect(texto()).toContain('no se les hace verificación metrológica');
     expect(filas()).toHaveLength(0);
   });
 
-  it('con patrón y equipo variables no hay puntos, la unidad se escribe y se añaden lecturas', async () => {
-    await abrir([], [
-      {
-        ...TIPOS[0],
-        modalidadVerificacion: 'PATRON_EQUIPO_VARIABLE',
-        cantidadDatos: undefined,
-        puntosVerificacion: [],
-      },
-    ]);
+  it('con patrón y equipo variables no hay puntos, no se escribe unidad, y se añaden lecturas', async () => {
+    await abrir([], [{ ...TIPOS[0], verificaciones: [VARIABLE] }]);
 
     expect(filas()).toHaveLength(1);
     expect(texto()).toContain('Patrón y equipo variables');
     // Sin puntos no hay cantidad fijada: cuantas tomar lo decide quien mide.
     expect(texto()).not.toContain('lecturas por punto');
-    expect(raiz().querySelector('#unidad-0')).not.toBeNull();
+    // Y la unidad YA NO SE TECLEA ni en este caso: la declara la verificacion. Era el unico sitio
+    // donde venia de fuera, y permitia imprimir una unidad que nadie midio.
+    expect(raiz().querySelector('#unidad-0')).toBeNull();
+    expect(texto()).toContain('Presión (mmHg)');
 
     pulsar('Añadir lectura');
     expect(filas()).toHaveLength(2);
   });
 
-  it('con modalidad variable la lectura viaja sin punto y con su unidad', async () => {
-    await abrir([], [
-      {
-        ...TIPOS[0],
-        modalidadVerificacion: 'PATRON_EQUIPO_VARIABLE',
-        cantidadDatos: undefined,
-        puntosVerificacion: [],
-      },
-    ]);
+  it('un termohigrometro tiene una tabla por magnitud, cada una con su unidad', async () => {
+    // Es el caso que forzo el cambio del 2026-10-03: antes habia una tabla y una modalidad para todo
+    // el aparato, de modo que esto habia que registrarlo como dos tipos de equipo.
+    await abrir([], [{ ...TIPOS[0], verificaciones: [...TIPOS[0].verificaciones, DE_TEMPERATURA] }]);
+
+    expect(texto()).toContain('Presión (mmHg)');
+    expect(texto()).toContain('Temperatura (°C)');
+    // 1 punto x 3 lecturas de presion + 1 punto x 1 lectura de temperatura.
+    expect(filas()).toHaveLength(4);
+    expect(raiz().querySelectorAll('table')).toHaveLength(2);
+  });
+
+  it('las lecturas de una magnitud no se cuelan en la tabla de la otra', async () => {
+    // Con dos verificaciones variables, las dos dejan el punto nulo: sin casar por verificacion, la
+    // lectura de presion habria prellenado la casilla de temperatura.
+    await abrir(
+      [
+        {
+          id: 'd1',
+          idVerificacion: ID_VERIFICACION,
+          secuencia: 1,
+          valorPatron: 1,
+          valorEquipo: 1.1,
+          unidad: 'mmHg',
+        },
+      ],
+      [{ ...TIPOS[0], verificaciones: [VARIABLE, { ...DE_TEMPERATURA, modalidad: 'PATRON_EQUIPO_VARIABLE', cantidadDatos: undefined, puntos: [] }] }],
+    );
+
+    expect(patron(0).value).toBe('1');
+    // La de temperatura sigue vacia: no es la misma medida aunque las dos vayan sin punto.
+    expect(patron(1).value).toBe('');
+  });
+
+  it('con modalidad variable la lectura viaja sin punto, pero con su verificacion', async () => {
+    // La verificacion es obligatoria justamente aqui: sin punto, es lo unico que dice que se midio.
+    await abrir([], [{ ...TIPOS[0], verificaciones: [VARIABLE] }]);
     escribir(patron(0), '1');
     escribir(equipo(0), '1.1');
-    escribir(raiz().querySelector<HTMLInputElement>('#unidad-0')!, 'mA');
 
     pulsar('Guardar verificación');
     await asentar(fixture);
@@ -197,11 +258,11 @@ describe('Tabla de verificación de un reporte', () => {
     const peticion = http.expectOne(urlVerificacion(ID_REPORTE));
     expect(peticion.request.body.lecturas).toEqual([
       {
+        idVerificacion: ID_VERIFICACION,
         idPuntoVerificacion: undefined,
         secuencia: 1,
         valorPatron: 1,
         valorEquipo: 1.1,
-        unidadSinPunto: 'mA',
       },
     ]);
     peticion.flush({ id: ID_REPORTE, lecturas: [] });
@@ -211,7 +272,15 @@ describe('Tabla de verificación de un reporte', () => {
   it('un reporte que no se puede editar enseña las lecturas y no deja tocarlas', async () => {
     fixture.componentRef.setInput('editable', false);
     await abrir([
-      { id: 'd1', idPuntoVerificacion: ID_PUNTO, secuencia: 1, valorPatron: 100, valorEquipo: 101, unidad: 'mmHg' },
+      {
+        id: 'd1',
+        idVerificacion: ID_VERIFICACION,
+        idPuntoVerificacion: ID_PUNTO,
+        secuencia: 1,
+        valorPatron: 100,
+        valorEquipo: 101,
+        unidad: 'mmHg',
+      },
     ]);
 
     expect(patron(0).value).toBe('100');

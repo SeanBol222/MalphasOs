@@ -11,6 +11,7 @@ import { CatalogoApi } from '../catalogo-api';
 import { Sesion } from '../../../core/auth/sesion';
 import { ETIQUETA_DE_MODALIDAD, ModalidadDeVerificacion, TipoDeEquipo } from '../../../core/api/tipos';
 import { ConfiguracionDeVerificacion, Verificacion } from './verificacion';
+import { VerificacionEnCurso } from './panel-de-verificacion';
 import { traducirError } from '../../../core/errores/traducir';
 
 /**
@@ -41,7 +42,7 @@ export class TiposDeEquipo {
 
   protected readonly tipos = this.api.listarTipos();
   protected readonly baja = this.api.retirarTipo();
-  protected readonly cambioDeModalidad = this.api.cambiarModalidad();
+  protected readonly cambioDeVerificaciones = this.api.declararVerificaciones();
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
@@ -52,44 +53,57 @@ export class TiposDeEquipo {
 
   /** Lo que el bloque de verificacion tiene puesto ahora mismo. */
   protected readonly configuracion = signal<ConfiguracionDeVerificacion>({
-    modalidad: null,
-    cantidadDatos: null,
-    puntos: [],
+    verificaciones: [],
     valida: true,
   });
 
-  /** Lo que ya estaba guardado, para que el bloque abra con ello puesto. */
-  protected readonly configuracionGuardada = signal<ConfiguracionDeVerificacion | null>(null);
+  /** Lo que ya estaba guardado, para que los paneles abran con ello puesto. */
+  protected readonly configuracionGuardada = signal<readonly VerificacionEnCurso[] | null>(null);
 
   private readonly bloqueDeVerificacion = viewChild(Verificacion);
 
   protected readonly hayError = computed(
-    () => this.tipos.isError() || this.baja.isError() || this.cambioDeModalidad.isError(),
+    () => this.tipos.isError() || this.baja.isError() || this.cambioDeVerificaciones.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
-    traducirError(this.tipos.error() ?? this.baja.error() ?? this.cambioDeModalidad.error()),
+    traducirError(this.tipos.error() ?? this.baja.error() ?? this.cambioDeVerificaciones.error()),
   );
 
   protected etiquetaDeModalidad(modalidad: ModalidadDeVerificacion | undefined): string {
     return modalidad ? ETIQUETA_DE_MODALIDAD[modalidad] : 'Sin definir';
   }
 
+  /** Lo que se verifica, resumido en una linea: «Temperatura (°C) · Humedad relativa (%HR)». */
+  protected resumenDeVerificaciones(tipo: TipoDeEquipo): string {
+    return (tipo.verificaciones ?? [])
+      .map((verificacion) => `${verificacion.magnitud} (${verificacion.unidad})`)
+      .join(' · ');
+  }
+
   protected empezarACambiar(tipo: TipoDeEquipo): void {
-    // El bloque abre con lo que el tipo ya tiene: reconfigurar no deberia empezar de cero.
-    this.configuracionGuardada.set({
-      modalidad: tipo.modalidadVerificacion ?? null,
-      cantidadDatos: tipo.cantidadDatos ?? null,
-      // El contrato declara opcional cada campo de la respuesta -springdoc no marca nada como
-      // requerido-, asi que un punto incompleto se descarta en vez de afirmar que trae lo que no trae.
-      puntos: (tipo.puntosVerificacion ?? [])
-        .filter((punto) => punto.valor !== undefined && !!punto.unidad)
-        .map((punto) => ({ valor: punto.valor!, unidad: punto.unidad! })),
-      valida: true,
-    });
+    // Los paneles abren con lo que el tipo ya tiene: reconfigurar no deberia empezar de cero.
+    //
+    // El contrato declara opcional cada campo de la respuesta -springdoc no marca nada como
+    // requerido-, asi que una verificacion incompleta se descarta en vez de afirmar que trae lo que
+    // no trae.
+    this.configuracionGuardada.set(
+      (tipo.verificaciones ?? [])
+        .filter((verificacion) => !!verificacion.magnitudId && !!verificacion.unidadId)
+        .map((verificacion) => ({
+          magnitudId: verificacion.magnitudId!,
+          unidadId: verificacion.unidadId!,
+          modalidad: verificacion.modalidad ?? null,
+          cantidadDatos: verificacion.cantidadDatos ?? null,
+          puntos: (verificacion.puntos ?? [])
+            .filter((punto) => punto.valor !== undefined)
+            .map((punto) => punto.valor!),
+          valida: true,
+        })),
+    );
     this.cambiando.set(tipo.id!);
   }
 
-  protected cambiarModalidad(id: string): void {
+  protected declararVerificaciones(id: string): void {
     const configuracion = this.configuracion();
 
     if (!configuracion.valida) {
@@ -98,13 +112,8 @@ export class TiposDeEquipo {
       return;
     }
 
-    this.cambioDeModalidad.mutate(
-      {
-        id,
-        modalidad: configuracion.modalidad,
-        cantidadDatos: configuracion.cantidadDatos,
-        puntos: [...configuracion.puntos],
-      },
+    this.cambioDeVerificaciones.mutate(
+      { id, verificaciones: [...configuracion.verificaciones] },
       { onSuccess: () => this.cambiando.set(null) },
     );
   }

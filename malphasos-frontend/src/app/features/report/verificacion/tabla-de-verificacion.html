@@ -16,12 +16,8 @@
       A los equipos de tipo {{ tipo()!.nombre }} no se les hace verificación metrológica.
     </p>
   } @else {
-    <p class="text-neutral-700">
-      {{ modalidad() }}
-      @if (!aMano()) {
-        · {{ tipo()!.cantidadDatos }} lecturas por punto
-      }
-    </p>
+    <!-- Lo que se le mide, de un vistazo: un termohigrometro son dos cosas, no una. -->
+    <p class="text-neutral-700">{{ resumen() }}</p>
 
     @if (hayError()) {
       <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
@@ -30,73 +26,90 @@
     }
 
     <form [formGroup]="formulario" (ngSubmit)="guardar()">
-      <table class="mt-2 w-full max-w-[640px] border-collapse">
-        <caption class="text-left text-neutral-700">
-          Se guarda la tabla completa: lo que se deje en blanco no queda registrado.
-        </caption>
-        <thead>
-          <tr class="border-b-2 border-ink text-left">
-            <th class="py-1" scope="col">Punto</th>
-            <th class="py-1" scope="col">Nº</th>
-            <th class="py-1" scope="col">Patrón</th>
-            <th class="py-1" scope="col">Equipo</th>
-            @if (aMano()) {
-              <th class="py-1" scope="col">Unidad</th>
+      <!--
+        Una tabla por verificacion, con la unidad en su cabecera. La unidad va arriba y no en cada
+        fila porque es la misma para todas: era lo que obligaba a repetir «mmHg» tantas veces como
+        puntos hubiera.
+      -->
+      @for (grupo of grupos(); track grupo.idVerificacion) {
+        <div class="mt-3">
+          <h3 class="font-bold">{{ grupo.magnitud }} ({{ grupo.unidad }})</h3>
+          <p class="text-neutral-700">
+            {{ grupo.modalidad }}
+            @if (!grupo.aMano) {
+              <!-- Por punto, no en total: con 3 lecturas y 2 puntos el bloque lleva 6 datos. -->
+              · {{ grupo.cantidadDatos }} lecturas por punto
             }
-          </tr>
-        </thead>
-        <tbody formArrayName="casillas">
-          @for (fila of filas(); track $index; let i = $index) {
-            <tr class="border-b border-neutral-200" [formGroupName]="i">
-              <td class="py-1">{{ fila.punto }}</td>
-              <td class="py-1">{{ fila.secuencia }}</td>
-              <td class="py-1">
-                <label class="sr-only" [for]="'patron-' + i">
-                  Valor del patrón en {{ fila.punto }}, lectura {{ fila.secuencia }}
-                </label>
-                <input
-                  class="min-h-tactil w-full border-2 border-ink px-1 disabled:bg-neutral-200"
-                  [id]="'patron-' + i"
-                  type="number"
-                  step="any"
-                  inputmode="decimal"
-                  formControlName="valorPatron"
-                />
-              </td>
-              <td class="py-1">
-                <label class="sr-only" [for]="'equipo-' + i">
-                  Valor del equipo en {{ fila.punto }}, lectura {{ fila.secuencia }}
-                </label>
-                <input
-                  class="min-h-tactil w-full border-2 border-ink px-1 disabled:bg-neutral-200"
-                  [id]="'equipo-' + i"
-                  type="number"
-                  step="any"
-                  inputmode="decimal"
-                  formControlName="valorEquipo"
-                />
-              </td>
-              @if (aMano()) {
-                <td class="py-1">
-                  <label class="sr-only" [for]="'unidad-' + i">
-                    Unidad de la lectura {{ fila.secuencia }}
-                  </label>
-                  <input
-                    class="min-h-tactil w-full border-2 border-ink px-1 disabled:bg-neutral-200"
-                    [id]="'unidad-' + i"
-                    type="text"
-                    maxlength="20"
-                    formControlName="unidad"
-                  />
-                </td>
+          </p>
+
+          <table class="mt-1 w-full max-w-[560px] border-collapse">
+            <caption class="text-left text-neutral-700">
+              Los valores se expresan en {{ grupo.unidad }}.
+            </caption>
+            <thead>
+              <tr class="border-b-2 border-ink text-left">
+                <th class="py-1" scope="col">Punto</th>
+                <th class="py-1" scope="col">Nº</th>
+                <th class="py-1" scope="col">Patrón</th>
+                <th class="py-1" scope="col">Equipo</th>
+              </tr>
+            </thead>
+            <tbody formArrayName="casillas">
+              @for (par of grupo.filas; track par.indice) {
+                <tr class="border-b border-neutral-200" [formGroupName]="par.indice">
+                  <td class="py-1">{{ par.fila.punto }}</td>
+                  <td class="py-1">{{ par.fila.secuencia }}</td>
+                  <td class="py-1">
+                    <label class="sr-only" [for]="'patron-' + par.indice">
+                      Valor del patrón de {{ grupo.magnitud }} en {{ par.fila.punto }}, lectura
+                      {{ par.fila.secuencia }}
+                    </label>
+                    <input
+                      class="min-h-tactil w-full border-2 border-ink px-1 disabled:bg-neutral-200"
+                      [id]="'patron-' + par.indice"
+                      type="number"
+                      step="any"
+                      inputmode="decimal"
+                      formControlName="valorPatron"
+                    />
+                  </td>
+                  <td class="py-1">
+                    <label class="sr-only" [for]="'equipo-' + par.indice">
+                      Valor del equipo de {{ grupo.magnitud }} en {{ par.fila.punto }}, lectura
+                      {{ par.fila.secuencia }}
+                    </label>
+                    <input
+                      class="min-h-tactil w-full border-2 border-ink px-1 disabled:bg-neutral-200"
+                      [id]="'equipo-' + par.indice"
+                      type="number"
+                      step="any"
+                      inputmode="decimal"
+                      formControlName="valorEquipo"
+                    />
+                  </td>
+                </tr>
               }
-            </tr>
+            </tbody>
+          </table>
+
+          @if (editable() && grupo.aMano) {
+            <!--
+              Con patron y equipo variables, cuantas lecturas tomar lo decide quien mide. El boton es
+              por verificacion: una lectura de temperatura no es una lectura de humedad.
+            -->
+            <button
+              class="mt-1 min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="anadirFila(grupo)"
+            >
+              Añadir lectura de {{ grupo.magnitud }}
+            </button>
           }
-        </tbody>
-      </table>
+        </div>
+      }
 
       @if (editable()) {
-        <div class="mt-2 flex flex-wrap gap-2">
+        <div class="mt-3 flex flex-wrap gap-2">
           <button
             class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
             type="submit"
@@ -105,23 +118,14 @@
             {{ registro.isPending() ? 'Guardando…' : 'Guardar verificación' }}
           </button>
 
-          @if (aMano()) {
-            <!-- Con patron y equipo variables, cuantas lecturas tomar lo decide quien mide. -->
-            <button
-              class="min-h-tactil border-2 border-ink px-3 font-semibold"
-              type="button"
-              (click)="anadirFila()"
-            >
-              Añadir lectura
-            </button>
-          }
-
           @if (formulario.dirty) {
-            <p class="self-center text-neutral-700" role="status">
-              Hay lecturas sin guardar.
-            </p>
+            <p class="self-center text-neutral-700" role="status">Hay lecturas sin guardar.</p>
           }
         </div>
+        <!-- Se guarda la tabla entera: es lo que hace el API, y hay que decirlo donde se decide. -->
+        <p class="mt-1 text-neutral-700">
+          Se guardan todas las tablas juntas: lo que se deje en blanco no queda registrado.
+        </p>
       }
     </form>
   }

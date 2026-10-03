@@ -5,7 +5,18 @@ import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { asentar, elegirEnBuscador, responderA } from '../../../../testing/pantalla';
 import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
-import { TIPOS, URL_TIPOS } from '../../../../testing/catalogo';
+import {
+  ID_CELSIUS,
+  ID_MMHG,
+  ID_PRESION,
+  ID_TEMPERATURA,
+  MAGNITUDES,
+  TIPOS,
+  UNIDADES,
+  URL_MAGNITUDES,
+  URL_TIPOS,
+  URL_UNIDADES_DE,
+} from '../../../../testing/catalogo';
 import { NuevoTipo } from './nuevo-tipo';
 
 @Component({ selector: 'app-catalogo-falso', template: '' })
@@ -29,6 +40,11 @@ describe('Alta de un tipo de equipo', () => {
     fixture.detectChanges();
     // La pantalla consulta los tipos ya registrados para sugerir sus tecnologias.
     await responderA(fixture, http, URL_TIPOS, TIPOS);
+    // Y el bloque de verificacion pide el catalogo metrologico al montarse, aunque todavia no haya
+    // ningun panel: son datos de referencia que no cambian, se piden una vez y se quedan en cache, de
+    // modo que el panel que se abra despues ya los tiene. Hay que responderlo en TODA prueba de esta
+    // pantalla o verify() lanza en afterEach.
+    await responderA(fixture, http, URL_MAGNITUDES, MAGNITUDES);
   });
 
   const raiz = () => fixture.nativeElement as HTMLElement;
@@ -47,6 +63,7 @@ describe('Alta de un tipo de equipo', () => {
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
     await responderA(fixture, http, URL_TIPOS, tipos);
+    await responderA(fixture, http, URL_MAGNITUDES, MAGNITUDES);
   }
 
   function escribir(id: string, valor: string): void {
@@ -118,57 +135,96 @@ describe('Alta de un tipo de equipo', () => {
     await asentar(fixture);
   });
 
-  describe('Como se verifica', () => {
-    /** Elige una modalidad en el bloque de verificacion, que no es parte del formulario reactivo. */
-    function elegirModalidad(valor: string): void {
-      const campo = raiz().querySelector<HTMLSelectElement>('#modalidadVerificacion')!;
-      campo.value = valor;
-      campo.dispatchEvent(new Event('change'));
+  describe('Que se le verifica', () => {
+    /**
+     * Despliega un panel y le pone magnitud y unidad.
+     *
+     * <p>Las unidades se consultan al elegir la magnitud, así que hay que responderlas: no están
+     * cargadas de antemano porque dependen de lo elegido.
+     */
+    async function abrirPanel(magnitudId: string, unidadId: string): Promise<void> {
+      escribirEn('#cuantasVerificaciones', '1');
+      await asentar(fixture);
+      escribirEn('#magnitud-1', magnitudId);
+      await responderAUnidades();
+      escribirEn('#unidad-1', unidadId);
+    }
+
+    async function responderAUnidades(): Promise<void> {
+      for (const magnitud of Object.keys(UNIDADES)) {
+        for (const peticion of http.match(URL_UNIDADES_DE(magnitud))) {
+          peticion.flush(UNIDADES[magnitud]);
+        }
+      }
+
+      await asentar(fixture);
+    }
+
+    function escribirEn(selector: string, valor: string): void {
+      const control = raiz().querySelector<HTMLInputElement | HTMLSelectElement>(selector)!;
+      control.value = valor;
+      control.dispatchEvent(new Event(control.tagName === 'SELECT' ? 'change' : 'input'));
       fixture.detectChanges();
     }
 
-    function escribirEnPunto(indice: number, campo: 'valor' | 'unidad', valor: string): void {
-      const entrada = raiz().querySelector<HTMLInputElement>(`#punto-${campo}-${indice}`)!;
-      entrada.value = valor;
-      entrada.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
-    }
+    it('el contador despliega un panel por cada cosa que se le mida', async () => {
+      // Sin panel no hay nada: cero verificaciones significa que al tipo no se le verifica nada.
+      expect(raiz().querySelector('#magnitud-1')).toBeNull();
 
-    it('una modalidad constante pide cuantas lecturas y en que valores', () => {
-      // Con patron y equipo variables no hay nada constante que declarar, asi que los campos no estan.
-      expect(raiz().querySelector('#cantidadDatos')).toBeNull();
+      escribirEn('#cuantasVerificaciones', '2');
+      await asentar(fixture);
 
-      elegirModalidad('PATRON_EQUIPO_VARIABLE');
-
-      expect(raiz().querySelector('#cantidadDatos')).toBeNull();
-
-      elegirModalidad('PATRON_CONSTANTE');
-
-      expect(raiz().querySelector('#cantidadDatos')).toBeTruthy();
-      // Y abre con un punto en blanco, porque hace falta al menos uno.
-      expect(raiz().querySelector('#punto-valor-0')).toBeTruthy();
+      expect(raiz().querySelector('#magnitud-1')).toBeTruthy();
+      expect(raiz().querySelector('#magnitud-2')).toBeTruthy();
+      await responderAUnidades();
     });
 
-    it('dice que las lecturas son por punto, no en total', () => {
+    it('una modalidad constante pide cuantas lecturas y en que valores', async () => {
+      await abrirPanel(ID_PRESION, ID_MMHG);
+
+      // Con patron y equipo variables no hay nada constante que declarar, asi que los campos no estan.
+      expect(raiz().querySelector('#cantidad-1')).toBeNull();
+
+      escribirEn('#modalidad-1', 'PATRON_EQUIPO_VARIABLE');
+
+      expect(raiz().querySelector('#cantidad-1')).toBeNull();
+
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
+
+      expect(raiz().querySelector('#cantidad-1')).toBeTruthy();
+      expect(raiz().querySelector('#cuantos-1')).toBeTruthy();
+      // Y abre con un punto en blanco, porque hace falta al menos uno.
+      expect(raiz().querySelector('#valor-1-0')).toBeTruthy();
+    });
+
+    it('dice que las lecturas son por punto, no en total', async () => {
       // Confundirlo daria un reporte con un tercio de los datos que hacian falta.
-      elegirModalidad('PATRON_CONSTANTE');
+      await abrirPanel(ID_PRESION, ID_MMHG);
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
 
       expect(texto()).toContain('En cada punto se toman estas lecturas');
     });
 
-    it('manda la modalidad con su cantidad y sus puntos', async () => {
+    it('manda la verificacion entera: magnitud, unidad, modalidad, cantidad y puntos', async () => {
       rellenarObligatorios();
-      elegirModalidad('PATRON_CONSTANTE');
-      escribir('cantidadDatos', '5');
-      escribirEnPunto(0, 'valor', '100');
-      escribirEnPunto(0, 'unidad', 'mmHg');
+      await abrirPanel(ID_PRESION, ID_MMHG);
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
+      escribirEn('#cantidad-1', '5');
+      escribirEn('#valor-1-0', '100');
       await enviar();
 
       const alta = http.expectOne({ method: 'POST', url: URL_TIPOS });
 
-      expect(alta.request.body.modalidadVerificacion).toBe('PATRON_CONSTANTE');
-      expect(alta.request.body.cantidadDatos).toBe(5);
-      expect(alta.request.body.puntosVerificacion).toEqual([{ valor: 100, unidad: 'mmHg' }]);
+      expect(alta.request.body.verificaciones).toEqual([
+        {
+          magnitudId: ID_PRESION,
+          unidadId: ID_MMHG,
+          modalidad: 'PATRON_CONSTANTE',
+          cantidadDatos: 5,
+          // Solo el valor: la unidad la declara la verificacion, una sola vez.
+          puntos: [{ valor: 100 }],
+        },
+      ]);
       alta.flush({ id: 't9' });
       await asentar(fixture);
       http.match(() => true).forEach((p) => p.flush([]));
@@ -177,15 +233,15 @@ describe('Alta de un tipo de equipo', () => {
 
     it('un punto negativo vale: un congelador se verifica a -20 grados', async () => {
       rellenarObligatorios();
-      elegirModalidad('EQUIPO_CONSTANTE');
-      escribir('cantidadDatos', '3');
-      escribirEnPunto(0, 'valor', '-20');
-      escribirEnPunto(0, 'unidad', '°C');
+      await abrirPanel(ID_TEMPERATURA, ID_CELSIUS);
+      escribirEn('#modalidad-1', 'EQUIPO_CONSTANTE');
+      escribirEn('#cantidad-1', '3');
+      escribirEn('#valor-1-0', '-20');
       await enviar();
 
       const alta = http.expectOne({ method: 'POST', url: URL_TIPOS });
 
-      expect(alta.request.body.puntosVerificacion).toEqual([{ valor: -20, unidad: '°C' }]);
+      expect(alta.request.body.verificaciones[0].puntos).toEqual([{ valor: -20 }]);
       alta.flush({ id: 't9' });
       await asentar(fixture);
       http.match(() => true).forEach((p) => p.flush([]));
@@ -194,45 +250,63 @@ describe('Alta de un tipo de equipo', () => {
 
     it('sin puntos no llega al servidor, y dice por que hacen falta', async () => {
       rellenarObligatorios();
-      elegirModalidad('PATRON_CONSTANTE');
-      escribir('cantidadDatos', '3');
+      await abrirPanel(ID_PRESION, ID_MMHG);
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
+      escribirEn('#cantidad-1', '3');
       // El punto que abre en blanco se queda sin rellenar.
       await enviar();
 
       http.expectNone({ method: 'POST', url: URL_TIPOS });
-      expect(texto()).toContain('valor y su unidad');
+      expect(texto()).toContain('al menos un punto');
+    });
+
+    it('sin magnitud no llega al servidor', async () => {
+      // El panel esta abierto pero vacio: el servidor lo rechazaria con un 400 que nadie sabria leer.
+      rellenarObligatorios();
+      escribirEn('#cuantasVerificaciones', '1');
+      await asentar(fixture);
+      await enviar();
+
+      http.expectNone({ method: 'POST', url: URL_TIPOS });
+      expect(texto()).toContain('Indique qué se mide');
+      await responderAUnidades();
     });
 
     it('el mismo punto dos veces se avisa sin esperar a guardar', async () => {
-      elegirModalidad('PATRON_CONSTANTE');
-      escribir('cantidadDatos', '3');
-      escribirEnPunto(0, 'valor', '100');
-      escribirEnPunto(0, 'unidad', 'mmHg');
-      raiz()
-        .querySelectorAll('button')
-        .forEach((boton) => {
-          if ((boton.textContent ?? '').includes('Añadir un punto')) {
-            boton.click();
-          }
-        });
-      fixture.detectChanges();
-      escribirEnPunto(1, 'valor', '100');
-      escribirEnPunto(1, 'unidad', 'mmHg');
+      await abrirPanel(ID_PRESION, ID_MMHG);
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
+      escribirEn('#cantidad-1', '3');
+      escribirEn('#cuantos-1', '2');
+      escribirEn('#valor-1-0', '100');
+      escribirEn('#valor-1-1', '100');
 
       expect(texto()).toContain('declarado dos veces');
     });
 
-    it('cambiar a la modalidad variable borra lo que ya no significa nada', () => {
-      elegirModalidad('PATRON_CONSTANTE');
-      escribir('cantidadDatos', '3');
-      escribirEnPunto(0, 'valor', '100');
-      escribirEnPunto(0, 'unidad', 'mmHg');
+    it('cambiar a la modalidad variable borra lo que ya no significa nada', async () => {
+      await abrirPanel(ID_PRESION, ID_MMHG);
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
+      escribirEn('#cantidad-1', '3');
+      escribirEn('#valor-1-0', '100');
 
-      elegirModalidad('PATRON_EQUIPO_VARIABLE');
-      elegirModalidad('PATRON_CONSTANTE');
+      escribirEn('#modalidad-1', 'PATRON_EQUIPO_VARIABLE');
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
 
-      expect(raiz().querySelector<HTMLInputElement>('#cantidadDatos')!.value).toBe('');
-      expect(raiz().querySelector<HTMLInputElement>('#punto-valor-0')!.value).toBe('');
+      expect(raiz().querySelector<HTMLInputElement>('#cantidad-1')!.value).toBe('');
+      expect(raiz().querySelector<HTMLInputElement>('#valor-1-0')!.value).toBe('');
+    });
+
+    it('la unidad solo ofrece las de la magnitud elegida', async () => {
+      // El esquema ata el par (magnitud, unidad) con una foranea compuesta: ofrecer °C para presion
+      // seria ofrecer un 409.
+      await abrirPanel(ID_PRESION, ID_MMHG);
+
+      const unidades = [...raiz().querySelectorAll('#unidad-1 option')]
+        .map((o) => o.textContent?.trim())
+        .join(' ');
+
+      expect(unidades).toContain('mmHg');
+      expect(unidades).not.toContain('°C');
     });
   });
 
@@ -328,7 +402,14 @@ describe('Alta de un tipo de equipo', () => {
   });
 
   afterEach(() => {
-    http.verify();
-    desinstalarAlmacenamiento();
+    // El try/finally no es adorno: si verify() lanza por una peticion abierta, sin el no se
+    // desinstalaria el doble de localStorage y el fichero SIGUIENTE heredaria lo que este guardo. Es
+    // la variante con contaminacion del fallo que este proyecto ya pago una vez -- un fallo en
+    // afterEach se lee como ochenta y seis -- y asi el rojo se queda donde ocurrio.
+    try {
+      http.verify();
+    } finally {
+      desinstalarAlmacenamiento();
+    }
   });
 });

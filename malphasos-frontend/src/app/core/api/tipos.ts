@@ -67,19 +67,50 @@ export type NuevoNombre = equipos['schemas']['NamedRequest'];
 export type TipoDeEquipo = equipos['schemas']['EquipmentTypeResponse'];
 export type NuevoTipoDeEquipo = equipos['schemas']['EquipmentTypeCreateRequest'];
 export type CambioDeTipoDeEquipo = equipos['schemas']['EquipmentTypeUpdateRequest'];
-export type ModalidadDeVerificacion = NonNullable<NuevoTipoDeEquipo['modalidadVerificacion']>;
 
 /**
- * Los puntos en los que se verifica un tipo de equipo, y cuantas lecturas se toman en cada uno.
+ * El catalogo metrologico: que se puede medir y en que unidades.
  *
- * <p>Las dos cosas solo existen con una modalidad <b>constante</b>: con patron y equipo variables, cuantas
- * lecturas tomar lo decide el ingeniero en campo y no hay nada constante que declarar. El backend lo
- * impone en el esquema y en el dominio; aqui el formulario lo refleja para no ofrecer lo que sera
- * rechazado.
+ * <p>Se consulta y no se administra, igual que los paises y las ciudades: lo siembra la migracion
+ * `V10` y no hay pantalla que lo cree. Cada unidad pertenece a una magnitud, y el servidor rechaza una
+ * unidad que no sea de la magnitud declarada -- con un codigo de error propio, porque los dos
+ * identificadores son correctos y lo que falla es la combinacion.
+ */
+export type Magnitud = equipos['schemas']['MagnitudeResponse'];
+export type UnidadDeMedida = equipos['schemas']['MeasurementUnitResponse'];
+
+/**
+ * Una de las cosas que se verifican en un tipo de equipo.
+ *
+ * <p><b>Un tipo se verifica en varias magnitudes</b>, y eso cambio el 2026-10-03: un termohigrometro
+ * mide temperatura Y humedad relativa, en unidades distintas, en puntos distintos y a veces con
+ * modalidades distintas. Antes el tipo declaraba una sola modalidad, una sola cantidad de lecturas y
+ * unos puntos con su unidad escrita a mano, de modo que un termohigrometro habia que registrarlo como
+ * dos tipos de equipo.
+ *
+ * <p>La respuesta <b>si trae nombres</b> -- el de la magnitud y el simbolo de la unidad --, al
+ * contrario que el resto de este modulo. Es deliberado: la cabecera de una tabla de verificacion dice
+ * «Temperatura (°C)», y obligar a la pantalla a cruzar dos catalogos para pintar un encabezado es la
+ * friccion que el resto del modulo ya padece.
+ */
+export type VerificacionDeTipo = equipos['schemas']['TypeVerificationResponse'];
+export type NuevaVerificacionDeTipo = equipos['schemas']['TypeVerificationRequest'];
+export type ModalidadDeVerificacion = NonNullable<NuevaVerificacionDeTipo['modalidad']>;
+
+/**
+ * Los puntos en los que se verifica, y cuantas lecturas se toman en cada uno.
+ *
+ * <p>Las dos cosas solo existen con una modalidad <b>constante</b>: con patron y equipo variables,
+ * cuantas lecturas tomar lo decide el ingeniero en campo y no hay nada constante que declarar. El
+ * backend lo impone en el esquema y en el dominio; aqui el formulario lo refleja para no ofrecer lo que
+ * sera rechazado.
+ *
+ * <p><b>Un punto ya no lleva unidad</b>: la declara su verificacion una sola vez y el punto la hereda.
+ * Antes habia que teclearla en cada punto, y dos puntos hermanos podian contradecirse.
  */
 export type PuntoDeVerificacion = equipos['schemas']['VerificationPointResponse'];
 export type NuevoPuntoDeVerificacion = equipos['schemas']['VerificationPointRequest'];
-export type CambioDeModalidad = equipos['schemas']['VerificationModeRequest'];
+export type CambioDeVerificaciones = equipos['schemas']['DeclareVerificationsRequest'];
 
 /** Las dos modalidades que mantienen algo constante, que son las que piden cantidad y puntos. */
 export const MODALIDADES_CONSTANTES: readonly ModalidadDeVerificacion[] = [
@@ -92,6 +123,20 @@ export function mantieneAlgoConstante(
   modalidad: ModalidadDeVerificacion | '' | undefined,
 ): boolean {
   return !!modalidad && MODALIDADES_CONSTANTES.includes(modalidad);
+}
+
+/** Si a un tipo se le verifica algo. Derivado, igual que en el backend: no hay campo que lo diga. */
+export function seVerifica(tipo: TipoDeEquipo | undefined): boolean {
+  return !!tipo?.verificaciones?.length;
+}
+
+/** Cuantas lecturas pide un reporte completo de este tipo: puntos por cantidad, sumado. */
+export function lecturasEsperadas(tipo: TipoDeEquipo | undefined): number {
+  return (tipo?.verificaciones ?? []).reduce(
+    (total, verificacion) =>
+      total + (verificacion.puntos?.length ?? 0) * (verificacion.cantidadDatos ?? 0),
+    0,
+  );
 }
 
 export type Fabricante = equipos['schemas']['ManufacturerResponse'];

@@ -52,7 +52,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar todas las unidades */
-        get: operations["getAll_5"];
+        get: operations["getAll_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -118,7 +118,7 @@ export interface paths {
         put?: never;
         /**
          * Registrar un tipo de equipo
-         * @description Si se indica la modalidad de verificacion, el tipo queda como verificable.
+         * @description Si se indica alguna verificacion, el tipo queda como verificable.
          */
         post: operations["create_3"];
         delete?: never;
@@ -147,12 +147,12 @@ export interface paths {
         head?: never;
         /**
          * Cambiar las caracteristicas de un tipo
-         * @description Los campos ausentes conservan su valor. La modalidad tiene ruta propia.
+         * @description Los campos ausentes conservan su valor. Las verificaciones tienen ruta propia.
          */
         patch: operations["update_1"];
         trace?: never;
     };
-    "/v1/api/equipment-types/{id}/verification-mode": {
+    "/v1/api/equipment-types/{id}/verifications": {
         parameters: {
             query?: never;
             header?: never;
@@ -166,10 +166,10 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Declarar como se verifica el tipo
-         * @description Una modalidad ausente significa que el tipo deja de verificarse.
+         * Declarar que se verifica en el tipo
+         * @description Una lista vacia significa que el tipo deja de verificarse. Las verificaciones anteriores se retiran, no se borran.
          */
-        patch: operations["changeVerificationMode"];
+        patch: operations["declareVerifications"];
         trace?: never;
     };
     "/v1/api/equipments": {
@@ -209,6 +209,43 @@ export interface paths {
          * @description No la borra: la deja inactiva.
          */
         delete: operations["deactivate_4"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/magnitudes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar las magnitudes que se pueden verificar */
+        get: operations["getAll_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/magnitudes/{magnitudId}/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar las unidades de una magnitud
+         * @description Responde 404 si la magnitud no existe: una lista vacia seria indistinguible de una magnitud sin unidades.
+         */
+        get: operations["getUnits"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -385,6 +422,10 @@ export interface components {
             /** Format: int64 */
             valorCompra?: number;
         };
+        DeclareVerificationsRequest: {
+            /** @description Una lista vacia o ausente significa que el tipo deja de verificarse */
+            verificaciones?: components["schemas"]["TypeVerificationRequest"][];
+        };
         EquipmentCreateRequest: {
             /** Format: uuid */
             idMarca: string;
@@ -409,49 +450,30 @@ export interface components {
         };
         EquipmentTypeCreateRequest: {
             amperaje?: number;
-            /**
-             * Format: int32
-             * @description Lecturas que se toman EN CADA PUNTO. Solo con modalidad constante
-             * @example 3
-             */
-            cantidadDatos?: number;
             definicionTecnica: string;
-            /**
-             * @description Como se verifica. Ausente significa que este tipo no se verifica
-             * @enum {string}
-             */
-            modalidadVerificacion?: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
             nombre: string;
-            /** @description Valores constantes en los que se verifica. Solo con modalidad constante */
-            puntosVerificacion?: components["schemas"]["VerificationPointRequest"][];
             recomendacionesCuidado: string;
             tecnologiaPredominante: string;
             /** Format: int64 */
             valorUnitarioMantenimiento?: number;
+            /** @description Que se le verifica. Vacia o ausente significa que este tipo no se verifica */
+            verificaciones?: components["schemas"]["TypeVerificationRequest"][];
             /** Format: int32 */
             voltaje?: number;
         };
         EquipmentTypeResponse: {
             amperaje?: number;
-            /**
-             * Format: int32
-             * @description Lecturas por punto. Solo con modalidad constante
-             * @example 3
-             */
-            cantidadDatos?: number;
             definicionTecnica?: string;
             estadoActivo?: boolean;
             /** Format: uuid */
             id?: string;
-            /** @enum {string} */
-            modalidadVerificacion?: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
             nombre?: string;
-            puntosVerificacion?: components["schemas"]["VerificationPointResponse"][];
             recomendacionesCuidado?: string;
             tecnologiaPredominante?: string;
             /** Format: int64 */
             valorUnitarioMantenimiento?: number;
             verificable?: boolean;
+            verificaciones?: components["schemas"]["TypeVerificationResponse"][];
             /** Format: int32 */
             voltaje?: number;
         };
@@ -476,6 +498,17 @@ export interface components {
         InvimaRequest: {
             invima?: string;
         };
+        MagnitudeResponse: {
+            /**
+             * @description Llave natural, estable y sin acentos
+             * @example temperatura
+             */
+            codigo?: string;
+            /** Format: uuid */
+            id?: string;
+            /** @example Temperatura */
+            nombre?: string;
+        };
         ManufacturerRequest: {
             /**
              * Format: uuid
@@ -491,6 +524,17 @@ export interface components {
             /** Format: uuid */
             idPais?: string;
             nombre?: string;
+        };
+        MeasurementUnitResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @example grado Celsius */
+            nombre?: string;
+            /**
+             * @description Lo que se imprime junto al numero
+             * @example °C
+             */
+            simbolo?: string;
         };
         ModelCreateRequest: {
             /** Format: uuid */
@@ -513,7 +557,7 @@ export interface components {
             /** @example Philips */
             nombre: string;
         };
-        VerificationModeRequest: {
+        TypeVerificationRequest: {
             /**
              * Format: int32
              * @description Lecturas que se toman EN CADA PUNTO. Solo con modalidad constante
@@ -521,16 +565,50 @@ export interface components {
              */
             cantidadDatos?: number;
             /**
-             * @description Ausente o nula significa que el tipo deja de verificarse
+             * Format: uuid
+             * @description Que se mide. Del catalogo de magnitudes
+             */
+            magnitudId: string;
+            /**
+             * @description Como se verifica esta magnitud en este tipo de equipo
              * @enum {string}
              */
-            modalidad?: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
+            modalidad: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
             /** @description Valores constantes en los que se verifica. Solo con modalidad constante */
-            puntosVerificacion?: components["schemas"]["VerificationPointRequest"][];
+            puntos?: components["schemas"]["VerificationPointRequest"][];
+            /**
+             * Format: uuid
+             * @description En que unidad. Tiene que ser una unidad de esa magnitud
+             */
+            unidadId: string;
+        };
+        TypeVerificationResponse: {
+            /**
+             * Format: int32
+             * @description Lecturas por punto. Solo con modalidad constante
+             * @example 3
+             */
+            cantidadDatos?: number;
+            /** Format: uuid */
+            id?: string;
+            /** @example Temperatura */
+            magnitud?: string;
+            /** Format: uuid */
+            magnitudId?: string;
+            /** @enum {string} */
+            modalidad?: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
+            puntos?: components["schemas"]["VerificationPointResponse"][];
+            /**
+             * @description Lo que se imprime junto al numero
+             * @example °C
+             */
+            unidad?: string;
+            /** Format: uuid */
+            unidadId?: string;
+            /** @example grado Celsius */
+            unidadNombre?: string;
         };
         VerificationPointRequest: {
-            /** @example mmHg */
-            unidad: string;
             /**
              * @description Valor en el que se mantiene lo constante. Admite negativos
              * @example 100.0
@@ -540,8 +618,6 @@ export interface components {
         VerificationPointResponse: {
             /** Format: uuid */
             id?: string;
-            /** @example mmHg */
-            unidad?: string;
             /**
              * @description Valor en el que se mantiene lo constante
              * @example 100.0000
@@ -849,7 +925,7 @@ export interface operations {
             };
         };
     };
-    getAll_5: {
+    getAll_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1432,7 +1508,7 @@ export interface operations {
             };
         };
     };
-    changeVerificationMode: {
+    declareVerifications: {
         parameters: {
             query?: never;
             header?: never;
@@ -1443,7 +1519,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VerificationModeRequest"];
+                "application/json": components["schemas"]["DeclareVerificationsRequest"];
             };
         };
         responses: {
@@ -1688,6 +1764,120 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getAll_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MagnitudeResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getUnits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                magnitudId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MeasurementUnitResponse"][];
+                };
             };
             /** @description Bad Request */
             400: {
