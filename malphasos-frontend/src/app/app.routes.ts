@@ -104,6 +104,38 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('work-order.write')],
       },
       {
+        // Las cuatro altas de persona son la misma pantalla con la clase en la ruta, como el alta de un
+        // equipo. Y cada una exige SU autoridad, que es la escalera del backend: la gente de la casa
+        // -ingenieros y administradores- va por super.person.write y la del cliente por person.write.
+        // El orden importa: estas van antes de 'personas/:id', o el router leeria «nueva» como un id.
+        path: 'personas/nueva/ingeniero',
+        loadComponent: () =>
+          import('./features/person/nueva/nueva-persona').then((m) => m.NuevaPersona),
+        data: { clase: 'ingeniero' },
+        canActivate: [requiereAutoridad('super.person.write')],
+      },
+      {
+        path: 'personas/nueva/administrador',
+        loadComponent: () =>
+          import('./features/person/nueva/nueva-persona').then((m) => m.NuevaPersona),
+        data: { clase: 'administrador' },
+        canActivate: [requiereAutoridad('super.person.write')],
+      },
+      {
+        path: 'personas/nueva/representante',
+        loadComponent: () =>
+          import('./features/person/nueva/nueva-persona').then((m) => m.NuevaPersona),
+        data: { clase: 'representante' },
+        canActivate: [requiereAutoridad('person.write')],
+      },
+      {
+        path: 'personas/nueva/encargado',
+        loadComponent: () =>
+          import('./features/person/nueva/nueva-persona').then((m) => m.NuevaPersona),
+        data: { clase: 'encargado' },
+        canActivate: [requiereAutoridad('person.write')],
+      },
+      {
         // El historial de un equipo: la consulta sobre la que se construira la hoja de vida (RF-26).
         // Exige report.read porque lo que lista son reportes, no equipos.
         path: 'equipos/:id/historial',
