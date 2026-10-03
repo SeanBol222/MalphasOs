@@ -1,0 +1,182 @@
+<fieldset class="mb-3 border border-neutral-400 p-2">
+  <legend class="px-1 font-semibold">Verificación {{ posicion() }}</legend>
+
+  <div class="mb-3">
+    <label class="block font-semibold" [attr.for]="'magnitud-' + posicion()">
+      Qué se mide <span class="text-accent-700" aria-hidden="true">*</span>
+    </label>
+    <!--
+      La opcion elegida se marca en la propia opcion y NO con [value] en el select: cuando este bloque
+      se abre con algo ya guardado, la asignacion del valor ocurre antes de que las opciones existan y
+      el navegador la descarta en silencio. Lo delato la prueba que abre el panel de un tipo ya
+      configurado.
+    -->
+    <select
+      [id]="'magnitud-' + posicion()"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      aria-required="true"
+      (change)="elegirMagnitud($any($event.target).value)"
+      [attr.aria-invalid]="intentado() && faltaMagnitud() ? 'true' : null"
+    >
+      <option value="" [selected]="magnitudId() === ''">Elija una magnitud</option>
+      @for (magnitud of disponibles(); track magnitud.id) {
+        <option [value]="magnitud.id" [selected]="magnitudId() === magnitud.id">
+          {{ magnitud.nombre }}
+        </option>
+      }
+    </select>
+    @if (intentado() && faltaMagnitud()) {
+      <p class="mt-1 font-semibold text-accent-700">Indique qué se mide en esta verificación.</p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" [attr.for]="'unidad-' + posicion()">
+      Unidad <span class="text-accent-700" aria-hidden="true">*</span>
+    </label>
+    <!--
+      Solo las unidades de la magnitud elegida. No es comodidad: el esquema ata el par (magnitud,
+      unidad) con una foranea compuesta, asi que ofrecer %HR para temperatura seria ofrecer un error.
+    -->
+    <select
+      [id]="'unidad-' + posicion()"
+      class="mt-1 min-h-tactil w-full max-w-[18rem] border border-neutral-400 bg-paper px-1"
+      aria-required="true"
+      [disabled]="magnitudId() === ''"
+      (change)="elegirUnidad($any($event.target).value)"
+      [attr.aria-invalid]="intentado() && faltaUnidad() ? 'true' : null"
+    >
+      <option value="" [selected]="unidadId() === ''">
+        {{ magnitudId() === '' ? 'Elija primero la magnitud' : 'Elija una unidad' }}
+      </option>
+      @for (unidad of unidades.data() ?? []; track unidad.id) {
+        <option [value]="unidad.id" [selected]="unidadId() === unidad.id">
+          {{ unidad.simbolo }} — {{ unidad.nombre }}
+        </option>
+      }
+    </select>
+    <!-- Se escribe una vez y la heredan todos los puntos: era lo que obligaba a repetir «mmHg». -->
+    <p class="mt-1 text-neutral-700">Los valores de abajo se expresan todos en esta unidad.</p>
+    @if (intentado() && faltaUnidad()) {
+      <p class="mt-1 font-semibold text-accent-700">Indique en qué unidad se mide.</p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" [attr.for]="'modalidad-' + posicion()">
+      Modalidad <span class="text-accent-700" aria-hidden="true">*</span>
+    </label>
+    <select
+      [id]="'modalidad-' + posicion()"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      aria-required="true"
+      (change)="elegirModalidad($any($event.target).value)"
+      [attr.aria-invalid]="intentado() && faltaModalidad() ? 'true' : null"
+    >
+      <option value="" [selected]="modalidad() === ''">Elija una modalidad</option>
+      @for (opcion of modalidades; track opcion) {
+        <option [value]="opcion" [selected]="modalidad() === opcion">{{ etiquetas[opcion] }}</option>
+      }
+    </select>
+    @if (intentado() && faltaModalidad()) {
+      <p class="mt-1 font-semibold text-accent-700">Indique cómo se verifica esta magnitud.</p>
+    }
+  </div>
+
+  @if (constante()) {
+    <!--
+      Solo con una modalidad constante: con patron y equipo variables no hay nada constante que
+      declarar y cuantas lecturas tomar lo decide el ingeniero en campo. Ocultarlo es mejor que
+      ofrecerlo para que el servidor lo rechace.
+    -->
+    <div class="mb-3 flex flex-wrap gap-3">
+      <div>
+        <label class="block font-semibold" [attr.for]="'cantidad-' + posicion()">
+          Lecturas por punto <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <input
+          [id]="'cantidad-' + posicion()"
+          class="mt-1 min-h-tactil w-full max-w-[10rem] border border-neutral-400 bg-paper px-1"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max="100"
+          aria-required="true"
+          [value]="cantidad() ?? ''"
+          (input)="escribirCantidad($any($event.target).value)"
+          [attr.aria-invalid]="intentado() && cantidadFueraDeRango() ? 'true' : null"
+        />
+      </div>
+      <div>
+        <label class="block font-semibold" [attr.for]="'cuantos-' + posicion()">
+          Cuántos puntos <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <input
+          [id]="'cuantos-' + posicion()"
+          class="mt-1 min-h-tactil w-full max-w-[10rem] border border-neutral-400 bg-paper px-1"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max="100"
+          aria-required="true"
+          [value]="valores().length"
+          (input)="escribirCuantosPuntos($any($event.target).value)"
+          [attr.aria-invalid]="intentado() && faltanPuntos() ? 'true' : null"
+        />
+      </div>
+    </div>
+    <!-- Que sea por punto y no en total no es evidente, y confundirlo da un reporte incompleto. -->
+    <p class="mt-1 text-neutral-700">
+      En cada punto se toman estas lecturas. Con 3 lecturas y 2 puntos, el reporte lleva 6 datos.
+      Bajar el número de puntos quita los últimos.
+    </p>
+    @if (intentado() && cantidadFueraDeRango()) {
+      <p class="mt-1 font-semibold text-accent-700">Indique entre 1 y 100 lecturas por punto.</p>
+    }
+
+    @if (valores().length > 0) {
+      <div class="mt-2 border border-neutral-300 p-2">
+        <p class="font-semibold">Valores en los que se verifica</p>
+        <!-- Admiten negativos: un congelador se verifica a -20 grados. -->
+        <p class="text-neutral-700">
+          Admiten negativos: un congelador se verifica a −20 °C.
+        </p>
+
+        <div class="mt-2 flex flex-wrap gap-2">
+          @for (valor of valores(); track $index) {
+            <div>
+              <label class="block font-semibold" [attr.for]="'valor-' + posicion() + '-' + $index">
+                Punto {{ $index + 1 }}
+              </label>
+              <input
+                [id]="'valor-' + posicion() + '-' + $index"
+                class="mt-1 min-h-tactil w-full max-w-[10rem] border border-neutral-400 bg-paper px-1"
+                type="number"
+                step="0.0001"
+                aria-required="true"
+                [value]="valor"
+                (input)="escribirValor($index, $any($event.target).value)"
+              />
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (intentado() && faltanPuntos()) {
+      <p class="mt-1 font-semibold text-accent-700">
+        Hace falta al menos un punto: es el valor en el que se mantiene lo constante.
+      </p>
+    }
+    @if (intentado() && hayVacios()) {
+      <p class="mt-1 font-semibold text-accent-700">
+        Hay un punto sin valor. Si sobra, baje el número de puntos.
+      </p>
+    }
+    @if (hayRepetidos()) {
+      <p class="mt-1 font-semibold text-accent-700">
+        Hay un punto declarado dos veces. Con el mismo valor es el mismo punto.
+      </p>
+    }
+  }
+</fieldset>

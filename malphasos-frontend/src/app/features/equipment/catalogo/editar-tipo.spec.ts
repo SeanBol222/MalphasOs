@@ -50,12 +50,13 @@ describe('Edicion de un tipo de equipo', () => {
     );
   });
 
-  it('no ofrece la modalidad de verificacion, porque el contrato no la admite aqui', async () => {
-    // El backend la dejo fuera de EquipmentTypeUpdateRequest y le dio ruta propia. Un campo aqui
-    // parecería funcionar y el cambio se perderia en silencio.
+  it('no ofrece las verificaciones, porque el contrato no las admite aqui', async () => {
+    // El backend las dejo fuera de EquipmentTypeUpdateRequest y les dio ruta propia. Un campo aqui
+    // pareceria funcionar y el cambio se perderia en silencio.
     await abrir();
 
-    expect(raiz().querySelector('#modalidadVerificacion')).toBeNull();
+    expect(raiz().querySelector('#cuantasVerificaciones')).toBeNull();
+    expect(raiz().querySelector('#magnitud-1')).toBeNull();
   });
 
   it('manda un PATCH con los campos que el contrato admite', async () => {
@@ -75,7 +76,7 @@ describe('Edicion de un tipo de equipo', () => {
       definicionTecnica: 'Mide presión arterial',
       recomendacionesCuidado: 'No golpear',
     });
-    expect(cambio.request.body).not.toHaveProperty('modalidadVerificacion');
+    expect(cambio.request.body).not.toHaveProperty('verificaciones');
     cambio.flush(TIPOS[0]);
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));
@@ -85,7 +86,14 @@ describe('Edicion de un tipo de equipo', () => {
   });
 
   afterEach(() => {
-    http.verify();
-    desinstalarAlmacenamiento();
+    // En finally a proposito: si verify() lanza por una peticion abierta, sin esto el doble de
+    // localStorage se queda instalado y el fichero SIGUIENTE hereda lo que este guardo. Es la variante
+    // con contaminacion del fallo que este proyecto ya pago -- un fallo en afterEach se lee como
+    // ochenta y seis -- y asi el rojo se queda donde ocurrio.
+    try {
+      http.verify();
+    } finally {
+      desinstalarAlmacenamiento();
+    }
   });
 });

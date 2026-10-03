@@ -20,12 +20,32 @@ import {
 } from '../../../core/api/tipos';
 import { traducirError } from '../../../core/errores/traducir';
 
-/** Una casilla de la tabla: dónde se mide y cuál de las N lecturas de ese punto es. */
+/**
+ * Una casilla de la tabla: qué se mide, dónde, y cuál de las N lecturas de ese punto es.
+ *
+ * <p><b>Lleva su verificación desde el 2026-10-03</b>, y es obligatoria: es lo único que dice qué se
+ * midió cuando no hay punto, y un termohigrómetro puede medir temperatura y humedad las dos sin
+ * puntos. La unidad viene de la verificación y ya no se teclea en ningún caso.
+ */
 interface Fila {
+  readonly idVerificacion: string;
+  readonly magnitud: string;
+  readonly unidad: string;
   readonly idPuntoVerificacion: string | null;
   readonly punto: string;
   readonly secuencia: number;
+}
+
+/** Las filas de una verificación, con el índice que ocupan en el formulario entero. */
+interface GrupoDeFilas {
+  readonly idVerificacion: string;
+  readonly magnitud: string;
   readonly unidad: string;
+  readonly modalidad: string;
+  readonly cantidadDatos: number | null;
+  /** Si esta verificación se hace con patrón y equipo variables: entonces las filas las pone quien mide. */
+  readonly aMano: boolean;
+  readonly filas: readonly { readonly fila: Fila; readonly indice: number }[];
 }
 
 /**
@@ -42,9 +62,15 @@ interface Fila {
  * método por la misma razón: para que el coste esté a la vista. Las cuatro listas están en caché
  * porque otras pantallas ya las piden.
  *
+ * <p><b>Un equipo se verifica en varias magnitudes, y la tabla se agrupa por ellas</b> (2026-10-03).
+ * Un termohigrómetro tiene una tabla de temperatura y otra de humedad relativa, cada una con su
+ * unidad, sus puntos y su modalidad. Antes había una sola tabla y una sola modalidad para todo el
+ * aparato, de modo que un termohigrómetro había que registrarlo como dos tipos de equipo.
+ *
  * <p><b>Con patrón y equipo variables no hay puntos</b> —el tipo no los declara y el servidor los
- * rechazaría— y cuántas lecturas tomar lo decide el ingeniero: la tabla crece a mano y cada fila lleva
- * su unidad, porque no hay punto de donde copiarla.
+ * rechazaría— y cuántas lecturas tomar lo decide el ingeniero: esa tabla crece a mano. <b>Pero la
+ * unidad ya no se teclea nunca</b>: la declara la verificación, también en ese caso. Antes había que
+ * escribirla, y eso permitía imprimir un reporte con una unidad que nadie midió.
  *
  * <p>Se manda la tabla <b>entera</b> y sustituye la anterior: lo que no se envíe queda retirado. Es lo
  * que hace el API, y encaja con cómo se revisa una verificación — se corrige un valor y se entrega la
@@ -91,18 +117,14 @@ export class TablaDeVerificacion {
       this.tipos.isPending(),
   );
 
-  /** Un tipo sin modalidad no se verifica: no hay nada que medirle, y el API lo rechazaría. */
-  protected readonly seVerifica = computed(() => !!this.tipo()?.modalidadVerificacion);
+  /** Un tipo sin verificaciones no se verifica: no hay nada que medirle, y el API lo rechazaría. */
+  protected readonly seVerifica = computed(() => !!this.tipo()?.verificaciones?.length);
 
-  protected readonly modalidad = computed(() => {
-    const modalidad = this.tipo()?.modalidadVerificacion;
-
-    return modalidad ? ETIQUETA_DE_MODALIDAD[modalidad] : '';
-  });
-
-  /** Con patrón y equipo variables, la tabla la construye el ingeniero fila a fila. */
-  protected readonly aMano = computed(
-    () => this.seVerifica() && !mantieneAlgoConstante(this.tipo()?.modalidadVerificacion),
+  /** Lo que se le mide, para el resumen de la cabecera: «Temperatura (°C) · Humedad relativa (%HR)». */
+  protected readonly resumen = computed(() =>
+    (this.tipo()?.verificaciones ?? [])
+      .map((verificacion) => `${verificacion.magnitud} (${verificacion.unidad})`)
+      .join(' · '),
   );
 
   // --- La tabla ---------------------------------------------------------------
@@ -114,6 +136,30 @@ export class TablaDeVerificacion {
   protected get casillas(): FormArray<FormGroup> {
     return this.formulario.get('casillas') as FormArray<FormGroup>;
   }
+
+  /**
+   * Las filas agrupadas por verificación, con el índice que cada una ocupa en el formulario.
+   *
+   * <p>El formulario es <b>uno solo y plano</b> —un {@code FormArray} con todas las casillas— y la
+   * plantilla las reparte en bloques. Partirlo en un formulario por verificación habría obligado a
+   * recomponerlos al guardar, y lo que se manda es la tabla entera.
+   */
+  protected readonly grupos = computed<readonly GrupoDeFilas[]>(() => {
+    const verificaciones = this.tipo()?.verificaciones ?? [];
+    const filas = this.filas();
+
+    return verificaciones.map((verificacion) => ({
+      idVerificacion: verificacion.id!,
+      magnitud: verificacion.magnitud ?? '',
+      unidad: verificacion.unidad ?? '',
+      modalidad: verificacion.modalidad ? ETIQUETA_DE_MODALIDAD[verificacion.modalidad] : '',
+      cantidadDatos: verificacion.cantidadDatos ?? null,
+      aMano: !mantieneAlgoConstante(verificacion.modalidad),
+      filas: filas
+        .map((fila, indice) => ({ fila, indice }))
+        .filter((par) => par.fila.idVerificacion === verificacion.id),
+    }));
+  });
 
   protected readonly hayError = computed(() => this.registro.isError());
   protected readonly mensajeDeError = computed(() => traducirError(this.registro.error()));
@@ -151,37 +197,45 @@ export class TablaDeVerificacion {
 
       const medidas = this.lecturas();
 
-      if (mantieneAlgoConstante(tipo.modalidadVerificacion)) {
-        const puntos = tipo.puntosVerificacion ?? [];
-        const cuantas = tipo.cantidadDatos ?? 1;
-
-        this.rehacer(
-          puntos.flatMap((punto) =>
-            Array.from({ length: cuantas }, (_, indice) => ({
-              idPuntoVerificacion: punto.id!,
-              punto: `${punto.valor} ${punto.unidad}`,
-              secuencia: indice + 1,
-              unidad: punto.unidad ?? '',
-            })),
-          ),
-          medidas,
-        );
-
-        return;
-      }
-
-      // Modalidad variable: las filas son las que ya se midieron, o una en blanco para empezar.
-      const tomadas = medidas.filter((lectura) => !lectura.idPuntoVerificacion);
-
+      // Una tabla por verificacion, y en el orden en que el tipo las declara: con dos magnitudes, el
+      // termohigrometro tiene dos bloques y no una tabla revuelta.
       this.rehacer(
-        tomadas.length
-          ? tomadas.map((lectura) => ({
-              idPuntoVerificacion: null,
-              punto: 'Sin punto fijo',
-              secuencia: lectura.secuencia ?? 1,
-              unidad: lectura.unidad ?? '',
-            }))
-          : [{ idPuntoVerificacion: null, punto: 'Sin punto fijo', secuencia: 1, unidad: '' }],
+        (tipo.verificaciones ?? []).flatMap<Fila>((verificacion) => {
+          const comun = {
+            idVerificacion: verificacion.id!,
+            magnitud: verificacion.magnitud ?? '',
+            unidad: verificacion.unidad ?? '',
+          };
+
+          if (mantieneAlgoConstante(verificacion.modalidad)) {
+            const cuantas = verificacion.cantidadDatos ?? 1;
+
+            return (verificacion.puntos ?? []).flatMap((punto) =>
+              Array.from({ length: cuantas }, (_, indice) => ({
+                ...comun,
+                idPuntoVerificacion: punto.id!,
+                // El valor solo, sin unidad: la unidad esta en la cabecera del bloque.
+                punto: String(punto.valor ?? ''),
+                secuencia: indice + 1,
+              })),
+            );
+          }
+
+          // Modalidad variable: las filas son las que ya se midieron EN ESTA verificacion, o una en
+          // blanco para empezar. Filtrar por verificacion es lo que impide que las lecturas de
+          // temperatura aparezcan en la tabla de humedad.
+          const tomadas = medidas.filter(
+            (lectura) =>
+              lectura.idVerificacion === verificacion.id && !lectura.idPuntoVerificacion,
+          );
+
+          return (tomadas.length ? tomadas : [{ secuencia: 1 }]).map((lectura) => ({
+            ...comun,
+            idPuntoVerificacion: null,
+            punto: 'Sin punto fijo',
+            secuencia: lectura.secuencia ?? 1,
+          }));
+        }),
         medidas,
       );
     });
@@ -206,13 +260,28 @@ export class TablaDeVerificacion {
     }
   }
 
-  /** Añade una lectura más, solo con modalidad variable: ahí el número lo decide quien mide. */
-  protected anadirFila(): void {
-    const siguiente = Math.max(0, ...this.filas().map((fila) => fila.secuencia)) + 1;
+  /**
+   * Añade una lectura más a <b>una</b> verificación, solo con modalidad variable.
+   *
+   * <p>Por verificación y no para toda la tabla: el número de lectura se cuenta dentro de su
+   * verificación, y una fila añadida a la tabla de temperatura no es una fila de la de humedad.
+   *
+   * <p>Se añade al final del formulario, no junto a sus hermanas, porque el orden del {@code FormArray}
+   * no tiene que coincidir con el visual: la plantilla agrupa por índice y el índice no cambia.
+   */
+  protected anadirFila(grupo: GrupoDeFilas): void {
+    const siguiente = Math.max(0, ...grupo.filas.map((par) => par.fila.secuencia)) + 1;
 
     this.filas.update((filas) => [
       ...filas,
-      { idPuntoVerificacion: null, punto: 'Sin punto fijo', secuencia: siguiente, unidad: '' },
+      {
+        idVerificacion: grupo.idVerificacion,
+        magnitud: grupo.magnitud,
+        unidad: grupo.unidad,
+        idPuntoVerificacion: null,
+        punto: 'Sin punto fijo',
+        secuencia: siguiente,
+      },
     ]);
     this.casillas.push(this.grupoVacio());
     this.formulario.markAsDirty();
@@ -243,19 +312,19 @@ export class TablaDeVerificacion {
       const fila = this.filas()[indice];
       const patron = grupo.get('valorPatron')?.value;
       const equipo = grupo.get('valorEquipo')?.value;
-      const unidad = grupo.get('unidad')?.value ?? fila.unidad;
 
       if (patron === '' || patron == null || equipo === '' || equipo == null) {
         return [];
       }
 
+      // Sin unidad: la pone el servidor desde la verificacion, de modo que no se puede contradecir.
       return [
         {
+          idVerificacion: fila.idVerificacion,
           idPuntoVerificacion: fila.idPuntoVerificacion ?? undefined,
           secuencia: fila.secuencia,
           valorPatron: Number(patron),
           valorEquipo: Number(equipo),
-          unidadSinPunto: fila.idPuntoVerificacion ? undefined : unidad,
         },
       ];
     });
@@ -266,8 +335,11 @@ export class TablaDeVerificacion {
     this.casillas.clear({ emitEvent: false });
 
     for (const fila of filas) {
+      // La verificacion entra en la comparacion, y sin ella esto seria falso: la lectura 1 sin punto
+      // de temperatura y la 1 sin punto de humedad casarian con la misma fila.
       const medida = medidas.find(
         (lectura) =>
+          lectura.idVerificacion === fila.idVerificacion &&
           (lectura.idPuntoVerificacion ?? null) === fila.idPuntoVerificacion &&
           lectura.secuencia === fila.secuencia,
       );
@@ -276,7 +348,6 @@ export class TablaDeVerificacion {
         this.fb.group({
           valorPatron: this.fb.nonNullable.control(medida?.valorPatron?.toString() ?? ''),
           valorEquipo: this.fb.nonNullable.control(medida?.valorEquipo?.toString() ?? ''),
-          unidad: this.fb.nonNullable.control(medida?.unidad ?? fila.unidad),
         }),
         { emitEvent: false },
       );
@@ -290,7 +361,6 @@ export class TablaDeVerificacion {
     return this.fb.group({
       valorPatron: this.fb.nonNullable.control(''),
       valorEquipo: this.fb.nonNullable.control(''),
-      unidad: this.fb.nonNullable.control(''),
     });
   }
 }

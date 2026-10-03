@@ -42,16 +42,15 @@ export class NuevoTipo {
   private readonly tipos = this.api.listarTipos();
 
   /**
-   * Como se verifica, tal como lo tiene el bloque de verificacion ahora mismo.
+   * Que se le verifica, tal como lo tiene el bloque de verificacion ahora mismo.
    *
-   * <p>Fuera del formulario reactivo a proposito: sus tres campos se condicionan entre si -la cantidad y
-   * los puntos solo existen con una modalidad constante- y expresarlo con validadores dinamicos habria
-   * sido mas codigo y menos legible que un componente que se valida solo.
+   * <p>Fuera del formulario reactivo a proposito: sus campos se condicionan entre si -la cantidad y los
+   * puntos solo existen con una modalidad constante, y la unidad depende de la magnitud- y expresarlo
+   * con validadores dinamicos habria sido mas codigo y menos legible que un componente que se valida
+   * solo. Desde el 2026-10-03 son varias verificaciones y no una, lo que refuerza la decision.
    */
   protected readonly verificacion = signal<ConfiguracionDeVerificacion>({
-    modalidad: null,
-    cantidadDatos: null,
-    puntos: [],
+    verificaciones: [],
     valida: true,
   });
 
@@ -100,15 +99,10 @@ export class NuevoTipo {
         tecnologiaPredominante: datos.tecnologiaPredominante,
         definicionTecnica: datos.definicionTecnica,
         recomendacionesCuidado: datos.recomendacionesCuidado,
-        // Los tres datos de la verificacion viajan juntos, y solo si hay modalidad.
-        ...(verificacion.modalidad
-          ? {
-              modalidadVerificacion: verificacion.modalidad,
-              ...(verificacion.cantidadDatos === null
-                ? {}
-                : { cantidadDatos: verificacion.cantidadDatos }),
-              ...(verificacion.puntos.length ? { puntosVerificacion: [...verificacion.puntos] } : {}),
-            }
+        // La lista entera o nada: una lista vacia significa que a este tipo no se le verifica nada,
+        // y entonces ni se manda el campo.
+        ...(verificacion.verificaciones.length
+          ? { verificaciones: [...verificacion.verificaciones] }
           : {}),
         ...(datos.voltaje === null ? {} : { voltaje: datos.voltaje }),
         ...(datos.amperaje === null ? {} : { amperaje: datos.amperaje }),

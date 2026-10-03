@@ -104,7 +104,7 @@ export interface paths {
         head?: never;
         /**
          * Registrar la verificacion metrologica
-         * @description Sustituye la verificacion anterior entera; las lecturas corregidas quedan retiradas, no borradas. Cada lectura se comprueba contra los puntos y la cantidad de datos que declara el tipo del equipo.
+         * @description Sustituye la verificacion anterior entera; las lecturas corregidas quedan retiradas, no borradas. Cada lectura declara a que verificacion del tipo pertenece, y se comprueba contra los puntos y la cantidad de datos que esa verificacion declara.
          */
         patch: operations["recordVerification"];
         trace?: never;
@@ -173,16 +173,19 @@ export interface components {
         VerificationReadingRequest: {
             /**
              * Format: uuid
-             * @description Punto en el que se tomo. Nulo solo con patron y equipo variables
+             * @description Punto en el que se tomo. Nulo solo si esa verificacion usa patron y equipo variables
              */
             idPuntoVerificacion?: string;
+            /**
+             * Format: uuid
+             * @description Verificacion activa del tipo del equipo a la que pertenece la lectura
+             */
+            idVerificacion: string;
             /**
              * Format: int32
              * @description Cual de las N lecturas de ese punto es
              */
             secuencia?: number;
-            /** @description Solo si la lectura no tiene punto; con punto se toma la del punto */
-            unidadSinPunto?: string;
             valorEquipo: number;
             valorPatron: number;
         };
@@ -191,9 +194,11 @@ export interface components {
             id?: string;
             /**
              * Format: uuid
-             * @description Nulo si la modalidad no declara puntos
+             * @description Nulo si esa verificacion no declara puntos
              */
             idPuntoVerificacion?: string;
+            /** Format: uuid */
+            idVerificacion?: string;
             /** Format: int32 */
             secuencia?: number;
             unidad?: string;

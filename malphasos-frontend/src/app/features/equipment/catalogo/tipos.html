@@ -33,13 +33,14 @@
               {{ tipo.nombre }}
               <span class="font-normal text-neutral-700">
                 · {{ tipo.tecnologiaPredominante }}
-                · {{ etiquetaDeModalidad(tipo.modalidadVerificacion) }}
-                @if (tipo.cantidadDatos) {
-                  <!-- Por punto, no en total: con 3 lecturas y 2 puntos el reporte lleva 6 datos. -->
-                  · {{ tipo.cantidadDatos }} lecturas por punto
-                }
-                @if (tipo.puntosVerificacion?.length) {
-                  · {{ tipo.puntosVerificacion!.length }} punto(s)
+                <!--
+                  Se resume que se le mide y en que unidad, no «la» modalidad: un termohigrometro
+                  tiene dos, y una sola etiqueta tendria que mentir sobre una de las dos.
+                -->
+                @if (tipo.verificaciones?.length) {
+                  · {{ resumenDeVerificaciones(tipo) }}
+                } @else {
+                  · Sin verificación
                 }
               </span>
             </span>
@@ -55,7 +56,7 @@
                 type="button"
                 (click)="empezarACambiar(tipo)"
               >
-                Modalidad
+                Verificación
               </button>
               @if (tipo.estadoActivo) {
                 <button
@@ -72,8 +73,9 @@
 
           @if (cambiando() === tipo.id) {
             <!--
-              El mismo bloque que el alta: modalidad, cuantas lecturas y en que valores. Tenerlo en un
-              solo componente es lo que evita que las dos pantallas se desvien.
+              El mismo bloque que el alta: cuantas verificaciones, y cada una con su magnitud, su
+              unidad, su modalidad, sus lecturas por punto y sus valores. Tenerlo en un solo
+              componente es lo que evita que las dos pantallas se desvien.
             -->
             <div class="mt-2 border-l-2 border-ink bg-neutral-100 p-2">
               <app-verificacion
@@ -85,10 +87,10 @@
                 <button
                   class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
                   type="button"
-                  [disabled]="cambioDeModalidad.isPending()"
-                  (click)="cambiarModalidad(tipo.id!)"
+                  [disabled]="cambioDeVerificaciones.isPending()"
+                  (click)="declararVerificaciones(tipo.id!)"
                 >
-                  {{ cambioDeModalidad.isPending() ? 'Guardando…' : 'Guardar' }}
+                  {{ cambioDeVerificaciones.isPending() ? 'Guardando…' : 'Guardar' }}
                 </button>
                 <button
                   class="min-h-tactil border-2 border-ink px-3 font-semibold"

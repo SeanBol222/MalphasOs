@@ -11,16 +11,17 @@ import {
   CambioDeTipoDeEquipo,
   EquipoDeCatalogo,
   Fabricante,
+  Magnitud,
   Marca,
-  ModalidadDeVerificacion,
-  NuevoPuntoDeVerificacion,
   Modelo,
+  NuevaVerificacionDeTipo,
   NuevoEquipoDeCatalogo,
   NuevoFabricante,
   NuevoModelo,
   NuevoNombre,
   NuevoTipoDeEquipo,
   TipoDeEquipo,
+  UnidadDeMedida,
 } from '../../core/api/tipos';
 
 /**
@@ -105,36 +106,76 @@ export class CatalogoApi {
   }
 
   /**
-   * Declara como se verifica un tipo: modalidad, cuantas lecturas por punto y en que valores.
+   * Declara que se verifica en un tipo: una magnitud por verificacion, con su unidad, su modalidad,
+   * cuantas lecturas por punto y en que valores.
    *
    * <p>Tiene ruta propia y no entra en la edicion general porque no es un dato mas: decide como se
    * verifica el equipo, y el backend la separo para que cambiarla sea una decision explicita.
    *
-   * <p><b>Los tres datos viajan juntos</b>, y el backend los exige asi: por separado existiria el
-   * instante en que un tipo dice verificarse contra un patron constante sin decir contra que valor.
-   * Una modalidad nula significa que el tipo deja de verificarse, y entonces los otros dos van vacios.
+   * <p><b>Se manda la lista entera</b>, y el backend lo exige asi: por separado existiria el instante
+   * en que un tipo dice verificar temperatura contra un patron constante sin decir contra que valor.
+   * Una lista vacia significa que el tipo deja de verificarse, y las verificaciones anteriores quedan
+   * retiradas, no borradas -- con ellas se firmaron reportes.
+   *
+   * <p>La ruta se llamaba `/verification-mode` y recibia una sola modalidad. Desde el 2026-10-03 es
+   * `/verifications` y recibe la lista: un termohigrometro se verifica en dos magnitudes.
    */
-  cambiarModalidad() {
+  declararVerificaciones() {
     return injectMutation(() => ({
       mutationFn: ({
         id,
-        modalidad,
-        cantidadDatos,
-        puntos,
+        verificaciones,
       }: {
         id: string;
-        modalidad: ModalidadDeVerificacion | null;
-        cantidadDatos: number | null;
-        puntos: readonly NuevoPuntoDeVerificacion[];
+        verificaciones: readonly NuevaVerificacionDeTipo[];
       }) =>
         firstValueFrom(
-          this.http.patch<TipoDeEquipo>(`${this.api}/equipment-types/${id}/verification-mode`, {
-            modalidad,
-            cantidadDatos,
-            puntosVerificacion: puntos,
+          this.http.patch<TipoDeEquipo>(`${this.api}/equipment-types/${id}/verifications`, {
+            verificaciones,
           }),
         ),
       onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  // --- Catalogo metrologico -------------------------------------------------
+
+  /**
+   * Las magnitudes que se pueden verificar.
+   *
+   * <p>Se consulta una vez y se queda en cache: son datos de referencia sembrados que nadie edita, asi
+   * que no hay nada que invalidar. El `staleTime` infinito lo dice explicitamente en vez de dejar que
+   * TanStack Query recargue por costumbre.
+   *
+   * <p><b>La clave vive FUERA del prefijo `catalogo`</b>, y no es cosmetica: toda escritura de este
+   * servicio invalida `['catalogo']` entero, de modo que con la clave dentro cada alta de una marca
+   * habria vuelto a pedir las veinte magnitudes y sus unidades. Lo delato una prueba que acabo con dos
+   * peticiones abiertas despues de guardar.
+   */
+  listarMagnitudes() {
+    return injectQuery(() => ({
+      queryKey: ['metrologia', 'magnitudes'],
+      queryFn: () => firstValueFrom(this.http.get<Magnitud[]>(`${this.api}/magnitudes`)),
+      staleTime: Infinity,
+    }));
+  }
+
+  /**
+   * Las unidades de una magnitud.
+   *
+   * <p>Por magnitud y no todas de golpe, porque es lo que la pantalla necesita: elegida la magnitud, se
+   * ofrecen solo sus unidades. El servidor responde 404 si la magnitud no existe, para que una lista
+   * vacia no se confunda con una magnitud sin unidades.
+   */
+  listarUnidades(magnitudId: () => string | undefined) {
+    return injectQuery(() => ({
+      queryKey: ['metrologia', 'magnitudes', magnitudId(), 'unidades'],
+      queryFn: () =>
+        firstValueFrom(
+          this.http.get<UnidadDeMedida[]>(`${this.api}/magnitudes/${magnitudId()}/units`),
+        ),
+      enabled: !!magnitudId(),
+      staleTime: Infinity,
     }));
   }
 
