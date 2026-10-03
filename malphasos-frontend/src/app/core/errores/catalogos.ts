@@ -102,5 +102,26 @@ export const CATALOGO_SERVICE_REPORT: Readonly<Record<string, string>> = {
   ERR_SERVICE_REPORT_008: 'El tipo de equipo no existe o fue retirado: sin él no se sabe cómo verificarlo.',
 };
 
+/**
+ * Y los del modulo de personas, que son los unicos que hablan de OTRO sistema.
+ *
+ * <p>Cuatro de los seis son de Keycloak, y eso es lo que los hace distintos de todos los demas
+ * catalogos: no dicen que el dato este mal, dicen que <b>el proveedor de identidad</b> no pudo hacer su
+ * parte. Un alta de ingeniero toca dos sistemas sin transaccion que los envuelva, asi que el mensaje
+ * tiene que distinguir «ese nombre de usuario ya existe» —que se arregla cambiandolo— de «no se pudo
+ * hablar con Keycloak» —que no se arregla tocando el formulario—.
+ */
+export const CATALOGO_PERSON: Readonly<Record<string, string>> = {
+  ERR_PERSON_001: 'Esa persona no existe o fue retirada.',
+  ERR_PERSON_002: 'Revise los datos de la persona.',
+  ERR_KEYCLOAK_001: 'Ese nombre de usuario ya existe en el sistema de acceso. Elija otro.',
+  ERR_KEYCLOAK_002:
+    'El sistema de acceso rechazó los datos de la cuenta. Revise el nombre de usuario, el correo y la contraseña.',
+  ERR_KEYCLOAK_003:
+    'El servidor no tiene permiso para crear cuentas en el sistema de acceso. Es un problema de configuración, no de los datos.',
+  ERR_KEYCLOAK_004:
+    'No se pudo contactar con el sistema de acceso. La persona no se dio de alta; vuelva a intentarlo.',
+};
+
 /** Lo que se dice cuando no hay nada mejor que decir. */
 export const MENSAJE_DE_RESPALDO = 'No se pudo completar la operación. Intente de nuevo.';

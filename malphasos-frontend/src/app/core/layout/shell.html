@@ -21,7 +21,7 @@
 
   <nav aria-label="Navegación principal" class="mx-auto max-w-[1440px] px-2 md:px-6">
     <ul class="flex list-none gap-1">
-      @for (entrada of navegacion; track entrada.ruta) {
+      @for (entrada of navegacion(); track entrada.ruta) {
         <li class="relative">
           @if (entrada.hijos) {
             <!--

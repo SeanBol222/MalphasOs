@@ -54,14 +54,6 @@ export type Pais = ubicacion['schemas']['CountryResponse'];
 export type Ciudad = ubicacion['schemas']['CityResponse'];
 
 /**
- * Del modulo de personas solo se lee, y solo para poner nombre a un identificador.
- *
- * <p>Un encargado que el API devuelve es {@code idPersona} y nada mas: sin esto, la lista de
- * encargados de una sede seria una columna de UUID. La seccion de personas no existe todavia.
- */
-export type Persona = personas['schemas']['PersonResponse'];
-
-/**
  * El catalogo de equipos, que son cinco piezas y no una.
  *
  * <p>Registrar un equipo de un cliente exige una cadena entera: una <b>marca</b> y un <b>tipo</b> se
@@ -203,6 +195,75 @@ export const ETIQUETA_DE_TIPO_DE_SERVICIO: Readonly<Record<TipoDeServicio, strin
   CORRECTIVO: 'Correctivo',
   CALIBRACION: 'Calibración',
 };
+
+/**
+ * Personas: la gente de la casa y la del cliente, con o sin acceso al sistema.
+ *
+ * <p>(Aqui habia un solo alias de lectura, con el comentario «del modulo de personas solo se lee, y
+ * solo para poner nombre a un identificador; la seccion de personas no existe todavia». Fue cierto
+ * hasta el <b>2026-10-02</b>.)
+ *
+ * <p><b>«Persona» no es «usuario».</b> Una persona puede existir sin cuenta —un encargado al que solo
+ * se le llama por telefono— y por eso el API tiene cuatro altas distintas: una que crea solo la fila y
+ * tres que crean ademas el usuario en Keycloak. Las tres ultimas exigen correo, nombre de usuario y
+ * contrasena inicial; la primera, no.
+ *
+ * <p><b>Y quien puede crear a quien depende de QUE es esa persona</b>, que es la «escalera de
+ * usuarios» del backend: la gente de la casa -ingenieros y administradores- exige
+ * {@code super.person.write}, y la del cliente -representantes y encargados- {@code person.write}. El
+ * prefijo marca lo que {@code admin.full} no concede. Ver [[modelo-de-permisos]].
+ */
+export type Persona = personas['schemas']['PersonResponse'];
+export type NuevaPersonaSinAcceso = personas['schemas']['PersonCreateRequest'];
+export type NuevoUsuario = personas['schemas']['PersonRegisterRequest'];
+export type CambioDePersona = personas['schemas']['PersonUpdateRequest'];
+export type CorreoDePersona = personas['schemas']['EmailPersonResponse'];
+export type TelefonoDePersona = personas['schemas']['PhonePersonResponse'];
+
+/** Sale del tipo de la PETICION: en la respuesta es opcional y ese undefined se colaria al cuerpo. */
+export type TipoDePersona = NonNullable<NuevaPersonaSinAcceso['tipoPersona']>;
+
+/**
+ * Los cinco tipos, de la casa hacia el cliente.
+ *
+ * <p>{@code SUPER_ADMIN} esta en la lista porque el contrato lo admite, pero <b>no se ofrece al dar de
+ * alta</b>: el super usuario se crea a mano en Keycloak y ningun grupo concede su autoridad. Verlo en
+ * una ficha es legitimo; poder crearlo desde una pantalla, no.
+ */
+export const TIPOS_DE_PERSONA: readonly TipoDePersona[] = [
+  'SUPER_ADMIN',
+  'ADMIN',
+  'ENGINEER',
+  'MANAGER',
+  'CEO_CLIENT',
+] as const;
+
+/**
+ * Como se nombra cada tipo en pantalla.
+ *
+ * <p>⚠️ <b>`ENGINEER` y `MANAGER` son dos cosas distintas y se confunden facilisimo.</b> El ingeniero
+ * es de BolivarBioingenieria y ejecuta mantenimientos; el encargado es del cliente y responde por una
+ * sede o un area —lo que la ERS llama «profesional responsable» y el realm, por un nombre heredado,
+ * tambien llama `engineer` en sus autoridades—. Ver el glosario del dominio.
+ */
+export const ETIQUETA_DE_TIPO_DE_PERSONA: Readonly<Record<TipoDePersona, string>> = {
+  SUPER_ADMIN: 'Super usuario',
+  ADMIN: 'Administrador',
+  ENGINEER: 'Ingeniero',
+  MANAGER: 'Encargado del cliente',
+  CEO_CLIENT: 'Representante del cliente',
+};
+
+/**
+ * Si dar de alta o tocar a alguien de este tipo exige el escalon de arriba.
+ *
+ * <p>Es la regla del backend reflejada, no una invencion de la pantalla: crear, editar o retirar a la
+ * gente de la casa exige {@code super.person.write}. Se usa para no ofrecer botones que el servidor
+ * va a rechazar con un 403.
+ */
+export function exigeEscalonDeArriba(tipo: TipoDePersona | undefined): boolean {
+  return tipo === 'ADMIN' || tipo === 'ENGINEER' || tipo === 'SUPER_ADMIN';
+}
 
 /**
  * Reportes de servicio: lo que se hizo sobre cada equipo de una orden.

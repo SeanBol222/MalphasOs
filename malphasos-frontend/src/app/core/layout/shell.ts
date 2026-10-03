@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { EntradaDeNavegacion, NAVEGACION } from '../navegacion';
+import { Sesion } from '../auth/sesion';
 
 /**
  * El armazon de la aplicacion: cabecera, navegacion principal y el contenido.
@@ -20,6 +21,12 @@ import { EntradaDeNavegacion, NAVEGACION } from '../navegacion';
  * sobraba y ademas fallaba, porque al construirse el componente la navegacion
  * todavia no habia terminado.
  *
+ * <p><b>El menu no pinta lo que la sesion no puede usar</b> (2026-10-02). La autoridad la declara la
+ * propia entrada de navegacion, que es la misma de la que sale el guard de la ruta: ocultar sin
+ * proteger dejaria el destino alcanzable escribiendo la direccion, y proteger sin ocultar ofreceria un
+ * enlace que acaba en «sin permiso». Lo hizo necesario «Personas»: es el primer destino que un grupo
+ * legitimo del realm no puede usar, porque {@code clients} no tiene {@code person.read}.
+ *
  * <p><b>Una entrada con hijas se despliega</b> en lugar de enlazar: el catalogo de equipos tiene cinco
  * piezas y «catalogo» no es una pantalla, es el sitio donde estan. El desplegable es un boton con
  * {@code aria-expanded} y no un menu de CSS que se abre al pasar el raton: con el raton por encima no se
@@ -32,7 +39,17 @@ import { EntradaDeNavegacion, NAVEGACION } from '../navegacion';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Shell {
-  protected readonly navegacion = NAVEGACION;
+  private readonly sesion = inject(Sesion);
+
+  /**
+   * Los destinos que esta sesion puede usar de verdad.
+   *
+   * <p>Quien trae {@code admin.full} los ve todos: la expansion la resuelve {@code Sesion.puede}, en un
+   * solo sitio, igual que en el backend.
+   */
+  protected readonly navegacion = computed(() =>
+    NAVEGACION.filter((entrada) => !entrada.autoridad || this.sesion.puede(entrada.autoridad)),
+  );
 
   /** La entrada cuyo desplegable esta abierto, si hay alguno. Solo uno a la vez. */
   protected readonly desplegada = signal<string | null>(null);

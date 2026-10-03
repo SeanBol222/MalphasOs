@@ -29,6 +29,23 @@ describe('Navegación', () => {
     }
   });
 
+  it('toda entrada con autoridad protege su ruta, no solo esconde su enlace', () => {
+    // Es la otra mitad de ocultar, y la que se olvida: si el menu no pinta «Personas» pero la ruta no
+    // lleva guard, el destino sigue alcanzable escribiendo la direccion a mano. Se comprobo quitando
+    // el guard y viendo que NINGUNA prueba se enteraba —la del menu seguia verde—, asi que esta existe
+    // justamente por eso.
+    for (const entrada of NAVEGACION) {
+      const ruta = rutasDeNavegacion.find((r) => r.path === entrada.ruta)!;
+
+      if (entrada.autoridad) {
+        expect(ruta.canActivate, `la entrada "${entrada.ruta}" exige ${entrada.autoridad}`)
+          .toHaveLength(1);
+      } else {
+        expect(ruta.canActivate, `la entrada "${entrada.ruta}" no exige nada`).toBeUndefined();
+      }
+    }
+  });
+
   it('cuenta tantos destinos cargables como caminos declara la navegación', () => {
     // Si esto diera menos, la prueba de arriba recorreria una lista incompleta y pasaria sin mirar
     // justo el destino roto. Es la misma precaucion que la de «la lista no esta vacia».
