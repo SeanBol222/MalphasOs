@@ -195,7 +195,14 @@ describe('Alta de una sede', () => {
   });
 
   afterEach(() => {
-    http.verify();
-    desinstalarAlmacenamiento();
+    // En finally a proposito: si verify() lanza por una peticion abierta, sin esto el doble de
+    // localStorage se queda instalado y el fichero SIGUIENTE hereda lo que este guardo. Es la variante
+    // con contaminacion del fallo que este proyecto ya pago -- un fallo en afterEach se lee como
+    // ochenta y seis -- y asi el rojo se queda donde ocurrio.
+    try {
+      http.verify();
+    } finally {
+      desinstalarAlmacenamiento();
+    }
   });
 });
