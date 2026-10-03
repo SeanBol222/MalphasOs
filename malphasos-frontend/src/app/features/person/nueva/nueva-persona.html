@@ -1,0 +1,208 @@
+<h1 class="text-2xl font-bold">{{ receta().titulo }}</h1>
+<p class="mt-1 max-w-[640px] text-neutral-800">{{ receta().explicacion }}</p>
+
+@if (hayError()) {
+  <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+    <p class="font-semibold">{{ mensajeDeError() }}</p>
+    @if (detalles().length) {
+      <ul class="mt-1">
+        @for (detalle of detalles(); track detalle) {
+          <li>{{ detalle }}</li>
+        }
+      </ul>
+    }
+  </div>
+}
+
+<form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="registrar()">
+  <p class="text-neutral-700">Los campos con <span aria-hidden="true">*</span> son obligatorios.</p>
+
+  <label class="mt-2 block font-semibold" for="cedula">Cédula <span aria-hidden="true">*</span></label>
+  <input
+    class="min-h-tactil w-full border-2 border-ink px-1"
+    id="cedula"
+    type="text"
+    inputmode="numeric"
+    maxlength="10"
+    aria-required="true"
+    formControlName="cedula"
+  />
+
+  <div class="mt-2 grid gap-2 sm:grid-cols-2">
+    <div>
+      <label class="block font-semibold" for="primerNombre">
+        Primer nombre <span aria-hidden="true">*</span>
+      </label>
+      <input
+        class="min-h-tactil w-full border-2 border-ink px-1"
+        id="primerNombre"
+        type="text"
+        aria-required="true"
+        formControlName="primerNombre"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="segundoNombre">Segundo nombre</label>
+      <input
+        class="min-h-tactil w-full border-2 border-ink px-1"
+        id="segundoNombre"
+        type="text"
+        formControlName="segundoNombre"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="primerApellido">
+        Primer apellido <span aria-hidden="true">*</span>
+      </label>
+      <input
+        class="min-h-tactil w-full border-2 border-ink px-1"
+        id="primerApellido"
+        type="text"
+        aria-required="true"
+        formControlName="primerApellido"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="segundoApellido">Segundo apellido</label>
+      <input
+        class="min-h-tactil w-full border-2 border-ink px-1"
+        id="segundoApellido"
+        type="text"
+        formControlName="segundoApellido"
+      />
+    </div>
+  </div>
+
+  @if (conCuenta()) {
+    <!--
+      Esta mitad solo existe cuando hay cuenta que crear. El alta de un encargado no la lleva, y no es
+      que este escondida: el servidor no crea usuario en esa puerta.
+    -->
+    <h2 class="mt-3 text-xl font-bold">Cuenta de acceso</h2>
+    <p class="text-neutral-700">
+      Con esto entra al sistema. El correo hace falta porque es con el que se crea la cuenta.
+    </p>
+
+    <label class="mt-2 block font-semibold" for="nombreUsuario">
+      Nombre de usuario <span aria-hidden="true">*</span>
+    </label>
+    <input
+      class="min-h-tactil w-full border-2 border-ink px-1"
+      id="nombreUsuario"
+      type="text"
+      autocomplete="off"
+      aria-required="true"
+      formControlName="nombreUsuario"
+    />
+
+    <label class="mt-2 block font-semibold" for="password">
+      Contraseña inicial <span aria-hidden="true">*</span>
+    </label>
+    <input
+      class="min-h-tactil w-full border-2 border-ink px-1"
+      id="password"
+      type="password"
+      autocomplete="new-password"
+      minlength="8"
+      aria-required="true"
+      formControlName="password"
+    />
+    <p class="mt-1 text-neutral-700">Al menos ocho caracteres.</p>
+  }
+
+  <h2 class="mt-3 text-xl font-bold">
+    Correos
+    @if (conCuenta()) {
+      <span aria-hidden="true">*</span>
+    }
+  </h2>
+
+  <div formArrayName="correos">
+    @for (correo of correos.controls; track $index; let i = $index) {
+      <div class="mt-2 flex flex-wrap items-end gap-2" [formGroupName]="i">
+        <div class="grow">
+          <label class="block font-semibold" [for]="'correo-' + i">Correo {{ i + 1 }}</label>
+          <input
+            class="min-h-tactil w-full border-2 border-ink px-1"
+            [id]="'correo-' + i"
+            type="email"
+            autocomplete="off"
+            formControlName="correoPersona"
+          />
+        </div>
+        @if (correos.length > 1) {
+          <button
+            class="min-h-tactil border-2 border-ink px-3 font-semibold"
+            type="button"
+            (click)="quitar('correos', i)"
+          >
+            Quitar
+          </button>
+        }
+      </div>
+    }
+  </div>
+  <button
+    class="mt-2 min-h-tactil px-1 font-semibold underline"
+    type="button"
+    (click)="anadirCorreo()"
+  >
+    Añadir otro correo
+  </button>
+
+  <h2 class="mt-3 text-xl font-bold">Teléfonos</h2>
+  <div formArrayName="telefonos">
+    @for (telefono of telefonos.controls; track $index; let i = $index) {
+      <div class="mt-2 flex flex-wrap items-end gap-2" [formGroupName]="i">
+        <div class="grow">
+          <label class="block font-semibold" [for]="'telefono-' + i">Teléfono {{ i + 1 }}</label>
+          <input
+            class="min-h-tactil w-full border-2 border-ink px-1"
+            [id]="'telefono-' + i"
+            type="tel"
+            inputmode="tel"
+            formControlName="telefonoPersona"
+          />
+        </div>
+        <button
+          class="min-h-tactil border-2 border-ink px-3 font-semibold"
+          type="button"
+          (click)="quitar('telefonos', i)"
+        >
+          Quitar
+        </button>
+      </div>
+    }
+  </div>
+  <button
+    class="mt-2 min-h-tactil px-1 font-semibold underline"
+    type="button"
+    (click)="anadirTelefono()"
+  >
+    Añadir un teléfono
+  </button>
+
+  @if (conCuenta()) {
+    <!--
+      La segunda funcion solo puede ser «encargado»: lo dice el contrato. Es el caso del jefe de
+      servicio del cliente, que es su representante y a la vez responde por una sede.
+    -->
+    <label class="mt-3 flex min-h-tactil items-center gap-2">
+      <input type="checkbox" formControlName="tambienEncargado" />
+      <span class="font-semibold">También es encargado de un cliente</span>
+    </label>
+  }
+
+  <div class="mt-3 flex flex-wrap gap-2">
+    <button
+      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      type="submit"
+      [disabled]="enCurso()"
+    >
+      {{ enCurso() ? 'Registrando…' : 'Registrar' }}
+    </button>
+    <a class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold" routerLink="/personas">
+      Cancelar
+    </a>
+  </div>
+</form>
