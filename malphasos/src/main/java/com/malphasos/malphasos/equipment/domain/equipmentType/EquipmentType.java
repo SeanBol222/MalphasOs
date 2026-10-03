@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -16,26 +17,26 @@ import lombok.Getter;
 /**
  * Categoría de equipo, con sus características técnicas y el costo de su mantenimiento.
  *
- * <p><b>No existe un campo {@code verificable}.</b> Se deriva de si hay modalidad de verificación:
- * un tipo es verificable exactamente cuando se sabe cómo verificarlo. El original tenía un booleano
- * y la columna {@code n_tipo_verificacion} en la tabla, sin nada que los atara y sin que el dominio
+ * <p><b>No existe un campo {@code verificable}.</b> Se deriva de si hay alguna verificación declarada:
+ * un tipo es verificable exactamente cuando se sabe cómo verificarlo. El original tenía un booleano y
+ * la columna {@code n_tipo_verificacion} en la tabla, sin nada que los atara y sin que el dominio
  * modelara siquiera la segunda — cabía un tipo marcado como verificable del que nadie sabía cómo se
  * verifica. Al derivar el booleano, ese estado deja de ser expresable.
  *
- * <p><b>Desde el 2026-09-26 sabe además con qué y cuántas veces se verifica</b>, que es el primer trozo
- * de la segunda tanda del módulo. Y los tres datos —modalidad, cantidad de lecturas y puntos— son una
- * sola decisión, así que se cambian juntos:
+ * <p><b>Un tipo se verifica en VARIAS magnitudes, y eso es la corrección del 2026-10-03.</b> Hasta
+ * entonces declaraba una modalidad, una cantidad de lecturas y una lista de puntos con su unidad, es
+ * decir: daba por supuesto que un aparato mide una sola cosa. Un termohigrómetro mide temperatura y
+ * humedad relativa, y con el modelo anterior había que inventarse dos tipos de equipo para un solo
+ * aparato. Ahora cada cosa que se verifica es una {@link TypeVerification}, con su magnitud, su unidad,
+ * su modalidad, su cantidad de lecturas y sus puntos.
  *
- * <ul>
- *   <li>Las dos modalidades <b>constantes</b> exigen una cantidad de lecturas y al menos un punto: son
- *       lo que hace falta para llenar el reporte.
- *   <li>La modalidad <b>variable</b> no admite ninguna de las dos: cuántas lecturas tomar lo decide el
- *       ingeniero en campo, y no hay nada constante que declarar.
- *   <li>Un tipo que <b>no se verifica</b> tampoco lleva ninguna.
- * </ul>
+ * <p>La cantidad de lecturas sigue siendo <b>por punto</b> y no en total: se verifica a 50, a 100 y a
+ * 150 mmHg, y en cada valor se toman las lecturas declaradas. Confundirlo daría un reporte con un
+ * tercio de los datos.
  *
- * <p>La cantidad es <b>por punto</b>, no en total: se verifica a 50, a 100 y a 150 mmHg, y en cada valor
- * se toman las lecturas declaradas. Confundirlo daría un reporte con un tercio de los datos.
+ * <p><b>Un tipo no declara dos veces la misma magnitud</b>, y esa es la única regla que vive aquí y no
+ * en {@link TypeVerification}: ninguna verificación puede comprobarla por sí sola, porque hace falta
+ * ver a sus hermanas.
  *
  * <p>Las verificaciones técnicas y los datos metrológicos que el original guardaba aquí siguen
  * pendientes: esto es con qué se verifica, no el resultado de haberlo hecho.
@@ -61,19 +62,13 @@ public class EquipmentType extends AggregateRoot {
     /** Amperaje nominal, opcional. */
     private BigDecimal amperaje;
 
-    /** Cómo se verifica metrológicamente, o {@code null} si este tipo no se verifica. */
-    private VerificationMode modalidadVerificacion;
-
-    /** Lecturas que se toman <b>en cada punto</b>. Solo con una modalidad constante. */
-    private Integer cantidadDatos;
-
     /**
-     * Los valores constantes en los que se verifica, retirados incluidos.
+     * Qué se verifica en este tipo de equipo, retiradas incluidas.
      *
-     * <p>Se guardan también los retirados porque aquí nada se borra: el punto con el que se hizo un
-     * reporte el año pasado tiene que seguir existiendo.
+     * <p>Se guardan también las retiradas porque aquí nada se borra: la verificación con la que se hizo
+     * un reporte el año pasado tiene que seguir existiendo, y una lectura de ese reporte apunta a ella.
      */
-    private final List<VerificationPoint> puntosVerificacion = new ArrayList<>();
+    private final List<TypeVerification> verificaciones = new ArrayList<>();
 
     private long valorUnitarioMantenimiento;
 
@@ -87,9 +82,7 @@ public class EquipmentType extends AggregateRoot {
             String tecnologiaPredominante,
             Integer voltaje,
             BigDecimal amperaje,
-            VerificationMode modalidadVerificacion,
-            Integer cantidadDatos,
-            List<VerificationPoint> puntos,
+            List<TypeVerification> verificaciones,
             long valorUnitarioMantenimiento,
             boolean estadoActivo) {
 
@@ -100,13 +93,11 @@ public class EquipmentType extends AggregateRoot {
         this.tecnologiaPredominante = tecnologiaPredominante;
         this.voltaje = voltaje;
         this.amperaje = amperaje;
-        this.modalidadVerificacion = modalidadVerificacion;
-        this.cantidadDatos = cantidadDatos;
         this.valorUnitarioMantenimiento = valorUnitarioMantenimiento;
         this.estadoActivo = estadoActivo;
 
-        if (puntos != null) {
-            this.puntosVerificacion.addAll(puntos);
+        if (verificaciones != null) {
+            this.verificaciones.addAll(verificaciones);
         }
     }
 
@@ -117,13 +108,10 @@ public class EquipmentType extends AggregateRoot {
             String tecnologiaPredominante,
             Integer voltaje,
             BigDecimal amperaje,
-            VerificationMode modalidadVerificacion,
-            Integer cantidadDatos,
-            List<VerificationPoint> puntosVerificacion,
+            List<TypeVerification> verificaciones,
             long valorUnitarioMantenimiento) {
 
-        List<VerificationPoint> puntos =
-                validarVerificacion(modalidadVerificacion, cantidadDatos, puntosVerificacion);
+        List<TypeVerification> declaradas = exigirMagnitudesDistintas(verificaciones);
 
         EquipmentType tipo = new EquipmentType(
                 UUID.randomUUID(),
@@ -133,9 +121,7 @@ public class EquipmentType extends AggregateRoot {
                 exigirTexto(tecnologiaPredominante, "tecnologia predominante"),
                 validarVoltaje(voltaje),
                 validarAmperaje(amperaje),
-                modalidadVerificacion,
-                cantidadDatos,
-                puntos,
+                declaradas,
                 validarValor(valorUnitarioMantenimiento),
                 true);
 
@@ -153,39 +139,49 @@ public class EquipmentType extends AggregateRoot {
             String tecnologiaPredominante,
             Integer voltaje,
             BigDecimal amperaje,
-            VerificationMode modalidadVerificacion,
-            Integer cantidadDatos,
-            List<VerificationPoint> puntosVerificacion,
+            List<TypeVerification> verificaciones,
             long valorUnitarioMantenimiento,
             boolean estadoActivo) {
 
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
         return new EquipmentType(id, nombre, definicionTecnica, recomendacionesCuidado,
-                tecnologiaPredominante, voltaje, amperaje, modalidadVerificacion, cantidadDatos,
-                puntosVerificacion, valorUnitarioMantenimiento, estadoActivo);
+                tecnologiaPredominante, voltaje, amperaje, verificaciones,
+                valorUnitarioMantenimiento, estadoActivo);
     }
 
-    /** Los puntos de verificación, retirados incluidos, como copia inmutable. */
-    public List<VerificationPoint> getPuntosVerificacion() {
-        return Collections.unmodifiableList(puntosVerificacion);
+    /** Las verificaciones, retiradas incluidas, como copia inmutable. */
+    public List<TypeVerification> getVerificaciones() {
+        return Collections.unmodifiableList(verificaciones);
     }
 
-    /** Los puntos en los que se verifica hoy, ordenados por valor, que es como se recorren. */
-    public List<VerificationPoint> puntosActivos() {
-        return puntosVerificacion.stream()
-                .filter(VerificationPoint::estadoActivo)
-                .sorted((uno, otro) -> uno.valor().compareTo(otro.valor()))
-                .toList();
+    /** Lo que se verifica hoy. */
+    public List<TypeVerification> verificacionesActivas() {
+        return verificaciones.stream().filter(TypeVerification::estadoActivo).toList();
+    }
+
+    /**
+     * Una verificación de este tipo por su identificador, retirada incluida.
+     *
+     * <p>Retirada incluida a propósito: un reporte viejo apunta a la verificación con la que se hizo, y
+     * tiene que poder encontrarla para imprimirse.
+     */
+    public Optional<TypeVerification> verificacionPorId(UUID verificacionId) {
+        return verificaciones.stream().filter(v -> v.id().equals(verificacionId)).findFirst();
     }
 
     /**
      * Si a este tipo de equipo se le hace verificación metrológica.
      *
-     * <p>Derivado, no almacenado: es verificable exactamente cuando consta cómo verificarlo.
+     * <p>Derivado, no almacenado: es verificable exactamente cuando consta qué verificarle.
      */
     public boolean isVerificable() {
-        return modalidadVerificacion != null;
+        return !verificacionesActivas().isEmpty();
+    }
+
+    /** Cuántas lecturas pide un reporte completo de este tipo, sumando todas sus verificaciones. */
+    public int lecturasEsperadas() {
+        return verificacionesActivas().stream().mapToInt(TypeVerification::lecturasEsperadas).sum();
     }
 
     /** Cambia las características. Un valor nulo deja el campo como está. */
@@ -236,95 +232,67 @@ public class EquipmentType extends AggregateRoot {
     }
 
     /**
-     * Declara cómo se verifica este tipo de equipo, o que no se verifica si se pasa {@code null}.
+     * Declara qué se verifica en este tipo de equipo, o que no se verifica nada si llega la lista vacía.
      *
-     * <p>Es una operación aparte de {@link #update} porque cambia lo que el tipo <i>es</i>: decidir
-     * que un equipo pasa a ser verificable arrastra consigo los datos metrológicos y las
-     * verificaciones que habrá que registrarle.
+     * <p>Es una operación aparte de {@link #update} porque cambia lo que el tipo <i>es</i>: decidir que
+     * un equipo pasa a ser verificable arrastra consigo los datos metrológicos y los reportes que habrá
+     * que registrarle.
+     *
+     * <p><b>Se manda la lista entera y no una verificación suelta.</b> Es la misma decisión que ya se
+     * tomó con los puntos, y por la misma razón: con operaciones por verificación habría que responder
+     * qué significa recibir una que no está en la lista, y esa pregunta no tiene mejor respuesta que «se
+     * retira». Las anteriores se retiran, no se borran — con ellas se firmaron reportes.
      */
-    public void changeVerificationMode(
-            VerificationMode modalidad, Integer cantidadDatos, List<VerificationPoint> puntos) {
+    public void declareVerifications(List<TypeVerification> nuevas) {
+        List<TypeVerification> declaradas = exigirMagnitudesDistintas(nuevas);
 
-        List<VerificationPoint> nuevos = validarVerificacion(modalidad, cantidadDatos, puntos);
-
-        if (modalidad == this.modalidadVerificacion
-                && java.util.Objects.equals(cantidadDatos, this.cantidadDatos)
-                && mismosPuntos(nuevos)) {
+        if (declaraLoMismo(declaradas)) {
             // Un cambio que no cambia nada no emite evento.
             return;
         }
 
-        // Los de antes se retiran, no se borran: con ellos se hicieron los reportes anteriores.
-        puntosVerificacion.replaceAll(
-                punto -> punto.estadoActivo() ? punto.deactivated() : punto);
-        puntosVerificacion.addAll(nuevos);
+        verificaciones.replaceAll(
+                verificacion -> verificacion.estadoActivo() ? verificacion.deactivated() : verificacion);
+        verificaciones.addAll(declaradas);
 
-        this.modalidadVerificacion = modalidad;
-        this.cantidadDatos = cantidadDatos;
         registerEvent(new EquipmentTypeUpdatedEvent(
                 metadataFor(EquipmentTypeUpdatedEvent.TYPE), payload()));
     }
 
-    /** Si los puntos que se piden son exactamente los que ya están activos. */
-    private boolean mismosPuntos(List<VerificationPoint> pedidos) {
-        List<VerificationPoint> activos = puntosActivos();
+    /** Si lo que se pide declarar es exactamente lo que ya está activo. */
+    private boolean declaraLoMismo(List<TypeVerification> pedidas) {
+        List<TypeVerification> activas = verificacionesActivas();
 
-        return activos.size() == pedidos.size()
-                && pedidos.stream()
-                        .allMatch(pedido -> activos.stream().anyMatch(pedido::mideLoMismoQue));
+        return activas.size() == pedidas.size()
+                && pedidas.stream()
+                        .allMatch(pedida -> activas.stream().anyMatch(pedida::declaraLoMismoQue));
     }
 
     /**
-     * Las tres reglas que atan modalidad, cantidad y puntos, en un solo sitio.
+     * Ninguna magnitud dos veces, y es la única regla de verificación que vive en el tipo.
      *
-     * <p>Están aquí y no solo en el esquema porque el esquema no puede mirar la tabla de puntos desde el
-     * {@code CHECK} del tipo: que una modalidad constante exija <b>al menos un punto</b> solo se puede
-     * comprobar aquí. Las otras dos las impone también la base, y tenerlas en los dos sitios es
-     * deliberado — el dominio da el mensaje y la base garantiza que nadie lo esquive por SQL.
+     * <p>Dos verificaciones de temperatura en el mismo aparato son la misma verificación escrita dos
+     * veces: la segunda contradice a la primera sin que nada avise de cuál vale. El esquema lo impone
+     * también, con un índice único parcial, y tenerlo en los dos sitios es deliberado.
      */
-    private static List<VerificationPoint> validarVerificacion(
-            VerificationMode modalidad, Integer cantidadDatos, List<VerificationPoint> puntos) {
+    private static List<TypeVerification> exigirMagnitudesDistintas(
+            List<TypeVerification> verificaciones) {
 
-        List<VerificationPoint> pedidos = puntos == null ? List.of() : List.copyOf(puntos);
+        List<TypeVerification> declaradas =
+                verificaciones == null ? List.of() : List.copyOf(verificaciones);
 
-        if (modalidad == null || modalidad == VerificationMode.PATRON_EQUIPO_VARIABLE) {
-            if (cantidadDatos != null) {
-                throw new IllegalArgumentException(
-                        "Solo las modalidades constantes declaran cuantas lecturas se toman; con "
-                                + (modalidad == null ? "un tipo que no se verifica" : "patron y equipo variables")
-                                + " lo decide el ingeniero en campo");
-            }
-            if (!pedidos.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Solo las modalidades constantes tienen puntos de verificacion: no hay nada"
-                                + " constante que declarar");
-            }
-
-            return pedidos;
-        }
-
-        if (cantidadDatos == null || cantidadDatos < 1 || cantidadDatos > MAXIMO_DATOS) {
-            throw new IllegalArgumentException(
-                    "La modalidad " + modalidad + " necesita entre 1 y " + MAXIMO_DATOS
-                            + " lecturas por punto, y se recibio " + cantidadDatos);
-        }
-        if (pedidos.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "La modalidad " + modalidad + " necesita al menos un punto de verificacion:"
-                            + " es el valor en el que se mantiene lo constante");
-        }
-
-        for (int i = 0; i < pedidos.size(); i++) {
-            for (int j = i + 1; j < pedidos.size(); j++) {
-                if (pedidos.get(i).mideLoMismoQue(pedidos.get(j))) {
+        for (int i = 0; i < declaradas.size(); i++) {
+            for (int j = i + 1; j < declaradas.size(); j++) {
+                if (declaradas.get(i).mideLaMismaMagnitudQue(declaradas.get(j))) {
                     throw new IllegalArgumentException(
-                            "El punto " + pedidos.get(i).valor() + " " + pedidos.get(i).unidad()
-                                    + " esta declarado dos veces");
+                            "La magnitud " + declaradas.get(i).magnitud().nombre()
+                                    + " esta declarada dos veces: un tipo de equipo se verifica una sola"
+                                    + " vez en cada magnitud");
                 }
             }
         }
 
-        return pedidos;
+        return declaradas;
     }
 
     /** Retira el tipo sin borrarlo. Retirar dos veces no emite dos eventos. */
@@ -349,11 +317,8 @@ public class EquipmentType extends AggregateRoot {
     }
 
     private EquipmentTypePayload payload() {
-        return new EquipmentTypePayload(nombre, modalidadVerificacion, valorUnitarioMantenimiento);
+        return new EquipmentTypePayload(nombre, isVerificable(), valorUnitarioMantenimiento);
     }
-
-    /** El tope que el esquema declara. Aquí para que el mensaje lo pueda citar. */
-    private static final int MAXIMO_DATOS = 100;
 
     private static String exigirTexto(String valor, String campo) {
         if (valor == null || valor.isBlank()) {

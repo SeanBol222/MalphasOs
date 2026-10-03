@@ -1,7 +1,8 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.rest;
 
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
-import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChangeVerificationModeCommand;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.TypeVerificationCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.VerificationPointCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeactivateEquipmentTypeCommand;
@@ -9,7 +10,8 @@ import com.malphasos.malphasos.equipment.application.services.equipmentType.comm
 import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.EquipmentTypeCreateRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.EquipmentTypeUpdateRequest;
-import com.malphasos.malphasos.equipment.infrastructure.input.model.request.VerificationModeRequest;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.request.DeclareVerificationsRequest;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.request.TypeVerificationRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.VerificationPointRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentTypeResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,8 +28,12 @@ import org.springframework.web.bind.annotation.*;
 /**
  * API de tipos de equipo.
  *
- * <p>La modalidad de verificación tiene ruta propia y no viaja en el {@code PATCH} general: cambia
- * lo que el tipo es, no solo sus datos. Declararla vuelve verificable el tipo; quitarla lo revierte.
+ * <p>Las verificaciones tienen ruta propia y no viajan en el {@code PATCH} general: cambian lo que el
+ * tipo <i>es</i>, no solo sus datos. Declarar alguna vuelve verificable el tipo; dejar la lista vacía lo
+ * revierte.
+ *
+ * <p>La ruta se llamaba {@code /verification-mode} y recibía una sola modalidad. Desde el 2026-10-03 es
+ * {@code /verifications} y recibe la lista: un termohigrómetro se verifica en dos magnitudes.
  */
 @RestController
 @RequiredArgsConstructor
@@ -53,7 +59,7 @@ public class EquipmentTypeRestAdapter {
     }
 
     @Operation(summary = "Registrar un tipo de equipo",
-            description = "Si se indica la modalidad de verificacion, el tipo queda como verificable.")
+            description = "Si se indica alguna verificacion, el tipo queda como verificable.")
     @PreAuthorize("hasAuthority('equipment.write')")
     @PostMapping
     public ResponseEntity<EquipmentTypeResponse> create(
@@ -67,16 +73,14 @@ public class EquipmentTypeRestAdapter {
                         request.tecnologiaPredominante(),
                         request.voltaje(),
                         request.amperaje(),
-                        request.modalidadVerificacion(),
-                        request.cantidadDatos(),
-                        puntosDe(request.puntosVerificacion()),
+                        verificacionesDe(request.verificaciones()),
                         request.valorUnitarioMantenimiento())));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @Operation(summary = "Cambiar las caracteristicas de un tipo",
-            description = "Los campos ausentes conservan su valor. La modalidad tiene ruta propia.")
+            description = "Los campos ausentes conservan su valor. Las verificaciones tienen ruta propia.")
     @PreAuthorize("hasAuthority('equipment.write')")
     @PatchMapping("/{id}")
     public EquipmentTypeResponse update(
@@ -93,27 +97,37 @@ public class EquipmentTypeRestAdapter {
                 request.valorUnitarioMantenimiento())));
     }
 
-    @Operation(summary = "Declarar como se verifica el tipo",
-            description = "Una modalidad ausente significa que el tipo deja de verificarse.")
+    @Operation(summary = "Declarar que se verifica en el tipo",
+            description = "Una lista vacia significa que el tipo deja de verificarse. Las verificaciones"
+                    + " anteriores se retiran, no se borran.")
     @PreAuthorize("hasAuthority('equipment.write')")
-    @PatchMapping("/{id}/verification-mode")
-    public EquipmentTypeResponse changeVerificationMode(
-            @PathVariable UUID id, @Valid @RequestBody VerificationModeRequest request) {
+    @PatchMapping("/{id}/verifications")
+    public EquipmentTypeResponse declareVerifications(
+            @PathVariable UUID id, @Valid @RequestBody DeclareVerificationsRequest request) {
 
-        return mapper.toResponse(equipmentTypeServicePort.changeVerificationMode(
-                new ChangeVerificationModeCommand(
-                        id,
-                        request.modalidad(),
-                        request.cantidadDatos(),
-                        puntosDe(request.puntosVerificacion()))));
+        return mapper.toResponse(equipmentTypeServicePort.declareVerifications(
+                new DeclareVerificationsCommand(id, verificacionesDe(request.verificaciones()))));
     }
 
-    /** Traduce los puntos del cuerpo a comandos. Una lista ausente es una lista vacia, no un nulo. */
+    /** Traduce el cuerpo a comandos. Una lista ausente es una lista vacia, no un nulo. */
+    private List<TypeVerificationCommand> verificacionesDe(List<TypeVerificationRequest> peticiones) {
+        return peticiones == null
+                ? List.of()
+                : peticiones.stream()
+                        .map(peticion -> new TypeVerificationCommand(
+                                peticion.magnitudId(),
+                                peticion.unidadId(),
+                                peticion.modalidad(),
+                                peticion.cantidadDatos(),
+                                puntosDe(peticion.puntos())))
+                        .toList();
+    }
+
     private List<VerificationPointCommand> puntosDe(List<VerificationPointRequest> puntos) {
         return puntos == null
                 ? List.of()
                 : puntos.stream()
-                        .map(punto -> new VerificationPointCommand(punto.valor(), punto.unidad()))
+                        .map(punto -> new VerificationPointCommand(punto.valor()))
                         .toList();
     }
 

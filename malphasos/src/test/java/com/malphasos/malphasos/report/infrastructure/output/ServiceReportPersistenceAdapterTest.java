@@ -7,13 +7,17 @@ import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
+import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
+import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
 import com.malphasos.malphasos.equipment.domain.manufacturer.Manufacturer;
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.equipment.infrastructure.output.BrandPersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.EquipmentPersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.EquipmentTypePersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.ManufacturerPersistenceAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.output.MetrologyCatalogPersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.ModelPersistenceAdapter;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
@@ -61,6 +65,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM modelo",
             "DELETE FROM equipo",
             "DELETE FROM punto_verificacion",
+            "DELETE FROM verificacion_tipo_equipo",
             "DELETE FROM tipo_equipo",
             "DELETE FROM marca",
             "DELETE FROM fabricante",
@@ -81,6 +86,7 @@ class ServiceReportPersistenceAdapterTest {
     @Autowired private EquipmentTypePersistenceAdapter equipmentTypeAdapter;
     @Autowired private EquipmentPersistenceAdapter equipmentAdapter;
     @Autowired private ModelPersistenceAdapter modelAdapter;
+    @Autowired private MetrologyCatalogPersistenceAdapter metrologyAdapter;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     // ---------------------------------------------------------------------------
@@ -139,12 +145,27 @@ class ServiceReportPersistenceAdapterTest {
         return area;
     }
 
-    /** Un tipo verificable en un punto, para tener un punto real al que apuntar. */
+    /**
+     * Un tipo verificable en un punto, para tener una verificación y un punto reales a los que apuntar.
+     *
+     * <p>La magnitud y la unidad se <b>leen del catálogo sembrado por {@code V10}</b>: no se pueden
+     * inventar, porque el esquema ata el par (magnitud, unidad) con una foránea compuesta.
+     */
     private EquipmentType unTipoVerificable() {
+        Magnitude presion = metrologyAdapter.findAllMagnitudes().stream()
+                .filter(m -> m.codigo().equals("presion"))
+                .findFirst()
+                .orElseThrow();
+        MeasurementUnit mmhg = metrologyAdapter.findUnitsByMagnitude(presion.id()).stream()
+                .filter(u -> u.simbolo().equals("mmHg"))
+                .findFirst()
+                .orElseThrow();
+
         return equipmentTypeAdapter.save(EquipmentType.create(
                 "Tipo " + unico(), "Definicion", "Cuidados", "Electronica", null, null,
-                VerificationMode.PATRON_CONSTANTE, 2,
-                List.of(VerificationPoint.of(new BigDecimal("50"), "mmHg")), 100_000L));
+                List.of(TypeVerification.of(presion, mmhg, VerificationMode.PATRON_CONSTANTE, 2,
+                        List.of(VerificationPoint.of(new BigDecimal("50"))))),
+                100_000L));
     }
 
     private UUID unModeloDe(EquipmentType tipo) {
@@ -181,11 +202,19 @@ class ServiceReportPersistenceAdapterTest {
         orden.addEquipment(equipo, area);
         workOrderAdapter.save(orden);
 
-        return new Alcance(orden.getId(), equipo, tipo.puntosActivos().getFirst().id());
+        TypeVerification verificacion = tipo.verificacionesActivas().getFirst();
+
+        return new Alcance(orden.getId(), equipo, verificacion.id(),
+                verificacion.puntosActivos().getFirst().id());
     }
 
-    /** Lo que hace falta nombrar para abrir un reporte y ponerle lecturas. */
-    private record Alcance(UUID orden, UUID equipo, UUID punto) {
+    /**
+     * Lo que hace falta nombrar para abrir un reporte y ponerle lecturas.
+     *
+     * <p>Lleva la verificación desde el 2026-10-03: una lectura ya no se identifica solo por su punto,
+     * porque con dos magnitudes variables el punto nulo no distingue nada.
+     */
+    private record Alcance(UUID orden, UUID equipo, UUID verificacion, UUID punto) {
     }
 
     /** Las filas de lecturas de un reporte, activas e inactivas, que es lo que la tabla guarda. */
@@ -267,9 +296,9 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(
-                    VerificationReading.of(alcance.punto(), 1, new BigDecimal("50"),
+                    VerificationReading.of(alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"),
                             new BigDecimal("50.2"), "mmHg"),
-                    VerificationReading.of(alcance.punto(), 2, new BigDecimal("50"),
+                    VerificationReading.of(alcance.verificacion(), alcance.punto(), 2, new BigDecimal("50"),
                             new BigDecimal("49.8"), "mmHg")));
             adapter.save(reporte);
 
@@ -293,7 +322,8 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(VerificationReading.of(
-                    null, 1, new BigDecimal("1"), new BigDecimal("1.1"), "mA")));
+                    alcance.verificacion(), null, 1,
+                    new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
             adapter.save(reporte);
 
             assertThat(adapter.findById(reporte.getId()).orElseThrow()
@@ -315,7 +345,7 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(VerificationReading.of(
-                    alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
             adapter.save(reporte);
 
             adapter.save(reporte);
@@ -329,11 +359,11 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(VerificationReading.of(
-                    alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
             adapter.save(reporte);
 
             reporte.recordVerification(List.of(VerificationReading.of(
-                    alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("51.9"), "mmHg")));
+                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("51.9"), "mmHg")));
             adapter.save(reporte);
 
             // Dos filas: la corregida sigue ahi, retirada. Aqui nada se borra.
@@ -371,7 +401,7 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(VerificationReading.of(
-                    alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
             adapter.save(reporte);
 
             reporte.deactivate();

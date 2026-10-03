@@ -103,7 +103,13 @@ public class OpenApiConfig {
                         API + "/brands/**",
                         API + "/manufacturers/**",
                         API + "/client-equipments/**",
-                        API + "/service-areas/*/equipments")
+                        API + "/service-areas/*/equipments",
+                        // El catalogo metrologico va en este grupo y no en uno propio: sus dos listas
+                        // solo sirven para declarar como se verifica un tipo de equipo, y lo protege la
+                        // misma autoridad. Se quedo fuera al nacer el 2026-10-03 -- controlador escrito,
+                        // patron sin anadir -- y lo delato la prueba de cobertura del grupo, que para
+                        // eso existe.
+                        API + "/magnitudes/**")
                 .build();
     }
 

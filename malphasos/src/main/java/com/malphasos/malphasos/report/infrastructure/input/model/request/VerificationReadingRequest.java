@@ -10,13 +10,21 @@ import java.util.UUID;
 /**
  * Una lectura de la verificación.
  *
- * <p><b>La unidad solo se envía cuando no hay punto.</b> Si la lectura declara un punto, la unidad es
- * la de ese punto y el servidor la copia de allí: declararla permitiría imprimir un reporte con una
- * unidad que nadie midió.
+ * <p><b>La unidad ya no se envía nunca</b> (2026-10-03). La declara la verificación, de modo que el
+ * servidor la copia de allí tanto si la lectura tiene punto como si no — antes había que mandarla en el
+ * caso sin punto, y eso permitía imprimir un reporte con una unidad que nadie midió.
+ *
+ * <p><b>Y la verificación es obligatoria</b>: es lo único que dice qué se midió cuando no hay punto, y
+ * un termohigrómetro puede verificar temperatura y humedad las dos sin puntos.
  */
 @Schema(name = "VerificationReadingRequest")
 public record VerificationReadingRequest(
-        @Schema(description = "Punto en el que se tomo. Nulo solo con patron y equipo variables")
+        @NotNull(message = "La lectura declara a que verificacion del tipo pertenece")
+        @Schema(description = "Verificacion activa del tipo del equipo a la que pertenece la lectura")
+        UUID idVerificacion,
+
+        @Schema(description = "Punto en el que se tomo. Nulo solo si esa verificacion usa patron y"
+                + " equipo variables")
         UUID idPuntoVerificacion,
 
         @Schema(description = "Cual de las N lecturas de ese punto es")
@@ -26,8 +34,5 @@ public record VerificationReadingRequest(
 
         @NotNull(message = "El valor del patron es obligatorio") BigDecimal valorPatron,
 
-        @NotNull(message = "El valor del equipo es obligatorio") BigDecimal valorEquipo,
-
-        @Schema(description = "Solo si la lectura no tiene punto; con punto se toma la del punto")
-        String unidadSinPunto) {
+        @NotNull(message = "El valor del equipo es obligatorio") BigDecimal valorEquipo) {
 }

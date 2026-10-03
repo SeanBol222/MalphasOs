@@ -40,7 +40,17 @@ public class VerificationReadingEntity {
     @JoinColumn(name = "k_id_reporte_servicio", nullable = false)
     private ServiceReportEntity reporte;
 
-    /** Punto en el que se tomó, o nulo si la modalidad no declara puntos. */
+    /**
+     * A qué verificación del tipo pertenece. <b>Obligatoria</b>: con dos magnitudes variables, el punto
+     * nulo no distingue cuál se midió.
+     *
+     * <p>Como identificador y no como relación, igual que el punto: mapearla ataría la persistencia de
+     * los reportes a la del catálogo de equipos.
+     */
+    @Column(name = "k_id_verificacion", nullable = false)
+    private UUID idVerificacion;
+
+    /** Punto en el que se tomó, o nulo si la modalidad de esa verificación no declara puntos. */
     @Column(name = "k_id_punto_verificacion")
     private UUID idPuntoVerificacion;
 

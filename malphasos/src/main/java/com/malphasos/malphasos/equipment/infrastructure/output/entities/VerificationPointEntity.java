@@ -17,8 +17,9 @@ import lombok.Setter;
 /**
  * Representación JPA de un punto de verificación.
  *
- * <p>Cuelga de su tipo de equipo y no tiene vida propia: no hay repositorio ni adaptador para ella, se
- * guarda y se lee con el tipo. Es la misma forma que los contactos de un cliente.
+ * <p><b>Cuelga de su verificación y no del tipo de equipo</b> desde el 2026-10-03, y ya no guarda la
+ * unidad: la declara la verificación. Un punto de 50 no significa nada suelto en un aparato que mide
+ * presión y temperatura.
  */
 @Getter
 @Setter
@@ -33,14 +34,11 @@ public class VerificationPointEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "k_id_tipo_equipo", nullable = false)
-    private EquipmentTypeEntity tipoEquipo;
+    @JoinColumn(name = "k_id_verificacion", nullable = false)
+    private TypeVerificationEntity verificacion;
 
     @Column(name = "d_valor", nullable = false, precision = 12, scale = 4)
     private BigDecimal valor;
-
-    @Column(name = "n_unidad", nullable = false, length = 20)
-    private String unidad;
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;

@@ -6,13 +6,17 @@ import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoun
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.MagnitudeNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ManufacturerNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.MeasurementUnitNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeException;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.BrandRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ClientEquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ManufacturerRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.MetrologyCatalogRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ModelRestAdapter;
 import com.malphasos.malphasos.location.domain.exception.CountryNotFoundException;
 import java.util.List;
@@ -36,7 +40,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             EquipmentTypeRestAdapter.class,
             EquipmentRestAdapter.class,
             ModelRestAdapter.class,
-            ClientEquipmentRestAdapter.class
+            ClientEquipmentRestAdapter.class,
+            MetrologyCatalogRestAdapter.class
         })
 public class EquipmentControllerAdvice {
 
@@ -96,6 +101,36 @@ public class EquipmentControllerAdvice {
     public EquipmentErrorResponse handleServiceArea(ServiceAreaNotFoundException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.SERVICE_AREA_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** Una magnitud que no existe en el catálogo metrológico. */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(MagnitudeNotFoundException.class)
+    public EquipmentErrorResponse handleMagnitude(MagnitudeNotFoundException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.MAGNITUDE_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** Una unidad de medida que no existe en el catálogo metrológico. */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(MeasurementUnitNotFoundException.class)
+    public EquipmentErrorResponse handleMeasurementUnit(MeasurementUnitNotFoundException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.MEASUREMENT_UNIT_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /**
+     * Una unidad que existe pero no es de la magnitud declarada.
+     *
+     * <p>409 y no 400 ni 404, por lo mismo que el traslado entre clientes: las dos filas existen y los
+     * dos identificadores son correctos, lo que choca es la combinación. Con 404 el cliente del API
+     * buscaría una unidad que sí está, y con 400 creería que el identificador está mal escrito.
+     */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(UnitOutsideMagnitudeException.class)
+    public EquipmentErrorResponse handleUnitOutsideMagnitude(UnitOutsideMagnitudeException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.UNIT_OUTSIDE_MAGNITUDE, List.of(ex.getMessage()));
     }
 
     /**

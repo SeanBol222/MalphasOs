@@ -42,6 +42,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM modelo",
             "DELETE FROM equipo",
             "DELETE FROM punto_verificacion",
+            "DELETE FROM verificacion_tipo_equipo",
             "DELETE FROM tipo_equipo",
             "DELETE FROM marca",
             "DELETE FROM fabricante",
@@ -111,7 +112,7 @@ class ClientEquipmentRelocationPersistenceTest {
         Manufacturer fabricante = manufacturerAdapter.save(Manufacturer.create("Draeger " + unico(), null));
         Brand marca = brandAdapter.save(Brand.create("Marca " + unico()));
         EquipmentType tipo = equipmentTypeAdapter.save(EquipmentType.create(
-                "Tipo " + unico(), "Definicion", "Cuidados", "Electronica", null, null, null, null,
+                "Tipo " + unico(), "Definicion", "Cuidados", "Electronica", null, null,
                 java.util.List.of(), 100_000L));
         Equipment asociacion = equipmentAdapter.save(Equipment.create(tipo.getId(), marca.getId()));
         Model modelo = modelAdapter.save(Model.create(null, fabricante.getId(), asociacion.getId()));
