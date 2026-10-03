@@ -1,0 +1,223 @@
+@if (persona.isPending()) {
+  <p class="text-neutral-700" role="status">Cargando la persona…</p>
+} @else {
+  @if (hayError()) {
+    <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+      @if (detalles().length) {
+        <ul class="mt-1">
+          @for (detalle of detalles(); track detalle) {
+            <li>{{ detalle }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (persona.data(); as datos) {
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h1 class="text-2xl font-bold">{{ nombre() }}</h1>
+        <p class="text-neutral-700" [class.font-semibold]="datos.estadoActivo">
+          {{ funciones() }} · {{ datos.estadoActivo ? 'Activa' : 'Retirada' }}
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <!--
+          Los botones de escritura dependen del TIPO de esta persona, no de la ruta: tocar a alguien de
+          la casa exige super.person.write y a alguien del cliente person.write. Es la escalera del
+          backend, que la resuelve en un bean por la misma razon.
+        -->
+        @if (puedeEscribir() && datos.estadoActivo) {
+          @if (!editando()) {
+            <button
+              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="editando.set(true)"
+            >
+              Editar datos
+            </button>
+          }
+
+          @if (confirmandoBaja()) {
+            <button
+              class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+              type="button"
+              [disabled]="baja.isPending()"
+              (click)="retirar()"
+            >
+              Confirmar retiro
+            </button>
+            <button
+              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="confirmandoBaja.set(false)"
+            >
+              Cancelar
+            </button>
+          } @else {
+            <button
+              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              type="button"
+              (click)="confirmandoBaja.set(true)"
+            >
+              Retirar
+            </button>
+          }
+        }
+      </div>
+    </div>
+
+    @if (confirmandoBaja()) {
+      <div class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
+        <p>
+          La persona queda retirada con su historia intacta y su cuenta de acceso se deshabilita.
+        </p>
+        <p class="mt-1">
+          <!--
+            El limite es real y heredado: el backend deshabilita la cuenta, pero un token ya emitido
+            sigue abriendo el API hasta que caduca. Decirlo aqui es mas honesto que dar a entender que
+            el acceso se corta en el acto.
+          -->
+          <span class="font-semibold">Si tiene una sesión abierta, seguirá valiendo unos minutos</span>
+          hasta que su credencial caduque.
+        </p>
+      </div>
+    }
+
+    @if (!puedeEscribir() && datos.estadoActivo) {
+      <p class="mt-2 text-neutral-700">
+        No tiene permiso para editar a esta persona: la gente de la casa está un escalón por encima.
+      </p>
+    }
+
+    <dl class="mt-3 grid max-w-[640px] grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+      <dt class="font-semibold">Cédula</dt>
+      <dd>{{ datos.cedula }}</dd>
+
+      <dt class="font-semibold">Función</dt>
+      <dd>{{ funciones() }}</dd>
+    </dl>
+
+    @if (editando()) {
+      <form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="guardar()">
+        <h2 class="text-xl font-bold">Editar datos</h2>
+        <p class="text-neutral-700">
+          Los campos con <span aria-hidden="true">*</span> son obligatorios. La función no se cambia
+          aquí: cambiarla no movería la cuenta de grupo en el sistema de acceso, y quien dejara de ser
+          ingeniero conservaría sus permisos.
+        </p>
+
+        <label class="mt-2 block font-semibold" for="cedula">
+          Cédula <span aria-hidden="true">*</span>
+        </label>
+        <input
+          class="min-h-tactil w-full border-2 border-ink px-1"
+          id="cedula"
+          type="text"
+          inputmode="numeric"
+          maxlength="10"
+          aria-required="true"
+          formControlName="cedula"
+        />
+
+        <div class="mt-2 grid gap-2 sm:grid-cols-2">
+          <div>
+            <label class="block font-semibold" for="primerNombre">
+              Primer nombre <span aria-hidden="true">*</span>
+            </label>
+            <input
+              class="min-h-tactil w-full border-2 border-ink px-1"
+              id="primerNombre"
+              type="text"
+              aria-required="true"
+              formControlName="primerNombre"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="segundoNombre">Segundo nombre</label>
+            <input
+              class="min-h-tactil w-full border-2 border-ink px-1"
+              id="segundoNombre"
+              type="text"
+              formControlName="segundoNombre"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="primerApellido">
+              Primer apellido <span aria-hidden="true">*</span>
+            </label>
+            <input
+              class="min-h-tactil w-full border-2 border-ink px-1"
+              id="primerApellido"
+              type="text"
+              aria-required="true"
+              formControlName="primerApellido"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="segundoApellido">Segundo apellido</label>
+            <input
+              class="min-h-tactil w-full border-2 border-ink px-1"
+              id="segundoApellido"
+              type="text"
+              formControlName="segundoApellido"
+            />
+          </div>
+        </div>
+
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button
+            class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+            type="submit"
+            [disabled]="edicion.isPending()"
+          >
+            {{ edicion.isPending() ? 'Guardando…' : 'Guardar' }}
+          </button>
+          <button
+            class="min-h-tactil border-2 border-ink px-3 font-semibold"
+            type="button"
+            (click)="editando.set(false)"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    }
+
+    <section class="mt-3">
+      <h2 class="text-xl font-bold">Correos</h2>
+      @if (!correos().length) {
+        <p class="text-neutral-700">Sin correos registrados.</p>
+      } @else {
+        <ul>
+          @for (correo of correos(); track correo.idCorreoPersona) {
+            <li class="flex min-h-tactil items-center border-b border-neutral-200">
+              {{ correo.correoPersona }}
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="mt-3">
+      <h2 class="text-xl font-bold">Teléfonos</h2>
+      @if (!telefonos().length) {
+        <p class="text-neutral-700">Sin teléfonos registrados.</p>
+      } @else {
+        <ul>
+          @for (telefono of telefonos(); track telefono.idTelefonoPersona) {
+            <li class="flex min-h-tactil items-center border-b border-neutral-200">
+              {{ telefono.telefonoPersona }}
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <p class="mt-3">
+      <a class="font-semibold underline" routerLink="/personas">Volver al listado</a>
+    </p>
+  }
+}

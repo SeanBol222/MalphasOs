@@ -79,7 +79,9 @@
       <tbody>
         @for (fila of filas(); track fila.id) {
           <tr class="border-b border-neutral-200">
-            <td class="py-1 pr-2 font-semibold">{{ fila.nombre }}</td>
+            <td class="py-1 pr-2 font-semibold">
+              <a class="underline" [routerLink]="['/personas', fila.id]">{{ fila.nombre }}</a>
+            </td>
             <td class="py-1 pr-2">{{ fila.cedula }}</td>
             <td class="py-1 pr-2">{{ fila.oficios }}</td>
             <td class="py-1 pr-2">
