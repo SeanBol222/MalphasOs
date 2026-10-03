@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-09-27
+updated: 2026-10-02
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -294,6 +294,20 @@ Cuatro tandas en un día, del esquema al REST. Las decisiones que condicionan lo
 
 Ver [[dominio-reporte-servicio]] para el detalle.
 
+## El tema de Keycloak (2026-09-28 y 2026-10-02)
+
+- **Dos mecanismos, no uno**: Keycloakify para el login —es una interfaz de verdad— y un **tema clásico** para la consola de administración, donde cambiar logo y colores son cuatro archivos y la vía de Keycloakify son **692**.
+- **El proyecto del tema es React**, y la razón no es de gusto: *«only React supports custom Admin UIs»*. **La primera recomendación de esta sesión fue Angular y estaba mal argumentada** —se invocó el error del `auth/` React del original, que no aplica porque existe librería de Angular—; lo que decide es qué cubre cada opción. Queda escrito en [[tema-de-keycloak]] como patrón de error: el argumento por analogía con una herida vieja sonaba bien y no venía al caso.
+- **Un nombre de tema para los dos**, porque Keycloak resuelve por (nombre, tipo).
+- **El JAR se construye dentro de Docker**, no en la máquina de quien desarrolla: Keycloakify necesita Maven, y montar un JAR ya hecho como volumen falla creando un directorio y arrancando sin tema **en silencio**.
+
+## El módulo de personas en el frontend (2026-10-02)
+
+- **Cuatro altas y no una pantalla con un selector de tipo.** El API tiene cuatro puertas y las dos reglas que las sostienen son del backend: en las tres con cuenta **el tipo lo dice la ruta**, y la cuarta **solo admite `MANAGER`** —`PersonService.save` lo impone para que nadie escriba una fila que dice ser administrador sin serlo—. Un selector sería el campo que invita a lo que el servidor rechaza.
+- **La ficha se edita en sí misma, no en una pantalla aparte** —rompiendo con el precedente de cliente y sede— porque **el permiso depende de la fila**: una ruta aparte tendría que declarar una autoridad fija antes de saber a quién carga. Es la misma razón por la que el backend lo resuelve en un bean y no en la anotación.
+- **El tipo de persona se ve y no se cambia**: cambiarlo no mueve al usuario de grupo en Keycloak, así que ofrecerlo sería ofrecer una acción cuya consecuencia el servidor no completa.
+- **El menú oculta por autoridad**, y la autoridad la declara la **entrada de navegación**, de donde salen a la vez el menú y el guard de la ruta. Lo hizo necesario «Personas»: el primer destino que un grupo legítimo del realm no puede usar.
+
 ## Pendientes de decidir
 
 - Organización del frontend por feature vs por tipo técnico: ver [[arquitectura-frontend]]. **Resuelto de hecho el 2026-09-13**: por módulo de negocio con los nombres del backend, ver [[arquitectura-frontend-malphasos]].
@@ -302,4 +316,4 @@ Ver [[dominio-reporte-servicio]] para el detalle.
 
 ## Notas relacionadas
 
-[[modelo-de-permisos]] · [[sincronizacion-con-proveedor-de-identidad]] · [[regla-traslado-mismo-cliente]] · [[dominio-orden-trabajo]] · [[dominio-reporte-servicio]] · [[congelar-una-referencia-historica]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+[[modelo-de-permisos]] · [[tema-de-keycloak]] · [[sincronizacion-con-proveedor-de-identidad]] · [[regla-traslado-mismo-cliente]] · [[dominio-orden-trabajo]] · [[dominio-reporte-servicio]] · [[congelar-una-referencia-historica]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]

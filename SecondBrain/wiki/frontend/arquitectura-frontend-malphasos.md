@@ -4,14 +4,14 @@ description: Como se construye el frontend de MalphasOS -Angular, por modulo de 
 tags: [frontend, arquitectura, angular, "describe:malphasos"]
 source: Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex
 estado: estable
-updated: 2026-09-28
+updated: 2026-10-02
 ---
 
 # Arquitectura del frontend de MalphasOS
 
 **Esta nota dice cómo se escribe código de frontend aquí.** Las decisiones y su porqué están en el documento oficial, `Documentation/wiki/documentos/declaracion-diseno-frontend.md` en `Documentation/`; esta nota es la versión operativa para quien va a construir. El sistema visual tiene nota aparte: [[sistema-de-diseno-malphasos]].
 
-**Estado al 2026-09-28**: el proyecto existe, habla con el API desde un navegador y cubre **clientes, equipos con su catálogo, órdenes de trabajo y reportes de servicio**, con **368** pruebas. (Esta línea decía «decidido y sin escribir, no existe todavía el proyecto»: cierto hasta el **2026-09-13**.)
+**Estado al 2026-10-02**: el proyecto existe, habla con el API desde un navegador y cubre **clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio y personas**, con **395** pruebas. (Esta línea decía «decidido y sin escribir, no existe todavía el proyecto»: cierto hasta el **2026-09-13**.)
 
 ## El stack, y dónde vive
 
@@ -160,6 +160,18 @@ Encontrado el 2026-09-28 en la tabla de verificación de un reporte, y **el defe
 
 La regla que queda: cuando el contenido de un formulario se construye desde datos asíncronos, **el estado activo/desactivado se aplica también al reconstruirlo**, no solo cuando cambia la condición. Lo encontró la prueba del caso no editable, que es de las que parecen tontas hasta que pasa esto.
 
+### Un `input.required()` no se puede leer en el constructor
+
+Encontrado el 2026-10-02 en el alta de una persona, con las nueve pruebas del archivo en rojo y el mismo mensaje: *«Input is required but no value is available yet»*. El valor de una entrada llega **después** de construir el componente, así que cualquier lógica que dependa de ella —aquí, qué campos son obligatorios según la clase de alta— va en un `effect()`, donde se lee cuando ya está.
+
+Y si esa lógica **pone** algo, tiene que **quitarlo** en la misma pasada: el router puede reutilizar el componente al pasar de una clase de alta a otra, y un validador que solo se añade se queda pegado.
+
+### Un selector de prueba laxo pulsa el botón equivocado
+
+Del mismo día, y es el que de verdad deja pasar defectos. El ayudante de las pruebas buscaba el botón por **texto parcial en toda la página**, y la ficha de una persona tiene **tres botones «Retirar»** —la persona, un correo, un teléfono— y dos que empiezan por «Añadir». La prueba pedía retirar un correo y **estaba retirando a la persona**; lo delataron dos aserciones que esperaban una petición que nunca salía.
+
+La regla que queda: **texto exacto y clic acotado a su sección**. Un `includes` sobre todo el documento es una prueba que puede estar verificando otra cosa.
+
 ### Un fallo en `afterEach` se lee como ochenta y seis
 
 También del 2026-09-28, y es la trampa de diagnóstico más caras de esta sesión. Una prueba dejó **una petición sin responder**; el `http.verify()` del `afterEach` lanzó, y esa excepción **impidió a Angular desmontar el TestBed**. Las once pruebas siguientes fallaron con «el módulo ya está instanciado», los trabajadores del corredor se contaminaron entre sí y el recuento llegó a **86 fallos en archivos que nadie había tocado** —clientes, armazón— con recuentos distintos en cada ejecución.
@@ -182,6 +194,8 @@ El entorno de pruebas de Angular reinicia el TestBed en un `beforeEach` propio, 
 El formulario de una orden arrastra consigo el selector de cliente, el de sede, la selección múltiple de áreas y la de equipos — piezas que los demás módulos reutilizarán.
 
 **Cierra cuatro requisitos** que hoy están abiertos sólo por falta de formulario: RF-03, RF-04, RF-06 y RF-07. Ver [[hoja-de-ruta-producto]].
+
+> **Y el 2026-10-02 entró el módulo de personas**, que tenía catorce operaciones en el API y ninguna pantalla: listado con filtro, las cuatro altas con su escalera de permisos, la ficha con edición y baja, y los contactos. Con él, el menú aprendió a **ocultar por autoridad**. No sube el marcador de requisitos —RF-51 a RF-53 ya contaban por el backend— y sí cierra el hueco de que no hubiera forma de dar de alta a nadie sin `curl`.
 
 > **Cerró tres de los cuatro el 2026-09-27**, y RF-04 quedó como desviación consciente. Y el **2026-09-28 entraron los reportes de servicio**, en cuatro tandas: la ficha del reporte con los cinco campos de RF-15, la tabla de verificación, el historial de un equipo y el bloque que autocompleta desde la orden —que es lo que cerró **RF-11**—. El detalle de cada decisión está en [[dominio-reporte-servicio]]; lo que vale para cualquier pantalla está arriba, en las tres lecciones nuevas de pruebas.
 
