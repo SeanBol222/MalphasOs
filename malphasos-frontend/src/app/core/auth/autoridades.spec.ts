@@ -96,10 +96,22 @@ describe('Autoridades', () => {
  * <b>literal escrito</b>: importarlo obligaria a ejecutar cada {@code loadComponent} para llegar a
  * los guards, y un guard es una funcion cerrada sobre su cadena, de la que no se puede recuperar.
  */
+/**
+ * Las autoridades que los destinos exigen, de los DOS sitios donde se declaran.
+ *
+ * <p>`app.routes.ts` las nombra con `requiereAutoridad('...')`, y desde el 2026-10-02 las entradas de
+ * `navegacion.ts` las declaran como un campo, porque de ahi salen a la vez el menu y el guard. Leer
+ * solo el primer archivo dejaria las del menu sin comprobar contra el realm, que es exactamente el
+ * agujero que esta prueba existe para tapar.
+ */
 function autoridadesExigidasPorLasRutas(): string[] {
-  const fuente = readFileSync(resolve(process.cwd(), 'src/app/app.routes.ts'), 'utf8');
+  const rutas = readFileSync(resolve(process.cwd(), 'src/app/app.routes.ts'), 'utf8');
+  const navegacion = readFileSync(resolve(process.cwd(), 'src/app/core/navegacion.ts'), 'utf8');
 
-  return [...fuente.matchAll(/requiereAutoridad\('([^']+)'\)/g)].map(([, autoridad]) => autoridad);
+  return [
+    ...[...rutas.matchAll(/requiereAutoridad\('([^']+)'\)/g)].map(([, autoridad]) => autoridad),
+    ...[...navegacion.matchAll(/autoridad:\s*'([^']+)'/g)].map(([, autoridad]) => autoridad),
+  ];
 }
 
 interface Realm {

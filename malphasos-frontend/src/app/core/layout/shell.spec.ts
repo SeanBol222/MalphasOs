@@ -10,9 +10,27 @@ describe('Armazón', () => {
   /** El armazon de pruebas de la ruta actual, para poder detectar cambios tras pulsar algo. */
   let armazon: RouterTestingHarness;
 
-  async function pintar(destino = '/inicio'): Promise<HTMLElement> {
+  /**
+   * Las autoridades de lectura de todos los destinos del menu: una sesion que lo ve entero.
+   *
+   * <p>Hacen falta desde el 2026-10-02: el menu oculta lo que la sesion no puede usar, de modo que sin
+   * esto se pintaria solo «Inicio». Se nombran una a una en vez de usar {@code admin.full} a proposito
+   * —asi la prueba falla si una entrada cambia de autoridad— y porque es el perfil real del grupo que
+   * mas destinos ve sin ser administrador.
+   */
+  const LECTURA_COMPLETA = [
+    'client.read',
+    'equipment.read',
+    'work-order.read',
+    'person.read',
+  ];
+
+  async function pintar(
+    destino = '/inicio',
+    autoridades: readonly string[] = LECTURA_COMPLETA,
+  ): Promise<HTMLElement> {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), ...proveerSesionFalsa()],
+      providers: [provideRouter(routes), ...proveerSesionFalsa({ autoridades })],
     });
     armazon = await RouterTestingHarness.create();
     await armazon.navigateByUrl(destino);
@@ -30,6 +48,27 @@ describe('Armazón', () => {
 
     expect(raiz.querySelectorAll('nav > ul > li > a')).toHaveLength(simples.length);
     expect(raiz.querySelectorAll('nav > ul > li > button')).toHaveLength(desplegables.length);
+  });
+
+  it('no pinta el destino que la sesión no puede usar', async () => {
+    // Es el caso real del grupo `clients` del realm: tiene client.read y equipment.read, y NO tiene
+    // person.read. Antes del 2026-10-02 el menu le ofrecia «Personas», que responde 403.
+    const raiz = await pintar('/inicio', ['client.read', 'equipment.read']);
+    const destinos = [...raiz.querySelectorAll('nav > ul > li')].map((li) =>
+      (li.textContent ?? '').trim(),
+    );
+
+    expect(destinos).toContain('Clientes');
+    expect(destinos).toContain('Equipos');
+    expect(destinos).not.toContain('Personas');
+    expect(destinos).not.toContain('Órdenes');
+  });
+
+  it('quien trae admin.full lo ve todo, sin nombrar una sola autoridad de recurso', async () => {
+    // La expansion la resuelve Sesion.puede en un solo sitio, igual que ApiAuthority en el backend.
+    const raiz = await pintar('/inicio', ['admin.full']);
+
+    expect(raiz.querySelectorAll('nav > ul > li')).toHaveLength(NAVEGACION.length);
   });
 
   describe('La entrada que se despliega', () => {
