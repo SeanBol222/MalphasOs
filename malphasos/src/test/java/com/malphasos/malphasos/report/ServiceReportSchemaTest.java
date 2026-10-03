@@ -65,6 +65,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM equipo",
             "DELETE FROM marca",
             "DELETE FROM punto_verificacion",
+            "DELETE FROM verificacion_tipo_equipo",
             "DELETE FROM tipo_equipo",
             "DELETE FROM fabricante",
             "DELETE FROM area_servicio",
@@ -152,29 +153,53 @@ class ServiceReportSchemaTest {
         return id;
     }
 
-    /** Un punto de verificación cualquiera, con su tipo de equipo detrás. */
-    private UUID insertVerificationPoint(BigDecimal valor, String unidad) {
-        UUID tipo = UUID.randomUUID();
+    /**
+     * Una verificación con su tipo de equipo detrás, y el punto que le cuelga.
+     *
+     * <p>La magnitud y la unidad se <b>leen del catálogo sembrado por {@code V10}</b>: no se pueden
+     * inventar, porque el esquema ata el par (magnitud, unidad) con una foránea compuesta.
+     */
+    private Verificacion insertVerification(String codigoMagnitud, String simbolo, String valor) {
+        UUID tipo = insertType();
+        UUID verificacion = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo, t_definicion_tecnica,
-                                         t_recomendaciones_cuidado, t_tecnologia_predominante,
-                                         b_verificable, n_tipo_verificacion, i_cantidad_datos,
-                                         m_valor_unitario_mantenimiento)
-                VALUES (?, ?, 'Definicion', 'Cuidados', 'Electronica',
-                        true, 'patron_constante', 3, 150000)
+                INSERT INTO verificacion_tipo_equipo (k_id_verificacion, k_id_tipo_equipo,
+                                                      k_id_magnitud, k_id_unidad_medida,
+                                                      n_modalidad_verificacion, i_cantidad_datos)
+                SELECT ?, ?, m.k_id_magnitud, u.k_id_unidad_medida, 'patron_constante', 3
+                FROM magnitud m JOIN unidad_medida u USING (k_id_magnitud)
+                WHERE m.n_codigo_magnitud = ? AND u.n_simbolo_unidad = ?
                 """,
-                tipo, "Tipo " + unico());
+                verificacion, tipo, codigoMagnitud, simbolo);
 
-        UUID punto = UUID.randomUUID();
-        jdbcTemplate.update(
-                """
-                INSERT INTO punto_verificacion (k_id_punto_verificacion, k_id_tipo_equipo, d_valor, n_unidad)
-                VALUES (?, ?, ?, ?)
-                """,
-                punto, tipo, valor, unidad);
+        UUID punto = null;
 
-        return punto;
+        if (valor != null) {
+            punto = UUID.randomUUID();
+            jdbcTemplate.update(
+                    """
+                    INSERT INTO punto_verificacion (k_id_punto_verificacion, k_id_verificacion, d_valor)
+                    VALUES (?, ?, CAST(? AS numeric))
+                    """,
+                    punto, verificacion, valor);
+        }
+
+        return new Verificacion(verificacion, punto);
+    }
+
+    /** Una verificación de presión con un punto, que es lo que piden casi todas las pruebas. */
+    private Verificacion unaVerificacion() {
+        return insertVerification("presion", "mmHg", "50.0000");
+    }
+
+    /** Una verificación sin puntos, para las lecturas que no los llevan. */
+    private Verificacion unaVerificacionSinPuntos() {
+        return insertVerification("presion", "mmHg", null);
+    }
+
+    /** Lo que hace falta nombrar para escribir una lectura: su verificación y, si hay, su punto. */
+    private record Verificacion(UUID id, UUID punto) {
     }
 
     private UUID insertClientEquipment(UUID area) {
@@ -278,16 +303,23 @@ class ServiceReportSchemaTest {
         return id;
     }
 
-    private UUID insertReading(UUID reporte, UUID punto, int secuencia, String valor, String unidad) {
+    /**
+     * Una lectura. <b>Lleva su verificación desde {@code V10}</b>, y es obligatoria: con dos magnitudes
+     * variables el punto nulo no distingue cuál se midió.
+     */
+    private UUID insertReading(
+            UUID reporte, UUID verificacion, UUID punto, int secuencia, String valor, String unidad) {
+
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
                 INSERT INTO dato_verificacion (k_id_dato_verificacion, k_id_reporte_servicio,
-                                               k_id_punto_verificacion, i_secuencia,
+                                               k_id_verificacion, k_id_punto_verificacion, i_secuencia,
                                                d_valor_patron, d_valor_equipo, n_unidad)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                id, reporte, punto, secuencia, new BigDecimal(valor), new BigDecimal(valor), unidad);
+                id, reporte, verificacion, punto, secuencia, new BigDecimal(valor),
+                new BigDecimal(valor), unidad);
 
         return id;
     }
@@ -534,12 +566,44 @@ class ServiceReportSchemaTest {
     void lecturaConPuntoYSinPunto() {
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
-        UUID punto = insertVerificationPoint(new BigDecimal("50.0000"), "mmHg");
+        Verificacion verificacion = unaVerificacion();
+        Verificacion sinPuntos = unaVerificacionSinPuntos();
 
-        assertThatCode(() -> insertReading(reporte, punto, 1, "50.2000", "mmHg"))
+        assertThatCode(() -> insertReading(
+                        reporte, verificacion.id(), verificacion.punto(), 1, "50.2000", "mmHg"))
                 .doesNotThrowAnyException();
-        assertThatCode(() -> insertReading(reporte, null, 1, "12.3400", "mA"))
+        assertThatCode(() -> insertReading(reporte, sinPuntos.id(), null, 1, "12.3400", "mmHg"))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("una lectura sin verificacion falla: es lo que la distingue cuando no hay punto")
+    void lecturaSinVerificacionFalla() {
+        // La columna entro en V10 para tapar el agujero que el cambio de ese dia abria: con dos
+        // magnitudes variables, dos lecturas sin punto eran indistinguibles y el reporte no sabia en
+        // que columna imprimirlas.
+        UUID[] alcance = insertEquipmentInOrder();
+        UUID reporte = insertDraft(alcance[0], alcance[1]);
+
+        assertThatThrownBy(() -> insertReading(reporte, null, null, 1, "1.0000", "mA"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("el punto tiene que ser de SU verificacion, y eso si lo puede comprobar el esquema")
+    void puntoDeOtraVerificacionFalla() {
+        // V9 decia que el esquema no puede exigir que el punto pertenezca al tipo del equipo
+        // reportado, porque son cuatro saltos hasta tipo_equipo. Eso sigue siendo verdad para el
+        // equipo; pero que el punto sea de SU verificacion es un solo salto, y lo impone una foranea
+        // compuesta.
+        UUID[] alcance = insertEquipmentInOrder();
+        UUID reporte = insertDraft(alcance[0], alcance[1]);
+        Verificacion una = unaVerificacion();
+        Verificacion otra = insertVerification("temperatura", "°C", "37.0000");
+
+        assertThatThrownBy(() -> insertReading(
+                        reporte, una.id(), otra.punto(), 1, "50.1000", "mmHg"))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -547,29 +611,35 @@ class ServiceReportSchemaTest {
     void valorNegativoSeAdmite() {
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
+        Verificacion sinPuntos = unaVerificacionSinPuntos();
 
-        assertThatCode(() -> insertReading(reporte, null, 1, "-20.5000", "C"))
+        assertThatCode(() -> insertReading(reporte, sinPuntos.id(), null, 1, "-20.5000", "C"))
                 .doesNotThrowAnyException();
     }
 
     @ParameterizedTest
     @ValueSource(ints = {0, -1, 101})
-    @DisplayName("la secuencia esta entre 1 y 100, el mismo tope que la cantidad de datos de V8")
+    @DisplayName("la secuencia esta entre 1 y 100, el mismo tope que la cantidad de datos")
     void secuenciaFueraDeRangoFalla(int secuencia) {
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
+        Verificacion sinPuntos = unaVerificacionSinPuntos();
 
-        assertThatThrownBy(() -> insertReading(reporte, null, secuencia, "1.0000", "mA"))
+        assertThatThrownBy(() -> insertReading(
+                        reporte, sinPuntos.id(), null, secuencia, "1.0000", "mA"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("una unidad en blanco falla: un numero pelado no se puede imprimir")
     void unidadEnBlancoFalla() {
+        // La unidad sigue congelada en la lectura, aunque ahora la ponga el servidor desde la
+        // verificacion: reconfigurar un tipo no debe cambiar un reporte ya firmado.
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
+        Verificacion sinPuntos = unaVerificacionSinPuntos();
 
-        assertThatThrownBy(() -> insertReading(reporte, null, 1, "1.0000", "  "))
+        assertThatThrownBy(() -> insertReading(reporte, sinPuntos.id(), null, 1, "1.0000", "  "))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -578,10 +648,11 @@ class ServiceReportSchemaTest {
     void secuenciaRepetidaEnElMismoPuntoFalla() {
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
-        UUID punto = insertVerificationPoint(new BigDecimal("50.0000"), "mmHg");
-        insertReading(reporte, punto, 1, "50.1000", "mmHg");
+        Verificacion verificacion = unaVerificacion();
+        insertReading(reporte, verificacion.id(), verificacion.punto(), 1, "50.1000", "mmHg");
 
-        assertThatThrownBy(() -> insertReading(reporte, punto, 1, "50.9000", "mmHg"))
+        assertThatThrownBy(() -> insertReading(
+                        reporte, verificacion.id(), verificacion.punto(), 1, "50.9000", "mmHg"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -590,12 +661,31 @@ class ServiceReportSchemaTest {
     void secuenciaRepetidaSinPuntoFalla() {
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
-        insertReading(reporte, null, 1, "1.0000", "mA");
+        Verificacion sinPuntos = unaVerificacionSinPuntos();
+        insertReading(reporte, sinPuntos.id(), null, 1, "1.0000", "mA");
 
         // Por defecto PostgreSQL considera dos NULL distintos, y sin la clausula la modalidad variable
         // -- la unica que deja el punto nulo -- seria la unica que admitiria duplicados.
-        assertThatThrownBy(() -> insertReading(reporte, null, 1, "2.0000", "mA"))
+        assertThatThrownBy(() -> insertReading(reporte, sinPuntos.id(), null, 1, "2.0000", "mA"))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("sin punto, dos VERIFICACIONES distintas si pueden repetir la secuencia")
+    void mismaSecuenciaSinPuntoEnVerificacionesDistintas() {
+        // ESTE ES EL CASO QUE V10 ARREGLA. El indice de V9 era (reporte, punto, secuencia) con NULLS
+        // NOT DISTINCT: correcto entonces, porque habia una sola modalidad por tipo y una lectura sin
+        // punto solo podia ser de la unica verificacion que existia. Con dos magnitudes variables, la
+        // lectura 1 de temperatura y la 1 de humedad tenian las dos el punto nulo y el mismo numero, de
+        // modo que la segunda chocaba contra la primera aunque midieran cosas distintas.
+        UUID[] alcance = insertEquipmentInOrder();
+        UUID reporte = insertDraft(alcance[0], alcance[1]);
+        Verificacion una = unaVerificacionSinPuntos();
+        Verificacion otra = insertVerification("temperatura", "°C", null);
+        insertReading(reporte, una.id(), null, 1, "1.0000", "mmHg");
+
+        assertThatCode(() -> insertReading(reporte, otra.id(), null, 1, "37.0000", "°C"))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -603,11 +693,12 @@ class ServiceReportSchemaTest {
     void mismaSecuenciaEnPuntosDistintos() {
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
-        UUID unPunto = insertVerificationPoint(new BigDecimal("50.0000"), "mmHg");
-        UUID otroPunto = insertVerificationPoint(new BigDecimal("150.0000"), "mmHg");
-        insertReading(reporte, unPunto, 1, "50.1000", "mmHg");
+        Verificacion una = unaVerificacion();
+        Verificacion otra = insertVerification("presion", "kPa", "150.0000");
+        insertReading(reporte, una.id(), una.punto(), 1, "50.1000", "mmHg");
 
-        assertThatCode(() -> insertReading(reporte, otroPunto, 1, "150.4000", "mmHg"))
+        assertThatCode(() -> insertReading(
+                        reporte, otra.id(), otra.punto(), 1, "150.4000", "kPa"))
                 .doesNotThrowAnyException();
     }
 
@@ -616,13 +707,15 @@ class ServiceReportSchemaTest {
     void retirarLaLecturaDejaVolverATomarla() {
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
-        UUID punto = insertVerificationPoint(new BigDecimal("50.0000"), "mmHg");
-        UUID primera = insertReading(reporte, punto, 1, "50.1000", "mmHg");
+        Verificacion verificacion = unaVerificacion();
+        UUID primera = insertReading(
+                reporte, verificacion.id(), verificacion.punto(), 1, "50.1000", "mmHg");
         jdbcTemplate.update(
                 "UPDATE dato_verificacion SET b_estado_activo = false WHERE k_id_dato_verificacion = ?",
                 primera);
 
-        assertThatCode(() -> insertReading(reporte, punto, 1, "50.2000", "mmHg"))
+        assertThatCode(() -> insertReading(
+                        reporte, verificacion.id(), verificacion.punto(), 1, "50.2000", "mmHg"))
                 .doesNotThrowAnyException();
     }
 
@@ -631,12 +724,28 @@ class ServiceReportSchemaTest {
     void puntoRetiradoSigueSiendoReferenciable() {
         UUID[] alcance = insertEquipmentInOrder();
         UUID reporte = insertDraft(alcance[0], alcance[1]);
-        UUID punto = insertVerificationPoint(new BigDecimal("50.0000"), "mmHg");
+        Verificacion verificacion = unaVerificacion();
         jdbcTemplate.update(
                 "UPDATE punto_verificacion SET b_estado_activo = false WHERE k_id_punto_verificacion = ?",
-                punto);
+                verificacion.punto());
 
-        assertThatCode(() -> insertReading(reporte, punto, 1, "50.1000", "mmHg"))
+        assertThatCode(() -> insertReading(
+                        reporte, verificacion.id(), verificacion.punto(), 1, "50.1000", "mmHg"))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("una verificacion retirada sigue siendo referenciable, por lo mismo")
+    void verificacionRetiradaSigueSiendoReferenciable() {
+        UUID[] alcance = insertEquipmentInOrder();
+        UUID reporte = insertDraft(alcance[0], alcance[1]);
+        Verificacion verificacion = unaVerificacion();
+        jdbcTemplate.update(
+                "UPDATE verificacion_tipo_equipo SET b_estado_activo = false WHERE k_id_verificacion = ?",
+                verificacion.id());
+
+        assertThatCode(() -> insertReading(
+                        reporte, verificacion.id(), verificacion.punto(), 1, "50.1000", "mmHg"))
                 .doesNotThrowAnyException();
     }
 }

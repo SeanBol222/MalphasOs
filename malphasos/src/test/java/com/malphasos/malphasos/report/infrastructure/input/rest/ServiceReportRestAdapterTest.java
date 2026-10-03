@@ -146,17 +146,20 @@ class ServiceReportRestAdapterTest {
     @DisplayName("PATCH de la verificacion traslada cada lectura al comando")
     void registrarVerificacion() throws Exception {
         UUID punto = UUID.randomUUID();
+        UUID verificacion = UUID.randomUUID();
         ServiceReport reporte = unReporte();
         reporte.recordVerification(List.of(VerificationReading.of(
-                punto, 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                verificacion, punto, 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
         when(serviceReportServicePort.recordVerification(any())).thenReturn(reporte);
 
         mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/verification")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new RecordVerificationRequest(
                                 List.of(new VerificationReadingRequest(
-                                        punto, 1, new BigDecimal("50"), new BigDecimal("50.2"), null))))))
+                                        verificacion, punto, 1,
+                                        new BigDecimal("50"), new BigDecimal("50.2")))))))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lecturas[0].idVerificacion").value(verificacion.toString()))
                 .andExpect(jsonPath("$.lecturas[0].idPuntoVerificacion").value(punto.toString()))
                 .andExpect(jsonPath("$.lecturas[0].unidad").value("mmHg"));
 
@@ -187,7 +190,8 @@ class ServiceReportRestAdapterTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new RecordVerificationRequest(
                                 List.of(new VerificationReadingRequest(
-                                        UUID.randomUUID(), 101, BigDecimal.ONE, BigDecimal.TWO, null))))))
+                                        UUID.randomUUID(), UUID.randomUUID(), 101,
+                                        BigDecimal.ONE, BigDecimal.TWO))))))
                 .andExpect(status().isBadRequest());
 
         verify(serviceReportServicePort, never()).recordVerification(any());
@@ -298,7 +302,8 @@ class ServiceReportRestAdapterTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new RecordVerificationRequest(
                                 List.of(new VerificationReadingRequest(
-                                        null, 1, BigDecimal.ONE, BigDecimal.TWO, "mA"))))))
+                                        UUID.randomUUID(), null, 1,
+                                        BigDecimal.ONE, BigDecimal.TWO))))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_008"));
     }

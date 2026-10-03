@@ -10,6 +10,12 @@ import com.malphasos.malphasos.equipment.infrastructure.input.model.response.Bra
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ClientEquipmentResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentTypeResponse;
+import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
+import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
+import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.MagnitudeResponse;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.MeasurementUnitResponse;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.TypeVerificationResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.VerificationPointResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ManufacturerResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ModelResponse;
@@ -52,17 +58,50 @@ public class EquipmentRestMapper {
                 .voltaje(tipo.getVoltaje())
                 .amperaje(tipo.getAmperaje())
                 .verificable(tipo.isVerificable())
-                .modalidadVerificacion(tipo.getModalidadVerificacion())
-                .cantidadDatos(tipo.getCantidadDatos())
-                // Solo los activos: los retirados se guardan por los reportes que se hicieron con
-                // ellos, y devolverlos los pondria a competir con los de ahora.
-                .puntosVerificacion(tipo.puntosActivos().stream()
-                        .map(punto -> new VerificationPointResponse(
-                                punto.id(), punto.valor(), punto.unidad()))
-                        .toList())
+                // Solo las activas, y dentro de cada una solo sus puntos activos: lo retirado se guarda
+                // por los reportes que se hicieron con ello, y devolverlo lo pondria a competir con lo
+                // de ahora.
+                .verificaciones(tipo.verificacionesActivas().stream().map(this::toResponse).toList())
                 .valorUnitarioMantenimiento(tipo.getValorUnitarioMantenimiento())
                 .estadoActivo(tipo.isEstadoActivo())
                 .build();
+    }
+
+    /**
+     * Una verificación, con el nombre de su magnitud y el símbolo de su unidad.
+     *
+     * <p>Los nombres salen de las piezas que la verificación lleva dentro, así que esto no consulta
+     * nada: es la razón por la que el dominio las embebe en vez de guardar solo identificadores.
+     */
+    public TypeVerificationResponse toResponse(TypeVerification verificacion) {
+        return new TypeVerificationResponse(
+                verificacion.id(),
+                verificacion.magnitud().id(),
+                verificacion.magnitud().nombre(),
+                verificacion.unidad().id(),
+                verificacion.unidad().simbolo(),
+                verificacion.unidad().nombre(),
+                verificacion.modalidad(),
+                verificacion.cantidadDatos(),
+                verificacion.puntosActivos().stream()
+                        .map(punto -> new VerificationPointResponse(punto.id(), punto.valor()))
+                        .toList());
+    }
+
+    public MagnitudeResponse toResponse(Magnitude magnitud) {
+        return new MagnitudeResponse(magnitud.id(), magnitud.codigo(), magnitud.nombre());
+    }
+
+    public List<MagnitudeResponse> toMagnitudeList(List<Magnitude> magnitudes) {
+        return magnitudes.stream().map(this::toResponse).toList();
+    }
+
+    public MeasurementUnitResponse toResponse(MeasurementUnit unidad) {
+        return new MeasurementUnitResponse(unidad.id(), unidad.simbolo(), unidad.nombre());
+    }
+
+    public List<MeasurementUnitResponse> toUnitList(List<MeasurementUnit> unidades) {
+        return unidades.stream().map(this::toResponse).toList();
     }
 
     public List<EquipmentTypeResponse> toEquipmentTypeList(List<EquipmentType> tipos) {

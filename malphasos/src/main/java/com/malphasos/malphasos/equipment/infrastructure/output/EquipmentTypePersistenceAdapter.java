@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.infrastructure.output;
 
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentTypePersistencePort;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
+import com.malphasos.malphasos.equipment.infrastructure.output.entities.EquipmentTypeEntity;
 import com.malphasos.malphasos.equipment.infrastructure.output.mapper.EquipmentCatalogPersistenceMapper;
 import com.malphasos.malphasos.equipment.infrastructure.output.repository.EquipmentTypeRepository;
 import java.util.List;
@@ -40,9 +41,29 @@ public class EquipmentTypePersistenceAdapter implements EquipmentTypePersistence
         return equipmentTypeRepository.findById(id).map(mapper::toDomain);
     }
 
+    /**
+     * Guarda en dos pasadas, y la razón está entera en el javadoc del mapper.
+     *
+     * <p>En resumen: Hibernate vacía los {@code INSERT} antes que los {@code UPDATE}, de modo que al
+     * redeclarar la verificación de una magnitud la fila retirada y su sustituta están activas a la vez
+     * y el índice único parcial salta. La primera pasada actualiza lo que ya está —incluida la retirada—,
+     * el {@code saveAndFlush} la manda a la base, y solo entonces se insertan las nuevas.
+     *
+     * <p>Es la misma forma que {@code ServiceReportPersistenceAdapter}, que pagó esta trampa primero.
+     */
     @Override
     @Transactional
     public EquipmentType save(EquipmentType equipmentType) {
-        return mapper.toDomain(equipmentTypeRepository.save(mapper.toEntity(equipmentType)));
+        EquipmentTypeEntity existente =
+                equipmentTypeRepository.findById(equipmentType.getId()).orElse(null);
+        EquipmentTypeEntity entity = mapper.toEntity(equipmentType, existente);
+
+        if (existente != null) {
+            equipmentTypeRepository.saveAndFlush(entity);
+        }
+
+        mapper.addNewVerifications(equipmentType, entity);
+
+        return mapper.toDomain(equipmentTypeRepository.save(entity));
     }
 }

@@ -41,6 +41,7 @@ public class ServiceReportPersistenceMapper {
         List<VerificationReading> lecturas = entity.getLecturas().stream()
                 .map(fila -> VerificationReading.rehydrate(
                         fila.getId(),
+                        fila.getIdVerificacion(),
                         fila.getIdPuntoVerificacion(),
                         fila.getSecuencia(),
                         fila.getValorPatron(),
@@ -148,6 +149,7 @@ public class ServiceReportPersistenceMapper {
     }
 
     private void volcar(VerificationReading lectura, VerificationReadingEntity fila) {
+        fila.setIdVerificacion(lectura.idVerificacion());
         fila.setIdPuntoVerificacion(lectura.idPuntoVerificacion());
         fila.setSecuencia(lectura.secuencia());
         fila.setValorPatron(lectura.valorPatron());

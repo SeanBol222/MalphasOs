@@ -34,6 +34,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM equipo",
             "DELETE FROM marca",
             "DELETE FROM punto_verificacion",
+            "DELETE FROM verificacion_tipo_equipo",
             "DELETE FROM tipo_equipo",
             "DELETE FROM fabricante",
             "DELETE FROM area_servicio",

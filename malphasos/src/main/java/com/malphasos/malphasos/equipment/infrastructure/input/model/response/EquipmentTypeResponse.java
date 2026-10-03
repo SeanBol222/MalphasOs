@@ -1,6 +1,5 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.model.response;
 
-import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.List;
@@ -11,11 +10,10 @@ import lombok.Builder;
  * Un tipo de equipo.
  *
  * <p>{@code verificable} se expone porque al cliente del API le resulta cómodo, pero es derivado:
- * vale verdadero exactamente cuando hay modalidad.
+ * vale verdadero exactamente cuando hay al menos una verificación activa.
  *
- * <p>{@code cantidadDatos} son las lecturas <b>por punto</b>, no en total, y {@code puntosVerificacion}
- * trae solo los activos. Las dos vienen vacías cuando el tipo no se verifica o cuando patrón y equipo
- * varían.
+ * <p>{@code verificaciones} trae solo las <b>activas</b>, y cada una sus puntos activos. Las retiradas
+ * se quedan en la base porque con ellas se firmaron reportes, pero no son con qué se verifica hoy.
  */
 @Builder
 @Schema(name = "EquipmentTypeResponse")
@@ -28,10 +26,7 @@ public record EquipmentTypeResponse(
         Integer voltaje,
         BigDecimal amperaje,
         boolean verificable,
-        VerificationMode modalidadVerificacion,
-        @Schema(description = "Lecturas por punto. Solo con modalidad constante", example = "3")
-        Integer cantidadDatos,
-        List<VerificationPointResponse> puntosVerificacion,
+        List<TypeVerificationResponse> verificaciones,
         long valorUnitarioMantenimiento,
         boolean estadoActivo) {
 }

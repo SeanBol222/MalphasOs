@@ -152,7 +152,12 @@
       "VerificationReadingRequest" : {
         "properties" : {
           "idPuntoVerificacion" : {
-            "description" : "Punto en el que se tomo. Nulo solo con patron y equipo variables",
+            "description" : "Punto en el que se tomo. Nulo solo si esa verificacion usa patron y equipo variables",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idVerificacion" : {
+            "description" : "Verificacion activa del tipo del equipo a la que pertenece la lectura",
             "format" : "uuid",
             "type" : "string"
           },
@@ -163,10 +168,6 @@
             "minimum" : 1,
             "type" : "integer"
           },
-          "unidadSinPunto" : {
-            "description" : "Solo si la lectura no tiene punto; con punto se toma la del punto",
-            "type" : "string"
-          },
           "valorEquipo" : {
             "type" : "number"
           },
@@ -174,7 +175,7 @@
             "type" : "number"
           }
         },
-        "required" : [ "valorEquipo", "valorPatron" ],
+        "required" : [ "idVerificacion", "valorEquipo", "valorPatron" ],
         "type" : "object"
       },
       "VerificationReadingResponse" : {
@@ -184,7 +185,11 @@
             "type" : "string"
           },
           "idPuntoVerificacion" : {
-            "description" : "Nulo si la modalidad no declara puntos",
+            "description" : "Nulo si esa verificacion no declara puntos",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idVerificacion" : {
             "format" : "uuid",
             "type" : "string"
           },
@@ -677,7 +682,7 @@
     },
     "/v1/api/reports/{id}/verification" : {
       "patch" : {
-        "description" : "Sustituye la verificacion anterior entera; las lecturas corregidas quedan retiradas, no borradas. Cada lectura se comprueba contra los puntos y la cantidad de datos que declara el tipo del equipo.",
+        "description" : "Sustituye la verificacion anterior entera; las lecturas corregidas quedan retiradas, no borradas. Cada lectura declara a que verificacion del tipo pertenece, y se comprueba contra los puntos y la cantidad de datos que esa verificacion declara.",
         "operationId" : "recordVerification",
         "parameters" : [ {
           "in" : "path",

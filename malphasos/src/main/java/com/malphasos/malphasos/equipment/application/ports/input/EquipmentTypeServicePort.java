@@ -1,6 +1,6 @@
 package com.malphasos.malphasos.equipment.application.ports.input;
 
-import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChangeVerificationModeCommand;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeactivateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.UpdateEquipmentTypeCommand;
@@ -19,8 +19,8 @@ public interface EquipmentTypeServicePort {
 
     EquipmentType update(UpdateEquipmentTypeCommand command);
 
-    /** Declara cómo se verifica el tipo, o que deja de verificarse. */
-    EquipmentType changeVerificationMode(ChangeVerificationModeCommand command);
+    /** Declara qué se verifica en el tipo, o que deja de verificarse si la lista llega vacía. */
+    EquipmentType declareVerifications(DeclareVerificationsCommand command);
 
     void deactivate(DeactivateEquipmentTypeCommand command);
 }

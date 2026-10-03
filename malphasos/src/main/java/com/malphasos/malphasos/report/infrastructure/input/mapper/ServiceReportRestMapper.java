@@ -19,6 +19,7 @@ public class ServiceReportRestMapper {
         List<VerificationReadingResponse> lecturas = reporte.lecturasActivas().stream()
                 .map(lectura -> new VerificationReadingResponse(
                         lectura.id(),
+                        lectura.idVerificacion(),
                         lectura.idPuntoVerificacion(),
                         lectura.secuencia(),
                         lectura.valorPatron(),

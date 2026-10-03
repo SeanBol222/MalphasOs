@@ -29,6 +29,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM equipo",
             "DELETE FROM marca",
             "DELETE FROM punto_verificacion",
+            "DELETE FROM verificacion_tipo_equipo",
             "DELETE FROM tipo_equipo",
             "DELETE FROM fabricante"
         },
@@ -49,40 +50,80 @@ class EquipmentCatalogSchemaTest {
         return id;
     }
 
-    private UUID insertType(boolean verificable, String modalidad, BigDecimal amperaje) {
+    /**
+     * Un tipo de equipo. <b>Ya no recibe modalidad ni verificable</b>: las tres columnas bajaron a
+     * {@code verificacion_tipo_equipo} en {@code V10}, y «se verifica» es «tiene filas allí».
+     */
+    private UUID insertType(BigDecimal amperaje) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
                 INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo, t_definicion_tecnica,
                                          t_recomendaciones_cuidado, t_tecnologia_predominante,
-                                         d_amperaje, b_verificable, n_tipo_verificacion,
-                                         i_cantidad_datos, m_valor_unitario_mantenimiento)
-                VALUES (?, ?, 'Definicion', 'Cuidados', 'Electronica', ?, ?, ?, ?, 150000)
+                                         d_amperaje, m_valor_unitario_mantenimiento)
+                VALUES (?, ?, 'Definicion', 'Cuidados', 'Electronica', ?, 150000)
                 """,
-                id, "Tipo " + unico(), amperaje, verificable, modalidad, cantidadPara(modalidad));
+                id, "Tipo " + unico(), amperaje);
 
         return id;
     }
 
-    /**
-     * La cantidad de datos que la modalidad exige, o {@code null} si no admite ninguna.
-     *
-     * <p>Desde {@code V8} las dos modalidades constantes la exigen y la variable la prohibe, de modo que
-     * este ayudante ya no puede insertar un tipo sin decidirlo.
-     */
-    private Integer cantidadPara(String modalidad) {
-        return "patron_constante".equals(modalidad) || "equipo_constante".equals(modalidad) ? 3 : null;
+    /** La magnitud sembrada por {@code V10} con ese código. No se inventa: el esquema la exige real. */
+    private UUID magnitud(String codigo) {
+        return jdbcTemplate.queryForObject(
+                "SELECT k_id_magnitud FROM magnitud WHERE n_codigo_magnitud = ?", UUID.class, codigo);
     }
 
-    private UUID insertPoint(UUID tipo, String valor, String unidad, boolean activo) {
+    /** Una unidad de esa magnitud. El par (magnitud, unidad) es lo que la foránea compuesta exige. */
+    private UUID unidad(String codigoMagnitud, String simbolo) {
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT u.k_id_unidad_medida FROM unidad_medida u
+                         JOIN magnitud m USING (k_id_magnitud)
+                WHERE m.n_codigo_magnitud = ? AND u.n_simbolo_unidad = ?
+                """,
+                UUID.class, codigoMagnitud, simbolo);
+    }
+
+    private UUID insertVerification(
+            UUID tipo, String codigoMagnitud, String simbolo, String modalidad, Integer cantidad) {
+
+        return insertVerification(tipo, codigoMagnitud, simbolo, modalidad, cantidad, true);
+    }
+
+    private UUID insertVerification(UUID tipo, String codigoMagnitud, String simbolo,
+            String modalidad, Integer cantidad, boolean activa) {
+
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO punto_verificacion (k_id_punto_verificacion, k_id_tipo_equipo, d_valor,
-                                                n_unidad, b_estado_activo)
-                VALUES (?, ?, CAST(? AS numeric), ?, ?)
+                INSERT INTO verificacion_tipo_equipo (k_id_verificacion, k_id_tipo_equipo,
+                                                      k_id_magnitud, k_id_unidad_medida,
+                                                      n_modalidad_verificacion, i_cantidad_datos,
+                                                      b_estado_activo)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                id, tipo, valor, unidad, activo);
+                id, tipo, magnitud(codigoMagnitud), unidad(codigoMagnitud, simbolo), modalidad,
+                cantidad, activa);
+
+        return id;
+    }
+
+    /** Una verificación constante con lo que su modalidad exige, para colgarle puntos. */
+    private UUID unaVerificacionConstante(UUID tipo) {
+        return insertVerification(tipo, "presion", "mmHg", "patron_constante", 3);
+    }
+
+    /** Un punto. <b>Ya no lleva unidad</b>: la declara su verificación. */
+    private UUID insertPoint(UUID verificacion, String valor, boolean activo) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO punto_verificacion (k_id_punto_verificacion, k_id_verificacion, d_valor,
+                                                b_estado_activo)
+                VALUES (?, ?, CAST(? AS numeric), ?)
+                """,
+                id, verificacion, valor, activo);
 
         return id;
     }
@@ -97,17 +138,97 @@ class EquipmentCatalogSchemaTest {
     }
 
     @Test
-    @DisplayName("las seis tablas del catalogo existen tras la migracion")
+    @DisplayName("las nueve tablas del catalogo existen tras las migraciones")
     void migracionCreaLasTablas() {
+        // Eran seis hasta V8, siete con punto_verificacion, y nueve desde V10 con el nivel de las
+        // verificaciones y los dos catalogos metrologicos.
         assertThat(jdbcTemplate.queryForObject(
                         """
                         SELECT count(*) FROM information_schema.tables
                         WHERE table_schema = 'public'
                           AND table_name IN ('fabricante', 'marca', 'tipo_equipo', 'equipo',
-                                             'modelo', 'equipo_cliente')
+                                             'modelo', 'equipo_cliente', 'verificacion_tipo_equipo',
+                                             'magnitud', 'unidad_medida')
                         """,
                         Integer.class))
-                .isEqualTo(6);
+                .isEqualTo(9);
+    }
+
+    @Test
+    @DisplayName("tipo_equipo ya no lleva las tres columnas que bajaron de nivel")
+    void tipoSinLasColumnasViejas() {
+        // b_verificable era exactamente 'n_tipo_verificacion IS NOT NULL', redundante por
+        // construccion, y las otras dos no pueden ser del tipo porque valen distinto por magnitud.
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT count(*) FROM information_schema.columns
+                        WHERE table_name = 'tipo_equipo'
+                          AND column_name IN ('b_verificable', 'n_tipo_verificacion',
+                                              'i_cantidad_datos')
+                        """,
+                        Integer.class))
+                .isZero();
+    }
+
+    @Test
+    @DisplayName("el catalogo metrologico esta sembrado, y un simbolo puede estar en dos magnitudes")
+    void catalogoSembrado() {
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM magnitud", Integer.class))
+                .isGreaterThanOrEqualTo(20);
+        // '%' es a la vez humedad relativa y concentracion: por eso el simbolo es unico POR magnitud
+        // y no en toda la tabla. Una unicidad global habria obligado a inventarse un simbolo falso.
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM unidad_medida WHERE n_simbolo_unidad = '%'",
+                        Integer.class))
+                .isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("una unidad de otra magnitud no se puede declarar: lo impide la foranea compuesta")
+    void unidadDeOtraMagnitud() {
+        // Es la regla que el esquema SI puede expresar, y la expresa: la foranea apunta al par
+        // (magnitud, unidad) a la vez, de modo que %HR para temperatura es imposible de escribir.
+        UUID tipo = insertType(null);
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        """
+                        INSERT INTO verificacion_tipo_equipo (k_id_verificacion, k_id_tipo_equipo,
+                                                              k_id_magnitud, k_id_unidad_medida,
+                                                              n_modalidad_verificacion,
+                                                              i_cantidad_datos)
+                        VALUES (?, ?, ?, ?, 'patron_constante', 3)
+                        """,
+                        UUID.randomUUID(), tipo, magnitud("temperatura"),
+                        unidad("humedad_relativa", "%HR")))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("un tipo no declara dos veces la misma magnitud, pero una retirada no estorba")
+    void magnitudUnicaPorTipo() {
+        UUID tipo = insertType(null);
+        insertVerification(tipo, "presion", "mmHg", "patron_constante", 3);
+
+        assertThatThrownBy(() -> insertVerification(tipo, "presion", "kPa", "equipo_constante", 1))
+                .describedAs("la misma magnitud, otra unidad, las dos activas")
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        // El indice es parcial: una retirada deja volver a declarar su magnitud, que es lo que permite
+        // reconfigurar sin borrar nada.
+        insertVerification(tipo, "temperatura", "°C", "patron_constante", 3, false);
+        assertThatCode(() -> insertVerification(tipo, "temperatura", "K", "equipo_constante", 1))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("dos magnitudes distintas en el mismo tipo si valen: es el termohigrometro")
+    void dosMagnitudesEnElMismoTipo() {
+        UUID tipo = insertType(null);
+        insertVerification(tipo, "temperatura", "°C", "patron_constante", 3);
+
+        assertThatCode(() -> insertVerification(
+                        tipo, "humedad_relativa", "%HR", "patron_equipo_variable", null))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -125,38 +246,29 @@ class EquipmentCatalogSchemaTest {
     void amperajeConDecimales() {
         // El original lo declaraba numeric(2): maximo 99 y sin decimales, de modo que 2.5 A se
         // redondeaba a 3.
-        UUID tipo = insertType(false, null, new BigDecimal("2.50"));
+        UUID tipo = insertType(new BigDecimal("2.50"));
 
         assertThat(jdbcTemplate.queryForObject(
                         "SELECT d_amperaje FROM tipo_equipo WHERE k_id_tipo_equipo = ?",
                         BigDecimal.class, tipo))
                 .isEqualByComparingTo("2.50");
 
-        assertThatCode(() -> insertType(false, null, new BigDecimal("120.75")))
+        assertThatCode(() -> insertType(new BigDecimal("120.75")))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("un tipo verificable exige decir como se verifica")
-    void verificableExigeModalidad() {
-        assertThatCode(() -> insertType(true, "patron_constante", null)).doesNotThrowAnyException();
+    @DisplayName("una verificacion necesita su modalidad, y del catalogo de tres")
+    void modalidadObligatoriaYDelCatalogo() {
+        // Antes la modalidad del TIPO podia ser nula y significaba 'no se verifica'. Ahora eso se dice
+        // con la ausencia de filas, y una verificacion sin modalidad no tiene sentido.
+        UUID tipo = insertType(null);
 
-        // El original dejaba las dos columnas sueltas.
-        assertThatThrownBy(() -> insertType(true, null, null))
+        assertThatThrownBy(() -> insertVerification(tipo, "presion", "mmHg", null, 3))
+                .describedAs("sin modalidad")
                 .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("un tipo no verificable no puede traer modalidad")
-    void noVerificableSinModalidad() {
-        assertThatThrownBy(() -> insertType(false, "patron_constante", null))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("la modalidad de verificacion solo admite los tres valores del catalogo")
-    void modalidadDelCatalogo() {
-        assertThatThrownBy(() -> insertType(true, "a_ojo", null))
+        assertThatThrownBy(() -> insertVerification(tipo, "presion", "mmHg", "a_ojo", 3))
+                .describedAs("una modalidad inventada")
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -178,7 +290,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("la misma marca no fabrica dos veces el mismo tipo de equipo")
     void asociacionUnica() {
-        UUID tipo = insertType(false, null, null);
+        UUID tipo = insertType(null);
         UUID marca = insertBrand();
         insertEquipment(tipo, marca);
 
@@ -190,7 +302,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("un modelo necesita fabricante y equipo")
     void modeloNecesitaSusReferencias() {
-        UUID equipo = insertEquipment(insertType(false, null, null), insertBrand());
+        UUID equipo = insertEquipment(insertType(null), insertBrand());
 
         assertThatThrownBy(() -> jdbcTemplate.update(
                         "INSERT INTO modelo (k_id_modelo, k_id_fabricante, k_id_equipo) VALUES (?, NULL, ?)",
@@ -206,7 +318,7 @@ class EquipmentCatalogSchemaTest {
                 "INSERT INTO fabricante (k_id_fabricante, n_nombre_fabricante) VALUES (?, ?)",
                 fabricante, "Fabricante " + unico());
 
-        UUID equipo = insertEquipment(insertType(false, null, null), insertBrand());
+        UUID equipo = insertEquipment(insertType(null), insertBrand());
         String invima = "INVIMA-" + unico();
 
         jdbcTemplate.update(
@@ -247,67 +359,32 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("una modalidad constante exige decir cuantos datos se toman")
     void modalidadConstanteExigeCantidad() {
-        // Sin esto cabe un tipo que dice comparar contra un patron constante sin decir cuantas
-        // lecturas se toman, y el reporte no se puede llenar.
-        assertThatThrownBy(() -> jdbcTemplate.update(
-                        """
-                        INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo,
-                                                 t_definicion_tecnica, t_recomendaciones_cuidado,
-                                                 t_tecnologia_predominante, b_verificable,
-                                                 n_tipo_verificacion, m_valor_unitario_mantenimiento)
-                        VALUES (?, ?, 'D', 'C', 'E', true, 'patron_constante', 1000)
-                        """,
-                        UUID.randomUUID(), "Tipo " + unico()))
+        // Sin esto cabe una verificacion que dice comparar contra un patron constante sin decir
+        // cuantas lecturas se toman, y el reporte no se puede llenar.
+        UUID tipo = insertType(null);
+
+        assertThatThrownBy(() -> insertVerification(tipo, "presion", "mmHg", "patron_constante", null))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("la modalidad variable no admite cantidad: la decide el ingeniero en campo")
     void modalidadVariableProhibeCantidad() {
-        assertThatThrownBy(() -> jdbcTemplate.update(
-                        """
-                        INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo,
-                                                 t_definicion_tecnica, t_recomendaciones_cuidado,
-                                                 t_tecnologia_predominante, b_verificable,
-                                                 n_tipo_verificacion, i_cantidad_datos,
-                                                 m_valor_unitario_mantenimiento)
-                        VALUES (?, ?, 'D', 'C', 'E', true, 'patron_equipo_variable', 5, 1000)
-                        """,
-                        UUID.randomUUID(), "Tipo " + unico()))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
+        UUID tipo = insertType(null);
 
-    @Test
-    @DisplayName("un tipo que no se verifica tampoco lleva cantidad")
-    void noVerificableProhibeCantidad() {
-        // Es la rama que en SQL se escapa: «NOT IN (...)» con NULL da NULL, no falso.
-        assertThatThrownBy(() -> jdbcTemplate.update(
-                        """
-                        INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo,
-                                                 t_definicion_tecnica, t_recomendaciones_cuidado,
-                                                 t_tecnologia_predominante, b_verificable,
-                                                 n_tipo_verificacion, i_cantidad_datos,
-                                                 m_valor_unitario_mantenimiento)
-                        VALUES (?, ?, 'D', 'C', 'E', false, NULL, 5, 1000)
-                        """,
-                        UUID.randomUUID(), "Tipo " + unico()))
+        assertThatThrownBy(() -> insertVerification(
+                        tipo, "presion", "mmHg", "patron_equipo_variable", 5))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("la cantidad de datos va de 1 a 100")
     void cantidadAcotada() {
+        UUID tipo = insertType(null);
+
         for (int cantidad : new int[] {0, 101}) {
-            assertThatThrownBy(() -> jdbcTemplate.update(
-                            """
-                            INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo,
-                                                     t_definicion_tecnica, t_recomendaciones_cuidado,
-                                                     t_tecnologia_predominante, b_verificable,
-                                                     n_tipo_verificacion, i_cantidad_datos,
-                                                     m_valor_unitario_mantenimiento)
-                            VALUES (?, ?, 'D', 'C', 'E', true, 'equipo_constante', ?, 1000)
-                            """,
-                            UUID.randomUUID(), "Tipo " + unico(), cantidad))
+            assertThatThrownBy(() -> insertVerification(
+                            tipo, "presion", "mmHg", "equipo_constante", cantidad))
                     .describedAs("cantidad " + cantidad)
                     .isInstanceOf(DataIntegrityViolationException.class);
         }
@@ -317,45 +394,61 @@ class EquipmentCatalogSchemaTest {
     @DisplayName("un punto de verificacion admite valores negativos: un congelador se verifica a -20 grados")
     void puntoAdmiteNegativos() {
         // Un CHECK de positividad aqui habria dejado fuera media cadena de frio.
-        UUID tipo = insertType(true, "patron_constante", null);
+        UUID verificacion = unaVerificacionConstante(insertType(null));
 
-        assertThatCode(() -> insertPoint(tipo, "-20.0000", "°C", true)).doesNotThrowAnyException();
+        assertThatCode(() -> insertPoint(verificacion, "-20.0000", true)).doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("un punto necesita su tipo y una unidad que diga algo")
-    void puntoNecesitaTipoYUnidad() {
-        UUID tipo = insertType(true, "patron_constante", null);
+    @DisplayName("un punto necesita su verificacion, no su tipo de equipo")
+    void puntoNecesitaSuVerificacion() {
+        // Cambio de padre en V10: un punto de 50 no significa nada suelto en un aparato que mide
+        // presion Y temperatura.
+        assertThatThrownBy(() -> insertPoint(UUID.randomUUID(), "100", true))
+                .describedAs("una verificacion que no existe")
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
 
-        assertThatThrownBy(() -> insertPoint(UUID.randomUUID(), "100", "mmHg", true))
-                .describedAs("un tipo que no existe")
-                .isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> insertPoint(tipo, "100", "   ", true))
-                .describedAs("una unidad en blanco")
-                .isInstanceOf(DataIntegrityViolationException.class);
+    @Test
+    @DisplayName("punto_verificacion ya no tiene columna de unidad")
+    void puntoSinUnidad() {
+        // Era lo que obligaba a teclear 'mmHg' tantas veces como puntos hubiera, y permitia que dos
+        // puntos hermanos se contradijeran.
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT count(*) FROM information_schema.columns
+                        WHERE table_name = 'punto_verificacion' AND column_name = 'n_unidad'
+                        """,
+                        Integer.class))
+                .isZero();
     }
 
     @Test
     @DisplayName("dos puntos activos iguales son el mismo dos veces, pero uno retirado no estorba")
     void puntoActivoUnico() {
-        UUID tipo = insertType(true, "patron_constante", null);
-        insertPoint(tipo, "100.0000", "mmHg", true);
+        UUID verificacion = unaVerificacionConstante(insertType(null));
+        insertPoint(verificacion, "100.0000", true);
 
-        assertThatThrownBy(() -> insertPoint(tipo, "100.0000", "mmHg", true))
+        assertThatThrownBy(() -> insertPoint(verificacion, "100.0000", true))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         // El indice es parcial: con uno retirado se puede volver a dar de alta el mismo valor, que es
         // lo que permite reconfigurar sin borrar nada.
-        insertPoint(tipo, "50.0000", "mmHg", false);
-        assertThatCode(() -> insertPoint(tipo, "50.0000", "mmHg", true)).doesNotThrowAnyException();
+        insertPoint(verificacion, "50.0000", false);
+        assertThatCode(() -> insertPoint(verificacion, "50.0000", true)).doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("el mismo valor en otra unidad es otro punto")
-    void puntoDistinguePorUnidad() {
-        UUID tipo = insertType(true, "equipo_constante", null);
-        insertPoint(tipo, "100.0000", "mmHg", true);
+    @DisplayName("el mismo valor en otra verificacion es otro punto")
+    void puntoDistinguePorVerificacion() {
+        // Antes se distinguian por la unidad escrita a mano en el punto; ahora por su verificacion,
+        // que es lo que hace que 40 grados y 40 por ciento no choquen.
+        UUID tipo = insertType(null);
+        UUID dePresion = insertVerification(tipo, "presion", "mmHg", "patron_constante", 3);
+        UUID deTemperatura = insertVerification(tipo, "temperatura", "°C", "equipo_constante", 1);
+        insertPoint(dePresion, "100.0000", true);
 
-        assertThatCode(() -> insertPoint(tipo, "100.0000", "kPa", true)).doesNotThrowAnyException();
+        assertThatCode(() -> insertPoint(deTemperatura, "100.0000", true))
+                .doesNotThrowAnyException();
     }
 }

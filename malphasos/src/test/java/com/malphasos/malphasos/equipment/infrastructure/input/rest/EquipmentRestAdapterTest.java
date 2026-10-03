@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChangeVerificationModeCommand;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.VerificationPointRequest;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
@@ -20,7 +20,10 @@ import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
+import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
+import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.*;
@@ -56,16 +59,45 @@ class EquipmentRestAdapterTest {
     @MockitoBean private ModelServicePort modelServicePort;
     @MockitoBean private ClientEquipmentServicePort clientEquipmentServicePort;
 
+    private static final UUID ID_TEMPERATURA = UUID.randomUUID();
+    private static final UUID ID_GRADOS = UUID.randomUUID();
+    private static final UUID ID_HUMEDAD = UUID.randomUUID();
+    private static final UUID ID_PORCIENTO = UUID.randomUUID();
+
+    private static final Magnitude TEMPERATURA =
+            new Magnitude(ID_TEMPERATURA, "temperatura", "Temperatura", true);
+    private static final MeasurementUnit GRADOS =
+            new MeasurementUnit(ID_GRADOS, ID_TEMPERATURA, "°C", "grado Celsius", true);
+    private static final Magnitude HUMEDAD =
+            new Magnitude(ID_HUMEDAD, "humedad_relativa", "Humedad relativa", true);
+    private static final MeasurementUnit PORCIENTO =
+            new MeasurementUnit(ID_PORCIENTO, ID_HUMEDAD, "%HR", "por ciento de humedad relativa", true);
+
+    /** Un tipo con la modalidad indicada en temperatura, o sin ninguna verificación si llega nula. */
     private EquipmentType unTipo(VerificationMode modalidad) {
-        // Las modalidades constantes traen su cantidad y sus puntos; las demas, ninguno de los dos.
+        return tipoCon(modalidad == null
+                ? List.of()
+                : List.of(unaVerificacion(TEMPERATURA, GRADOS, modalidad)));
+    }
+
+    private EquipmentType tipoCon(List<TypeVerification> verificaciones) {
+        return EquipmentType.rehydrate(UUID.randomUUID(), "Monitor", "Def", "Cuid", "Electronica",
+                110, new BigDecimal("2.50"), verificaciones, 150_000L, true);
+    }
+
+    /** Las modalidades constantes traen su cantidad y un punto; la variable, ninguno de los dos. */
+    private TypeVerification unaVerificacion(
+            Magnitude magnitud, MeasurementUnit unidad, VerificationMode modalidad) {
+
         boolean constante = modalidad == VerificationMode.PATRON_CONSTANTE
                 || modalidad == VerificationMode.EQUIPO_CONSTANTE;
 
-        return EquipmentType.rehydrate(UUID.randomUUID(), "Monitor", "Def", "Cuid", "Electronica",
-                110, new BigDecimal("2.50"), modalidad,
+        return TypeVerification.of(
+                magnitud,
+                unidad,
+                modalidad,
                 constante ? 3 : null,
-                constante ? List.of(VerificationPoint.of(new BigDecimal("100"), "mmHg")) : List.of(),
-                150_000L, true);
+                constante ? List.of(VerificationPoint.of(new BigDecimal("100"))) : List.of());
     }
 
     @Test
@@ -92,7 +124,7 @@ class EquipmentRestAdapterTest {
     }
 
     @Test
-    @DisplayName("el tipo expone verificable derivado de la modalidad")
+    @DisplayName("el tipo expone verificable derivado de que haya verificaciones")
     void verificableDerivado() throws Exception {
         when(equipmentTypeServicePort.findAll())
                 .thenReturn(List.of(unTipo(VerificationMode.PATRON_CONSTANTE)));
@@ -100,91 +132,126 @@ class EquipmentRestAdapterTest {
         mockMvc.perform(get("/v1/api/equipment-types"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].verificable").value(true))
-                .andExpect(jsonPath("$[0].modalidadVerificacion").value("PATRON_CONSTANTE"))
+                .andExpect(jsonPath("$[0].verificaciones[0].modalidad").value("PATRON_CONSTANTE"))
                 .andExpect(jsonPath("$[0].amperaje").value(2.50));
     }
 
     @Test
-    @DisplayName("sin modalidad, el tipo se expone como no verificable")
+    @DisplayName("sin verificaciones, el tipo se expone como no verificable")
     void noVerificable() throws Exception {
         when(equipmentTypeServicePort.findAll()).thenReturn(List.of(unTipo(null)));
 
         mockMvc.perform(get("/v1/api/equipment-types"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].verificable").value(false))
-                .andExpect(jsonPath("$[0].modalidadVerificacion").doesNotExist());
+                .andExpect(jsonPath("$[0].verificaciones").isEmpty());
     }
 
     @Test
-    @DisplayName("la ruta de la modalidad lleva tambien la cantidad y los puntos")
-    void modalidadConCantidadYPuntos() throws Exception {
-        // Los tres datos viajan juntos a proposito: por separado existiria el instante en que un tipo
-        // dice verificarse contra un patron constante sin decir contra que valor.
+    @DisplayName("un tipo con dos magnitudes expone las dos, cada una con su unidad")
+    void dosMagnitudes() throws Exception {
+        // Es el caso que forzo el cambio del 2026-10-03: un termohigrometro no son dos tipos de equipo.
+        when(equipmentTypeServicePort.findAll()).thenReturn(List.of(tipoCon(List.of(
+                unaVerificacion(TEMPERATURA, GRADOS, VerificationMode.PATRON_CONSTANTE),
+                unaVerificacion(HUMEDAD, PORCIENTO, VerificationMode.PATRON_EQUIPO_VARIABLE)))));
+
+        mockMvc.perform(get("/v1/api/equipment-types"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].verificaciones.length()").value(2))
+                .andExpect(jsonPath("$[0].verificaciones[0].magnitud").value("Temperatura"))
+                .andExpect(jsonPath("$[0].verificaciones[0].unidad").value("°C"))
+                .andExpect(jsonPath("$[0].verificaciones[0].cantidadDatos").value(3))
+                .andExpect(jsonPath("$[0].verificaciones[0].puntos.length()").value(1))
+                .andExpect(jsonPath("$[0].verificaciones[1].magnitud").value("Humedad relativa"))
+                .andExpect(jsonPath("$[0].verificaciones[1].unidad").value("%HR"))
+                // Con patron y equipo variables no hay cantidad ni puntos, y la respuesta lo refleja.
+                .andExpect(jsonPath("$[0].verificaciones[1].cantidadDatos").doesNotExist())
+                .andExpect(jsonPath("$[0].verificaciones[1].puntos").isEmpty());
+    }
+
+    @Test
+    @DisplayName("la ruta de las verificaciones lleva magnitud, unidad, cantidad y puntos")
+    void declararVerificaciones() throws Exception {
+        // Los cuatro datos viajan juntos a proposito: por separado existiria el instante en que un tipo
+        // dice verificar temperatura contra un patron constante sin decir contra que valor.
         UUID id = UUID.randomUUID();
-        ArgumentCaptor<ChangeVerificationModeCommand> comando =
-                ArgumentCaptor.forClass(ChangeVerificationModeCommand.class);
-        when(equipmentTypeServicePort.changeVerificationMode(any()))
+        ArgumentCaptor<DeclareVerificationsCommand> comando =
+                ArgumentCaptor.forClass(DeclareVerificationsCommand.class);
+        when(equipmentTypeServicePort.declareVerifications(any()))
                 .thenReturn(unTipo(VerificationMode.PATRON_CONSTANTE));
 
-        mockMvc.perform(patch("/v1/api/equipment-types/" + id + "/verification-mode")
+        mockMvc.perform(patch("/v1/api/equipment-types/" + id + "/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(new VerificationModeRequest(
-                                VerificationMode.PATRON_CONSTANTE,
-                                5,
-                                List.of(new VerificationPointRequest(new BigDecimal("100"), "mmHg"),
-                                        new VerificationPointRequest(new BigDecimal("-20"), "°C"))))))
+                        .content(jsonMapper.writeValueAsString(new DeclareVerificationsRequest(
+                                List.of(new TypeVerificationRequest(
+                                        ID_TEMPERATURA,
+                                        ID_GRADOS,
+                                        VerificationMode.PATRON_CONSTANTE,
+                                        5,
+                                        List.of(new VerificationPointRequest(new BigDecimal("100")),
+                                                new VerificationPointRequest(new BigDecimal("-20")))))))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.cantidadDatos").value(3))
-                .andExpect(jsonPath("$.puntosVerificacion[0].unidad").value("mmHg"));
+                .andExpect(jsonPath("$.verificaciones[0].cantidadDatos").value(3));
 
-        verify(equipmentTypeServicePort).changeVerificationMode(comando.capture());
-        assertThat(comando.getValue().cantidadDatos()).isEqualTo(5);
-        assertThat(comando.getValue().puntosVerificacion()).hasSize(2);
-        assertThat(comando.getValue().puntosVerificacion().getFirst().unidad()).isEqualTo("mmHg");
+        verify(equipmentTypeServicePort).declareVerifications(comando.capture());
+        assertThat(comando.getValue().verificaciones()).hasSize(1);
+        assertThat(comando.getValue().verificaciones().getFirst().cantidadDatos()).isEqualTo(5);
+        assertThat(comando.getValue().verificaciones().getFirst().magnitudId()).isEqualTo(ID_TEMPERATURA);
+        assertThat(comando.getValue().verificaciones().getFirst().unidadId()).isEqualTo(ID_GRADOS);
+        assertThat(comando.getValue().verificaciones().getFirst().puntos()).hasSize(2);
     }
 
     @Test
-    @DisplayName("un punto sin unidad no llega al servicio")
-    void puntoSinUnidadSeRechaza() {
+    @DisplayName("una verificacion sin magnitud no llega al servicio")
+    void verificacionSinMagnitudSeRechaza() {
         // La validacion del cuerpo corre antes que el servicio, de modo que esto ni se intenta: es lo
-        // que evita un 500 por una unidad en blanco.
+        // que evita un 500 por una referencia ausente.
         assertThatCode(() -> mockMvc.perform(patch("/v1/api/equipment-types/" + UUID.randomUUID()
-                                + "/verification-mode")
+                                + "/verifications")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(jsonMapper.writeValueAsString(new VerificationModeRequest(
-                                        VerificationMode.PATRON_CONSTANTE,
-                                        3,
-                                        List.of(new VerificationPointRequest(
-                                                new BigDecimal("100"), "  "))))))
+                                .content(jsonMapper.writeValueAsString(new DeclareVerificationsRequest(
+                                        List.of(new TypeVerificationRequest(
+                                                null,
+                                                ID_GRADOS,
+                                                VerificationMode.PATRON_CONSTANTE,
+                                                3,
+                                                List.of(new VerificationPointRequest(
+                                                        new BigDecimal("100")))))))))
                         .andExpect(status().isBadRequest()))
                 .doesNotThrowAnyException();
 
-        verify(equipmentTypeServicePort, never()).changeVerificationMode(any());
+        verify(equipmentTypeServicePort, never()).declareVerifications(any());
     }
 
     @Test
     @DisplayName("una cantidad de lecturas fuera de rango se rechaza sin llegar al servicio")
     void cantidadFueraDeRango() {
         assertThatCode(() -> mockMvc.perform(patch("/v1/api/equipment-types/" + UUID.randomUUID()
-                                + "/verification-mode")
+                                + "/verifications")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(jsonMapper.writeValueAsString(new VerificationModeRequest(
-                                        VerificationMode.PATRON_CONSTANTE, 0, List.of()))))
+                                .content(jsonMapper.writeValueAsString(new DeclareVerificationsRequest(
+                                        List.of(new TypeVerificationRequest(
+                                                ID_TEMPERATURA,
+                                                ID_GRADOS,
+                                                VerificationMode.PATRON_CONSTANTE,
+                                                0,
+                                                List.of()))))))
                         .andExpect(status().isBadRequest()))
                 .doesNotThrowAnyException();
 
-        verify(equipmentTypeServicePort, never()).changeVerificationMode(any());
+        verify(equipmentTypeServicePort, never()).declareVerifications(any());
     }
 
     @Test
-    @DisplayName("la modalidad tiene ruta propia, y quitarla revierte el tipo")
-    void quitarModalidad() throws Exception {
+    @DisplayName("las verificaciones tienen ruta propia, y la lista vacia revierte el tipo")
+    void quitarVerificaciones() throws Exception {
         UUID id = UUID.randomUUID();
-        when(equipmentTypeServicePort.changeVerificationMode(any())).thenReturn(unTipo(null));
+        when(equipmentTypeServicePort.declareVerifications(any())).thenReturn(unTipo(null));
 
-        mockMvc.perform(patch("/v1/api/equipment-types/" + id + "/verification-mode")
+        mockMvc.perform(patch("/v1/api/equipment-types/" + id + "/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(new VerificationModeRequest(null, null, List.of()))))
+                        .content(jsonMapper.writeValueAsString(
+                                new DeclareVerificationsRequest(List.of()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verificable").value(false));
     }
@@ -195,7 +262,7 @@ class EquipmentRestAdapterTest {
         mockMvc.perform(post("/v1/api/equipment-types")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new EquipmentTypeCreateRequest(
-                                "Monitor", "Def", "Cuid", "Electronica", null, null, null, null,
+                                "Monitor", "Def", "Cuid", "Electronica", null, null,
                                 List.of(), -1L))))
                 .andExpect(status().isBadRequest());
 
@@ -302,10 +369,12 @@ class EquipmentRestAdapterTest {
     }
 
     @Test
-    @DisplayName("los seis recursos aparecen en el grupo de OpenAPI del modulo")
+    @DisplayName("los siete recursos aparecen en el grupo de OpenAPI del modulo")
     void recursosDocumentados() throws Exception {
         // Un patron de grupo que no case con ninguna ruta real no falla: deja el recurso fuera de
-        // Swagger en silencio. Tres de estos seis se habian quedado fuera por esa via.
+        // Swagger en silencio. Tres de estos siete se habian quedado fuera por esa via, y el
+        // septimo -- el catalogo metrologico, del 2026-10-03 -- se quedo fuera tambien al nacer:
+        // se escribio el controlador y nadie anadio su patron al grupo. Esta prueba lo delato.
         String docs = mockMvc.perform(get("/v3/api-docs/equipment"))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -319,7 +388,8 @@ class EquipmentRestAdapterTest {
                 .contains("/v1/api/equipment-types")
                 .contains("/v1/api/equipments")
                 .contains("/v1/api/models")
-                .contains("/v1/api/client-equipments");
+                .contains("/v1/api/client-equipments")
+                .contains("/v1/api/magnitudes");
     }
 
     @Test

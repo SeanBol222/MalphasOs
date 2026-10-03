@@ -18,7 +18,10 @@ import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
+import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
+import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.ServiceReportService;
@@ -105,15 +108,39 @@ class ServiceReportServiceTest {
         return unaOrden(ExecutionState.EN_EJECUCION, true, EQUIPO);
     }
 
+    private static final UUID ID_PRESION = UUID.randomUUID();
+    private static final UUID ID_TEMPERATURA = UUID.randomUUID();
+
+    private static final Magnitude PRESION =
+            new Magnitude(ID_PRESION, "presion", "Presión", true);
+    private static final MeasurementUnit MMHG = new MeasurementUnit(
+            UUID.randomUUID(), ID_PRESION, "mmHg", "milímetro de mercurio", true);
+    private static final Magnitude TEMPERATURA =
+            new Magnitude(ID_TEMPERATURA, "temperatura", "Temperatura", true);
+    private static final MeasurementUnit GRADOS = new MeasurementUnit(
+            UUID.randomUUID(), ID_TEMPERATURA, "°C", "grado Celsius", true);
+
+    /** Un tipo con una sola verificación, de presión, o sin ninguna si la modalidad llega nula. */
     private static EquipmentType unTipo(
             VerificationMode modalidad, Integer cantidadDatos, List<VerificationPoint> puntos) {
 
+        return tipoCon(modalidad == null
+                ? List.of()
+                : List.of(TypeVerification.of(PRESION, MMHG, modalidad, cantidadDatos, puntos)));
+    }
+
+    private static EquipmentType tipoCon(List<TypeVerification> verificaciones) {
         return EquipmentType.rehydrate(TIPO, "Tensiometro", "Definicion", "Cuidados", "Electronica",
-                null, null, modalidad, cantidadDatos, puntos, 150_000L, true);
+                null, null, verificaciones, 150_000L, true);
+    }
+
+    /** La única verificación activa del tipo, que es a la que apuntan casi todas las lecturas. */
+    private static TypeVerification laVerificacionDe(EquipmentType tipo) {
+        return tipo.verificacionesActivas().getFirst();
     }
 
     private static VerificationPoint unPunto(String valor) {
-        return VerificationPoint.of(new BigDecimal(valor), "mmHg");
+        return VerificationPoint.of(new BigDecimal(valor));
     }
 
     private static ServiceReport unReporte() {
@@ -238,23 +265,57 @@ class ServiceReportServiceTest {
         private static final UUID PUNTO_AJENO = UUID.randomUUID();
 
         @Test
-        @DisplayName("acepta las lecturas de un punto del tipo y les pone la unidad del punto")
+        @DisplayName("acepta las lecturas de un punto y les pone la unidad de la verificacion")
         void aceptaLasLecturasDelPunto() {
             ServiceReport reporte = unReporte();
             VerificationPoint punto = unPunto("50");
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_CONSTANTE, 2, List.of(punto));
+            UUID verificacion = laVerificacionDe(tipo).id();
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(
-                    unTipo(VerificationMode.PATRON_CONSTANTE, 2, List.of(punto)));
+            estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
 
             service.recordVerification(new RecordVerificationCommand(reporte.getId(), List.of(
-                    new VerificationReadingCommand(punto.id(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "inventada"),
-                    new VerificationReadingCommand(punto.id(), 2, new BigDecimal("50"), new BigDecimal("49.8"), null))));
+                    new VerificationReadingCommand(
+                            verificacion, punto.id(), 1, new BigDecimal("50"), new BigDecimal("50.2")),
+                    new VerificationReadingCommand(
+                            verificacion, punto.id(), 2, new BigDecimal("50"), new BigDecimal("49.8")))));
 
             assertThat(reporte.lecturasActivas()).hasSize(2);
-            // La unidad sale del punto, no de lo que venga escrito en el comando.
+            // La unidad sale de la verificacion, y ya no hay forma de enviarla desde fuera.
             assertThat(reporte.lecturasActivas()).extracting(VerificationReading::unidad)
                     .containsOnly("mmHg");
+            assertThat(reporte.lecturasActivas()).extracting(VerificationReading::idVerificacion)
+                    .containsOnly(verificacion);
+        }
+
+        @Test
+        @DisplayName("un tipo con dos magnitudes acepta lecturas de cada una, con su propia unidad")
+        void aceptaDosMagnitudes() {
+            // El caso que el modelo anterior no sabia expresar: con una sola modalidad y una sola
+            // cantidad por tipo, las lecturas de temperatura y de presion eran indistinguibles.
+            ServiceReport reporte = unReporte();
+            VerificationPoint mmhg = unPunto("50");
+            VerificationPoint celsius = unPunto("37");
+            EquipmentType tipo = tipoCon(List.of(
+                    TypeVerification.of(PRESION, MMHG, VerificationMode.PATRON_CONSTANTE, 1,
+                            List.of(mmhg)),
+                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.EQUIPO_CONSTANTE, 1,
+                            List.of(celsius))));
+            UUID dePresion = tipo.verificacionesActivas().getFirst().id();
+            UUID deTemperatura = tipo.verificacionesActivas().get(1).id();
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+            estubarGuardado();
+
+            service.recordVerification(new RecordVerificationCommand(reporte.getId(), List.of(
+                    new VerificationReadingCommand(
+                            dePresion, mmhg.id(), 1, new BigDecimal("50"), new BigDecimal("50.2")),
+                    new VerificationReadingCommand(
+                            deTemperatura, celsius.id(), 1, new BigDecimal("37"), new BigDecimal("36.8")))));
+
+            assertThat(reporte.lecturasActivas()).extracting(VerificationReading::unidad)
+                    .containsExactlyInAnyOrder("mmHg", "°C");
         }
 
         @Test
@@ -266,15 +327,17 @@ class ServiceReportServiceTest {
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
                             new RecordVerificationCommand(reporte.getId(), List.of(
-                                    new VerificationReadingCommand(null, 1, BigDecimal.ONE, BigDecimal.TWO, "mA")))))
+                                    new VerificationReadingCommand(
+                                            UUID.randomUUID(), null, 1, BigDecimal.ONE, BigDecimal.TWO)))))
                     .withMessageContaining("no se verifica");
         }
 
         @Test
-        @DisplayName("un punto que no es de ese tipo se rechaza: el esquema no puede verlo")
-        void rechazaUnPuntoAjeno() {
-            // La foranea de dato_verificacion solo comprueba que el punto exista, no que sea del tipo
-            // del equipo reportado: son cuatro saltos desde equipo_cliente hasta tipo_equipo.
+        @DisplayName("una verificacion que no es de ese tipo se rechaza")
+        void rechazaUnaVerificacionAjena() {
+            // La foranea de dato_verificacion comprueba que la verificacion exista y que el punto sea
+            // suyo, pero no que sea del tipo del equipo reportado: son cuatro saltos desde
+            // equipo_cliente hasta tipo_equipo. Eso sigue siendo del servicio.
             ServiceReport reporte = unReporte();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(
@@ -282,7 +345,63 @@ class ServiceReportServiceTest {
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
                             new RecordVerificationCommand(reporte.getId(), List.of(
-                                    new VerificationReadingCommand(PUNTO_AJENO, 1, BigDecimal.ONE, BigDecimal.TWO, null)))))
+                                    new VerificationReadingCommand(
+                                            UUID.randomUUID(), null, 1, BigDecimal.ONE, BigDecimal.TWO)))))
+                    .withMessageContaining("no es una verificacion activa");
+        }
+
+        @Test
+        @DisplayName("una lectura sin verificacion se rechaza")
+        void exigeLaVerificacion() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(
+                    unTipo(VerificationMode.PATRON_CONSTANTE, 1, List.of(unPunto("50"))));
+
+            assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
+                            new RecordVerificationCommand(reporte.getId(), List.of(
+                                    new VerificationReadingCommand(
+                                            null, null, 1, BigDecimal.ONE, BigDecimal.TWO)))))
+                    .withMessageContaining("declara a cual pertenece");
+        }
+
+        @Test
+        @DisplayName("un punto que no es de esa verificacion se rechaza")
+        void rechazaUnPuntoAjeno() {
+            ServiceReport reporte = unReporte();
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_CONSTANTE, 1, List.of(unPunto("50")));
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+
+            assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
+                            new RecordVerificationCommand(reporte.getId(), List.of(
+                                    new VerificationReadingCommand(laVerificacionDe(tipo).id(),
+                                            PUNTO_AJENO, 1, BigDecimal.ONE, BigDecimal.TWO)))))
+                    .withMessageContaining("no es un punto activo");
+        }
+
+        @Test
+        @DisplayName("el punto de OTRA verificacion del mismo tipo tampoco vale")
+        void rechazaElPuntoDeLaOtraMagnitud() {
+            // Con el modelo anterior esto era imposible de detectar: los puntos colgaban del aparato
+            // entero, de modo que un punto de temperatura era un punto valido para una lectura de
+            // presion y el reporte salia impreso con el valor en la columna equivocada.
+            ServiceReport reporte = unReporte();
+            VerificationPoint mmhg = unPunto("50");
+            VerificationPoint celsius = unPunto("37");
+            EquipmentType tipo = tipoCon(List.of(
+                    TypeVerification.of(PRESION, MMHG, VerificationMode.PATRON_CONSTANTE, 1,
+                            List.of(mmhg)),
+                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.EQUIPO_CONSTANTE, 1,
+                            List.of(celsius))));
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+
+            assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
+                            new RecordVerificationCommand(reporte.getId(), List.of(
+                                    new VerificationReadingCommand(
+                                            tipo.verificacionesActivas().getFirst().id(),
+                                            celsius.id(), 1, BigDecimal.ONE, BigDecimal.TWO)))))
                     .withMessageContaining("no es un punto activo");
         }
 
@@ -291,72 +410,104 @@ class ServiceReportServiceTest {
         void rechazaUnPuntoRetirado() {
             ServiceReport reporte = unReporte();
             VerificationPoint retirado = unPunto("50").deactivated();
+            // rehydrate y no of: of exige al menos un punto ACTIVO con modalidad constante, que es
+            // justamente la regla que impide construir este estado por la puerta principal. Leer de la
+            // base no valida, y es lo que permite montar la fila que ya existe y hay que rechazar.
+            EquipmentType tipo = tipoCon(List.of(TypeVerification.rehydrate(UUID.randomUUID(),
+                    PRESION, MMHG, VerificationMode.PATRON_CONSTANTE, 1, List.of(retirado), true)));
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(
-                    unTipo(VerificationMode.PATRON_CONSTANTE, 1, List.of(retirado)));
+            estubarCadenaDelCatalogo(tipo);
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
                     new RecordVerificationCommand(reporte.getId(), List.of(
-                            new VerificationReadingCommand(retirado.id(), 1, BigDecimal.ONE, BigDecimal.TWO, null)))));
+                            new VerificationReadingCommand(laVerificacionDe(tipo).id(),
+                                    retirado.id(), 1, BigDecimal.ONE, BigDecimal.TWO)))));
+        }
+
+        @Test
+        @DisplayName("una verificacion retirada no vale para una lectura nueva")
+        void rechazaUnaVerificacionRetirada() {
+            // Los reportes viejos siguen apuntando a ella para poder imprimirse, pero un reporte nuevo
+            // no se llena contra una configuracion que ya no esta vigente.
+            ServiceReport reporte = unReporte();
+            TypeVerification retirada = TypeVerification.rehydrate(UUID.randomUUID(), PRESION, MMHG,
+                    VerificationMode.PATRON_CONSTANTE, 1, List.of(unPunto("50")), false);
+            EquipmentType tipo = tipoCon(List.of(retirada,
+                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.EQUIPO_CONSTANTE, 1,
+                            List.of(unPunto("37")))));
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+
+            assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
+                            new RecordVerificationCommand(reporte.getId(), List.of(
+                                    new VerificationReadingCommand(retirada.id(),
+                                            retirada.puntos().getFirst().id(), 1,
+                                            BigDecimal.ONE, BigDecimal.TWO)))))
+                    .withMessageContaining("no es una verificacion activa");
         }
 
         @Test
         @DisplayName("con modalidad constante toda lectura declara su punto")
         void exigeElPuntoConModalidadConstante() {
             ServiceReport reporte = unReporte();
+            EquipmentType tipo = unTipo(VerificationMode.EQUIPO_CONSTANTE, 1, List.of(unPunto("50")));
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(
-                    unTipo(VerificationMode.EQUIPO_CONSTANTE, 1, List.of(unPunto("50"))));
+            estubarCadenaDelCatalogo(tipo);
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
                             new RecordVerificationCommand(reporte.getId(), List.of(
-                                    new VerificationReadingCommand(null, 1, BigDecimal.ONE, BigDecimal.TWO, "mmHg")))))
+                                    new VerificationReadingCommand(laVerificacionDe(tipo).id(),
+                                            null, 1, BigDecimal.ONE, BigDecimal.TWO)))))
                     .withMessageContaining("declara en cual se tomo");
         }
 
         @Test
-        @DisplayName("mas lecturas por punto de las que el tipo declara se rechazan")
+        @DisplayName("mas lecturas por punto de las que esa verificacion declara se rechazan")
         void rechazaMasLecturasDeLasDeclaradas() {
             ServiceReport reporte = unReporte();
             VerificationPoint punto = unPunto("50");
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_CONSTANTE, 2, List.of(punto));
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(
-                    unTipo(VerificationMode.PATRON_CONSTANTE, 2, List.of(punto)));
+            estubarCadenaDelCatalogo(tipo);
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
                             new RecordVerificationCommand(reporte.getId(), List.of(
-                                    new VerificationReadingCommand(punto.id(), 3, BigDecimal.ONE, BigDecimal.TWO, null)))))
+                                    new VerificationReadingCommand(laVerificacionDe(tipo).id(),
+                                            punto.id(), 3, BigDecimal.ONE, BigDecimal.TWO)))))
                     .withMessageContaining("declara 2 lecturas por punto");
         }
 
         @Test
-        @DisplayName("con patron y equipo variables no se admite punto, y la unidad viene de fuera")
+        @DisplayName("con patron y equipo variables no hay punto, y la unidad sale igualmente del tipo")
         void conModalidadVariableNoHayPunto() {
             ServiceReport reporte = unReporte();
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(
-                    unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of()));
+            estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
 
             service.recordVerification(new RecordVerificationCommand(reporte.getId(), List.of(
-                    new VerificationReadingCommand(null, 1, new BigDecimal("1"), new BigDecimal("1.1"), "mA"))));
+                    new VerificationReadingCommand(laVerificacionDe(tipo).id(), null, 1,
+                            new BigDecimal("1"), new BigDecimal("1.1")))));
 
             assertThat(reporte.lecturasActivas()).hasSize(1);
             assertThat(reporte.lecturasActivas().getFirst().idPuntoVerificacion()).isNull();
-            assertThat(reporte.lecturasActivas().getFirst().unidad()).isEqualTo("mA");
+            // Antes la unidad tenia que venir de fuera en este caso, y eso permitia inventarsela.
+            assertThat(reporte.lecturasActivas().getFirst().unidad()).isEqualTo("mmHg");
         }
 
         @Test
         @DisplayName("con patron y equipo variables, declarar un punto es un error")
         void conModalidadVariableElPuntoSobra() {
             ServiceReport reporte = unReporte();
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(
-                    unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of()));
+            estubarCadenaDelCatalogo(tipo);
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.recordVerification(
                             new RecordVerificationCommand(reporte.getId(), List.of(
-                                    new VerificationReadingCommand(UUID.randomUUID(), 1, BigDecimal.ONE, BigDecimal.TWO, "mA")))))
+                                    new VerificationReadingCommand(laVerificacionDe(tipo).id(),
+                                            UUID.randomUUID(), 1, BigDecimal.ONE, BigDecimal.TWO)))))
                     .withMessageContaining("no tiene puntos");
         }
 
@@ -381,14 +532,18 @@ class ServiceReportServiceTest {
         @DisplayName("cierra cuando estan todas las lecturas de todos los puntos")
         void cierraConLaVerificacionCompleta() {
             VerificationPoint punto = unPunto("50");
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_CONSTANTE, 2, List.of(punto));
+            UUID verificacion = laVerificacionDe(tipo).id();
             ServiceReport reporte = unReporte();
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(
-                    VerificationReading.of(punto.id(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg"),
-                    VerificationReading.of(punto.id(), 2, new BigDecimal("50"), new BigDecimal("49.9"), "mmHg")));
+                    VerificationReading.of(verificacion, punto.id(), 1,
+                            new BigDecimal("50"), new BigDecimal("50.2"), "mmHg"),
+                    VerificationReading.of(verificacion, punto.id(), 2,
+                            new BigDecimal("50"), new BigDecimal("49.9"), "mmHg")));
             reporte.pullEvents();
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(unTipo(VerificationMode.PATRON_CONSTANTE, 2, List.of(punto)));
+            estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
 
             service.finish(new FinishServiceReportCommand(reporte.getId()));
@@ -400,13 +555,15 @@ class ServiceReportServiceTest {
         @DisplayName("no cierra con la tabla a medias: dos de tres lecturas no valen")
         void noCierraConLaVerificacionIncompleta() {
             VerificationPoint punto = unPunto("50");
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_CONSTANTE, 3, List.of(punto));
             ServiceReport reporte = unReporte();
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(
-                    VerificationReading.of(punto.id(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    VerificationReading.of(laVerificacionDe(tipo).id(), punto.id(), 1,
+                            new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
             reporte.pullEvents();
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(unTipo(VerificationMode.PATRON_CONSTANTE, 3, List.of(punto)));
+            estubarCadenaDelCatalogo(tipo);
 
             assertThatIllegalStateException()
                     .isThrownBy(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))
@@ -419,14 +576,15 @@ class ServiceReportServiceTest {
         void noCierraSiFaltaUnPunto() {
             VerificationPoint uno = unPunto("50");
             VerificationPoint otro = unPunto("150");
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_CONSTANTE, 1, List.of(uno, otro));
             ServiceReport reporte = unReporte();
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(
-                    VerificationReading.of(uno.id(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    VerificationReading.of(laVerificacionDe(tipo).id(), uno.id(), 1,
+                            new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
             reporte.pullEvents();
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(
-                    unTipo(VerificationMode.PATRON_CONSTANTE, 1, List.of(uno, otro)));
+            estubarCadenaDelCatalogo(tipo);
 
             assertThatIllegalStateException()
                     .isThrownBy(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))
@@ -470,14 +628,15 @@ class ServiceReportServiceTest {
         @Test
         @DisplayName("con patron y equipo variables basta una lectura, porque no hay cuantas fijadas")
         void conModalidadVariableBastaUnaLectura() {
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
             ServiceReport reporte = unReporte();
             reporte.fill(null, null, "Barrido completo", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(VerificationReading.of(
-                    null, 1, new BigDecimal("1"), new BigDecimal("1.1"), "mA")));
+                    laVerificacionDe(tipo).id(), null, 1,
+                    new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
             reporte.pullEvents();
             estubarReporte(reporte);
-            estubarCadenaDelCatalogo(
-                    unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of()));
+            estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
 
             assertThatCode(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))

@@ -36,6 +36,7 @@ class ServiceReportTest {
     private static final UUID ORDEN = UUID.randomUUID();
     private static final UUID EQUIPO = UUID.randomUUID();
     private static final UUID PUNTO = UUID.randomUUID();
+    private static final UUID VERIFICACION = UUID.randomUUID();
 
     private static ServiceReport unReporte() {
         ServiceReport reporte = ServiceReport.open(ORDEN, EQUIPO);
@@ -63,7 +64,8 @@ class ServiceReportTest {
 
     private static VerificationReading unaLectura(int secuencia, String patron, String equipo) {
         return VerificationReading.of(
-                PUNTO, secuencia, new BigDecimal(patron), new BigDecimal(equipo), "mmHg");
+                VERIFICACION, PUNTO, secuencia, new BigDecimal(patron), new BigDecimal(equipo),
+                "mmHg");
     }
 
     private static List<String> tiposDe(ServiceReport reporte) {
@@ -283,9 +285,9 @@ class ServiceReportTest {
         void rechazaDosLecturasSinPuntoConElMismoNumero() {
             ServiceReport reporte = unReporte();
             VerificationReading una = VerificationReading.of(
-                    null, 1, new BigDecimal("1"), new BigDecimal("1.1"), "mA");
+                    VERIFICACION, null, 1, new BigDecimal("1"), new BigDecimal("1.1"), "mA");
             VerificationReading otra = VerificationReading.of(
-                    null, 1, new BigDecimal("2"), new BigDecimal("2.1"), "mA");
+                    VERIFICACION, null, 1, new BigDecimal("2"), new BigDecimal("2.1"), "mA");
 
             assertThatIllegalArgumentException()
                     .isThrownBy(() -> reporte.recordVerification(List.of(una, otra)));
@@ -297,7 +299,8 @@ class ServiceReportTest {
             ServiceReport reporte = unReporte();
             VerificationReading enUnPunto = unaLectura(1, "50", "50.2");
             VerificationReading enOtro = VerificationReading.of(
-                    UUID.randomUUID(), 1, new BigDecimal("150"), new BigDecimal("150.4"), "mmHg");
+                    VERIFICACION, UUID.randomUUID(), 1, new BigDecimal("150"),
+                    new BigDecimal("150.4"), "mmHg");
 
             assertThatCode(() -> reporte.recordVerification(List.of(enUnPunto, enOtro)))
                     .doesNotThrowAnyException();
@@ -344,27 +347,27 @@ class ServiceReportTest {
         @DisplayName("exige los dos valores: el reporte imprime las dos columnas")
         void exigeLosDosValores() {
             assertThatIllegalArgumentException().isThrownBy(() -> VerificationReading.of(
-                    PUNTO, 1, null, new BigDecimal("1"), "mA"));
+                    VERIFICACION, PUNTO, 1, null, new BigDecimal("1"), "mA"));
             assertThatIllegalArgumentException().isThrownBy(() -> VerificationReading.of(
-                    PUNTO, 1, new BigDecimal("1"), null, "mA"));
+                    VERIFICACION, PUNTO, 1, new BigDecimal("1"), null, "mA"));
         }
 
         @Test
         @DisplayName("exige la unidad: un numero sin unidad no se puede imprimir")
         void exigeLaUnidad() {
             assertThatIllegalArgumentException().isThrownBy(() -> VerificationReading.of(
-                    PUNTO, 1, new BigDecimal("1"), new BigDecimal("1.1"), "  "));
+                    VERIFICACION, PUNTO, 1, new BigDecimal("1"), new BigDecimal("1.1"), "  "));
         }
 
         @Test
-        @DisplayName("el numero de lectura va entre 1 y 100, el tope que V8 declara")
+        @DisplayName("el numero de lectura va entre 1 y 100, el tope que la verificacion declara")
         void acotaElNumeroDeLectura() {
             assertThatIllegalArgumentException().isThrownBy(() -> VerificationReading.of(
-                    PUNTO, 0, new BigDecimal("1"), new BigDecimal("1.1"), "mA"));
+                    VERIFICACION, PUNTO, 0, new BigDecimal("1"), new BigDecimal("1.1"), "mA"));
             assertThatIllegalArgumentException().isThrownBy(() -> VerificationReading.of(
-                    PUNTO, 101, new BigDecimal("1"), new BigDecimal("1.1"), "mA"));
+                    VERIFICACION, PUNTO, 101, new BigDecimal("1"), new BigDecimal("1.1"), "mA"));
             assertThatCode(() -> VerificationReading.of(
-                            PUNTO, 100, new BigDecimal("1"), new BigDecimal("1.1"), "mA"))
+                            VERIFICACION, PUNTO, 100, new BigDecimal("1"), new BigDecimal("1.1"), "mA"))
                     .doesNotThrowAnyException();
         }
 
@@ -372,7 +375,7 @@ class ServiceReportTest {
         @DisplayName("admite valores negativos: un congelador se verifica a -20 grados")
         void admiteNegativos() {
             assertThatCode(() -> VerificationReading.of(
-                            PUNTO, 1, new BigDecimal("-20"), new BigDecimal("-19.4"), "C"))
+                            VERIFICACION, PUNTO, 1, new BigDecimal("-20"), new BigDecimal("-19.4"), "C"))
                     .doesNotThrowAnyException();
         }
     }

@@ -126,8 +126,9 @@ public class ServiceReportRestAdapter {
 
     @Operation(summary = "Registrar la verificacion metrologica",
             description = "Sustituye la verificacion anterior entera; las lecturas corregidas "
-                    + "quedan retiradas, no borradas. Cada lectura se comprueba contra los puntos "
-                    + "y la cantidad de datos que declara el tipo del equipo.")
+                    + "quedan retiradas, no borradas. Cada lectura declara a que verificacion del "
+                    + "tipo pertenece, y se comprueba contra los puntos y la cantidad de datos que "
+                    + "esa verificacion declara.")
     @PreAuthorize("hasAuthority('report.write')")
     @PatchMapping("/{id}/verification")
     public ServiceReportResponse recordVerification(
@@ -135,11 +136,11 @@ public class ServiceReportRestAdapter {
 
         List<VerificationReadingCommand> lecturas = request.lecturas().stream()
                 .map(lectura -> new VerificationReadingCommand(
+                        lectura.idVerificacion(),
                         lectura.idPuntoVerificacion(),
                         lectura.secuencia(),
                         lectura.valorPatron(),
-                        lectura.valorEquipo(),
-                        lectura.unidadSinPunto()))
+                        lectura.valorEquipo()))
                 .toList();
 
         return mapper.toResponse(serviceReportServicePort.recordVerification(

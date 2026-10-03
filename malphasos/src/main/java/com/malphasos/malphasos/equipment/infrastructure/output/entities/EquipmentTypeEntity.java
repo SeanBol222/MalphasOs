@@ -19,10 +19,11 @@ import lombok.Setter;
 /**
  * Representación JPA de un tipo de equipo.
  *
- * <p>Conserva las <b>dos</b> columnas del esquema, {@code b_verificable} y
- * {@code n_tipo_verificacion}, aunque el agregado solo tenga una: allí lo verificable se deriva de
- * si consta la modalidad. El mapper deriva el booleano al guardar y lo ignora al leer, de modo que
- * las dos columnas no pueden contradecirse. La restricción de la tabla lo respalda.
+ * <p><b>Ya no tiene {@code b_verificable}, {@code n_tipo_verificacion} ni {@code i_cantidad_datos}</b>
+ * (2026-10-03): las tres bajaron a {@link TypeVerificationEntity}, porque un tipo se verifica en varias
+ * magnitudes y cada una tiene su modalidad y su cantidad. El booleano no se sustituyó por nada: era
+ * exactamente «hay modalidad», redundante por construcción, y ahora «se verifica» es «tiene alguna
+ * verificación activa», que se cuenta.
  */
 @Getter
 @Setter
@@ -54,21 +55,12 @@ public class EquipmentTypeEntity {
     @Column(name = "d_amperaje")
     private BigDecimal amperaje;
 
-    @Column(name = "b_verificable", nullable = false)
-    private boolean verificable;
-
-    @Column(name = "n_tipo_verificacion")
-    private String tipoVerificacion;
-
-    @Column(name = "i_cantidad_datos")
-    private Integer cantidadDatos;
-
-    // orphanRemoval queda fuera a proposito, igual que en los contactos de un cliente: un punto retirado
-    // no se borra, se marca inactivo y sigue en la lista, porque con el se hicieron los reportes
-    // anteriores. @BatchSize evita una consulta por tipo al listarlos todos.
+    // orphanRemoval queda fuera a proposito, igual que en los contactos de un cliente: una verificacion
+    // retirada no se borra, se marca inactiva y sigue en la lista, porque con ella se firmaron reportes.
+    // @BatchSize evita una consulta por tipo al listarlos todos.
     @BatchSize(size = 50)
     @OneToMany(mappedBy = "tipoEquipo", cascade = CascadeType.ALL, fetch = jakarta.persistence.FetchType.LAZY)
-    private List<VerificationPointEntity> puntosVerificacion = new ArrayList<>();
+    private List<TypeVerificationEntity> verificaciones = new ArrayList<>();
 
     @Column(name = "m_valor_unitario_mantenimiento", nullable = false)
     private long valorUnitarioMantenimiento;

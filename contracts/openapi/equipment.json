@@ -96,6 +96,18 @@
         },
         "type" : "object"
       },
+      "DeclareVerificationsRequest" : {
+        "properties" : {
+          "verificaciones" : {
+            "description" : "Una lista vacia o ausente significa que el tipo deja de verificarse",
+            "items" : {
+              "$ref" : "#/components/schemas/TypeVerificationRequest"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
       "EquipmentCreateRequest" : {
         "properties" : {
           "idMarca" : {
@@ -156,35 +168,15 @@
           "amperaje" : {
             "type" : "number"
           },
-          "cantidadDatos" : {
-            "description" : "Lecturas que se toman EN CADA PUNTO. Solo con modalidad constante",
-            "example" : 3,
-            "format" : "int32",
-            "maximum" : 100,
-            "minimum" : 1,
-            "type" : "integer"
-          },
           "definicionTecnica" : {
             "maxLength" : 250,
             "minLength" : 0,
-            "type" : "string"
-          },
-          "modalidadVerificacion" : {
-            "description" : "Como se verifica. Ausente significa que este tipo no se verifica",
-            "enum" : [ "PATRON_CONSTANTE", "EQUIPO_CONSTANTE", "PATRON_EQUIPO_VARIABLE" ],
             "type" : "string"
           },
           "nombre" : {
             "maxLength" : 50,
             "minLength" : 0,
             "type" : "string"
-          },
-          "puntosVerificacion" : {
-            "description" : "Valores constantes en los que se verifica. Solo con modalidad constante",
-            "items" : {
-              "$ref" : "#/components/schemas/VerificationPointRequest"
-            },
-            "type" : "array"
           },
           "recomendacionesCuidado" : {
             "maxLength" : 250,
@@ -199,6 +191,13 @@
           "valorUnitarioMantenimiento" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "verificaciones" : {
+            "description" : "Que se le verifica. Vacia o ausente significa que este tipo no se verifica",
+            "items" : {
+              "$ref" : "#/components/schemas/TypeVerificationRequest"
+            },
+            "type" : "array"
           },
           "voltaje" : {
             "format" : "int32",
@@ -213,12 +212,6 @@
           "amperaje" : {
             "type" : "number"
           },
-          "cantidadDatos" : {
-            "description" : "Lecturas por punto. Solo con modalidad constante",
-            "example" : 3,
-            "format" : "int32",
-            "type" : "integer"
-          },
           "definicionTecnica" : {
             "type" : "string"
           },
@@ -229,18 +222,8 @@
             "format" : "uuid",
             "type" : "string"
           },
-          "modalidadVerificacion" : {
-            "enum" : [ "PATRON_CONSTANTE", "EQUIPO_CONSTANTE", "PATRON_EQUIPO_VARIABLE" ],
-            "type" : "string"
-          },
           "nombre" : {
             "type" : "string"
-          },
-          "puntosVerificacion" : {
-            "items" : {
-              "$ref" : "#/components/schemas/VerificationPointResponse"
-            },
-            "type" : "array"
           },
           "recomendacionesCuidado" : {
             "type" : "string"
@@ -254,6 +237,12 @@
           },
           "verificable" : {
             "type" : "boolean"
+          },
+          "verificaciones" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TypeVerificationResponse"
+            },
+            "type" : "array"
           },
           "voltaje" : {
             "format" : "int32",
@@ -329,6 +318,24 @@
         },
         "type" : "object"
       },
+      "MagnitudeResponse" : {
+        "properties" : {
+          "codigo" : {
+            "description" : "Llave natural, estable y sin acentos",
+            "example" : "temperatura",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nombre" : {
+            "example" : "Temperatura",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "ManufacturerRequest" : {
         "properties" : {
           "idPais" : {
@@ -358,6 +365,24 @@
             "type" : "string"
           },
           "nombre" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "MeasurementUnitResponse" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nombre" : {
+            "example" : "grado Celsius",
+            "type" : "string"
+          },
+          "simbolo" : {
+            "description" : "Lo que se imprime junto al numero",
+            "example" : "°C",
             "type" : "string"
           }
         },
@@ -417,7 +442,7 @@
         "required" : [ "nombre" ],
         "type" : "object"
       },
-      "VerificationModeRequest" : {
+      "TypeVerificationRequest" : {
         "properties" : {
           "cantidadDatos" : {
             "description" : "Lecturas que se toman EN CADA PUNTO. Solo con modalidad constante",
@@ -427,46 +452,93 @@
             "minimum" : 1,
             "type" : "integer"
           },
+          "magnitudId" : {
+            "description" : "Que se mide. Del catalogo de magnitudes",
+            "format" : "uuid",
+            "type" : "string"
+          },
           "modalidad" : {
-            "description" : "Ausente o nula significa que el tipo deja de verificarse",
+            "description" : "Como se verifica esta magnitud en este tipo de equipo",
             "enum" : [ "PATRON_CONSTANTE", "EQUIPO_CONSTANTE", "PATRON_EQUIPO_VARIABLE" ],
             "type" : "string"
           },
-          "puntosVerificacion" : {
+          "puntos" : {
             "description" : "Valores constantes en los que se verifica. Solo con modalidad constante",
             "items" : {
               "$ref" : "#/components/schemas/VerificationPointRequest"
             },
             "type" : "array"
+          },
+          "unidadId" : {
+            "description" : "En que unidad. Tiene que ser una unidad de esa magnitud",
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "magnitudId", "modalidad", "unidadId" ],
+        "type" : "object"
+      },
+      "TypeVerificationResponse" : {
+        "properties" : {
+          "cantidadDatos" : {
+            "description" : "Lecturas por punto. Solo con modalidad constante",
+            "example" : 3,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "magnitud" : {
+            "example" : "Temperatura",
+            "type" : "string"
+          },
+          "magnitudId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "modalidad" : {
+            "enum" : [ "PATRON_CONSTANTE", "EQUIPO_CONSTANTE", "PATRON_EQUIPO_VARIABLE" ],
+            "type" : "string"
+          },
+          "puntos" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VerificationPointResponse"
+            },
+            "type" : "array"
+          },
+          "unidad" : {
+            "description" : "Lo que se imprime junto al numero",
+            "example" : "°C",
+            "type" : "string"
+          },
+          "unidadId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "unidadNombre" : {
+            "example" : "grado Celsius",
+            "type" : "string"
           }
         },
         "type" : "object"
       },
       "VerificationPointRequest" : {
         "properties" : {
-          "unidad" : {
-            "example" : "mmHg",
-            "maxLength" : 20,
-            "minLength" : 0,
-            "type" : "string"
-          },
           "valor" : {
             "description" : "Valor en el que se mantiene lo constante. Admite negativos",
             "example" : "100.0",
             "type" : "number"
           }
         },
-        "required" : [ "unidad", "valor" ],
+        "required" : [ "valor" ],
         "type" : "object"
       },
       "VerificationPointResponse" : {
         "properties" : {
           "id" : {
             "format" : "uuid",
-            "type" : "string"
-          },
-          "unidad" : {
-            "example" : "mmHg",
             "type" : "string"
           },
           "valor" : {
@@ -848,7 +920,7 @@
     },
     "/v1/api/client-equipments" : {
       "get" : {
-        "operationId" : "getAll_5",
+        "operationId" : "getAll_6",
         "responses" : {
           "200" : {
             "content" : {
@@ -1252,7 +1324,7 @@
         "tags" : [ "EquipmentType" ]
       },
       "post" : {
-        "description" : "Si se indica la modalidad de verificacion, el tipo queda como verificable.",
+        "description" : "Si se indica alguna verificacion, el tipo queda como verificable.",
         "operationId" : "create_3",
         "requestBody" : {
           "content" : {
@@ -1448,7 +1520,7 @@
         "tags" : [ "EquipmentType" ]
       },
       "patch" : {
-        "description" : "Los campos ausentes conservan su valor. La modalidad tiene ruta propia.",
+        "description" : "Los campos ausentes conservan su valor. Las verificaciones tienen ruta propia.",
         "operationId" : "update_1",
         "parameters" : [ {
           "in" : "path",
@@ -1525,10 +1597,10 @@
         "tags" : [ "EquipmentType" ]
       }
     },
-    "/v1/api/equipment-types/{id}/verification-mode" : {
+    "/v1/api/equipment-types/{id}/verifications" : {
       "patch" : {
-        "description" : "Una modalidad ausente significa que el tipo deja de verificarse.",
-        "operationId" : "changeVerificationMode",
+        "description" : "Una lista vacia significa que el tipo deja de verificarse. Las verificaciones anteriores se retiran, no se borran.",
+        "operationId" : "declareVerifications",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1542,7 +1614,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/VerificationModeRequest"
+                "$ref" : "#/components/schemas/DeclareVerificationsRequest"
               }
             }
           },
@@ -1600,7 +1672,7 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Declarar como se verifica el tipo",
+        "summary" : "Declarar que se verifica en el tipo",
         "tags" : [ "EquipmentType" ]
       }
     },
@@ -1870,6 +1942,140 @@
         },
         "summary" : "Obtener una asociacion por su identificador",
         "tags" : [ "Equipment" ]
+      }
+    },
+    "/v1/api/magnitudes" : {
+      "get" : {
+        "operationId" : "getAll_5",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MagnitudeResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Listar las magnitudes que se pueden verificar",
+        "tags" : [ "MetrologyCatalog" ]
+      }
+    },
+    "/v1/api/magnitudes/{magnitudId}/units" : {
+      "get" : {
+        "description" : "Responde 404 si la magnitud no existe: una lista vacia seria indistinguible de una magnitud sin unidades.",
+        "operationId" : "getUnits",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "magnitudId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MeasurementUnitResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Listar las unidades de una magnitud",
+        "tags" : [ "MetrologyCatalog" ]
       }
     },
     "/v1/api/manufacturers" : {
@@ -2719,6 +2925,9 @@
   }, {
     "description" : "Gestion de modelos de equipos",
     "name" : "Model"
+  }, {
+    "description" : "Magnitudes y unidades con las que se verifica",
+    "name" : "MetrologyCatalog"
   }, {
     "description" : "Gestion de fabricantes de equipos",
     "name" : "Manufacturer"

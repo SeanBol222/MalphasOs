@@ -6,6 +6,7 @@ import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeSe
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
+import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
@@ -248,10 +249,16 @@ public class ServiceReportService implements ServiceReportServicePort {
     /**
      * Traduce las lecturas recibidas y las comprueba contra la configuración del tipo.
      *
-     * <p>Cuatro reglas, y cada una tapa un reporte que de otro modo saldría impreso diciendo algo
-     * falso: que el tipo se verifique, que la lectura señale un punto <b>activo de ese tipo</b> —o
-     * ninguno, si patrón y equipo varían—, que su número no pase de las lecturas que el tipo declara,
-     * y que la unidad sea la del punto y no la que venga escrita.
+     * <p><b>Cinco reglas</b>, y cada una tapa un reporte que de otro modo saldría impreso diciendo algo
+     * falso: que el tipo se verifique, que la lectura señale una <b>verificación activa de ese tipo</b>,
+     * que señale un punto activo <b>de esa verificación</b> —o ninguno, si la modalidad de esa
+     * verificación es variable—, que su número no pase de las lecturas que esa verificación declara, y
+     * que la unidad sea la de la verificación y no la que venga escrita.
+     *
+     * <p><b>Todo se razona por verificación desde el 2026-10-03.</b> Antes se razonaba por tipo, porque
+     * un tipo tenía una sola modalidad; ahora un termohigrómetro puede tener la temperatura con patrón
+     * constante y la humedad con patrón y equipo variables, de modo que «¿lleva punto esta lectura?» no
+     * tiene una respuesta para todo el aparato.
      */
     private List<VerificationReading> traducirLecturas(
             EquipmentType tipo, List<VerificationReadingCommand> lecturas) {
@@ -265,60 +272,97 @@ public class ServiceReportService implements ServiceReportServicePort {
                     "Registrar una verificacion sin lecturas no es registrar nada");
         }
 
-        boolean variable = tipo.getModalidadVerificacion() == VerificationMode.PATRON_EQUIPO_VARIABLE;
-
-        return lecturas.stream().map(lectura -> variable
-                        ? sinPunto(tipo, lectura)
-                        : enPunto(tipo, lectura))
-                .toList();
+        return lecturas.stream().map(lectura -> traducirLectura(tipo, lectura)).toList();
     }
 
-    /** Con patrón y equipo variables no hay punto, y la unidad tiene que venir de fuera. */
-    private VerificationReading sinPunto(EquipmentType tipo, VerificationReadingCommand lectura) {
+    private VerificationReading traducirLectura(
+            EquipmentType tipo, VerificationReadingCommand lectura) {
+
+        TypeVerification verificacion = requireActiveVerification(tipo, lectura.idVerificacion());
+
+        return verificacion.modalidad() == VerificationMode.PATRON_EQUIPO_VARIABLE
+                ? sinPunto(tipo, verificacion, lectura)
+                : enPunto(tipo, verificacion, lectura);
+    }
+
+    /**
+     * Que la verificación señalada sea una de las que el tipo declara hoy.
+     *
+     * <p>Activa y no cualquiera: un reporte nuevo no se puede llenar contra una configuración retirada,
+     * aunque los reportes viejos sigan apuntando a ella para poder imprimirse.
+     */
+    private TypeVerification requireActiveVerification(EquipmentType tipo, UUID idVerificacion) {
+        if (idVerificacion == null) {
+            throw new IllegalArgumentException("El tipo " + tipo.getNombre() + " se verifica en "
+                    + tipo.verificacionesActivas().size()
+                    + " magnitudes: toda lectura declara a cual pertenece");
+        }
+
+        return tipo.verificacionesActivas().stream()
+                .filter(activa -> activa.id().equals(idVerificacion))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("La verificacion " + idVerificacion
+                        + " no es una verificacion activa del tipo " + tipo.getNombre()));
+    }
+
+    /** Con patrón y equipo variables no hay punto; la unidad sale igualmente de la verificación. */
+    private VerificationReading sinPunto(
+            EquipmentType tipo, TypeVerification verificacion, VerificationReadingCommand lectura) {
+
         if (lectura.idPuntoVerificacion() != null) {
-            throw new IllegalArgumentException("El tipo " + tipo.getNombre()
-                    + " se verifica con patron y equipo variables: no tiene puntos, y se recibio el "
+            throw new IllegalArgumentException("La verificacion de "
+                    + verificacion.magnitud().nombre() + " del tipo " + tipo.getNombre()
+                    + " se hace con patron y equipo variables: no tiene puntos, y se recibio el "
                     + lectura.idPuntoVerificacion());
         }
 
-        return VerificationReading.of(null, lectura.secuencia(), lectura.valorPatron(),
-                lectura.valorEquipo(), lectura.unidadSinPunto());
+        return VerificationReading.of(verificacion.id(), null, lectura.secuencia(),
+                lectura.valorPatron(), lectura.valorEquipo(), verificacion.unidad().simbolo());
     }
 
-    /** Con una modalidad constante toda lectura se toma en un punto declarado del tipo. */
-    private VerificationReading enPunto(EquipmentType tipo, VerificationReadingCommand lectura) {
+    /** Con una modalidad constante toda lectura se toma en un punto declarado de esa verificación. */
+    private VerificationReading enPunto(
+            EquipmentType tipo, TypeVerification verificacion, VerificationReadingCommand lectura) {
+
         if (lectura.idPuntoVerificacion() == null) {
-            throw new IllegalArgumentException("El tipo " + tipo.getNombre() + " se verifica en "
-                    + tipo.puntosActivos().size() + " puntos: toda lectura declara en cual se tomo");
+            throw new IllegalArgumentException("La verificacion de "
+                    + verificacion.magnitud().nombre() + " del tipo " + tipo.getNombre()
+                    + " se hace en " + verificacion.puntosActivos().size()
+                    + " puntos: toda lectura declara en cual se tomo");
         }
 
-        VerificationPoint punto = tipo.puntosActivos().stream()
+        // De esa verificacion, no del tipo: con el modelo anterior un punto de temperatura habria
+        // servido para una lectura de humedad, porque los puntos colgaban del aparato entero.
+        VerificationPoint punto = verificacion.puntosActivos().stream()
                 .filter(activo -> activo.id().equals(lectura.idPuntoVerificacion()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("El punto "
-                        + lectura.idPuntoVerificacion() + " no es un punto activo del tipo "
-                        + tipo.getNombre()));
+                        + lectura.idPuntoVerificacion() + " no es un punto activo de la verificacion de "
+                        + verificacion.magnitud().nombre() + " del tipo " + tipo.getNombre()));
 
-        if (lectura.secuencia() > tipo.getCantidadDatos()) {
-            throw new IllegalArgumentException("El tipo " + tipo.getNombre() + " declara "
-                    + tipo.getCantidadDatos() + " lecturas por punto, y se recibio la numero "
-                    + lectura.secuencia());
+        if (lectura.secuencia() > verificacion.cantidadDatos()) {
+            throw new IllegalArgumentException("La verificacion de "
+                    + verificacion.magnitud().nombre() + " declara " + verificacion.cantidadDatos()
+                    + " lecturas por punto, y se recibio la numero " + lectura.secuencia());
         }
 
-        // La unidad sale del punto, no del comando: asi no puede contradecirlo.
-        return VerificationReading.of(punto.id(), lectura.secuencia(), lectura.valorPatron(),
-                lectura.valorEquipo(), punto.unidad());
+        // La unidad sale de la verificacion, no del comando: asi no puede contradecirla.
+        return VerificationReading.of(verificacion.id(), punto.id(), lectura.secuencia(),
+                lectura.valorPatron(), lectura.valorEquipo(), verificacion.unidad().simbolo());
     }
 
     /**
      * La verificación está completa, o el equipo quedó fuera de servicio.
      *
-     * <p><b>La excepción no es una concesión, es el caso normal de un equipo averiado</b>: a un
-     * equipo que no enciende no se le puede tomar una lectura, y exigirlas obligaría a inventárselas
-     * para poder cerrar el reporte que precisamente dice que está fuera de servicio.
+     * <p><b>La excepción no es una concesión, es el caso normal de un equipo averiado</b>: a un equipo
+     * que no enciende no se le puede tomar una lectura, y exigirlas obligaría a inventárselas para poder
+     * cerrar el reporte que precisamente dice que está fuera de servicio.
      *
-     * <p>Con una modalidad constante se exigen todas las lecturas de todos los puntos activos; con
-     * patrón y equipo variables, al menos una, porque cuántas tomar lo decide el ingeniero.
+     * <p><b>Se exige por verificación, y eso es más estricto que antes.</b> Con una modalidad constante
+     * se piden todas las lecturas de todos los puntos activos de esa verificación; con patrón y equipo
+     * variables, al menos una <b>de esa verificación</b>, porque cuántas tomar lo decide el ingeniero.
+     * Con el modelo anterior, un termohigrómetro con las dos magnitudes variables se habría podido
+     * cerrar con una sola lectura de temperatura y ninguna de humedad.
      */
     private void requireCompleteVerification(ServiceReport reporte) {
         EquipmentType tipo = tipoDelEquipo(reporte.getIdEquipoCliente());
@@ -329,24 +373,34 @@ public class ServiceReportService implements ServiceReportServicePort {
 
         List<VerificationReading> tomadas = reporte.lecturasActivas();
 
-        if (tipo.getModalidadVerificacion() == VerificationMode.PATRON_EQUIPO_VARIABLE) {
-            if (tomadas.isEmpty()) {
-                throw new IllegalStateException("El tipo " + tipo.getNombre()
-                        + " se verifica, y este reporte no tiene ninguna lectura");
+        for (TypeVerification verificacion : tipo.verificacionesActivas()) {
+            List<VerificationReading> suyas = tomadas.stream()
+                    .filter(lectura -> lectura.idVerificacion().equals(verificacion.id()))
+                    .toList();
+
+            if (verificacion.modalidad() == VerificationMode.PATRON_EQUIPO_VARIABLE) {
+                if (suyas.isEmpty()) {
+                    throw new IllegalStateException("El tipo " + tipo.getNombre() + " verifica "
+                            + verificacion.magnitud().nombre()
+                            + ", y este reporte no tiene ninguna lectura de esa magnitud");
+                }
+
+                continue;
             }
 
-            return;
-        }
+            for (VerificationPoint punto : verificacion.puntosActivos()) {
+                long enEsePunto = suyas.stream()
+                        .filter(lectura ->
+                                Objects.equals(lectura.idPuntoVerificacion(), punto.id()))
+                        .count();
 
-        for (VerificationPoint punto : tipo.puntosActivos()) {
-            long enEsePunto = tomadas.stream()
-                    .filter(lectura -> Objects.equals(lectura.idPuntoVerificacion(), punto.id()))
-                    .count();
-
-            if (enEsePunto < tipo.getCantidadDatos()) {
-                throw new IllegalStateException("El punto " + punto.valor() + " " + punto.unidad()
-                        + " tiene " + enEsePunto + " de las " + tipo.getCantidadDatos()
-                        + " lecturas que el tipo " + tipo.getNombre() + " declara");
+                if (enEsePunto < verificacion.cantidadDatos()) {
+                    throw new IllegalStateException("El punto " + punto.valor() + " "
+                            + verificacion.unidad().simbolo() + " de "
+                            + verificacion.magnitud().nombre() + " tiene " + enEsePunto + " de las "
+                            + verificacion.cantidadDatos() + " lecturas que el tipo "
+                            + tipo.getNombre() + " declara");
+                }
             }
         }
     }
