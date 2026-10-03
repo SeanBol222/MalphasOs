@@ -34,6 +34,10 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  * una deuda conocida y heredada; ofrecer el campo sería ofrecer una acción cuya consecuencia el
  * servidor no completa. La ficha lo dice en voz alta en lugar de esconderlo.
  *
+ * <p><b>Los correos y los teléfonos se gestionan aquí mismo</b>, y cada uno es una llamada suelta a su
+ * sub-recurso: el API no admite mandar la lista completa. Retirar uno <b>no lo borra</b>, apaga su
+ * estado; la ficha solo pinta los vigentes.
+ *
  * <p><b>La edición es un `PUT` que manda la persona entera</b> —{@code person} se migró antes de que la
  * convención de solo `PATCH` se fijara—, así que el formulario envía también lo que no se tocó. Los
  * correos y los teléfonos no viajan en ese cuerpo: son sub-recursos con sus propias rutas.
@@ -100,6 +104,21 @@ export class DetallePersona {
     (this.persona.data()?.phonePersonList ?? []).filter((telefono) => telefono.estadoActivo),
   );
 
+  // --- Contactos ---------------------------------------------------------------
+
+  protected readonly altaDeCorreo = this.api.anadirCorreo();
+  protected readonly bajaDeCorreo = this.api.retirarCorreo();
+  protected readonly altaDeTelefono = this.api.anadirTelefono();
+  protected readonly bajaDeTelefono = this.api.retirarTelefono();
+
+  /** Cuál de los dos formularios de contacto está abierto, si hay alguno. */
+  protected readonly anadiendo = signal<'correo' | 'telefono' | null>(null);
+
+  protected readonly contactoNuevo = this.fb.nonNullable.group({
+    correo: ['', Validators.email],
+    telefono: '',
+  });
+
   protected readonly formulario = this.fb.nonNullable.group({
     cedula: ['', [Validators.required, Validators.maxLength(10)]],
     primerNombre: ['', Validators.required],
@@ -109,10 +128,25 @@ export class DetallePersona {
   });
 
   protected readonly hayError = computed(
-    () => this.persona.isError() || this.edicion.isError() || this.baja.isError(),
+    () =>
+      this.persona.isError() ||
+      this.edicion.isError() ||
+      this.baja.isError() ||
+      this.altaDeCorreo.isError() ||
+      this.bajaDeCorreo.isError() ||
+      this.altaDeTelefono.isError() ||
+      this.bajaDeTelefono.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
-    traducirError(this.persona.error() ?? this.edicion.error() ?? this.baja.error()),
+    traducirError(
+      this.persona.error() ??
+        this.edicion.error() ??
+        this.baja.error() ??
+        this.altaDeCorreo.error() ??
+        this.bajaDeCorreo.error() ??
+        this.altaDeTelefono.error() ??
+        this.bajaDeTelefono.error(),
+    ),
   );
   protected readonly detalles = computed(() => detallesDe(this.edicion.error()));
 
@@ -172,6 +206,47 @@ export class DetallePersona {
         },
       },
     );
+  }
+
+  protected anadirCorreo(): void {
+    const correo = this.contactoNuevo.controls.correo.value.trim();
+
+    if (!correo || this.contactoNuevo.controls.correo.invalid) {
+      this.contactoNuevo.controls.correo.markAsTouched();
+
+      return;
+    }
+
+    this.altaDeCorreo.mutate(
+      { idPersona: this.id(), contacto: { correoPersona: correo } },
+      { onSuccess: () => this.cerrarContacto() },
+    );
+  }
+
+  protected anadirTelefono(): void {
+    const telefono = this.contactoNuevo.controls.telefono.value.trim();
+
+    if (!telefono) {
+      return;
+    }
+
+    this.altaDeTelefono.mutate(
+      { idPersona: this.id(), contacto: { telefonoPersona: telefono } },
+      { onSuccess: () => this.cerrarContacto() },
+    );
+  }
+
+  protected retirarCorreo(idContacto: string): void {
+    this.bajaDeCorreo.mutate({ idPersona: this.id(), idContacto });
+  }
+
+  protected retirarTelefono(idContacto: string): void {
+    this.bajaDeTelefono.mutate({ idPersona: this.id(), idContacto });
+  }
+
+  private cerrarContacto(): void {
+    this.contactoNuevo.reset();
+    this.anadiendo.set(null);
   }
 
   protected retirar(): void {

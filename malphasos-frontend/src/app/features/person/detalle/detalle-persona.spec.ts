@@ -60,17 +60,42 @@ describe('Ficha de una persona', () => {
     await responderA(fixture, http, `${URL}/${ID}`, datos);
   }
 
-  function pulsar(etiqueta: string): void {
-    const boton = [...raiz().querySelectorAll('button')].find((b) =>
-      (b.textContent ?? '').includes(etiqueta),
+  function pulsar(etiqueta: string, dentro: ParentNode = raiz()): void {
+    const boton = [...dentro.querySelectorAll('button')].find(
+      (b) => (b.textContent ?? '').trim() === etiqueta,
     );
 
     if (!boton) {
-      throw new Error(`No hay ningun boton que diga "${etiqueta}"`);
+      throw new Error(
+        `No hay ningun boton que diga exactamente "${etiqueta}". Hay: ` +
+          [...dentro.querySelectorAll('button')]
+            .map((b) => `"${(b.textContent ?? '').trim()}"`)
+            .join(', '),
+      );
     }
 
-    boton.click();
+    (boton as HTMLButtonElement).click();
     fixture.detectChanges();
+  }
+
+  /**
+   * La seccion cuyo titulo coincide, para poder pulsar DENTRO de ella.
+   *
+   * <p>Hace falta porque hay tres botones «Retirar» en la pantalla —el de la persona, el de un correo y
+   * el de un telefono— y dos que empiezan por «Añadir». La primera version de estas pruebas buscaba por
+   * texto parcial en toda la pagina y <b>pulsaba el equivocado</b>: pedia retirar un correo y retiraba
+   * a la persona. Lo delataron dos pruebas que esperaban una peticion que nunca salia.
+   */
+  function seccion(titulo: string): HTMLElement {
+    const encontrada = [...raiz().querySelectorAll('section')].find((s) =>
+      (s.querySelector('h2')?.textContent ?? '').includes(titulo),
+    );
+
+    if (!encontrada) {
+      throw new Error(`No hay ninguna seccion titulada "${titulo}"`);
+    }
+
+    return encontrada as HTMLElement;
   }
 
   function escribir(id: string, valor: string): void {
@@ -190,6 +215,95 @@ describe('Ficha de una persona', () => {
     expect(viaje).toHaveBeenCalledWith(['/personas']);
     http.match(`${URL}/${ID}`).forEach((p) => p.flush(persona()));
     await asentar(fixture);
+  });
+
+  describe('Correos y teléfonos', () => {
+    const CON_CONTACTOS = persona({
+      emailPersonList: [
+        { idCorreoPersona: 'c1', correoPersona: 'grace@armada.mil', estadoActivo: true },
+      ],
+      phonePersonList: [
+        { idTelefonoPersona: 't1', telefonoPersona: '3001234567', estadoActivo: true },
+      ],
+    });
+
+    it('añadir un correo llama a su sub-recurso, no al cuerpo de la persona', async () => {
+      // El API no admite mandar la lista completa: cada contacto es su propia llamada.
+      await abrir(CON_CONTACTOS);
+      pulsar('Añadir correo', seccion('Correos'));
+      escribir('correoNuevo', 'grace@yale.edu');
+
+      pulsar('Añadir', seccion('Correos'));
+      await asentar(fixture);
+
+      const peticion = http.expectOne(`${URL}/${ID}/emails`);
+      expect(peticion.request.method).toBe('POST');
+      expect(peticion.request.body).toEqual({ correoPersona: 'grace@yale.edu' });
+      peticion.flush({ idCorreoPersona: 'c2' });
+      await asentar(fixture);
+      http.match(`${URL}/${ID}`).forEach((p) => p.flush(CON_CONTACTOS));
+      await asentar(fixture);
+    });
+
+    it('un correo mal escrito no llega al servidor', async () => {
+      await abrir(CON_CONTACTOS);
+      pulsar('Añadir correo', seccion('Correos'));
+      escribir('correoNuevo', 'esto-no-es-un-correo');
+
+      pulsar('Añadir', seccion('Correos'));
+      await asentar(fixture);
+
+      http.expectNone(`${URL}/${ID}/emails`);
+    });
+
+    it('retirar un correo manda su identificador, y no borra la fila', async () => {
+      await abrir(CON_CONTACTOS);
+
+      // Acotado a la seccion: el «Retirar» de la persona es otro boton con el mismo texto.
+      pulsar('Retirar', seccion('Correos'));
+      await asentar(fixture);
+
+      const peticion = http.expectOne(`${URL}/${ID}/emails/c1`);
+      expect(peticion.request.method).toBe('DELETE');
+      peticion.flush(null);
+      await asentar(fixture);
+      http.match(`${URL}/${ID}`).forEach((p) => p.flush(CON_CONTACTOS));
+      await asentar(fixture);
+    });
+
+    it('añadir un teléfono va a la ruta de teléfonos', async () => {
+      await abrir(CON_CONTACTOS);
+      pulsar('Añadir teléfono', seccion('Teléfonos'));
+      escribir('telefonoNuevo', '3109876543');
+
+      pulsar('Añadir', seccion('Teléfonos'));
+      await asentar(fixture);
+
+      const peticion = http.expectOne(`${URL}/${ID}/phones`);
+      expect(peticion.request.body).toEqual({ telefonoPersona: '3109876543' });
+      peticion.flush({ idTelefonoPersona: 't2' });
+      await asentar(fixture);
+      http.match(`${URL}/${ID}`).forEach((p) => p.flush(CON_CONTACTOS));
+      await asentar(fixture);
+    });
+
+    it('sin permiso sobre esta persona no se ofrece tocar sus contactos', async () => {
+      TestBed.resetTestingModule();
+      montar(['person.read', 'person.write']);
+      await abrir(
+        persona({
+          tipoPersona: 'ENGINEER',
+          emailPersonList: [
+            { idCorreoPersona: 'c1', correoPersona: 'grace@armada.mil', estadoActivo: true },
+          ],
+        }),
+      );
+
+      // El correo se ve -es informacion-, pero no hay con que tocarlo.
+      expect(texto()).toContain('grace@armada.mil');
+      expect(botones()).not.toContain('Añadir correo');
+      expect(botones()).not.toContain('Retirar');
+    });
   });
 
   it('una persona retirada no ofrece ninguna escritura', async () => {
