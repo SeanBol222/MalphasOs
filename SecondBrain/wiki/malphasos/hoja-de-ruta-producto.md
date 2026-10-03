@@ -19,7 +19,7 @@ updated: 2026-09-27
 |---|---|---|---|
 | Requisitos funcionales | 31 | **17** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
-| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo y reportes de servicio**, todo de extremo a extremo, con **368** pruebas | Comprobado sobre el árbol del repositorio |
+| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio y personas**, todo de extremo a extremo, con **395** pruebas | Comprobado sobre el árbol del repositorio |
 
 > **Corregido el 2026-09-26, dos veces el mismo día.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak, **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados— y **seis más** del catálogo de equipos con el registro de un equipo en un área, con **262** pruebas. **Con eso existe ya todo lo que una orden de trabajo necesita tocar**: sedes, áreas y equipos por área. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
 
@@ -62,9 +62,20 @@ Detalle por categoría en `Documentation/wiki/requisitos/estado-de-implementacio
 - **Lo siguiente decidido es el frontend**, el 2026-09-13, con su declaración de diseño escrita y su manual de marca. Arranca por una **rebanada vertical**: arranque de la aplicación, autenticación y el flujo de órdenes de trabajo. Ver [[arquitectura-frontend-malphasos]].
 - ~~**Reportes de servicio** queda como el siguiente bloque de backend.~~ **Construido el 2026-09-27**, en cuatro tandas y cuatro merges. Y la frase con que se justificaba —«el módulo de órdenes ya emite los siete eventos que un reporte querría escuchar»— **resultó no ser el motivo**: el reporte no escucha ninguno de esos eventos, los consulta por el identificador de la orden. Los siete siguen sin consumidor. Ver [[dominio-reporte-servicio]].
 - ~~**Lo siguiente decidido, y es de frontend**: las pantallas de reportes.~~ **Construidas el 2026-09-28**, en cuatro tandas, y con ellas cerró RF-11. El hueco entre backend y pantalla duró **un día**, contra las dos semanas de las órdenes de trabajo.
+- **El módulo de personas tiene pantallas desde el 2026-10-02**, y conviene decir qué cambia y qué no: **el marcador no sube** —RF-51 a RF-53 ya contaban por el backend— y lo que cierra es que **no había forma de dar de alta a nadie sin `curl`**. Es el caso inverso al de las órdenes de trabajo: allí el frontend subió la cuenta, aquí solo hizo usable lo que ya contaba. El criterio estricto de esta nota da los dos resultados sin contradecirse.
+- **Keycloak lleva la marca desde el 2026-10-02**: el login lo sirve Keycloakify y la consola un tema clásico. No cierra ningún requisito —RF-49 ya estaba— y era un encargo explícito del usuario. Ver [[tema-de-keycloak]].
 - **Lo siguiente sin decidir todavía**: o los **protocolos** (RF-14, camino libre, cierra RF-13 detrás), o la **hoja de vida como entidad** (RF-26 y RF-27, que ya tienen su consulta), o la **firma digital** (RF-18 y RF-21, que abre el PDF de RF-17). Las tres están desbloqueadas; ninguna depende de las otras dos.
 
 Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué arrastra cada pieza.
+
+## ⚠️ Lo pedido para la sesión siguiente (2026-10-02)
+
+**Una revisión completa y exhaustiva de todo lo desarrollado hasta el momento.** Lo pidió el usuario al cerrar la sesión del 2026-10-02, y no es «seguir construyendo»: es contrastar lo construido contra lo escrito. Por dónde empezar, con lo que este proyecto ya sabe de sí mismo:
+
+1. **Los números se recalculan, no se citan de memoria.** Cada cifra de este wiki que no se haya medido ese día es sospechosa: ya caducaron el hash de `main` cuatro veces, el conteo de deuda dos y la cifra de requisitos de `Documentation/` estuvo **tres semanas** en 8 cuando eran 14.
+2. **Los defectos aparecen al comparar**, no al leer. Las parejas que más han dado: el wiki contra el código, la ERS contra el código, un módulo contra otro.
+3. **Verde no es verificado.** Las mutaciones de esta sesión destaparon **cuatro** pruebas que pasaban sin ejercer nada; conviene asumir que quedan más.
+4. **Lo que falta mirar con lupa**: `equipment` sigue sin pruebas de persistencia; `person` conserva tres `PUT`; el filtrado por dueño no existe; y las credenciales del realm están publicadas.
 
 ## El grafo de dependencias, y las dos versiones que existen de él
 

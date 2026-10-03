@@ -955,3 +955,43 @@ Repaso de lo que quedaba abierto y se podía cerrar sin pedir nada.
 **Por qué se importan los cuatro y no solo el de la raíz**: los de subdirectorio se cargaban **por estar en su carpeta con ese nombre**, y el nombre es justo lo que se quitó. Importarlos explícitamente es lo que conserva esa función.
 
 **Lo que este cambio NO arregla, y conviene no confundirlo**: la atribución. Ese nombre de archivo nunca convirtió a nadie en contributor de GitHub — eso lo deciden el correo del autor y los trailers `Co-authored-by`, y la auditoría del 2026-09-28 sobre los 292 commits publicados dio **cero** en las dos cosas. El renombrado es cosmético y está bien que lo sea.
+
+## [2026-10-02] ingest | La marca en Keycloak, el módulo de personas, y la decisión que se tomó dos veces
+
+Dos bloques en la misma sesión, y los dos dejaron hallazgos que valen más que el código.
+
+### El tema de Keycloak
+
+**Dos mecanismos y no uno**: Keycloakify para el login —una interfaz de verdad— y un **tema clásico** para la consola de administración, donde cambiar logo y colores son **cuatro archivos**. Comparten el nombre de tema porque Keycloak resuelve por *(nombre, tipo)*. Nota propia: [[tema-de-keycloak]].
+
+**La decisión se tomó dos veces y la primera estaba mal argumentada**, y eso es lo que conviene conservar. Se recomendó Angular invocando el error del `auth/` React del original — una analogía con una herida vieja que **no aplicaba**, porque existe librería de Angular mantenida justo en Angular 22. Lo que de verdad decidía era otra cosa: *«only React supports custom Admin UIs»*, y el encargo **era** la consola. El patrón de error: un argumento por precedente suena sólido y puede no venir al caso.
+
+**`initialize-admin-theme` copia la consola entera**: 692 archivos, 89.000 líneas, 12 MB, 25 dependencias, ancladas a Keycloak 26.7. Se ejecutó, se midió y se revirtió. **Y no se arregla ignorándolo en git**, que fue la primera idea del usuario y es razonable: el código tiene que estar para que el build —que corre en Docker— lo compile, y los cambios de marca viven dentro de esos archivos, así que ignorarlos deja sin versionar justo lo propio.
+
+**Tres trampas de despliegue**, las tres documentadas en el compose: `--import-realm` usa **`IGNORE_EXISTING`** y editar el JSON versionado **no cambia nada** en un entorno levantado; el tema se aplica **por realm** y la consola que usa quien desarrolla es la de `master`, que no se importa de ninguna parte; y montar un JAR como volumen falla **creando un directorio** y arrancando sin tema en silencio, de donde que el JAR se construya dentro de la imagen.
+
+### El módulo de personas
+
+Tenía **catorce operaciones en el API y cero pantallas**: RF-51 a RF-53 contaban por el backend y a la vez no había forma de dar de alta a nadie sin `curl`. Cuatro tandas: listado con filtro, las cuatro altas, la ficha con edición y baja, y los contactos.
+
+**Cuatro altas y ningún selector de tipo**, porque las dos reglas que las sostienen son del backend: en las tres con cuenta **el tipo lo dice la ruta**, y la cuarta **solo admite `MANAGER`** —lo impone `PersonService.save` para que nadie escriba una fila que dice ser administrador sin serlo—.
+
+**La ficha se edita en sí misma**, rompiendo con el precedente de cliente y sede, porque **el permiso depende de la fila**: una ruta aparte tendría que declarar una autoridad fija antes de saber a quién carga. Es la misma razón por la que el backend lo resuelve en un bean.
+
+**Y el menú aprendió a ocultar por autoridad**, que estaba anotado como pendiente en `navegacion.ts` desde que se escribió. Lo hizo necesario «Personas»: el primer destino que un grupo legítimo del realm no puede usar. La autoridad la declara la **entrada de navegación**, de donde salen a la vez el menú y el guard.
+
+### Tres defectos propios que encontraron las pruebas
+
+1. **Un `input.required()` no se puede leer en el constructor** — nueve pruebas en rojo con el mismo mensaje. Va en un efecto, y lo que pone tiene que quitarlo en la misma pasada.
+2. **Quitar el guard de las rutas no rompía nada**: ocultar estaba probado y proteger no. Es la mitad que se olvida.
+3. **Un selector de prueba laxo pulsaba el botón equivocado**: la ficha tiene tres «Retirar», y la prueba pedía retirar un correo mientras **retiraba a la persona**. Texto exacto y clic acotado a su sección.
+
+### Y una nota de higiene del repositorio
+
+Los cuatro `CLAUDE.md` pasaron a `CONVENCIONES.md` por decisión del usuario —el nombre aparecía en la portada de GitHub—, con las 70 referencias actualizadas. El archivo que la herramienta carga **no se versiona** y por tanto **git no lo puede restaurar**: desapareció entre sesiones y la del 2026-10-02 arrancó sin las convenciones cargadas. Está recreado, con una línea en texto plano además de las importaciones.
+
+**Conteo**: frontend **395**, de 368 —27 nuevas en cuatro tandas de personas, más dos del armazón y una de la navegación—, 42 archivos, cero fallos. Backend sin tocar, en **812**. Deuda propia: **50** filas, **37 abiertas**, recontadas sobre el archivo.
+
+**Lo pedido para la sesión siguiente**: una **revisión completa y exhaustiva de todo lo desarrollado**. Queda anotada en [[hoja-de-ruta-producto]] con por dónde empezar, porque no es seguir construyendo: es contrastar lo construido contra lo escrito.
+
+**Tocadas**: nueva [[tema-de-keycloak]] —el wiki pasa a **53** notas—, más [[decisiones-tecnicas-malphasos]], [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CONVENCIONES.md` de la raíz.

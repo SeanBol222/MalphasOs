@@ -64,6 +64,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 
 ### Infraestructura local
 
+- [[tema-de-keycloak]] ⭐ — **Cómo MalphasOS pone su marca en Keycloak**: Keycloakify para el login, tema clásico para la consola, y las cuatro trampas que costó descubrirlo —incluida la que copia 692 archivos de Keycloak dentro del proyecto y la que hace que editar el realm versionado no cambie nada—.
 - [[docker-compose]] — Postgres, Keycloak, RabbitMQ, pgAdmin y el backend.
 - [[dockerfile-y-contenedores]] — Build en dos etapas, usuario sin privilegios, healthcheck real.
 
@@ -82,7 +83,7 @@ Los hallazgos de cada migración. Se leen por lo que enseñan sobre **cómo apar
 Notas que describen piezas del sistema original **no construidas aquí**. Son el punto de partida cuando les llegue el turno; ver [[hoja-de-ruta-producto]] para cuándo.
 
 - [[arquitectura-frontend]] — React 19 + TS + Vite **del original**. Su conclusión de reutilización caducó el 2026-09-13 al elegirse Angular.
-- [[arquitectura-frontend-malphasos]] ⭐ — **Cómo se escribe frontend aquí**: Angular, por módulo de negocio con los nombres del backend, cliente generado desde OpenAPI. Y por qué cada pieza es el espejo de una del backend. Desde el 2026-09-26, también: **un servicio por agregado**, claves de caché jerárquicas, y por qué `whenStable()` no sirve en zoneless con una petición en vuelo. Y desde el **2026-09-28**, tres trampas de pruebas más, incluida la que convirtió **un fallo real en ochenta y seis**.
+- [[arquitectura-frontend-malphasos]] ⭐ — **Cómo se escribe frontend aquí**: Angular, por módulo de negocio con los nombres del backend, cliente generado desde OpenAPI. Y por qué cada pieza es el espejo de una del backend. Desde el 2026-09-26, también: **un servicio por agregado**, claves de caché jerárquicas, y por qué `whenStable()` no sirve en zoneless con una petición en vuelo. Y desde el **2026-10-02**, cinco trampas de pruebas más, incluidas la que convirtió **un fallo real en ochenta y seis** y la del selector laxo que **pulsaba el botón equivocado**.
 - [[sistema-de-diseno-malphasos]] ⭐ — El manual de marca traducido a interfaz: tokens, contrastes **medidos**, radio cero, escala de 8, y los estados que se distinguen por peso y no por color. Desde el 2026-09-26, el componente que el manual no nombra: **el campo que predice** sobre un catálogo de 1.350 filas.
 - [[integracion-keycloak-frontend]] — `keycloak-js` + `AuthProvider` + `PrivateRoute` + `apiFetch`: un starter de autenticación completo y portable. Y, desde el 2026-09-26, **lo que costó el primer arranque real contra `keycloak-angular`**: dos providers que la librería no declara y una página en blanco sin mensaje.
 - [[dominio-reportes]] — El agregador cross-dominio del original, con su puerto genérico. **Corregido el 2026-09-27**: esta línea decía «en MalphasOS el grupo de OpenAPI existe y el módulo no», cierto hasta ese día. El módulo existe ya —[[dominio-reporte-servicio]]— y **resolvió otro problema**; este patrón sigue sin gastar, para el PDF de RF-17.
@@ -108,4 +109,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**52 notas** · reorganizado el 2026-09-09 · última corrección el 2026-09-28 · ver [[log.md]] para el historial.
+**53 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-02 · ver [[log.md]] para el historial.
