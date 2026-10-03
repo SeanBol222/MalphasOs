@@ -1,12 +1,22 @@
 ---
 name: esquema-bd-v4
-description: Esquema PostgreSQL actual — 27 tablas, convención de prefijos por tipo de dato, soft-delete universal
-tags: [base-de-datos, "reusable:alta", "describe:ambos"]
+description: El esquema del sistema ORIGINAL — 27 tablas de Enterprise Architect, prefijos por tipo de dato, soft-delete universal
+tags: [base-de-datos, "reusable:alta", "describe:original"]
 source: DataBase/v4/initdb/A_Sigma_DB_V4.sql
-updated: 2026-09-12
+updated: 2026-10-03
 ---
 
-# Esquema de base de datos v4 (PostgreSQL)
+# Esquema de base de datos v4 (PostgreSQL) — el del sistema ORIGINAL
+
+> **Corregido el 2026-10-03.** Esta nota se anunciaba como «el esquema PostgreSQL **actual**» y estaba
+> etiquetada `describe:ambos`. Las dos cosas eran ciertas cuando se escribió y dejaron de serlo al
+> construirse MalphasOS: describe `DataBase/v4/initdb/A_Sigma_DB_V4.sql`, el esquema de
+> `bolivarbioingenieria-app`, y nada de lo de aquí es el estado de esta base de datos. Quien preguntaba
+> «cómo tenemos la base de datos» aterrizaba aquí y leía las 27 tablas del sistema viejo.
+>
+> **El esquema de MalphasOS, con diagramas, está en [[esquema-bd-malphasos]]**: 26 tablas, 35
+> foráneas, generado leyendo la base en marcha. La coincidencia de 27 contra 26 es solo eso: no son las
+> mismas tablas menos una, es otro modelo.
 
 27 tablas, generadas con Enterprise Architect. Convención de nombres consistente por prefijo de tipo: `k_` = key/id, `n_` = nombre/texto identificador, `t_` = texto libre, `b_` = boolean, `f_` = fecha, `d_/m_/v_/i_` = numérico, `s_` = JSON/serializado. Casi todas las tablas tienen `b_estado_activo boolean DEFAULT true` (soft-delete universal — ver [[patron-soft-delete]]). Todas las FKs son `ON DELETE No Action ON UPDATE No Action` (integridad estricta, sin cascadas) con su índice (`IXFK_*`) — buena práctica consistente.
 

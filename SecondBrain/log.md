@@ -995,3 +995,39 @@ Los cuatro `CLAUDE.md` pasaron a `CONVENCIONES.md` por decisión del usuario —
 **Lo pedido para la sesión siguiente**: una **revisión completa y exhaustiva de todo lo desarrollado**. Queda anotada en [[hoja-de-ruta-producto]] con por dónde empezar, porque no es seguir construyendo: es contrastar lo construido contra lo escrito.
 
 **Tocadas**: nueva [[tema-de-keycloak]] —el wiki pasa a **53** notas—, más [[decisiones-tecnicas-malphasos]], [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]], `index.md` y el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-03] ingest | el esquema de la base de datos, por fin descrito y dibujado
+
+**Lo pidió el usuario preguntando dónde estaba el diagrama de la base de datos.** No estaba en ningún
+sitio, y la respuesta honesta era que no existía: este wiki tenía dos notas en `base-de-datos/` y las
+dos describen el **sistema original**. Peor, la primera se anunciaba en su propia descripción como «el
+esquema PostgreSQL **actual**» y estaba etiquetada `describe:ambos`, de modo que quien llegaba
+preguntando por el estado de hoy leía las 27 tablas de Enterprise Architect del sistema viejo.
+
+**Y este índice ya lo sabía.** Tenía `[[esquema-malphasos]]` anotado como «el hueco más notorio» desde
+la reorganización del 2026-09-09, con enlace sin destino. Llevaba ahí casi un mes. Que lo destapara una
+pregunta del usuario y no una pasada de lint es el dato que conviene recordar: un hueco anotado como
+pendiente no se cierra por estar anotado.
+
+Entra [[esquema-bd-malphasos]], y queda corregida [[esquema-bd-v4]] con constancia de lo que decía.
+
+**Generada leyendo la base en marcha, no las migraciones.** Son diez archivos y el estado final no se
+ve en ninguno: `information_schema` sí lo ve. La nota lleva las consultas dentro para que se pueda
+rehacer, porque la alternativa es que caduque como caducó la otra.
+
+Lo medido, el 2026-10-03: **26** tablas de dominio —el original tenía 27, y no son las mismas menos
+una—, **35** foráneas de las cuales **4 compuestas**, **28** `CHECK` propios, **4** índices únicos
+parciales y **26 de 26** tablas con borrado lógico. Esa última no es una convención declarada sino una
+afirmación comprobada: la consulta que busca tablas sin `b_estado_activo` devuelve cero filas.
+
+**Ocho diagramas Mermaid, y son los primeros del wiki.** Uno de módulos y siete de entidades, uno por
+módulo: un único diagrama de 26 tablas no se puede leer, que es el problema que tiene cualquier ER
+generado por una herramienta. Markdown con Mermaid se versiona y se revisa en un diff; un `.png`
+exportado no.
+
+**Se validaron ejecutando el analizador de Mermaid, y hacía falta.** La primera versión escribía
+`PK_FK` para las claves compuestas de `orden_trabajo_equipo`, que **no es sintaxis válida** —se separan
+por coma—, y dos de los ocho bloques no habrían renderizado. El validador se vio fallar a propósito
+reintroduciendo el error, que es lo que este proyecto exige de una comprobación: el paquete modular
+`@mermaid-js/parser` **no** cubre `graph` ni `erDiagram`, así que hace falta `mermaid` entero con un DOM
+de `jsdom`.
