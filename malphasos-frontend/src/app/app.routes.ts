@@ -136,6 +136,16 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('person.write')],
       },
       {
+        // La ficha va DESPUES de las cuatro altas, o el router leeria «nueva» como un identificador.
+        // Exige solo person.read: quien puede ESCRIBIR sobre esta persona depende de su tipo, y eso no
+        // se sabe hasta cargarla. Esa decision vive en el componente, igual que en el backend vive en un
+        // bean y no en la anotacion.
+        path: 'personas/:id',
+        loadComponent: () =>
+          import('./features/person/detalle/detalle-persona').then((m) => m.DetallePersona),
+        canActivate: [requiereAutoridad('person.read')],
+      },
+      {
         // El historial de un equipo: la consulta sobre la que se construira la hoja de vida (RF-26).
         // Exige report.read porque lo que lista son reportes, no equipos.
         path: 'equipos/:id/historial',
