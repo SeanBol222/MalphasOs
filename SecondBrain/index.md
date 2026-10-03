@@ -35,6 +35,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[traduccion-de-fallos-de-adaptadores]] — Un adaptador de salida falla de dos maneras; traducir solo una deja escapar 500 fuera del contrato.
 - [[openapi-swagger]] — Un grupo por módulo, y el fallo silencioso de un `pathsToMatch` que no casa con ninguna ruta.
 - [[antipatron-open-in-view]] — Por qué está apagado y qué hacer en su lugar.
+- [[esquema-bd-malphasos]] ⭐ — **El esquema de hoy, con diagramas**: 26 tablas por módulo, las 4 foráneas compuestas que son reglas, los 4 índices únicos parciales y lo que el esquema deliberadamente no dice. Generado leyendo la base en marcha, con las consultas para rehacerlo.
 
 ### Los módulos de dominio
 
@@ -49,7 +50,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 
 ### Datos y esquema
 
-- [[esquema-bd-v4]] — Las 27 tablas del original y las convenciones que MalphasOS heredó: prefijos por tipo, PK UUID, borrado lógico.
+- [[esquema-bd-v4]] — Las 27 tablas **del original** y las convenciones que MalphasOS heredó: prefijos por tipo, PK UUID, borrado lógico. **No describe esta base de datos** —para eso, [[esquema-bd-malphasos]]—; se anunciaba como «el esquema actual» y se corrigió el 2026-10-03.
 - [[patron-soft-delete]] — `b_estado_activo` universal: aquí nada se borra.
 - [[reglas-de-negocio-en-el-esquema]] — Los seis sitios donde un esquema SQL esconde reglas de negocio. Revisar antes de dar por migrado un módulo.
 - [[congelar-una-referencia-historica]] — Cuando una columna guarda *dónde estaba* algo, la clave foránea compuesta que parece faltar bloquearía el cambio legítimo. Leer antes de «arreglar» `orden_trabajo_equipo`.
@@ -105,8 +106,8 @@ Valor histórico. Explican por qué una decisión es como es, no qué hace Malph
 
 Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no la tiene.
 
-- `[[esquema-malphasos]]` — **el hueco más notorio**: no hay ninguna nota que describa el esquema real de MalphasOS. [[esquema-bd-v4]] describe el del original, y las **nueve** migraciones `V1`–`V9` solo están contadas de refilón en las notas de migración. (Decía «cinco» y `V1`–`V5`: **cierto hasta el 2026-09-12**; «seis», hasta el **2026-09-26**; «siete», hasta el **2026-09-27**, cuando entraron `V8__verification_points.sql` —descrita en [[dominio-equipo-mantenimiento]]— y `V9__service_report.sql` —en [[dominio-reporte-servicio]]—.)
+- ~~`[[esquema-malphasos]]`~~ — **cerrado el 2026-10-03** por [[esquema-bd-malphasos]], que describe las **26** tablas de las **diez** migraciones `V1`–`V10` con un diagrama por módulo. Era «el hueco más notorio» de este índice y lo señaló el usuario preguntando dónde estaba el diagrama de la base de datos, que es la mejor señal de que el hueco era real. (Esta línea dijo «cinco» migraciones y `V1`–`V5` —cierto hasta el 2026-09-12—, «seis» hasta el 2026-09-26, «siete» hasta el 2026-09-27 y «nueve» hasta el 2026-10-03, cuando entró `V10__verification_magnitudes.sql`.)
 
 ---
 
-**53 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-02 · ver [[log.md]] para el historial.
+**54 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-03 · ver [[log.md]] para el historial.
