@@ -1,6 +1,8 @@
 package com.malphasos.malphasos.report.infrastructure.input.rest;
 
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
+import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
@@ -22,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -64,6 +67,9 @@ public class ServiceReportRestAdapter {
     private final ServiceReportServicePort serviceReportServicePort;
     private final ServiceReportRestMapper mapper;
 
+    /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
+    private final ReadScopeResolver readScopeResolver;
+
     @Operation(summary = "Listar reportes de una orden o de un equipo",
             description = "Hay que indicar uno de los dos filtros, y solo uno: un reporte no se "
                     + "consulta suelto, sino dentro de su orden o del historial de su equipo.")
@@ -73,23 +79,27 @@ public class ServiceReportRestAdapter {
             @Parameter(description = "Los reportes de esta orden de trabajo")
             @RequestParam(required = false) UUID idOrdenTrabajo,
             @Parameter(description = "El historial de reportes de este equipo")
-            @RequestParam(required = false) UUID idEquipoCliente) {
+            @RequestParam(required = false) UUID idEquipoCliente,
+            Authentication autenticacion) {
 
         if ((idOrdenTrabajo == null) == (idEquipoCliente == null)) {
             throw new IllegalArgumentException(
                     "Hay que filtrar por orden de trabajo o por equipo, y solo por uno de los dos");
         }
 
+        ReadScope alcance = readScopeResolver.scopeFor(autenticacion);
+
         return idOrdenTrabajo != null
-                ? mapper.toList(serviceReportServicePort.findByWorkOrder(idOrdenTrabajo))
-                : mapper.toList(serviceReportServicePort.findByEquipment(idEquipoCliente));
+                ? mapper.toList(serviceReportServicePort.findByWorkOrder(idOrdenTrabajo, alcance))
+                : mapper.toList(serviceReportServicePort.findByEquipment(idEquipoCliente, alcance));
     }
 
     @Operation(summary = "Obtener un reporte por su identificador")
     @PreAuthorize("hasAuthority('report.read')")
     @GetMapping("/{id}")
-    public ServiceReportResponse getById(@PathVariable UUID id) {
-        return mapper.toResponse(serviceReportServicePort.findById(id));
+    public ServiceReportResponse getById(@PathVariable UUID id, Authentication autenticacion) {
+        return mapper.toResponse(
+                serviceReportServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Abrir el reporte de un equipo de una orden",

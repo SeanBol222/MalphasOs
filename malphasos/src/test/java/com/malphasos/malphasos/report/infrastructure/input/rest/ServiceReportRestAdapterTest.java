@@ -26,6 +26,7 @@ import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordV
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.VerificationReadingRequest;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -249,7 +250,7 @@ class ServiceReportRestAdapterTest {
     @Test
     @DisplayName("listar por orden devuelve sus reportes")
     void listarPorOrden() throws Exception {
-        when(serviceReportServicePort.findByWorkOrder(ORDEN)).thenReturn(List.of(unReporte()));
+        when(serviceReportServicePort.findByWorkOrder(ORDEN, ReadScope.unrestricted())).thenReturn(List.of(unReporte()));
 
         mockMvc.perform(get("/v1/api/reports").param("idOrdenTrabajo", ORDEN.toString()))
                 .andExpect(status().isOk())
@@ -259,7 +260,7 @@ class ServiceReportRestAdapterTest {
     @Test
     @DisplayName("listar por equipo devuelve su historial")
     void listarPorEquipo() throws Exception {
-        when(serviceReportServicePort.findByEquipment(EQUIPO)).thenReturn(List.of(unReporte()));
+        when(serviceReportServicePort.findByEquipment(EQUIPO, ReadScope.unrestricted())).thenReturn(List.of(unReporte()));
 
         mockMvc.perform(get("/v1/api/reports").param("idEquipoCliente", EQUIPO.toString()))
                 .andExpect(status().isOk())
@@ -270,7 +271,7 @@ class ServiceReportRestAdapterTest {
     @DisplayName("un reporte que no existe da 404 con el codigo del modulo")
     void noExiste() throws Exception {
         UUID id = UUID.randomUUID();
-        when(serviceReportServicePort.findById(id)).thenThrow(new ServiceReportNotFoundException(id));
+        when(serviceReportServicePort.findById(id, ReadScope.unrestricted())).thenThrow(new ServiceReportNotFoundException(id));
 
         mockMvc.perform(get("/v1/api/reports/" + id))
                 .andExpect(status().isNotFound())

@@ -780,7 +780,7 @@ class ServiceReportServiceTest {
                     ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, true));
             when(serviceReportPersistencePort.findByEquipment(EQUIPO)).thenReturn(List.of());
 
-            assertThat(service.findByEquipment(EQUIPO)).isEmpty();
+            assertThat(service.findByEquipment(EQUIPO, ReadScope.unrestricted())).isEmpty();
             verify(clientEquipmentServicePort).findById(EQUIPO, ReadScope.unrestricted());
         }
     }
