@@ -1267,3 +1267,54 @@ cliente, orden en la sede de otro cliente—, que es coherente con ser el módul
 revisaron contra el wiki en septiembre. `location` y la guarda de la sede de `client` también.
 
 Backend **856** pruebas en **56** clases. Deuda propia: **65** filas, 25 tachadas, 40 abiertas.
+
+## [2026-10-04] lint | segunda vuelta de mutaciones: los agregados y el frontend
+
+Diez mutaciones más, sobre el terreno que la primera vuelta no tocó. **Una superviviente**, y tenía
+cómplice.
+
+### La igualdad por identidad no estaba comprobada en quince de diecisiete agregados
+
+Quitar `onlyExplicitlyIncluded = true` de `EquipmentType` —de modo que su igualdad pasa a compararse por
+todos sus datos— dejó las 856 pruebas en verde. Al contarlo: **diecisiete** clases usan esa anotación y
+solo **dos** tenían una aserción de igualdad por identidad, `City` y `Brand`.
+
+**Y la prueba que parecía cubrirlo mentía en su nombre.** `CatalogAggregatesTest.identidadYRehidratacion`
+se llamaba «los seis agregados comparan por identidad, y rehidratar no emite», y de los seis solo
+afirmaba la igualdad de `Brand`: de los otros cinco comprobaba únicamente que rehidratar no emitiera
+eventos.
+
+**El nombre de una prueba es una afirmación sin verificar**, y en una revisión se lee como si lo
+estuviera. Ese nombre es lo que mantuvo el hueco invisible, igual que la cobertura vecina en los cuatro
+casos de la primera vuelta. Renombrada a lo que hace, con la razón dentro.
+
+Entra `AggregateIdentityContractTest`, que lo comprueba **para los diecisiete a la vez** y absorbe solo
+al próximo agregado. Exige tres cosas y las dos primeras están prohibidas **por razones opuestas**:
+`onlyExplicitlyIncluded = true` —sin él, dos agregados distintos con los mismos datos son iguales— y
+**nunca** `callSuper = true` —el defecto del sistema original: `AggregateRoot` no redefine `equals`, de
+modo que la comparación acaba en la identidad de `Object` y **nunca** serían iguales—. Vista fallar con
+las dos variantes.
+
+**Y lee el código fuente en vez de usar reflexión**, que es lo que haría cualquiera. El motivo es
+técnico y vale para cualquier invariante de forma: `@EqualsAndHashCode` de Lombok es
+`@Retention(RetentionPolicy.SOURCE)` —comprobado con `javap` sobre `lombok-1.18.30.jar`—, así que **no
+existe en el bytecode** y `getAnnotation` devuelve `null`. `RestAuthorizationCoverageTest` sí usa
+reflexión porque las anotaciones de Spring son `RUNTIME`.
+
+### Lo que aguantó
+
+**Los agregados**: `deactivate()` idempotente, la colección entregada como copia inmutable, y retirar
+una verificación arrastrando sus puntos — las tres cazadas.
+
+**El frontend, las seis**, que es el resultado más limpio de todo el barrido: una magnitud ya usada que
+se vuelve a ofrecer, la tabla de un reporte cerrado que vuelve a teclearse, una casilla a medias que se
+manda, las rutas sin guard de autoridad, el botón de cerrar habilitado sin lo que el servidor exige, y
+el buscador aceptando un valor inventado.
+
+### El balance del barrido completo
+
+**Veintiuna mutaciones, cinco supervivientes**, todas cerradas: cuatro en los servicios de aplicación
+—con cobertura alrededor y no sobre la regla— y una estructural en los agregados, sostenida por un
+nombre de prueba que prometía de más.
+
+Backend **857** pruebas en **57** clases. Deuda propia: **67** filas, 27 tachadas, 40 abiertas.
