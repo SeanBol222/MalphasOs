@@ -119,7 +119,27 @@ una a una para ver si alguna prueba se enteraba:
 | `client` | Abrir un área en una sede cerrada | cazada |
 | `location` | Una ciudad en un país que no existe | cazada |
 
-**Las cuatro que sobrevivieron tienen la misma forma, y conviene nombrarla**: en los cuatro casos había
+**Segunda vuelta, 2026-10-04: los agregados y el frontend**, que la primera no había tocado. Diez
+mutaciones más, **una superviviente**:
+
+| Dónde | Mutación | Resultado |
+|---|---|---|
+| agregado | Quitar `onlyExplicitlyIncluded`: la igualdad pasa a ser por datos | **856 en verde** — solo 2 de 17 agregados lo tenían comprobado |
+| agregado | `deactivate()` deja de ser idempotente | cazada |
+| agregado | La colección deja de ser copia inmutable | cazada |
+| agregado | Retirar una verificación deja sus puntos activos | cazada |
+| frontend | Una magnitud ya usada se vuelve a ofrecer | cazada |
+| frontend | La tabla de un reporte cerrado vuelve a teclearse | cazada |
+| frontend | Una casilla a medias se manda al servidor | cazada |
+| frontend | Las rutas pierden su guard de autoridad | cazada |
+| frontend | El botón de cerrar se habilita sin lo que el servidor exige | cazada |
+| frontend | El buscador acepta un valor inventado | cazada |
+
+**El frontend aguantó las seis**, que es el resultado más limpio del barrido. Y la superviviente de los
+agregados tenía un cómplice: la prueba que parecía cubrirla **se llamaba** «los seis agregados comparan
+por identidad» y solo lo afirmaba de uno. **El nombre de una prueba es una afirmación sin verificar.**
+
+**Las cuatro de la primera vuelta tienen la misma forma, y conviene nombrarla**: en los cuatro casos había
 cobertura **alrededor** de la regla y ninguna **sobre** ella. Un servicio con tres clases vecinas que
 parecían cubrirlo; una regla de cierre con siete pruebas de cierre que no usaban dos verificaciones;
 una guarda con su gemela probada; y un método con veinte pruebas en su clase y ninguna que lo llamara.
