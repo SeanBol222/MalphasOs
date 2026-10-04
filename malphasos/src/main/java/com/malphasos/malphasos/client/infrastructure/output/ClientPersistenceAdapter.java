@@ -7,6 +7,7 @@ import com.malphasos.malphasos.client.infrastructure.output.mapper.ClientPersist
 import com.malphasos.malphasos.client.infrastructure.output.repository.ClientRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,12 @@ public class ClientPersistenceAdapter implements ClientPersistencePort {
     @Transactional(readOnly = true)
     public Optional<Client> findById(UUID id) {
         return clientRepository.findById(id).map(clientPersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> findIdsRepresentedBy(UUID idPersona) {
+        return clientRepository.findIdsRepresentedBy(idPersona);
     }
 
     @Override
