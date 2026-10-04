@@ -75,7 +75,7 @@ Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué a
 1. **Los números se recalculan, no se citan de memoria.** Cada cifra de este wiki que no se haya medido ese día es sospechosa: ya caducaron el hash de `main` cuatro veces, el conteo de deuda dos y la cifra de requisitos de `Documentation/` estuvo **tres semanas** en 8 cuando eran 14.
 2. **Los defectos aparecen al comparar**, no al leer. Las parejas que más han dado: el wiki contra el código, la ERS contra el código, un módulo contra otro.
 3. **Verde no es verificado.** Las mutaciones de esta sesión destaparon **cuatro** pruebas que pasaban sin ejercer nada; conviene asumir que quedan más.
-4. **Lo que falta mirar con lupa**: `person` conserva tres `PUT`; el filtrado por dueño no existe; y las credenciales del realm están publicadas.
+4. **Lo que falta mirar con lupa**: `person` conserva tres `PUT` y las credenciales del realm están publicadas. (Aquí figuraba también «el filtrado por dueño no existe»: **construido el 2026-10-04**, ver [[filtrado-por-dueno]]. Era el único de los tres con implicación de seguridad real.)
 
 > **Corregido el 2026-10-03.** Este punto decía además que «`equipment` sigue sin pruebas de
 > persistencia», y **era falso**: `EquipmentCatalogPersistenceTest` existe desde el 2026-09-26 con
