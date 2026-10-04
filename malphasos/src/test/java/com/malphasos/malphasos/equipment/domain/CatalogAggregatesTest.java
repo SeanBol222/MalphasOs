@@ -660,8 +660,16 @@ class CatalogAggregatesTest {
     }
 
     @Test
-    @DisplayName("los seis agregados comparan por identidad, y rehidratar no emite")
+    @DisplayName("rehidratar no emite, y Brand compara por identidad")
     void identidadYRehidratacion() {
+        // RENOMBRADA EL 2026-10-04, porque el nombre afirmaba mas que el cuerpo. Se llamaba «los seis
+        // agregados comparan por identidad, y rehidratar no emite» y de los seis solo afirma la
+        // igualdad de Brand: de los otros cinco comprueba unicamente que rehidratar no emita eventos.
+        //
+        // Un nombre que promete mas que el cuerpo es peor que uno vago, porque se lee en una revision
+        // y se da por hecho. La igualdad por identidad de los diecisiete agregados la cubre ahora
+        // AggregateIdentityContractTest, que lo comprueba por la forma del codigo -- la anotacion de
+        // Lombok es de retencion SOURCE y no existe en tiempo de ejecucion.
         UUID id = UUID.randomUUID();
 
         assertThat(Brand.rehydrate(id, "Uno", true)).isEqualTo(Brand.rehydrate(id, "Otro", false));
