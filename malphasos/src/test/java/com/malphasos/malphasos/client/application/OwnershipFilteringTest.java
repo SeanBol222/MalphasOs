@@ -62,7 +62,7 @@ class OwnershipFilteringTest {
     @Mock private EventDispatcherPort dispatcher;
 
     /** Alcance de un representante que solo representa al cliente {@code MIO}. */
-    private static final ReadScope SOLO_MIO = ReadScope.deClientes(Set.of(MIO));
+    private static final ReadScope SOLO_MIO = ReadScope.ofClients(Set.of(MIO));
 
     private ClientService clientes() {
         return new ClientService(clientPort, personCommunicationPort, dispatcher);
@@ -104,7 +104,7 @@ class OwnershipFilteringTest {
     void listarClientesLibre() {
         when(clientPort.findAll()).thenReturn(List.of(unCliente(MIO), unCliente(AJENO)));
 
-        assertThat(clientes().findAll(ReadScope.sinRestriccion())).hasSize(2);
+        assertThat(clientes().findAll(ReadScope.unrestricted())).hasSize(2);
         verify(clientPort, never()).findAllByIds(any());
     }
 
@@ -207,7 +207,7 @@ class OwnershipFilteringTest {
         // en vez de por la verificacion que dice comprobar. Lo destapo mutar el atajo.
         lenient().when(headquarterPort.findById(sede)).thenReturn(Optional.of(unaSede(sede, MIO)));
 
-        assertThat(areas().findById(area, ReadScope.sinRestriccion()).getId()).isEqualTo(area);
+        assertThat(areas().findById(area, ReadScope.unrestricted()).getId()).isEqualTo(area);
 
         // A la gente de la casa no se le cobra el filtro que no se le aplica. Si esta verificacion
         // cae, cada lectura de un area pasa a costar dos consultas para todo el mundo.
@@ -228,7 +228,7 @@ class OwnershipFilteringTest {
     @Test
     @DisplayName("un representante sin clientes no lee nada de este modulo")
     void sinClientesNoLeeNada() {
-        ReadScope nada = ReadScope.deClientes(Set.of());
+        ReadScope nada = ReadScope.ofClients(Set.of());
         when(clientPort.findAllByIds(Set.of())).thenReturn(List.of());
 
         assertThat(clientes().findAll(nada)).isEmpty();

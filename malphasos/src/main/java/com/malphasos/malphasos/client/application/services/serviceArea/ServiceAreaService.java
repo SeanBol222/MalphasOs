@@ -42,7 +42,7 @@ public class ServiceAreaService implements ServiceAreaServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<ServiceArea> findByHeadquarter(UUID idSede, ReadScope alcance) {
-        requireHeadquarterEnAlcance(idSede, alcance);
+        requireHeadquarterInScope(idSede, alcance);
 
         return serviceAreaPersistencePort.findByHeadquarter(idSede);
     }
@@ -56,7 +56,7 @@ public class ServiceAreaService implements ServiceAreaServicePort {
         // El dueño de un área está a dos saltos —area -> sede -> cliente—, de modo que comprobarlo
         // cuesta una consulta más. Solo se paga cuando el alcance restringe: a la gente de la casa
         // no se le cobra el filtro que no se le aplica.
-        if (!alcance.alcanzaATodo() && !alcance.alcanza(requireHeadquarter(area.getIdSede()).getIdCliente())) {
+        if (!alcance.coversEverything() && !alcance.covers(requireHeadquarter(area.getIdSede()).getIdCliente())) {
             throw new ServiceAreaNotFoundException(id);
         }
 
@@ -74,7 +74,7 @@ public class ServiceAreaService implements ServiceAreaServicePort {
     public UUID findOwningClient(UUID idAreaServicio) {
         // Sin restricción a propósito: esta operación la consulta otro módulo para decidir si un
         // traslado cruza de cliente, y esa regla no depende de quién esté mirando.
-        ServiceArea area = findById(idAreaServicio, ReadScope.sinRestriccion());
+        ServiceArea area = findById(idAreaServicio, ReadScope.unrestricted());
 
         return requireHeadquarter(area.getIdSede()).getIdCliente();
     }
@@ -97,7 +97,7 @@ public class ServiceAreaService implements ServiceAreaServicePort {
     public ServiceArea rename(RenameServiceAreaCommand command) {
         // Igual que en las demás escrituras del módulo: sin restricción, porque renombrar exige
         // service-area.write y el alcance solo acota lecturas.
-        ServiceArea area = findById(command.id(), ReadScope.sinRestriccion());
+        ServiceArea area = findById(command.id(), ReadScope.unrestricted());
         area.rename(command.nombre());
 
         return persistAndPublish(area);
@@ -106,17 +106,17 @@ public class ServiceAreaService implements ServiceAreaServicePort {
     @Override
     @Transactional
     public void deactivate(DeactivateServiceAreaCommand command) {
-        ServiceArea area = findById(command.id(), ReadScope.sinRestriccion());
+        ServiceArea area = findById(command.id(), ReadScope.unrestricted());
         area.deactivate();
 
         persistAndPublish(area);
     }
 
     /** La sede existe y su cliente entra en el alcance, o no existe para quien pregunta. */
-    private void requireHeadquarterEnAlcance(UUID idSede, ReadScope alcance) {
+    private void requireHeadquarterInScope(UUID idSede, ReadScope alcance) {
         Headquarter sede = requireHeadquarter(idSede);
 
-        if (!alcance.alcanza(sede.getIdCliente())) {
+        if (!alcance.covers(sede.getIdCliente())) {
             throw new HeadquarterNotFoundException(idSede);
         }
     }

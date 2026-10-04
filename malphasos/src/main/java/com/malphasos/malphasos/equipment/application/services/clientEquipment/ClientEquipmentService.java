@@ -64,7 +64,7 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
     public List<ClientEquipment> findByServiceArea(UUID idAreaServicio) {
         // TODO(filtrado-por-dueno): este listado todavia no acota, y es una de las lecturas que si
         // filtran datos ajenos. Lo cierra la tanda de equipment; aqui solo se comprueba existencia.
-        serviceAreaServicePort.findById(idAreaServicio, ReadScope.sinRestriccion());
+        serviceAreaServicePort.findById(idAreaServicio, ReadScope.unrestricted());
 
         return clientEquipmentPersistencePort.findByServiceArea(idAreaServicio);
     }
@@ -151,7 +151,7 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
      * tienen los ingenieros y los administradores.
      */
     private void requireActiveServiceArea(UUID idAreaServicio) {
-        ServiceArea area = serviceAreaServicePort.findById(idAreaServicio, ReadScope.sinRestriccion());
+        ServiceArea area = serviceAreaServicePort.findById(idAreaServicio, ReadScope.unrestricted());
 
         if (!area.isEstadoActivo()) {
             throw new IllegalArgumentException(

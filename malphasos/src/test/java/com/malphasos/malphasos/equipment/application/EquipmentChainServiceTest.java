@@ -164,7 +164,7 @@ class EquipmentChainServiceTest {
         }
 
         private void elAreaEsta(boolean activa) {
-            when(areaService.findById(AREA, ReadScope.sinRestriccion()))
+            when(areaService.findById(AREA, ReadScope.unrestricted()))
                     .thenReturn(ServiceArea.rehydrate(AREA, "UCI", UUID.randomUUID(), activa));
         }
 
@@ -189,7 +189,7 @@ class EquipmentChainServiceTest {
                     "SN-001", MODELO, AREA, "INV-42", null, null));
 
             // Es la primera vez que equipment consulta a client.
-            verify(areaService).findById(AREA, ReadScope.sinRestriccion());
+            verify(areaService).findById(AREA, ReadScope.unrestricted());
             // En el alta no hay cliente previo que violar: es el area elegida la que define de
             // que cliente pasa a ser la unidad. Si alguien anadiera aqui una comprobacion de
             // cliente, no estaria defendiendo nada.
@@ -336,7 +336,7 @@ class EquipmentChainServiceTest {
         @DisplayName("un area de destino inexistente falla antes de mirar la unidad o el cliente")
         void trasladarAAreaInexistente() {
             UUID areaInexistente = UUID.randomUUID();
-            when(areaService.findById(areaInexistente, ReadScope.sinRestriccion()))
+            when(areaService.findById(areaInexistente, ReadScope.unrestricted()))
                     .thenThrow(new ServiceAreaNotFoundException(areaInexistente));
 
             assertThatThrownBy(() -> service().relocate(

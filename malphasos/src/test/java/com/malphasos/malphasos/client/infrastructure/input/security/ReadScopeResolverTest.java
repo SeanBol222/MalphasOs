@@ -69,12 +69,12 @@ class ReadScopeResolverTest {
         UUID yo = UUID.randomUUID();
         UUID miCliente = UUID.randomUUID();
         when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.CEO_CLIENT));
-        when(clientOwnershipPort.clientesRepresentadosPor(yo)).thenReturn(Set.of(miCliente));
+        when(clientOwnershipPort.clientsRepresentedBy(yo)).thenReturn(Set.of(miCliente));
 
-        ReadScope alcance = resolver.de(conSub(yo.toString()));
+        ReadScope alcance = resolver.scopeFor(conSub(yo.toString()));
 
-        assertThat(alcance.alcanzaATodo()).isFalse();
-        assertThat(alcance.clientesVisibles()).containsExactly(miCliente);
+        assertThat(alcance.coversEverything()).isFalse();
+        assertThat(alcance.visibleClients()).containsExactly(miCliente);
     }
 
     @Test
@@ -82,13 +82,13 @@ class ReadScopeResolverTest {
     void unRepresentanteSinClientesNoVeNada() {
         UUID yo = UUID.randomUUID();
         when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.CEO_CLIENT));
-        when(clientOwnershipPort.clientesRepresentadosPor(yo)).thenReturn(Set.of());
+        when(clientOwnershipPort.clientsRepresentedBy(yo)).thenReturn(Set.of());
 
-        ReadScope alcance = resolver.de(conSub(yo.toString()));
+        ReadScope alcance = resolver.scopeFor(conSub(yo.toString()));
 
         // Lo que importa es que no se confunda con «lo ve todo», que es el defecto que se corrige.
-        assertThat(alcance.alcanzaATodo()).isFalse();
-        assertThat(alcance.alcanza(UUID.randomUUID())).isFalse();
+        assertThat(alcance.coversEverything()).isFalse();
+        assertThat(alcance.covers(UUID.randomUUID())).isFalse();
     }
 
     @Test
@@ -97,12 +97,12 @@ class ReadScopeResolverTest {
         UUID yo = UUID.randomUUID();
         when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.ENGINEER));
 
-        ReadScope alcance = resolver.de(conSub(yo.toString()));
+        ReadScope alcance = resolver.scopeFor(conSub(yo.toString()));
 
-        assertThat(alcance.alcanzaATodo()).isTrue();
+        assertThat(alcance.coversEverything()).isTrue();
         // No basta con que el alcance salga libre: preguntar por los clientes de un ingeniero seria
         // una consulta inutil en cada lectura del API.
-        verify(clientOwnershipPort, never()).clientesRepresentadosPor(any());
+        verify(clientOwnershipPort, never()).clientsRepresentedBy(any());
     }
 
     @Test
@@ -111,9 +111,9 @@ class ReadScopeResolverTest {
         UUID yo = UUID.randomUUID();
         when(personCommunicationPort.findById(yo)).thenThrow(new PersonNotFoundException(yo.toString()));
 
-        ReadScope alcance = resolver.de(conSub(yo.toString()));
+        ReadScope alcance = resolver.scopeFor(conSub(yo.toString()));
 
-        assertThat(alcance.alcanzaATodo()).isTrue();
+        assertThat(alcance.coversEverything()).isTrue();
     }
 
     @Test
@@ -121,13 +121,13 @@ class ReadScopeResolverTest {
     void conSeguridadActivaSinAutenticacionNoSeVeNada() {
         // Esta rama no se alcanza: las 33 lecturas exigen autenticacion y ninguna es ruta publica.
         // Por eso mismo conviene que sea la cerrada, para que dejar de serlo no abra nada.
-        assertThat(resolver.de(null).alcanzaATodo()).isFalse();
-        assertThat(resolver.de(null).alcanza(UUID.randomUUID())).isFalse();
+        assertThat(resolver.scopeFor(null).coversEverything()).isFalse();
+        assertThat(resolver.scopeFor(null).covers(UUID.randomUUID())).isFalse();
 
         Authentication sinAutenticar = new TestingAuthenticationToken("quien", "sea");
         sinAutenticar.setAuthenticated(false);
 
-        assertThat(resolver.de(sinAutenticar).alcanzaATodo()).isFalse();
+        assertThat(resolver.scopeFor(sinAutenticar).coversEverything()).isFalse();
     }
 
     @Test
@@ -139,7 +139,7 @@ class ReadScopeResolverTest {
         ReadScopeResolver sinSeguridad =
                 new ReadScopeResolver(personCommunicationPort, clientOwnershipPort, false);
 
-        assertThat(sinSeguridad.de(null).alcanzaATodo()).isTrue();
+        assertThat(sinSeguridad.scopeFor(null).coversEverything()).isTrue();
     }
 
     @Test
@@ -148,9 +148,9 @@ class ReadScopeResolverTest {
         // Es el caso de los post-procesadores de prueba, cuyo sub es «user», y el de cualquier token
         // cuyo principalClaimName no sea el sub. Dar alcance libre es la misma decision que con la
         // cuenta sin persona, y conviene que no acabe en una consulta con un identificador inventado.
-        ReadScope alcance = resolver.de(conSub("user"));
+        ReadScope alcance = resolver.scopeFor(conSub("user"));
 
-        assertThat(alcance.alcanzaATodo()).isTrue();
+        assertThat(alcance.coversEverything()).isTrue();
         verify(personCommunicationPort, never()).findById(any());
     }
 
@@ -167,9 +167,9 @@ class ReadScopeResolverTest {
         // quedaria con «ada», no encontraria a nadie y abriria la vista en silencio.
         Authentication autenticacion = new JwtAuthenticationToken(token, Set.of(), "ada");
         when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.CEO_CLIENT));
-        when(clientOwnershipPort.clientesRepresentadosPor(yo)).thenReturn(Set.of());
+        when(clientOwnershipPort.clientsRepresentedBy(yo)).thenReturn(Set.of());
 
-        resolver.de(autenticacion);
+        resolver.scopeFor(autenticacion);
 
         verify(personCommunicationPort).findById(yo);
     }
@@ -185,8 +185,8 @@ class ReadScopeResolverTest {
                         .segundoTipoPersona(PersonType.MANAGER)
                         .estadoActivo(true)
                         .build());
-        when(clientOwnershipPort.clientesRepresentadosPor(yo)).thenReturn(Set.of());
+        when(clientOwnershipPort.clientsRepresentedBy(yo)).thenReturn(Set.of());
 
-        assertThat(resolver.de(conSub(yo.toString())).alcanzaATodo()).isFalse();
+        assertThat(resolver.scopeFor(conSub(yo.toString())).coversEverything()).isFalse();
     }
 }

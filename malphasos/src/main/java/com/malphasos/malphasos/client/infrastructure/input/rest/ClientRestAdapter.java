@@ -67,7 +67,7 @@ public class ClientRestAdapter {
     @GetMapping
     public List<ClientResponse> getAllClients(Authentication autenticacion) {
         return clientRestMapper.toClientResponseList(
-                clientServicePort.findAll(readScopeResolver.de(autenticacion)));
+                clientServicePort.findAll(readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Obtener un cliente por su identificador")
@@ -78,7 +78,7 @@ public class ClientRestAdapter {
             Authentication autenticacion) {
 
         return clientRestMapper.toResponse(
-                clientServicePort.findById(id, readScopeResolver.de(autenticacion)));
+                clientServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Registrar un cliente")

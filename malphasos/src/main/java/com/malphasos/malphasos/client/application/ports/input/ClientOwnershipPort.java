@@ -27,5 +27,5 @@ public interface ClientOwnershipPort {
      * <p>Un conjunto vacío significa que no representa a ninguno, no que el alcance sea libre. La
      * distinción la sostiene {@code ReadScope}, no este puerto.
      */
-    Set<UUID> clientesRepresentadosPor(UUID idPersona);
+    Set<UUID> clientsRepresentedBy(UUID idPersona);
 }

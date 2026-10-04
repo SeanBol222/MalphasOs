@@ -48,7 +48,7 @@ public class ServiceAreaRestAdapter {
             @PathVariable UUID idSede, Authentication autenticacion) {
 
         return clientRestMapper.toServiceAreaResponseList(
-                serviceAreaServicePort.findByHeadquarter(idSede, readScopeResolver.de(autenticacion)));
+                serviceAreaServicePort.findByHeadquarter(idSede, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(
@@ -70,7 +70,7 @@ public class ServiceAreaRestAdapter {
     @GetMapping("/service-areas/{id}")
     public ServiceAreaResponse getById(@PathVariable UUID id, Authentication autenticacion) {
         return clientRestMapper.toResponse(
-                serviceAreaServicePort.findById(id, readScopeResolver.de(autenticacion)));
+                serviceAreaServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(
