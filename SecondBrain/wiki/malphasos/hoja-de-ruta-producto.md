@@ -102,13 +102,28 @@ tenía 51.
 **Tres hallazgos, y los tres son del tipo que el punto 3 de arriba anticipaba.** Se desactivaron reglas
 una a una para ver si alguna prueba se enteraba:
 
-| Mutación | Resultado |
-|---|---|
-| La unidad deja de tener que ser de su magnitud | **842 pruebas en verde** — `EquipmentTypeService` no tenía ninguna prueba |
-| El cierre deja de separar las lecturas por verificación | **en verde** — ninguna prueba de cierre tenía dos verificaciones |
-| La unidad de una lectura se inventa | cazada |
-| El punto de otra verificación se acepta | cazada |
-| Una verificación retirada pasa a valer | cazada |
+**Once mutaciones, los seis módulos.** Dos de cada seis pasaron sin que nada se enterara:
+
+| Módulo | Mutación | Resultado |
+|---|---|---|
+| `equipment` | La unidad deja de tener que ser de su magnitud | **842 en verde** — `EquipmentTypeService` no tenía ninguna prueba |
+| `report` | El cierre deja de separar las lecturas por verificación | **en verde** — ninguna prueba de cierre tenía dos verificaciones |
+| `client` | Encargar a alguien de un **área** cerrada | **en verde** — la guarda gemela, la de la sede, sí estaba probada |
+| `person` | La cuarta alta admite cualquier tipo, no solo `MANAGER` | **en verde** — `PersonServiceTest` no llamaba a `save` |
+| `report` | La unidad de una lectura se inventa | cazada |
+| `report` | El punto de otra verificación se acepta | cazada |
+| `report` | Una verificación retirada pasa a valer | cazada |
+| `work-order` | Un equipo de **otra sede** del mismo cliente entra en la orden | cazada |
+| `work-order` | Un equipo de **otro cliente** entra en la orden | cazada |
+| `work-order` | Una orden en la sede de otro cliente | cazada |
+| `client` | Abrir un área en una sede cerrada | cazada |
+| `location` | Una ciudad en un país que no existe | cazada |
+
+**Las cuatro que sobrevivieron tienen la misma forma, y conviene nombrarla**: en los cuatro casos había
+cobertura **alrededor** de la regla y ninguna **sobre** ella. Un servicio con tres clases vecinas que
+parecían cubrirlo; una regla de cierre con siete pruebas de cierre que no usaban dos verificaciones;
+una guarda con su gemela probada; y un método con veinte pruebas en su clase y ninguna que lo llamara.
+**La cobertura vecina es lo que hace invisible el hueco.**
 
 Y el método tiene una trampa que conviene registrar: **la primera prueba escrita para la segunda
 mutación no la cazó**. Usaba dos magnitudes constantes, donde el identificador del punto ya discrimina,
