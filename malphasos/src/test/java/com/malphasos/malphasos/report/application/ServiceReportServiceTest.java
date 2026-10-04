@@ -592,6 +592,101 @@ class ServiceReportServiceTest {
         }
 
         @Test
+        @DisplayName("con dos magnitudes, no cierra si falta entera la verificacion de una")
+        void noCierraSiFaltaUnaMagnitudEntera() {
+            // ESTA ES LA QUE FALTABA, y lo destapo una mutacion el 2026-10-04: quitar el filtro por
+            // verificacion de requireCompleteVerification -- de modo que las lecturas de temperatura
+            // contaran como lecturas de humedad -- dejaba la bateria entera en verde, 842 pruebas y
+            // cero fallos. Ninguna prueba de cierre tenia DOS verificaciones, asi que separar o no
+            // separar daba el mismo resultado en todas.
+            //
+            // El caso es el termohigrometro con las dos magnitudes variables: con el filtro quitado,
+            // una sola lectura de presion satisfacia tambien a la de temperatura y el reporte se
+            // cerraba diciendo que se habia verificado algo que nadie midio.
+            VerificationPoint dePresion = unPunto("50");
+            VerificationPoint deTemperatura = unPunto("37");
+            EquipmentType tipo = tipoCon(List.of(
+                    TypeVerification.of(PRESION, MMHG, VerificationMode.PATRON_CONSTANTE, 1,
+                            List.of(dePresion)),
+                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.EQUIPO_CONSTANTE, 1,
+                            List.of(deTemperatura))));
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+            // Solo las de presion. Las de temperatura no se tomaron.
+            reporte.recordVerification(List.of(VerificationReading.of(
+                    tipo.verificacionesActivas().getFirst().id(), dePresion.id(), 1,
+                    new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+            reporte.pullEvents();
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))
+                    .withMessageContaining("Temperatura");
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
+        }
+
+        @Test
+        @DisplayName("con dos magnitudes VARIABLES, no cierra con lecturas de una sola")
+        void noCierraConUnaSolaMagnitudVariableMedida() {
+            // ESTE ES EL CASO QUE DE VERDAD DISTINGUE, y la primera prueba que escribi para esto no lo
+            // tocaba: con modalidad CONSTANTE el identificador del punto ya separa las lecturas de una
+            // magnitud de las de otra, asi que quitar el filtro por verificacion no cambiaba el
+            // resultado. La mutacion siguio viva y lo dijo.
+            //
+            // Sin puntos no hay nada que discrimine: la comprobacion es «esta verificacion tiene al
+            // menos una lectura», y sin filtrar por verificacion la lectura de presion satisface
+            // tambien a la de temperatura. El reporte se cerraria afirmando que se verifico una
+            // magnitud que nadie midio.
+            EquipmentType tipo = tipoCon(List.of(
+                    TypeVerification.of(PRESION, MMHG, VerificationMode.PATRON_EQUIPO_VARIABLE,
+                            null, List.of()),
+                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.PATRON_EQUIPO_VARIABLE,
+                            null, List.of())));
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Barrido", null, ServiceResult.OPERATIVO);
+            // Solo la de presion.
+            reporte.recordVerification(List.of(VerificationReading.of(
+                    tipo.verificacionesActivas().getFirst().id(), null, 1,
+                    new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
+            reporte.pullEvents();
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))
+                    .withMessageContaining("Temperatura");
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
+        }
+
+        @Test
+        @DisplayName("con dos magnitudes variables, una lectura de cada una si cierra")
+        void cierraConUnaLecturaDeCadaMagnitudVariable() {
+            // La contraparte: con patron y equipo variables basta una lectura POR VERIFICACION, no una
+            // en total. Sin esta, la prueba de arriba se podria satisfacer exigiendo demasiado.
+            EquipmentType tipo = tipoCon(List.of(
+                    TypeVerification.of(PRESION, MMHG, VerificationMode.PATRON_EQUIPO_VARIABLE,
+                            null, List.of()),
+                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.PATRON_EQUIPO_VARIABLE,
+                            null, List.of())));
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Barrido", null, ServiceResult.OPERATIVO);
+            reporte.recordVerification(List.of(
+                    VerificationReading.of(tipo.verificacionesActivas().getFirst().id(), null, 1,
+                            new BigDecimal("1"), new BigDecimal("1.1"), "mmHg"),
+                    VerificationReading.of(tipo.verificacionesActivas().get(1).id(), null, 1,
+                            new BigDecimal("37"), new BigDecimal("36.8"), "°C")));
+            reporte.pullEvents();
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+            estubarGuardado();
+
+            assertThatCode(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))
+                    .doesNotThrowAnyException();
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
+        }
+
+        @Test
         @DisplayName("un equipo fuera de servicio se cierra sin lecturas: no se le puede medir nada")
         void unEquipoFueraDeServicioSeCierraSinLecturas() {
             // No es una concesion: a un equipo que no enciende no se le toma una lectura, y exigirlas
