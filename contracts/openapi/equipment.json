@@ -308,6 +308,43 @@
         },
         "type" : "object"
       },
+      "InterventionResponse" : {
+        "description" : "Una intervencion registrada en la hoja de vida",
+        "properties" : {
+          "fechaServicio" : {
+            "description" : "Cuando se completo el servicio",
+            "example" : "2026-10-04T15:30:00",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "description" : "Identificador de la intervencion",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idEquipoCliente" : {
+            "description" : "Equipo instalado al que se le hizo",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idReporteServicio" : {
+            "description" : "Reporte de servicio del que sale, para abrirlo desde el historial",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "resultado" : {
+            "description" : "Estado en que quedo el equipo",
+            "example" : "OPERATIVO",
+            "type" : "string"
+          },
+          "tipoServicio" : {
+            "description" : "Tipo de servicio prestado",
+            "example" : "PREVENTIVO",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "InvimaRequest" : {
         "properties" : {
           "invima" : {
@@ -1195,6 +1232,59 @@
         },
         "summary" : "Corregir los datos de compra de una unidad",
         "tags" : [ "ClientEquipment" ]
+      }
+    },
+    "/v1/api/client-equipments/{id}/interventions" : {
+      "get" : {
+        "description" : "De la mas reciente a la mas antigua. Se alimenta solo al cerrar un reporte.",
+        "operationId" : "getByEquipment",
+        "parameters" : [ {
+          "description" : "Identificador del equipo instalado",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/InterventionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Historial de intervenciones de un equipo",
+        "tags" : [ "Intervention" ]
       }
     },
     "/v1/api/client-equipments/{id}/service-area/{idAreaServicio}" : {
@@ -3026,6 +3116,9 @@
   }, {
     "description" : "Asociacion entre marcas y tipos de equipo",
     "name" : "Equipment"
+  }, {
+    "description" : "Historial de intervenciones de un equipo",
+    "name" : "Intervention"
   }, {
     "description" : "Gestion de marcas de equipos",
     "name" : "Brand"
