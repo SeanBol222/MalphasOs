@@ -16,6 +16,7 @@ import com.malphasos.malphasos.client.application.services.manager.commands.Deac
 import com.malphasos.malphasos.client.application.services.manager.commands.ReassignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.RegisterManagerCommand;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerNotFoundException;
 import com.malphasos.malphasos.client.domain.headquarter.Address;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
@@ -130,6 +131,45 @@ class ManagerServiceTest {
 
         // Se comprueba el destino ANTES de crear la persona: si no, quedaria una persona huerfana.
         verifyNoInteractions(personPort);
+        verify(managerPort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("tampoco al frente de un area cerrada, que es la regla simetrica de la de arriba")
+    void areaCerrada() {
+        // ESTA FALTABA, y lo destapo una mutacion el 2026-10-04: el servicio tiene dos guardas
+        // paralelas -- requireActiveHeadquarter y requireActiveServiceArea, identicas salvo el puerto
+        // y la excepcion -- y solo la de la sede estaba probada. Quitar el `.filter(area ->
+        // area.isEstadoActivo())` de la del area dejaba la bateria entera en verde: 851 pruebas.
+        //
+        // Dos guardas escritas a la vez y una sola prueba es la forma mas facil de que una de las dos
+        // deje de funcionar sin que nada avise: la que tiene prueba protege a la otra de la revision,
+        // no del defecto.
+        when(areaPort.findById(AREA))
+                .thenReturn(Optional.of(ServiceArea.rehydrate(AREA, "UCI", SEDE, false)));
+
+        assertThatThrownBy(() -> service().register(
+                        new RegisterManagerCommand(datosDePersona(), ManagerType.SERVICE_AREA, AREA)))
+                .isInstanceOf(ServiceAreaNotFoundException.class);
+
+        // Y por lo mismo que en la sede: el destino se comprueba ANTES de crear la persona.
+        verifyNoInteractions(personPort);
+        verify(managerPort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("asignar al frente de un area cerrada tampoco vale, no solo al registrar")
+    void asignarAAreaCerrada() {
+        // La guarda es la misma para las dos operaciones, y conviene fijarlo: `register` crea la
+        // persona y `assign` usa una que ya existe, de modo que un arreglo que solo mirara una de las
+        // dos entradas pasaria la prueba de arriba.
+        when(areaPort.findById(AREA))
+                .thenReturn(Optional.of(ServiceArea.rehydrate(AREA, "UCI", SEDE, false)));
+
+        assertThatThrownBy(() -> service().assign(
+                        new AssignManagerCommand(PERSONA, ManagerType.SERVICE_AREA, AREA)))
+                .isInstanceOf(ServiceAreaNotFoundException.class);
+
         verify(managerPort, never()).save(any());
     }
 

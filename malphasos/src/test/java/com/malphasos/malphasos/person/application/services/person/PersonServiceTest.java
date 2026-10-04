@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityProfile;
@@ -62,6 +63,70 @@ class PersonServiceTest {
                 .phonePersonList(List.of(
                         PhonePersonUseCaseRequest.builder().telefonoPersona("3001234567").build()))
                 .build();
+    }
+
+    /** Una persona del tipo que se pida, con lo mínimo para que `save` la acepte. */
+    private Person personaDeTipo(PersonType tipo) {
+        Person persona = new Person();
+        persona.setCedula("1234567890");
+        persona.setPrimerNombre("Ada");
+        persona.setPrimerApellido("Lovelace");
+        persona.setTipoPersona(tipo);
+
+        return persona;
+    }
+
+    @Test
+    @DisplayName("la cuarta alta solo admite MANAGER: una fila que diga ser admin sin cuenta no entra")
+    void saveSoloAdmiteManager() {
+        // ESTA REGLA NO ESTABA PROBADA, y lo destapo una mutacion el 2026-10-04: sustituir su
+        // condicion por `false` dejo la bateria entera en verde -- 853 pruebas --. PersonServiceTest
+        // tenia veinte casos y ninguno llamaba a save().
+        //
+        // Lo que la regla sostiene no es cosmetico. `save` es la UNICA puerta que NO crea usuario en
+        // Keycloak, porque un encargado existe como contacto de una sede y no entra al sistema. Si
+        // admitiera cualquier tipo, se podria escribir una fila que dice ser ADMIN o ENGINEER **sin
+        // cuenta en el proveedor de identidad**, saltandose de paso la escalera que las otras tres
+        // puertas imponen: esas exigen super.person.write para la gente de la casa, y esta no exige
+        // nada porque da por supuesto que lo que entra no accede.
+        //
+        // Y el frontend se apoya en ella: las cuatro altas no tienen selector de tipo, y la cuarta se
+        // justifica por esto.
+        for (PersonType tipo : new PersonType[] {
+                PersonType.ENGINEER, PersonType.ADMIN, PersonType.SUPER_ADMIN, PersonType.CEO_CLIENT}) {
+
+            assertThatThrownBy(() -> service().save(personaDeTipo(tipo)))
+                    .describedAs("tipo %s", tipo)
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("solo para encargados");
+        }
+
+        verify(persistencePort, never()).save(any());
+        verifyNoInteractions(identityPort);
+    }
+
+    @Test
+    @DisplayName("sin tipo de persona tampoco entra por esa puerta")
+    void saveSinTipo() {
+        assertThatThrownBy(() -> service().save(personaDeTipo(null)))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("un encargado si entra, y sin crear usuario en Keycloak")
+    void saveAdmiteManager() {
+        // La contraparte: sin esta, la prueba de arriba se satisfaria con un `save` que rechaza todo.
+        when(persistencePort.save(any(Person.class))).thenAnswer(i -> i.getArgument(0));
+
+        Person guardada = service().save(personaDeTipo(PersonType.MANAGER));
+
+        assertThat(guardada.getTipoPersona()).isEqualTo(PersonType.MANAGER);
+        assertThat(guardada.isEstadoActivo()).isTrue();
+        assertThat(guardada.getIdentificador()).isNotNull();
+        // Y lo que define a esta puerta: NO toca el proveedor de identidad.
+        verifyNoInteractions(identityPort);
     }
 
     @Test
