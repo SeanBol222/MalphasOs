@@ -1439,3 +1439,26 @@ administradores**, que es lo más que un grupo puede dar, con aviso en el log.
 
 **Tocadas**: [[deuda-tecnica-y-riesgos]], [[sincronizacion-con-proveedor-de-identidad]],
 [[dominio-persona-identidad]], [[decisiones-tecnicas-malphasos]] y el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-04] lint | un resumen truncado que indujo un error
+
+**Tercera entrada del día, y la corrige algo que esta sesión misma hizo mal.**
+[[esquema-bd-malphasos]] decía de `ciudad`: «64 nombres de municipio se repiten entre departamentos
+colombianos y `UQ_ciudad_nombre_por_pais` los hace imposibles», y ahí se cortaba. Un lector concluye que
+esos 64 municipios **no se pueden registrar** — y es lo que se concluyó, citando esa línea, al priorizar
+el trabajo que queda.
+
+**No es así.** `V7` los desambigua metiendo el departamento en el nombre —`La Unión (Nariño)`— y los
+**1.103** municipios están sembrados; comprobado contra la base en marcha, que además devuelve **cero**
+nombres repetidos dentro de Colombia, precisamente porque ya vienen desambiguados. La fila de
+[[deuda-tecnica-y-riesgos]] lo cuenta completo; el resumen del esquema se quedó a medias.
+
+Lo que queda es deuda de **modelo** y no un hueco de **datos**: el nombre carga con información que
+debería ser una columna, y ordenar o buscar por departamento sigue sin poderse.
+
+**La lección es sobre los resúmenes, no sobre `ciudad`.** Una nota que resume a otra puede quedarse en
+la mitad que asusta y omitir la que tranquiliza, y entonces **miente sin decir nada falso**: cada palabra
+de esa frase era cierta. Un resumen que cambia la decisión de quien lo lee tiene que llevar el remedio
+junto al defecto, o no llevar ninguno de los dos.
+
+**Tocadas**: [[esquema-bd-malphasos]].
