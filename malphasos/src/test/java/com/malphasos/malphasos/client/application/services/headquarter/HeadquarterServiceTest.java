@@ -111,7 +111,7 @@ class HeadquarterServiceTest {
     void listarPorClienteInexistente() {
         when(clientPort.findById(CLIENTE)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service().findByClient(CLIENTE, ReadScope.sinRestriccion()))
+        assertThatThrownBy(() -> service().findByClient(CLIENTE, ReadScope.unrestricted()))
                 .isInstanceOf(ClientNotFoundException.class);
     }
 

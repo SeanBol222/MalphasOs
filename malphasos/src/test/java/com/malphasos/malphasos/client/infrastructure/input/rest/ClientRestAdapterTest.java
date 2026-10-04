@@ -98,7 +98,7 @@ class ClientRestAdapterTest {
     @DisplayName("un cliente inexistente responde 404 con el codigo del catalogo del modulo")
     void clienteInexistente() throws Exception {
         UUID id = UUID.randomUUID();
-        when(clientServicePort.findById(id, ReadScope.sinRestriccion())).thenThrow(new ClientNotFoundException(id));
+        when(clientServicePort.findById(id, ReadScope.unrestricted())).thenThrow(new ClientNotFoundException(id));
 
         mockMvc.perform(get("/v1/api/clients/" + id))
                 .andExpect(status().isNotFound())

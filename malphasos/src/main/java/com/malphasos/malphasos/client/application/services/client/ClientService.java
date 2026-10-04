@@ -45,11 +45,11 @@ public class ClientService implements ClientServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<Client> findAll(ReadScope alcance) {
-        if (alcance.alcanzaATodo()) {
+        if (alcance.coversEverything()) {
             return clientPersistencePort.findAll();
         }
 
-        return clientPersistencePort.findAllByIds(alcance.clientesVisibles());
+        return clientPersistencePort.findAllByIds(alcance.visibleClients());
     }
 
     /**
@@ -59,7 +59,7 @@ public class ClientService implements ClientServicePort {
     @Override
     @Transactional(readOnly = true)
     public Client findById(UUID id, ReadScope alcance) {
-        if (!alcance.alcanza(id)) {
+        if (!alcance.covers(id)) {
             throw new ClientNotFoundException(id);
         }
 
@@ -136,7 +136,7 @@ public class ClientService implements ClientServicePort {
      * tiene autoridad de escritura sobre un cliente. Quien no puede escribir no llega.
      */
     private Client applyTo(UUID id, Consumer<Client> cambio) {
-        Client cliente = findById(id, ReadScope.sinRestriccion());
+        Client cliente = findById(id, ReadScope.unrestricted());
         cambio.accept(cliente);
 
         return persistAndPublish(cliente);

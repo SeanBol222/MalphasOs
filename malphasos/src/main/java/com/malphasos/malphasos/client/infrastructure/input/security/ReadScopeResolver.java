@@ -77,24 +77,24 @@ public class ReadScopeResolver {
     }
 
     /** El alcance de quien llama. Nunca devuelve {@code null}. */
-    public ReadScope de(Authentication autenticacion) {
+    public ReadScope scopeFor(Authentication autenticacion) {
         if (autenticacion == null || !autenticacion.isAuthenticated()) {
-            return seguridadActiva ? ReadScope.deClientes(Set.of()) : ReadScope.sinRestriccion();
+            return seguridadActiva ? ReadScope.ofClients(Set.of()) : ReadScope.unrestricted();
         }
 
         UUID idPersona = identificadorDe(autenticacion);
 
         if (idPersona == null) {
-            return ReadScope.sinRestriccion();
+            return ReadScope.unrestricted();
         }
 
         PersonCommunicationResponse persona = personaONulo(idPersona);
 
         if (persona == null || persona.tipoPersona() != PersonType.CEO_CLIENT) {
-            return ReadScope.sinRestriccion();
+            return ReadScope.unrestricted();
         }
 
-        return ReadScope.deClientes(clientOwnershipPort.clientesRepresentadosPor(idPersona));
+        return ReadScope.ofClients(clientOwnershipPort.clientsRepresentedBy(idPersona));
     }
 
     /**

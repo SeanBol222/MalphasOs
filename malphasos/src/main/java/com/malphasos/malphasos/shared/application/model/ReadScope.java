@@ -19,7 +19,7 @@ import java.util.UUID;
  * <p><b>La trampa que este tipo existe para hacer imposible.</b> «Ve todo» y «no ve nada» son dos
  * estados que en un {@code Set} se parecen demasiado: un conjunto vacío interpretado como «sin
  * filtro» abre el sistema entero, y un «sin filtro» interpretado como conjunto vacío lo cierra. Aquí
- * son ramas distintas y no hay forma de confundirlas: {@link #clientesVisibles()} <b>lanza</b> si el
+ * son ramas distintas y no hay forma de confundirlas: {@link #visibleClients()} <b>lanza</b> si el
  * alcance no tiene restricción, así que un adaptador no puede construir un {@code WHERE IN} con la
  * lista de nadie y creer que ha filtrado algo.
  *
@@ -38,7 +38,7 @@ public final class ReadScope {
     }
 
     /** Quien consulta ve el sistema entero: la gente de la casa. */
-    public static ReadScope sinRestriccion() {
+    public static ReadScope unrestricted() {
         return SIN_RESTRICCION;
     }
 
@@ -48,14 +48,14 @@ public final class ReadScope {
      * <p>Se copia el conjunto recibido: el alcance es un valor y no debe cambiar a espaldas de quien
      * ya lo está usando para filtrar.
      */
-    public static ReadScope deClientes(Collection<UUID> ids) {
+    public static ReadScope ofClients(Collection<UUID> ids) {
         Objects.requireNonNull(ids, "Un alcance restringido necesita la lista de clientes, aunque esté vacía");
 
         return new ReadScope(Set.copyOf(ids));
     }
 
     /** Si este alcance no filtra nada. */
-    public boolean alcanzaATodo() {
+    public boolean coversEverything() {
         return clientesVisibles == null;
     }
 
@@ -65,8 +65,8 @@ public final class ReadScope {
      * <p>Es lo que usan las consultas por identificador: queda fuera del alcance y se responde como
      * si no existiera, que es la decisión tomada para no confirmar la existencia de datos ajenos.
      */
-    public boolean alcanza(UUID idCliente) {
-        return alcanzaATodo() || clientesVisibles.contains(idCliente);
+    public boolean covers(UUID idCliente) {
+        return coversEverything() || clientesVisibles.contains(idCliente);
     }
 
     /**
@@ -74,14 +74,14 @@ public final class ReadScope {
      *
      * @throws IllegalStateException si el alcance no tiene restricción. No es un caso que deba
      *     tratarse en tiempo de ejecución: es un error de programación —preguntar por la lista sin
-     *     haber comprobado {@link #alcanzaATodo()}— y fallar es lo único que impide que se convierta
+     *     haber comprobado {@link #coversEverything()}— y fallar es lo único que impide que se convierta
      *     en un filtro vacío que no filtra.
      */
-    public Set<UUID> clientesVisibles() {
-        if (alcanzaATodo()) {
+    public Set<UUID> visibleClients() {
+        if (coversEverything()) {
             throw new IllegalStateException(
                     "Este alcance no tiene restriccion: no hay lista de clientes que pedir. "
-                            + "Comprueba alcanzaATodo() antes de filtrar");
+                            + "Comprueba coversEverything() antes de filtrar");
         }
 
         return clientesVisibles;
@@ -99,6 +99,6 @@ public final class ReadScope {
 
     @Override
     public String toString() {
-        return alcanzaATodo() ? "ReadScope[sin restriccion]" : "ReadScope" + clientesVisibles;
+        return coversEverything() ? "ReadScope[sin restriccion]" : "ReadScope" + clientesVisibles;
     }
 }

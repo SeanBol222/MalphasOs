@@ -45,7 +45,7 @@ public class HeadquarterService implements HeadquarterServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<Headquarter> findByClient(UUID idCliente, ReadScope alcance) {
-        requireClientEnAlcance(idCliente, alcance);
+        requireClientInScope(idCliente, alcance);
 
         return headquarterPersistencePort.findByClient(idCliente);
     }
@@ -58,7 +58,7 @@ public class HeadquarterService implements HeadquarterServicePort {
 
         // Aquí hay que leer para saber de quién es: el dueño está en la fila, no en la ruta. Y el
         // error es el de «no existe la sede», no el del cliente, porque es la sede lo que se pidió.
-        if (!alcance.alcanza(sede.getIdCliente())) {
+        if (!alcance.covers(sede.getIdCliente())) {
             throw new HeadquarterNotFoundException(id);
         }
 
@@ -81,7 +81,7 @@ public class HeadquarterService implements HeadquarterServicePort {
     public Headquarter update(UpdateHeadquarterCommand command) {
         // Las escrituras van sin restricción: el alcance acota lo que se lee, y editar una sede
         // exige client.write, que el grupo de los clientes no tiene.
-        Headquarter sede = findById(command.id(), ReadScope.sinRestriccion());
+        Headquarter sede = findById(command.id(), ReadScope.unrestricted());
 
         if (command.idCiudad() != null) {
             cityServicePort.findById(command.idCiudad());
@@ -94,7 +94,7 @@ public class HeadquarterService implements HeadquarterServicePort {
     @Override
     @Transactional
     public void deactivate(DeactivateHeadquarterCommand command) {
-        Headquarter sede = findById(command.id(), ReadScope.sinRestriccion());
+        Headquarter sede = findById(command.id(), ReadScope.unrestricted());
         sede.deactivate();
 
         persistAndPublish(sede);
@@ -107,8 +107,8 @@ public class HeadquarterService implements HeadquarterServicePort {
      * responden igual, que es lo que impide usar este listado para averiguar qué identificadores
      * existen.
      */
-    private void requireClientEnAlcance(UUID idCliente, ReadScope alcance) {
-        if (!alcance.alcanza(idCliente)) {
+    private void requireClientInScope(UUID idCliente, ReadScope alcance) {
+        if (!alcance.covers(idCliente)) {
             throw new ClientNotFoundException(idCliente);
         }
 

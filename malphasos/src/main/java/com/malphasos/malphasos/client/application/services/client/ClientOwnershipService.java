@@ -25,7 +25,7 @@ public class ClientOwnershipService implements ClientOwnershipPort {
 
     @Override
     @Transactional(readOnly = true)
-    public Set<UUID> clientesRepresentadosPor(UUID idPersona) {
+    public Set<UUID> clientsRepresentedBy(UUID idPersona) {
         if (idPersona == null) {
             return Set.of();
         }

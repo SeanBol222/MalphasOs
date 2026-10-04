@@ -80,7 +80,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     public List<WorkOrder> findByClient(UUID idCliente) {
         // TODO(filtrado-por-dueno): este listado todavia no acota. Lo hara la tanda de
         // work-order, que es donde esta operacion se expone; aqui solo se comprueba existencia.
-        clientServicePort.findById(idCliente, ReadScope.sinRestriccion());
+        clientServicePort.findById(idCliente, ReadScope.unrestricted());
 
         return workOrderPersistencePort.findByClient(idCliente);
     }
@@ -90,7 +90,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     public List<WorkOrder> findByHeadquarter(UUID idSede) {
         // TODO(filtrado-por-dueno): sin acotar todavia, igual que findByClient. Lo cierra la tanda
         // de work-order.
-        headquarterServicePort.findById(idSede, ReadScope.sinRestriccion());
+        headquarterServicePort.findById(idSede, ReadScope.unrestricted());
 
         return workOrderPersistencePort.findByHeadquarter(idSede);
     }
@@ -238,7 +238,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     private void requireActiveClient(UUID idCliente) {
         // Sin restriccion: es una validacion de escritura, y escribir una orden no lo hace nadie
         // del grupo clients.
-        Client cliente = clientServicePort.findById(idCliente, ReadScope.sinRestriccion());
+        Client cliente = clientServicePort.findById(idCliente, ReadScope.unrestricted());
 
         if (!cliente.isEstadoActivo()) {
             throw new IllegalArgumentException(
@@ -249,7 +249,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     /** La sede existe, opera, y es de ese cliente. */
     private void requireActiveHeadquarterOf(UUID idSede, UUID idCliente) {
         // Validacion de escritura: programar una orden exige work-order.write.
-        Headquarter sede = headquarterServicePort.findById(idSede, ReadScope.sinRestriccion());
+        Headquarter sede = headquarterServicePort.findById(idSede, ReadScope.unrestricted());
 
         if (!sede.isEstadoActivo()) {
             throw new IllegalArgumentException(
@@ -280,7 +280,7 @@ public class WorkOrderService implements WorkOrderServicePort {
      * La sede, en cambio, la trae ya el propio área, así que no cuesta ninguna consulta más.
      */
     private void requireEquipmentInScopeOf(ClientEquipment unidad, WorkOrder orden) {
-        ServiceArea area = serviceAreaServicePort.findById(unidad.getIdAreaServicio(), ReadScope.sinRestriccion());
+        ServiceArea area = serviceAreaServicePort.findById(unidad.getIdAreaServicio(), ReadScope.unrestricted());
 
         if (!area.isEstadoActivo()) {
             throw new IllegalArgumentException("La unidad " + unidad.getId()

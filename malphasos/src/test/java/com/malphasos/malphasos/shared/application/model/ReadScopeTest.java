@@ -18,10 +18,10 @@ class ReadScopeTest {
     @Test
     @DisplayName("sin restriccion alcanza a cualquier cliente, incluso a uno que nadie ha visto")
     void sinRestriccionAlcanzaATodo() {
-        ReadScope alcance = ReadScope.sinRestriccion();
+        ReadScope alcance = ReadScope.unrestricted();
 
-        assertThat(alcance.alcanzaATodo()).isTrue();
-        assertThat(alcance.alcanza(UUID.randomUUID())).isTrue();
+        assertThat(alcance.coversEverything()).isTrue();
+        assertThat(alcance.covers(UUID.randomUUID())).isTrue();
     }
 
     @Test
@@ -30,21 +30,21 @@ class ReadScopeTest {
         UUID suyo = UUID.randomUUID();
         UUID ajeno = UUID.randomUUID();
 
-        ReadScope alcance = ReadScope.deClientes(Set.of(suyo));
+        ReadScope alcance = ReadScope.ofClients(Set.of(suyo));
 
-        assertThat(alcance.alcanzaATodo()).isFalse();
-        assertThat(alcance.alcanza(suyo)).isTrue();
-        assertThat(alcance.alcanza(ajeno)).isFalse();
+        assertThat(alcance.coversEverything()).isFalse();
+        assertThat(alcance.covers(suyo)).isTrue();
+        assertThat(alcance.covers(ajeno)).isFalse();
     }
 
     @Test
     @DisplayName("restringido al conjunto vacio no alcanza a nada, y eso es legitimo")
     void restringidoAVacioNoAlcanzaANada() {
-        ReadScope alcance = ReadScope.deClientes(Set.of());
+        ReadScope alcance = ReadScope.ofClients(Set.of());
 
-        assertThat(alcance.alcanzaATodo()).isFalse();
-        assertThat(alcance.alcanza(UUID.randomUUID())).isFalse();
-        assertThat(alcance.clientesVisibles()).isEmpty();
+        assertThat(alcance.coversEverything()).isFalse();
+        assertThat(alcance.covers(UUID.randomUUID())).isFalse();
+        assertThat(alcance.visibleClients()).isEmpty();
     }
 
     @Test
@@ -53,9 +53,9 @@ class ReadScopeTest {
         // Es la prueba central de esta clase. Si devolviera el conjunto vacio, un adaptador que
         // construyera «WHERE id IN (...)» con el resultado dejaria sin datos a quien lo ve todo, y
         // si devolviera null el filtro se saltaria por un NullPointerException mal atrapado. Falla.
-        assertThatThrownBy(() -> ReadScope.sinRestriccion().clientesVisibles())
+        assertThatThrownBy(() -> ReadScope.unrestricted().visibleClients())
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("alcanzaATodo()");
+                .hasMessageContaining("coversEverything()");
     }
 
     @Test
@@ -64,10 +64,10 @@ class ReadScopeTest {
         UUID suyo = UUID.randomUUID();
         Set<UUID> mutable = new HashSet<>(Set.of(suyo));
 
-        ReadScope alcance = ReadScope.deClientes(mutable);
+        ReadScope alcance = ReadScope.ofClients(mutable);
         mutable.add(UUID.randomUUID());
 
-        assertThat(alcance.clientesVisibles()).containsExactly(suyo);
+        assertThat(alcance.visibleClients()).containsExactly(suyo);
     }
 
     @Test
@@ -75,7 +75,7 @@ class ReadScopeTest {
     void igualdadPorContenido() {
         UUID cliente = UUID.randomUUID();
 
-        assertThat(ReadScope.deClientes(Set.of(cliente))).isEqualTo(ReadScope.deClientes(Set.of(cliente)));
-        assertThat(ReadScope.deClientes(Set.of())).isNotEqualTo(ReadScope.sinRestriccion());
+        assertThat(ReadScope.ofClients(Set.of(cliente))).isEqualTo(ReadScope.ofClients(Set.of(cliente)));
+        assertThat(ReadScope.ofClients(Set.of())).isNotEqualTo(ReadScope.unrestricted());
     }
 }

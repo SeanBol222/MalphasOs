@@ -57,7 +57,7 @@ public class HeadquarterRestAdapter {
             Authentication autenticacion) {
 
         return clientRestMapper.toHeadquarterResponseList(
-                headquarterServicePort.findByClient(idCliente, readScopeResolver.de(autenticacion)));
+                headquarterServicePort.findByClient(idCliente, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Abrir una sede para un cliente")
@@ -81,7 +81,7 @@ public class HeadquarterRestAdapter {
     @GetMapping("/headquarters/{id}")
     public HeadquarterResponse getById(@PathVariable UUID id, Authentication autenticacion) {
         return clientRestMapper.toResponse(
-                headquarterServicePort.findById(id, readScopeResolver.de(autenticacion)));
+                headquarterServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(
