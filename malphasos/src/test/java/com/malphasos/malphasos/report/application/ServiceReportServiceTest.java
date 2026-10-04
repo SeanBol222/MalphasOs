@@ -161,7 +161,7 @@ class ServiceReportServiceTest {
         when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(
                 ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, true));
         when(modelServicePort.findById(MODELO)).thenReturn(
-                Model.rehydrate(MODELO, null, UUID.randomUUID(), EQUIPO_CATALOGO, true));
+                Model.rehydrate(MODELO, "IdeaPad 3", null, UUID.randomUUID(), EQUIPO_CATALOGO, true));
         when(equipmentServicePort.findById(EQUIPO_CATALOGO)).thenReturn(
                 Equipment.rehydrate(EQUIPO_CATALOGO, TIPO, UUID.randomUUID(), true));
         when(equipmentTypeServicePort.findById(TIPO)).thenReturn(tipo);

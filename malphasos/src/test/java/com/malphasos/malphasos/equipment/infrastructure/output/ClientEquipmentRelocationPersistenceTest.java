@@ -115,7 +115,7 @@ class ClientEquipmentRelocationPersistenceTest {
                 "Tipo " + unico(), "Definicion", "Cuidados", "Electronica", null, null,
                 java.util.List.of(), 100_000L));
         Equipment asociacion = equipmentAdapter.save(Equipment.create(tipo.getId(), marca.getId()));
-        Model modelo = modelAdapter.save(Model.create(null, fabricante.getId(), asociacion.getId()));
+        Model modelo = modelAdapter.save(Model.create("Modelo " + unico(), null, fabricante.getId(), asociacion.getId()));
 
         return modelo.getId();
     }

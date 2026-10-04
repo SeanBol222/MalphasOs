@@ -16,6 +16,7 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.equipment.application.ports.input.*;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RegisterClientEquipmentCommand;
+import com.malphasos.malphasos.equipment.application.services.model.commands.CreateModelCommand;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
@@ -24,6 +25,7 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
 import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
+import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.*;
@@ -326,6 +328,54 @@ class EquipmentRestAdapterTest {
                                 "SN-001", UUID.randomUUID(), null, null, null))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_009"));
+    }
+
+    @Test
+    @DisplayName("el alta de un modelo exige su nombre, y no llega al servicio sin el")
+    void modeloSinNombre() throws Exception {
+        // La validacion del cuerpo corre antes que el servicio: es lo que evita un 500 por un nombre
+        // en blanco, que la columna rechazaria.
+        mockMvc.perform(post("/v1/api/models")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(new ModelCreateRequest(
+                                "  ", "INV-1", UUID.randomUUID(), UUID.randomUUID()))))
+                .andExpect(status().isBadRequest());
+
+        verify(modelServicePort, never()).create(any());
+    }
+
+    @Test
+    @DisplayName("el alta manda el nombre al servicio, y la respuesta lo devuelve")
+    void modeloConNombre() throws Exception {
+        UUID fabricante = UUID.randomUUID();
+        UUID equipo = UUID.randomUUID();
+        ArgumentCaptor<CreateModelCommand> comando = ArgumentCaptor.forClass(CreateModelCommand.class);
+        when(modelServicePort.create(any())).thenReturn(
+                Model.rehydrate(UUID.randomUUID(), "IdeaPad 3", "INV-1", fabricante, equipo, true));
+
+        mockMvc.perform(post("/v1/api/models")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(new ModelCreateRequest(
+                                "IdeaPad 3", "INV-1", fabricante, equipo))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nombre").value("IdeaPad 3"));
+
+        verify(modelServicePort).create(comando.capture());
+        assertThat(comando.getValue().nombre()).isEqualTo("IdeaPad 3");
+    }
+
+    @Test
+    @DisplayName("renombrar un modelo tiene su ruta, igual que renombrar una marca")
+    void renombrarModelo() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(modelServicePort.rename(any())).thenReturn(
+                Model.rehydrate(id, "IdeaPad 5", null, UUID.randomUUID(), UUID.randomUUID(), true));
+
+        mockMvc.perform(patch("/v1/api/models/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(new NamedRequest("IdeaPad 5"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("IdeaPad 5"));
     }
 
     @Test

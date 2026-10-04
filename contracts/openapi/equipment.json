@@ -402,9 +402,16 @@
             "maxLength" : 50,
             "minLength" : 0,
             "type" : "string"
+          },
+          "nombre" : {
+            "description" : "Nombre comercial del modelo",
+            "example" : "IdeaPad 3",
+            "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
           }
         },
-        "required" : [ "idEquipo", "idFabricante" ],
+        "required" : [ "idEquipo", "idFabricante", "nombre" ],
         "type" : "object"
       },
       "ModelResponse" : {
@@ -425,6 +432,11 @@
             "type" : "string"
           },
           "invima" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "description" : "Nombre comercial del modelo",
+            "example" : "IdeaPad 3",
             "type" : "string"
           }
         },
@@ -717,7 +729,7 @@
     "/v1/api/brands/{id}" : {
       "delete" : {
         "description" : "No la borra: la deja inactiva.",
-        "operationId" : "deactivate_2",
+        "operationId" : "deactivate_3",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -776,7 +788,7 @@
         "tags" : [ "Brand" ]
       },
       "get" : {
-        "operationId" : "getById_3",
+        "operationId" : "getById_4",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -842,7 +854,7 @@
         "tags" : [ "Brand" ]
       },
       "patch" : {
-        "operationId" : "rename",
+        "operationId" : "rename_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1042,7 +1054,7 @@
         "tags" : [ "ClientEquipment" ]
       },
       "get" : {
-        "operationId" : "getById_2",
+        "operationId" : "getById_3",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1395,7 +1407,7 @@
     "/v1/api/equipment-types/{id}" : {
       "delete" : {
         "description" : "No lo borra: lo deja inactivo.",
-        "operationId" : "deactivate_1",
+        "operationId" : "deactivate_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1454,7 +1466,7 @@
         "tags" : [ "EquipmentType" ]
       },
       "get" : {
-        "operationId" : "getById_1",
+        "operationId" : "getById_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2210,7 +2222,7 @@
     "/v1/api/manufacturers/{id}" : {
       "delete" : {
         "description" : "No lo borra: lo deja inactivo.",
-        "operationId" : "deactivate",
+        "operationId" : "deactivate_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2269,7 +2281,7 @@
         "tags" : [ "Manufacturer" ]
       },
       "get" : {
-        "operationId" : "getById",
+        "operationId" : "getById_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2556,7 +2568,7 @@
     "/v1/api/models/{id}" : {
       "delete" : {
         "description" : "No lo borra: lo deja inactivo.",
-        "operationId" : "deactivate_3",
+        "operationId" : "deactivate",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2615,7 +2627,7 @@
         "tags" : [ "Model" ]
       },
       "get" : {
-        "operationId" : "getById_4",
+        "operationId" : "getById",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2678,6 +2690,83 @@
           }
         },
         "summary" : "Obtener un modelo por su identificador",
+        "tags" : [ "Model" ]
+      },
+      "patch" : {
+        "description" : "Tiene ruta propia, igual que renombrar una marca: el nombre es lo que identifica al modelo en una pantalla.",
+        "operationId" : "rename",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NamedRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModelResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Corregir el nombre del modelo",
         "tags" : [ "Model" ]
       }
     },

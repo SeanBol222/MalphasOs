@@ -170,8 +170,9 @@ class WorkOrderSchemaTest {
     private UUID insertModel(UUID fabricante, UUID equipo) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
-                "INSERT INTO modelo (k_id_modelo, k_id_fabricante, k_id_equipo) VALUES (?, ?, ?)",
-                id, fabricante, equipo);
+                "INSERT INTO modelo (k_id_modelo, n_nombre_modelo, k_id_fabricante, k_id_equipo)"
+                        + " VALUES (?, ?, ?, ?)",
+                id, "Modelo " + unico(), fabricante, equipo);
 
         return id;
     }

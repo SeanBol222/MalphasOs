@@ -23,6 +23,9 @@ public class ModelEntity {
     @Column(name = "k_id_modelo", nullable = false)
     private UUID id;
 
+    @Column(name = "n_nombre_modelo", nullable = false, length = 50)
+    private String nombre;
+
     @Column(name = "n_invima", unique = true)
     private String invima;
 

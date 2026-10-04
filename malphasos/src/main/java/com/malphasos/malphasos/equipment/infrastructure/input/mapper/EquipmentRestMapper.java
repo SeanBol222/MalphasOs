@@ -118,8 +118,8 @@ public class EquipmentRestMapper {
     }
 
     public ModelResponse toResponse(Model modelo) {
-        return new ModelResponse(modelo.getId(), modelo.getInvima(), modelo.getIdFabricante(),
-                modelo.getIdEquipo(), modelo.isEstadoActivo());
+        return new ModelResponse(modelo.getId(), modelo.getNombre(), modelo.getInvima(),
+                modelo.getIdFabricante(), modelo.getIdEquipo(), modelo.isEstadoActivo());
     }
 
     public List<ModelResponse> toModelList(List<Model> modelos) {

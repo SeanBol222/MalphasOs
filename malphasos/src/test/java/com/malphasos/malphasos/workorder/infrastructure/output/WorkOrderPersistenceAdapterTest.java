@@ -138,7 +138,7 @@ class WorkOrderPersistenceAdapterTest {
                 java.util.List.of(), 100_000L));
         Equipment asociacion = equipmentAdapter.save(Equipment.create(tipo.getId(), marca.getId()));
 
-        return modelAdapter.save(Model.create(null, fabricante.getId(), asociacion.getId())).getId();
+        return modelAdapter.save(Model.create("Modelo " + unico(), null, fabricante.getId(), asociacion.getId())).getId();
     }
 
     private UUID unEquipoEn(UUID area, UUID modelo) {

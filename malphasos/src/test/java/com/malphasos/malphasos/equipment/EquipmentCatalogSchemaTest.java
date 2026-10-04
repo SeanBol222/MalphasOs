@@ -42,6 +42,20 @@ class EquipmentCatalogSchemaTest {
         return String.valueOf(System.nanoTime());
     }
 
+    /** El alta de un modelo, con las cinco columnas que importan. Se repite en seis pruebas. */
+    private static final String INSERT_MODELO =
+            "INSERT INTO modelo (k_id_modelo, n_nombre_modelo, n_invima, k_id_fabricante,"
+                    + " k_id_equipo) VALUES (?, ?, ?, ?, ?)";
+
+    private UUID insertManufacturerRow() {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO fabricante (k_id_fabricante, n_nombre_fabricante) VALUES (?, ?)",
+                id, "Fabricante " + unico());
+
+        return id;
+    }
+
     private UUID insertBrand() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
@@ -305,7 +319,8 @@ class EquipmentCatalogSchemaTest {
         UUID equipo = insertEquipment(insertType(null), insertBrand());
 
         assertThatThrownBy(() -> jdbcTemplate.update(
-                        "INSERT INTO modelo (k_id_modelo, k_id_fabricante, k_id_equipo) VALUES (?, NULL, ?)",
+                        "INSERT INTO modelo (k_id_modelo, n_nombre_modelo, k_id_fabricante,"
+                                + " k_id_equipo) VALUES (?, 'IdeaPad 3', NULL, ?)",
                         UUID.randomUUID(), equipo))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
@@ -322,23 +337,67 @@ class EquipmentCatalogSchemaTest {
         String invima = "INVIMA-" + unico();
 
         jdbcTemplate.update(
-                "INSERT INTO modelo (k_id_modelo, n_invima, k_id_fabricante, k_id_equipo) VALUES (?, ?, ?, ?)",
-                UUID.randomUUID(), invima, fabricante, equipo);
+                INSERT_MODELO, UUID.randomUUID(), "Uno " + unico(), invima, fabricante, equipo);
 
         assertThatThrownBy(() -> jdbcTemplate.update(
-                        "INSERT INTO modelo (k_id_modelo, n_invima, k_id_fabricante, k_id_equipo) VALUES (?, ?, ?, ?)",
-                        UUID.randomUUID(), invima, fabricante, equipo))
+                        INSERT_MODELO, UUID.randomUUID(), "Otro " + unico(), invima, fabricante, equipo))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         // Varios modelos sin registro conviven: Postgres admite nulos repetidos bajo UNIQUE.
         assertThatCode(() -> {
                     jdbcTemplate.update(
-                            "INSERT INTO modelo (k_id_modelo, k_id_fabricante, k_id_equipo) VALUES (?, ?, ?)",
-                            UUID.randomUUID(), fabricante, equipo);
+                            INSERT_MODELO, UUID.randomUUID(), "Tres " + unico(), null, fabricante, equipo);
                     jdbcTemplate.update(
-                            "INSERT INTO modelo (k_id_modelo, k_id_fabricante, k_id_equipo) VALUES (?, ?, ?)",
-                            UUID.randomUUID(), fabricante, equipo);
+                            INSERT_MODELO, UUID.randomUUID(), "Cuatro " + unico(), null, fabricante, equipo);
                 })
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("un modelo necesita su nombre, y en blanco no vale")
+    void modeloNecesitaNombre() {
+        // Hasta V11 lo unico legible que un modelo llevaba era su INVIMA, que es un numero de tramite
+        // y ademas anulable: cabia un modelo sin nada que escribir en una fila.
+        UUID fabricante = insertManufacturerRow();
+        UUID equipo = insertEquipment(insertType(null), insertBrand());
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        INSERT_MODELO, UUID.randomUUID(), null, null, fabricante, equipo))
+                .describedAs("sin nombre")
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        INSERT_MODELO, UUID.randomUUID(), "   ", null, fabricante, equipo))
+                .describedAs("nombre en blanco")
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("el nombre no se repite en la misma marca, pero si en otra, y un retirado no estorba")
+    void nombreUnicoPorEquipo() {
+        UUID fabricante = insertManufacturerRow();
+        UUID tipo = insertType(null);
+        UUID deLenovo = insertEquipment(tipo, insertBrand());
+        UUID retirado = UUID.randomUUID();
+
+        jdbcTemplate.update(INSERT_MODELO, retirado, "IdeaPad 3", null, fabricante, deLenovo);
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        INSERT_MODELO, UUID.randomUUID(), "IdeaPad 3", null, fabricante, deLenovo))
+                .describedAs("el mismo nombre en la misma combinacion marca-tipo")
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        // «Serie 3» puede ser de dos marcas distintas, y la marca vive en equipo: por eso el indice
+        // es por equipo y no global.
+        UUID deOtraMarca = insertEquipment(tipo, insertBrand());
+        assertThatCode(() -> jdbcTemplate.update(
+                        INSERT_MODELO, UUID.randomUUID(), "IdeaPad 3", null, fabricante, deOtraMarca))
+                .doesNotThrowAnyException();
+
+        // Y el indice es PARCIAL: con el primero retirado se puede volver a usar su nombre.
+        jdbcTemplate.update(
+                "UPDATE modelo SET b_estado_activo = false WHERE k_id_modelo = ?", retirado);
+        assertThatCode(() -> jdbcTemplate.update(
+                        INSERT_MODELO, UUID.randomUUID(), "IdeaPad 3", null, fabricante, deLenovo))
                 .doesNotThrowAnyException();
     }
 

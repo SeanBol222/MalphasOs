@@ -7,6 +7,7 @@ import com.malphasos.malphasos.equipment.application.ports.output.ModelPersisten
 import com.malphasos.malphasos.equipment.application.services.model.commands.ChangeModelInvimaCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.CreateModelCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.DeactivateModelCommand;
+import com.malphasos.malphasos.equipment.application.services.model.commands.RenameModelCommand;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.domain.model.Model;
@@ -64,8 +65,17 @@ public class ModelService implements ModelServicePort {
                     "No se puede registrar un modelo sobre una asociacion retirada: " + equipo.getId());
         }
 
-        return persistAndPublish(
-                Model.create(command.invima(), command.idFabricante(), command.idEquipo()));
+        return persistAndPublish(Model.create(
+                command.nombre(), command.invima(), command.idFabricante(), command.idEquipo()));
+    }
+
+    @Override
+    @Transactional
+    public Model rename(RenameModelCommand command) {
+        Model modelo = findById(command.id());
+        modelo.rename(command.nombre());
+
+        return persistAndPublish(modelo);
     }
 
     @Override
