@@ -120,6 +120,38 @@ class SecurityIntegrationTest {
             }
             """;
 
+    /** Edición que además promueve: el cuerpo pide un tipo del escalón de arriba. */
+    private static final String PROMOCION_A_ADMIN =
+            """
+            {
+              "cedula": "1000000001",
+              "primerNombre": "Sean",
+              "primerApellido": "Bolivar",
+              "tipoPersona": "ADMIN"
+            }
+            """;
+
+    private static final String PROMOCION_A_SUPER_ADMIN =
+            """
+            {
+              "cedula": "1000000001",
+              "primerNombre": "Sean",
+              "primerApellido": "Bolivar",
+              "tipoPersona": "SUPER_ADMIN"
+            }
+            """;
+
+    /** Edición que no cambia el tipo: sigue siendo del escalón de abajo. */
+    private static final String EDICION_DE_REPRESENTANTE =
+            """
+            {
+              "cedula": "1000000001",
+              "primerNombre": "Sean",
+              "primerApellido": "Bolivar",
+              "tipoPersona": "CEO_CLIENT"
+            }
+            """;
+
     private static Person personaDeTipo(PersonType tipo) {
         Person persona = new Person();
         persona.setIdentificador(UUID.fromString(ID));
@@ -272,6 +304,53 @@ class SecurityIntegrationTest {
 
             prohibido(delete("/v1/api/persons/" + ID + "/emails/" + ID).with(comoElGrupo("admins")));
             prohibido(delete("/v1/api/persons/" + ID + "/phones/" + ID).with(comoElGrupo("admins")));
+        }
+
+        @Test
+        @DisplayName("el administrador NO puede convertir a un representante en administrador")
+        void elAdministradorNoPromueve() throws Exception {
+            // El agujero que esta prueba cierra. La escalera mira el tipo que la persona TIENE, y la
+            // edicion puede cambiarselo en la misma peticion: con person.write se podia tomar a un
+            // representante y dejarlo ADMIN, que es justo lo que POST /persons/admins exige
+            // super.person.write para hacer. El escalon de arriba dejaba de significar nada por la
+            // puerta de al lado.
+            //
+            // Y desde el 2026-10-04 no es solo un escalon saltado: el alcance de lectura se decide
+            // por el tipo de la persona, de modo que cambiarselo a un usuario del grupo clients le
+            // quita el filtro por dueno sin tocarle ni un rol de Keycloak.
+            prohibido(put("/v1/api/persons/" + ID)
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(PROMOCION_A_ADMIN));
+        }
+
+        @Test
+        @DisplayName("ni en super usuario, que es el caso que mas importa")
+        void elAdministradorNoPromueveASuperUsuario() throws Exception {
+            prohibido(put("/v1/api/persons/" + ID)
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(PROMOCION_A_SUPER_ADMIN));
+        }
+
+        @Test
+        @DisplayName("el super usuario si promueve")
+        void elSuperUsuarioPromueve() throws Exception {
+            autorizado(put("/v1/api/persons/" + ID)
+                    .with(conRoles(ApiAuthority.SUPER_ADMIN_FULL))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(PROMOCION_A_ADMIN));
+        }
+
+        @Test
+        @DisplayName("y editar a un representante sin cambiarle el tipo sigue bastando con person.write")
+        void editarSinPromoverSigueBastando() throws Exception {
+            // Lo que no debe pasar es que cerrar el agujero deje al administrador sin poder editar a
+            // quien si le toca.
+            autorizado(put("/v1/api/persons/" + ID)
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(EDICION_DE_REPRESENTANTE));
         }
 
         @Test

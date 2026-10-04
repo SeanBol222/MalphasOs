@@ -55,9 +55,20 @@ class RestAuthorizationCoverageTest {
      * <p><b>Es una excepcion acotada, no una puerta abierta.</b> Otra prueba fija que solo la usen
      * las operaciones que reciben un identificador de persona: en cuanto sirva para esquivar una
      * autoridad literal en otro sitio, el modelo de permisos vuelve a estar repartido.
+     *
+     * <p><b>Ampliada el 2026-10-04 para admitir un nivel de parentesis en los argumentos.</b> Antes
+     * era {@code \([^)]*\)}, que no es que rechazara un metodo nuevo: rechazaba cualquier argumento
+     * que llevara una llamada dentro. Y eso incluye leer un campo del cuerpo de la peticion
+     * —{@code #request.tipoPersona()}—, que es justo lo que hace falta cuando la autoridad depende
+     * de a que se quiere convertir la fila y no solo de lo que la fila es.
+     *
+     * <p>Lo que sigue prohibido, y es la razon de no escribir simplemente {@code \(.*\)}: la
+     * expresion tiene que ser <b>una sola llamada al bean y nada mas</b>. Algo como
+     * {@code @guard.m(#id) and hasRole('X')} no casa, porque tras la llamada no cabe nada antes del
+     * final de la cadena.
      */
     private static final Pattern DELEGA_EN_UN_BEAN =
-            Pattern.compile("^@(\\w+)\\.\\w+\\([^)]*\\)$");
+            Pattern.compile("^@(\\w+)\\.\\w+\\((?:[^()]|\\([^()]*\\))*\\)$");
 
     /** Vocabulario real, leído de las constantes de {@link ApiAuthority}. */
     private static final Set<String> VOCABULARIO = vocabularioDeclarado();

@@ -48,6 +48,44 @@ public class PersonWriteGuard {
     }
 
     /**
+     * Si quien llama puede escribir sobre esta persona <b>y dejarla de este tipo</b>.
+     *
+     * <p>Existe porque {@link #canWrite} mira el tipo que la persona <b>tiene</b>, y la edición puede
+     * cambiárselo en la misma petición. Con solo esa comprobación, {@code person.write} alcanzaba para
+     * tomar a un representante de cliente y dejarlo {@code ADMIN} —o {@code SUPER_ADMIN}—, que es
+     * exactamente lo que {@code POST /persons/admins} exige {@code super.person.write} para hacer: el
+     * escalón de arriba dejaba de significar nada por la puerta de al lado. Se exigen <b>las dos</b>
+     * autoridades, la del tipo de origen y la del de destino.
+     *
+     * <p><b>Y desde el 2026-10-04 no es solo un escalón saltado.</b> El alcance de lectura se decide
+     * por el tipo de la persona que llama, así que cambiárselo a una cuenta del grupo {@code clients}
+     * le quitaba el filtrado por dueño <b>sin tocarle ni un rol de Keycloak</b>: pasaba de ver sus
+     * clientes a ver todos los que sus autoridades alcanzan. Un escalón de datos se convirtió en una
+     * fuga de lectura al construirse el filtro, y es el argumento de por qué esto no podía esperar.
+     *
+     * <p>Degradar también cuesta el escalón de arriba, y no por simetría: tocar a un ingeniero es
+     * tocar a gente de la casa, y el tipo de destino no lo abarata.
+     *
+     * <p><b>Un {@code nuevoTipo} nulo significa «no se pide cambio de tipo», no «prohibido».</b> Por
+     * la ruta de hoy no llega: {@code tipoPersona} es {@code @NotNull} y la validación del cuerpo
+     * corre antes que {@code @PreAuthorize}. Se declara igual porque es el contrato de esta guarda y
+     * no un detalle del DTO, y porque el día que esta operación pase a {@code PATCH} —que es lo que
+     * la convención del proyecto exige— una edición parcial sin tipo será lo normal. Lo destapó una
+     * mutación que sobrevivía: tratar el nulo como prohibido no rompía ninguna prueba.
+     *
+     * <p>El segundo tipo no entra en esta cuenta porque solo admite {@code MANAGER} —lo exige el
+     * dominio y lo repite un {@code CHECK} del esquema—, de modo que no hay nada que escalar por ahí.
+     * Si algún día admitiera más valores, este método es el sitio donde añadirlo.
+     */
+    public boolean canUpdate(UUID id, PersonType nuevoTipo, Authentication autenticacion) {
+        if (!canWrite(id, autenticacion)) {
+            return false;
+        }
+
+        return nuevoTipo == null || hasAuthority(autenticacion, requiredAuthority(nuevoTipo));
+    }
+
+    /**
      * Qué autoridad exige escribir sobre alguien de este tipo.
      *
      * <p>Es la escalera entera, en un solo sitio: la gente de la casa —ingenieros y

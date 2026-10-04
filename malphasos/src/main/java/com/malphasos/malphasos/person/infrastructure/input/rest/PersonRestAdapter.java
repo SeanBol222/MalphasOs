@@ -107,7 +107,7 @@ public class PersonRestAdapter {
     }
 
     @Operation(summary = "Actualizar los datos de una persona")
-    @PreAuthorize("@personWriteGuard.canWrite(#id, authentication)")
+    @PreAuthorize("@personWriteGuard.canUpdate(#id, #request.tipoPersona(), authentication)")
     @PutMapping("/{id}")
     public PersonResponse updatePerson(
             @Parameter(description = "Identificador de la persona") @PathVariable UUID id,
