@@ -132,5 +132,12 @@ conviene tomarla una vez para los tres. Entra [[estado-de-la-ers-caducado]] con 
   y podría parecer que lo cubre; no lo cubre, porque RF-27 depende de RF-26 y ese pide el registro
   **automático** al cerrar un reporte. El javadoc de `historial-equipo.ts` ya lo distinguía solo.
 
-**Tocadas**: [[estado-de-la-ers-caducado]] (nueva), [[rf-hojas-vida]], [[estado-de-implementacion]]
-y [[index]].
+### Cuatro notas de esta wiki no existen, y se citan 55 veces
+
+`defectos-conocidos-de-la-ers` es **la más citada de esta wiki —28 veces— y no está escrita**;
+`correspondencia-terminologica` va por 11, `glosario-dominio` por 9 y `diagramas-de-casos-de-uso` por 7.
+Un enlace sin destino es una nota pendiente y no un error, pero **el `CONVENCIONES.md` de la raíz decía
+que quedaban dos**: corregido allí.
+
+**Tocadas**: [[estado-de-la-ers-caducado]] (nueva), [[rf-hojas-vida]], [[estado-de-implementacion]],
+[[index]], y el `CONVENCIONES.md` de la raíz.

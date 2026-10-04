@@ -55,6 +55,12 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 - [[diagramas-de-casos-de-uso]] — Los diez `.puml`, cuáles están en la ERS y cuáles dibujan módulos inexistentes.
 - [[estado-de-la-ers-caducado]] ⭐ — **Lo que la ERS afirma de sí misma y el código desmiente**: seis anotaciones de estado escritas cuando el esquema iba por `V5`, y dos requisitos contados como implementados contra el texto del propio `.tex`. Entró el 2026-10-04, y es la primera comparación de la ERS contra el código **en la dirección contraria**: no «se documenta algo que no existe» sino «se documenta como inexistente algo que ya está».
 
+> **⚠️ Cuatro notas de este índice no existen todavía, y se citan 55 veces entre todas.**
+> `[[defectos-conocidos-de-la-ers]]` es la más citada de esta wiki —**28** veces— y no está escrita;
+> `[[correspondencia-terminologica]]` va por 11, `[[glosario-dominio]]` por 9 y
+> `[[diagramas-de-casos-de-uso]]` por 7. Un enlace sin destino es una nota pendiente y no un error
+> —lo dice el schema—, pero **el `CONVENCIONES.md` de la raíz decía que quedaban dos**, y son cuatro.
+> Contadas el 2026-10-04 recorriendo los `[[wikilink]]` de los 31 ficheros.
 
 ---
 
