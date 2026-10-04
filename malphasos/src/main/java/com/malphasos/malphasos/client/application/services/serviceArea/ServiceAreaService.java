@@ -8,6 +8,7 @@ import com.malphasos.malphasos.client.application.services.serviceArea.commands.
 import com.malphasos.malphasos.client.application.services.serviceArea.commands.RenameServiceAreaCommand;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
@@ -40,17 +41,26 @@ public class ServiceAreaService implements ServiceAreaServicePort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ServiceArea> findByHeadquarter(UUID idSede) {
-        requireHeadquarter(idSede);
+    public List<ServiceArea> findByHeadquarter(UUID idSede, ReadScope alcance) {
+        requireHeadquarterEnAlcance(idSede, alcance);
 
         return serviceAreaPersistencePort.findByHeadquarter(idSede);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ServiceArea findById(UUID id) {
-        return serviceAreaPersistencePort.findById(id)
+    public ServiceArea findById(UUID id, ReadScope alcance) {
+        ServiceArea area = serviceAreaPersistencePort.findById(id)
                 .orElseThrow(() -> new ServiceAreaNotFoundException(id));
+
+        // El dueño de un área está a dos saltos —area -> sede -> cliente—, de modo que comprobarlo
+        // cuesta una consulta más. Solo se paga cuando el alcance restringe: a la gente de la casa
+        // no se le cobra el filtro que no se le aplica.
+        if (!alcance.alcanzaATodo() && !alcance.alcanza(requireHeadquarter(area.getIdSede()).getIdCliente())) {
+            throw new ServiceAreaNotFoundException(id);
+        }
+
+        return area;
     }
 
     /**
@@ -62,7 +72,9 @@ public class ServiceAreaService implements ServiceAreaServicePort {
     @Override
     @Transactional(readOnly = true)
     public UUID findOwningClient(UUID idAreaServicio) {
-        ServiceArea area = findById(idAreaServicio);
+        // Sin restricción a propósito: esta operación la consulta otro módulo para decidir si un
+        // traslado cruza de cliente, y esa regla no depende de quién esté mirando.
+        ServiceArea area = findById(idAreaServicio, ReadScope.sinRestriccion());
 
         return requireHeadquarter(area.getIdSede()).getIdCliente();
     }
@@ -83,7 +95,9 @@ public class ServiceAreaService implements ServiceAreaServicePort {
     @Override
     @Transactional
     public ServiceArea rename(RenameServiceAreaCommand command) {
-        ServiceArea area = findById(command.id());
+        // Igual que en las demás escrituras del módulo: sin restricción, porque renombrar exige
+        // service-area.write y el alcance solo acota lecturas.
+        ServiceArea area = findById(command.id(), ReadScope.sinRestriccion());
         area.rename(command.nombre());
 
         return persistAndPublish(area);
@@ -92,10 +106,19 @@ public class ServiceAreaService implements ServiceAreaServicePort {
     @Override
     @Transactional
     public void deactivate(DeactivateServiceAreaCommand command) {
-        ServiceArea area = findById(command.id());
+        ServiceArea area = findById(command.id(), ReadScope.sinRestriccion());
         area.deactivate();
 
         persistAndPublish(area);
+    }
+
+    /** La sede existe y su cliente entra en el alcance, o no existe para quien pregunta. */
+    private void requireHeadquarterEnAlcance(UUID idSede, ReadScope alcance) {
+        Headquarter sede = requireHeadquarter(idSede);
+
+        if (!alcance.alcanza(sede.getIdCliente())) {
+            throw new HeadquarterNotFoundException(idSede);
+        }
     }
 
     private Headquarter requireHeadquarter(UUID idSede) {

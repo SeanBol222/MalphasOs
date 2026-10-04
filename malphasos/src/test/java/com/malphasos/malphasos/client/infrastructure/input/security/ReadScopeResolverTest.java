@@ -14,10 +14,10 @@ import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -35,7 +35,13 @@ class ReadScopeResolverTest {
     @Mock private PersonCommunicationPort personCommunicationPort;
     @Mock private ClientOwnershipPort clientOwnershipPort;
 
-    @InjectMocks private ReadScopeResolver resolver;
+    /** Con la seguridad activa, que es como corre en producción. */
+    private ReadScopeResolver resolver;
+
+    @BeforeEach
+    void seguridadActiva() {
+        resolver = new ReadScopeResolver(personCommunicationPort, clientOwnershipPort, true);
+    }
 
     private Authentication conSub(String sub) {
         Jwt token = Jwt.withTokenValue("no-importa")
@@ -111,8 +117,10 @@ class ReadScopeResolverTest {
     }
 
     @Test
-    @DisplayName("sin autenticacion el alcance es vacio, no libre")
-    void sinAutenticacionNoSeVeNada() {
+    @DisplayName("con la seguridad activa, sin autenticacion no se ve nada")
+    void conSeguridadActivaSinAutenticacionNoSeVeNada() {
+        // Esta rama no se alcanza: las 33 lecturas exigen autenticacion y ninguna es ruta publica.
+        // Por eso mismo conviene que sea la cerrada, para que dejar de serlo no abra nada.
         assertThat(resolver.de(null).alcanzaATodo()).isFalse();
         assertThat(resolver.de(null).alcanza(UUID.randomUUID())).isFalse();
 
@@ -120,6 +128,18 @@ class ReadScopeResolverTest {
         sinAutenticar.setAuthenticated(false);
 
         assertThat(resolver.de(sinAutenticar).alcanzaATodo()).isFalse();
+    }
+
+    @Test
+    @DisplayName("con la seguridad apagada no se filtra nada, porque no hay autorizacion que aplicar")
+    void conSeguridadApagadaNoSeFiltra() {
+        // app.security.enabled=false apaga la autorizacion entera, y el filtrado por dueno es
+        // autorizacion. Con la rama cerrada tambien aqui, apagar la seguridad dejaba el API
+        // devolviendo listas vacias en silencio: parecia que no habia datos, no que faltara permiso.
+        ReadScopeResolver sinSeguridad =
+                new ReadScopeResolver(personCommunicationPort, clientOwnershipPort, false);
+
+        assertThat(sinSeguridad.de(null).alcanzaATodo()).isTrue();
     }
 
     @Test

@@ -7,8 +7,8 @@ import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.Set;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
@@ -39,23 +39,47 @@ import org.springframework.stereotype.Component;
  * —una cuenta hecha a mano y metida en el grupo {@code clients} vería todo— no amplía nada: quien
  * puede crear usuarios en Keycloak puede ponerse en {@code admins} igual. Queda anotado como deuda.
  *
- * <p>Lo contrario pasa sin autenticación: ahí el alcance es <b>vacío</b>. Esa rama no se alcanza en
- * producción —las treinta y tres lecturas del API exigen una autoridad—, y precisamente porque es
- * inalcanzable conviene que sea la cerrada: no cuesta nada y es la respuesta correcta a «no hay
- * nadie llamando».
+ * <p><b>Y sin autenticación hay dos casos, que conviene no confundir.</b> Con la seguridad activa,
+ * {@code anyRequest().authenticated()} cubre las treinta y tres lecturas del API y ninguna figura
+ * entre las rutas públicas, de modo que llegar aquí sin nadie que llame sería un agujero: el alcance
+ * es <b>vacío</b> y no se ve nada. Pero {@code app.security.enabled} se puede apagar —lo hacen las
+ * pruebas, y existe para desarrollo—, y entonces no hay autenticación en ninguna petición porque
+ * <b>no hay autorización en absoluto</b>: el alcance es libre, porque el filtrado por dueño es
+ * autorización y ese interruptor la apaga entera.
+ *
+ * <p>Esa distinción se descubrió ejecutando: con una sola rama cerrada, apagar la seguridad dejaba
+ * el API devolviendo listas vacías en silencio, que es la peor forma de fallar —parece que no hay
+ * datos, no que no hay permiso—.
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class ReadScopeResolver {
 
     private final PersonCommunicationPort personCommunicationPort;
     private final ClientOwnershipPort clientOwnershipPort;
 
+    /**
+     * Si la autorización está activa, que es lo que da sentido a la ausencia de autenticación.
+     *
+     * <p>Por omisión sí, igual que en {@code SecurityConfig}: si la propiedad falta, el sistema
+     * queda del lado protegido.
+     */
+    private final boolean seguridadActiva;
+
+    public ReadScopeResolver(
+            PersonCommunicationPort personCommunicationPort,
+            ClientOwnershipPort clientOwnershipPort,
+            @Value("${app.security.enabled:true}") boolean seguridadActiva) {
+
+        this.personCommunicationPort = personCommunicationPort;
+        this.clientOwnershipPort = clientOwnershipPort;
+        this.seguridadActiva = seguridadActiva;
+    }
+
     /** El alcance de quien llama. Nunca devuelve {@code null}. */
     public ReadScope de(Authentication autenticacion) {
         if (autenticacion == null || !autenticacion.isAuthenticated()) {
-            return ReadScope.deClientes(Set.of());
+            return seguridadActiva ? ReadScope.deClientes(Set.of()) : ReadScope.sinRestriccion();
         }
 
         UUID idPersona = identificadorDe(autenticacion);

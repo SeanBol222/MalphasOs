@@ -8,6 +8,7 @@ import com.malphasos.malphasos.client.application.services.headquarter.commands.
 import com.malphasos.malphasos.client.application.services.headquarter.commands.UpdateHeadquarterCommand;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.location.application.ports.input.CityServicePort;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
@@ -43,17 +44,25 @@ public class HeadquarterService implements HeadquarterServicePort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Headquarter> findByClient(UUID idCliente) {
-        requireClient(idCliente);
+    public List<Headquarter> findByClient(UUID idCliente, ReadScope alcance) {
+        requireClientEnAlcance(idCliente, alcance);
 
         return headquarterPersistencePort.findByClient(idCliente);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Headquarter findById(UUID id) {
-        return headquarterPersistencePort.findById(id)
+    public Headquarter findById(UUID id, ReadScope alcance) {
+        Headquarter sede = headquarterPersistencePort.findById(id)
                 .orElseThrow(() -> new HeadquarterNotFoundException(id));
+
+        // Aquí hay que leer para saber de quién es: el dueño está en la fila, no en la ruta. Y el
+        // error es el de «no existe la sede», no el del cliente, porque es la sede lo que se pidió.
+        if (!alcance.alcanza(sede.getIdCliente())) {
+            throw new HeadquarterNotFoundException(id);
+        }
+
+        return sede;
     }
 
     @Override
@@ -70,7 +79,9 @@ public class HeadquarterService implements HeadquarterServicePort {
     @Override
     @Transactional
     public Headquarter update(UpdateHeadquarterCommand command) {
-        Headquarter sede = findById(command.id());
+        // Las escrituras van sin restricción: el alcance acota lo que se lee, y editar una sede
+        // exige client.write, que el grupo de los clientes no tiene.
+        Headquarter sede = findById(command.id(), ReadScope.sinRestriccion());
 
         if (command.idCiudad() != null) {
             cityServicePort.findById(command.idCiudad());
@@ -83,10 +94,25 @@ public class HeadquarterService implements HeadquarterServicePort {
     @Override
     @Transactional
     public void deactivate(DeactivateHeadquarterCommand command) {
-        Headquarter sede = findById(command.id());
+        Headquarter sede = findById(command.id(), ReadScope.sinRestriccion());
         sede.deactivate();
 
         persistAndPublish(sede);
+    }
+
+    /**
+     * El cliente existe y entra en el alcance, o no existe para quien pregunta.
+     *
+     * <p>Las dos ramas lanzan lo mismo a propósito: un cliente ajeno y un cliente inventado se
+     * responden igual, que es lo que impide usar este listado para averiguar qué identificadores
+     * existen.
+     */
+    private void requireClientEnAlcance(UUID idCliente, ReadScope alcance) {
+        if (!alcance.alcanza(idCliente)) {
+            throw new ClientNotFoundException(idCliente);
+        }
+
+        requireClient(idCliente);
     }
 
     private void requireClient(UUID idCliente) {

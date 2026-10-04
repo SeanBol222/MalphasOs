@@ -12,6 +12,7 @@ import com.malphasos.malphasos.person.application.model.communication.PersonComm
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderPersistencePort;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
@@ -77,7 +78,9 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<WorkOrder> findByClient(UUID idCliente) {
-        clientServicePort.findById(idCliente);
+        // TODO(filtrado-por-dueno): este listado todavia no acota. Lo hara la tanda de
+        // work-order, que es donde esta operacion se expone; aqui solo se comprueba existencia.
+        clientServicePort.findById(idCliente, ReadScope.sinRestriccion());
 
         return workOrderPersistencePort.findByClient(idCliente);
     }
@@ -85,7 +88,9 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<WorkOrder> findByHeadquarter(UUID idSede) {
-        headquarterServicePort.findById(idSede);
+        // TODO(filtrado-por-dueno): sin acotar todavia, igual que findByClient. Lo cierra la tanda
+        // de work-order.
+        headquarterServicePort.findById(idSede, ReadScope.sinRestriccion());
 
         return workOrderPersistencePort.findByHeadquarter(idSede);
     }
@@ -231,7 +236,9 @@ public class WorkOrderService implements WorkOrderServicePort {
     }
 
     private void requireActiveClient(UUID idCliente) {
-        Client cliente = clientServicePort.findById(idCliente);
+        // Sin restriccion: es una validacion de escritura, y escribir una orden no lo hace nadie
+        // del grupo clients.
+        Client cliente = clientServicePort.findById(idCliente, ReadScope.sinRestriccion());
 
         if (!cliente.isEstadoActivo()) {
             throw new IllegalArgumentException(
@@ -241,7 +248,8 @@ public class WorkOrderService implements WorkOrderServicePort {
 
     /** La sede existe, opera, y es de ese cliente. */
     private void requireActiveHeadquarterOf(UUID idSede, UUID idCliente) {
-        Headquarter sede = headquarterServicePort.findById(idSede);
+        // Validacion de escritura: programar una orden exige work-order.write.
+        Headquarter sede = headquarterServicePort.findById(idSede, ReadScope.sinRestriccion());
 
         if (!sede.isEstadoActivo()) {
             throw new IllegalArgumentException(
@@ -272,7 +280,7 @@ public class WorkOrderService implements WorkOrderServicePort {
      * La sede, en cambio, la trae ya el propio área, así que no cuesta ninguna consulta más.
      */
     private void requireEquipmentInScopeOf(ClientEquipment unidad, WorkOrder orden) {
-        ServiceArea area = serviceAreaServicePort.findById(unidad.getIdAreaServicio());
+        ServiceArea area = serviceAreaServicePort.findById(unidad.getIdAreaServicio(), ReadScope.sinRestriccion());
 
         if (!area.isEstadoActivo()) {
             throw new IllegalArgumentException("La unidad " + unidad.getId()

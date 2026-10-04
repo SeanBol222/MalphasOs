@@ -4,6 +4,7 @@ import com.malphasos.malphasos.client.application.services.serviceArea.commands.
 import com.malphasos.malphasos.client.application.services.serviceArea.commands.DeactivateServiceAreaCommand;
 import com.malphasos.malphasos.client.application.services.serviceArea.commands.RenameServiceAreaCommand;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,9 +14,21 @@ public interface ServiceAreaServicePort {
     List<ServiceArea> findAll();
 
     /** Áreas de una sede. Falla si la sede no existe. */
-    List<ServiceArea> findByHeadquarter(UUID idSede);
+    /**
+     * Las áreas de una sede, si esa sede pertenece a un cliente del alcance.
+     *
+     * @throws com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException si la
+     *     sede no existe o su cliente queda fuera del alcance
+     */
+    List<ServiceArea> findByHeadquarter(UUID idSede, ReadScope alcance);
 
-    ServiceArea findById(UUID id);
+    /**
+     * Un área, si cuelga de un cliente del alcance.
+     *
+     * @throws com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException si no
+     *     existe o si queda fuera del alcance
+     */
+    ServiceArea findById(UUID id, ReadScope alcance);
 
     /**
      * Identificador del cliente dueño del área, resuelto en una sola llamada.

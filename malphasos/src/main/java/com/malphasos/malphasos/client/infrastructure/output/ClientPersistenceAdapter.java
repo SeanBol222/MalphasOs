@@ -6,6 +6,7 @@ import com.malphasos.malphasos.client.infrastructure.output.entities.ClientEntit
 import com.malphasos.malphasos.client.infrastructure.output.mapper.ClientPersistenceMapper;
 import com.malphasos.malphasos.client.infrastructure.output.repository.ClientRepository;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -37,6 +38,12 @@ public class ClientPersistenceAdapter implements ClientPersistencePort {
     @Transactional(readOnly = true)
     public Optional<Client> findById(UUID id) {
         return clientRepository.findById(id).map(clientPersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Client> findAllByIds(Collection<UUID> ids) {
+        return clientPersistenceMapper.toDomainList(clientRepository.findAllById(ids));
     }
 
     @Override
