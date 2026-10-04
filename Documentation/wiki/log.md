@@ -97,3 +97,47 @@ satisfechos, no la calidad con la que se satisfacen. Un 17 de 31 no dice que eso
 bien resueltos.
 
 **Tocadas**: [[rf-alertas-calibracion]] y [[estado-de-implementacion]].
+
+## [2026-10-04] lint | la ERS contra el código, en la dirección contraria
+
+**Primera vez que esta wiki compara la ERS con el sistema buscando lo inverso de su regla.** La regla
+dice «no se documenta como existente algo que no está implementado»; esta vez se buscó lo contrario — y
+apareció.
+
+**Seis anotaciones «Estado en la implementación actual» del `.tex` están caducadas.** Cinco dicen «las
+cinco migraciones del esquema» cuando hay **once**, y una, la de RF-26, dice que el oyente del cierre de
+un reporte irá en su directorio «cuando el reporte exista»: el reporte existe desde el 2026-09-27, con
+sus cinco eventos. Un lector concluiría que RF-26 está bloqueado por una pieza ya construida.
+
+Las de «cinco migraciones» son más benignas y conviene decirlo sin exagerar: la conclusión que sostienen
+—que no hay tabla de historial, ni de inventario, ni de calibración— **sigue siendo cierta**. Lo que
+caducó es el número con el que se justifica.
+
+**Y dos requisitos figuran como implementados contra el texto de la propia ERS.** RF-22 exige un
+formulario con cuatro secciones y el `.tex` dice que la de servicio técnico «falta, y falta entera»;
+además no hay *un* formulario, sino cinco recursos. RF-24 depende de RF-22 y pide editar «la hoja de
+vida», que no existe como entidad.
+
+Es **la misma situación que RF-04**, marcado como desviación y no como implementado. Con el criterio que
+el proyecto se fijó por escrito —«lo que el backend satisface **por completo**»— el marcador sería 15 de
+31 con tres desviaciones. **No se cambió la cifra**: es la decisión que quedó abierta con RF-04 y
+conviene tomarla una vez para los tres. Entra [[estado-de-la-ers-caducado]] con las citas.
+
+### Lo que resultó correcto, que es la mayor parte
+
+- **El denominador 31 es exacto**, por dos vías que coinciden: 31 declaraciones `\textbf{RF-xx}` y 31
+  filas de tabla, con la misma lista. Los otros 18 códigos que la ERS menciona se citan sin declararse,
+  y eso ya estaba en [[priorizacion-moscow]] —se reencontró por otra vía y coincidió—.
+- **RF-27 está bien marcado como previsto.** Hay pantalla de historial de un equipo desde el 2026-09-28
+  y podría parecer que lo cubre; no lo cubre, porque RF-27 depende de RF-26 y ese pide el registro
+  **automático** al cerrar un reporte. El javadoc de `historial-equipo.ts` ya lo distinguía solo.
+
+### Cuatro notas de esta wiki no existen, y se citan 55 veces
+
+`defectos-conocidos-de-la-ers` es **la más citada de esta wiki —28 veces— y no está escrita**;
+`correspondencia-terminologica` va por 11, `glosario-dominio` por 9 y `diagramas-de-casos-de-uso` por 7.
+Un enlace sin destino es una nota pendiente y no un error, pero **el `CONVENCIONES.md` de la raíz decía
+que quedaban dos**: corregido allí.
+
+**Tocadas**: [[estado-de-la-ers-caducado]] (nueva), [[rf-hojas-vida]], [[estado-de-implementacion]],
+[[index]], y el `CONVENCIONES.md` de la raíz.
