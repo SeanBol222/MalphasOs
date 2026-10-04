@@ -78,6 +78,7 @@ describe('Panel para crear un modelo sin salir del alta', () => {
     escribir('idTipo', ID_TIPO);
     escribir('idMarca', ID_MARCA);
     escribir('idFabricante', ID_FABRICANTE);
+    escribir('nombreDeModelo', 'IdeaPad 3');
     pulsarCrear();
     await asentar(fixture);
 
@@ -88,7 +89,11 @@ describe('Panel para crear un modelo sin salir del alta', () => {
 
     const alta = http.expectOne({ method: 'POST', url: URL_MODELOS });
 
-    expect(alta.request.body).toEqual({ idEquipo: EQUIPOS[0].id, idFabricante: ID_FABRICANTE });
+    expect(alta.request.body).toEqual({
+      nombre: 'IdeaPad 3',
+      idEquipo: EQUIPOS[0].id,
+      idFabricante: ID_FABRICANTE,
+    });
     alta.flush({ id: 'mo9' });
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));
@@ -103,6 +108,7 @@ describe('Panel para crear un modelo sin salir del alta', () => {
     escribir('idTipo', ID_TIPO);
     escribir('idMarca', ID_MARCA);
     escribir('idFabricante', ID_FABRICANTE);
+    escribir('nombreDeModelo', 'IdeaPad 3');
     pulsarCrear();
     await asentar(fixture);
 
@@ -114,7 +120,11 @@ describe('Panel para crear un modelo sin salir del alta', () => {
 
     const alta = http.expectOne({ method: 'POST', url: URL_MODELOS });
 
-    expect(alta.request.body).toEqual({ idEquipo: 'e9', idFabricante: ID_FABRICANTE });
+    expect(alta.request.body).toEqual({
+      nombre: 'IdeaPad 3',
+      idEquipo: 'e9',
+      idFabricante: ID_FABRICANTE,
+    });
     alta.flush({ id: 'mo9' });
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));
@@ -132,6 +142,7 @@ describe('Panel para crear un modelo sin salir del alta', () => {
     escribir('idMarca', 'nuevo');
     escribir('nombreDeMarca', 'Philips');
     escribir('idFabricante', 'nuevo');
+    escribir('nombreDeModelo', 'IdeaPad 3');
     escribir('nombreDeFabricante', 'Philips Healthcare');
     pulsarCrear();
     await asentar(fixture);
@@ -165,7 +176,11 @@ describe('Panel para crear un modelo sin salir del alta', () => {
 
     const modelo = http.expectOne({ method: 'POST', url: URL_MODELOS });
 
-    expect(modelo.request.body).toEqual({ idEquipo: 'e9', idFabricante: 'f9' });
+    expect(modelo.request.body).toEqual({
+      nombre: 'IdeaPad 3',
+      idEquipo: 'e9',
+      idFabricante: 'f9',
+    });
     modelo.flush({ id: 'mo9' });
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));
@@ -188,6 +203,7 @@ describe('Panel para crear un modelo sin salir del alta', () => {
     escribir('nombreDeTipo', 'Desfibrilador');
     escribir('idMarca', ID_MARCA);
     escribir('idFabricante', ID_FABRICANTE);
+    escribir('nombreDeModelo', 'IdeaPad 3');
     pulsarCrear();
     await asentar(fixture);
 
@@ -202,6 +218,7 @@ describe('Panel para crear un modelo sin salir del alta', () => {
     escribir('idMarca', 'nuevo');
     escribir('nombreDeMarca', 'Philips');
     escribir('idFabricante', ID_FABRICANTE);
+    escribir('nombreDeModelo', 'IdeaPad 3');
     pulsarCrear();
     await asentar(fixture);
 

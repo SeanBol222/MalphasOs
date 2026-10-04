@@ -20,8 +20,13 @@
       @for (fila of filas(); track fila.id) {
         <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
           <span class="grow" [class.font-semibold]="fila.estadoActivo">
-            {{ fila.equipo }}
+            <!--
+              El nombre primero: es lo que identifica al modelo. Antes la fila empezaba por «tipo ·
+              marca», que es la combinacion a la que pertenece, y el modelo en si no se nombraba.
+            -->
+            {{ fila.nombre }}
             <span class="font-normal text-neutral-700">
+              · {{ fila.equipo }}
               · {{ fila.fabricante }}
               @if (fila.invima) {
                 · INVIMA {{ fila.invima }}
@@ -74,6 +79,20 @@
         </select>
       </div>
       <div>
+        <label class="block font-semibold" for="nombreDelModelo">
+          Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <input
+          id="nombreDelModelo"
+          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          formControlName="nombre"
+          maxlength="50"
+          aria-required="true"
+          placeholder="IdeaPad 3"
+        />
+      </div>
+      <div>
+        <!-- Opcional, al contrario que el nombre: se tramita despues de dar de alta el modelo. -->
         <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
         <input
           id="invimaDelModelo"
