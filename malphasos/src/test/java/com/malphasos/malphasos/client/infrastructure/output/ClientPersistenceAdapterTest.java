@@ -210,4 +210,69 @@ class ClientPersistenceAdapterTest {
 
         assertThat(adapter.findById(guardado.getId()).orElseThrow().isEstadoActivo()).isFalse();
     }
+
+    @Test
+    @DisplayName("el filtrado por dueno encuentra los clientes que una persona representa")
+    void losClientesDeUnRepresentante() {
+        UUID persona = unaPersona();
+        Client uno = unCliente();
+        uno.appointRepresentative(persona);
+        Client dos = unCliente();
+        dos.appointRepresentative(persona);
+        UUID ajeno = adapter.save(unCliente()).getId();
+
+        UUID primero = adapter.save(uno).getId();
+        UUID segundo = adapter.save(dos).getId();
+
+        // La llave de representante_legal es compuesta a proposito: una persona puede representar a
+        // varios clientes, y el alcance tiene que traer los dos y ninguno mas.
+        assertThat(adapter.findIdsRepresentedBy(persona))
+                .containsExactlyInAnyOrder(primero, segundo)
+                .doesNotContain(ajeno);
+    }
+
+    @Test
+    @DisplayName("retirar a un representante le quita el acceso, aunque su fila siga ahi")
+    void retirarAlRepresentanteLeQuitaElAcceso() {
+        UUID persona = unaPersona();
+        Client cliente = unCliente();
+        cliente.appointRepresentative(persona);
+        Client guardado = adapter.save(cliente);
+
+        Client recuperado = adapter.findById(guardado.getId()).orElseThrow();
+        recuperado.removeRepresentative(persona);
+        adapter.save(recuperado);
+
+        // Es la razon por la que la consulta mira b_estado_activo del nombramiento: la fila se queda
+        // como historial, y si el filtro no la descartara el representante retirado seguiria
+        // leyendo los datos del cliente.
+        assertThat(adapter.findIdsRepresentedBy(persona)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("quien no representa a nadie no recibe ningun cliente")
+    void sinNombramientosNingunCliente() {
+        adapter.save(unCliente());
+
+        assertThat(adapter.findIdsRepresentedBy(unaPersona())).isEmpty();
+        assertThat(adapter.findIdsRepresentedBy(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("un cliente retirado sigue siendo visible para su representante")
+    void unClienteRetiradoSigueEnElAlcance() {
+        UUID persona = unaPersona();
+        Client cliente = unCliente();
+        cliente.appointRepresentative(persona);
+        Client guardado = adapter.save(cliente);
+
+        Client recuperado = adapter.findById(guardado.getId()).orElseThrow();
+        recuperado.deactivate();
+        adapter.save(recuperado);
+
+        // Decision deliberada: el alcance mira si el nombramiento esta activo, no si el cliente lo
+        // esta. findAll() devuelve los clientes retirados, y esconderselos solo a su propio
+        // representante seria incoherente con lo que ve cualquier otro.
+        assertThat(adapter.findIdsRepresentedBy(persona)).containsExactly(guardado.getId());
+    }
 }
