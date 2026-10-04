@@ -4,7 +4,7 @@ description: El esquema de MalphasOS hoy — 26 tablas, 35 foráneas, con diagra
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # El esquema de MalphasOS, hoy
@@ -38,15 +38,15 @@ FROM information_schema.table_constraints tc
 WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public';
 ```
 
-## Las cifras, medidas el 2026-10-03
+## Las cifras, medidas el 2026-10-04
 
 | | |
 |---|---|
-| Migraciones aplicadas | **10** (`V1`…`V10`) |
+| Migraciones aplicadas | **11** (`V1`…`V11`) |
 | Tablas de dominio | **26** |
 | Llaves foráneas | **35**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **28** |
-| Índices únicos **parciales** | **4** |
+| Restricciones `CHECK` propias | **29** |
+| Índices únicos **parciales** | **5** |
 | Tablas con borrado lógico | **26 de 26** — universal, sin excepción |
 
 **El borrado lógico es universal y eso es una afirmación comprobada, no una convención declarada**: la
@@ -213,7 +213,8 @@ erDiagram
         uuid k_id_modelo PK
         uuid k_id_equipo FK
         uuid k_id_fabricante FK
-        varchar n_invima
+        varchar n_nombre_modelo "IdeaPad 3 - UK por equipo"
+        varchar n_invima "anulable: se tramita despues"
         boolean b_estado_activo
     }
     equipo_cliente {
@@ -225,6 +226,11 @@ erDiagram
         boolean b_estado_activo
     }
 ```
+
+**`modelo` tiene nombre desde `V11`**, y hasta entonces no lo tenía: lo único legible que llevaba era
+su registro INVIMA, que es un número de trámite **y es anulable**, de modo que cabía un modelo sin nada
+que escribir en una fila. El nombre es obligatorio y **único por `equipo`** —«Serie 3» puede ser de dos
+marcas distintas, y la marca vive en `equipo`—, con índice parcial como el resto.
 
 **`tipo_equipo` ya no dice cómo se verifica**: hasta el 2026-10-03 tenía `b_verificable`,
 `n_tipo_verificacion` e `i_cantidad_datos`, y las tres se fueron en `V10`. El booleano era exactamente
@@ -351,15 +357,15 @@ cuatro y cada una tapa un estado que de otro modo se podría escribir:
 nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
 lectura sin punto pasa y la que trae punto queda atada.
 
-## Los 4 índices únicos parciales, y por qué son parciales
+## Los 5 índices únicos parciales, y por qué son parciales
 
 `UQ_reporte_servicio_activo`, `UQ_verificacion_magnitud_activa_por_tipo`,
-`UQ_punto_verificacion_activo` y `UQ_dato_verificacion_activo`. Los cuatro llevan
-`WHERE b_estado_activo`, y la razón es la misma en los cuatro: **aquí nada se borra**. Una restricción
-normal impediría volver a dar de alta algo que se retiró, de modo que reconfigurar hacia atrás sería
-imposible.
+`UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo` y, desde `V11`,
+`UQ_modelo_nombre_activo_por_equipo`. Los cinco llevan `WHERE b_estado_activo`, y la razón es la misma
+en todos: **aquí nada se borra**. Una restricción normal impediría volver a dar de alta algo que se
+retiró, de modo que reconfigurar hacia atrás sería imposible.
 
-**Y los cuatro cobran un precio**: Hibernate vacía los `INSERT` antes que los `UPDATE`, así que
+**Y cobran un precio**: Hibernate vacía los `INSERT` antes que los `UPDATE`, así que
 sustituir una fila activa por otra equivalente choca contra el índice. Un índice **parcial** no se
 puede declarar diferido —`DEFERRABLE` es de las restricciones, y una restricción no admite `WHERE`—,
 así que el orden se impone en el adaptador con un `saveAndFlush` intermedio. Lo pagaron dos módulos:

@@ -1107,3 +1107,53 @@ administrador para separar algo que nadie va a separar.
 describe magnitudes ni unidades. Lo que el cambio hace es que **RF-15 deje de ser una verdad a medias**
 —un termohigrómetro no se podía reportar sin inventarse dos tipos de equipo— y el requisito se daba por
 implementado igualmente. Primer caso en que algo marcado como hecho mejora sin cambiar de estado.
+
+## [2026-10-04] ingest | un modelo tiene nombre, y un BUILD SUCCESS que no significaba nada
+
+**Lo pidió el usuario con el mismo tipo de ejemplo que la vez anterior**: «si la marca es Lenovo, el
+modelo puede ser IdeaPad 3». Y como la vez anterior, el contraejemplo destapó una ausencia y no una
+preferencia: **`modelo` no tenía columna de nombre**.
+
+Lo único legible que un modelo llevaba era su registro INVIMA, que es un número de trámite, **es
+anulable** y se obtiene *después* de dar de alta el modelo. Cabía un modelo sin nombre y sin INVIMA,
+identificado solo por un UUID, y el listado empezaba la fila por «tipo · marca» —la combinación a la que
+el modelo pertenece— sin nombrar el modelo en sí. Viene del esquema del original.
+
+**Cuarta ausencia de este módulo que destapa un contraejemplo del usuario y no una revisión del
+código.** Las otras tres: la cadena que obligaba a recorrerla, las verificaciones que faltaban, y el
+termohigrómetro de ayer. Conviene tenerlo presente al planear la revisión: lo que el original no
+modelaba se nota usándolo, no leyéndolo.
+
+Está en `V11__model_name.sql`, con el detalle en [[dominio-equipo-mantenimiento]] y el diagrama al día
+en [[esquema-bd-malphasos]]. Obligatorio con `CHECK` contra blancos —`''` y `'   '` pasan un `NOT
+NULL`—, único **por `equipo`** porque «Serie 3» puede ser de dos marcas y la marca vive ahí, e índice
+**parcial** como los otros cuatro. Se renombra por su propia ruta, igual que una marca.
+
+El relleno de la migración es un marcador, no un dato: la única fila que había quedó como «Sin nombre».
+Usar su INVIMA habría sido peor — un número de registro puesto en la columna del nombre **parece** un
+nombre y nadie lo corregiría.
+
+### Y una trampa de herramienta que vale más que el cambio
+
+**`./mvnw test-compile` dijo BUILD SUCCESS con las pruebas llamando a una firma que ya no existía.**
+Se añadió un parámetro a `Model.create` y `Model.rehydrate`; las pruebas pasaban cinco argumentos a seis
+parámetros. Eso no compila nunca.
+
+No es magia: `maven-compiler-plugin` decide si recompilar comparando marcas de tiempo **de los fuentes
+de su propio ámbito**, y ningún fuente de prueba había cambiado. Dejó `target/test-classes` compilado
+contra la versión anterior de producción: clases obsoletas y aparentemente sanas.
+
+Lo delató **leer el código y ver que no podía compilar**, no una herramienta. `mvn test` lo habría
+destapado también, pero con `NoSuchMethodError` en ejecución en vez de un error de compilación — el
+mismo defecto, más tarde y peor explicado.
+
+La regla queda en [[stack-spring-boot-4-particularidades]]: **al cambiar una firma pública que las
+pruebas usan, el `test-compile` incremental no es una comprobación**; hay que borrar
+`target/test-classes` antes. Es el segundo verde falso de esta revisión, y el primero que no venía de
+una prueba mal escrita sino de la herramienta que las compila.
+
+### Las cifras, medidas
+
+Backend **842** en 55 clases, frontend **410** en 42 ficheros, **once** migraciones, 26 tablas, 29
+`CHECK` y **cinco** índices únicos parciales. Deuda propia: **60** filas, 20 tachadas, 40 abiertas,
+contadas con la receta que la nota lleva dentro.

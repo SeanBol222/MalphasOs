@@ -3,7 +3,7 @@ name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
 tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Dominio Equipo y Mantenimiento Preventivo (`equipment_hexagon`)
@@ -234,6 +234,39 @@ Dos cosas de este módulo se ejercen desde fuera y conviene saberlo antes de toc
 - **`i_cantidad_datos` es el tope por punto de su verificación**, y el servicio de reportes lo usa para
   dos cosas: rechazar la lectura número N+1 y **exigir las N al cerrar**. Bajarlo en un tipo con
   reportes abiertos dejaría reportes que no se pueden cerrar sin volver a registrar su verificación.
+
+## Un modelo tiene nombre (2026-10-04)
+
+Lo pidió el usuario con el mismo tipo de ejemplo que la vez anterior: «si la marca es Lenovo, el modelo
+puede ser IdeaPad 3». Y como la vez anterior, el contraejemplo destapó una ausencia y no una
+preferencia: **`modelo` no tenía columna de nombre**.
+
+Lo único legible que un modelo llevaba era su **registro INVIMA**, que es un número de trámite, **es
+anulable** y se obtiene *después* de dar de alta el modelo. Resultado: un modelo podía existir sin
+nombre y sin INVIMA, identificado solo por un UUID, y la pantalla que los lista empezaba la fila por
+«tipo · marca» —la combinación a la que el modelo pertenece— sin nombrar el modelo en sí.
+
+Viene del sistema original, donde la tabla se generó con esa forma. Es el mismo patrón que ya se vio
+tres veces en este módulo: **lo que el original no modelaba, aquí faltaba hasta que alguien lo nombró**.
+
+### Tres decisiones
+
+- **Obligatorio, al contrario que el INVIMA.** Un modelo sin registro sanitario es un estado normal
+  mientras se tramita; un modelo sin nombre no es nada. Por eso el nombre lleva `NOT NULL` más un
+  `CHECK` contra blancos —`''` y `'   '` pasan un `NOT NULL`— y el INVIMA sigue anulable.
+- **Único por `equipo`, no en toda la tabla.** «Serie 3» puede ser de dos marcas distintas, y la marca
+  vive en `equipo`. Dos modelos activos con el mismo nombre en la misma combinación marca-tipo son el
+  mismo modelo dos veces. Índice **parcial**, como los otros cuatro del esquema.
+- **Se renombra por su propia operación**, `PATCH /models/{id}` con el cuerpo de un nombre, igual que se
+  renombra una marca. Una errata es una errata y tiene que poder corregirse.
+
+### La migración rellena antes de restringir, y el relleno es un marcador
+
+Había una fila. Se podría haber rellenado con el INVIMA —el único texto que esas filas llevan— y
+**sería peor**: un número de registro sanitario puesto en la columna del nombre parece un nombre y no lo
+es, de modo que nadie lo corregiría. Se rellena con «Sin nombre», que salta a la vista la primera vez
+que alguien abre el listado. Es la misma elección que `V8` hizo poniendo `1` en `i_cantidad_datos`: la
+afirmación más débil posible.
 
 ## Reutilizable en MalphasOS
 
