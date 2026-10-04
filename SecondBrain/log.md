@@ -1221,3 +1221,49 @@ de persistencia declara `delete` ni `update`. Y tres mutaciones del reporte —u
 otra verificación, verificación retirada— se cazan todas.
 
 Backend **851** pruebas en **56** clases. Deuda propia: **63** filas, 23 tachadas, 40 abiertas.
+
+## [2026-10-04] lint | once mutaciones sobre los seis módulos: cuatro huecos, todos con cobertura vecina
+
+Se extendió el barrido de mutaciones a `client`, `work-order`, `person` y `location`, que no se habían
+tocado. **Once mutaciones en total sobre los seis módulos, cuatro supervivientes** — las dos de
+`equipment` y `report` ya registradas, más dos nuevas.
+
+**Encargar a alguien de un área cerrada.** `ManagerService` tiene dos guardas paralelas,
+`requireActiveHeadquarter` y `requireActiveServiceArea`, idénticas salvo el puerto y la excepción.
+Quitarle a la del área el `.filter(area -> area.isEstadoActivo())` dejó las 851 pruebas en verde,
+mientras la misma mutación sobre la de la sede cae. Cerrada con dos pruebas, una por entrada: `register`
+crea la persona y `assign` usa una existente, y un arreglo que mirara solo una de las dos habría pasado
+con una sola.
+
+**La cuarta alta de personas admitía cualquier tipo.** `PersonService.save` es la única puerta que **no**
+crea usuario en Keycloak, y `requireWithoutAccess` la restringe a `MANAGER`. Sustituir su condición por
+`false` dejó la batería en verde: `PersonServiceTest` tenía **veinte** casos y **ninguno llamaba a
+`save`**.
+
+Lo que la regla sostiene no es cosmético: sin ella se escribe una fila que dice ser `ADMIN` o `ENGINEER`
+**sin cuenta en el proveedor de identidad**, y se salta además la escalera que las otras tres puertas
+imponen —esas exigen `super.person.write` para la gente de la casa, y esta no exige nada porque da por
+supuesto que lo que entra no accede—. El frontend se apoya en ella dos veces: las cuatro altas no tienen
+selector de tipo, y la cuarta se justifica por esto.
+
+### Las cuatro supervivientes tienen la misma forma, y es la conclusión del barrido
+
+En los cuatro casos **había cobertura alrededor de la regla y ninguna sobre ella**:
+
+- un servicio con **tres clases vecinas** que parecían cubrirlo —REST que simula el puerto,
+  persistencia que entra por el adaptador, agregado que no puede consultar un catálogo—;
+- una regla de cierre con **siete pruebas de cierre** que nunca usaban dos verificaciones;
+- una guarda con su **gemela probada**;
+- un método con **veinte pruebas en su clase** y ninguna que lo llamara.
+
+**La cobertura vecina es lo que hace invisible el hueco.** Un fichero de pruebas lleno junto a una regla
+desnuda se lee, de un vistazo y en una revisión, exactamente igual que uno que la cubre. Lo único que
+los distingue es desactivar la regla.
+
+### Lo que aguantó
+
+`work-order` pasó las tres mutaciones más cargadas de regla —equipo de otra sede, equipo de otro
+cliente, orden en la sede de otro cliente—, que es coherente con ser el módulo cuyas siete reglas se
+revisaron contra el wiki en septiembre. `location` y la guarda de la sede de `client` también.
+
+Backend **856** pruebas en **56** clases. Deuda propia: **65** filas, 25 tachadas, 40 abiertas.
