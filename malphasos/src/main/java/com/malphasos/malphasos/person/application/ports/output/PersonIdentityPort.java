@@ -53,4 +53,22 @@ public interface PersonIdentityPort {
      * @throws KeycloakUserNotFoundException si no hay ningún usuario con ese identificador
      */
     void updateUserProfile(String userId, PersonIdentityProfile profile);
+
+    /**
+     * Deja al usuario en el grupo que le corresponde, y en ninguno más.
+     *
+     * <p>Existe porque cambiar el tipo de una persona **no movía su cuenta de grupo**: quien dejaba
+     * de ser ingeniero conservaba sus permisos, y desde que hay filtrado por dueño también pasaba lo
+     * contrario —un representante al que se le cambia el tipo perdía el filtro sin perder su grupo—.
+     * La fila y la identidad decían cosas distintas, y el sistema creía las dos a la vez.
+     *
+     * <p><b>Un {@code roleType} nulo significa «en ningún grupo»</b>, no «déjalo como está». Es el
+     * caso de un encargado, que por definición no accede al sistema: la cuenta queda sin ninguna
+     * autoridad y toda llamada suya responde 403. Quién corresponde a cada tipo lo decide la capa de
+     * aplicación y no este puerto, que sigue hablando de {@link RoleType} y no de
+     * {@code PersonType}: son dos vocabularios distintos a propósito.
+     *
+     * <p>Es idempotente: si el usuario ya está donde debe, no se toca nada.
+     */
+    void syncGroup(String userId, RoleType roleType);
 }

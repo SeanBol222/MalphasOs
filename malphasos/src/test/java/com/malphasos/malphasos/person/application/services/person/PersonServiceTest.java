@@ -513,4 +513,83 @@ class PersonServiceTest {
 
         verify(persistencePort, never()).save(any());
     }
+
+    // ------------------------------------------------------------------------
+    // Cambiar de tipo mueve la cuenta de grupo
+    // ------------------------------------------------------------------------
+
+    /** La persona que la base devuelve, del tipo que tenia antes de la edicion. */
+    private UUID existeAlguienDeTipo(PersonType tipo) {
+        UUID id = UUID.randomUUID();
+        Person persona = personaDeTipo(tipo);
+        persona.setIdentificador(id);
+        when(persistencePort.findById(id)).thenReturn(Optional.of(persona));
+        when(persistencePort.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        return id;
+    }
+
+    @Test
+    @DisplayName("cambiar de representante a ingeniero mueve la cuenta al grupo de ingenieros")
+    void cambiarDeTipoMueveDeGrupo() {
+        // Hasta el 2026-10-04 esto no ocurria: quien dejaba de ser ingeniero conservaba sus
+        // permisos, y un representante al que se le cambiaba el tipo perdia el filtrado por dueno
+        // sin perder su grupo. La fila y la identidad decian cosas distintas.
+        UUID id = existeAlguienDeTipo(PersonType.CEO_CLIENT);
+
+        service().update(id, personaDeTipo(PersonType.ENGINEER));
+
+        verify(identityPort).syncGroup(id.toString(), RoleType.ENGINEER);
+    }
+
+    @Test
+    @DisplayName("editar sin cambiar el tipo no toca el grupo")
+    void editarSinCambiarTipoNoTocaElGrupo() {
+        // No es correccion sino coste: el adaptador ya es idempotente. Editar un apellido no tiene
+        // por que costar dos llamadas a Keycloak.
+        UUID id = existeAlguienDeTipo(PersonType.ENGINEER);
+
+        service().update(id, personaDeTipo(PersonType.ENGINEER));
+
+        verify(identityPort, never()).syncGroup(any(), any());
+    }
+
+    @Test
+    @DisplayName("pasar a encargado deja la cuenta sin ningun grupo, porque no accede")
+    void pasarAEncargadoDejaSinGrupo() {
+        UUID id = existeAlguienDeTipo(PersonType.ENGINEER);
+
+        service().update(id, personaDeTipo(PersonType.MANAGER));
+
+        // Nulo quiere decir «en ningun grupo»: un encargado es alguien de quien el sistema guarda
+        // datos, no alguien que inicia sesion.
+        verify(identityPort).syncGroup(id.toString(), null);
+    }
+
+    @Test
+    @DisplayName("un super usuario queda en el grupo de administradores, que es lo mas que un grupo da")
+    void superUsuarioQuedaEnAdministradores() {
+        // Ningun grupo del realm concede super.admin.full, a proposito: ese escalon se otorga a
+        // mano. Dejarlo sin grupo dejaria sin acceso a quien se acaba de promover.
+        UUID id = existeAlguienDeTipo(PersonType.ADMIN);
+
+        service().update(id, personaDeTipo(PersonType.SUPER_ADMIN));
+
+        verify(identityPort).syncGroup(id.toString(), RoleType.ADMIN);
+    }
+
+    @Test
+    @DisplayName("que la persona no tenga cuenta no rompe la edicion")
+    void sinCuentaNoRompe() {
+        // El caso normal de un encargado al que se le corrige el nombre y se le cambia el tipo: no
+        // hay usuario que mover, y eso no es un error.
+        UUID id = existeAlguienDeTipo(PersonType.MANAGER);
+        doThrow(new KeycloakUserNotFoundException("no existe"))
+                .when(identityPort)
+                .syncGroup(any(), any());
+
+        Person resultado = service().update(id, personaDeTipo(PersonType.CEO_CLIENT));
+
+        assertThat(resultado.getTipoPersona()).isEqualTo(PersonType.CEO_CLIENT);
+    }
 }

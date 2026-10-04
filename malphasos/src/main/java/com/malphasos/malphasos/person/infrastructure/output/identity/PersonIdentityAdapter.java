@@ -13,10 +13,14 @@ import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.function.Consumer;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -172,6 +176,63 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
         }
 
         return new KeycloakConnectionException("No se pudo contactar con Keycloak al " + operacion, fallo);
+    }
+
+    /**
+     * Deja al usuario solo en el grupo que le toca.
+     *
+     * <p>Se sale de todos los grupos administrados y se entra en el destino, en ese orden. Los tres
+     * nombres están en {@link #groupFor}, y se recorren todos en vez de preguntar por el actual:
+     * preguntar primero costaría una llamada más y dejaría fuera el caso de una cuenta que acabó en
+     * dos grupos a mano.
+     *
+     * <p><b>Solo toca los grupos que este sistema administra.</b> Si alguien añadió la cuenta a un
+     * grupo propio desde la consola, ese se queda: esta operación sincroniza lo que el tipo de la
+     * persona implica, y nada más.
+     */
+    @Override
+    public void syncGroup(String userId, RoleType roleType) {
+        String destino = roleType == null ? null : groupFor(roleType);
+
+        try {
+            UserResource usuario = keycloakClient.realm(realm).users().get(userId);
+            List<GroupRepresentation> suyos = usuario.groups();
+
+            for (GroupRepresentation grupo : gruposAdministrados()) {
+                boolean esElDestino = grupo.getName().equals(destino);
+                boolean loTiene = suyos.stream().anyMatch(g -> grupo.getId().equals(g.getId()));
+
+                if (esElDestino && !loTiene) {
+                    usuario.joinGroup(grupo.getId());
+                } else if (!esElDestino && loTiene) {
+                    usuario.leaveGroup(grupo.getId());
+                }
+            }
+
+        } catch (ProcessingException | WebApplicationException e) {
+            throw translateClientFailure(e, "mover de grupo al usuario " + userId);
+
+        } catch (RuntimeException e) {
+            throw new KeycloakConnectionException("No se pudo mover de grupo al usuario " + userId, e);
+        }
+    }
+
+    /**
+     * Los grupos del realm que corresponden a un rol de este sistema.
+     *
+     * <p>Se resuelven por nombre contra el realm y no se cachean: son tres y esta operación solo
+     * ocurre al cambiar el tipo de una persona, que no es un camino caliente. Un grupo que el realm
+     * no tenga se ignora, porque la alternativa —fallar— dejaría sin poder editar a nadie por un
+     * grupo que quizá no se use.
+     */
+    private List<GroupRepresentation> gruposAdministrados() {
+        Set<String> administrados = Arrays.stream(RoleType.values())
+                .map(this::groupFor)
+                .collect(Collectors.toSet());
+
+        return keycloakClient.realm(realm).groups().groups().stream()
+                .filter(grupo -> administrados.contains(grupo.getName()))
+                .toList();
     }
 
     /**

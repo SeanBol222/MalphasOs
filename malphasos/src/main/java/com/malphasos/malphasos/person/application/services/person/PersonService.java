@@ -180,6 +180,8 @@ public class PersonService implements PersonServicePort {
     public Person update(UUID id, Person person) {
         return personPersistencePort.findById(id)
                 .map(existing -> {
+                    PersonType tipoAnterior = existing.getTipoPersona();
+
                     existing.setCedula(person.getCedula());
                     existing.setPrimerNombre(person.getPrimerNombre());
                     existing.setSegundoNombre(person.getSegundoNombre());
@@ -190,10 +192,81 @@ public class PersonService implements PersonServicePort {
 
                     existing.validateRoles();
                     propagateProfile(existing);
+                    propagateGroup(existing, tipoAnterior);
 
                     return personPersistencePort.save(existing);
                 })
                 .orElseThrow(() -> new PersonNotFoundException(id));
+    }
+
+    /**
+     * Mueve la cuenta al grupo que le toca cuando el tipo de la persona ha cambiado.
+     *
+     * <p><b>Por qué esto no era opcional.</b> Hasta el 2026-10-04 cambiar el tipo no tocaba la
+     * identidad, de modo que quien dejaba de ser ingeniero conservaba sus permisos. Y desde que hay
+     * filtrado por dueño pasa también lo contrario: el alcance de lectura se decide por el tipo, así
+     * que a un representante al que se le cambie el tipo se le quita el filtro <b>sin quitarle su
+     * grupo</b>, y pasa a leer todo lo que sus autoridades alcanzan. La fila y la identidad decían
+     * cosas distintas y el sistema creía las dos a la vez.
+     *
+     * <p>Solo se llama si el tipo cambió: editar un apellido no tiene por qué costar dos llamadas a
+     * Keycloak. La idempotencia está además en el adaptador, de modo que esta comprobación es por
+     * coste y no por corrección.
+     *
+     * <p>Como en {@link #propagateProfile}, que la persona no tenga cuenta no es un error: es el caso
+     * normal de un encargado.
+     */
+    private void propagateGroup(Person person, PersonType tipoAnterior) {
+        if (person.getTipoPersona() == tipoAnterior) {
+            return;
+        }
+
+        try {
+            personIdentityPort.syncGroup(person.getIdentificador().toString(), groupRoleFor(person.getTipoPersona()));
+
+        } catch (KeycloakUserNotFoundException sinCuenta) {
+            log.debug(
+                    "La persona {} no tiene usuario en el proveedor de identidad; no hay grupo que "
+                            + "sincronizar.",
+                    person.getIdentificador());
+        }
+    }
+
+    /**
+     * Con qué permisos accede alguien de este tipo, o {@code null} si no accede.
+     *
+     * <p>Es la traducción entre los cinco valores de {@link PersonType} y los tres grupos que el
+     * realm reparte, y vive aquí —en la capa de aplicación— porque es una decisión de negocio y no
+     * del proveedor de identidad. Se resuelve con una expresión {@code switch} para que añadir un
+     * tipo nuevo obligue a decidir con qué entra: la misma precaución que toman {@code groupFor} y
+     * {@code requiredAuthority}, y por la misma razón.
+     *
+     * <p>Dos casos no son una coincidencia de nombres y conviene leerlos despacio:
+     *
+     * <ul>
+     *   <li><b>{@code MANAGER} no accede</b>, y por eso devuelve {@code null}: un encargado es alguien
+     *       de quien el sistema guarda datos, no alguien que inicia sesión. Si tenía cuenta por haber
+     *       sido otra cosa antes, queda sin ningún grupo y toda llamada suya responde 403.
+     *   <li><b>{@code SUPER_ADMIN} entra como administrador</b>, y no es un descuido: <b>ningún grupo
+     *       del realm concede {@code super.admin.full}</b>, a propósito, porque el escalón de arriba
+     *       se otorga a mano. Dejarlo sin grupo dejaría sin acceso a quien se acaba de promover; se le
+     *       da el grupo más alto que un grupo puede dar y se registra que falta el resto.
+     * </ul>
+     */
+    private RoleType groupRoleFor(PersonType tipo) {
+        return switch (tipo) {
+            case ENGINEER -> RoleType.ENGINEER;
+            case CEO_CLIENT -> RoleType.CEO_CLIENT;
+            case ADMIN -> RoleType.ADMIN;
+            case MANAGER -> null;
+            case SUPER_ADMIN -> {
+                log.warn(
+                        "Se ha dejado a un SUPER_ADMIN en el grupo de administradores: ningun grupo "
+                                + "del realm concede super.admin.full, y ese escalon hay que "
+                                + "otorgarlo a mano en Keycloak.");
+                yield RoleType.ADMIN;
+            }
+        };
     }
 
     /**
