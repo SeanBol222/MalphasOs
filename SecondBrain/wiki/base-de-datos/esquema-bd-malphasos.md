@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 26 tablas, 35 foráneas, con diagrama por módulo, generado leyendo la base real
+description: El esquema de MalphasOS hoy — 26 tablas, 35 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -20,9 +20,28 @@ No son las mismas menos una; es otro modelo con un número parecido.
 
 ## Cómo se hizo esta nota, y cómo se vuelve a hacer
 
-**Leyendo la base de datos en marcha**, no las migraciones ni la memoria. Las migraciones son diez
-archivos y el estado final no se ve en ninguno; `information_schema` sí lo ve. Los conteos de abajo
-salen de estas consultas, y **se recalculan antes de citarlos**:
+> **Corregido el 2026-10-04, y la corrección es sobre esta misma sección.** Decía, sin matizar, que la
+> nota estaba «generada leyendo la base de datos en marcha, no las migraciones ni la memoria». Era
+> **verdad a medias**: la lista de tablas y el grafo de foráneas sí se leyeron de `information_schema`,
+> y **los nombres de columna se escribieron de memoria**. Al revisarla al día siguiente aparecieron
+> **doce columnas que no existen** en seis tablas, más una llave primaria inventada en `encargado`:
+>
+> - `pais.n_codigo_iso` era `k_codigo_iso` —`k_` porque es llave natural—.
+> - `persona` tenía cuatro nombres falsos: su llave primaria es **subrogada** y el documento vive en
+>   `k_cedula`, no al contrario; y los nombres van en cuatro columnas, no en dos.
+> - `cliente.n_nit` **no existe**: es `k_documento` más `n_tipo_identificacion`, porque el documento de
+>   un cliente puede no ser un NIT.
+> - `encargado` **no tiene identificador propio**: su llave primaria es la de la persona.
+> - `orden_trabajo` tenía tres nombres mal, entre ellos la fecha.
+>
+> **Un diagrama con nombres plausibles y falsos es peor que no tener diagrama**, porque se cita. Y la
+> lección no es «mirar mejor»: es que la parte verificada y la inventada iban en la misma nota sin
+> distinguirse. Por eso ahora hay un guion que lo comprueba —ver abajo— y por eso esta sección dice qué
+> se leyó y qué no.
+
+**Lo que sí se lee de la base**: la lista de tablas, el grafo de foráneas y los conteos. Las migraciones
+son once archivos y el estado final no se ve en ninguno; `information_schema` sí lo ve. Las consultas, y
+**se recalculan antes de citarlas**:
 
 ```sql
 -- tablas (sin flyway_schema_history)
@@ -37,6 +56,25 @@ FROM information_schema.table_constraints tc
          JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
 WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public';
 ```
+
+### El guion que comprueba que las columnas existen
+
+`SecondBrain/herramientas/verificar-esquema.py` recorre los diagramas de abajo y exige que cada columna
+dibujada exista en la base. Con los contenedores arriba, desde la raíz del repositorio:
+
+```bash
+docker compose exec -T postgres psql -U malphasos -d malphasos_db -t -A -F'|' \
+  -c "SELECT table_name, column_name FROM information_schema.columns \
+      WHERE table_schema='public' AND table_name <> 'flyway_schema_history';" \
+  | python3 SecondBrain/herramientas/verificar-esquema.py
+```
+
+Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiando `k_cedula` por
+`n_cedula`, que es lo que este proyecto exige de una comprobación.
+
+**No comprueba tipos ni marcas `PK`/`FK`**, y eso hay que saberlo: la llave primaria inventada de
+`encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
+lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 ## Las cifras, medidas el 2026-10-04
 
@@ -88,7 +126,7 @@ erDiagram
     pais ||--o{ ciudad : "tiene"
     pais {
         uuid k_id_pais PK
-        varchar n_codigo_iso UK "3 letras"
+        varchar k_codigo_iso UK "3 letras - k_ porque es llave natural"
         varchar n_nombre_pais UK
         boolean b_estado_activo
     }
@@ -111,23 +149,26 @@ erDiagram
     persona ||--o{ correo_persona : "tiene"
     persona ||--o{ telefono_persona : "tiene"
     persona {
-        varchar k_identificador PK "numero de documento"
-        varchar n_tipo_identificacion
-        varchar n_nombres
-        varchar n_apellidos
-        varchar n_tipo_persona "ingeniero, admin, representante, encargado"
+        uuid k_identificador PK "subrogada, NO el documento"
+        varchar k_cedula UK "el documento, con su propia unicidad"
+        varchar n_primer_nombre
+        varchar n_segundo_nombre
+        varchar n_primer_apellido
+        varchar n_segundo_apellido
+        varchar t_tipo_persona "ENGINEER, MANAGER, CEO_CLIENT, ADMIN, SUPER_ADMIN"
+        varchar t_segundo_tipo_persona "solo MANAGER, lo impone un CHECK"
         boolean b_estado_activo
     }
     correo_persona {
         uuid k_id_correo_persona PK
-        varchar k_identificador FK "ANULABLE - deuda"
-        varchar n_correo
+        uuid k_identificador FK "ANULABLE - deuda"
+        varchar n_correo_persona
         boolean b_estado_activo
     }
     telefono_persona {
         uuid k_id_telefono_persona PK
-        varchar k_identificador FK "ANULABLE - deuda"
-        varchar n_telefono
+        uuid k_identificador FK "ANULABLE - deuda"
+        varchar n_telefono_persona
         boolean b_estado_activo
     }
 ```
@@ -149,7 +190,8 @@ erDiagram
     area_servicio ||--o{ encargado : "tiene"
     cliente {
         uuid k_id_cliente PK
-        varchar n_nit UK
+        varchar k_documento UK "NO se llama n_nit: puede no ser un NIT"
+        varchar n_tipo_identificacion "que clase de documento es"
         varchar n_razon_social
         uuid k_id_pais FK
         boolean b_estado_activo
@@ -168,8 +210,8 @@ erDiagram
         boolean b_estado_activo
     }
     encargado {
-        uuid k_id_encargado PK
-        varchar k_identificador FK "la persona"
+        uuid k_identificador PK, FK "SIN id propio: el encargado ES la persona"
+        varchar t_tipo_encargado
         uuid k_id_sede FK "una de las dos"
         uuid k_id_area_servicio FK "o la otra"
         boolean b_estado_activo
@@ -288,11 +330,11 @@ erDiagram
         uuid k_id_orden_trabajo PK
         uuid k_id_cliente FK
         uuid k_id_sede FK "el par va junto a sede"
-        varchar k_identificador FK "el ingeniero, anulable"
-        date f_fecha_programada
+        uuid k_identificador FK "el ingeniero, anulable"
+        date f_fecha_mantenimiento
         varchar n_periodicidad
-        varchar n_tipo_servicio
-        varchar n_estado_ejecucion
+        varchar t_tipo_servicio
+        varchar t_estado_ejecucion
         boolean b_estado_activo
     }
     orden_trabajo_equipo {

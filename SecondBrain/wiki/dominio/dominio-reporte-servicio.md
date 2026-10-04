@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Reportes de servicio — el módulo completo
@@ -86,6 +86,25 @@ verificaciones distintas, **pasan**.
 cambió. Un índice único codifica una afirmación sobre qué cosas son la misma cosa, y esa afirmación
 caduca cuando el modelo que la sostiene se mueve. Es la primera vez en este proyecto que un índice hay
 que rehacerlo por eso y no por un descuido.
+
+### Lo que el punto discrimina y lo que no (2026-10-04)
+
+**El filtro por verificación de `requireCompleteVerification` solo importa cuando no hay puntos**, y
+saberlo cambia cómo se prueba la regla.
+
+Con una modalidad **constante**, cada lectura lleva su punto, y los puntos de una verificación no son
+los de otra: el identificador del punto **ya separa** las lecturas de temperatura de las de presión.
+Quitar el filtro por verificación no cambia el resultado en ese caso.
+
+Con **patrón y equipo variables** no hay punto. La comprobación se reduce a «esta verificación tiene al
+menos una lectura», y sin filtrar por verificación **la lectura de una magnitud satisface a la otra**:
+el reporte se cerraría afirmando que se verificó algo que nadie midió.
+
+**Lo descubrió una mutación, y en dos pasos.** Se quitó el filtro y la batería siguió verde. Se escribió
+una prueba con dos magnitudes constantes y **la mutación siguió viva**. Hizo falta el caso de dos
+verificaciones variables con lecturas de una sola. La lección vale más que el caso: **una prueba del
+caso correcto por el camino equivocado se lee igual que una buena**, y lo único que distingue las dos es
+ver fallar la mutación.
 
 ## Las seis reglas que viven en el servicio
 

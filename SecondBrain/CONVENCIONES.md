@@ -30,6 +30,20 @@ El wiki sigue conteniendo, y debe seguir conteniendo, la descripción del sistem
 - `patrones-reutilizables/` — patrones de implementación atómicos (mappers, catálogos de error, soft-delete, etc.) que aplican transversalmente a varios hexágonos, más un registro explícito de deuda técnica y riesgos conocidos.
 - `malphasos/` — lo propio de MalphasOS: la hoja de ruta, el registro de decisiones, los hallazgos de cada migración y el modelo de permisos.
 
+## `herramientas/` — guiones que comprueban lo que una nota afirma
+
+Entró el **2026-10-04** con un motivo concreto: [[esquema-bd-malphasos]] se escribió diciendo de sí
+misma que estaba «generada leyendo la base de datos en marcha», y era **verdad a medias** — la lista de
+tablas y las foráneas sí, los nombres de columna no—. Doce columnas no existían.
+
+**El patrón que queda, y que vale para cualquier nota futura**: cuando una nota afirma algo comprobable
+contra el sistema, el guion que lo comprueba vive aquí y la nota explica cómo invocarlo. Un guion que no
+se ha visto fallar no cuenta.
+
+- `verificar-esquema.py` — exige que cada columna dibujada en los diagramas del esquema exista en la
+  base. No comprueba tipos ni marcas `PK`/`FK`, y la nota lo dice: caza la clase de error que de hecho
+  se cometió.
+
 **Los directorios no dicen de qué sistema habla cada nota** —una nota de `dominio/` puede describir el hexágono original, el módulo de MalphasOS, o el camino de uno al otro—. Eso lo dice la etiqueta `describe:*` del frontmatter, y es por lo que `index.md` está ordenado.
 
 ## Convenciones de frontmatter

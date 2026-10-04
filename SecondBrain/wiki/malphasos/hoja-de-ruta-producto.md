@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Hoja de ruta del producto
@@ -96,6 +96,28 @@ verde no probaba lo que parecía probar.
 Y un dato sobre el punto 1, porque es peor de lo que decía: el conteo de deuda propia **ya estaba mal
 el día que se escribió esta lista**. Declaraba 46 filas «contadas una a una el 2026-10-02» y el archivo
 tenía 51.
+
+### Lo que la pasada de mutaciones encontró (2026-10-04)
+
+**Tres hallazgos, y los tres son del tipo que el punto 3 de arriba anticipaba.** Se desactivaron reglas
+una a una para ver si alguna prueba se enteraba:
+
+| Mutación | Resultado |
+|---|---|
+| La unidad deja de tener que ser de su magnitud | **842 pruebas en verde** — `EquipmentTypeService` no tenía ninguna prueba |
+| El cierre deja de separar las lecturas por verificación | **en verde** — ninguna prueba de cierre tenía dos verificaciones |
+| La unidad de una lectura se inventa | cazada |
+| El punto de otra verificación se acepta | cazada |
+| Una verificación retirada pasa a valer | cazada |
+
+Y el método tiene una trampa que conviene registrar: **la primera prueba escrita para la segunda
+mutación no la cazó**. Usaba dos magnitudes constantes, donde el identificador del punto ya discrimina,
+de modo que el filtro no cambiaba el resultado. **Una prueba del caso correcto por el camino equivocado
+se lee igual que una buena**; lo único que las distingue es ver fallar la mutación.
+
+**Y un hallazgo que no vino de mutar sino de comparar el wiki contra la base**: la nota del esquema
+escrita el día anterior tenía **doce nombres de columna inventados** y una llave primaria que no existe.
+Está en [[deuda-tecnica-y-riesgos]], y lo que deja es un guion en `SecondBrain/herramientas/`.
 
 ## El grafo de dependencias, y las dos versiones que existen de él
 

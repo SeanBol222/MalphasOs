@@ -1157,3 +1157,67 @@ una prueba mal escrita sino de la herramienta que las compila.
 Backend **842** en 55 clases, frontend **410** en 42 ficheros, **once** migraciones, 26 tablas, 29
 `CHECK` y **cinco** índices únicos parciales. Deuda propia: **60** filas, 20 tachadas, 40 abiertas,
 contadas con la receta que la nota lleva dentro.
+
+## [2026-10-04] lint | la pasada de mutaciones, y doce columnas que me invente
+
+Segunda tanda de la revisión, y esta vez el método fue **desactivar reglas** y ver si alguna prueba se
+enteraba. Tres de cinco mutaciones sobrevivieron a la batería entera.
+
+### Lo que sobrevivió
+
+**`EquipmentTypeService` no tenía ninguna prueba.** Ni una clase de `src/test` mencionaba su nombre, de
+modo que sus tres reglas cruzadas del catálogo metrológico llevaban sin verificar desde que se
+escribieron el día anterior. Desactivar «la unidad tiene que ser de esa magnitud» dejó **842 pruebas en
+verde**.
+
+Lo que lo hace peor que una ausencia simple es el **disfraz**: había tres clases alrededor que parecían
+cubrirlo. `EquipmentRestAdapterTest` simula el puerto de entrada y nunca entra al servicio;
+`EquipmentCatalogPersistenceTest` entra por el adaptador; y `CatalogAggregatesTest` cubre el agregado,
+que **no puede** consultar un catálogo. Tres pruebas vecinas y ninguna tocaba la regla.
+
+**La regla de cierre por verificación estaba afirmada aquí y sostenida por nada.** El 2026-10-03 se
+escribió en el wiki y en el mensaje del commit que un termohigrómetro con las dos magnitudes variables
+ya no se podía cerrar a medias. Quitar el filtro no rompía nada.
+
+**Y el camino hasta la prueba que lo caza es la lección de hoy.** La primera que escribí usaba dos
+magnitudes **constantes** y la mutación **siguió viva**: con modalidad constante el identificador del
+punto ya discrimina, así que el filtro por verificación no cambia el resultado. El caso que de verdad lo
+distingue es dos verificaciones **variables** con lecturas de una sola, donde no hay punto que separe
+nada. **Una prueba del caso correcto por el camino equivocado se lee igual que una buena**, y lo único
+que las distingue es ver fallar la mutación.
+
+### Dos cuidados del método, que no son evidentes
+
+- **`-Dtest=` no avisa si no casa con nada.** La primera corrida nombró `EquipmentTypeServiceTest`, que
+  no existía, y el «nadie la caza» salió de una invocación que apenas ejecutó pruebas. Un arnés de
+  mutación tiene que **decir cuántas pruebas corrieron**, o su veredicto no vale.
+- **Hay que borrar `target/test-classes`.** Es la trampa de ayer: el `test-compile` incremental no
+  recompila si solo cambió producción, así que una mutación puede correr contra clases de prueba viejas.
+
+### Y un hallazgo que no vino de mutar, sino de comparar el wiki contra la base
+
+**[[esquema-bd-malphasos]], escrita ayer, tenía doce nombres de columna inventados** en seis tablas, más
+una llave primaria que no existe en `encargado`. La nota decía de sí misma que estaba «generada leyendo
+la base de datos en marcha», y era **verdad a medias**: la lista de tablas, el grafo de foráneas y los
+conteos sí; **los nombres de columna se escribieron de memoria**.
+
+Lo encontrado: `pais.n_codigo_iso` era `k_codigo_iso`; la llave de `persona` es **subrogada** y el
+documento vive en `k_cedula`, no al contrario; los nombres de una persona van en **cuatro** columnas;
+`cliente.n_nit` no existe —es `k_documento` más `n_tipo_identificacion`, porque el documento de un
+cliente puede no ser un NIT—; `encargado` **no tiene identificador propio**; y `orden_trabajo` tenía la
+fecha y dos columnas más con el nombre equivocado.
+
+**El remedio no es «mirar mejor».** El problema era que la parte verificada y la inventada iban en la
+misma nota sin distinguirse. Entra `SecondBrain/herramientas/` —documentado en el schema de este wiki—
+con `verificar-esquema.py`, visto fallar cambiando `k_cedula` por `n_cedula`. Y la nota declara ahora
+qué se lee de la base y qué no, **incluido que el guion no caza tipos ni marcas `PK`/`FK`**: la llave
+inventada de `encargado` no la habría detectado.
+
+### Lo que sí aguantó, que también es resultado
+
+Ningún controlador usa `hasAnyAuthority` ni `admin.full`. Los cinco adaptadores que mapean una colección
+perezosa llevan `@Transactional`, y los diez que no la tienen correctamente no lo llevan. Ningún puerto
+de persistencia declara `delete` ni `update`. Y tres mutaciones del reporte —unidad inventada, punto de
+otra verificación, verificación retirada— se cazan todas.
+
+Backend **851** pruebas en **56** clases. Deuda propia: **63** filas, 23 tachadas, 40 abiertas.
