@@ -3,7 +3,7 @@ name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
 tags: [malphasos, stack, backend, hallazgo, "describe:malphasos"]
 source: malphasos/pom.xml (MalphasOS)
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Particularidades de Spring Boot 4 y el stack moderno
@@ -83,6 +83,30 @@ reconfiguraciones de la batería cambiaban el valor de la clave, y como el índi
 retirada dejaba de competir. **La lección que generaliza**: un índice parcial tiene dos caminos —con la
 clave cambiada y sin cambiar— que desde fuera se ven iguales, y una prueba que ejercita la operación no
 garantiza que ejercite los dos.
+
+## 7. `test-compile` puede dar BUILD SUCCESS sin recompilar ni una prueba
+
+**Un verde que no significa nada, y costó un rato el 2026-10-04.** Se cambió la firma de
+`Model.create` y `Model.rehydrate` —un parámetro más— y las pruebas las llamaban con la firma vieja.
+`./mvnw test-compile` dijo **BUILD SUCCESS**.
+
+No es magia: `maven-compiler-plugin` decide si recompilar comparando marcas de tiempo **de los fuentes
+de su propio ámbito**. Ningún fuente de prueba había cambiado, así que concluyó que no había nada que
+hacer y dejó en `target/test-classes` unas clases compiladas contra la versión anterior de producción.
+Compiladas, obsoletas y aparentemente sanas.
+
+Lo que delata que el verde es falso: **leer el código y ver que no puede compilar**. Cinco argumentos
+contra seis parámetros no compilan nunca, de modo que un BUILD SUCCESS ahí es información sobre el
+proceso de compilación, no sobre el código.
+
+```bash
+# para que test-compile diga la verdad tras cambiar una firma de produccion
+rm -rf target/test-classes && ./mvnw -o test-compile
+```
+
+`mvn test` sí lo habría destapado, pero con `NoSuchMethodError` en ejecución en vez de un error de
+compilación: el mismo defecto, veinte minutos más tarde y peor explicado. **La regla: al cambiar una
+firma pública que las pruebas usan, el `test-compile` incremental no es una comprobación.**
 
 ## Surefire da dos conteos distintos de la misma ejecución
 
