@@ -64,50 +64,67 @@ public class WorkOrderService implements WorkOrderServicePort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkOrder> findAll() {
+    public List<WorkOrder> findAll(ReadScope alcance) {
+        if (!alcance.coversEverything()) {
+            return workOrderPersistencePort.findByClientIn(alcance.visibleClients());
+        }
+
         return workOrderPersistencePort.findAll();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public WorkOrder findById(UUID id) {
-        return workOrderPersistencePort.findById(id)
+    public WorkOrder findById(UUID id, ReadScope alcance) {
+        WorkOrder orden = workOrderPersistencePort.findById(id)
                 .orElseThrow(() -> new WorkOrderNotFoundException(id));
+
+        // Una orden guarda su cliente, de modo que aquí el dueño no cuesta ninguna consulta extra.
+        // Es el único de los cuatro módulos acotados donde sale gratis.
+        if (!alcance.covers(orden.getIdCliente())) {
+            throw new WorkOrderNotFoundException(id);
+        }
+
+        return orden;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkOrder> findByClient(UUID idCliente) {
-        // TODO(filtrado-por-dueno): este listado todavia no acota. Lo hara la tanda de
-        // work-order, que es donde esta operacion se expone; aqui solo se comprueba existencia.
-        clientServicePort.findById(idCliente, ReadScope.unrestricted());
+    public List<WorkOrder> findByClient(UUID idCliente, ReadScope alcance) {
+        // Pasarle el alcance es toda la comprobación: si el cliente es de otro, client responde
+        // «no existe» y este módulo no tiene que saber nada más.
+        clientServicePort.findById(idCliente, alcance);
 
         return workOrderPersistencePort.findByClient(idCliente);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkOrder> findByHeadquarter(UUID idSede) {
-        // TODO(filtrado-por-dueno): sin acotar todavia, igual que findByClient. Lo cierra la tanda
-        // de work-order.
-        headquarterServicePort.findById(idSede, ReadScope.unrestricted());
+    public List<WorkOrder> findByHeadquarter(UUID idSede, ReadScope alcance) {
+        headquarterServicePort.findById(idSede, alcance);
 
         return workOrderPersistencePort.findByHeadquarter(idSede);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkOrder> findByEngineer(UUID idIngeniero) {
+    public List<WorkOrder> findByEngineer(UUID idIngeniero, ReadScope alcance) {
         personCommunicationPort.findById(idIngeniero);
+
+        // La única que no puede delegar: un ingeniero no es de ningún cliente, así que no hay a
+        // quién preguntar por él y lo que se acota es el resultado. Un representante que pregunte
+        // por un ingeniero de la casa ve las órdenes de ese ingeniero en sus propios clientes, que
+        // es exactamente lo que le toca ver, y no la agenda completa de nadie.
+        if (!alcance.coversEverything()) {
+            return workOrderPersistencePort.findByEngineerAndClientIn(idIngeniero, alcance.visibleClients());
+        }
 
         return workOrderPersistencePort.findByEngineer(idIngeniero);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkOrder> findByEquipment(UUID idEquipoCliente) {
-        // TODO(filtrado-por-dueno): sin acotar todavia, como findByClient y findByHeadquarter.
-        clientEquipmentServicePort.findById(idEquipoCliente, ReadScope.unrestricted());
+    public List<WorkOrder> findByEquipment(UUID idEquipoCliente, ReadScope alcance) {
+        clientEquipmentServicePort.findById(idEquipoCliente, alcance);
 
         return workOrderPersistencePort.findByEquipment(idEquipoCliente);
     }
@@ -148,7 +165,9 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional
     public WorkOrder addEquipment(AddEquipmentToWorkOrderCommand command) {
-        WorkOrder orden = findById(command.id());
+        // Las seis escrituras de este servicio recuperan la orden sin restriccion: el alcance acota
+        // lecturas, y avanzar o alterar una orden exige work-order.write o work-order.assign.
+        WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
         ClientEquipment unidad =
                 clientEquipmentServicePort.findById(command.idEquipoCliente(), ReadScope.unrestricted());
 
@@ -167,7 +186,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional
     public WorkOrder removeEquipment(RemoveEquipmentFromWorkOrderCommand command) {
-        WorkOrder orden = findById(command.id());
+        WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
         orden.removeEquipment(command.idEquipoCliente());
 
         return persistAndPublish(orden);
@@ -176,7 +195,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional
     public void cancel(CancelWorkOrderCommand command) {
-        WorkOrder orden = findById(command.id());
+        WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
         orden.cancel();
 
         persistAndPublish(orden);
@@ -196,7 +215,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional
     public WorkOrder assign(AssignWorkOrderCommand command) {
-        WorkOrder orden = findById(command.id());
+        WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
         requireActiveEngineer(command.idIngeniero());
 
         orden.assignTo(command.idIngeniero());
@@ -207,7 +226,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional
     public WorkOrder start(StartWorkOrderCommand command) {
-        WorkOrder orden = findById(command.id());
+        WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
         orden.start();
 
         return persistAndPublish(orden);
@@ -216,7 +235,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional
     public WorkOrder execute(ExecuteWorkOrderCommand command) {
-        WorkOrder orden = findById(command.id());
+        WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
         orden.execute();
 
         return persistAndPublish(orden);
