@@ -68,27 +68,42 @@ public class ServiceReportService implements ServiceReportServicePort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ServiceReport> findByWorkOrder(UUID idOrdenTrabajo) {
-        // TODO(filtrado-por-dueno): sin acotar todavia. Lo cierra la tanda de report.
-        workOrderServicePort.findById(idOrdenTrabajo, ReadScope.unrestricted());
+    public List<ServiceReport> findByWorkOrder(UUID idOrdenTrabajo, ReadScope alcance) {
+        // Toda la comprobación es pasarle el alcance a quien es dueño de la orden.
+        workOrderServicePort.findById(idOrdenTrabajo, alcance);
 
         return serviceReportPersistencePort.findByWorkOrder(idOrdenTrabajo);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ServiceReport> findByEquipment(UUID idEquipoCliente) {
-        // TODO(filtrado-por-dueno): sin acotar todavia. Lo cierra la tanda de report.
-        clientEquipmentServicePort.findById(idEquipoCliente, ReadScope.unrestricted());
+    public List<ServiceReport> findByEquipment(UUID idEquipoCliente, ReadScope alcance) {
+        clientEquipmentServicePort.findById(idEquipoCliente, alcance);
 
         return serviceReportPersistencePort.findByEquipment(idEquipoCliente);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ServiceReport findById(UUID id) {
-        return serviceReportPersistencePort.findById(id)
+    public ServiceReport findById(UUID id, ReadScope alcance) {
+        ServiceReport reporte = serviceReportPersistencePort.findById(id)
                 .orElseThrow(() -> new ServiceReportNotFoundException(id));
+
+        // Esta es la única de las tres que no puede delegar del todo. Delegar significaría pedir la
+        // orden CON el alcance, y entonces el error que sale es «esa orden no existe» cuando lo que
+        // se pidió fue un reporte: la respuesta contaría de qué es el identificador que no se puede
+        // ver. Se resuelve el dueño y se lanza el error del recurso pedido.
+        if (!alcance.coversEverything()) {
+            UUID idCliente = workOrderServicePort
+                    .findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted())
+                    .getIdCliente();
+
+            if (!alcance.covers(idCliente)) {
+                throw new ServiceReportNotFoundException(id);
+            }
+        }
+
+        return reporte;
     }
 
     // ---------------------------------------------------------------------------
@@ -128,7 +143,9 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport fill(FillServiceReportCommand command) {
-        ServiceReport reporte = findById(command.id());
+        // Las cuatro escrituras recuperan el reporte sin restriccion: el alcance acota lecturas, y
+        // llenar, verificar, cerrar o descartar un reporte exige report.write.
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
 
         reporte.fill(
                 command.fallaReportada(),
@@ -154,7 +171,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport recordVerification(RecordVerificationCommand command) {
-        ServiceReport reporte = findById(command.id());
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
         EquipmentType tipo = tipoDelEquipo(reporte.getIdEquipoCliente());
 
         reporte.recordVerification(traducirLecturas(tipo, command.lecturas()));
@@ -176,7 +193,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport finish(FinishServiceReportCommand command) {
-        ServiceReport reporte = findById(command.id());
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
 
         requireCompleteVerification(reporte);
         reporte.finish();
@@ -187,7 +204,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public void discard(DiscardServiceReportCommand command) {
-        ServiceReport reporte = findById(command.id());
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
         reporte.deactivate();
 
         persistAndPublish(reporte);
