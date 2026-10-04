@@ -4,7 +4,7 @@ description: RF-49 a RF-53, Usuarios y seguridad (ERS 3.2.9). Los cinco implemen
 tags: [requisitos, rf, usuarios, seguridad, keycloak]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2.9"
 estado: vigente
-updated: 2026-09-05
+updated: 2026-10-04
 ---
 
 # 3.2.9. Usuarios y seguridad (RF-49 a RF-53)
@@ -25,7 +25,39 @@ Evidencia: `SecurityConfig` configura el *resource server* OAuth2; hay pruebas d
 
 **Implementado, con una salvedad que pesa.** `KeycloakRoleConverter` traduce los roles del token en autoridades, descartando a propósito los de otros *clients* del mismo realm (hay una prueba que fija ese descarte). La autorización se declara operación por operación, no solo por ruta.
 
-**El segundo criterio de aceptación —"cada rol accede solo a sus funcionalidades"— no se cumple todavía.** Las 83 operaciones de la API exigen la misma autoridad, `admin.full`, que el realm solo concede al grupo `admins`. Los grupos `engineers` y `clients` reciben cuatro roles de solo lectura (`service-area.read`, `client.read`, `work-order.read`, `equipment.read`) que **ninguna operación REST comprueba todavía**: un ingeniero o un representante de cliente se autentica sin problema pero recibe 403 en toda llamada. El rol de SuperUsuario existe en el realm, pero ningún grupo lo otorga ni ninguna operación lo exige. Ver [[correspondencia-terminologica]] para cómo se llama cada cosa en cada capa.
+> **⚠️ Corregido el 2026-10-04: este apartado llevaba un mes afirmando algo falso.** Decía que «el
+> segundo criterio de aceptación no se cumple todavía» porque «las 83 operaciones de la API exigen la
+> misma autoridad, `admin.full`» y porque los roles de lectura de `engineers` y `clients`
+> «**ninguna operación REST comprueba todavía**», de modo que un ingeniero «recibe 403 en toda
+> llamada». Era cierto al escribirse —el 2026-09-05— y **dejó de serlo el 2026-09-08** con el modelo
+> de permisos. Nadie volvió sobre la nota. Es la clase de desincronización que esta wiki existe para
+> evitar, y conviene dejarla escrita en lugar de sustituirla en silencio.
+
+**El segundo criterio de aceptación —"cada rol accede solo a sus funcionalidades"— se cumple, y en tres
+capas.** Cada operación exige **la autoridad de su recurso y una sola, nombrada literalmente**
+—`hasAuthority('client.read')`, nunca `admin.full`—, y quién es administrador lo decide
+`ApiAuthority.expand(...)` en un solo sitio, con una prueba por reflexión que impide que un controlador
+vuelva a nombrarlo. El realm reparte **22** autoridades entre tres grupos que por fin se distinguen.
+Desde el **2026-10-02** el menú del frontend **oculta por autoridad**, y la autoridad la declara la
+entrada de navegación, de donde salen a la vez lo que el menú pinta y el guard de la ruta.
+
+**Y desde el 2026-10-04 el criterio se cumple también sobre las filas, que es más de lo que pide.** Un
+representante legal ya no lee *todos* los clientes del sistema: **18 lecturas** de cuatro módulos
+acotan por dueño. Ver `SecondBrain/wiki/malphasos/filtrado-por-dueno.md`.
+
+### Lo que sí es un hueco, y es de la especificación
+
+**RF-50 no contempla al usuario cliente.** Su primer criterio enumera «SuperUsuario, Administrador o
+Ingeniero», y el realm tiene un cuarto grupo —`clients`— con cinco autoridades de lectura que el
+sistema sirve de verdad. El rol existe en el código y en Keycloak, y **no existe en el requisito**.
+
+**Y ningún requisito pide el filtrado por dueño.** No hay RNF de aislamiento de datos, y RF-50 habla de
+«funcionalidades», no de filas. Se construyó una propiedad de seguridad real que **ninguna línea de la
+ERS reclamaba**: con la regla de esta wiki eso no es un extra del código, es un requisito que falta.
+
+El rol de SuperUsuario existe en el realm, pero ningún grupo lo otorga ni ninguna operación lo exige: el
+prefijo `super.` marca justamente lo que `admin.full` no concede, y esa cuenta se crea a mano. Ver
+[[correspondencia-terminologica]] para cómo se llama cada cosa en cada capa.
 
 ## RF-51 Creación de usuarios
 
@@ -46,7 +78,7 @@ No hay alta genérica por parámetro de rol, ni alta de SuperUsuario: el enumera
 | Código | Requisito | Estado | Criterio incumplido |
 |---|---|---|---|
 | RF-49 | Login | Implementado | — (pero depende de sí mismo) |
-| RF-50 | Identificación de rol | Implementado | "Cada rol accede solo a lo suyo" — no se cumple |
+| RF-50 | Identificación de rol | Implementado | **Ninguno.** Esta celda decía «"cada rol accede solo a lo suyo" — no se cumple»: **falso desde el 2026-09-08**, corregido el 2026-10-04. Lo que falta es del requisito: **no contempla al usuario cliente** |
 | RF-51 | Creación de usuarios | Implementado | Sin alta de SuperUsuario |
 | RF-52 | Modificación de usuarios | Implementado | Cambios no llegan a Keycloak |
 | RF-53 | Eliminación de usuarios | Implementado | Acceso no se revoca |

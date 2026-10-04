@@ -174,7 +174,11 @@ Es la única alta que **no crea usuario**. Aceptaba cualquier `PersonType`, incl
 
 ## Lo que este modelo todavía no hace
 
-- **No hay filtrado por dueño.** Un usuario del grupo `clients` con `client.read` ve **todos** los clientes y el catálogo entero, no solo el suyo. Fue una decisión explícita de dejarlo fuera de esta tanda, no un olvido. Verificado el 2026-09-08: **ninguna clase fuera de `bootstrap/config` toca `Authentication`, `SecurityContextHolder` ni `@AuthenticationPrincipal`**, de modo que ningún servicio sabe quién llama. Implementarlo no es añadir un `WHERE`: exige decidir cómo se ata una cuenta de Keycloak a un cliente del dominio.
+- ~~**No hay filtrado por dueño.**~~ **Construido el 2026-10-04** en cuatro tandas, y era la mayor deuda abierta del proyecto: hasta ese día un representante legal con `client.read` leía **todos** los clientes del sistema. Van **18 lecturas acotadas** en cuatro módulos, con el alcance viajando como argumento del caso de uso. Ver [[filtrado-por-dueno]].
+
+  Este punto decía además, y es lo que conviene corregir con constancia, que «implementarlo exige decidir **cómo se ata una cuenta de Keycloak a un cliente del dominio**». **Esa decisión estaba tomada desde la migración de `person`** y escrita en el javadoc de `PersonService.register`: el identificador de una persona es el que asigna Keycloak, de modo que el `sub` del token **es** la llave de la tabla `persona`. No hizo falta ninguna migración. La frase se repitió en tres notas durante casi un mes, y la lección es que **un bloqueo sobrevive a su causa**: una nota que dice «esto exige decidir X» hay que releerla cuando X se haya decidido en otra parte.
+
+  Y decía que **ninguna clase fuera de `bootstrap/config` toca `Authentication`**, verificado el 2026-09-08. **Dejó de ser cierto el 2026-09-13**, cuando la escalera de usuarios trajo `PersonWriteGuard` a `person/infrastructure/input/security/`, y nadie volvió a contar; hoy son **dos**, con `ReadScopeResolver` en `client`. Lo que sí sigue en pie es la parte que importa: **ninguna clase de `application` ni de `domain` la toca**, y por eso el alcance entra como parámetro.
 - **No es verificable que el realm que Keycloak importa coincida con el JSON del repositorio.** Las pruebas leen el archivo versionado subiendo directorios desde el módulo; una edición hecha a mano en la consola de administración no la ve nadie. El contrato es con el archivo, no con el servidor.
 
 ## Reutilizable

@@ -1318,3 +1318,71 @@ el buscador aceptando un valor inventado.
 nombre de prueba que prometía de más.
 
 Backend **857** pruebas en **57** clases. Deuda propia: **67** filas, 27 tachadas, 40 abiertas.
+
+## [2026-10-04] ingest | el filtrado por dueño, y una pregunta que llevaba un mes contestada
+
+**La mayor deuda abierta del proyecto, cerrada en cuatro tandas y sin una sola migración.** Hasta hoy un
+representante legal con `client.read` leía **todos** los clientes del sistema, y con las otras cuatro
+autoridades de su grupo, los equipos, las órdenes y los reportes de todos. Van **18 lecturas acotadas**
+en cuatro módulos. Entra [[filtrado-por-dueno]].
+
+### Lo que más conviene recordar no es el filtro
+
+**Tres notas afirmaban que esto «exige decidir cómo se ata una cuenta de Keycloak a un cliente del
+dominio»** —[[modelo-de-permisos]], [[decisiones-tecnicas-malphasos]] y [[deuda-tecnica-y-riesgos]]— y
+esa decisión estaba tomada desde la migración de `person`, escrita en el javadoc de
+`PersonService.register`: el identificador de una persona **es** el que asigna Keycloak, así que el
+`sub` del token es la llave de `persona`. De ahí a los clientes está `representante_legal`, con llave
+compuesta desde `V4` porque una persona puede representar a varios.
+
+La frase se repitió casi un mes y **bloqueó la pieza con mayor implicación de seguridad del proyecto**.
+La lección, que vale para cualquier nota: **un bloqueo sobrevive a su causa**. Una nota que dice «esto
+exige decidir X» hay que releerla cuando X se haya decidido en otra parte, porque nada avisa.
+
+### Dos afirmaciones más que resultaron falsas
+
+- **«Ninguna clase fuera de `bootstrap/config` toca `Authentication`.»** Cierto el 2026-09-08 y **falso
+  desde el 2026-09-13**, cuando la escalera de usuarios trajo `PersonWriteGuard`; nadie volvió a
+  contar. Hoy son dos. Lo que sigue en pie es la parte que importa y por la que el alcance entra como
+  parámetro: **ninguna clase de `application` ni de `domain` la toca**.
+- **«Ninguna tabla lleva columna de pertenencia»**, en [[esquema-bd-malphasos]], presentado como la
+  razón de que el filtro no existiera. La pertenencia ya estaba; lo que no hay es una columna que la
+  diga en un solo sitio, y el camino al dueño son hasta tres saltos que recorre la aplicación.
+
+### El patrón que apareció solo, y su riesgo
+
+**Ocho de las dieciocho lecturas no comprueban nada por su cuenta**: le pasan el alcance a quien es
+dueño del recurso por el que filtran, y la comprobación de existencia y la de pertenencia se vuelven la
+misma llamada. Su riesgo es el mismo las ocho veces y es **invisible en una revisión**: pasar
+`unrestricted()` en lugar del alcance de quien llama **compila igual y no filtra nada**. Cada una lleva
+una verificación de que el alcance viaja.
+
+**El único sitio donde delegar sería incorrecto** es un reporte por identificador: delegando, el error
+sale como «esa orden no existe» cuando lo pedido fue un reporte, y la respuesta contaría de qué es el
+identificador que no se puede ver.
+
+### Verificación: 22 mutaciones, dos supervivientes, y una regla nueva
+
+Los dos supervivientes fueron por el mismo motivo, y de ahí sale algo reutilizable: **para probar que
+una guarda es la que rechaza hay que estubar el camino que rechazaría si la guarda no estuviera**. Una
+prueba pedía las sedes de un cliente ajeno sin estubar su existencia: al desactivar el filtro caía en la
+comprobación de existencia, Mockito devolvía `Optional.empty()` y **rechazaba igual, por el camino
+equivocado**. En modo estricto ese estubado va con `lenient()`, que es la declaración «esto está aquí
+para que no sea esto lo que falle».
+
+**Y un fallo del arnés, el tercero de esta revisión con la misma forma**: el guion de mutación había
+desaparecido del disco, de modo que cuatro mutaciones no mutaron nada y salieron con cero fallos —cuatro
+supervivientes aparentes que no existían—. Tras `-Dtest=` que no avisa si no casa con nada y el
+`test-compile` incremental que no recompila, la regla es una: **un arnés que no encuentra nada tiene que
+decirlo, porque su silencio se lee como un resultado.**
+
+### La deuda sube, y es la primera vez que una tanda la deja más alta a propósito
+
+**71 filas, 28 tachadas, 43 abiertas** —eran 67/27/40—: cierra una y abre **cuatro**, y las cuatro son
+decisiones tomadas y no olvidos. La cuenta de Keycloak sin fila en `persona` que recibe alcance libre
+—el precio de que el SuperUsuario se cree a mano—, los ingenieros sin acotar, los dos `findAll()`
+muertos en los puertos de sedes y áreas, y la lista `IN` que viaja con el alcance.
+
+**Tocadas**: [[filtrado-por-dueno]] (nueva), [[modelo-de-permisos]], [[decisiones-tecnicas-malphasos]],
+[[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], [[esquema-bd-malphasos]],
+[[checklist-reutilizacion]], [[index]] y el `CONVENCIONES.md` de la raíz.

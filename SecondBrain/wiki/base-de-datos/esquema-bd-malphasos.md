@@ -426,6 +426,11 @@ restricción que el esquema **podría** expresar y que **no debe**, porque conge
 
 - **El vencimiento de calibración** no tiene columna, y es lo que las alertas necesitan. Es lo único
   que queda de la segunda tanda de `equipment`.
-- **El filtrado por dueño no existe**: ninguna tabla lleva columna de pertenencia que el API use para
-  recortar lo que un usuario ve. Fue una decisión explícita.
+- **El filtrado por dueño no necesitó ninguna columna nueva**, y esta línea decía lo contrario. Decía
+  que «no existe: ninguna tabla lleva columna de pertenencia que el API use para recortar lo que un
+  usuario ve». **Construido el 2026-10-04 sin migración**: la pertenencia ya estaba, repartida entre
+  `representante_legal` —cuya llave compuesta permite que una persona represente a varios clientes— y
+  el hecho de que `persona.k_identificador` **es** el identificador que asigna Keycloak. Lo que el
+  esquema no tiene, y sigue sin tener, es una columna que lo diga en un solo sitio: el camino del dato
+  al dueño son hasta tres saltos y los recorre la capa de aplicación. Ver [[filtrado-por-dueno]].
 - **La firma digital y la hoja de vida como entidad** no tienen tablas todavía.

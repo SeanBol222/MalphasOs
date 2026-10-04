@@ -141,3 +141,30 @@ que quedaban dos**: corregido allí.
 
 **Tocadas**: [[estado-de-la-ers-caducado]] (nueva), [[rf-hojas-vida]], [[estado-de-implementacion]],
 [[index]], y el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-04] lint | una nota caducada un mes, y una propiedad de seguridad sin requisito
+
+**[[rf-usuarios-seguridad]] afirmaba algo falso desde hacía un mes.** Decía que el segundo criterio de
+RF-50 «no se cumple todavía» porque «las 83 operaciones de la API exigen la misma autoridad,
+`admin.full`» y porque los roles de lectura de `engineers` y `clients` «ninguna operación REST comprueba
+todavía», de modo que un ingeniero «recibe 403 en toda llamada». Era cierto el 2026-09-05 y **dejó de
+serlo el 2026-09-08**, con el modelo de permisos; nadie volvió sobre la nota. Es exactamente la
+desincronización que esta wiki existe para evitar, y queda escrita en lugar de sustituida en silencio.
+
+Hoy ese criterio **se cumple en tres capas**: cada operación exige la autoridad de su recurso y una
+sola, el menú del frontend oculta por autoridad desde el 2026-10-02, y desde el 2026-10-04 las lecturas
+acotan además **por dueño** —18 en cuatro módulos—.
+
+### El hallazgo que sí importa: una propiedad de seguridad que ningún requisito pide
+
+**Ningún requisito de la ERS pide el filtrado por dueño.** No hay RNF de aislamiento de datos, y RF-50
+habla de «funcionalidades», no de filas. Se construyó una propiedad de seguridad real que ninguna línea
+del documento reclamaba, y con la regla de esta wiki eso **no es un extra del código: es un requisito
+que falta**.
+
+**Y RF-50 no contempla al usuario cliente.** Enumera «SuperUsuario, Administrador o Ingeniero», y el
+realm tiene un cuarto grupo, `clients`, con cinco autoridades de lectura que el sistema sirve de verdad.
+El rol existe en el código y en Keycloak, y no existe en el requisito. **El marcador no se mueve** —RF-50
+ya contaba como implementado—, pero el modelo de roles de la ERS está incompleto.
+
+**Tocadas**: [[rf-usuarios-seguridad]].
