@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityProfile;
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityRequest;
@@ -20,6 +21,8 @@ import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.util.UUID;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,9 +32,11 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.GroupsResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.representations.idm.GroupRepresentation;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,11 +53,14 @@ class PersonIdentityAdapterTest {
 
     private static final String REALM = "malphasos-realm";
 
+    private static final String USER_ID = "id-de-keycloak";
+
     @Mock private Keycloak keycloak;
     @Mock private RealmResource realmResource;
     @Mock private UsersResource usersResource;
     @Mock private UserResource userResource;
     @Mock private Response response;
+    @Mock private GroupsResource groupsResource;
 
     private PersonIdentityAdapter adapter;
 
@@ -335,5 +343,89 @@ class PersonIdentityAdapterTest {
 
         assertThatThrownBy(() -> adapter.deleteUser(userId))
                 .isInstanceOf(KeycloakUserNotFoundException.class);
+    }
+
+    // ------------------------------------------------------------------------
+    // syncGroup: la fila y la identidad tienen que decir lo mismo
+    // ------------------------------------------------------------------------
+
+    private static GroupRepresentation grupo(String nombre) {
+        GroupRepresentation g = new GroupRepresentation();
+        g.setId("id-" + nombre);
+        g.setName(nombre);
+
+        return g;
+    }
+
+    /** El realm tiene los tres grupos, y el usuario esta en los que se indiquen. */
+    private void elRealmTieneLosTresGruposYElUsuarioEsta(String... suyos) {
+        when(realmResource.groups()).thenReturn(groupsResource);
+        when(groupsResource.groups())
+                .thenReturn(List.of(grupo("engineers"), grupo("clients"), grupo("admins"), grupo("otro-ajeno")));
+        when(usersResource.get(USER_ID)).thenReturn(userResource);
+        when(userResource.groups()).thenReturn(Arrays.stream(suyos).map(PersonIdentityAdapterTest::grupo).toList());
+    }
+
+    @Test
+    @DisplayName("mover de grupo saca del viejo y mete en el nuevo")
+    void moverDeGrupo() {
+        elRealmTieneLosTresGruposYElUsuarioEsta("clients");
+
+        adapter.syncGroup(USER_ID, RoleType.ENGINEER);
+
+        verify(userResource).leaveGroup("id-clients");
+        verify(userResource).joinGroup("id-engineers");
+    }
+
+    @Test
+    @DisplayName("si ya esta donde debe, no se toca nada")
+    void yaEstaDondeDebe() {
+        elRealmTieneLosTresGruposYElUsuarioEsta("engineers");
+
+        adapter.syncGroup(USER_ID, RoleType.ENGINEER);
+
+        // Idempotente a proposito: editar dos veces seguidas no deberia reescribir la pertenencia.
+        verify(userResource, never()).joinGroup(any());
+        verify(userResource, never()).leaveGroup(any());
+    }
+
+    @Test
+    @DisplayName("un rol nulo deja al usuario sin ningun grupo administrado")
+    void rolNuloDejaSinGrupo() {
+        // Es el caso de quien pasa a ser encargado: deja de acceder al sistema. La cuenta sigue
+        // existiendo y autenticando, y sin autoridades toda llamada suya responde 403.
+        elRealmTieneLosTresGruposYElUsuarioEsta("admins");
+
+        adapter.syncGroup(USER_ID, null);
+
+        verify(userResource).leaveGroup("id-admins");
+        verify(userResource, never()).joinGroup(any());
+    }
+
+    @Test
+    @DisplayName("un grupo que este sistema no administra no se toca")
+    void noSeTocaLoAjeno() {
+        // Si alguien metio la cuenta en un grupo propio desde la consola, ese se queda: esto
+        // sincroniza lo que el tipo de la persona implica, y nada mas.
+        elRealmTieneLosTresGruposYElUsuarioEsta("clients", "otro-ajeno");
+
+        adapter.syncGroup(USER_ID, RoleType.CEO_CLIENT);
+
+        verify(userResource, never()).leaveGroup("id-otro-ajeno");
+        verify(userResource, never()).leaveGroup("id-clients");
+    }
+
+    @Test
+    @DisplayName("si estaba en dos grupos administrados, sale de los dos y queda en uno")
+    void dosGruposSeQuedanEnUno() {
+        // No deberia ocurrir por el API, pero si a mano. Se recorren los tres grupos en vez de
+        // preguntar por el actual precisamente para que este caso se corrija en lugar de persistir.
+        elRealmTieneLosTresGruposYElUsuarioEsta("clients", "admins");
+
+        adapter.syncGroup(USER_ID, RoleType.ADMIN);
+
+        verify(userResource).leaveGroup("id-clients");
+        verify(userResource, never()).leaveGroup("id-admins");
+        verify(userResource, never()).joinGroup(any());
     }
 }
