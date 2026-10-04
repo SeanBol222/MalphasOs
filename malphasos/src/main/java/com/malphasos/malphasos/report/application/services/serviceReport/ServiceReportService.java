@@ -69,7 +69,8 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<ServiceReport> findByWorkOrder(UUID idOrdenTrabajo) {
-        workOrderServicePort.findById(idOrdenTrabajo);
+        // TODO(filtrado-por-dueno): sin acotar todavia. Lo cierra la tanda de report.
+        workOrderServicePort.findById(idOrdenTrabajo, ReadScope.unrestricted());
 
         return serviceReportPersistencePort.findByWorkOrder(idOrdenTrabajo);
     }
@@ -110,7 +111,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport open(OpenServiceReportCommand command) {
-        WorkOrder orden = workOrderServicePort.findById(command.idOrdenTrabajo());
+        WorkOrder orden = workOrderServicePort.findById(command.idOrdenTrabajo(), ReadScope.unrestricted());
 
         requireStartedOrder(orden);
         requireEquipmentInScopeOf(orden, command.idEquipoCliente());

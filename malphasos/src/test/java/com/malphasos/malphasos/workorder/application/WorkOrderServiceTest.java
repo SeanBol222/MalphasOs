@@ -406,7 +406,7 @@ class WorkOrderServiceTest {
             when(clientServicePort.findById(CLIENTE, ReadScope.unrestricted())).thenReturn(unCliente(true));
             when(workOrderPersistencePort.findByClient(CLIENTE)).thenReturn(List.of());
 
-            assertThat(service.findByClient(CLIENTE)).isEmpty();
+            assertThat(service.findByClient(CLIENTE, ReadScope.unrestricted())).isEmpty();
             verify(clientServicePort).findById(CLIENTE, ReadScope.unrestricted());
         }
 
@@ -417,7 +417,7 @@ class WorkOrderServiceTest {
             when(workOrderPersistencePort.findById(desconocida)).thenReturn(Optional.empty());
 
             Assertions.assertThatExceptionOfType(WorkOrderNotFoundException.class)
-                    .isThrownBy(() -> service.findById(desconocida));
+                    .isThrownBy(() -> service.findById(desconocida, ReadScope.unrestricted()));
         }
     }
 }

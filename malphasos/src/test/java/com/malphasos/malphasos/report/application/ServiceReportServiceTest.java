@@ -184,7 +184,7 @@ class ServiceReportServiceTest {
         @Test
         @DisplayName("lo abre si la orden esta en ejecucion y el equipo esta en su alcance")
         void abreElReporte() {
-            when(workOrderServicePort.findById(ORDEN)).thenReturn(unaOrdenEnEjecucion());
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
             when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
                     .thenReturn(Optional.empty());
             estubarGuardado();
@@ -199,7 +199,7 @@ class ServiceReportServiceTest {
         @Test
         @DisplayName("una orden todavia creada no admite reportes: no se ha hecho nada")
         void rechazaUnaOrdenSinEmpezar() {
-            when(workOrderServicePort.findById(ORDEN))
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
                     .thenReturn(unaOrden(ExecutionState.CREADA, true, EQUIPO));
 
             assertThatIllegalStateException()
@@ -211,7 +211,7 @@ class ServiceReportServiceTest {
         @Test
         @DisplayName("una orden ya ejecutada si admite reportes: aqui se registra despues de ir")
         void admiteUnaOrdenYaEjecutada() {
-            when(workOrderServicePort.findById(ORDEN))
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
                     .thenReturn(unaOrden(ExecutionState.EJECUTADA, true, EQUIPO));
             when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
                     .thenReturn(Optional.empty());
@@ -224,7 +224,7 @@ class ServiceReportServiceTest {
         @Test
         @DisplayName("una orden cancelada no admite reportes")
         void rechazaUnaOrdenCancelada() {
-            when(workOrderServicePort.findById(ORDEN))
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
                     .thenReturn(unaOrden(ExecutionState.EN_EJECUCION, false, EQUIPO));
 
             assertThatIllegalStateException()
@@ -237,7 +237,7 @@ class ServiceReportServiceTest {
         void rechazaUnEquipoFueraDelAlcance() {
             // La foranea compuesta del esquema solo ve que la fila del puente existe; que siga activa
             // no lo puede comprobar, y un equipo retirado del alcance dejo de estar en la orden.
-            when(workOrderServicePort.findById(ORDEN))
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
                     .thenReturn(unaOrden(ExecutionState.EN_EJECUCION, true, UUID.randomUUID()));
 
             assertThatIllegalArgumentException()
@@ -249,7 +249,7 @@ class ServiceReportServiceTest {
         @Test
         @DisplayName("un equipo que ya tiene reporte vivo no abre otro: lo dice antes que el indice")
         void rechazaUnSegundoReporte() {
-            when(workOrderServicePort.findById(ORDEN)).thenReturn(unaOrdenEnEjecucion());
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
             when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
                     .thenReturn(Optional.of(unReporte()));
 

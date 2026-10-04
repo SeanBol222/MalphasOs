@@ -6,6 +6,7 @@ import com.malphasos.malphasos.workorder.infrastructure.output.entities.WorkOrde
 import com.malphasos.malphasos.workorder.infrastructure.output.mapper.WorkOrderPersistenceMapper;
 import com.malphasos.malphasos.workorder.infrastructure.output.repository.WorkOrderRepository;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +63,19 @@ public class WorkOrderPersistenceAdapter implements WorkOrderPersistencePort {
     @Transactional(readOnly = true)
     public List<WorkOrder> findByEngineer(UUID idIngeniero) {
         return mapper.toDomainList(workOrderRepository.findByIdIngeniero(idIngeniero));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrder> findByClientIn(Collection<UUID> idsClientes) {
+        return mapper.toDomainList(workOrderRepository.findByIdClienteIn(idsClientes));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrder> findByEngineerAndClientIn(UUID idIngeniero, Collection<UUID> idsClientes) {
+        return mapper.toDomainList(
+                workOrderRepository.findByIdIngenieroAndIdClienteIn(idIngeniero, idsClientes));
     }
 
     @Override

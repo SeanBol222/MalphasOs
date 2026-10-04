@@ -23,6 +23,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.request.WorkOrderEquipmentRequest;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.request.WorkOrderScheduleRequest;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -129,14 +130,14 @@ class WorkOrderRestAdapterTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_002"));
 
-        verify(workOrderServicePort, never()).findByClient(any());
+        verify(workOrderServicePort, never()).findByClient(any(), any());
     }
 
     @Test
     @DisplayName("una orden inexistente responde 404 con el codigo del catalogo")
     void ordenInexistente() throws Exception {
         UUID id = UUID.randomUUID();
-        when(workOrderServicePort.findById(id)).thenThrow(new WorkOrderNotFoundException(id));
+        when(workOrderServicePort.findById(id, ReadScope.unrestricted())).thenThrow(new WorkOrderNotFoundException(id));
 
         mockMvc.perform(get("/v1/api/work-orders/" + id))
                 .andExpect(status().isNotFound())
@@ -235,7 +236,7 @@ class WorkOrderRestAdapterTest {
         UUID area = UUID.randomUUID();
         WorkOrder orden = unaOrden();
         orden.addEquipment(equipo, area);
-        when(workOrderServicePort.findById(orden.getId())).thenReturn(orden);
+        when(workOrderServicePort.findById(orden.getId(), ReadScope.unrestricted())).thenReturn(orden);
 
         mockMvc.perform(get("/v1/api/work-orders/" + orden.getId()))
                 .andExpect(status().isOk())
@@ -246,7 +247,7 @@ class WorkOrderRestAdapterTest {
     @Test
     @DisplayName("listar sin filtros devuelve todas")
     void listarSinFiltros() throws Exception {
-        when(workOrderServicePort.findAll()).thenReturn(List.of(unaOrden()));
+        when(workOrderServicePort.findAll(ReadScope.unrestricted())).thenReturn(List.of(unaOrden()));
 
         mockMvc.perform(get("/v1/api/work-orders"))
                 .andExpect(status().isOk())

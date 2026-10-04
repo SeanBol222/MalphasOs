@@ -1,6 +1,8 @@
 package com.malphasos.malphasos.workorder.infrastructure.input.rest;
 
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
+import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AssignWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.CancelWorkOrderCommand;
@@ -22,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -56,6 +59,9 @@ public class WorkOrderRestAdapter {
     private final WorkOrderServicePort workOrderServicePort;
     private final WorkOrderRestMapper mapper;
 
+    /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
+    private final ReadScopeResolver readScopeResolver;
+
     @Operation(summary = "Listar ordenes de trabajo",
             description = "Los parametros filtran por cliente, sede, ingeniero o equipo. "
                     + "Solo se admite uno a la vez.")
@@ -65,7 +71,10 @@ public class WorkOrderRestAdapter {
             @Parameter(description = "Filtra por cliente") @RequestParam(required = false) UUID idCliente,
             @Parameter(description = "Filtra por sede") @RequestParam(required = false) UUID idSede,
             @Parameter(description = "Filtra por ingeniero asignado") @RequestParam(required = false) UUID idIngeniero,
-            @Parameter(description = "Filtra por equipo incluido en el alcance") @RequestParam(required = false) UUID idEquipoCliente) {
+            @Parameter(description = "Filtra por equipo incluido en el alcance") @RequestParam(required = false) UUID idEquipoCliente,
+            Authentication autenticacion) {
+
+        ReadScope alcance = readScopeResolver.scopeFor(autenticacion);
 
         long filtros = java.util.stream.Stream
                 .of(idCliente, idSede, idIngeniero, idEquipoCliente)
@@ -78,26 +87,26 @@ public class WorkOrderRestAdapter {
         }
 
         if (idCliente != null) {
-            return mapper.toList(workOrderServicePort.findByClient(idCliente));
+            return mapper.toList(workOrderServicePort.findByClient(idCliente, alcance));
         }
         if (idSede != null) {
-            return mapper.toList(workOrderServicePort.findByHeadquarter(idSede));
+            return mapper.toList(workOrderServicePort.findByHeadquarter(idSede, alcance));
         }
         if (idIngeniero != null) {
-            return mapper.toList(workOrderServicePort.findByEngineer(idIngeniero));
+            return mapper.toList(workOrderServicePort.findByEngineer(idIngeniero, alcance));
         }
         if (idEquipoCliente != null) {
-            return mapper.toList(workOrderServicePort.findByEquipment(idEquipoCliente));
+            return mapper.toList(workOrderServicePort.findByEquipment(idEquipoCliente, alcance));
         }
 
-        return mapper.toList(workOrderServicePort.findAll());
+        return mapper.toList(workOrderServicePort.findAll(alcance));
     }
 
     @Operation(summary = "Obtener una orden por su identificador")
     @PreAuthorize("hasAuthority('work-order.read')")
     @GetMapping("/{id}")
-    public WorkOrderResponse getById(@PathVariable UUID id) {
-        return mapper.toResponse(workOrderServicePort.findById(id));
+    public WorkOrderResponse getById(@PathVariable UUID id, Authentication autenticacion) {
+        return mapper.toResponse(workOrderServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Programar un mantenimiento",
