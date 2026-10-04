@@ -131,7 +131,7 @@ class EquipmentChainServiceTest {
 
             // La clave foranea comprueba que la fila exista, no que este activa.
             assertThatThrownBy(() ->
-                            service().create(new CreateModelCommand("INV-1", FABRICANTE, EQUIPO)))
+                            service().create(new CreateModelCommand("IdeaPad 3", "INV-1", FABRICANTE, EQUIPO)))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("asociacion retirada");
 
@@ -145,7 +145,7 @@ class EquipmentChainServiceTest {
                     .thenReturn(Equipment.rehydrate(EQUIPO, TIPO, MARCA, true));
             when(modelPort.save(any(Model.class))).thenAnswer(i -> i.getArgument(0));
 
-            service().create(new CreateModelCommand("INV-1", FABRICANTE, EQUIPO));
+            service().create(new CreateModelCommand("IdeaPad 3", "INV-1", FABRICANTE, EQUIPO));
 
             verify(manufacturerService).findById(FABRICANTE);
             assertThat(despachados())
@@ -174,7 +174,7 @@ class EquipmentChainServiceTest {
 
         private void elModeloEsta(boolean activo) {
             when(modelService.findById(MODELO))
-                    .thenReturn(Model.rehydrate(MODELO, "INV-1", FABRICANTE, EQUIPO, activo));
+                    .thenReturn(Model.rehydrate(MODELO, "IdeaPad 3", "INV-1", FABRICANTE, EQUIPO, activo));
         }
 
         @Test

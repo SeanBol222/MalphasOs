@@ -4,8 +4,10 @@ import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePor
 import com.malphasos.malphasos.equipment.application.services.model.commands.ChangeModelInvimaCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.CreateModelCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.DeactivateModelCommand;
+import com.malphasos.malphasos.equipment.application.services.model.commands.RenameModelCommand;
 import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.InvimaRequest;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.request.NamedRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.ModelCreateRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ModelResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,9 +63,18 @@ public class ModelRestAdapter {
     @PostMapping
     public ResponseEntity<ModelResponse> create(@Valid @RequestBody ModelCreateRequest request) {
         ModelResponse creado = mapper.toResponse(modelServicePort.create(new CreateModelCommand(
-                request.invima(), request.idFabricante(), request.idEquipo())));
+                request.nombre(), request.invima(), request.idFabricante(), request.idEquipo())));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    }
+
+    @Operation(summary = "Corregir el nombre del modelo",
+            description = "Tiene ruta propia, igual que renombrar una marca: el nombre es lo que"
+                    + " identifica al modelo en una pantalla.")
+    @PreAuthorize("hasAuthority('equipment.write')")
+    @PatchMapping("/{id}")
+    public ModelResponse rename(@PathVariable UUID id, @Valid @RequestBody NamedRequest request) {
+        return mapper.toResponse(modelServicePort.rename(new RenameModelCommand(id, request.nombre())));
     }
 
     @Operation(summary = "Anotar o corregir el registro INVIMA",

@@ -509,24 +509,67 @@ class CatalogAggregatesTest {
         @Test
         @DisplayName("necesita fabricante y equipo")
         void referenciasObligatorias() {
-            assertThatThrownBy(() -> Model.create("INV-1", null, EQUIPO))
+            assertThatThrownBy(() -> Model.create("IdeaPad 3", "INV-1", null, EQUIPO))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("fabricante");
-            assertThatThrownBy(() -> Model.create("INV-1", FABRICANTE, null))
+            assertThatThrownBy(() -> Model.create("IdeaPad 3", "INV-1", FABRICANTE, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("equipo");
         }
 
         @Test
-        @DisplayName("un INVIMA en blanco es lo mismo que no tenerlo")
-        void invimaEnBlanco() {
-            assertThat(Model.create("   ", FABRICANTE, EQUIPO).getInvima()).isNull();
+        @DisplayName("necesita su nombre: es lo que lo distingue de los otros de su marca")
+        void nombreObligatorio() {
+            // Hasta el 2026-10-04 lo unico legible que un modelo llevaba era su INVIMA, que es un
+            // numero de tramite y ademas anulable: cabia un modelo sin nada que escribir en una fila.
+            for (String nombre : new String[] {null, "", "   "}) {
+                assertThatThrownBy(() -> Model.create(nombre, "INV-1", FABRICANTE, EQUIPO))
+                        .describedAs("nombre %s", nombre == null ? "nulo" : "«" + nombre + "»")
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("nombre");
+            }
+        }
+
+        @Test
+        @DisplayName("el nombre se recorta, y un INVIMA en blanco es lo mismo que no tenerlo")
+        void nombreRecortadoEInvimaEnBlanco() {
+            // Las dos columnas se tratan distinto a proposito: un modelo SIN registro sanitario es un
+            // estado normal mientras se tramita, y un modelo sin nombre no es nada.
+            Model modelo = Model.create("  IdeaPad 3  ", "   ", FABRICANTE, EQUIPO);
+
+            assertThat(modelo.getNombre()).isEqualTo("IdeaPad 3");
+            assertThat(modelo.getInvima()).isNull();
+        }
+
+        @Test
+        @DisplayName("renombrar con el mismo nombre no anuncia un cambio que no ocurrio")
+        void renombrarIgual() {
+            Model modelo = Model.create("IdeaPad 3", null, FABRICANTE, EQUIPO);
+            modelo.pullEvents();
+
+            modelo.rename("  IdeaPad 3  ");
+            assertThat(modelo.pullEvents()).isEmpty();
+
+            modelo.rename("IdeaPad 5");
+            assertThat(modelo.getNombre()).isEqualTo("IdeaPad 5");
+            assertThat(modelo.pullEvents()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("renombrar a nada se rechaza: el nombre no se puede vaciar")
+        void renombrarANada() {
+            Model modelo = Model.create("IdeaPad 3", null, FABRICANTE, EQUIPO);
+
+            assertThatThrownBy(() -> modelo.rename("  "))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("nombre");
+            assertThat(modelo.getNombre()).isEqualTo("IdeaPad 3");
         }
 
         @Test
         @DisplayName("el INVIMA se puede anotar despues y corregir")
         void anotarInvima() {
-            Model modelo = Model.create(null, FABRICANTE, EQUIPO);
+            Model modelo = Model.create("IdeaPad 3", null, FABRICANTE, EQUIPO);
             modelo.pullEvents();
 
             modelo.changeInvima("INVIMA-2024-001");
@@ -624,7 +667,7 @@ class CatalogAggregatesTest {
         assertThat(Brand.rehydrate(id, "Uno", true)).isEqualTo(Brand.rehydrate(id, "Otro", false));
         assertThat(Manufacturer.rehydrate(id, "Uno", null, true).hasPendingEvents()).isFalse();
         assertThat(Equipment.rehydrate(id, TIPO, MARCA, true).hasPendingEvents()).isFalse();
-        assertThat(Model.rehydrate(id, null, FABRICANTE, EQUIPO, true).hasPendingEvents()).isFalse();
+        assertThat(Model.rehydrate(id, "IdeaPad 3", null, FABRICANTE, EQUIPO, true).hasPendingEvents()).isFalse();
         assertThat(ClientEquipment.rehydrate(id, "SN", MODELO, AREA, null, null, null, true)
                         .hasPendingEvents())
                 .isFalse();

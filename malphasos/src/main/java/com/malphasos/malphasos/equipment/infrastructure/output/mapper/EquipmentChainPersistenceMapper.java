@@ -28,8 +28,8 @@ public class EquipmentChainPersistenceMapper {
     }
 
     public Model toDomain(ModelEntity entity) {
-        return Model.rehydrate(entity.getId(), entity.getInvima(), entity.getIdFabricante(),
-                entity.getIdEquipo(), entity.isEstadoActivo());
+        return Model.rehydrate(entity.getId(), entity.getNombre(), entity.getInvima(),
+                entity.getIdFabricante(), entity.getIdEquipo(), entity.isEstadoActivo());
     }
 
     public List<Model> toModelList(List<ModelEntity> entities) {
@@ -37,8 +37,8 @@ public class EquipmentChainPersistenceMapper {
     }
 
     public ModelEntity toEntity(Model modelo) {
-        return new ModelEntity(modelo.getId(), modelo.getInvima(), modelo.getIdFabricante(),
-                modelo.getIdEquipo(), modelo.isEstadoActivo());
+        return new ModelEntity(modelo.getId(), modelo.getNombre(), modelo.getInvima(),
+                modelo.getIdFabricante(), modelo.getIdEquipo(), modelo.isEstadoActivo());
     }
 
     public ClientEquipment toDomain(ClientEquipmentEntity entity) {

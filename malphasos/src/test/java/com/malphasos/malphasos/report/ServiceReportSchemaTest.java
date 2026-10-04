@@ -219,8 +219,9 @@ class ServiceReportSchemaTest {
 
         UUID modelo = UUID.randomUUID();
         jdbcTemplate.update(
-                "INSERT INTO modelo (k_id_modelo, k_id_fabricante, k_id_equipo) VALUES (?, ?, ?)",
-                modelo, fabricante, equipo);
+                "INSERT INTO modelo (k_id_modelo, n_nombre_modelo, k_id_fabricante, k_id_equipo)"
+                        + " VALUES (?, ?, ?, ?)",
+                modelo, "Modelo " + unico(), fabricante, equipo);
 
         UUID unidad = UUID.randomUUID();
         jdbcTemplate.update(
