@@ -30,18 +30,18 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener una marca por su identificador */
-        get: operations["getById_3"];
+        get: operations["getById_4"];
         put?: never;
         post?: never;
         /**
          * Retirar una marca
          * @description No la borra: la deja inactiva.
          */
-        delete: operations["deactivate_2"];
+        delete: operations["deactivate_3"];
         options?: never;
         head?: never;
         /** Cambiar el nombre de una marca */
-        patch: operations["rename"];
+        patch: operations["rename_1"];
         trace?: never;
     };
     "/v1/api/client-equipments": {
@@ -69,7 +69,7 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener una unidad por su identificador */
-        get: operations["getById_2"];
+        get: operations["getById_3"];
         put?: never;
         post?: never;
         /**
@@ -135,14 +135,14 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener un tipo por su identificador */
-        get: operations["getById_1"];
+        get: operations["getById_2"];
         put?: never;
         post?: never;
         /**
          * Retirar un tipo de equipo
          * @description No lo borra: lo deja inactivo.
          */
-        delete: operations["deactivate_1"];
+        delete: operations["deactivate_2"];
         options?: never;
         head?: never;
         /**
@@ -277,14 +277,14 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener un fabricante por su identificador */
-        get: operations["getById"];
+        get: operations["getById_1"];
         put?: never;
         post?: never;
         /**
          * Retirar un fabricante
          * @description No lo borra: lo deja inactivo.
          */
-        delete: operations["deactivate"];
+        delete: operations["deactivate_1"];
         options?: never;
         head?: never;
         /**
@@ -326,17 +326,21 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener un modelo por su identificador */
-        get: operations["getById_4"];
+        get: operations["getById"];
         put?: never;
         post?: never;
         /**
          * Retirar un modelo
          * @description No lo borra: lo deja inactivo.
          */
-        delete: operations["deactivate_3"];
+        delete: operations["deactivate"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Corregir el nombre del modelo
+         * @description Tiene ruta propia, igual que renombrar una marca: el nombre es lo que identifica al modelo en una pantalla.
+         */
+        patch: operations["rename"];
         trace?: never;
     };
     "/v1/api/models/{id}/invima": {
@@ -542,6 +546,11 @@ export interface components {
             /** Format: uuid */
             idFabricante: string;
             invima?: string;
+            /**
+             * @description Nombre comercial del modelo
+             * @example IdeaPad 3
+             */
+            nombre: string;
         };
         ModelResponse: {
             estadoActivo?: boolean;
@@ -552,6 +561,11 @@ export interface components {
             /** Format: uuid */
             idFabricante?: string;
             invima?: string;
+            /**
+             * @description Nombre comercial del modelo
+             * @example IdeaPad 3
+             */
+            nombre?: string;
         };
         NamedRequest: {
             /** @example Philips */
@@ -749,7 +763,7 @@ export interface operations {
             };
         };
     };
-    getById_3: {
+    getById_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -807,7 +821,7 @@ export interface operations {
             };
         };
     };
-    deactivate_2: {
+    deactivate_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -863,7 +877,7 @@ export interface operations {
             };
         };
     };
-    rename: {
+    rename_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -981,7 +995,7 @@ export interface operations {
             };
         };
     };
-    getById_2: {
+    getById_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1332,7 +1346,7 @@ export interface operations {
             };
         };
     };
-    getById_1: {
+    getById_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1390,7 +1404,7 @@ export interface operations {
             };
         };
     };
-    deactivate_1: {
+    deactivate_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2033,7 +2047,7 @@ export interface operations {
             };
         };
     };
-    getById: {
+    getById_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2091,7 +2105,7 @@ export interface operations {
             };
         };
     };
-    deactivate: {
+    deactivate_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2328,7 +2342,7 @@ export interface operations {
             };
         };
     };
-    getById_4: {
+    getById: {
         parameters: {
             query?: never;
             header?: never;
@@ -2386,7 +2400,7 @@ export interface operations {
             };
         };
     };
-    deactivate_3: {
+    deactivate: {
         parameters: {
             query?: never;
             header?: never;
@@ -2403,6 +2417,68 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    rename: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NamedRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ModelResponse"];
+                };
             };
             /** @description Bad Request */
             400: {

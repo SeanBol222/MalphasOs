@@ -147,6 +147,19 @@
   }
 
   <div class="mt-2">
+    <label class="block font-semibold" for="nombreDeModelo">
+      Nombre del modelo <span class="text-accent-700" aria-hidden="true">*</span>
+    </label>
+    <input
+      id="nombreDeModelo"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="nombreDeModelo"
+      maxlength="50"
+      aria-required="true"
+      placeholder="IdeaPad 3"
+    />
+
+    <!-- Opcional, al contrario que el nombre: se tramita despues del alta. -->
     <label class="block font-semibold" for="invimaDelPanel">INVIMA</label>
     <input
       id="invimaDelPanel"

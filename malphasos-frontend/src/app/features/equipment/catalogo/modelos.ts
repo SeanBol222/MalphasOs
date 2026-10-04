@@ -35,6 +35,9 @@ export class Modelos {
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
+    // El nombre es obligatorio y el INVIMA no, y la asimetria es del backend: un modelo sin registro
+    // sanitario es un estado normal mientras se tramita, y un modelo sin nombre no es nada.
+    nombre: ['', [Validators.required, Validators.maxLength(50)]],
     idEquipo: ['', Validators.required],
     idFabricante: ['', Validators.required],
     invima: ['', Validators.maxLength(50)],
@@ -67,6 +70,7 @@ export class Modelos {
     return (this.modelos.data() ?? []).map((modelo) => ({
       id: modelo.id!,
       estadoActivo: modelo.estadoActivo,
+      nombre: modelo.nombre,
       equipo: equipos.get(modelo.idEquipo!)?.etiqueta ?? 'Equipo no disponible',
       fabricante: fabricantes.get(modelo.idFabricante!) ?? 'Fabricante no disponible',
       invima: modelo.invima,
@@ -97,11 +101,11 @@ export class Modelos {
       return;
     }
 
-    const { idEquipo, idFabricante, invima } = this.formulario.getRawValue();
+    const { nombre, idEquipo, idFabricante, invima } = this.formulario.getRawValue();
 
     // El INVIMA es opcional y una cadena vacia no es un registro sanitario: no se manda.
     this.alta.mutate(
-      invima ? { idEquipo, idFabricante, invima } : { idEquipo, idFabricante },
+      invima ? { nombre, idEquipo, idFabricante, invima } : { nombre, idEquipo, idFabricante },
       { onSuccess: () => this.formulario.reset() },
     );
   }

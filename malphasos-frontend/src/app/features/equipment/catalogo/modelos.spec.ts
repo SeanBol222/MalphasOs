@@ -74,8 +74,19 @@ describe('Modelos del catalogo', () => {
     ]);
   });
 
-  it('crear un modelo con INVIMA manda los tres campos', async () => {
+  it('sin nombre no llega al servidor', async () => {
+    // La validacion del formulario corre antes: es lo que evita un 400 que nadie sabria leer.
     await abrir();
+    escribir('equipoDelModelo', ID_EQUIPO);
+    escribir('fabricanteDelModelo', ID_FABRICANTE);
+    await enviar();
+
+    http.expectNone({ method: 'POST', url: URL_MODELOS });
+  });
+
+  it('crear un modelo con INVIMA manda los cuatro campos', async () => {
+    await abrir();
+    escribir('nombreDelModelo', 'IdeaPad 3');
     escribir('equipoDelModelo', ID_EQUIPO);
     escribir('fabricanteDelModelo', ID_FABRICANTE);
     escribir('invimaDelModelo', 'INV-2');
@@ -84,6 +95,7 @@ describe('Modelos del catalogo', () => {
     const alta = http.expectOne({ method: 'POST', url: URL_MODELOS });
 
     expect(alta.request.body).toEqual({
+      nombre: 'IdeaPad 3',
       idEquipo: ID_EQUIPO,
       idFabricante: ID_FABRICANTE,
       invima: 'INV-2',
@@ -94,8 +106,11 @@ describe('Modelos del catalogo', () => {
     await asentar(fixture);
   });
 
-  it('sin INVIMA la clave no viaja: una cadena vacia no es un registro sanitario', async () => {
+  it('sin INVIMA la clave no viaja, pero el nombre si: no son simetricos', async () => {
+    // Un modelo SIN registro sanitario es un estado normal mientras se tramita; uno sin nombre no es
+    // nada, y el servidor lo rechaza con la columna.
     await abrir();
+    escribir('nombreDelModelo', 'IdeaPad 3');
     escribir('equipoDelModelo', ID_EQUIPO);
     escribir('fabricanteDelModelo', ID_FABRICANTE);
     await enviar();
@@ -103,6 +118,7 @@ describe('Modelos del catalogo', () => {
     const alta = http.expectOne({ method: 'POST', url: URL_MODELOS });
 
     expect(alta.request.body).not.toHaveProperty('invima');
+    expect(alta.request.body.nombre).toBe('IdeaPad 3');
     alta.flush({ id: 'mo2' });
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));

@@ -68,6 +68,9 @@ export class PanelDeModelo {
     idFabricante: ['', Validators.required],
     nombreDeFabricante: [''],
     paisDeFabricante: [''],
+    // Obligatorio, al contrario que el INVIMA: un modelo sin nombre no es nada, y uno sin registro
+    // sanitario es un estado normal mientras se tramita.
+    nombreDeModelo: ['', [Validators.required, Validators.maxLength(50)]],
     invima: ['', Validators.maxLength(50)],
   });
 
@@ -200,7 +203,9 @@ export class PanelDeModelo {
         existente?.id ?? (await this.altaDeEquipo.mutateAsync({ idTipoEquipo: idTipo, idMarca })).id!;
 
       const modelo = await this.altaDeModelo.mutateAsync(
-        v.invima ? { idEquipo, idFabricante, invima: v.invima } : { idEquipo, idFabricante },
+        v.invima
+          ? { nombre: v.nombreDeModelo, idEquipo, idFabricante, invima: v.invima }
+          : { nombre: v.nombreDeModelo, idEquipo, idFabricante },
       );
 
       this.creado.emit(modelo.id!);
