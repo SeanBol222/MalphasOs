@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.client.application.ports.output;
 
 import com.malphasos.malphasos.client.domain.client.Client;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -17,6 +18,14 @@ public interface ClientPersistencePort {
     List<Client> findAll();
 
     Optional<Client> findById(UUID id);
+
+    /**
+     * Los clientes de esta lista, para resolver un listado acotado por dueño.
+     *
+     * <p>Una lista vacía devuelve una lista vacía, que es lo correcto: quien no representa a nadie
+     * no ve ningún cliente.
+     */
+    List<Client> findAllByIds(Collection<UUID> ids);
 
     /**
      * Identificadores de los clientes que esta persona representa, para el filtrado por dueño.

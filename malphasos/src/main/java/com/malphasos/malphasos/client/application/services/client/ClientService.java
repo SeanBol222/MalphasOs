@@ -13,6 +13,7 @@ import com.malphasos.malphasos.client.application.services.client.commands.Remov
 import com.malphasos.malphasos.client.application.services.client.commands.UpdateClientCommand;
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
@@ -43,13 +44,25 @@ public class ClientService implements ClientServicePort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Client> findAll() {
-        return clientPersistencePort.findAll();
+    public List<Client> findAll(ReadScope alcance) {
+        if (alcance.alcanzaATodo()) {
+            return clientPersistencePort.findAll();
+        }
+
+        return clientPersistencePort.findAllByIds(alcance.clientesVisibles());
     }
 
+    /**
+     * Un cliente fuera del alcance se responde como inexistente, y se responde <b>sin consultar la
+     * base</b>: el alcance se comprueba antes, de modo que ni siquiera se averigua si esa fila está.
+     */
     @Override
     @Transactional(readOnly = true)
-    public Client findById(UUID id) {
+    public Client findById(UUID id, ReadScope alcance) {
+        if (!alcance.alcanza(id)) {
+            throw new ClientNotFoundException(id);
+        }
+
         return clientPersistencePort.findById(id).orElseThrow(() -> new ClientNotFoundException(id));
     }
 
@@ -115,9 +128,15 @@ public class ClientService implements ClientServicePort {
                 command.idCliente(), cliente -> cliente.removeRepresentative(command.idPersona()));
     }
 
-    /** Recupera el cliente, le aplica el cambio, lo guarda y publica lo que haya registrado. */
+    /**
+     * Recupera el cliente, le aplica el cambio, lo guarda y publica lo que haya registrado.
+     *
+     * <p>Sin restricción de alcance, y aquí vale para todas las escrituras de este módulo: el
+     * filtrado por dueño acota lo que se <b>lee</b>, y ningún grupo del realm que llegue aquí
+     * tiene autoridad de escritura sobre un cliente. Quien no puede escribir no llega.
+     */
     private Client applyTo(UUID id, Consumer<Client> cambio) {
-        Client cliente = findById(id);
+        Client cliente = findById(id, ReadScope.sinRestriccion());
         cambio.accept(cliente);
 
         return persistAndPublish(cliente);

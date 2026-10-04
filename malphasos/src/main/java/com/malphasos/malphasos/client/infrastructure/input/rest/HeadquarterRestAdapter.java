@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.client.infrastructure.input.rest;
 
 import com.malphasos.malphasos.client.application.ports.input.HeadquarterServicePort;
+import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
 import com.malphasos.malphasos.client.application.services.headquarter.commands.CreateHeadquarterCommand;
 import com.malphasos.malphasos.client.application.services.headquarter.commands.DeactivateHeadquarterCommand;
 import com.malphasos.malphasos.client.application.services.headquarter.commands.UpdateHeadquarterCommand;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -44,15 +46,18 @@ public class HeadquarterRestAdapter {
 
     private final HeadquarterServicePort headquarterServicePort;
     private final ClientRestMapper clientRestMapper;
+    /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
+    private final ReadScopeResolver readScopeResolver;
 
     @Operation(summary = "Listar las sedes de un cliente")
     @PreAuthorize("hasAuthority('client.read')")
     @GetMapping("/clients/{idCliente}/headquarters")
     public List<HeadquarterResponse> getByClient(
-            @Parameter(description = "Identificador del cliente") @PathVariable UUID idCliente) {
+            @Parameter(description = "Identificador del cliente") @PathVariable UUID idCliente,
+            Authentication autenticacion) {
 
         return clientRestMapper.toHeadquarterResponseList(
-                headquarterServicePort.findByClient(idCliente));
+                headquarterServicePort.findByClient(idCliente, readScopeResolver.de(autenticacion)));
     }
 
     @Operation(summary = "Abrir una sede para un cliente")
@@ -74,8 +79,9 @@ public class HeadquarterRestAdapter {
     @Operation(summary = "Obtener una sede por su identificador")
     @PreAuthorize("hasAuthority('client.read')")
     @GetMapping("/headquarters/{id}")
-    public HeadquarterResponse getById(@PathVariable UUID id) {
-        return clientRestMapper.toResponse(headquarterServicePort.findById(id));
+    public HeadquarterResponse getById(@PathVariable UUID id, Authentication autenticacion) {
+        return clientRestMapper.toResponse(
+                headquarterServicePort.findById(id, readScopeResolver.de(autenticacion)));
     }
 
     @Operation(

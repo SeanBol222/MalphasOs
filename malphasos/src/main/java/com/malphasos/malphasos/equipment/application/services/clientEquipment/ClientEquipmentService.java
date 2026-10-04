@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.application.services.clientEquipment;
 
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
 import com.malphasos.malphasos.equipment.application.ports.output.ClientEquipmentPersistencePort;
@@ -61,7 +62,9 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<ClientEquipment> findByServiceArea(UUID idAreaServicio) {
-        serviceAreaServicePort.findById(idAreaServicio);
+        // TODO(filtrado-por-dueno): este listado todavia no acota, y es una de las lecturas que si
+        // filtran datos ajenos. Lo cierra la tanda de equipment; aqui solo se comprueba existencia.
+        serviceAreaServicePort.findById(idAreaServicio, ReadScope.sinRestriccion());
 
         return clientEquipmentPersistencePort.findByServiceArea(idAreaServicio);
     }
@@ -141,9 +144,14 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
         }
     }
 
-    /** Un equipo no se instala donde ya no se opera. */
+    /**
+     * Un equipo no se instala donde ya no se opera.
+     *
+     * <p>Sin restricción de alcance: instalar un equipo exige {@code equipment.write}, que solo
+     * tienen los ingenieros y los administradores.
+     */
     private void requireActiveServiceArea(UUID idAreaServicio) {
-        ServiceArea area = serviceAreaServicePort.findById(idAreaServicio);
+        ServiceArea area = serviceAreaServicePort.findById(idAreaServicio, ReadScope.sinRestriccion());
 
         if (!area.isEstadoActivo()) {
             throw new IllegalArgumentException(

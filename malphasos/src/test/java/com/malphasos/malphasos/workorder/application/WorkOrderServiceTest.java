@@ -31,6 +31,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -131,8 +132,8 @@ class WorkOrderServiceTest {
         @Test
         @DisplayName("con cliente y sede activos, la orden se programa")
         void seProgramaCuandoTodoEstaEnOrden() {
-            when(clientServicePort.findById(CLIENTE)).thenReturn(unCliente(true));
-            when(headquarterServicePort.findById(SEDE)).thenReturn(unaSede(CLIENTE, true));
+            when(clientServicePort.findById(CLIENTE, ReadScope.sinRestriccion())).thenReturn(unCliente(true));
+            when(headquarterServicePort.findById(SEDE, ReadScope.sinRestriccion())).thenReturn(unaSede(CLIENTE, true));
             elAlmacenGuardaYDevuelve();
 
             WorkOrder creada = service.schedule(elComando());
@@ -145,7 +146,7 @@ class WorkOrderServiceTest {
         @Test
         @DisplayName("un cliente retirado no recibe mantenimientos nuevos")
         void clienteRetirado() {
-            when(clientServicePort.findById(CLIENTE)).thenReturn(unCliente(false));
+            when(clientServicePort.findById(CLIENTE, ReadScope.sinRestriccion())).thenReturn(unCliente(false));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.schedule(elComando()))
                     .withMessageContaining("retirado");
@@ -156,8 +157,8 @@ class WorkOrderServiceTest {
         @Test
         @DisplayName("una sede cerrada tampoco")
         void sedeCerrada() {
-            when(clientServicePort.findById(CLIENTE)).thenReturn(unCliente(true));
-            when(headquarterServicePort.findById(SEDE)).thenReturn(unaSede(CLIENTE, false));
+            when(clientServicePort.findById(CLIENTE, ReadScope.sinRestriccion())).thenReturn(unCliente(true));
+            when(headquarterServicePort.findById(SEDE, ReadScope.sinRestriccion())).thenReturn(unaSede(CLIENTE, false));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.schedule(elComando()))
                     .withMessageContaining("cerrada");
@@ -170,8 +171,8 @@ class WorkOrderServiceTest {
         void sedeDeOtroCliente() {
             // La clave foranea compuesta lo impediria igualmente, pero el llamante recibiria un
             // conflicto generico que no le dice cual de las dos referencias falla.
-            when(clientServicePort.findById(CLIENTE)).thenReturn(unCliente(true));
-            when(headquarterServicePort.findById(SEDE))
+            when(clientServicePort.findById(CLIENTE, ReadScope.sinRestriccion())).thenReturn(unCliente(true));
+            when(headquarterServicePort.findById(SEDE, ReadScope.sinRestriccion()))
                     .thenReturn(unaSede(UUID.randomUUID(), true));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.schedule(elComando()))
@@ -196,7 +197,7 @@ class WorkOrderServiceTest {
             // modo que nadie puede declarar una donde el equipo no esta.
             laOrdenExiste();
             when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
-            when(serviceAreaServicePort.findById(AREA)).thenReturn(unArea(true));
+            when(serviceAreaServicePort.findById(AREA, ReadScope.sinRestriccion())).thenReturn(unArea(true));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(CLIENTE);
             elAlmacenGuardaYDevuelve();
 
@@ -225,7 +226,7 @@ class WorkOrderServiceTest {
         void areaCerrada() {
             laOrdenExiste();
             when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
-            when(serviceAreaServicePort.findById(AREA)).thenReturn(unArea(false));
+            when(serviceAreaServicePort.findById(AREA, ReadScope.sinRestriccion())).thenReturn(unArea(false));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("cerrada");
@@ -238,7 +239,7 @@ class WorkOrderServiceTest {
         void equipoDeOtroCliente() {
             laOrdenExiste();
             when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
-            when(serviceAreaServicePort.findById(AREA)).thenReturn(unArea(true));
+            when(serviceAreaServicePort.findById(AREA, ReadScope.sinRestriccion())).thenReturn(unArea(true));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(UUID.randomUUID());
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
@@ -255,7 +256,7 @@ class WorkOrderServiceTest {
             // sitio, y un equipo de otra sede no se va a intervenir ese dia.
             laOrdenExiste();
             when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
-            when(serviceAreaServicePort.findById(AREA))
+            when(serviceAreaServicePort.findById(AREA, ReadScope.sinRestriccion()))
                     .thenReturn(unArea(true, UUID.randomUUID()));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(CLIENTE);
 
@@ -273,7 +274,7 @@ class WorkOrderServiceTest {
             // dos; si alguien invierte el orden, esta prueba lo dice.
             laOrdenExiste();
             when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
-            when(serviceAreaServicePort.findById(AREA))
+            when(serviceAreaServicePort.findById(AREA, ReadScope.sinRestriccion()))
                     .thenReturn(unArea(true, UUID.randomUUID()));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(UUID.randomUUID());
 
@@ -365,8 +366,8 @@ class WorkOrderServiceTest {
         void sePublicanLosDelRecibido() {
             // El agregado que devuelve el almacen se rehidrata y por eso viene sin eventos. Si se
             // publicaran los suyos no se publicaria ninguno, y nadie se enteraria de nada.
-            when(clientServicePort.findById(CLIENTE)).thenReturn(unCliente(true));
-            when(headquarterServicePort.findById(SEDE)).thenReturn(unaSede(CLIENTE, true));
+            when(clientServicePort.findById(CLIENTE, ReadScope.sinRestriccion())).thenReturn(unCliente(true));
+            when(headquarterServicePort.findById(SEDE, ReadScope.sinRestriccion())).thenReturn(unaSede(CLIENTE, true));
             when(workOrderPersistencePort.save(any())).thenAnswer(invocacion -> {
                 WorkOrder recibida = invocacion.getArgument(0);
                 return WorkOrder.rehydrate(recibida.getId(), CLIENTE, SEDE, MANANA,
@@ -402,11 +403,11 @@ class WorkOrderServiceTest {
         @Test
         @DisplayName("buscar por cliente valida el cliente antes de mirar el almacen")
         void porCliente() {
-            when(clientServicePort.findById(CLIENTE)).thenReturn(unCliente(true));
+            when(clientServicePort.findById(CLIENTE, ReadScope.sinRestriccion())).thenReturn(unCliente(true));
             when(workOrderPersistencePort.findByClient(CLIENTE)).thenReturn(List.of());
 
             assertThat(service.findByClient(CLIENTE)).isEmpty();
-            verify(clientServicePort).findById(CLIENTE);
+            verify(clientServicePort).findById(CLIENTE, ReadScope.sinRestriccion());
         }
 
         @Test

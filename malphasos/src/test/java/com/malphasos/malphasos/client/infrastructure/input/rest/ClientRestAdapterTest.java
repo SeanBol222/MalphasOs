@@ -32,6 +32,7 @@ import com.malphasos.malphasos.client.infrastructure.input.model.request.Headqua
 import com.malphasos.malphasos.client.infrastructure.input.model.request.HeadquarterUpdateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ManagerRegisterRequest;
 import com.malphasos.malphasos.location.domain.exception.CityNotFoundException;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -97,7 +98,7 @@ class ClientRestAdapterTest {
     @DisplayName("un cliente inexistente responde 404 con el codigo del catalogo del modulo")
     void clienteInexistente() throws Exception {
         UUID id = UUID.randomUUID();
-        when(clientServicePort.findById(id)).thenThrow(new ClientNotFoundException(id));
+        when(clientServicePort.findById(id, ReadScope.sinRestriccion())).thenThrow(new ClientNotFoundException(id));
 
         mockMvc.perform(get("/v1/api/clients/" + id))
                 .andExpect(status().isNotFound())

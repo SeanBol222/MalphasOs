@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.client.infrastructure.input.rest;
 
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
+import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
 import com.malphasos.malphasos.client.application.services.serviceArea.commands.CreateServiceAreaCommand;
 import com.malphasos.malphasos.client.application.services.serviceArea.commands.DeactivateServiceAreaCommand;
 import com.malphasos.malphasos.client.application.services.serviceArea.commands.RenameServiceAreaCommand;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -36,12 +38,17 @@ public class ServiceAreaRestAdapter {
     private final ServiceAreaServicePort serviceAreaServicePort;
     private final ClientRestMapper clientRestMapper;
 
+    /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
+    private final ReadScopeResolver readScopeResolver;
+
     @Operation(summary = "Listar las areas de una sede")
     @PreAuthorize("hasAuthority('service-area.read')")
     @GetMapping("/headquarters/{idSede}/service-areas")
-    public List<ServiceAreaResponse> getByHeadquarter(@PathVariable UUID idSede) {
+    public List<ServiceAreaResponse> getByHeadquarter(
+            @PathVariable UUID idSede, Authentication autenticacion) {
+
         return clientRestMapper.toServiceAreaResponseList(
-                serviceAreaServicePort.findByHeadquarter(idSede));
+                serviceAreaServicePort.findByHeadquarter(idSede, readScopeResolver.de(autenticacion)));
     }
 
     @Operation(
@@ -61,8 +68,9 @@ public class ServiceAreaRestAdapter {
     @Operation(summary = "Obtener un area por su identificador")
     @PreAuthorize("hasAuthority('service-area.read')")
     @GetMapping("/service-areas/{id}")
-    public ServiceAreaResponse getById(@PathVariable UUID id) {
-        return clientRestMapper.toResponse(serviceAreaServicePort.findById(id));
+    public ServiceAreaResponse getById(@PathVariable UUID id, Authentication autenticacion) {
+        return clientRestMapper.toResponse(
+                serviceAreaServicePort.findById(id, readScopeResolver.de(autenticacion)));
     }
 
     @Operation(

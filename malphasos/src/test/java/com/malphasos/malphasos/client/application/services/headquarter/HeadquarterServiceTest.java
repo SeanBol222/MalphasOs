@@ -23,6 +23,7 @@ import com.malphasos.malphasos.location.domain.exception.CityNotFoundException;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.shared.domain.events.DomainEvent;
 import com.malphasos.malphasos.shared.domain.events.Payload;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -110,7 +111,7 @@ class HeadquarterServiceTest {
     void listarPorClienteInexistente() {
         when(clientPort.findById(CLIENTE)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service().findByClient(CLIENTE))
+        assertThatThrownBy(() -> service().findByClient(CLIENTE, ReadScope.sinRestriccion()))
                 .isInstanceOf(ClientNotFoundException.class);
     }
 

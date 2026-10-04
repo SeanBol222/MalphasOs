@@ -10,16 +10,30 @@ import com.malphasos.malphasos.client.application.services.client.commands.Remov
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveRepresentativeCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.UpdateClientCommand;
 import com.malphasos.malphasos.client.domain.client.Client;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.List;
 import java.util.UUID;
 
 /** Casos de uso sobre clientes. */
 public interface ClientServicePort {
 
-    List<Client> findAll();
+    /**
+     * Los clientes que quien consulta tiene derecho a ver.
+     *
+     * <p>El alcance es un argumento y no un dato ambiental: así esta firma declara que este listado
+     * filtra, y una implementación nueva no puede olvidarlo.
+     */
+    List<Client> findAll(ReadScope alcance);
 
     /** @throws com.malphasos.malphasos.client.domain.exception.ClientNotFoundException si no existe */
-    Client findById(UUID id);
+    /**
+     * Un cliente, si entra en el alcance de quien consulta.
+     *
+     * @throws com.malphasos.malphasos.client.domain.exception.ClientNotFoundException si no existe
+     *     <b>o si queda fuera del alcance</b>. Son el mismo error a propósito: distinguirlos
+     *     confirmaría que ese identificador existe.
+     */
+    Client findById(UUID id, ReadScope alcance);
 
     Client create(CreateClientCommand command);
 

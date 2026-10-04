@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.client.infrastructure.input.rest;
 
 import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
+import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientPhoneCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
@@ -25,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -51,20 +53,32 @@ public class ClientRestAdapter {
     private final ClientServicePort clientServicePort;
     private final ClientRestMapper clientRestMapper;
 
+    /**
+     * Quién llama se traduce aquí a un alcance de lectura, y no más abajo.
+     *
+     * <p>Es la frontera: en esta capa ya se autorizaba con {@code @PreAuthorize}, de modo que es
+     * donde corresponde mirar la autenticación. El caso de uso recibe el resultado como un valor y
+     * sigue sin saber quién pregunta.
+     */
+    private final ReadScopeResolver readScopeResolver;
+
     @Operation(summary = "Listar todos los clientes")
     @PreAuthorize("hasAuthority('client.read')")
     @GetMapping
-    public List<ClientResponse> getAllClients() {
-        return clientRestMapper.toClientResponseList(clientServicePort.findAll());
+    public List<ClientResponse> getAllClients(Authentication autenticacion) {
+        return clientRestMapper.toClientResponseList(
+                clientServicePort.findAll(readScopeResolver.de(autenticacion)));
     }
 
     @Operation(summary = "Obtener un cliente por su identificador")
     @PreAuthorize("hasAuthority('client.read')")
     @GetMapping("/{id}")
     public ClientResponse getClientById(
-            @Parameter(description = "Identificador del cliente") @PathVariable UUID id) {
+            @Parameter(description = "Identificador del cliente") @PathVariable UUID id,
+            Authentication autenticacion) {
 
-        return clientRestMapper.toResponse(clientServicePort.findById(id));
+        return clientRestMapper.toResponse(
+                clientServicePort.findById(id, readScopeResolver.de(autenticacion)));
     }
 
     @Operation(summary = "Registrar un cliente")
