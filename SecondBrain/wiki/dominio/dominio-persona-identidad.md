@@ -47,7 +47,9 @@ Al migrar, `PersonIdentityPort` solo sabía **crear** un usuario y **borrarlo** 
 
 El puerto suma ahora `disableUser(userId)` y `updateUserProfile(userId, perfil)`. Las decisiones que sostienen esas dos operaciones —por qué se deshabilita en vez de borrar, en qué orden se llama a cada sistema, qué se propaga y qué no se puede propagar todavía, y qué ventana queda abierta pese a todo— están en [[sincronizacion-con-proveedor-de-identidad]], porque aplican a cualquier adaptador hacia un sistema que también guarda estado, no solo a este.
 
-Dos cosas siguen **sin** hacer, ninguna por olvido: **cambiar `tipoPersona` no mueve al usuario de grupo** en Keycloak, y **no existe `enableUser`** porque no hay camino de reactivación que lo llamaría.
+El puerto suma además `syncGroup(userId, roleType)` desde el **2026-10-04**: **cambiar `tipoPersona` ya mueve al usuario de grupo**, y este párrafo decía lo contrario. Era deuda heredada, y lo que la volvió urgente fue el filtrado por dueño del mismo día —ver [[filtrado-por-dueno]]—, porque el alcance de lectura se decide por el tipo y la fila podía contradecir al grupo sin que nada lo notara.
+
+Sigue **sin** hacer, y no por olvido: **no existe `enableUser`**, porque no hay camino de reactivación que lo llamaría.
 
 
 ## Reutilizable en MalphasOS
