@@ -139,8 +139,20 @@ erDiagram
 ```
 
 **Defecto conocido**: a `ciudad` le falta un nivel de división administrativa. 64 nombres de municipio
-se repiten entre departamentos colombianos y `UQ_ciudad_nombre_por_pais` los hace imposibles. Ver
-[[dominio-ubicacion]].
+se repiten entre departamentos colombianos —cuatro La Unión, cuatro Villanueva, cuatro Buenavista— y
+`UQ_ciudad_nombre_por_pais` los haría imposibles.
+
+> **Matizado el 2026-10-04, porque esta frase engañaba.** Decía que el índice «los hace imposibles» y
+> ahí se cortaba, de modo que un lector concluye que esos 64 municipios **no se pueden registrar**. No
+> es así: `V7` los desambigua metiendo el departamento en el nombre —`La Unión (Nariño)`— y **los 1.103
+> municipios están sembrados**, comprobado contra la base. Lo que queda es deuda de modelo y no un
+> hueco de datos: el nombre carga con información que debería ser una columna, y ordenar o buscar por
+> departamento sigue siendo imposible. La fila completa, en [[deuda-tecnica-y-riesgos]].
+>
+> Se corrige dejando constancia porque **el resumen truncado llegó a inducir el error**: en esta misma
+> sesión se dio por hecho, citando esta línea, que había 64 municipios que no se podían dar de alta.
+
+Ver [[dominio-ubicacion]].
 
 ## `person` — 3 tablas
 
