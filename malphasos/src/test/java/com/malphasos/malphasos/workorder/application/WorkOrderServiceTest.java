@@ -196,7 +196,7 @@ class WorkOrderServiceTest {
             // Es la regla mas importante de esta capa: el comando no tiene sitio para un area, de
             // modo que nadie puede declarar una donde el equipo no esta.
             laOrdenExiste();
-            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, true));
             when(serviceAreaServicePort.findById(AREA, ReadScope.unrestricted())).thenReturn(unArea(true));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(CLIENTE);
             elAlmacenGuardaYDevuelve();
@@ -213,7 +213,7 @@ class WorkOrderServiceTest {
         @DisplayName("una unidad dada de baja no entra en una orden")
         void unidadDadaDeBaja() {
             laOrdenExiste();
-            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, false));
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, false));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("dada de baja");
@@ -225,7 +225,7 @@ class WorkOrderServiceTest {
         @DisplayName("un equipo en un area cerrada tampoco: seria programar donde no se opera")
         void areaCerrada() {
             laOrdenExiste();
-            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, true));
             when(serviceAreaServicePort.findById(AREA, ReadScope.unrestricted())).thenReturn(unArea(false));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
@@ -238,7 +238,7 @@ class WorkOrderServiceTest {
         @DisplayName("un equipo de otro cliente no entra en la orden")
         void equipoDeOtroCliente() {
             laOrdenExiste();
-            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, true));
             when(serviceAreaServicePort.findById(AREA, ReadScope.unrestricted())).thenReturn(unArea(true));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(UUID.randomUUID());
 
@@ -255,7 +255,7 @@ class WorkOrderServiceTest {
             // abierta, mismo cliente- porque el cliente si coincide. Una orden se presta en un
             // sitio, y un equipo de otra sede no se va a intervenir ese dia.
             laOrdenExiste();
-            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, true));
             when(serviceAreaServicePort.findById(AREA, ReadScope.unrestricted()))
                     .thenReturn(unArea(true, UUID.randomUUID()));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(CLIENTE);
@@ -273,7 +273,7 @@ class WorkOrderServiceTest {
             // serian ciertas. Se comprueba el cliente primero porque es la mas informativa de las
             // dos; si alguien invierte el orden, esta prueba lo dice.
             laOrdenExiste();
-            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(unaUnidad(AREA, true));
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, true));
             when(serviceAreaServicePort.findById(AREA, ReadScope.unrestricted()))
                     .thenReturn(unArea(true, UUID.randomUUID()));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(UUID.randomUUID());
@@ -293,7 +293,7 @@ class WorkOrderServiceTest {
             Assertions.assertThatExceptionOfType(WorkOrderNotFoundException.class)
                     .isThrownBy(() -> service.addEquipment(elComando()));
 
-            verify(clientEquipmentServicePort, never()).findById(any());
+            verify(clientEquipmentServicePort, never()).findById(any(), any());
             verify(workOrderPersistencePort, never()).save(any());
         }
     }

@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.rest;
 
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
+import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.DecommissionClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RegisterClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RelocateClientEquipmentCommand;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -37,14 +39,23 @@ public class ClientEquipmentRestAdapter {
     private final ClientEquipmentServicePort clientEquipmentServicePort;
     private final EquipmentRestMapper mapper;
 
+    /**
+     * Traduce quién llama a un alcance de lectura.
+     *
+     * <p>Vive en {@code client} y se usa desde aquí: este módulo ya dependía de aquel, y duplicar el
+     * resolutor habría significado dos sitios donde decidir quién ve qué.
+     */
+    private final ReadScopeResolver readScopeResolver;
+
     @Operation(summary = "Inventario de un area de servicio")
     @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/service-areas/{idAreaServicio}/equipments")
     public List<ClientEquipmentResponse> getByServiceArea(
-            @Parameter(description = "Identificador del area") @PathVariable UUID idAreaServicio) {
+            @Parameter(description = "Identificador del area") @PathVariable UUID idAreaServicio,
+            Authentication autenticacion) {
 
-        return mapper.toClientEquipmentList(
-                clientEquipmentServicePort.findByServiceArea(idAreaServicio));
+        return mapper.toClientEquipmentList(clientEquipmentServicePort.findByServiceArea(
+                idAreaServicio, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Incorporar una unidad al inventario de un area",
@@ -70,15 +81,17 @@ public class ClientEquipmentRestAdapter {
     @Operation(summary = "Listar todas las unidades")
     @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/client-equipments")
-    public List<ClientEquipmentResponse> getAll() {
-        return mapper.toClientEquipmentList(clientEquipmentServicePort.findAll());
+    public List<ClientEquipmentResponse> getAll(Authentication autenticacion) {
+        return mapper.toClientEquipmentList(
+                clientEquipmentServicePort.findAll(readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Obtener una unidad por su identificador")
     @PreAuthorize("hasAuthority('equipment.read')")
     @GetMapping("/client-equipments/{id}")
-    public ClientEquipmentResponse getById(@PathVariable UUID id) {
-        return mapper.toResponse(clientEquipmentServicePort.findById(id));
+    public ClientEquipmentResponse getById(@PathVariable UUID id, Authentication autenticacion) {
+        return mapper.toResponse(
+                clientEquipmentServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Corregir los datos de compra de una unidad",

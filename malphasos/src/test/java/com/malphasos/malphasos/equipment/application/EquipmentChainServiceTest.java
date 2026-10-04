@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
+import com.malphasos.malphasos.client.application.ports.input.ClientOwnershipPort;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.equipment.application.ports.input.BrandServicePort;
@@ -70,6 +71,7 @@ class EquipmentChainServiceTest {
     @Mock private EquipmentServicePort equipmentService;
     @Mock private ModelServicePort modelService;
     @Mock private ServiceAreaServicePort areaService;
+    @Mock private ClientOwnershipPort ownershipPort;
     @Mock private EventDispatcherPort dispatcher;
 
     @SuppressWarnings("unchecked")
@@ -160,7 +162,7 @@ class EquipmentChainServiceTest {
     class Unidad {
 
         private ClientEquipmentService service() {
-            return new ClientEquipmentService(unitPort, modelService, areaService, dispatcher);
+            return new ClientEquipmentService(unitPort, modelService, areaService, ownershipPort, dispatcher);
         }
 
         private void elAreaEsta(boolean activa) {

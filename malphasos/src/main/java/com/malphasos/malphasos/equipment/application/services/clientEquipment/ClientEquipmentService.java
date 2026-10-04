@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.application.services.clientEquipment;
 
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
+import com.malphasos.malphasos.client.application.ports.input.ClientOwnershipPort;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
@@ -16,6 +17,7 @@ import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationE
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
+import java.util.Set;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -44,27 +46,59 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
     private final ClientEquipmentPersistencePort clientEquipmentPersistencePort;
     private final ModelServicePort modelServicePort;
     private final ServiceAreaServicePort serviceAreaServicePort;
+
+    /**
+     * El camino del equipo a su dueño lo recorre el módulo de clientes, no este.
+     *
+     * <p>Un equipo guarda su área; de ahí al cliente hay dos saltos más que son suyos. Preguntarle
+     * evita que este módulo una tres tablas ajenas en una consulta propia, que es la clase de atajo
+     * que convierte dos módulos en uno.
+     */
+    private final ClientOwnershipPort clientOwnershipPort;
     private final EventDispatcherPort eventDispatcherPort;
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClientEquipment> findAll() {
-        return clientEquipmentPersistencePort.findAll();
+    public List<ClientEquipment> findAll(ReadScope alcance) {
+        if (alcance.coversEverything()) {
+            return clientEquipmentPersistencePort.findAll();
+        }
+
+        Set<UUID> areas = clientOwnershipPort.serviceAreasOf(alcance.visibleClients());
+
+        // Sin áreas no hay equipos, y preguntarlo igual sería un «IN ()» que algunos motores ni
+        // aceptan. Un representante recién nombrado sobre un cliente sin sedes cae aquí.
+        if (areas.isEmpty()) {
+            return List.of();
+        }
+
+        return clientEquipmentPersistencePort.findByServiceAreaIn(areas);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ClientEquipment findById(UUID id) {
-        return clientEquipmentPersistencePort.findById(id)
+    public ClientEquipment findById(UUID id, ReadScope alcance) {
+        ClientEquipment unidad = clientEquipmentPersistencePort.findById(id)
                 .orElseThrow(() -> new ClientEquipmentNotFoundException(id));
+
+        // El dueño está a tres saltos —equipo, área, sede, cliente— y el módulo de clientes lo
+        // resuelve en una sola llamada con findOwningClient, que ya existía para la regla del
+        // traslado. Solo se pregunta cuando el alcance restringe.
+        if (!alcance.coversEverything()
+                && !alcance.covers(serviceAreaServicePort.findOwningClient(unidad.getIdAreaServicio()))) {
+            throw new ClientEquipmentNotFoundException(id);
+        }
+
+        return unidad;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClientEquipment> findByServiceArea(UUID idAreaServicio) {
-        // TODO(filtrado-por-dueno): este listado todavia no acota, y es una de las lecturas que si
-        // filtran datos ajenos. Lo cierra la tanda de equipment; aqui solo se comprueba existencia.
-        serviceAreaServicePort.findById(idAreaServicio, ReadScope.unrestricted());
+    public List<ClientEquipment> findByServiceArea(UUID idAreaServicio, ReadScope alcance) {
+        // Esta es la única de las tres que no necesita comprobar nada: resolver el área con el
+        // alcance ya lanza «esa área no existe» si es de otro cliente. La comprobación de existencia
+        // y la de pertenencia son la misma llamada.
+        serviceAreaServicePort.findById(idAreaServicio, alcance);
 
         return clientEquipmentPersistencePort.findByServiceArea(idAreaServicio);
     }
@@ -94,7 +128,9 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
     public ClientEquipment relocate(RelocateClientEquipmentCommand command) {
         requireActiveServiceArea(command.idAreaServicio());
 
-        ClientEquipment unidad = findById(command.id());
+        // Las tres escrituras de abajo van sin restriccion: el alcance acota lecturas, y mover,
+        // editar o dar de baja un equipo exige equipment.write.
+        ClientEquipment unidad = findById(command.id(), ReadScope.unrestricted());
         requireSameClient(unidad, command.idAreaServicio());
         unidad.relocateTo(command.idAreaServicio());
 
@@ -104,7 +140,7 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
     @Override
     @Transactional
     public ClientEquipment update(UpdateClientEquipmentCommand command) {
-        ClientEquipment unidad = findById(command.id());
+        ClientEquipment unidad = findById(command.id(), ReadScope.unrestricted());
         unidad.update(command.numeroInventario(), command.fechaCompra(), command.valorCompra());
 
         return persistAndPublish(unidad);
@@ -113,7 +149,7 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
     @Override
     @Transactional
     public void decommission(DecommissionClientEquipmentCommand command) {
-        ClientEquipment unidad = findById(command.id());
+        ClientEquipment unidad = findById(command.id(), ReadScope.unrestricted());
         unidad.decommission();
 
         persistAndPublish(unidad);

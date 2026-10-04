@@ -22,6 +22,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
@@ -76,7 +77,8 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<ServiceReport> findByEquipment(UUID idEquipoCliente) {
-        clientEquipmentServicePort.findById(idEquipoCliente);
+        // TODO(filtrado-por-dueno): sin acotar todavia. Lo cierra la tanda de report.
+        clientEquipmentServicePort.findById(idEquipoCliente, ReadScope.unrestricted());
 
         return serviceReportPersistencePort.findByEquipment(idEquipoCliente);
     }
@@ -414,7 +416,9 @@ public class ServiceReportService implements ServiceReportServicePort {
      * que el día que haga falta un atajo se sepa exactamente dónde ponerlo.
      */
     private EquipmentType tipoDelEquipo(UUID idEquipoCliente) {
-        ClientEquipment unidad = clientEquipmentServicePort.findById(idEquipoCliente);
+        // Sin restriccion: resuelve la forma de la tabla de verificacion, no datos de un cliente, y
+        // quien entra a este camino ya paso por la comprobacion de su propio recurso.
+        ClientEquipment unidad = clientEquipmentServicePort.findById(idEquipoCliente, ReadScope.unrestricted());
         UUID idEquipoCatalogo = modelServicePort.findById(unidad.getIdModelo()).getIdEquipo();
         UUID idTipo = equipmentServicePort.findById(idEquipoCatalogo).getIdTipoEquipo();
 

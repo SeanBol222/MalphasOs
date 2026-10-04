@@ -42,6 +42,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -158,7 +159,7 @@ class ServiceReportServiceTest {
      * {@code NullPointerException} en vez de ejercerse.
      */
     private void estubarCadenaDelCatalogo(EquipmentType tipo) {
-        when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(
+        when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(
                 ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, true));
         when(modelServicePort.findById(MODELO)).thenReturn(
                 Model.rehydrate(MODELO, "IdeaPad 3", null, UUID.randomUUID(), EQUIPO_CATALOGO, true));
@@ -775,12 +776,12 @@ class ServiceReportServiceTest {
         @Test
         @DisplayName("el historial de un equipo comprueba antes que el equipo existe")
         void elHistorialCompruebaQueElEquipoExiste() {
-            when(clientEquipmentServicePort.findById(EQUIPO)).thenReturn(
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(
                     ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, true));
             when(serviceReportPersistencePort.findByEquipment(EQUIPO)).thenReturn(List.of());
 
             assertThat(service.findByEquipment(EQUIPO)).isEmpty();
-            verify(clientEquipmentServicePort).findById(EQUIPO);
+            verify(clientEquipmentServicePort).findById(EQUIPO, ReadScope.unrestricted());
         }
     }
 }

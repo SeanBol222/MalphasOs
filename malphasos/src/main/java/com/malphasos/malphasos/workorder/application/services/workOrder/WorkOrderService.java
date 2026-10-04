@@ -106,7 +106,8 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Override
     @Transactional(readOnly = true)
     public List<WorkOrder> findByEquipment(UUID idEquipoCliente) {
-        clientEquipmentServicePort.findById(idEquipoCliente);
+        // TODO(filtrado-por-dueno): sin acotar todavia, como findByClient y findByHeadquarter.
+        clientEquipmentServicePort.findById(idEquipoCliente, ReadScope.unrestricted());
 
         return workOrderPersistencePort.findByEquipment(idEquipoCliente);
     }
@@ -148,7 +149,8 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Transactional
     public WorkOrder addEquipment(AddEquipmentToWorkOrderCommand command) {
         WorkOrder orden = findById(command.id());
-        ClientEquipment unidad = clientEquipmentServicePort.findById(command.idEquipoCliente());
+        ClientEquipment unidad =
+                clientEquipmentServicePort.findById(command.idEquipoCliente(), ReadScope.unrestricted());
 
         if (!unidad.isEstadoActivo()) {
             throw new IllegalArgumentException(

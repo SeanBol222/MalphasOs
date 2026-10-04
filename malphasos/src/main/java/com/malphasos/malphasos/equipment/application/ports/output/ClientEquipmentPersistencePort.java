@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.application.ports.output;
 
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,9 @@ public interface ClientEquipmentPersistencePort {
 
     /** Inventario de un área de servicio: lo que hay instalado en ella. */
     List<ClientEquipment> findByServiceArea(UUID idAreaServicio);
+
+    /** Los equipos instalados en cualquiera de estas áreas, para resolver un listado acotado. */
+    List<ClientEquipment> findByServiceAreaIn(Collection<UUID> idsAreas);
 
     ClientEquipment save(ClientEquipment clientEquipment);
 }
