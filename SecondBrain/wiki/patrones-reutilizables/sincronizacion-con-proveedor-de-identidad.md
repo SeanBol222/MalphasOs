@@ -74,9 +74,15 @@ Verificado contra un **Keycloak 26.6.1 real**, no contra dobles:
 
 **La brecha queda cerrada para las autenticaciones nuevas, no para las ya emitidas.** Cerrarla del todo exigiría introspección del token en cada petición (o una lista de revocación consultada por el resource server), que es un coste por petición que hoy no se paga. Queda dicho, no resuelto.
 
-## Un agujero de la misma familia que sigue abierto
+## Un agujero de la misma familia, cerrado el 2026-10-04
 
-**Cambiar `tipoPersona` no mueve al usuario de grupo en Keycloak.** Quien deja de ser ingeniero conserva los permisos de ingeniero: la pertenencia a grupo se fija una sola vez, al crear el usuario en `createUser`. No entró en esta tanda a propósito —cambiar de rol tiene consecuencias de permisos que merecen su propio caso de uso— y pertenece a la línea de trabajo del [[modelo-de-permisos]], no a la de sincronización de datos.
+**Este apartado se llamaba «un agujero de la misma familia que sigue abierto».** Decía que cambiar `tipoPersona` no mueve al usuario de grupo, que la pertenencia se fija una sola vez al crear el usuario, y que eso pertenecía «a la línea de trabajo del [[modelo-de-permisos]], no a la de sincronización de datos». **Cerrado**, con `syncGroup`.
+
+Y la frase que conviene corregir no es la del hecho, es la de la clasificación: **sí era sincronización de datos**, y de la peor clase. El alcance de lectura se decide por el tipo de la persona —ver [[filtrado-por-dueno]]—, de modo que la fila y la identidad podían decir cosas distintas y **el sistema creía las dos a la vez**: el filtro miraba el tipo y las autoridades venían del grupo. Clasificarlo como «cosa de permisos, no de sincronización» es lo que lo dejó un mes abierto en la nota que precisamente trata de los dos sistemas que no comparten transacción.
+
+**Lo que `syncGroup` decide, y no es evidente.** `PersonType` tiene cinco valores y los grupos del realm son tres, así que el mapeo no es total. Un encargado no queda en **ningún** grupo, porque no accede al sistema: su cuenta autentica y toda llamada suya responde 403. Y un `SUPER_ADMIN` queda en el grupo de administradores, que es lo más que un grupo puede dar —ninguno concede `super.admin.full`, a propósito—, porque dejarlo sin grupo dejaría sin acceso a quien se acaba de promover. El `switch` es una expresión, de modo que un sexto tipo no compilará sin decidir con qué entra.
+
+**Y es idempotente, recorriendo los tres grupos en vez de preguntar por el actual.** Cuesta lo mismo y además **corrige** una cuenta que acabó en dos grupos a mano, en lugar de dejarla así. Los grupos que este sistema no administra no se tocan.
 
 Por el mismo criterio **no se añadió `enableUser`**: hoy no existe ningún camino de reactivación que lo llamaría, y un puerto con operaciones que nadie invoca es código muerto.
 

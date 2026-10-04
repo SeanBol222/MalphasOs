@@ -1386,3 +1386,56 @@ muertos en los puertos de sedes y áreas, y la lista `IN` que viaja con el alcan
 **Tocadas**: [[filtrado-por-dueno]] (nueva), [[modelo-de-permisos]], [[decisiones-tecnicas-malphasos]],
 [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]], [[esquema-bd-malphasos]],
 [[checklist-reutilizacion]], [[index]] y el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-04] ingest | una escalada de privilegios que nadie había visto, y la deuda que la volvió fuga
+
+**Segunda entrada del día, y la primera consecuencia del filtrado por dueño: lo que esta mañana era
+deuda de forma resultó ser de seguridad.** Se fue a mirar los tres `PUT` que `person` conserva —una
+violación de la convención, severidad baja— y detrás había dos cosas.
+
+### La escalada
+
+`PersonWriteGuard` miraba el tipo que la persona **tiene**, y la edición puede cambiárselo en la misma
+petición. Con `person.write` —que el grupo `admins` tiene— se podía tomar a un representante de cliente
+y dejarlo `ADMIN`, o `SUPER_ADMIN`, que es exactamente lo que `POST /persons/admins` exige
+`super.person.write` para hacer. **El escalón de arriba no significaba nada por la puerta de al lado.**
+
+Cómo sobrevivió, que es lo que conviene recordar: **tres invariantes estructurales sostienen la escalera
+y ninguna miraba el destino del cambio**, solo el origen. Y **no existía ninguna prueba de
+`PersonWriteGuard`**, la clase donde vive la regla: la cubría de refilón la de seguridad, que comprueba
+códigos HTTP y no las ramas de esta decisión. Se demostró antes de arreglarla —dos pruebas que fallaron
+contra el código anterior— y se cerró el mismo día con `canUpdate`, que exige las dos autoridades.
+
+**Y el filtrado por dueño de esta misma mañana la había convertido en una fuga de lectura**: el alcance
+se decide por el tipo de la persona, así que cambiarle el tipo a una cuenta del grupo `clients` le
+quitaba el filtro sin tocarle ni un rol de Keycloak. No era previsible ayer; lo es desde que el filtro
+existe. **Construir una pieza puede subir la severidad de una deuda ya anotada**, y nada avisa de eso
+salvo volver a leer la lista.
+
+### La deuda heredada, cerrada por la misma razón
+
+**Cambiar `tipoPersona` ya mueve al usuario de grupo.** Llevaba abierta desde el 2026-09-09, clasificada
+en [[sincronizacion-con-proveedor-de-identidad]] como «de permisos, no de datos» — y esa clasificación
+es lo que la dejó fuera de la nota que precisamente trata de dos sistemas que no comparten transacción.
+Era de las dos cosas: la fila decía un tipo, el grupo daba otras autoridades, y **el sistema creía las
+dos a la vez**.
+
+`PersonType` tiene cinco valores y los grupos del realm son tres, así que el mapeo no es total y las dos
+decisiones que faltaban van escritas donde se toman: un **encargado no queda en ningún grupo** —no
+accede: su cuenta autentica y toda llamada responde 403— y un **`SUPER_ADMIN` queda en el de
+administradores**, que es lo más que un grupo puede dar, con aviso en el log.
+
+### Dos cosas más que salieron al pasar
+
+- **La invariante de autorización era ciega a los argumentos con paréntesis.** Su patrón era
+  `\([^)]*\)`, de modo que rechazaba cualquier `@PreAuthorize` que leyera un campo del cuerpo. No
+  dejaba pasar nada indebido: **impedía escribir lo debido**. Ampliada, y comprobado que siga rechazando
+  las formas que debe.
+- **Un motivo del frontend caducó.** [[decisiones-tecnicas-malphasos]] decía que el tipo de persona «se
+  ve y no se cambia» porque el servidor no completaba la consecuencia. Ya la completa: la pantalla sigue
+  igual porque nadie la ha tocado, y queda como decisión de producto.
+
+**Deuda: 74 filas, 30 tachadas, 44 abiertas** —eran 71/28/43—. Cierra dos y abre tres.
+
+**Tocadas**: [[deuda-tecnica-y-riesgos]], [[sincronizacion-con-proveedor-de-identidad]],
+[[dominio-persona-identidad]], [[decisiones-tecnicas-malphasos]] y el `CONVENCIONES.md` de la raíz.
