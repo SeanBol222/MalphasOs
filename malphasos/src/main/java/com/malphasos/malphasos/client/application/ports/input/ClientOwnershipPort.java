@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.client.application.ports.input;
 
 import java.util.Set;
+import java.util.Collection;
 import java.util.UUID;
 
 /**
@@ -28,4 +29,18 @@ public interface ClientOwnershipPort {
      * distinción la sostiene {@code ReadScope}, no este puerto.
      */
     Set<UUID> clientsRepresentedBy(UUID idPersona);
+
+    /**
+     * Identificadores de las áreas de servicio que cuelgan de estos clientes.
+     *
+     * <p>Existe porque un equipo instalado no guarda su cliente: guarda su área, y el camino hasta
+     * el dueño —área, sede, cliente— es de este módulo. Sin esto, {@code equipment} tendría que
+     * recorrerlo por su cuenta o unir tres tablas ajenas en una consulta propia.
+     *
+     * <p>Se pregunta por un conjunto de clientes y no por un alcance entero a propósito: un alcance
+     * libre obligaría a devolver <b>todas</b> las áreas del sistema para no filtrar nada, que es la
+     * consulta más cara posible para el caso en el que no hay nada que filtrar. Quien llama solo
+     * pregunta cuando el alcance restringe.
+     */
+    Set<UUID> serviceAreasOf(Collection<UUID> idsClientes);
 }

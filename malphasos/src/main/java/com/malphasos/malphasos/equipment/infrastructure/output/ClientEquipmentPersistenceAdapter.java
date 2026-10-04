@@ -5,6 +5,7 @@ import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.infrastructure.output.mapper.EquipmentChainPersistenceMapper;
 import com.malphasos.malphasos.equipment.infrastructure.output.repository.ClientEquipmentRepository;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,11 @@ public class ClientEquipmentPersistenceAdapter implements ClientEquipmentPersist
     @Override
     public List<ClientEquipment> findByServiceArea(UUID idAreaServicio) {
         return mapper.toClientEquipmentList(clientEquipmentRepository.findByIdAreaServicio(idAreaServicio));
+    }
+
+    @Override
+    public List<ClientEquipment> findByServiceAreaIn(Collection<UUID> idsAreas) {
+        return mapper.toClientEquipmentList(clientEquipmentRepository.findByIdAreaServicioIn(idsAreas));
     }
 
     @Override

@@ -5,6 +5,8 @@ import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.client.infrastructure.output.mapper.ServiceAreaPersistenceMapper;
 import com.malphasos.malphasos.client.infrastructure.output.repository.ServiceAreaRepository;
 import java.util.List;
+import java.util.Collection;
+import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,11 @@ public class ServiceAreaPersistenceAdapter implements ServiceAreaPersistencePort
     @Override
     public List<ServiceArea> findByHeadquarter(UUID idSede) {
         return serviceAreaPersistenceMapper.toDomainList(serviceAreaRepository.findByIdSede(idSede));
+    }
+
+    @Override
+    public Set<UUID> findIdsByClients(Collection<UUID> idsClientes) {
+        return serviceAreaRepository.findIdsByClients(idsClientes);
     }
 
     @Override

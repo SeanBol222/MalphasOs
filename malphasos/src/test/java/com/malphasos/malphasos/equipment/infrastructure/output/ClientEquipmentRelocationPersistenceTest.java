@@ -15,6 +15,7 @@ import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.manufacturer.Manufacturer;
 import com.malphasos.malphasos.equipment.domain.model.Model;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -142,7 +143,7 @@ class ClientEquipmentRelocationPersistenceTest {
                         "SELECT k_id_area_servicio FROM equipo_cliente WHERE k_id_equipo_cliente = ?",
                         UUID.class, unidad.getId()))
                 .isEqualTo(areaDestino.getId());
-        assertThat(clientEquipmentServicePort.findById(unidad.getId()).getIdAreaServicio())
+        assertThat(clientEquipmentServicePort.findById(unidad.getId(), ReadScope.unrestricted()).getIdAreaServicio())
                 .isEqualTo(areaDestino.getId());
     }
 }

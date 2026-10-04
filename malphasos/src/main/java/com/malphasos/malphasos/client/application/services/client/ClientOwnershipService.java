@@ -2,7 +2,9 @@ package com.malphasos.malphasos.client.application.services.client;
 
 import com.malphasos.malphasos.client.application.ports.input.ClientOwnershipPort;
 import com.malphasos.malphasos.client.application.ports.output.ClientPersistencePort;
+import com.malphasos.malphasos.client.application.ports.output.ServiceAreaPersistencePort;
 import java.util.Set;
+import java.util.Collection;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClientOwnershipService implements ClientOwnershipPort {
 
     private final ClientPersistencePort clientPersistencePort;
+    private final ServiceAreaPersistencePort serviceAreaPersistencePort;
 
     @Override
     @Transactional(readOnly = true)
@@ -31,5 +34,15 @@ public class ClientOwnershipService implements ClientOwnershipPort {
         }
 
         return clientPersistencePort.findIdsRepresentedBy(idPersona);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> serviceAreasOf(Collection<UUID> idsClientes) {
+        if (idsClientes == null || idsClientes.isEmpty()) {
+            return Set.of();
+        }
+
+        return serviceAreaPersistencePort.findIdsByClients(idsClientes);
     }
 }
