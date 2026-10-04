@@ -53,7 +53,9 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 
 - [[defectos-conocidos-de-la-ers]] ⭐ — Referencias rotas, huecos de trazabilidad, incoherencias de prioridad y de rendimiento, RF-49 autodependiente, restos de maquetación.
 - [[diagramas-de-casos-de-uso]] — Los diez `.puml`, cuáles están en la ERS y cuáles dibujan módulos inexistentes.
+- [[estado-de-la-ers-caducado]] ⭐ — **Lo que la ERS afirma de sí misma y el código desmiente**: seis anotaciones de estado escritas cuando el esquema iba por `V5`, y dos requisitos contados como implementados contra el texto del propio `.tex`. Entró el 2026-10-04, y es la primera comparación de la ERS contra el código **en la dirección contraria**: no «se documenta algo que no existe» sino «se documenta como inexistente algo que ya está».
+
 
 ---
 
-**27 notas de contenido** más `CONVENCIONES.md` y `log.md` · última actualización 2026-10-03 · ver [[log.md]] para el historial.
+**28 notas de contenido** más `CONVENCIONES.md` y `log.md` · última actualización 2026-10-04 · ver [[log.md]] para el historial.

@@ -4,7 +4,7 @@ description: La cifra agregada de implementacion de MalphasOS -17 de 31 RF, 1 de
 tags: [requisitos, estado, trazabilidad]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2; Documentation/TraceabilityMatrix/MatrizDeTrazabilidad.tex"
 estado: vigente
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Estado de implementación agregado
@@ -63,6 +63,27 @@ Tres categorías fundacionales concentraron todo lo construido al principio: ges
 | 3.2.8 Módulo Comercial | RF-45, RF-47 | 2 | 0 | [[rf-modulo-comercial]] |
 | 3.2.9 Usuarios y seguridad | RF-49 a RF-53 | 5 | 5 | [[rf-usuarios-seguridad]] |
 | **Total** | | **31** | **17** | |
+
+## ⚠️ Sexta verificación, 4 de octubre de 2026: dos de los 17 están en duda
+
+**Primera vez que esta cifra se contrasta contra la ERS en la dirección contraria**: hasta ahora se
+comprobaba que no se documentara como existente algo que no estaba, y esta vez se buscó lo inverso —y
+lo que apareció fue un posible **sobreconteo**, no un olvido.
+
+**RF-22 y RF-24 figuran como implementados contra el texto de la propia ERS.** El bloque de estado del
+`.tex` dice que de las cuatro secciones que RF-22 exige, la de servicio técnico «falta, y falta
+entera»; y que «no existe una entidad llamada hoja de vida», de modo que el formulario que el primer
+criterio pide tampoco existe —hay cinco recursos, uno por eslabón del catálogo—. RF-24 depende de RF-22.
+
+Es **la misma situación que RF-04**, que está marcado como desviación. Aplicando el criterio escrito más
+abajo —«cuenta como implementado lo que el backend satisface por completo»— el marcador sería **15 de 31
+con tres desviaciones**. **No se ha cambiado la cifra**: la decisión es la misma que quedó abierta con
+RF-04 y le corresponde a quien lleva el proyecto, pero conviene tomarla una vez y que valga para los
+tres. El detalle, con las citas del `.tex`, en [[estado-de-la-ers-caducado]].
+
+**Y el denominador sí resultó exacto**, comprobado por dos vías independientes que coinciden: 31
+declaraciones `\textbf{RF-xx ...}` y 31 filas de tabla, con la misma lista. Los otros 18 códigos que la
+ERS menciona no son requisitos: se citan sin declararse, y eso ya estaba en [[priorizacion-moscow]].
 
 ## Cómo se verificó, y cuándo
 

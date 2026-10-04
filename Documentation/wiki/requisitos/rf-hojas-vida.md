@@ -4,15 +4,27 @@ description: RF-22, 24, 26, 27, Hojas de Vida de los Equipos (ERS 3.2.5). Dos im
 tags: [requisitos, rf, hojas-de-vida, equipos]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2.5"
 estado: vigente
-updated: 2026-09-05
+updated: 2026-10-04
 ---
 
 # 3.2.5. Hojas de Vida de los Equipos (RF-22, 24, 26, 27)
 
+> **⚠️ Revisado el 2026-10-04: los dos «implementado» de abajo están en duda, y la duda la plantea el
+> propio texto de la ERS.** RF-22 exige un formulario con cuatro secciones, y el bloque de estado del
+> `.tex` dice que la de **servicio técnico** «falta, y falta entera»; además no hay *un* formulario, sino
+> cinco recursos, uno por eslabón del catálogo. RF-24 depende de RF-22 y pide editar «la hoja de vida»,
+> que no existe como entidad.
+>
+> Es la misma situación que **RF-04**, que está marcado como **desviación** y no como implementado. Con
+> el criterio que el proyecto se fijó por escrito —«cuenta como implementado lo que el backend satisface
+> **por completo**»— estos dos tampoco deberían contar, y el marcador pasaría de 17 a **15 de 31 con
+> tres desviaciones**. **No se ha cambiado**: es la misma decisión que quedó abierta con RF-04 y
+> conviene tomarla una vez para los tres. Ver [[estado-de-la-ers-caducado]].
+
 | Código | Requisito | MoSCoW | Estado |
 |---|---|---|---|
-| RF-22 | Crear hoja de vida | Could Have | **Implementado** |
-| RF-24 | Modificar/eliminar hoja de vida | Could Have | **Implementado** |
+| RF-22 | Crear hoja de vida | Could Have | **Implementado ⚠️ en revisión** |
+| RF-24 | Modificar/eliminar hoja de vida | Could Have | **Implementado ⚠️ en revisión** |
 | RF-26 | Registro automático de intervenciones | Could Have | Previsto |
 | RF-27 | Historial de intervenciones | Could Have | Previsto |
 
