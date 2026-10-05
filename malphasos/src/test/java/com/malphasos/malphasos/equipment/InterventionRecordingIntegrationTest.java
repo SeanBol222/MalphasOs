@@ -1,9 +1,13 @@
 package com.malphasos.malphasos.equipment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
+import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.ports.input.InterventionServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
+import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
@@ -60,6 +64,7 @@ class InterventionRecordingIntegrationTest {
 
     @Autowired private ServiceReportServicePort serviceReportServicePort;
     @Autowired private InterventionServicePort interventionServicePort;
+    @Autowired private LifeSheetServicePort lifeSheetServicePort;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     private String unico() {
@@ -275,5 +280,62 @@ class InterventionRecordingIntegrationTest {
         assertThat(historial.getFirst().fechaServicio())
                 .isAfterOrEqualTo(historial.getLast().fechaServicio());
         assertThat(historial.getFirst().idReporteServicio()).isEqualTo(segundoReporte);
+    }
+
+    // ------------------------------------------------------------------------
+    // La hoja de vida: el documento compilado, con el historial dentro
+    // ------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("la hoja de vida de un equipo recien dado de alta esta completa, con historial en cero")
+    void laHojaDeVidaNaceCompleta() {
+        // Es la aclaracion que ordeno este trabajo, y por eso es la prueba que la fija: la hoja de
+        // vida NO sale de los mantenimientos. Existe desde que el equipo se registra, con sus tres
+        // primeras secciones llenas, y el historial empieza vacio.
+        Contexto contexto = unBorrador("PREVENTIVO");
+
+        LifeSheet hoja = lifeSheetServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted());
+
+        assertThat(hoja.identificacion().serie()).isNotBlank();
+        assertThat(hoja.identificacion().cliente()).isEqualTo("Hospital Central");
+        assertThat(hoja.identificacion().sede()).isNotBlank();
+        assertThat(hoja.identificacion().direccionSede()).isEqualTo("Calle 10 # 20 - 30-40");
+        assertThat(hoja.identificacion().ciudadSede()).isNotBlank();
+        assertThat(hoja.identificacion().areaServicio()).isNotBlank();
+
+        assertThat(hoja.tecnica().tipoEquipo()).isNotBlank();
+        assertThat(hoja.tecnica().definicionTecnica()).isEqualTo("Definicion");
+        assertThat(hoja.tecnica().tecnologiaPredominante()).isEqualTo("Electronica");
+        assertThat(hoja.tecnica().marca()).isNotBlank();
+        assertThat(hoja.tecnica().modelo()).isNotBlank();
+
+        assertThat(hoja.fabricante().nombre()).isNotBlank();
+
+        assertThat(hoja.servicioTecnico()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("al cerrar un reporte, la cuarta seccion de la hoja de vida deja de estar vacia")
+    void laCuartaSeccionSeLlenaAlCerrar() {
+        Contexto contexto = unBorrador("CALIBRACION");
+
+        llenarYCerrar(contexto.reporte(), ServiceResult.OPERATIVO);
+
+        LifeSheet hoja = lifeSheetServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted());
+
+        assertThat(hoja.servicioTecnico()).hasSize(1);
+        assertThat(hoja.servicioTecnico().getFirst().tipoServicio()).isEqualTo(InterventionType.CALIBRACION);
+        // Y las otras tres secciones siguen ahi: cerrar un reporte no cambia que es el equipo.
+        assertThat(hoja.tecnica().tipoEquipo()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("la hoja de vida de un equipo ajeno no existe para quien pregunta")
+    void laHojaDeVidaDeUnEquipoAjeno() {
+        Contexto contexto = unBorrador("PREVENTIVO");
+        ReadScope deOtroCliente = ReadScope.ofClients(java.util.Set.of(UUID.randomUUID()));
+
+        assertThatThrownBy(() -> lifeSheetServicePort.findByEquipment(contexto.equipo(), deOtroCliente))
+                .isInstanceOf(ClientEquipmentNotFoundException.class);
     }
 }
