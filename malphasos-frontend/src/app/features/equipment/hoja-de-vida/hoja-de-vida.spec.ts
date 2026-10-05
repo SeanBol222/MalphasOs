@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import QRCode from 'qrcode';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { responderA } from '../../../../testing/pantalla';
@@ -10,7 +11,7 @@ const ID_EQUIPO = 'e1';
 const URL_HOJA = `http://localhost:8081/v1/api/client-equipments/${ID_EQUIPO}/life-sheet`;
 
 /** Una hoja de vida como la compila el servidor, con el historial que se pida. */
-function hoja(servicioTecnico: object[] = []): object {
+function hoja(servicioTecnico: object[] = [], cambios: { estadoActivo?: boolean } = {}): object {
   return {
     identificacion: {
       idEquipoCliente: ID_EQUIPO,
@@ -24,13 +25,13 @@ function hoja(servicioTecnico: object[] = []): object {
       direccionSede: 'Calle 10 # 20 - 30-40',
       ciudadSede: 'Bogotá',
       areaServicio: 'UCI',
-      estadoActivo: true,
+      estadoActivo: cambios.estadoActivo ?? true,
     },
     tecnica: {
       tipoEquipo: 'Monitor de signos vitales',
       definicionTecnica: 'Mide y muestra signos vitales',
       tecnologiaPredominante: 'Electrónica',
-      recomendacionesCuidado: 'No exponer a humedad',
+      recomendacionesCuidado: 'No exponer a humedad\nLimpiar la pantalla con un paño seco',
       voltaje: 110,
       amperaje: 1.5,
       marca: 'Mindray',
@@ -41,6 +42,24 @@ function hoja(servicioTecnico: object[] = []): object {
     servicioTecnico,
   };
 }
+
+const RECIENTE = {
+  id: 'i2',
+  idEquipoCliente: ID_EQUIPO,
+  idReporteServicio: 'r2',
+  fechaServicio: '2026-10-04T21:30:00',
+  tipoServicio: 'CALIBRACION',
+  resultado: 'OPERATIVO_CON_RESTRICCIONES',
+};
+
+const ANTIGUA = {
+  id: 'i1',
+  idEquipoCliente: ID_EQUIPO,
+  idReporteServicio: 'r1',
+  fechaServicio: '2026-03-01T09:00:00',
+  tipoServicio: 'PREVENTIVO',
+  resultado: 'OPERATIVO',
+};
 
 describe('Hoja de vida de un equipo', () => {
   let fixture: ComponentFixture<HojaDeVida>;
@@ -64,6 +83,13 @@ describe('Hoja de vida de un equipo', () => {
   const raiz = () => fixture.nativeElement as HTMLElement;
   const texto = () => raiz().textContent ?? '';
   const seccion = (id: string) => raiz().querySelector(`section[aria-labelledby="${id}"]`);
+  /** El valor de un dato por su etiqueta, dentro de un bloque: «Riesgo» → «—». */
+  const dato = (bloque: Element | null, etiqueta: string) =>
+    [...(bloque?.querySelectorAll('dt') ?? [])]
+      .find((dt) => dt.textContent?.trim() === etiqueta)
+      ?.nextElementSibling?.textContent?.trim();
+  const estado = () => raiz().querySelector('[aria-label="Estado del equipo"]');
+  const filasDelHistorial = () => [...raiz().querySelectorAll('.hv-tabla tbody tr.hv-fila')];
 
   async function abrir(cuerpo: object): Promise<void> {
     fixture.detectChanges();
@@ -75,79 +101,156 @@ describe('Hoja de vida de un equipo', () => {
     // http.verify() falla por las peticiones de más.
     await abrir(hoja());
 
-    expect(texto()).toContain('Hoja de vida · SN-0001');
+    expect(raiz().querySelector('h1')?.textContent?.trim()).toBe(
+      'Monitor de signos vitales Mindray iMEC 10',
+    );
   });
 
-  it('tiene las cuatro secciones de RF-22, con esos nombres y en ese orden', async () => {
+  it('tiene los bloques del formato aprobado, que juntos son las cuatro secciones de RF-22', async () => {
+    // RF-22 pide identificación, técnica, fabricante y servicio técnico. El formato los reparte en más
+    // bloques —el cliente aparte, el fabricante dentro de «Qué es»—, pero ninguno de los cuatro falta.
     await abrir(hoja());
 
     const titulos = [...raiz().querySelectorAll('section h2')].map((h) => h.textContent?.trim());
-    expect(titulos).toEqual(['Identificación', 'Técnica', 'Fabricante', 'Servicio técnico']);
+    expect(titulos).toEqual([
+      'Identificación',
+      'Cliente',
+      'Qué es',
+      'Características técnicas',
+      'Protocolo preventivo',
+      'Cuidado y limpieza',
+      'Historial de servicio técnico',
+    ]);
+    expect(seccion('que-es')?.textContent).toContain('Mindray Medical');
   });
 
-  it('enseña los datos de cada sección', async () => {
+  it('enseña los datos que ya existen, cada uno en su sitio', async () => {
     await abrir(hoja());
 
-    expect(seccion('identificacion')?.textContent).toContain('Hospital Central');
-    expect(seccion('identificacion')?.textContent).toContain('Calle 10 # 20 - 30-40');
-    expect(seccion('identificacion')?.textContent).toContain('UCI');
-    expect(seccion('tecnica')?.textContent).toContain('Mindray');
-    expect(seccion('tecnica')?.textContent).toContain('110 V');
-    expect(seccion('fabricante')?.textContent).toContain('China');
+    expect(dato(seccion('identificacion'), 'Marca · Modelo')).toBe('Mindray · iMEC 10');
+    expect(dato(seccion('identificacion'), 'Área')).toBe('UCI');
+    expect(dato(seccion('cliente'), 'Razón social · NIT')).toBe('Hospital Central · 900123456');
+    expect(dato(seccion('cliente'), 'Dirección')).toBe('Calle 10 # 20 - 30-40');
+    expect(dato(seccion('caracteristicas'), 'Voltaje')).toBe('110 V');
+    expect(dato(seccion('caracteristicas'), 'Corriente')).toBe('1.5 A');
+    expect(seccion('que-es')?.textContent).toContain('China');
+    expect(seccion('que-es')?.textContent).toContain('01 feb 2025');
+  });
+
+  it('lo que el sistema todavía no guarda sale con «—», sin inventarlo', async () => {
+    // El formato pide datos que llegan en tandas posteriores. Hasta entonces, la raya: un valor
+    // inventado en un documento que se firma sería peor que uno vacío.
+    await abrir(hoja());
+
+    expect(dato(estado(), 'Riesgo')).toBe('—');
+    expect(dato(seccion('cliente'), 'Responsable')).toBe('—');
+    expect(dato(seccion('cliente'), 'Teléfonos')).toBe('—');
+    expect(dato(seccion('caracteristicas'), 'Uso')).toBe('—');
+    expect(dato(seccion('identificacion'), 'Registro INVIMA')).toBe('—');
+  });
+
+  it('las recomendaciones de cuidado salen como lista, una por línea', async () => {
+    await abrir(hoja());
+
+    const consejos = [...(seccion('cuidado')?.querySelectorAll('li') ?? [])].map((li) =>
+      li.textContent?.trim(),
+    );
+    expect(consejos).toEqual(['No exponer a humedad', 'Limpiar la pantalla con un paño seco']);
+  });
+
+  it('la fila de estado sale del historial: la intervención más reciente es el estado actual', async () => {
+    await abrir(hoja([RECIENTE, ANTIGUA]));
+
+    expect(dato(estado(), 'Estado actual')).toBe('Operativo con restricciones');
+    expect(dato(estado(), 'Último servicio')).toBe('04 oct 2026');
+    expect(dato(estado(), 'Intervenciones')).toBe('2');
+  });
+
+  it('la fecha del servicio es la del día en que se cerró, aunque fuera de noche', async () => {
+    // El servidor manda fecha y hora locales. Pasarlas por Date en UTC corre un cierre de las 21:30 al
+    // día siguiente en Bogotá.
+    await abrir(hoja([RECIENTE]));
+
+    expect(filasDelHistorial()[0].textContent).toContain('04 oct 2026');
   });
 
   it('un equipo sin mantenimientos tiene hoja de vida, con el historial vacío y dicho', async () => {
-    // Es la aclaración que ordenó este trabajo: la hoja de vida no sale de los mantenimientos. La
-    // cuarta sección no se esconde; dice que está vacía.
+    // Es la aclaración que ordenó este trabajo: la hoja de vida no sale de los mantenimientos.
     await abrir(hoja([]));
 
-    expect(seccion('servicio-tecnico')).not.toBeNull();
+    expect(dato(estado(), 'Estado actual')).toBe('Sin servicios');
+    expect(dato(estado(), 'Intervenciones')).toBe('0');
     expect(seccion('servicio-tecnico')?.textContent).toContain('Sin intervenciones todavía');
-    expect(seccion('servicio-tecnico')?.querySelector('table')).toBeNull();
+    expect(filasDelHistorial().length).toBe(0);
   });
 
-  it('el historial se pinta en el orden en que llega, con su reporte enlazado', async () => {
-    // El orden lo fija el servidor —es parte del contrato de RF-27— y aquí no se reordena: si la
-    // pantalla ordenara por su cuenta, podría contradecir al documento impreso del servidor.
-    await abrir(
-      hoja([
-        {
-          id: 'i2',
-          idEquipoCliente: ID_EQUIPO,
-          idReporteServicio: 'r2',
-          fechaServicio: '2026-10-04T15:30:00',
-          tipoServicio: 'CALIBRACION',
-          resultado: 'OPERATIVO_CON_RESTRICCIONES',
-        },
-        {
-          id: 'i1',
-          idEquipoCliente: ID_EQUIPO,
-          idReporteServicio: 'r1',
-          fechaServicio: '2026-03-01T09:00:00',
-          tipoServicio: 'PREVENTIVO',
-          resultado: 'OPERATIVO',
-        },
-      ]),
-    );
+  it('el historial se pinta en el orden en que llega, con su resultado marcado y su reporte enlazado', async () => {
+    // El orden lo fija el servidor —es parte del contrato de RF-27— y aquí no se reordena.
+    await abrir(hoja([RECIENTE, ANTIGUA]));
 
-    const filas = [...(seccion('servicio-tecnico')?.querySelectorAll('tbody tr') ?? [])];
+    const filas = filasDelHistorial();
     expect(filas.length).toBe(2);
-    expect(filas[0].textContent).toContain('2026-10-04');
     expect(filas[0].textContent).toContain('Calibración');
     expect(filas[0].textContent).toContain('Operativo con restricciones');
     expect(filas[1].textContent).toContain('Preventivo');
+    // La marca distingue el resultado por la forma; la clase es la que la dibuja.
+    expect(filas[0].querySelector('.hv-marca--OPERATIVO_CON_RESTRICCIONES')).not.toBeNull();
+    expect(filas[1].querySelector('.hv-marca--OPERATIVO')).not.toBeNull();
     expect(filas[0].querySelector('a')?.getAttribute('href')).toBe('/reportes/r2');
   });
 
+  it('deja filas en blanco para anotar a mano, que no cuentan como intervenciones', async () => {
+    await abrir(hoja([ANTIGUA]));
+
+    expect(raiz().querySelectorAll('.hv-tabla tbody tr.hv-en-blanco').length).toBe(6);
+    expect(dato(estado(), 'Intervenciones')).toBe('1');
+  });
+
+  it('el código QR lleva a esta misma hoja de vida en la aplicación', async () => {
+    // Decidido el 2026-10-05: abre la aplicación y pide iniciar sesión. Se comprueba contra la matriz
+    // que genera la librería para esa dirección, no contra una imagen.
+    await abrir(hoja());
+
+    const direccion = `${window.location.origin}/equipos/${ID_EQUIPO}/hoja-de-vida`;
+    const qr = raiz().querySelector('.hv-qr svg');
+    const { modules } = QRCode.create(direccion, { errorCorrectionLevel: 'M' });
+
+    expect(qr?.getAttribute('aria-label')).toContain(direccion);
+    expect(qr?.getAttribute('viewBox')).toBe(`0 0 ${modules.size} ${modules.size}`);
+    const oscuros = Array.from(modules.data).filter(Boolean).length;
+    expect(qr?.querySelector('path')?.getAttribute('d')?.match(/M/g)?.length).toBe(oscuros);
+  });
+
+  it('un equipo dado de baja lo dice en la cabecera', async () => {
+    await abrir(hoja([], { estadoActivo: false }));
+
+    expect(raiz().querySelector('.hv-banda')?.textContent).toContain('De baja');
+  });
+
   it('no tiene un solo control editable: es un documento, no un formulario', async () => {
-    // La decisión sobre RF-24. Cada dato se corrige donde vive; si un campo apareciera aquí, la
-    // pantalla invitaría a cambiar la marca de un equipo sin decir que la cambia para todos.
+    // La decisión sobre RF-24. Cada dato se corrige donde vive.
     await abrir(hoja());
 
     expect(raiz().querySelectorAll('input, select, textarea').length).toBe(0);
   });
 
-  it('un equipo ajeno o inexistente responde con el mensaje del catálogo, sin pintar secciones', async () => {
+  it('el botón de imprimir llama a la impresión del navegador', async () => {
+    // Decidido el 2026-10-05: se imprime desde el navegador, sin PDF del servidor.
+    await abrir(hoja());
+    const imprimir = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+
+    try {
+      [...raiz().querySelectorAll('button')]
+        .find((b) => b.textContent?.trim() === 'Imprimir')!
+        .click();
+
+      expect(imprimir).toHaveBeenCalledTimes(1);
+    } finally {
+      imprimir.mockRestore();
+    }
+  });
+
+  it('un equipo ajeno o inexistente responde con el mensaje del catálogo, sin pintar la hoja', async () => {
     await responderA(
       fixture,
       http,
@@ -157,6 +260,6 @@ describe('Hoja de vida de un equipo', () => {
     );
 
     expect(raiz().querySelector('[role="alert"]')).not.toBeNull();
-    expect(raiz().querySelectorAll('section').length).toBe(0);
+    expect(raiz().querySelector('article')).toBeNull();
   });
 });
