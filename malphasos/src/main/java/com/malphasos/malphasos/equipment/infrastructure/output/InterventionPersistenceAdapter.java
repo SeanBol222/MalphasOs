@@ -65,6 +65,9 @@ public class InterventionPersistenceAdapter implements InterventionPersistencePo
         entity.setFechaServicio(intervention.fechaServicio());
         entity.setTipoServicio(intervention.tipoServicio().name());
         entity.setResultado(intervention.resultado().name());
+        entity.setDescripcion(intervention.descripcion());
+        entity.setResponsable(intervention.responsable());
+
         entity.setEstadoActivo(intervention.estadoActivo());
         entity.setReemplazadaPor(intervention.reemplazadaPor());
 
@@ -79,6 +82,8 @@ public class InterventionPersistenceAdapter implements InterventionPersistencePo
                 entity.getFechaServicio(),
                 InterventionType.valueOf(entity.getTipoServicio()),
                 InterventionResult.valueOf(entity.getResultado()),
+                entity.getDescripcion(),
+                entity.getResponsable(),
                 entity.isEstadoActivo(),
                 entity.getReemplazadaPor());
     }

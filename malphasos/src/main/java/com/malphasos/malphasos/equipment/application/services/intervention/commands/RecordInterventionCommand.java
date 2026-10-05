@@ -18,6 +18,8 @@ public record RecordInterventionCommand(
         LocalDateTime fechaServicio,
         InterventionType tipoServicio,
         InterventionResult resultado,
+        String descripcion,
+        String responsable,
         Set<UUID> reportesSustituidos) {
 
     /**
@@ -29,5 +31,17 @@ public record RecordInterventionCommand(
      */
     public RecordInterventionCommand {
         reportesSustituidos = reportesSustituidos == null ? Set.of() : Set.copyOf(reportesSustituidos);
+    }
+
+    /** Sin descripcion ni responsable, como se anotaban hasta {@code V17}. */
+    public RecordInterventionCommand(
+            UUID idEquipoCliente,
+            UUID idReporteServicio,
+            LocalDateTime fechaServicio,
+            InterventionType tipoServicio,
+            InterventionResult resultado,
+            Set<UUID> reportesSustituidos) {
+        this(idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado, null, null,
+                reportesSustituidos);
     }
 }

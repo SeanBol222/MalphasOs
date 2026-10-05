@@ -240,6 +240,10 @@ class InterventionRecordingIntegrationTest {
         assertThat(historial.getFirst().tipoServicio()).isEqualTo(InterventionType.CORRECTIVO);
         assertThat(historial.getFirst().resultado()).isEqualTo(InterventionResult.OPERATIVO);
         assertThat(historial.getFirst().fechaServicio()).isNotNull();
+        // Desde V17, tambien que se hizo: los procedimientos, y no la falla ni el diagnostico. La orden
+        // de este contexto no tiene ingeniero, de modo que el responsable queda vacio.
+        assertThat(historial.getFirst().descripcion()).isEqualTo("Se cambio la fuente");
+        assertThat(historial.getFirst().responsable()).isNull();
     }
 
     @Test

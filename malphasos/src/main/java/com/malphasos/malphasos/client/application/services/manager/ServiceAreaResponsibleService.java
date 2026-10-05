@@ -7,10 +7,7 @@ import com.malphasos.malphasos.client.domain.manager.Manager;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,20 +48,8 @@ public class ServiceAreaResponsibleService implements ServiceAreaResponsiblePort
                 .filter(Manager::isEstadoActivo)
                 .map(encargado -> personCommunicationPort.findById(encargado.getIdPersona()))
                 .filter(PersonCommunicationResponse::estadoActivo)
-                .map(ServiceAreaResponsibleService::nombreCompleto)
+                .map(PersonCommunicationResponse::nombreCompleto)
                 .sorted()
                 .toList();
-    }
-
-    private static String nombreCompleto(PersonCommunicationResponse persona) {
-        return Stream.of(
-                        persona.primerNombre(),
-                        persona.segundoNombre(),
-                        persona.primerApellido(),
-                        persona.segundoApellido())
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(parte -> !parte.isEmpty())
-                .collect(Collectors.joining(" "));
     }
 }

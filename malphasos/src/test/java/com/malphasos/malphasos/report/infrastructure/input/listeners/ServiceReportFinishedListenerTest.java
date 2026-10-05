@@ -3,12 +3,17 @@ package com.malphasos.malphasos.report.infrastructure.input.listeners;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.equipment.application.ports.input.InterventionRecordingPort;
 import com.malphasos.malphasos.equipment.application.services.intervention.commands.RecordInterventionCommand;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
+import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
+import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
+import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
@@ -54,6 +59,7 @@ class ServiceReportFinishedListenerTest {
     @Mock private InterventionRecordingPort interventionRecordingPort;
     @Mock private WorkOrderServicePort workOrderServicePort;
     @Mock private ServiceReportServicePort serviceReportServicePort;
+    @Mock private PersonCommunicationPort personCommunicationPort;
 
     @InjectMocks private ServiceReportFinishedListener listener;
 
@@ -64,10 +70,18 @@ class ServiceReportFinishedListenerTest {
     }
 
     private void laOrdenEsDeTipo(ServiceType tipo) {
-        when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
-                .thenReturn(WorkOrder.schedule(
-                        UUID.randomUUID(), UUID.randomUUID(), LocalDate.now().plusDays(1),
-                        Periodicity.ANUAL, tipo));
+        laOrdenEs(WorkOrder.schedule(
+                UUID.randomUUID(), UUID.randomUUID(), LocalDate.now().plusDays(1), Periodicity.ANUAL, tipo));
+    }
+
+    private void laOrdenEs(WorkOrder orden) {
+        when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(orden);
+        // El reporte que se cierra, del que salen los procedimientos. Lenient: no todas las pruebas
+        // miran la descripcion, y en modo estricto un estubado que sobra falla.
+        lenient().when(serviceReportServicePort.findById(REPORTE, ReadScope.unrestricted()))
+                .thenReturn(ServiceReport.rehydrate(REPORTE, ORDEN, EQUIPO, ReportState.FINALIZADO,
+                        "No enciende", "Bateria agotada", "Cambio de bateria y verificacion",
+                        "Queda en observacion", ServiceResult.OPERATIVO, CERRADO, java.util.List.of(), true));
     }
 
     private RecordInterventionCommand loAnotado() {
@@ -93,6 +107,43 @@ class ServiceReportFinishedListenerTest {
 
         // El tipo NO viene en el evento: sale de la orden, y es el unico dato que cuesta una consulta.
         assertThat(anotado.tipoServicio()).isEqualTo(InterventionType.CALIBRACION);
+    }
+
+    @Test
+    @DisplayName("la descripcion son los procedimientos del reporte, y el responsable el ingeniero de la orden")
+    void descripcionYResponsable() {
+        // Decisiones del usuario del 2026-10-05. Los procedimientos, y no el diagnostico ni las
+        // observaciones, que tambien estan en el reporte: el estubado los trae los tres distintos para
+        // que una confusion de campo se note.
+        UUID ingeniero = UUID.randomUUID();
+        WorkOrder orden = WorkOrder.schedule(
+                UUID.randomUUID(), UUID.randomUUID(), LocalDate.now().plusDays(1), Periodicity.ANUAL,
+                ServiceType.PREVENTIVO);
+        orden.assignTo(ingeniero);
+        laOrdenEs(orden);
+        when(personCommunicationPort.findById(ingeniero)).thenReturn(PersonCommunicationResponse.builder()
+                .identificador(ingeniero)
+                .primerNombre("Grace")
+                .primerApellido("Hopper")
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build());
+
+        listener.onReportFinished(elCierre(ServiceResult.OPERATIVO));
+
+        assertThat(loAnotado().descripcion()).isEqualTo("Cambio de bateria y verificacion");
+        assertThat(loAnotado().responsable()).isEqualTo("Grace Hopper");
+    }
+
+    @Test
+    @DisplayName("una orden sin ingeniero deja el servicio sin responsable, sin consultar a nadie")
+    void sinIngeniero() {
+        laOrdenEsDeTipo(ServiceType.PREVENTIVO);
+
+        listener.onReportFinished(elCierre(ServiceResult.OPERATIVO));
+
+        assertThat(loAnotado().responsable()).isNull();
+        verifyNoInteractions(personCommunicationPort);
     }
 
     @Test
