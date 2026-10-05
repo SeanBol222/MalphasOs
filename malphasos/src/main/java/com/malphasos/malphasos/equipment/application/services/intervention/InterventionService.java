@@ -57,11 +57,36 @@ public class InterventionService implements InterventionServicePort, Interventio
             return;
         }
 
-        interventionPersistencePort.save(Intervention.record(
+        Intervention nueva = interventionPersistencePort.save(Intervention.record(
                 command.idEquipoCliente(),
                 command.idReporteServicio(),
                 command.fechaServicio(),
                 command.tipoServicio(),
                 command.resultado()));
+
+        reemplazarLasCorregidas(command, nueva);
+    }
+
+    /**
+     * Las líneas de los reportes que este cierre corrige dejan de contar, apuntando a la nueva.
+     *
+     * <p>Decisión del usuario del 2026-10-04: corregir un reporte es retirarlo y abrir otro, y sin
+     * esto el mismo mantenimiento quedaba dos veces en la hoja de vida. La línea vieja no se borra —el
+     * rastro de que hubo una corrección se conserva— y solo se reemplazan las que siguen vigentes: en
+     * una cadena de correcciones cada línea apunta a la que la sustituyó primero, y la historia de la
+     * cadena no se reescribe.
+     *
+     * <p>Ocurre al <b>cerrarse</b> el sustituto y no al abrirlo: si el sustituto no llegara a cerrarse,
+     * reemplazar al abrir dejaría la hoja de vida sin un mantenimiento que sí ocurrió.
+     */
+    private void reemplazarLasCorregidas(RecordInterventionCommand command, Intervention nueva) {
+        if (command.reportesSustituidos().isEmpty()) {
+            return;
+        }
+
+        interventionPersistencePort.findByReports(command.reportesSustituidos()).stream()
+                .filter(Intervention::estadoActivo)
+                .map(vieja -> vieja.reemplazadaPor(nueva.id()))
+                .forEach(interventionPersistencePort::save);
     }
 }

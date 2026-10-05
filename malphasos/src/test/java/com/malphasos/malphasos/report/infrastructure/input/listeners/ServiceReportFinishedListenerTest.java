@@ -9,7 +9,9 @@ import com.malphasos.malphasos.equipment.application.ports.input.InterventionRec
 import com.malphasos.malphasos.equipment.application.services.intervention.commands.RecordInterventionCommand;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
+import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
+import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportPayload;
@@ -51,6 +53,7 @@ class ServiceReportFinishedListenerTest {
 
     @Mock private InterventionRecordingPort interventionRecordingPort;
     @Mock private WorkOrderServicePort workOrderServicePort;
+    @Mock private ServiceReportServicePort serviceReportServicePort;
 
     @InjectMocks private ServiceReportFinishedListener listener;
 
@@ -121,5 +124,48 @@ class ServiceReportFinishedListenerTest {
                 .extracting(c -> c.tipoServicio().name())
                 .containsExactlyInAnyOrderElementsOf(
                         Arrays.stream(ServiceType.values()).map(Enum::name).toList());
+    }
+
+    // ------------------------------------------------------------------------
+    // A quien corrige este cierre
+    // ------------------------------------------------------------------------
+
+    private ServiceReport otroReporte(UUID id, UUID equipo, ReportState estado, boolean activo) {
+        return ServiceReport.rehydrate(id, ORDEN, equipo, estado, null, null, "Se hizo",
+                null, ServiceResult.OPERATIVO,
+                estado == ReportState.FINALIZADO ? CERRADO.minusDays(1) : null,
+                java.util.List.of(), activo);
+    }
+
+    @Test
+    @DisplayName("este cierre corrige a los otros reportes cerrados de la misma orden y el mismo equipo")
+    void corrigeALosCerradosDelMismoPar() {
+        UUID retiradoDelMismoEquipo = UUID.randomUUID();
+        UUID borradorDelMismoEquipo = UUID.randomUUID();
+        UUID cerradoDeOtroEquipo = UUID.randomUUID();
+        laOrdenEsDeTipo(ServiceType.PREVENTIVO);
+        when(serviceReportServicePort.findByWorkOrder(ORDEN, ReadScope.unrestricted()))
+                .thenReturn(java.util.List.of(
+                        otroReporte(REPORTE, EQUIPO, ReportState.FINALIZADO, true),
+                        otroReporte(retiradoDelMismoEquipo, EQUIPO, ReportState.FINALIZADO, false),
+                        otroReporte(borradorDelMismoEquipo, EQUIPO, ReportState.BORRADOR, false),
+                        otroReporte(cerradoDeOtroEquipo, UUID.randomUUID(), ReportState.FINALIZADO, true)));
+
+        listener.onReportFinished(elCierre(ServiceResult.OPERATIVO));
+
+        // Ni el propio reporte, ni un borrador -no es un mantenimiento hecho-, ni otro equipo.
+        assertThat(loAnotado().reportesSustituidos()).containsExactly(retiradoDelMismoEquipo);
+    }
+
+    @Test
+    @DisplayName("un cierre sin correcciones no sustituye a nadie")
+    void sinCorreccionesNadie() {
+        laOrdenEsDeTipo(ServiceType.PREVENTIVO);
+        when(serviceReportServicePort.findByWorkOrder(ORDEN, ReadScope.unrestricted()))
+                .thenReturn(java.util.List.of(otroReporte(REPORTE, EQUIPO, ReportState.FINALIZADO, true)));
+
+        listener.onReportFinished(elCierre(ServiceResult.OPERATIVO));
+
+        assertThat(loAnotado().reportesSustituidos()).isEmpty();
     }
 }

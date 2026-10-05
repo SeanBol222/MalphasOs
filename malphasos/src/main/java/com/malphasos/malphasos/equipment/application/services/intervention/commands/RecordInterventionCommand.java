@@ -3,6 +3,7 @@ package com.malphasos.malphasos.equipment.application.services.intervention.comm
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -16,5 +17,17 @@ public record RecordInterventionCommand(
         UUID idReporteServicio,
         LocalDateTime fechaServicio,
         InterventionType tipoServicio,
-        InterventionResult resultado) {
+        InterventionResult resultado,
+        Set<UUID> reportesSustituidos) {
+
+    /**
+     * Los reportes cerrados de la misma orden y el mismo equipo que este cierre corrige.
+     *
+     * <p>Los calcula quien conoce los reportes —el módulo que los guarda— y este módulo solo los
+     * recibe: así {@code equipment} no tiene que leer tablas de {@code report} para saber qué se
+     * corrigió. Nunca es nulo; sin correcciones es un conjunto vacío.
+     */
+    public RecordInterventionCommand {
+        reportesSustituidos = reportesSustituidos == null ? Set.of() : Set.copyOf(reportesSustituidos);
+    }
 }

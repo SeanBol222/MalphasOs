@@ -13,12 +13,14 @@ import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -335,5 +337,77 @@ class InterventionRecordingIntegrationTest {
 
         assertThatThrownBy(() -> lifeSheetServicePort.findByEquipment(contexto.equipo(), deOtroCliente))
                 .isInstanceOf(ClientEquipmentNotFoundException.class);
+    }
+
+    // ------------------------------------------------------------------------
+    // Corregir un reporte: el sustituto reemplaza al anterior
+    // ------------------------------------------------------------------------
+
+    /** Un reporte nuevo en borrador sobre la misma orden y el mismo equipo que el del contexto. */
+    private UUID otroBorradorDeLaMismaOrden(Contexto contexto) {
+        UUID orden = jdbcTemplate.queryForObject(
+                "SELECT k_id_orden_trabajo FROM reporte_servicio WHERE k_id_reporte_servicio = ?",
+                UUID.class, contexto.reporte());
+        UUID reporte = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente)
+                VALUES (?, ?, ?)
+                """,
+                reporte, orden, contexto.equipo());
+
+        return reporte;
+    }
+
+    @Test
+    @DisplayName("corregir un reporte deja UNA linea en la hoja de vida, y la vieja apuntando a la nueva")
+    void corregirUnReporteNoDuplicaElMantenimiento() {
+        // El flujo que la pantalla de un reporte cerrado indica: retirarlo y abrir otro. Antes de V14
+        // dejaba dos lineas para un solo mantenimiento.
+        Contexto contexto = unBorrador("PREVENTIVO");
+        llenarYCerrar(contexto.reporte(), ServiceResult.FUERA_DE_SERVICIO);
+
+        serviceReportServicePort.discard(new DiscardServiceReportCommand(contexto.reporte()));
+        UUID sustituto = otroBorradorDeLaMismaOrden(contexto);
+        llenarYCerrar(sustituto, ServiceResult.OPERATIVO);
+
+        List<Intervention> historial =
+                interventionServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted());
+        assertThat(historial).hasSize(1);
+        assertThat(historial.getFirst().idReporteServicio()).isEqualTo(sustituto);
+        assertThat(historial.getFirst().resultado()).isEqualTo(InterventionResult.OPERATIVO);
+
+        // La vieja no se borra: es el rastro de que hubo una correccion.
+        Map<String, Object> vieja = jdbcTemplate.queryForMap(
+                "SELECT b_estado_activo, k_id_reemplazada_por FROM intervencion WHERE k_id_reporte_servicio = ?",
+                contexto.reporte());
+        assertThat(vieja).containsEntry("b_estado_activo", false);
+        assertThat(vieja.get("k_id_reemplazada_por")).isEqualTo(historial.getFirst().id());
+    }
+
+    @Test
+    @DisplayName("retirar un reporte cerrado SIN abrir sustituto deja su linea en la hoja de vida")
+    void retirarSinSustitutoNoBorraElMantenimiento() {
+        // La otra mitad de la decision: un mantenimiento hecho no desaparece porque su reporte se
+        // retire. Solo deja de contar cuando otro cierre lo sustituye.
+        Contexto contexto = unBorrador("CORRECTIVO");
+        llenarYCerrar(contexto.reporte(), ServiceResult.OPERATIVO);
+
+        serviceReportServicePort.discard(new DiscardServiceReportCommand(contexto.reporte()));
+
+        assertThat(interventionServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted()))
+                .hasSize(1);
+    }
+
+    @Test
+    @DisplayName("un mantenimiento en OTRA orden del mismo equipo no reemplaza a nadie")
+    void otraOrdenNoEsUnaCorreccion() {
+        Contexto contexto = unBorrador("PREVENTIVO");
+        llenarYCerrar(contexto.reporte(), ServiceResult.OPERATIVO);
+
+        llenarYCerrar(otroReporteEnOtraOrden(contexto), ServiceResult.OPERATIVO);
+
+        assertThat(interventionServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted()))
+                .hasSize(2);
     }
 }

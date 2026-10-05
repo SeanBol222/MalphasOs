@@ -46,4 +46,8 @@ public class InterventionEntity {
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
+
+    /** La línea que sustituyó a esta, cuando su reporte se corrigió. Nula si está vigente. */
+    @Column(name = "k_id_reemplazada_por")
+    private UUID reemplazadaPor;
 }

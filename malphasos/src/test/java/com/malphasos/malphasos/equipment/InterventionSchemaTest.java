@@ -400,4 +400,105 @@ class InterventionSchemaTest {
                         Integer.class, contexto.reporte()))
                 .isZero();
     }
+
+    // ------------------------------------------------------------------------
+    // V14: el reemplazo de una correccion
+    // ------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("una intervencion reemplazada no puede seguir activa")
+    void reemplazadaYActivaFalla() {
+        Contexto contexto = unReporteFinalizado("PREVENTIVO", "OPERATIVO");
+        UUID sustituta = insertIntervention(contexto, "PREVENTIVO", "OPERATIVO");
+        Contexto otro = unReporteFinalizado("PREVENTIVO", "OPERATIVO");
+        UUID vieja = insertIntervention(otro, "PREVENTIVO", "OPERATIVO");
+
+        // Contaria dos veces el mismo mantenimiento, que es justo lo que V14 corrige.
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "UPDATE intervencion SET k_id_reemplazada_por = ? WHERE k_id_intervencion = ?",
+                        sustituta, vieja))
+                .isInstanceOf(DataIntegrityViolationException.class);
+
+        assertThatCode(() -> jdbcTemplate.update(
+                        """
+                        UPDATE intervencion SET k_id_reemplazada_por = ?, b_estado_activo = false
+                        WHERE k_id_intervencion = ?
+                        """,
+                        sustituta, vieja))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("una intervencion no se reemplaza a si misma")
+    void reemplazarseASiMismaFalla() {
+        UUID una = insertIntervention(unReporteFinalizado("PREVENTIVO", "OPERATIVO"), "PREVENTIVO", "OPERATIVO");
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        """
+                        UPDATE intervencion SET k_id_reemplazada_por = ?, b_estado_activo = false
+                        WHERE k_id_intervencion = ?
+                        """,
+                        una, una))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private void ejecutarV14() throws Exception {
+        String sql = new String(
+                new ClassPathResource("db/migration/V14__intervention_replacement.sql")
+                        .getInputStream()
+                        .readAllBytes(),
+                StandardCharsets.UTF_8);
+        // Solo el UPDATE de reconciliacion: los ALTER ya se aplicaron al arrancar y no se repiten.
+        jdbcTemplate.execute(sql.substring(sql.indexOf("WITH grupo AS")));
+    }
+
+    @Test
+    @DisplayName("V14 reconcilia una correccion anterior: queda vigente la del reporte activo")
+    void laReconciliacionDejaVigenteLaDelReporteActivo() throws Exception {
+        // Una correccion que ocurrio antes de V14: dos reportes cerrados del mismo par (orden, equipo),
+        // el primero retirado, y V13 les relleno una linea a cada uno.
+        Contexto primero = unReporteFinalizado("PREVENTIVO", "FUERA_DE_SERVICIO");
+        jdbcTemplate.update(
+                "UPDATE reporte_servicio SET b_estado_activo = false WHERE k_id_reporte_servicio = ?",
+                primero.reporte());
+        UUID orden = jdbcTemplate.queryForObject(
+                "SELECT k_id_orden_trabajo FROM reporte_servicio WHERE k_id_reporte_servicio = ?",
+                UUID.class, primero.reporte());
+        UUID segundo = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
+                                              t_estado_reporte, t_procedimientos, t_resultado, t_finalizado)
+                VALUES (?, ?, ?, 'FINALIZADO', 'Corregido', 'OPERATIVO', ?)
+                """,
+                segundo, orden, primero.equipo(), LocalDateTime.now());
+        ejecutarV13();
+
+        ejecutarV14();
+
+        UUID deLaActiva = jdbcTemplate.queryForObject(
+                "SELECT k_id_intervencion FROM intervencion WHERE k_id_reporte_servicio = ?", UUID.class, segundo);
+        Map<String, Object> deLaRetirada = jdbcTemplate.queryForMap(
+                "SELECT b_estado_activo, k_id_reemplazada_por FROM intervencion WHERE k_id_reporte_servicio = ?",
+                primero.reporte());
+        assertThat(deLaRetirada).containsEntry("b_estado_activo", false);
+        assertThat(deLaRetirada.get("k_id_reemplazada_por")).isEqualTo(deLaActiva);
+    }
+
+    @Test
+    @DisplayName("V14 no toca un reporte cerrado y retirado sin sustituto: el mantenimiento ocurrio")
+    void laReconciliacionRespetaLosSinSustituto() throws Exception {
+        Contexto solo = unReporteFinalizado("CORRECTIVO", "OPERATIVO");
+        jdbcTemplate.update(
+                "UPDATE reporte_servicio SET b_estado_activo = false WHERE k_id_reporte_servicio = ?",
+                solo.reporte());
+        ejecutarV13();
+
+        ejecutarV14();
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT b_estado_activo FROM intervencion WHERE k_id_reporte_servicio = ?",
+                        Boolean.class, solo.reporte()))
+                .isTrue();
+    }
 }

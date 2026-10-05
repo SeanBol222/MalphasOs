@@ -4,10 +4,15 @@ import com.malphasos.malphasos.equipment.application.ports.input.InterventionRec
 import com.malphasos.malphasos.equipment.application.services.intervention.commands.RecordInterventionCommand;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
+import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
+import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -55,6 +60,7 @@ public class ServiceReportFinishedListener {
 
     private final InterventionRecordingPort interventionRecordingPort;
     private final WorkOrderServicePort workOrderServicePort;
+    private final ServiceReportServicePort serviceReportServicePort;
 
     @EventListener
     public void onReportFinished(ServiceReportFinishedEvent evento) {
@@ -71,13 +77,37 @@ public class ServiceReportFinishedListener {
                 evento.payload().idEquipoCliente(),
                 evento.metadata().aggregateId());
 
+        UUID idReporte = UUID.fromString(evento.metadata().aggregateId());
+
         interventionRecordingPort.record(new RecordInterventionCommand(
                 evento.payload().idEquipoCliente(),
                 // El identificador del agregado viaja como texto en los metadatos del evento: el
                 // contrato de eventos es deliberadamente agnostico del tipo de la llave.
-                UUID.fromString(evento.metadata().aggregateId()),
+                idReporte,
                 evento.payload().finalizado(),
                 tipo,
-                InterventionResult.valueOf(evento.payload().resultado().name())));
+                InterventionResult.valueOf(evento.payload().resultado().name()),
+                corregidosPor(idReporte, evento.payload().idOrdenTrabajo(), evento.payload().idEquipoCliente())));
+    }
+
+    /**
+     * Los otros reportes cerrados de la misma orden y el mismo equipo: los que este cierre corrige.
+     *
+     * <p>Un reporte cerrado no se edita; se retira y se abre otro sobre la misma orden y el mismo
+     * equipo. Como solo puede haber un reporte <b>activo</b> por ese par, cualquier otro reporte
+     * cerrado del par es uno retirado al que este sustituye. Se calcula aquí porque es este módulo el
+     * que conoce los reportes; {@code equipment} solo recibe la lista y no tiene que leer tablas
+     * ajenas.
+     *
+     * <p>Se consulta la orden entera y se filtra en memoria: una orden tiene un reporte por equipo más
+     * sus correcciones, y una consulta nueva para eso sería una pieza más que mantener.
+     */
+    private Set<UUID> corregidosPor(UUID idReporte, UUID idOrden, UUID idEquipo) {
+        return serviceReportServicePort.findByWorkOrder(idOrden, ReadScope.unrestricted()).stream()
+                .filter(otro -> idEquipo.equals(otro.getIdEquipoCliente()))
+                .filter(otro -> otro.getEstado() == ReportState.FINALIZADO)
+                .map(ServiceReport::getId)
+                .filter(id -> !id.equals(idReporte))
+                .collect(Collectors.toSet());
     }
 }
