@@ -61,6 +61,8 @@ public class InterventionRestAdapter {
                 intervencion.idReporteServicio(),
                 intervencion.fechaServicio(),
                 intervencion.tipoServicio().name(),
-                intervencion.resultado().name());
+                intervencion.resultado().name(),
+                intervencion.descripcion(),
+                intervencion.responsable());
     }
 }

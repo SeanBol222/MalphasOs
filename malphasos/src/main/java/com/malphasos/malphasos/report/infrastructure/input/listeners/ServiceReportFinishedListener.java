@@ -4,12 +4,14 @@ import com.malphasos.malphasos.equipment.application.ports.input.InterventionRec
 import com.malphasos.malphasos.equipment.application.services.intervention.commands.RecordInterventionCommand;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
+import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -61,16 +63,16 @@ public class ServiceReportFinishedListener {
     private final InterventionRecordingPort interventionRecordingPort;
     private final WorkOrderServicePort workOrderServicePort;
     private final ServiceReportServicePort serviceReportServicePort;
+    private final PersonCommunicationPort personCommunicationPort;
 
     @EventListener
     public void onReportFinished(ServiceReportFinishedEvent evento) {
         // El tipo de servicio no viaja en el evento porque no es del reporte: es de la orden. Se
         // consulta aqui, que es el unico sitio donde se sabe que hace falta, y sin restriccion de
         // alcance porque esto no lo pide ningun usuario -- lo dispara un hecho del dominio.
-        InterventionType tipo = InterventionType.valueOf(workOrderServicePort
-                .findById(evento.payload().idOrdenTrabajo(), ReadScope.unrestricted())
-                .getTipoServicio()
-                .name());
+        WorkOrder orden = workOrderServicePort.findById(
+                evento.payload().idOrdenTrabajo(), ReadScope.unrestricted());
+        InterventionType tipo = InterventionType.valueOf(orden.getTipoServicio().name());
 
         log.debug(
                 "Anotando en la hoja de vida del equipo {} el cierre del reporte {}",
@@ -78,6 +80,13 @@ public class ServiceReportFinishedListener {
                 evento.metadata().aggregateId());
 
         UUID idReporte = UUID.fromString(evento.metadata().aggregateId());
+
+        // Que se hizo y quien lo hizo, desde V17: los procedimientos del reporte y el nombre del
+        // ingeniero de la orden, congelados en la linea. No viajan en el evento porque el evento dice
+        // que el reporte se cerro, no que contenia; se leen aqui, una vez, y no se vuelven a consultar.
+        String procedimientos = serviceReportServicePort
+                .findById(idReporte, ReadScope.unrestricted())
+                .getProcedimientos();
 
         interventionRecordingPort.record(new RecordInterventionCommand(
                 evento.payload().idEquipoCliente(),
@@ -87,6 +96,8 @@ public class ServiceReportFinishedListener {
                 evento.payload().finalizado(),
                 tipo,
                 InterventionResult.valueOf(evento.payload().resultado().name()),
+                procedimientos,
+                nombreDelIngeniero(orden),
                 corregidosPor(idReporte, evento.payload().idOrdenTrabajo(), evento.payload().idEquipoCliente())));
     }
 
@@ -102,6 +113,16 @@ public class ServiceReportFinishedListener {
      * <p>Se consulta la orden entera y se filtra en memoria: una orden tiene un reporte por equipo más
      * sus correcciones, y una consulta nueva para eso sería una pieza más que mantener.
      */
+    /**
+     * El nombre completo del ingeniero de la orden, o nada si la orden no tiene. Una orden se puede
+     * empezar sin ingeniero, y un servicio sin responsable conocido se imprime con la raya.
+     */
+    private String nombreDelIngeniero(WorkOrder orden) {
+        return orden.getIdIngeniero() == null
+                ? null
+                : personCommunicationPort.findById(orden.getIdIngeniero()).nombreCompleto();
+    }
+
     private Set<UUID> corregidosPor(UUID idReporte, UUID idOrden, UUID idEquipo) {
         return serviceReportServicePort.findByWorkOrder(idOrden, ReadScope.unrestricted()).stream()
                 .filter(otro -> idEquipo.equals(otro.getIdEquipoCliente()))

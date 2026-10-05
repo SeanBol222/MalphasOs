@@ -18,6 +18,10 @@ import java.util.UUID;
  * reporte completo desde el historial, y eso es trazabilidad, no dependencia: si el reporte se
  * corrige después, o se retira, esta línea no cambia. Es la misma decisión que el área congelada de
  * {@code orden_trabajo_equipo}, y el esquema lleva escrita la foránea que por eso no existe.
+ *
+ * <p><b>Desde {@code V17} lleva además qué se hizo y quién lo hizo</b>: los procedimientos del reporte
+ * y el nombre del ingeniero de la orden, congelados igual. Son opcionales —una orden puede no tener
+ * ingeniero, y un reporte viejo puede no tener procedimientos— y no entran en las exigencias de RF-27.
  */
 public record Intervention(
         UUID id,
@@ -26,6 +30,8 @@ public record Intervention(
         LocalDateTime fechaServicio,
         InterventionType tipoServicio,
         InterventionResult resultado,
+        String descripcion,
+        String responsable,
         boolean estadoActivo,
         UUID reemplazadaPor) {
 
@@ -59,6 +65,19 @@ public record Intervention(
             InterventionType tipoServicio,
             InterventionResult resultado) {
 
+        return record(idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado, null, null);
+    }
+
+    /** Con qué se hizo y quién lo hizo. Un texto en blanco es lo mismo que no tenerlo. */
+    public static Intervention record(
+            UUID idEquipoCliente,
+            UUID idReporteServicio,
+            LocalDateTime fechaServicio,
+            InterventionType tipoServicio,
+            InterventionResult resultado,
+            String descripcion,
+            String responsable) {
+
         return new Intervention(
                 UUID.randomUUID(),
                 idEquipoCliente,
@@ -66,6 +85,8 @@ public record Intervention(
                 fechaServicio,
                 tipoServicio,
                 resultado,
+                opcional(descripcion),
+                opcional(responsable),
                 true,
                 null);
     }
@@ -90,7 +111,7 @@ public record Intervention(
 
         return new Intervention(
                 id, idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado,
-                false, idSustituta);
+                descripcion, responsable, false, idSustituta);
     }
 
     /**
@@ -107,12 +128,18 @@ public record Intervention(
             LocalDateTime fechaServicio,
             InterventionType tipoServicio,
             InterventionResult resultado,
+            String descripcion,
+            String responsable,
             boolean estadoActivo,
             UUID reemplazadaPor) {
 
         return new Intervention(
                 id, idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado,
-                estadoActivo, reemplazadaPor);
+                descripcion, responsable, estadoActivo, reemplazadaPor);
+    }
+
+    private static String opcional(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
     /**

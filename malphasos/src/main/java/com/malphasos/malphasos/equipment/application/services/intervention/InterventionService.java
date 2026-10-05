@@ -62,7 +62,9 @@ public class InterventionService implements InterventionServicePort, Interventio
                 command.idReporteServicio(),
                 command.fechaServicio(),
                 command.tipoServicio(),
-                command.resultado()));
+                command.resultado(),
+                command.descripcion(),
+                command.responsable()));
 
         reemplazarLasCorregidas(command, nueva);
     }

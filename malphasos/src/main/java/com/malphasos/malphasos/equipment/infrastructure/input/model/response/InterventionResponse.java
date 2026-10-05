@@ -19,5 +19,9 @@ public record InterventionResponse(
         @Schema(description = "Cuando se completo el servicio", example = "2026-10-04T15:30:00")
         LocalDateTime fechaServicio,
         @Schema(description = "Tipo de servicio prestado", example = "PREVENTIVO") String tipoServicio,
-        @Schema(description = "Estado en que quedo el equipo", example = "OPERATIVO") String resultado) {
+        @Schema(description = "Estado en que quedo el equipo", example = "OPERATIVO") String resultado,
+        @Schema(description = "Los procedimientos del reporte, congelados al cerrarse; opcional")
+        String descripcion,
+        @Schema(description = "Nombre del ingeniero de la orden, congelado al cerrarse; opcional")
+        String responsable) {
 }

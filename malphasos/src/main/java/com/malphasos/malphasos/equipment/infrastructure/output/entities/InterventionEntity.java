@@ -44,6 +44,12 @@ public class InterventionEntity {
     @Column(name = "t_resultado", nullable = false, length = 27)
     private String resultado;
 
+    @Column(name = "t_descripcion", length = 500)
+    private String descripcion;
+
+    @Column(name = "n_responsable", length = 250)
+    private String responsable;
+
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
 

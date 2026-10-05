@@ -106,6 +106,13 @@ export class HojaDeVida {
       etiquetaDelResultado: linea.resultado
         ? ETIQUETA_DE_RESULTADO[linea.resultado as ResultadoDeServicio]
         : SIN_DATO,
+      // Los procedimientos del reporte, congelados al cerrarse (V17). Un reporte viejo sin ellos sale
+      // con la raya, no con un hueco.
+      descripcion: linea.descripcion || SIN_DATO,
+      // «Grace Hopper · Bolivar Bioingenieria Ltda.»: el ingeniero y la empresa, decidido el
+      // 2026-10-05. Sin ingeniero, solo la empresa: un servicio lo presto alguien de ella aunque no
+      // conste quien.
+      responsable: [linea.responsable, this.empresa()?.nombre].filter(Boolean).join(' · '),
     })),
   );
 

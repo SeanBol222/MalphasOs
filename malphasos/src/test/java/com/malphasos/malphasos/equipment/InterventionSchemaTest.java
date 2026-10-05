@@ -57,7 +57,8 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM tipo_equipo",
             "DELETE FROM area_servicio",
             "DELETE FROM sede",
-            "DELETE FROM cliente"
+            "DELETE FROM cliente",
+            "DELETE FROM persona WHERE n_primer_apellido = 'Hopper'"
         },
         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class InterventionSchemaTest {
@@ -309,6 +310,63 @@ class InterventionSchemaTest {
 
         assertThat(indices)
                 .anyMatch(d -> d.contains("k_id_equipo_cliente") && d.contains("f_fecha_servicio"));
+    }
+
+    // ------------------------------------------------------------------------
+    // V18: que se hizo y quien lo hizo, tambien en las lineas anteriores a V17
+    // ------------------------------------------------------------------------
+
+    private void ejecutarV18() throws Exception {
+        // Del fichero que se despliega, por la misma razon que ejecutarV13.
+        jdbcTemplate.execute(new String(
+                new ClassPathResource("db/migration/V18__backfill_intervention_description.sql")
+                        .getInputStream()
+                        .readAllBytes(),
+                StandardCharsets.UTF_8));
+    }
+
+    @Test
+    @DisplayName("V18 rellena la descripcion con los procedimientos y el responsable con el ingeniero de la orden")
+    void v18RellenaDescripcionYResponsable() throws Exception {
+        Contexto contexto = unReporteFinalizado("PREVENTIVO", "OPERATIVO");
+        insertIntervention(contexto, "PREVENTIVO", "OPERATIVO");
+        UUID ingeniero = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO persona (k_identificador, k_cedula, n_primer_nombre, n_segundo_nombre,
+                                     n_primer_apellido, t_tipo_persona)
+                VALUES (?, ?, 'Grace', '  ', 'Hopper', 'ENGINEER')
+                """,
+                ingeniero, String.valueOf(System.nanoTime() % 10_000_000_000L));
+        jdbcTemplate.update(
+                """
+                UPDATE orden_trabajo SET k_identificador = ?
+                WHERE k_id_orden_trabajo = (
+                    SELECT k_id_orden_trabajo FROM reporte_servicio WHERE k_id_reporte_servicio = ?)
+                """,
+                ingeniero, contexto.reporte());
+
+        ejecutarV18();
+
+        Map<String, Object> fila = jdbcTemplate.queryForMap(
+                "SELECT * FROM intervencion WHERE k_id_reporte_servicio = ?", contexto.reporte());
+        assertThat(fila).containsEntry("t_descripcion", "Se hizo lo previsto");
+        // El segundo nombre en blanco no deja dos espacios: el mismo criterio que nombreCompleto().
+        assertThat(fila).containsEntry("n_responsable", "Grace Hopper");
+    }
+
+    @Test
+    @DisplayName("V18 deja sin responsable una linea cuya orden no tiene ingeniero")
+    void v18SinIngeniero() throws Exception {
+        Contexto contexto = unReporteFinalizado("PREVENTIVO", "OPERATIVO");
+        insertIntervention(contexto, "PREVENTIVO", "OPERATIVO");
+
+        ejecutarV18();
+
+        Map<String, Object> fila = jdbcTemplate.queryForMap(
+                "SELECT * FROM intervencion WHERE k_id_reporte_servicio = ?", contexto.reporte());
+        assertThat(fila).containsEntry("t_descripcion", "Se hizo lo previsto");
+        assertThat(fila.get("n_responsable")).isNull();
     }
 
     // ------------------------------------------------------------------------

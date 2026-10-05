@@ -2,6 +2,9 @@ package com.malphasos.malphasos.person.application.model.communication;
 
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.UUID;
 import lombok.Builder;
 
@@ -25,4 +28,19 @@ public record PersonCommunicationResponse(
         boolean estadoActivo,
         List<EmailPersonCommunicationResponse> emailPersonList,
         List<PhonePersonCommunicationResponse> phonePersonList) {
+
+    /**
+     * «Ana Maria Perez Gomez»: los nombres y apellidos que tenga, en orden y sin huecos.
+     *
+     * <p>Vive aqui y no en quien lo usa porque lo necesitan dos modulos —el responsable de un area en
+     * {@code client}, el ingeniero de un servicio en {@code report}— y dos copias de la misma regla
+     * acaban diciendo cosas distintas.
+     */
+    public String nombreCompleto() {
+        return Stream.of(primerNombre, segundoNombre, primerApellido, segundoApellido)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(parte -> !parte.isEmpty())
+                .collect(Collectors.joining(" "));
+    }
 }

@@ -351,6 +351,10 @@
       "InterventionResponse" : {
         "description" : "Una intervencion registrada en la hoja de vida",
         "properties" : {
+          "descripcion" : {
+            "description" : "Los procedimientos del reporte, congelados al cerrarse; opcional",
+            "type" : "string"
+          },
           "fechaServicio" : {
             "description" : "Cuando se completo el servicio",
             "example" : "2026-10-04T15:30:00",
@@ -370,6 +374,10 @@
           "idReporteServicio" : {
             "description" : "Reporte de servicio del que sale, para abrirlo desde el historial",
             "format" : "uuid",
+            "type" : "string"
+          },
+          "responsable" : {
+            "description" : "Nombre del ingeniero de la orden, congelado al cerrarse; opcional",
             "type" : "string"
           },
           "resultado" : {

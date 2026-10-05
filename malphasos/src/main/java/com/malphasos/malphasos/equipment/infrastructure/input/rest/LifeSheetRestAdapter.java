@@ -112,6 +112,8 @@ public class LifeSheetRestAdapter {
                 intervencion.idReporteServicio(),
                 intervencion.fechaServicio(),
                 intervencion.tipoServicio().name(),
-                intervencion.resultado().name());
+                intervencion.resultado().name(),
+                intervencion.descripcion(),
+                intervencion.responsable());
     }
 }

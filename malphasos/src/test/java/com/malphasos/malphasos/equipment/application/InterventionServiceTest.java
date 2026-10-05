@@ -233,7 +233,8 @@ class InterventionServiceTest {
 
         assertThatThrownBy(() -> una.reemplazadaPor(una.id())).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> Intervention.rehydrate(UUID.randomUUID(), EQUIPO, REPORTE, LocalDateTime.now(),
-                        InterventionType.PREVENTIVO, InterventionResult.OPERATIVO, true, UUID.randomUUID()))
+                        InterventionType.PREVENTIVO, InterventionResult.OPERATIVO, null, null, true,
+                        UUID.randomUUID()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

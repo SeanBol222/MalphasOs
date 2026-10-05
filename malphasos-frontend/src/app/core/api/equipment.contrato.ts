@@ -575,6 +575,8 @@ export interface components {
         };
         /** @description Una intervencion registrada en la hoja de vida */
         InterventionResponse: {
+            /** @description Los procedimientos del reporte, congelados al cerrarse; opcional */
+            descripcion?: string;
             /**
              * Format: date-time
              * @description Cuando se completo el servicio
@@ -596,6 +598,8 @@ export interface components {
              * @description Reporte de servicio del que sale, para abrirlo desde el historial
              */
             idReporteServicio?: string;
+            /** @description Nombre del ingeniero de la orden, congelado al cerrarse; opcional */
+            responsable?: string;
             /**
              * @description Estado en que quedo el equipo
              * @example OPERATIVO
