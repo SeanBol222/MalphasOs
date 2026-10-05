@@ -377,3 +377,16 @@ que hace un `CHECK` nuevo sobre filas viejas, usado aquí a propósito.
 ## Notas relacionadas
 
 [[modelo-de-permisos]] · [[tema-de-keycloak]] · [[sincronizacion-con-proveedor-de-identidad]] · [[regla-traslado-mismo-cliente]] · [[dominio-orden-trabajo]] · [[dominio-reporte-servicio]] · [[congelar-una-referencia-historica]] · [[stack-spring-boot-4-particularidades]] · [[migracion-equipment-hallazgos]] · [[migracion-client-hallazgos]] · [[migracion-location-hallazgos]] · [[traduccion-de-fallos-de-adaptadores]] · [[relacion-manager-persona]] · [[dominio-cliente]] · [[checklist-reutilizacion]] · [[alcance-malphasos]] · [[sintesis-malphasos]] · [[docker-compose]]
+
+## La hoja de vida es un compilado, y solo su historial tiene tabla (2026-10-04)
+
+- **La hoja de vida no es una entidad.** Aclaración del usuario: se arma con los datos del cliente, del tipo, la marca, el modelo, la serie y el fabricante, y existe desde que el equipo se registra, con su historial en cero. Es un modelo de lectura en `application/model`, sin tabla. Ver [[hoja-de-vida]].
+- **Es de solo lectura**, y eso responde a RF-24: cada dato se corrige donde vive. Decisión del usuario.
+- **Su historial sí tiene tabla**, porque **la intervención sobrevive al reporte retirado**: el mantenimiento ocurrió. Decisión del usuario, y la razón de que no sea una consulta sobre los reportes.
+- **Las tres columnas del historial son una copia congelada**, sin foránea compuesta contra el reporte. Ver [[congelar-una-referencia-historica]].
+- **El oyente vive en `report` y no donde la ERS lo reservó**, porque en `equipment` habría creado un ciclo. Entra por `InterventionRecordingPort`.
+- **Síncrono y en la misma transacción**: cerrar e historiar son atómicos. `AFTER_COMMIT` dejaba un reporte cerrado con su historial vacío sin que nada lo notara.
+- **`Intervention` es un `record`, no un agregado**: no cambia, describe algo que pasó.
+- **Once consultas por documento antes que una unión de nueve tablas**, seis de ellas ajenas.
+- **`V13` rellena el pasado** en lugar de corregir `V12`, que ya estaba aplicada en desarrollo.
+

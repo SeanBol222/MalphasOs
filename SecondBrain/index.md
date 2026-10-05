@@ -60,6 +60,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[seguridad-keycloak-backend]] — Resource server + admin client, dos piezas separadas. Incluye la ventana del token ya emitido.
 - [[modelo-de-permisos]] ⭐ — Las **22** autoridades, la expansión en **dos escalones**, la **escalera de usuarios** —quién crea a quién— y la única excepción acotada a la autoridad literal. (Decía «19 autoridades» y «en dos capas»: cierto hasta el **2026-09-13**; «20», hasta el **2026-09-27**, cuando entraron las dos de `report`. Y antes «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `e6dda32`.)
 - [[filtrado-por-dueno]] ⭐ — **Qué filas puede leer cada quien**, que es lo que el modelo de permisos no decía. El alcance como **argumento del caso de uso**; el patrón de **delegar la comprobación en el dueño del recurso**, que resuelve ocho de las dieciocho lecturas sin una guarda propia; y las cuatro decisiones que deja abiertas. Entró el **2026-10-04**, cerrando la mayor deuda del proyecto **sin ninguna migración**: el vínculo con Keycloak estaba decidido desde la migración de `person` y tres notas lo daban por pendiente.
+- [[hoja-de-vida]] ⭐ — **Qué es la hoja de vida de un equipo y qué no es**: un compilado de solo lectura con las cuatro secciones de RF-22, que existe desde que el equipo se registra. Solo su historial tiene tabla, porque una intervención sobrevive al reporte retirado; lo escribe el primer oyente de eventos del sistema, que vive en `report` y no donde la ERS lo reservó. Entró el **2026-10-04** y deja una decisión abierta: corregir un reporte anota el mismo mantenimiento dos veces.
 - [[sincronizacion-con-proveedor-de-identidad]] — Dos sistemas de registro sin transacción compartida: en qué orden llamarlos y qué queda sin cerrar. (Decía «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `258cd81`.)
 - [[issuer-uri-vs-jwk-set-uri]] — Por qué Keycloak en Docker devuelve 401 con tokens válidos.
 - [[keycloak-configuracion]] — El realm, sus clients y sus grupos.
@@ -111,4 +112,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**55 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-04 · ver [[log.md]] para el historial.
+**56 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-04 · ver [[log.md]] para el historial.
