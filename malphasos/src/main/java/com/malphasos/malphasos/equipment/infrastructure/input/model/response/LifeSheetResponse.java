@@ -19,7 +19,8 @@ public record LifeSheetResponse(
         @Schema(description = "Que es el equipo: tipo, marca y modelo") Tecnica tecnica,
         @Schema(description = "Quien lo fabrico") Fabricante fabricante,
         @Schema(description = "Historial de intervenciones, de la mas reciente a la mas antigua")
-        List<InterventionResponse> servicioTecnico) {
+        List<InterventionResponse> servicioTecnico,
+        @Schema(description = "La empresa que presta el servicio: el membrete del documento") Empresa empresa) {
 
     @Schema(name = "LifeSheetIdentificacion")
     public record Identificacion(
@@ -34,7 +35,11 @@ public record LifeSheetResponse(
             String direccionSede,
             String ciudadSede,
             String areaServicio,
-            boolean estadoActivo) {
+            boolean estadoActivo,
+            @Schema(description = "Encargados del area, o de la sede si el area no tiene; vacia si ninguno")
+            List<String> responsables,
+            @Schema(description = "Telefonos vigentes del cliente") List<String> telefonosCliente,
+            @Schema(description = "Correos vigentes del cliente") List<String> correosCliente) {
     }
 
     @Schema(name = "LifeSheetTecnica")
@@ -48,6 +53,16 @@ public record LifeSheetResponse(
             String marca,
             String modelo,
             @Schema(description = "Registro INVIMA del modelo, opcional") String registroInvima) {
+    }
+
+    @Schema(name = "LifeSheetEmpresa", description = "Viene de la configuracion, no de la base")
+    public record Empresa(
+            String nombre,
+            String direccion,
+            String ciudad,
+            @Schema(description = "Telefonos fijos; vacia si no tiene") List<String> telefonos,
+            String movil,
+            String correo) {
     }
 
     @Schema(name = "LifeSheetFabricante")

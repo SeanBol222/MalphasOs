@@ -58,9 +58,13 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM fabricante",
             "DELETE FROM marca",
             "DELETE FROM tipo_equipo",
+            "DELETE FROM encargado",
             "DELETE FROM area_servicio",
             "DELETE FROM sede",
-            "DELETE FROM cliente"
+            "DELETE FROM correo_cliente",
+            "DELETE FROM telefono_cliente",
+            "DELETE FROM cliente",
+            "DELETE FROM persona WHERE n_primer_nombre = 'Carla' AND n_primer_apellido = 'Ruiz'"
         },
         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class InterventionRecordingIntegrationTest {
@@ -312,6 +316,47 @@ class InterventionRecordingIntegrationTest {
         assertThat(hoja.fabricante().nombre()).isNotBlank();
 
         assertThat(hoja.servicioTecnico()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("la hoja de vida trae el responsable de la sede y los contactos vigentes del cliente")
+    void elResponsableYLosContactos() {
+        // De extremo a extremo y no con dobles: cruza tres modulos —equipment pide, client decide quien
+        // responde, person pone el nombre— y lo que hay que ver es que el cableado llega.
+        Contexto contexto = unBorrador("PREVENTIVO");
+        UUID persona = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO persona (k_identificador, k_cedula, n_primer_nombre, n_primer_apellido,
+                                     t_tipo_persona)
+                VALUES (?, ?, 'Carla', 'Ruiz', 'MANAGER')
+                """,
+                persona, unico());
+        // Encargada de la SEDE, no del area: el area no tiene, asi que responde la sede.
+        jdbcTemplate.update(
+                "INSERT INTO encargado (k_identificador, t_tipo_encargado, k_id_sede) VALUES (?, 'HEADQUARTER', ?)",
+                persona, contexto.sede());
+        jdbcTemplate.update(
+                "INSERT INTO telefono_cliente (k_id_telefono_cliente, n_telefono_cliente, k_id_cliente) VALUES (?, '3001112233', ?)",
+                UUID.randomUUID(), contexto.cliente());
+        jdbcTemplate.update(
+                """
+                INSERT INTO telefono_cliente (k_id_telefono_cliente, n_telefono_cliente, k_id_cliente,
+                                              b_estado_activo)
+                VALUES (?, '6010000000', ?, false)
+                """,
+                UUID.randomUUID(), contexto.cliente());
+        jdbcTemplate.update(
+                "INSERT INTO correo_cliente (k_id_correo_cliente, n_correo_cliente, k_id_cliente) VALUES (?, 'compras@hospital.co', ?)",
+                UUID.randomUUID(), contexto.cliente());
+
+        LifeSheet hoja = lifeSheetServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted());
+
+        assertThat(hoja.identificacion().responsables()).containsExactly("Carla Ruiz");
+        // El telefono retirado no sale: un numero que ya no contesta, impreso en la hoja, es peor que
+        // ninguno.
+        assertThat(hoja.identificacion().telefonosCliente()).containsExactly("3001112233");
+        assertThat(hoja.identificacion().correosCliente()).containsExactly("compras@hospital.co");
     }
 
     @Test

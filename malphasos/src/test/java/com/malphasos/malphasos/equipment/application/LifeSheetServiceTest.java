@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
 import com.malphasos.malphasos.client.application.ports.input.HeadquarterServicePort;
+import com.malphasos.malphasos.client.application.ports.input.ServiceAreaResponsiblePort;
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.BrandServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
@@ -61,6 +62,7 @@ class LifeSheetServiceTest {
     @Mock private ClientServicePort clientServicePort;
     @Mock private CityServicePort cityServicePort;
     @Mock private CountryServicePort countryServicePort;
+    @Mock private ServiceAreaResponsiblePort serviceAreaResponsiblePort;
 
     @InjectMocks private LifeSheetService service;
 
@@ -74,7 +76,7 @@ class LifeSheetServiceTest {
         assertThatThrownBy(() -> service.findByEquipment(EQUIPO, deOtro))
                 .isInstanceOf(ClientEquipmentNotFoundException.class);
 
-        // Ninguno de los once saltos siguientes se da. Si la guarda se moviera al final, la
+        // Ninguno de los doce saltos siguientes se da —eran once hasta que entro el responsable—. Si la guarda se moviera al final, la
         // respuesta seria la misma y esto fallaria, que es exactamente lo que hay que notar.
         verifyNoInteractions(
                 modelServicePort,
@@ -87,7 +89,8 @@ class LifeSheetServiceTest {
                 headquarterServicePort,
                 clientServicePort,
                 cityServicePort,
-                countryServicePort);
+                countryServicePort,
+                serviceAreaResponsiblePort);
     }
 
     @Test

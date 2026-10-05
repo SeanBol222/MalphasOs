@@ -355,6 +355,34 @@
         },
         "type" : "object"
       },
+      "LifeSheetEmpresa" : {
+        "description" : "Viene de la configuracion, no de la base",
+        "properties" : {
+          "ciudad" : {
+            "type" : "string"
+          },
+          "correo" : {
+            "type" : "string"
+          },
+          "direccion" : {
+            "type" : "string"
+          },
+          "movil" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "telefonos" : {
+            "description" : "Telefonos fijos; vacia si no tiene",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
       "LifeSheetFabricante" : {
         "properties" : {
           "nombre" : {
@@ -378,6 +406,13 @@
           "cliente" : {
             "type" : "string"
           },
+          "correosCliente" : {
+            "description" : "Correos vigentes del cliente",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "direccionSede" : {
             "type" : "string"
           },
@@ -398,11 +433,25 @@
           "numeroInventario" : {
             "type" : "string"
           },
+          "responsables" : {
+            "description" : "Encargados del area, o de la sede si el area no tiene; vacia si ninguno",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "sede" : {
             "type" : "string"
           },
           "serie" : {
             "type" : "string"
+          },
+          "telefonosCliente" : {
+            "description" : "Telefonos vigentes del cliente",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
           },
           "valorCompra" : {
             "format" : "int64",
@@ -414,6 +463,10 @@
       "LifeSheetResponse" : {
         "description" : "Hoja de vida de un equipo instalado",
         "properties" : {
+          "empresa" : {
+            "$ref" : "#/components/schemas/LifeSheetEmpresa",
+            "description" : "La empresa que presta el servicio: el membrete del documento"
+          },
           "fabricante" : {
             "$ref" : "#/components/schemas/LifeSheetFabricante",
             "description" : "Quien lo fabrico"

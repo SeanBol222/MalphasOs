@@ -2,8 +2,11 @@ package com.malphasos.malphasos.equipment.application.services.lifeSheet;
 
 import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
 import com.malphasos.malphasos.client.application.ports.input.HeadquarterServicePort;
+import com.malphasos.malphasos.client.application.ports.input.ServiceAreaResponsiblePort;
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
 import com.malphasos.malphasos.client.domain.client.Client;
+import com.malphasos.malphasos.client.domain.client.EmailClient;
+import com.malphasos.malphasos.client.domain.client.PhoneClient;
 import com.malphasos.malphasos.client.domain.headquarter.Address;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
@@ -63,6 +66,7 @@ public class LifeSheetService implements LifeSheetServicePort {
     private final ClientServicePort clientServicePort;
     private final CityServicePort cityServicePort;
     private final CountryServicePort countryServicePort;
+    private final ServiceAreaResponsiblePort serviceAreaResponsiblePort;
 
     @Override
     @Transactional(readOnly = true)
@@ -91,7 +95,16 @@ public class LifeSheetService implements LifeSheetServicePort {
                         comoTexto(sede.getDireccion()),
                         cityServicePort.findById(sede.getIdCiudad()).getNombre(),
                         area.getNombre(),
-                        unidad.isEstadoActivo()),
+                        unidad.isEstadoActivo(),
+                        serviceAreaResponsiblePort.responsiblesFor(area.getId()),
+                        cliente.getTelefonos().stream()
+                                .filter(PhoneClient::isEstadoActivo)
+                                .map(PhoneClient::getTelefono)
+                                .toList(),
+                        cliente.getCorreos().stream()
+                                .filter(EmailClient::isEstadoActivo)
+                                .map(EmailClient::getCorreo)
+                                .toList()),
                 new LifeSheet.Tecnica(
                         tipo.getNombre(),
                         tipo.getDefinicionTecnica(),

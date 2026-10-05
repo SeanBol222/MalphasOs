@@ -6,9 +6,11 @@ import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServic
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.InterventionResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.LifeSheetResponse;
+import com.malphasos.malphasos.shared.config.ServiceCompanyProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,6 +42,7 @@ public class LifeSheetRestAdapter {
 
     /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
     private final ReadScopeResolver readScopeResolver;
+    private final ServiceCompanyProperties empresa;
 
     @Operation(
             summary = "Hoja de vida de un equipo",
@@ -53,7 +56,11 @@ public class LifeSheetRestAdapter {
         return toResponse(lifeSheetServicePort.findByEquipment(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
-    private static LifeSheetResponse toResponse(LifeSheet hoja) {
+    /*
+     * El membrete se pone aqui y no en LifeSheetService: no es un dato del equipo sino del documento
+     * que se entrega, y la capa de aplicacion no tiene por que saber de que empresa es.
+     */
+    private LifeSheetResponse toResponse(LifeSheet hoja) {
         return new LifeSheetResponse(
                 new LifeSheetResponse.Identificacion(
                         hoja.identificacion().idEquipoCliente(),
@@ -67,7 +74,10 @@ public class LifeSheetRestAdapter {
                         hoja.identificacion().direccionSede(),
                         hoja.identificacion().ciudadSede(),
                         hoja.identificacion().areaServicio(),
-                        hoja.identificacion().estadoActivo()),
+                        hoja.identificacion().estadoActivo(),
+                        hoja.identificacion().responsables(),
+                        hoja.identificacion().telefonosCliente(),
+                        hoja.identificacion().correosCliente()),
                 new LifeSheetResponse.Tecnica(
                         hoja.tecnica().tipoEquipo(),
                         hoja.tecnica().definicionTecnica(),
@@ -80,7 +90,14 @@ public class LifeSheetRestAdapter {
                         hoja.tecnica().registroInvima()),
                 new LifeSheetResponse.Fabricante(
                         hoja.fabricante().nombre(), hoja.fabricante().pais()),
-                hoja.servicioTecnico().stream().map(LifeSheetRestAdapter::toResponse).toList());
+                hoja.servicioTecnico().stream().map(LifeSheetRestAdapter::toResponse).toList(),
+                new LifeSheetResponse.Empresa(
+                        empresa.getNombre(),
+                        empresa.getDireccion(),
+                        empresa.getCiudad(),
+                        List.copyOf(empresa.getTelefonos()),
+                        empresa.getMovil(),
+                        empresa.getCorreo()));
     }
 
     private static InterventionResponse toResponse(Intervention intervencion) {
