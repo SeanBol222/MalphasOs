@@ -31,6 +31,7 @@ public class ClientRestMapper {
                 .documento(cliente.getDocumento())
                 .tipoIdentificacion(cliente.getTipoIdentificacion())
                 .razonSocial(cliente.getRazonSocial())
+                .sigla(cliente.getSigla())
                 .idPais(cliente.getIdPais())
                 .estadoActivo(cliente.isEstadoActivo())
                 .correos(cliente.getCorreos().stream()

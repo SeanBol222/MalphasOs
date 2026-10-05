@@ -50,6 +50,28 @@
       />
     </div>
 
+    <div class="mb-3">
+      <label class="block font-semibold" for="sigla">Sigla <span class="text-accent-700" aria-hidden="true">*</span></label>
+      <input
+        id="sigla"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1 uppercase"
+        formControlName="sigla"
+        maxlength="6"
+        aria-required="true"
+        aria-describedby="sigla-ayuda"
+        [attr.aria-invalid]="malo('sigla') || null"
+      />
+      <p class="mt-1 text-neutral-700" id="sigla-ayuda">
+        Encabeza el número de sus hojas de vida, como HV-{{ formulario.controls.sigla.value.toUpperCase() || 'CDN' }}-0001.
+        Se generó de la razón social; las hojas ya numeradas conservan su número.
+      </p>
+      @if (malo('sigla')) {
+        <p class="mt-1 font-semibold text-accent-700">
+          De tres a seis letras o dígitos, empezando por letra.
+        </p>
+      }
+    </div>
+
     <!--
       El documento no aparece: es la llave natural del cliente y el backend no admite cambiarlo.
       Un campo deshabilitado sugeriria que alguien con mas permisos podria.

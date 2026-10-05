@@ -161,7 +161,7 @@ class ServiceReportServiceTest {
      */
     private void estubarCadenaDelCatalogo(EquipmentType tipo) {
         when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(
-                ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, null, null, true));
+                ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, null, null, null, true));
         when(modelServicePort.findById(MODELO)).thenReturn(
                 Model.rehydrate(MODELO, "IdeaPad 3", null, UUID.randomUUID(), EQUIPO_CATALOGO, TechnicalSheet.EMPTY, true));
         when(equipmentServicePort.findById(EQUIPO_CATALOGO)).thenReturn(
@@ -778,7 +778,7 @@ class ServiceReportServiceTest {
         @DisplayName("el historial de un equipo comprueba antes que el equipo existe")
         void elHistorialCompruebaQueElEquipoExiste() {
             when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(
-                    ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, null, null, true));
+                    ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, null, null, null, true));
             when(serviceReportPersistencePort.findByEquipment(EQUIPO)).thenReturn(List.of());
 
             assertThat(service.findByEquipment(EQUIPO, ReadScope.unrestricted())).isEmpty();

@@ -32,6 +32,7 @@ public record LifeSheet(
     /** Qué unidad es y de quién, que es lo que la distingue de otra igual. */
     public record Identificacion(
             UUID idEquipoCliente,
+            String numeroHojaVida,
             String serie,
             String numeroInventario,
             String codigoInterno,

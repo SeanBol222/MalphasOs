@@ -479,6 +479,8 @@ export interface components {
             idAreaServicio?: string;
             /** Format: uuid */
             idModelo?: string;
+            /** @description HV-<sigla>-0001, asignado al registrar el equipo y fijo */
+            numeroHojaVida?: string;
             numeroInventario?: string;
             proveedor?: string;
             serie?: string;
@@ -644,6 +646,11 @@ export interface components {
             fechaCompra?: string;
             /** Format: uuid */
             idEquipoCliente?: string;
+            /**
+             * @description HV-<sigla>-0001, asignado al registrar el equipo
+             * @example HV-CDN-0001
+             */
+            numeroHojaVida?: string;
             numeroInventario?: string;
             /** @description Quien vendio esta maquina, opcional */
             proveedor?: string;

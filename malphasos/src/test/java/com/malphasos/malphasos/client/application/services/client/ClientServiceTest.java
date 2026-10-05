@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -12,8 +13,10 @@ import com.malphasos.malphasos.client.application.ports.output.ClientPersistence
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.CreateClientCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.ChangeClientAcronymCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.DeactivateClientCommand;
 import com.malphasos.malphasos.client.domain.client.Client;
+import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
@@ -47,7 +50,7 @@ class ClientServiceTest {
 
     private Client unCliente(UUID id) {
         return Client.rehydrate(id, "900123456", IdentificationType.NIT_JURIDICO,
-                "Hospital Central", null, true, List.of(), List.of(), Set.of());
+                "Hospital Central", "CLI", null, true, List.of(), List.of(), Set.of());
     }
 
     @SuppressWarnings("unchecked")
@@ -74,6 +77,48 @@ class ClientServiceTest {
         assertThat(despachados())
                 .extracting(evento -> evento.metadata().eventType())
                 .containsExactly("client.created");
+    }
+
+    @Test
+    @DisplayName("el alta toma el candado y despues busca la primera sigla libre: CDN ocupada, CDN2")
+    void crearDesempataLaSigla() {
+        when(persistencePort.save(any(Client.class))).thenAnswer(i -> i.getArgument(0));
+        when(persistencePort.existsBySigla("CDN")).thenReturn(true);
+        when(persistencePort.existsBySigla("CDN2")).thenReturn(false);
+
+        Client creado = service().create(new CreateClientCommand(
+                "900123456", IdentificationType.NIT_JURIDICO, "Clinica Dermatologica del Norte", null));
+
+        assertThat(creado.getSigla()).isEqualTo("CDN2");
+        // El candado ANTES de mirar: si se tomara despues, dos altas a la vez verian libre la misma.
+        InOrder orden = Mockito.inOrder(persistencePort);
+        orden.verify(persistencePort).lockAcronymAllocation();
+        orden.verify(persistencePort).existsBySigla("CDN");
+    }
+
+    @Test
+    @DisplayName("corregir la sigla a una que tiene otro cliente se rechaza, y no se guarda nada")
+    void siglaOcupada() {
+        UUID id = UUID.randomUUID();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(unCliente(id)));
+        when(persistencePort.existsBySigla("HCE")).thenReturn(true);
+
+        assertThatThrownBy(() -> service().changeAcronym(new ChangeClientAcronymCommand(id, "hce")))
+                .isInstanceOf(ClientAcronymTakenException.class);
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("corregir la sigla a la que ya tiene no la da por ocupada por si misma")
+    void siglaPropia() {
+        UUID id = UUID.randomUUID();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(unCliente(id)));
+        // Estubado aunque no deba consultarse: si la comparacion con la propia desapareciera, la
+        // sigla «CLI» constaria como ocupada —por este mismo cliente— y la prueba fallaria por eso.
+        lenient().when(persistencePort.existsBySigla("CLI")).thenReturn(true);
+        when(persistencePort.save(any(Client.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(service().changeAcronym(new ChangeClientAcronymCommand(id, "cli")).getSigla()).isEqualTo("CLI");
     }
 
     @Test

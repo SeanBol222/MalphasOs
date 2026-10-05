@@ -41,7 +41,10 @@ class ClientPersistenceAdapterTest {
     }
 
     private Client unCliente() {
-        return Client.create(unico(), IdentificationType.NIT_JURIDICO, "Hospital " + unico(), null);
+        // Con sigla explicita y distinta: el create de cuatro argumentos no desempata —eso es del
+        // servicio—, y «Hospital» mas diez digitos da casi siempre la misma sigla base.
+        return Client.create(unico(), IdentificationType.NIT_JURIDICO, "Hospital " + unico(), null,
+                "H" + String.format("%05d", Math.floorMod(System.nanoTime(), 100_000L)));
     }
 
     private UUID unaPersona() {

@@ -65,6 +65,26 @@ export interface paths {
         patch: operations["updateClient"];
         trace?: never;
     };
+    "/v1/api/clients/{id}/acronym": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Corregir la sigla de un cliente
+         * @description La sigla se genera sola al crear el cliente; esta ruta es para corregirla. Las hojas de vida ya numeradas conservan su numero. 409 si la tiene otro cliente.
+         */
+        patch: operations["changeAcronym"];
+        trace?: never;
+    };
     "/v1/api/clients/{id}/emails": {
         parameters: {
             query?: never;
@@ -319,6 +339,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ClientAcronymRequest: {
+            /**
+             * @description Encabeza el numero de las hojas de vida
+             * @example CDN
+             */
+            sigla: string;
+        };
         ClientCreateRequest: {
             /**
              * @description NIT o documento
@@ -367,6 +394,8 @@ export interface components {
             idAreaServicio?: string;
             /** Format: uuid */
             idModelo?: string;
+            /** @description HV-<sigla>-0001, asignado al registrar el equipo y fijo */
+            numeroHojaVida?: string;
             numeroInventario?: string;
             proveedor?: string;
             serie?: string;
@@ -391,6 +420,11 @@ export interface components {
             razonSocial?: string;
             /** @description Identificadores de las personas que lo representan legalmente */
             representantes?: string[];
+            /**
+             * @description Encabeza el numero de sus hojas de vida
+             * @example CDN
+             */
+            sigla?: string;
             telefonos?: components["schemas"]["ContactResponse"][];
             /** @enum {string} */
             tipoIdentificacion?: "NIT_JURIDICO" | "NIT_NATURAL" | "CC" | "CE";
@@ -886,6 +920,68 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ClientUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    changeAcronym: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientAcronymRequest"];
             };
         };
         responses: {

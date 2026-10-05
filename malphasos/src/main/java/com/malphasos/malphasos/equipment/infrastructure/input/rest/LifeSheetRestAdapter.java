@@ -66,6 +66,7 @@ public class LifeSheetRestAdapter {
         return new LifeSheetResponse(
                 new LifeSheetResponse.Identificacion(
                         hoja.identificacion().idEquipoCliente(),
+                        hoja.identificacion().numeroHojaVida(),
                         hoja.identificacion().serie(),
                         hoja.identificacion().numeroInventario(),
                         hoja.identificacion().codigoInterno(),

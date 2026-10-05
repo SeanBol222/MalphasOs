@@ -5,6 +5,7 @@ import com.malphasos.malphasos.client.application.ports.output.ClientPersistence
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientPhoneCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.ChangeClientAcronymCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.CreateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.DeactivateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientEmailCommand;
@@ -12,6 +13,8 @@ import com.malphasos.malphasos.client.application.services.client.commands.Remov
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveRepresentativeCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.UpdateClientCommand;
 import com.malphasos.malphasos.client.domain.client.Client;
+import com.malphasos.malphasos.client.domain.client.ClientAcronym;
+import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
@@ -69,11 +72,41 @@ public class ClientService implements ClientServicePort {
     @Override
     @Transactional
     public Client create(CreateClientCommand command) {
+        // La sigla se genera de la razon social y se desempata contra las que ya existen. El candado
+        // va antes de mirar cuales existen: sin el, dos altas a la vez verian libre la misma.
+        clientPersistencePort.lockAcronymAllocation();
+        String base = ClientAcronym.base(command.razonSocial());
+
         return persistAndPublish(Client.create(
                 command.documento(),
                 command.tipoIdentificacion(),
                 command.razonSocial(),
-                command.idPais()));
+                command.idPais(),
+                siglaLibre(base)));
+    }
+
+    @Override
+    @Transactional
+    public Client changeAcronym(ChangeClientAcronymCommand command) {
+        String sigla = ClientAcronym.validar(command.sigla());
+        clientPersistencePort.lockAcronymAllocation();
+
+        return applyTo(command.id(), cliente -> {
+            if (!sigla.equals(cliente.getSigla()) && clientPersistencePort.existsBySigla(sigla)) {
+                throw new ClientAcronymTakenException(sigla);
+            }
+            cliente.changeAcronym(sigla);
+        });
+    }
+
+    /** «CDN», y si esta ocupada «CDN2», «CDN3»... hasta encontrar una libre. */
+    private String siglaLibre(String base) {
+        int numero = 1;
+        while (clientPersistencePort.existsBySigla(ClientAcronym.conDesempate(base, numero))) {
+            numero++;
+        }
+
+        return ClientAcronym.conDesempate(base, numero);
     }
 
     @Override

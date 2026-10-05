@@ -292,7 +292,7 @@ class EquipmentRestAdapterTest {
         UUID area = UUID.randomUUID();
         UUID modelo = UUID.randomUUID();
         when(clientEquipmentServicePort.register(any())).thenReturn(ClientEquipment.rehydrate(
-                UUID.randomUUID(), "SN-001", modelo, area, null, null, null, null, null, true));
+                UUID.randomUUID(), "SN-001", modelo, area, null, null, null, null, null, null, true));
 
         mockMvc.perform(post("/v1/api/service-areas/" + area + "/equipments")
                         .contentType(MediaType.APPLICATION_JSON)

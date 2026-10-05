@@ -82,6 +82,7 @@ public class EquipmentChainPersistenceMapper {
                 entity.getValorCompra(),
                 entity.getCodigoInterno(),
                 entity.getProveedor(),
+                entity.getNumeroHojaVida(),
                 entity.isEstadoActivo());
     }
 
@@ -98,6 +99,7 @@ public class EquipmentChainPersistenceMapper {
                 unidad.getValorCompra(),
                 unidad.getCodigoInterno(),
                 unidad.getProveedor(),
+                unidad.getNumeroHojaVida(),
                 unidad.getIdModelo(),
                 unidad.getIdAreaServicio(),
                 unidad.isEstadoActivo());

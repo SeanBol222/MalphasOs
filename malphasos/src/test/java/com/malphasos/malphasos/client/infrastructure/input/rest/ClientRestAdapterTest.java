@@ -20,6 +20,7 @@ import com.malphasos.malphasos.client.application.ports.input.ServiceAreaService
 import com.malphasos.malphasos.client.application.services.headquarter.commands.CreateHeadquarterCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.RegisterManagerCommand;
 import com.malphasos.malphasos.client.domain.client.Client;
+import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.client.domain.headquarter.Address;
@@ -64,7 +65,7 @@ class ClientRestAdapterTest {
 
     private Client unCliente(UUID id) {
         return Client.rehydrate(id, "900123456", IdentificationType.NIT_JURIDICO,
-                "Hospital Central", null, true, List.of(), List.of(), Set.of());
+                "Hospital Central", "CLI", null, true, List.of(), List.of(), Set.of());
     }
 
     @Test
@@ -80,6 +81,30 @@ class ClientRestAdapterTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.tipoIdentificacion").value("NIT_JURIDICO"));
+    }
+
+    @Test
+    @DisplayName("la sigla tiene su ruta, y una que ya tiene otro cliente responde 409 con su codigo")
+    void siglaOcupada() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(clientServicePort.changeAcronym(any())).thenThrow(new ClientAcronymTakenException("CDN"));
+
+        mockMvc.perform(patch("/v1/api/clients/" + id + "/acronym")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sigla\":\"cdn\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_CLIENT_008"));
+    }
+
+    @Test
+    @DisplayName("una sigla con otro formato no llega al servicio")
+    void siglaMalFormada() throws Exception {
+        mockMvc.perform(patch("/v1/api/clients/" + UUID.randomUUID() + "/acronym")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sigla\":\"2C\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(clientServicePort, never()).changeAcronym(any());
     }
 
     @Test

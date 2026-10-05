@@ -712,7 +712,7 @@ class CatalogAggregatesTest {
         assertThat(Manufacturer.rehydrate(id, "Uno", null, true).hasPendingEvents()).isFalse();
         assertThat(Equipment.rehydrate(id, TIPO, MARCA, true).hasPendingEvents()).isFalse();
         assertThat(Model.rehydrate(id, "IdeaPad 3", null, FABRICANTE, EQUIPO, TechnicalSheet.EMPTY, true).hasPendingEvents()).isFalse();
-        assertThat(ClientEquipment.rehydrate(id, "SN", MODELO, AREA, null, null, null, null, null, true)
+        assertThat(ClientEquipment.rehydrate(id, "SN", MODELO, AREA, null, null, null, null, null, null, true)
                         .hasPendingEvents())
                 .isFalse();
     }

@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.client.infrastructure.input.errors;
 
+import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerNotFoundException;
@@ -71,6 +72,12 @@ public class ClientControllerAdvice {
     @ExceptionHandler(PersonNotFoundException.class)
     public ClientErrorResponse handlePerson(PersonNotFoundException ex) {
         return ClientErrorResponse.of(ClientErrorCatalog.PERSON_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ClientAcronymTakenException.class)
+    public ClientErrorResponse handleAcronymTaken(ClientAcronymTakenException ex) {
+        return ClientErrorResponse.of(ClientErrorCatalog.ACRONYM_TAKEN, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */

@@ -48,6 +48,13 @@ public class ClientEquipment extends AggregateRoot {
     /** Quien vendió esta máquina, en texto libre. Opcional; entró con {@code V16}. */
     private String proveedor;
 
+    /**
+     * «HV-CDN-0001»: el número de su hoja de vida. Lo asigna la base al registrarlo —es un contador por
+     * cliente, ver {@code V20}— y no cambia nunca; por eso es nulo en una unidad que todavía no se ha
+     * guardado, y final.
+     */
+    private final String numeroHojaVida;
+
     private boolean estadoActivo;
 
     private ClientEquipment(
@@ -60,6 +67,7 @@ public class ClientEquipment extends AggregateRoot {
             Long valorCompra,
             String codigoInterno,
             String proveedor,
+            String numeroHojaVida,
             boolean estadoActivo) {
 
         this.id = id;
@@ -71,6 +79,7 @@ public class ClientEquipment extends AggregateRoot {
         this.valorCompra = valorCompra;
         this.codigoInterno = codigoInterno;
         this.proveedor = proveedor;
+        this.numeroHojaVida = numeroHojaVida;
         this.estadoActivo = estadoActivo;
     }
 
@@ -94,6 +103,7 @@ public class ClientEquipment extends AggregateRoot {
                 validarValor(valorCompra),
                 normalizar(codigoInterno),
                 normalizar(proveedor),
+                null,
                 true);
 
         unidad.registerEvent(new ClientEquipmentRegisteredEvent(
@@ -112,10 +122,11 @@ public class ClientEquipment extends AggregateRoot {
             Long valorCompra,
             String codigoInterno,
             String proveedor,
+            String numeroHojaVida,
             boolean estadoActivo) {
 
         return new ClientEquipment(id, serie, idModelo, idAreaServicio, numeroInventario,
-                fechaCompra, valorCompra, codigoInterno, proveedor, estadoActivo);
+                fechaCompra, valorCompra, codigoInterno, proveedor, numeroHojaVida, estadoActivo);
     }
 
     /** Traslada la unidad a otra área de servicio. */

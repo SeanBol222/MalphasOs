@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -46,6 +48,13 @@ public class ClientEquipmentEntity {
 
     @Column(name = "n_proveedor")
     private String proveedor;
+
+    // Lo pone el trigger de V20 al insertar, y nunca cambia: ni se inserta ni se actualiza desde aqui.
+    // @Generated hace que Hibernate lo relea tras el INSERT; el adaptador hace flush para que ocurra
+    // antes de devolver la unidad.
+    @Generated(event = EventType.INSERT)
+    @Column(name = "n_numero_hoja_vida", insertable = false, updatable = false)
+    private String numeroHojaVida;
 
     @Column(name = "k_id_modelo", nullable = false)
     private UUID idModelo;

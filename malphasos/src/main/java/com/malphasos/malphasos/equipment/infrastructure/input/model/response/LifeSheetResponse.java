@@ -24,6 +24,8 @@ public record LifeSheetResponse(
     @Schema(name = "LifeSheetIdentificacion")
     public record Identificacion(
             UUID idEquipoCliente,
+            @Schema(description = "HV-<sigla>-0001, asignado al registrar el equipo", example = "HV-CDN-0001")
+            String numeroHojaVida,
             String serie,
             String numeroInventario,
             @Schema(description = "Opcional") String codigoInterno,

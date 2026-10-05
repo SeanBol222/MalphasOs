@@ -13,6 +13,7 @@ const URL_PAISES = 'http://localhost:8081/v1/api/countries';
 const CLIENTE = {
   id: ID,
   razonSocial: 'Hospital Central',
+  sigla: 'HCE',
   documento: '900123456',
   tipoIdentificacion: 'NIT_JURIDICO',
   idPais: ID_PAIS,
@@ -97,6 +98,7 @@ describe('Edicion de un cliente', () => {
     // El campo de busqueda ensena el NOMBRE y guarda el identificador: si ensenara el UUID, quien
     // edita no sabria que pais tiene puesto.
     expect(raiz().querySelector<HTMLInputElement>('#idPais')!.value).toBe('Colombia');
+    expect(raiz().querySelector<HTMLInputElement>('#sigla')!.value).toBe('HCE');
   });
 
   it('no ofrece el documento, porque el backend no admite cambiarlo', async () => {
@@ -120,6 +122,47 @@ describe('Edicion de un cliente', () => {
     });
     peticion.flush(CLIENTE);
     await asentar();
+    http.match(URL).forEach((p) => p.flush(CLIENTE));
+    await asentar();
+  });
+
+  it('una sigla corregida viaja en mayusculas por su propia ruta, despues de los datos', async () => {
+    // Tiene ruta propia en el backend y solo se manda si cambio: la sin cambiar no llama a nada.
+    await abrir();
+    escribir('sigla', 'hcn');
+    await enviar();
+
+    http.expectOne({ method: 'PATCH', url: URL }).flush(CLIENTE);
+    await asentar();
+    // La mutacion espera a la recarga que su invalidacion dispara: la sigla sale despues de ella.
+    http.match(URL).forEach((p) => p.flush(CLIENTE));
+    await asentar();
+    const sigla = http.expectOne({ method: 'PATCH', url: `${URL}/acronym` });
+    expect(sigla.request.body).toEqual({ sigla: 'HCN' });
+    sigla.flush({ ...CLIENTE, sigla: 'HCN' });
+    await asentar();
+    http.match(URL).forEach((p) => p.flush(CLIENTE));
+    await asentar();
+  });
+
+  it('una sigla que ya tiene otro cliente lo dice, sin salir del formulario', async () => {
+    await abrir();
+    escribir('sigla', 'CDN');
+    await enviar();
+
+    http.expectOne({ method: 'PATCH', url: URL }).flush(CLIENTE);
+    await asentar();
+    // La mutacion espera a la recarga que su invalidacion dispara: la sigla sale despues de ella.
+    http.match(URL).forEach((p) => p.flush(CLIENTE));
+    await asentar();
+    http.expectOne({ method: 'PATCH', url: `${URL}/acronym` }).flush(
+      { code: 'ERR_CLIENT_008', message: 'Client acronym already in use', details: [] },
+      { status: 409, statusText: 'Conflict' },
+    );
+    await asentar();
+
+    expect(texto()).toContain('Esa sigla ya la tiene otro cliente.');
+    expect(raiz().querySelector<HTMLInputElement>('#sigla')!.value).toBe('CDN');
     http.match(URL).forEach((p) => p.flush(CLIENTE));
     await asentar();
   });

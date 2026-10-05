@@ -9,8 +9,9 @@ import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
 /**
  * Edicion de un cliente.
  *
- * <p><b>Solo razon social y pais</b>, porque es lo unico que el backend acepta cambiar: el documento
- * y su tipo son la llave natural del cliente y no se editan. Ofrecerlos deshabilitados sugeriria que
+ * <p><b>Razon social, pais y sigla</b>, porque es lo unico que el backend acepta cambiar: el documento
+ * y su tipo son la llave natural del cliente y no se editan. La sigla va por su propia ruta y solo se
+ * manda si cambio: se genero sola al crear el cliente, y corregirla puede chocar con la de otro. Ofrecerlos deshabilitados sugeriria que
  * alguien con mas permisos podria; no es el caso, y no existe esa operacion.
  */
 @Component({
@@ -30,10 +31,14 @@ export class EditarCliente {
 
   protected readonly opcionesDePais = computed(() => opcionesDe(this.paises.data()));
   protected readonly cambio = this.api.editar();
+  protected readonly cambioDeSigla = this.api.corregirSigla();
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
     razonSocial: ['', [Validators.required, Validators.maxLength(50)]],
     idPais: [''],
+    // El mismo formato que exige el backend; se admite en minusculas y el servidor la guarda en
+    // mayusculas.
+    sigla: ['', [Validators.required, Validators.pattern(/^\s*[A-Za-z][A-Za-z0-9]{2,5}\s*$/)]],
   });
 
   constructor() {
@@ -47,20 +52,22 @@ export class EditarCliente {
         this.formulario.setValue({
           razonSocial: datos.razonSocial ?? '',
           idPais: datos.idPais ?? '',
+          sigla: datos.sigla ?? '',
         });
       }
     });
   }
 
-  protected readonly enviando = computed(() => this.cambio.isPending());
+  protected readonly enviando = computed(
+    () => this.cambio.isPending() || this.cambioDeSigla.isPending(),
+  );
+  private readonly error = computed(
+    () => this.cambio.error() ?? this.cambioDeSigla.error() ?? this.cliente.error(),
+  );
   protected readonly mensajeDeError = computed(() =>
-    this.cambio.isError() || this.cliente.isError()
-      ? traducirError(this.cambio.error() ?? this.cliente.error())
-      : '',
+    this.error() ? traducirError(this.error()) : '',
   );
-  protected readonly detalles = computed(() =>
-    detallesDe(this.cambio.error() ?? this.cliente.error()),
-  );
+  protected readonly detalles = computed(() => detallesDe(this.error()));
 
   protected malo(campo: string): boolean {
     const control = this.formulario.get(campo);
@@ -75,13 +82,21 @@ export class EditarCliente {
       return;
     }
 
-    const { razonSocial, idPais } = this.formulario.getRawValue();
+    const { razonSocial, idPais, sigla } = this.formulario.getRawValue();
+    const nuevaSigla = sigla.trim().toUpperCase();
+    const volver = () => void this.router.navigate(['/clientes', this.id()]);
+    // Primero los datos y despues la sigla, y solo si cambio: si la sigla la tiene otro cliente, el
+    // 409 se ve aqui y lo demas ya quedo guardado.
+    const despues = () =>
+      nuevaSigla === this.cliente.data()?.sigla
+        ? volver()
+        : this.cambioDeSigla.mutate({ id: this.id(), sigla: nuevaSigla }, { onSuccess: volver });
 
     // Igual que en el alta: una cadena vacia no es un identificador. Aqui ademas quitar el pais de
     // un cliente que lo tenia no es lo que este formulario ofrece, y mandar "" lo intentaria.
     this.cambio.mutate(
       { id: this.id(), cambio: idPais ? { razonSocial, idPais } : { razonSocial } },
-      { onSuccess: () => void this.router.navigate(['/clientes', this.id()]) },
+      { onSuccess: despues },
     );
   }
 }

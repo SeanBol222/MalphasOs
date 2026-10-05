@@ -41,6 +41,8 @@ public class ClientEquipmentPersistenceAdapter implements ClientEquipmentPersist
 
     @Override
     public ClientEquipment save(ClientEquipment clientEquipment) {
-        return mapper.toDomain(clientEquipmentRepository.save(mapper.toEntity(clientEquipment)));
+        // saveAndFlush y no save: el numero de hoja de vida lo pone un trigger al insertar, y sin flush el
+        // INSERT ocurriria al confirmar, despues de devolver una unidad sin numero.
+        return mapper.toDomain(clientEquipmentRepository.saveAndFlush(mapper.toEntity(clientEquipment)));
     }
 }

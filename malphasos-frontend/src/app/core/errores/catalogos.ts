@@ -22,6 +22,7 @@ export const CATALOGO_CLIENT: Readonly<Record<string, string>> = {
   ERR_CLIENT_005: 'Revise los datos del formulario.',
   ERR_CLIENT_006: 'Esa ciudad no existe.',
   ERR_CLIENT_007: 'Esa persona no existe o fue retirada.',
+  ERR_CLIENT_008: 'Esa sigla ya la tiene otro cliente.',
 };
 
 /**
