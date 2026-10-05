@@ -355,6 +355,121 @@
         },
         "type" : "object"
       },
+      "LifeSheetFabricante" : {
+        "properties" : {
+          "nombre" : {
+            "type" : "string"
+          },
+          "pais" : {
+            "description" : "Opcional",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "LifeSheetIdentificacion" : {
+        "properties" : {
+          "areaServicio" : {
+            "type" : "string"
+          },
+          "ciudadSede" : {
+            "type" : "string"
+          },
+          "cliente" : {
+            "type" : "string"
+          },
+          "direccionSede" : {
+            "type" : "string"
+          },
+          "documentoCliente" : {
+            "type" : "string"
+          },
+          "estadoActivo" : {
+            "type" : "boolean"
+          },
+          "fechaCompra" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "idEquipoCliente" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "numeroInventario" : {
+            "type" : "string"
+          },
+          "sede" : {
+            "type" : "string"
+          },
+          "serie" : {
+            "type" : "string"
+          },
+          "valorCompra" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "LifeSheetResponse" : {
+        "description" : "Hoja de vida de un equipo instalado",
+        "properties" : {
+          "fabricante" : {
+            "$ref" : "#/components/schemas/LifeSheetFabricante",
+            "description" : "Quien lo fabrico"
+          },
+          "identificacion" : {
+            "$ref" : "#/components/schemas/LifeSheetIdentificacion",
+            "description" : "Que unidad es y de quien"
+          },
+          "servicioTecnico" : {
+            "description" : "Historial de intervenciones, de la mas reciente a la mas antigua",
+            "items" : {
+              "$ref" : "#/components/schemas/InterventionResponse"
+            },
+            "type" : "array"
+          },
+          "tecnica" : {
+            "$ref" : "#/components/schemas/LifeSheetTecnica",
+            "description" : "Que es el equipo: tipo, marca y modelo"
+          }
+        },
+        "type" : "object"
+      },
+      "LifeSheetTecnica" : {
+        "properties" : {
+          "amperaje" : {
+            "type" : "number"
+          },
+          "definicionTecnica" : {
+            "type" : "string"
+          },
+          "marca" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "recomendacionesCuidado" : {
+            "type" : "string"
+          },
+          "registroInvima" : {
+            "description" : "Registro INVIMA del modelo, opcional",
+            "type" : "string"
+          },
+          "tecnologiaPredominante" : {
+            "type" : "string"
+          },
+          "tipoEquipo" : {
+            "type" : "string"
+          },
+          "voltaje" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "MagnitudeResponse" : {
         "properties" : {
           "codigo" : {
@@ -1285,6 +1400,56 @@
         },
         "summary" : "Historial de intervenciones de un equipo",
         "tags" : [ "Intervention" ]
+      }
+    },
+    "/v1/api/client-equipments/{id}/life-sheet" : {
+      "get" : {
+        "description" : "Identificacion, tecnica, fabricante e historial de intervenciones.",
+        "operationId" : "getLifeSheet",
+        "parameters" : [ {
+          "description" : "Identificador del equipo instalado",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LifeSheetResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Hoja de vida de un equipo",
+        "tags" : [ "LifeSheet" ]
       }
     },
     "/v1/api/client-equipments/{id}/service-area/{idAreaServicio}" : {
@@ -3104,6 +3269,9 @@
   }, {
     "description" : "Gestion de modelos de equipos",
     "name" : "Model"
+  }, {
+    "description" : "Hoja de vida de un equipo instalado",
+    "name" : "LifeSheet"
   }, {
     "description" : "Magnitudes y unidades con las que se verifica",
     "name" : "MetrologyCatalog"
