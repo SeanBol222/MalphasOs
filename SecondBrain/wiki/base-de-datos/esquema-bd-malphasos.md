@@ -80,13 +80,17 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **16** (`V1`…`V16`) |
+| Migraciones aplicadas | **18** (`V1`…`V18`) |
 | Tablas de dominio | **27** |
 | Llaves foráneas | **38**, de las cuales **4 compuestas** |
 | Restricciones `CHECK` propias | **36** |
 | Índices únicos **parciales** | **5** |
 | Tablas con borrado lógico | **27 de 27** — universal, sin excepción |
 
+> **Recontado el 2026-10-05, más tarde, sobre la base con `V18`.** `V17` solo añade dos columnas
+> opcionales a `intervencion` y `V18` las rellena: las cifras no se mueven —38 foráneas, 36 `CHECK`,
+> 27 tablas—.
+>
 > **Recontado el 2026-10-05, sobre la base con `V16` aplicada.** `V15` quita dos `CHECK` del tipo
 > —voltaje y amperaje positivos— y pone cinco en el modelo —la clase de riesgo y los cuatro datos
 > eléctricos numéricos positivos—: de 33 a **36**. `V16` solo añade dos columnas opcionales a
@@ -323,6 +327,8 @@ erDiagram
         timestamp f_fecha_servicio "copia congelada del cierre"
         varchar t_tipo_servicio "copia congelada de la orden"
         varchar t_resultado "copia congelada del reporte"
+        varchar t_descripcion "procedimientos, congelados - V17"
+        varchar n_responsable "ingeniero, congelado - V17"
         uuid k_id_reemplazada_por FK "la que la sustituyo - V14"
         boolean b_estado_activo
     }

@@ -10,9 +10,10 @@ updated: 2026-10-05
 # La hoja de vida impresa: qué hace falta para producirla
 
 **Qué es esta nota**: el plan para llevar a la aplicación el formato de hoja de vida que el usuario
-aprobó el **2026-10-05**. Es un plan y no una descripción: **están construidas las tandas 6, 1, 5 y 2** —la
+aprobó el **2026-10-05**. Es un plan y no una descripción: **están construidas las tandas 6, 1, 5, 2 y 3** —la
 pantalla con el diseño y su impresión, mergeada por `ac9c2592`; los datos sin migración, por
-`9516327e`; y los campos nuevos del catálogo, por `86b39bbc`, las tres el mismo día— y lo demás sigue pendiente,
+`9516327e`; los campos nuevos del catálogo, por `86b39bbc`; y el historial completo, por
+`26e64149`, todas el mismo día— y lo demás sigue pendiente,
 salvo lo que la tabla de campos marca como «ya sale». (Decía «nada de lo que sigue está construido»:
 cierto hasta esa tarde.) La hoja de vida que existe hoy —el
 compilado de solo lectura, su historial y el oyente que lo escribe— está en [[hoja-de-vida]].
@@ -216,8 +217,8 @@ Cada tanda deja la batería en verde y algo usable.
    contactos del cliente. El estado derivado del historial no hizo falta aquí: lo calcula la pantalla.
 2. ~~**Los campos nuevos del catálogo**~~ — **construida el 2026-10-05**, con `V15` y `V16`. Ver «Los
    campos del catálogo, construidos» abajo.
-3. **El historial completo**: descripción y responsable congelados en `intervencion`, el oyente que
-   los pasa y el relleno desde los reportes.
+3. ~~**El historial completo**~~ — **construida el 2026-10-05** con `V17` y `V18`. Ver «El historial
+   completo, construido» abajo.
 4. **El número de hoja de vida**: la secuencia, el relleno de los equipos que ya existen y su
    aparición en la respuesta.
 5. ~~**Los datos de Bolívar en configuración**~~ — **construida el 2026-10-05** con la 1. Ver abajo.
@@ -311,6 +312,31 @@ protocolo y la foto, que tienen su propia tanda.
   (`PATCH /client-equipments/{id}`) y el frontend tiene la mutación escrita, pero **ninguna pantalla la
   usa**: el código interno y el proveedor solo se escriben en el alta. Anotado en
   [[deuda-tecnica-y-riesgos]].
+
+## El historial completo, construido (2026-10-05)
+
+Mergeado por `26e64149`. Cada línea del historial dice **qué se hizo** —los procedimientos del
+reporte— y **quién lo hizo** —el nombre del ingeniero de la orden—, congelados al cerrarse, y la hoja
+de vida los imprime como «Grace Hopper · Bolívar Bioingeniería Ltda.». Sin ingeniero, solo la
+empresa; sin procedimientos, la raya.
+
+- **`V17` añade las columnas y `V18` rellena las líneas anteriores**, aparte, como `V13` fue aparte
+  de `V12`. **El primer intento las juntaba**, y la prueba que vuelve a ejecutar el relleno sobre datos
+  chocó con las columnas ya creadas: un relleno que se quiere probar tiene que poder ejecutarse dos
+  veces, y un `ALTER TABLE` no puede. La limitación es la misma que la de `V13`: copia el ingeniero
+  que la orden tiene **hoy**.
+- **`report` pasa a leer de `person`**, por el nombre del ingeniero. No hay ciclo: `person` no depende
+  de nadie. El oyente del cierre ya leía la orden y los reportes; ahora también el reporte que se
+  cierra y la persona.
+- **El nombre completo se compone en un solo sitio**: `PersonCommunicationResponse.nombreCompleto()`,
+  en el modelo que `person` publica. Hasta esta tanda estaba copiado en el servicio del responsable de
+  un área, y con el ingeniero habría sido la segunda copia.
+- ⚠️ **El arnés de mutación tenía un error y dejó el código mutado.** Tras correr las pruebas copiaba
+  el archivo mutado encima de la copia de seguridad, de modo que las cuatro mutaciones del backend
+  quedaron aplicadas. Se vio revisando el estado del árbol; se deshicieron una a una y la batería
+  entera volvió a pasar. **Los resultados eran válidos** —la copia se tomaba antes de mutar—; lo que
+  fallaba era la restauración. Es la cuarta forma del mismo problema que el proyecto ya conoce: **un
+  arnés que no comprueba que dejó las cosas como estaban** se lee como si lo hubiera hecho.
 
 ## Decisiones, todas tomadas el 2026-10-05
 
