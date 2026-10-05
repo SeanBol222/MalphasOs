@@ -9,7 +9,7 @@ import { SedeApi } from '../../client/sede-api';
 import { CatalogoApi } from '../catalogo-api';
 import { EquipoApi } from '../equipo-api';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
-import { PanelDeModelo } from './panel-de-modelo';
+import { ModeloCreado, PanelDeModelo } from './panel-de-modelo';
 
 /**
  * Registro de un equipo en un area de servicio: el final de la cadena del catalogo.
@@ -27,6 +27,14 @@ import { PanelDeModelo } from './panel-de-modelo';
  * </ul>
  *
  * <p>Duplicar el formulario habria sido la via directa a que uno de los dos se quedara sin un arreglo.
+ *
+ * <p><b>El modelo se elige de lo general a lo concreto: tipo, marca y modelo</b>, decidido el
+ * 2026-10-04. Antes era una sola lista de modelos etiquetada «tipo · marca · fabricante», y eso tenia
+ * dos problemas: quien registra un equipo no sabe de memoria como se llama cada modelo, y la etiqueta
+ * <b>no llevaba el nombre del modelo</b> —que existe desde V11—, de modo que dos modelos de la misma
+ * marca y el mismo tipo salian como dos opciones identicas. El tecnico tiene el aparato delante:
+ * sabe que es un monitor, lee la marca en la carcasa, y entonces el nombre del modelo ya es una lista
+ * corta.
  *
  * <p><b>El modelo se puede crear aqui mismo</b>, con lo que le falte al catalogo. Obligar a salir,
  * recorrer cuatro pantallas y volver a empezar era la forma segura de que alguien registrara el equipo
@@ -55,6 +63,12 @@ export class NuevoEquipo {
     idCliente: [''],
     idSede: [''],
     idAreaElegida: [''],
+    // Tipo y marca no viajan al servidor: solo acotan la lista del modelo, que es lo que se registra.
+    // Se llaman «elegido» y no idTipo/idMarca porque el panel de crear modelo, que se abre dentro de
+    // este formulario, ya tiene campos con esos identificadores: dos elementos con el mismo id en la
+    // misma pagina dejan a las etiquetas sin saber a cual apuntan.
+    idTipoElegido: [''],
+    idMarcaElegida: [''],
     idModelo: ['', Validators.required],
     serie: ['', [Validators.required, Validators.maxLength(50)]],
     numeroInventario: ['', Validators.maxLength(50)],
@@ -63,7 +77,7 @@ export class NuevoEquipo {
   });
 
   /** Los formularios reactivos no son senales; sin esto, ningun calculado volveria a evaluarse. */
-  private readonly valores = toSignal(
+  protected readonly valores = toSignal(
     this.formulario.valueChanges.pipe(map(() => this.formulario.getRawValue())),
     { initialValue: this.formulario.getRawValue() },
   );
@@ -92,38 +106,94 @@ export class NuevoEquipo {
   /** Si el panel de creacion de modelo esta abierto. */
   protected readonly creandoModelo = signal(false);
 
+  /** Los tipos activos, por nombre: es lo primero que se sabe de un aparato. */
+  protected readonly tiposOfrecidos = computed(() =>
+    (this.tipos.data() ?? [])
+      .filter((tipo) => tipo.estadoActivo)
+      .map((tipo) => ({ id: tipo.id!, nombre: tipo.nombre ?? '' }))
+      .sort((uno, otro) => uno.nombre.localeCompare(otro.nombre, 'es')),
+  );
+
+  /** Los modelos activos, agrupados por la combinacion de tipo y marca de la que cuelgan. */
+  private readonly modelosPorEquipo = computed(() => {
+    const grupos = new Map<string, NonNullable<ReturnType<typeof this.modelos.data>>>();
+
+    for (const modelo of this.modelos.data() ?? []) {
+      if (!modelo.estadoActivo || !modelo.idEquipo) {
+        continue;
+      }
+      grupos.set(modelo.idEquipo, [...(grupos.get(modelo.idEquipo) ?? []), modelo]);
+    }
+
+    return grupos;
+  });
+
   /**
-   * Los modelos activos, cada uno legible: «tipo · marca · fabricante».
+   * Las marcas que tienen al menos un modelo de ese tipo.
    *
-   * <p>Cuatro listas para una etiqueta. El API devuelve identificadores, y un desplegable de UUID no se
-   * puede usar.
+   * <p>No se ofrecen todas: una marca sin modelos de ese tipo llevaria a una lista de modelos vacia,
+   * que es un callejon sin salida. Si la marca que se busca no esta, es que falta en el catalogo, y
+   * para eso esta el boton de crear.
    */
-  protected readonly modelosOfrecidos = computed(() => {
-    const tipos = new Map((this.tipos.data() ?? []).map((t) => [t.id, t.nombre]));
-    const marcas = new Map((this.marcas.data() ?? []).map((m) => [m.id, m.nombre]));
-    const fabricantes = new Map((this.fabricantes.data() ?? []).map((f) => [f.id, f.nombre]));
-    const equipos = new Map(
-      (this.equipos.data() ?? []).map((equipo) => [
-        equipo.id,
-        `${tipos.get(equipo.idTipoEquipo!) ?? 'Tipo no disponible'} · ${
-          marcas.get(equipo.idMarca!) ?? 'Marca no disponible'
-        }`,
-      ]),
+  protected readonly marcasOfrecidas = computed(() => {
+    const idTipo = this.valores().idTipoElegido;
+
+    if (!idTipo) {
+      return [];
+    }
+
+    const nombres = new Map(
+      (this.marcas.data() ?? []).filter((m) => m.estadoActivo).map((m) => [m.id!, m.nombre ?? '']),
+    );
+    const conModelos = (this.equipos.data() ?? []).filter(
+      (equipo) =>
+        equipo.estadoActivo &&
+        equipo.idTipoEquipo === idTipo &&
+        nombres.has(equipo.idMarca!) &&
+        (this.modelosPorEquipo().get(equipo.id!)?.length ?? 0) > 0,
     );
 
-    return (this.modelos.data() ?? [])
-      .filter((modelo) => modelo.estadoActivo)
+    return conModelos
+      .map((equipo) => ({ id: equipo.idMarca!, nombre: nombres.get(equipo.idMarca!) ?? '' }))
+      .sort((una, otra) => una.nombre.localeCompare(otra.nombre, 'es'));
+  });
+
+  /**
+   * Los modelos de ese tipo y esa marca, por su nombre.
+   *
+   * <p>El fabricante va al lado porque no siempre es la marca —una marca puede venderse con equipos
+   * que fabrica otro— y es lo que distingue dos modelos que se llamaran igual.
+   */
+  protected readonly modelosOfrecidos = computed(() => {
+    const { idTipoElegido: idTipo, idMarcaElegida: idMarca } = this.valores();
+    const equipo = (this.equipos.data() ?? []).find(
+      (e) => e.estadoActivo && e.idTipoEquipo === idTipo && e.idMarca === idMarca,
+    );
+
+    if (!equipo) {
+      return [];
+    }
+
+    const fabricantes = new Map((this.fabricantes.data() ?? []).map((f) => [f.id, f.nombre]));
+
+    return (this.modelosPorEquipo().get(equipo.id!) ?? [])
       .map((modelo) => ({
         id: modelo.id!,
-        etiqueta: `${equipos.get(modelo.idEquipo!) ?? 'Equipo no disponible'} · ${
+        etiqueta: `${modelo.nombre ?? 'Sin nombre'} · ${
           fabricantes.get(modelo.idFabricante!) ?? 'Fabricante no disponible'
         }`,
-      }));
+      }))
+      .sort((uno, otro) => uno.etiqueta.localeCompare(otro.etiqueta, 'es'));
   });
+
+  /** Se eligio un tipo del que el catalogo no tiene ningun modelo todavia. */
+  protected readonly tipoSinModelos = computed(
+    () => !!this.valores().idTipoElegido && this.modelos.isSuccess() && this.marcasOfrecidas().length === 0,
+  );
 
   /** Que no haya modelos es distinto de que no hayan llegado todavia. */
   protected readonly sinModelos = computed(
-    () => this.modelos.isSuccess() && this.modelosOfrecidos().length === 0,
+    () => this.modelos.isSuccess() && this.modelosPorEquipo().size === 0,
   );
 
   /** Solo se ofrecen sedes y areas abiertas: el backend rechaza una referencia cerrada. */
@@ -158,9 +228,25 @@ export class NuevoEquipo {
     this.formulario.patchValue({ idAreaElegida: '' });
   }
 
-  /** El modelo recien creado en el panel queda elegido: es lo que se vino a hacer. */
-  protected usarModelo(idModelo: string): void {
-    this.formulario.patchValue({ idModelo });
+  /** Al cambiar de tipo, la marca y el modelo elegidos dejan de valer; al cambiar de marca, el modelo. */
+  protected tipoCambio(): void {
+    this.formulario.patchValue({ idMarcaElegida: '', idModelo: '' });
+  }
+
+  protected marcaCambio(): void {
+    this.formulario.patchValue({ idModelo: '' });
+  }
+
+  /**
+   * El modelo recien creado en el panel queda elegido, con su tipo y su marca: es lo que se vino a
+   * hacer, y la cascada tiene que quedar coherente con el, o el desplegable del modelo no lo ofreceria.
+   */
+  protected usarModelo(creado: ModeloCreado): void {
+    this.formulario.patchValue({
+      idTipoElegido: creado.idTipo,
+      idMarcaElegida: creado.idMarca,
+      idModelo: creado.idModelo,
+    });
     this.creandoModelo.set(false);
   }
 

@@ -92,23 +92,71 @@
     </div>
   }
 
+  <h2 class="mb-1 text-xl font-bold">Qué equipo es</h2>
+  <p class="mb-2 text-neutral-700">
+    De lo general a lo concreto: el tipo de aparato, la marca que lleva en la carcasa y, con eso, el
+    modelo.
+  </p>
+
   <div class="mb-3">
-    <label class="block font-semibold" for="idModelo">Modelo</label>
+    <label class="block font-semibold" for="idTipoElegido">Tipo de equipo</label>
+    <select
+      id="idTipoElegido"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idTipoElegido"
+      (change)="tipoCambio()"
+    >
+      <option value="">Elija un tipo</option>
+      @for (tipo of tiposOfrecidos(); track tipo.id) {
+        <option [value]="tipo.id">{{ tipo.nombre }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="idMarcaElegida">Marca</label>
+    <select
+      id="idMarcaElegida"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      formControlName="idMarcaElegida"
+      (change)="marcaCambio()"
+    >
+      <option value="">{{ valores().idTipoElegido ? 'Elija una marca' : 'Elija primero el tipo' }}</option>
+      @for (marca of marcasOfrecidas(); track marca.id) {
+        <option [value]="marca.id">{{ marca.nombre }}</option>
+      }
+    </select>
+    @if (tipoSinModelos()) {
+      <!--
+        Una lista de marcas vacia sin explicacion es un callejon sin salida. No faltan marcas en el
+        sistema: falta un modelo de este tipo en el catalogo, y se puede crear aqui mismo.
+      -->
+      <p class="mt-1 text-neutral-700">
+        Todavía no hay modelos de este tipo en el catálogo. Créelo con el botón de abajo.
+      </p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="idModelo">
+      Modelo <span class="text-accent-700" aria-hidden="true">*</span>
+    </label>
     <select
       id="idModelo"
       class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
       formControlName="idModelo"
+      aria-required="true"
       [attr.aria-invalid]="malo('idModelo') || null"
       [attr.aria-describedby]="malo('idModelo') ? 'idModelo-error' : null"
     >
-      <option value="">Elija un modelo</option>
+      <option value="">{{ valores().idMarcaElegida ? 'Elija un modelo' : 'Elija primero la marca' }}</option>
       @for (modelo of modelosOfrecidos(); track modelo.id) {
         <option [value]="modelo.id">{{ modelo.etiqueta }}</option>
       }
     </select>
     @if (malo('idModelo')) {
       <p class="mt-1 font-semibold text-accent-700" id="idModelo-error">
-        Elija el modelo del equipo.
+        Elija el tipo, la marca y el modelo del equipo.
       </p>
     }
 
@@ -125,7 +173,12 @@
 
   @if (creandoModelo()) {
     <div class="mb-3">
-      <app-panel-de-modelo (creado)="usarModelo($event)" (cancelado)="creandoModelo.set(false)" />
+      <app-panel-de-modelo
+        [tipoInicial]="valores().idTipoElegido"
+        [marcaInicial]="valores().idMarcaElegida"
+        (creado)="usarModelo($event)"
+        (cancelado)="creandoModelo.set(false)"
+      />
     </div>
   }
 
