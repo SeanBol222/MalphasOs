@@ -189,3 +189,14 @@ una decisión de arquitectura escrita en el documento sin comprobarla contra el 
 Registrado en [[estado-de-la-ers-caducado]], con la anotación de RF-27, que era falsa en la mitad.
 
 **Tocadas**: [[estado-de-implementacion]], [[rf-hojas-vida]], [[estado-de-la-ers-caducado]].
+
+## [2026-10-05] lint | el cuerpo de rf-hojas-vida seguía en el 3 de octubre
+
+El resumen de [[rf-hojas-vida]] se actualizó el 2026-10-04 con la hoja de vida construida, y el cuerpo
+no: seguía diciendo que el historial «no existe» y que RF-26 y RF-27 estaban previstos, con el oyente en
+el directorio que la ERS le reservó. Corregido dejando constancia, y con un matiz que faltaba: RF-22
+pide el **valor unitario de mantenimiento** y la hoja de vida no lo trae. El diseño impreso aprobado ese
+día lo deja fuera por ser un precio interno, pendiente de confirmación.
+
+**Tocadas**: [[rf-hojas-vida]].
+

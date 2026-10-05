@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # Hoja de ruta del producto
@@ -68,6 +68,7 @@ Detalle por categoría en `Documentation/wiki/requisitos/estado-de-implementacio
 - **Keycloak lleva la marca desde el 2026-10-02**: el login lo sirve Keycloakify y la consola un tema clásico. No cierra ningún requisito —RF-49 ya estaba— y era un encargo explícito del usuario. **Lo visual se terminó el 2026-10-04**: el login con el diseño del manual y en español, y la consola rehecha porque con el sistema en modo oscuro no se leía. (Esta línea daba la marca por puesta desde el 2-10; el login tenía todavía el aspecto de Keycloakify.) Ver [[tema-de-keycloak]].
 - **El alta de un equipo elige tipo, marca y modelo**, en ese orden, desde el 2026-10-04, y **el frontend corre en su propio contenedor**. Ninguno de los dos mueve el marcador. Ver [[dominio-equipo-mantenimiento]] y [[dockerfile-y-contenedores]].
 - ~~**La hoja de vida**~~ **construida el 2026-10-04**, en cuatro tandas y dos migraciones, y **no como entidad**: es un compilado de solo lectura con las cuatro secciones de RF-22, y solo su historial tiene tabla. Esta línea decía «la hoja de vida como entidad»; la aclaración del usuario fue justo que no lo es. Ver [[hoja-de-vida]].
+- **La hoja de vida impresa**, decidida el **2026-10-05**: el usuario aprobó el diseño —el «tablero con escudo», con la marca de Bolívar— y pidió el plan para producirlo. Está en [[hoja-de-vida-formato-impreso]], en siete tandas, y **cruza con los dos caminos de abajo**: su sección de protocolo espera a RF-14, y si hace falta un PDF generado en el servidor, es la misma decisión que RF-17. No mueve el marcador: RF-22 ya cuenta.
 - **Lo siguiente sin decidir todavía**: o los **protocolos** (RF-14, camino libre, cierra RF-13 detrás) o la **firma digital** (RF-18 y RF-21, que abre el PDF de RF-17). Las dos están desbloqueadas y ninguna depende de la otra.
 
 Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué arrastra cada pieza.

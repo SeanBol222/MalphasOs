@@ -4,7 +4,7 @@ description: Que es la hoja de vida de un equipo en MalphasOS -un compilado de s
 tags: [dominio, equipos, reportes, hoja-de-vida, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/equipment/application/services/lifeSheet/LifeSheetService.java
 estado: estable
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # La hoja de vida de un equipo
@@ -160,6 +160,13 @@ supervivientes, y un cambio que pasó sin que nada lo notara; los tres se cerrar
 - y no una mutación sino un cambio real: sustituir «Ver» por dos enlaces en la lista de equipos dejó
   las 410 pruebas del frontend en verde. Nada probaba ese enlace.
 
+## Lo que viene: el formato impreso
+
+El **2026-10-05** el usuario aprobó un diseño nuevo para la hoja de vida, pensado para imprimir y con la
+marca de Bolívar Bioingeniería. Pide datos que hoy no existen —riesgo, uso, datos eléctricos completos,
+número de hoja, foto— y una descripción y un responsable en cada línea del historial. El plan entero
+está en [[hoja-de-vida-formato-impreso]].
+
 ## Notas relacionadas
 
-[[dominio-equipo-mantenimiento]] · [[dominio-reporte-servicio]] · [[congelar-una-referencia-historica]] · [[filtrado-por-dueno]] · [[esquema-bd-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[hoja-de-ruta-producto]]
+[[hoja-de-vida-formato-impreso]] · [[dominio-equipo-mantenimiento]] · [[dominio-reporte-servicio]] · [[congelar-una-referencia-historica]] · [[filtrado-por-dueno]] · [[esquema-bd-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[hoja-de-ruta-producto]]
