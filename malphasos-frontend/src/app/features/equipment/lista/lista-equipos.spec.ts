@@ -105,6 +105,17 @@ describe('Listado de equipos de cliente', () => {
     );
   });
 
+  it('cada equipo enlaza a su hoja de vida y a sus reportes, que son dos cosas distintas', async () => {
+    // Nada probaba este enlace: cambiar «Ver» por dos enlaces dejo las 410 pruebas en verde. La hoja de
+    // vida es el documento del equipo; los reportes, lo que se esta haciendo o se hizo, borradores
+    // incluidos. Conviven, y una prueba fija que esten los dos.
+    await abrir();
+
+    const destinos = [...raiz().querySelectorAll('tbody a')].map((a) => a.getAttribute('href'));
+    expect(destinos).toContain('/equipos/ec1/hoja-de-vida');
+    expect(destinos).toContain('/equipos/ec1/historial');
+  });
+
   it('pide cada area una sola vez, aunque dos equipos compartan area', async () => {
     // Son dos equipos en 'a1'. Pedirla dos veces seria trafico sin ninguna informacion nueva, y con
     // cien equipos en la misma area serian cien peticiones.

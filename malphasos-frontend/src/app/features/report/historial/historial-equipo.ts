@@ -13,10 +13,13 @@ import { traducirError } from '../../../core/errores/traducir';
 /**
  * Lo que se le ha hecho a un equipo: sus reportes de servicio, del más reciente al más antiguo.
  *
- * <p><b>Esto no es la hoja de vida</b>, y conviene no confundirlo: RF-26 y RF-27 piden un historial de
- * intervenciones <b>dentro de la hoja de vida</b>, que es una entidad que no existe todavía. Esta
- * pantalla es la consulta sobre la que se construirá, y ya responde a la pregunta que importa en campo:
- * qué se le hizo a este aparato y cómo quedó cada vez.
+ * <p><b>Esto no es la hoja de vida</b>, y conviene no confundirlo. La hoja de vida —{@code HojaDeVida},
+ * desde el 2026-10-04— es el documento del equipo y su historial cuenta solo mantenimientos
+ * <b>cerrados</b>, anotados al cerrarse. Esta pantalla lista los <b>reportes</b>, incluidos borradores
+ * y retirados: lo que se está haciendo o se hizo al aparato. Responden a preguntas distintas y por eso
+ * conviven. (Este comentario decía que la hoja de vida era «una entidad que no existe todavía» y que
+ * esta pantalla era «la consulta sobre la que se construirá»: la hoja de vida no es una entidad, es un
+ * compilado, y no se construyó sobre esta consulta.)
  *
  * <p><b>Salen también los retirados.</b> Un reporte retirado se sacó del listado de su orden, pero
  * ocurrió: retirarlo no reescribe la historia, y un historial que los esconde deja de ser un historial.

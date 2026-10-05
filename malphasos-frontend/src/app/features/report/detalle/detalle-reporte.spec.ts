@@ -307,6 +307,30 @@ describe('Ficha de un reporte de servicio', () => {
     await atenderTodo(reporteCerrable());
   });
 
+  it('cerrar un reporte deja caducada la hoja de vida, porque el servidor le anota una línea', async () => {
+    // El servidor escribe la intervención solo al cerrar; la pantalla tiene que enterarse. Sin esto, la
+    // hoja de vida que ya estuviera en caché seguiría diciendo «sin intervenciones» hasta recargar.
+    const cache = TestBed.inject(QueryClient);
+    // El cliente de pruebas tiene gcTime 0, que borra al instante una consulta sin observadores: sin
+    // esto, la hoja de vida sembrada desaparecía antes del cierre y la prueba fallaba por la caché de
+    // pruebas, no por el código. La primera versión cayó justo ahí.
+    cache.setQueryDefaults(['hoja-de-vida'], { gcTime: Infinity });
+    cache.setQueryData(['hoja-de-vida', 'cualquier-equipo'], { servicioTecnico: [] });
+    await abrir(reporteCerrable());
+
+    pulsar('Cerrar reporte');
+    pulsar('Confirmar cierre');
+    await asentar(fixture);
+
+    http
+      .expectOne(urlCerrarReporte(ID_REPORTE))
+      .flush(reporteCerrable({ estado: 'FINALIZADO', finalizado: '2026-09-27T10:00:00' }));
+    await asentar(fixture);
+    await atenderTodo(reporteCerrable());
+
+    expect(cache.getQueryState(['hoja-de-vida', 'cualquier-equipo'])?.isInvalidated).toBe(true);
+  });
+
   it('un reporte cerrado se lee pero no se escribe, y dice cómo corregirlo', async () => {
     await abrir(
       reporteCerrable({ estado: 'FINALIZADO', finalizado: '2026-09-27T10:00:00' }),
