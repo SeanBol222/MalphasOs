@@ -11,9 +11,9 @@ import { tecnologiasAutorizadas } from './tecnologias';
  * Alta de un tipo de equipo, la unica pieza del catalogo con ficha tecnica.
  *
  * <p>Cuatro campos son obligatorios porque el contrato los exige: nombre, definicion tecnica,
- * recomendaciones de cuidado y tecnologia predominante. Los cuatro restantes —voltaje, amperaje, valor
- * de mantenimiento y modalidad de verificacion— son opcionales, y se dice cuales lo son en vez de
- * dejar que se descubra al guardar.
+ * recomendaciones de cuidado y tecnologia predominante. Los demas —uso, limpieza cotidiana, valor de
+ * mantenimiento y verificaciones— son opcionales, y se dice cuales lo son en vez de dejar que se
+ * descubra al guardar. (Voltaje y amperaje estuvieron aqui hasta el 2026-10-05: bajaron al modelo.)
  *
  * <p>Las cotas salen del contrato: 50 caracteres para nombre y tecnologia, 250 para los dos textos
  * largos. Si el backend las cambia, se regeneran los tipos y esto queda desalineado a la vista.
@@ -61,8 +61,8 @@ export class NuevoTipo {
     tecnologiaPredominante: ['', [Validators.required, Validators.maxLength(50)]],
     definicionTecnica: ['', [Validators.required, Validators.maxLength(250)]],
     recomendacionesCuidado: ['', [Validators.required, Validators.maxLength(250)]],
-    voltaje: [null as number | null],
-    amperaje: [null as number | null],
+    uso: ['', Validators.maxLength(250)],
+    limpiezaCotidiana: ['', Validators.maxLength(250)],
     valorUnitarioMantenimiento: [null as number | null],
   });
 
@@ -104,8 +104,10 @@ export class NuevoTipo {
         ...(verificacion.verificaciones.length
           ? { verificaciones: [...verificacion.verificaciones] }
           : {}),
-        ...(datos.voltaje === null ? {} : { voltaje: datos.voltaje }),
-        ...(datos.amperaje === null ? {} : { amperaje: datos.amperaje }),
+        ...(datos.uso.trim() ? { uso: datos.uso.trim() } : {}),
+        ...(datos.limpiezaCotidiana.trim()
+          ? { limpiezaCotidiana: datos.limpiezaCotidiana.trim() }
+          : {}),
         ...(datos.valorUnitarioMantenimiento === null
           ? {}
           : { valorUnitarioMantenimiento: datos.valorUnitarioMantenimiento }),

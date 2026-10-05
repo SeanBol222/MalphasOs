@@ -147,6 +147,20 @@ export type NuevoEquipoDeCatalogo = equipos['schemas']['EquipmentCreateRequest']
 
 export type Modelo = equipos['schemas']['ModelResponse'];
 export type NuevoModelo = equipos['schemas']['ModelCreateRequest'];
+/** La ficha tecnica de un modelo, desde V15: riesgo, caracteristicas y datos electricos. */
+export type FichaTecnica = equipos['schemas']['TechnicalSheetRequest'];
+export type ClaseDeRiesgo = NonNullable<FichaTecnica['riesgo']>;
+
+/** De menor a mayor riesgo, como las numera el Decreto 4725 de 2005. */
+export const CLASES_DE_RIESGO: readonly ClaseDeRiesgo[] = ['I', 'IIA', 'IIB', 'III'] as const;
+
+/** Como se escriben: «IIa» y no «IIA», que es solo como las guarda el enum. */
+export const ETIQUETA_DE_RIESGO: Readonly<Record<ClaseDeRiesgo, string>> = {
+  I: 'Clase I',
+  IIA: 'Clase IIa',
+  IIB: 'Clase IIb',
+  III: 'Clase III',
+};
 
 export type EquipoDeCliente = equipos['schemas']['ClientEquipmentResponse'];
 export type NuevoEquipoDeCliente = equipos['schemas']['ClientEquipmentRegisterRequest'];

@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar } from '../../../../testing/pantalla';
 import {
+  MODELOS,
   ID_EQUIPO,
   ID_FABRICANTE,
   responderAlCatalogo,
@@ -20,6 +22,7 @@ describe('Modelos del catalogo', () => {
       providers: [
         ...proveerApiSimulado(),
         ...proveerSesionFalsa({ autoridades: ['equipment.read', 'equipment.write'] }),
+        provideRouter([]),
       ],
     });
     fixture = TestBed.createComponent(Modelos);
@@ -44,6 +47,16 @@ describe('Modelos del catalogo', () => {
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
     await asentar(fixture);
   }
+
+  it('cada modelo enlaza a su ficha tecnica, que tiene pagina propia', async () => {
+    // Voltaje, amperaje y el resto de la placa son del modelo desde el 2026-10-05, y se llenan ahi.
+    await abrir();
+
+    const enlace = [...raiz().querySelectorAll('a')].find(
+      (a) => a.textContent?.trim() === 'Ficha técnica',
+    );
+    expect(enlace?.getAttribute('href')).toBe(`/catalogo/modelos/${MODELOS[0].id}/ficha`);
+  });
 
   it('dice que un modelo es lo unico que se puede instalar', async () => {
     // Es la causa mas probable de que el alta de un equipo aparezca sin opciones.

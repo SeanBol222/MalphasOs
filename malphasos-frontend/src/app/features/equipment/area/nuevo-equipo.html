@@ -236,6 +236,28 @@
     </div>
   </div>
 
+  <!-- Entraron el 2026-10-05 para la hoja de vida impresa: los dos son de esta maquina, no del modelo. -->
+  <div class="mb-3 grid gap-3 sm:grid-cols-2">
+    <div>
+      <label class="block font-semibold" for="codigoInterno">Código interno</label>
+      <input
+        id="codigoInterno"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="codigoInterno"
+        maxlength="50"
+      />
+    </div>
+    <div>
+      <label class="block font-semibold" for="proveedor">Proveedor</label>
+      <input
+        id="proveedor"
+        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        formControlName="proveedor"
+        maxlength="100"
+      />
+    </div>
+  </div>
+
   <div class="flex gap-2">
     <button
       class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"

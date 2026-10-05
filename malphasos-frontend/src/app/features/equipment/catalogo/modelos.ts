@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
@@ -16,7 +17,7 @@ import { traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-modelos',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './modelos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

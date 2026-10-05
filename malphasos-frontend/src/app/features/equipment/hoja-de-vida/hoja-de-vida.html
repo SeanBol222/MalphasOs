@@ -95,7 +95,7 @@
         </div>
         <div>
           <dt>Riesgo</dt>
-          <dd class="hv-rojo">{{ sinDato }}</dd>
+          <dd class="hv-rojo">{{ riesgo() }}</dd>
         </div>
       </dl>
 
@@ -118,7 +118,10 @@
               </div>
               <div>
                 <dt>Placa · Código interno</dt>
-                <dd>{{ identificacion()?.numeroInventario || sinDato }} · {{ sinDato }}</dd>
+                <dd>
+                  {{ identificacion()?.numeroInventario || sinDato }} ·
+                  {{ identificacion()?.codigoInterno || sinDato }}
+                </dd>
               </div>
               <div>
                 <dt>Registro INVIMA</dt>
@@ -169,7 +172,8 @@
             <p>{{ tecnica()?.definicionTecnica }}</p>
             <p class="hv-nota">
               Fabricante {{ fabricante()?.nombre }} · {{ fabricante()?.pais || sinDato }} ·
-              Proveedor {{ sinDato }} · Compra {{ fechaDeCompra() }} · Valor {{ valorDeCompra() }}
+              Proveedor {{ identificacion()?.proveedor || sinDato }} · Compra
+              {{ fechaDeCompra() }} · Valor {{ valorDeCompra() }}
             </p>
           </div>
         </section>
@@ -183,31 +187,31 @@
             </div>
             <div>
               <dt>Uso</dt>
-              <dd>{{ sinDato }}</dd>
+              <dd>{{ tecnica()?.uso || sinDato }}</dd>
             </div>
             <div>
               <dt>Alimentación</dt>
-              <dd>{{ sinDato }}</dd>
+              <dd>{{ ficha()?.alimentacion || sinDato }}</dd>
             </div>
             <div>
               <dt>Frecuencia</dt>
-              <dd>{{ sinDato }} Hz</dd>
+              <dd>{{ ficha()?.frecuencia ?? sinDato }} Hz</dd>
             </div>
             <div>
               <dt>Voltaje</dt>
-              <dd>{{ tecnica()?.voltaje ?? sinDato }} V</dd>
+              <dd>{{ ficha()?.voltaje ?? sinDato }} V</dd>
             </div>
             <div>
               <dt>Potencia</dt>
-              <dd>{{ sinDato }} W</dd>
+              <dd>{{ ficha()?.potencia ?? sinDato }} W</dd>
             </div>
             <div>
               <dt>Corriente</dt>
-              <dd>{{ tecnica()?.amperaje ?? sinDato }} A</dd>
+              <dd>{{ ficha()?.amperaje ?? sinDato }} A</dd>
             </div>
             <div>
               <dt>Específicas</dt>
-              <dd>{{ sinDato }}</dd>
+              <dd>{{ ficha()?.caracteristicas || sinDato }}</dd>
             </div>
           </dl>
         </section>
@@ -220,10 +224,13 @@
           </section>
           <section aria-labelledby="cuidado">
             <h2 id="cuidado">Cuidado y limpieza</h2>
-            @if (recomendaciones().length) {
+            @if (recomendaciones().length || tecnica()?.limpiezaCotidiana) {
               <ul class="hv-lista">
                 @for (recomendacion of recomendaciones(); track $index) {
                   <li>{{ recomendacion }}</li>
+                }
+                @if (tecnica()?.limpiezaCotidiana) {
+                  <li><strong>Cada día:</strong> {{ tecnica()?.limpiezaCotidiana }}</li>
                 }
               </ul>
             } @else {

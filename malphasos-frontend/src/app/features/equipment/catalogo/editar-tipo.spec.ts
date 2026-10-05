@@ -75,8 +75,13 @@ describe('Edicion de un tipo de equipo', () => {
       tecnologiaPredominante: 'Electrónica',
       definicionTecnica: 'Mide presión arterial',
       recomendacionesCuidado: 'No golpear',
+      // Viajan siempre, vacios incluidos: para el backend un blanco es «vaciar», y es la unica forma
+      // de quitar un uso que ya no aplica.
+      uso: '',
+      limpiezaCotidiana: '',
     });
     expect(cambio.request.body).not.toHaveProperty('verificaciones');
+    expect(cambio.request.body).not.toHaveProperty('voltaje');
     cambio.flush(TIPOS[0]);
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));

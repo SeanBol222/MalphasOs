@@ -403,6 +403,26 @@ export interface paths {
         patch: operations["changeInvima"];
         trace?: never;
     };
+    "/v1/api/models/{id}/technical-sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Corregir la ficha tecnica
+         * @description Se manda entera: lo que no venga queda vacio. Ruta propia, como el INVIMA: quien la llena tiene la placa del equipo delante y la lee completa.
+         */
+        patch: operations["describe"];
+        trace?: never;
+    };
     "/v1/api/service-areas/{idAreaServicio}/equipments": {
         parameters: {
             query?: never;
@@ -435,16 +455,21 @@ export interface components {
             nombre?: string;
         };
         ClientEquipmentRegisterRequest: {
+            /** @description El codigo que el cliente le pone a su maquina */
+            codigoInterno?: string;
             /** Format: date */
             fechaCompra?: string;
             /** Format: uuid */
             idModelo: string;
             numeroInventario?: string;
+            /** @description Quien vendio esta maquina */
+            proveedor?: string;
             serie: string;
             /** Format: int64 */
             valorCompra?: number;
         };
         ClientEquipmentResponse: {
+            codigoInterno?: string;
             estadoActivo?: boolean;
             /** Format: date */
             fechaCompra?: string;
@@ -455,14 +480,19 @@ export interface components {
             /** Format: uuid */
             idModelo?: string;
             numeroInventario?: string;
+            proveedor?: string;
             serie?: string;
             /** Format: int64 */
             valorCompra?: number;
         };
         ClientEquipmentUpdateRequest: {
+            /** @description El codigo que el cliente le pone a su maquina */
+            codigoInterno?: string;
             /** Format: date */
             fechaCompra?: string;
             numeroInventario?: string;
+            /** @description Quien vendio esta maquina */
+            proveedor?: string;
             /** Format: int64 */
             valorCompra?: number;
         };
@@ -493,44 +523,48 @@ export interface components {
             idTipoEquipo?: string;
         };
         EquipmentTypeCreateRequest: {
-            amperaje?: number;
             definicionTecnica: string;
+            /** @description Como se limpia al terminar la jornada */
+            limpiezaCotidiana?: string;
             nombre: string;
             recomendacionesCuidado: string;
             tecnologiaPredominante: string;
+            /**
+             * @description Para que se usa esta clase de equipo
+             * @example Pesaje de pacientes
+             */
+            uso?: string;
             /** Format: int64 */
             valorUnitarioMantenimiento?: number;
             /** @description Que se le verifica. Vacia o ausente significa que este tipo no se verifica */
             verificaciones?: components["schemas"]["TypeVerificationRequest"][];
-            /** Format: int32 */
-            voltaje?: number;
         };
         EquipmentTypeResponse: {
-            amperaje?: number;
             definicionTecnica?: string;
             estadoActivo?: boolean;
             /** Format: uuid */
             id?: string;
+            limpiezaCotidiana?: string;
             nombre?: string;
             recomendacionesCuidado?: string;
             tecnologiaPredominante?: string;
+            uso?: string;
             /** Format: int64 */
             valorUnitarioMantenimiento?: number;
             verificable?: boolean;
             verificaciones?: components["schemas"]["TypeVerificationResponse"][];
-            /** Format: int32 */
-            voltaje?: number;
         };
         EquipmentTypeUpdateRequest: {
-            amperaje?: number;
             definicionTecnica?: string;
+            /** @description Como se limpia al terminar la jornada; en blanco la vacia */
+            limpiezaCotidiana?: string;
             nombre?: string;
             recomendacionesCuidado?: string;
             tecnologiaPredominante?: string;
+            /** @description Para que se usa; en blanco lo vacia */
+            uso?: string;
             /** Format: int64 */
             valorUnitarioMantenimiento?: number;
-            /** Format: int32 */
-            voltaje?: number;
         };
         GlobalErrorResponse: {
             code?: string;
@@ -595,6 +629,8 @@ export interface components {
             areaServicio?: string;
             ciudadSede?: string;
             cliente?: string;
+            /** @description Opcional */
+            codigoInterno?: string;
             /** @description Correos vigentes del cliente */
             correosCliente?: string[];
             direccionSede?: string;
@@ -605,6 +641,8 @@ export interface components {
             /** Format: uuid */
             idEquipoCliente?: string;
             numeroInventario?: string;
+            /** @description Quien vendio esta maquina, opcional */
+            proveedor?: string;
             /** @description Encargados del area, o de la sede si el area no tiene; vacia si ninguno */
             responsables?: string[];
             sede?: string;
@@ -628,8 +666,11 @@ export interface components {
             tecnica?: components["schemas"]["LifeSheetTecnica"];
         };
         LifeSheetTecnica: {
-            amperaje?: number;
             definicionTecnica?: string;
+            /** @description Del modelo: riesgo, caracteristicas y datos electricos */
+            fichaTecnica?: components["schemas"]["TechnicalSheetResponse"];
+            /** @description Del tipo de equipo, opcional */
+            limpiezaCotidiana?: string;
             marca?: string;
             modelo?: string;
             recomendacionesCuidado?: string;
@@ -637,8 +678,8 @@ export interface components {
             registroInvima?: string;
             tecnologiaPredominante?: string;
             tipoEquipo?: string;
-            /** Format: int32 */
-            voltaje?: number;
+            /** @description Del tipo de equipo, opcional */
+            uso?: string;
         };
         MagnitudeResponse: {
             /**
@@ -679,6 +720,8 @@ export interface components {
             simbolo?: string;
         };
         ModelCreateRequest: {
+            /** @description Opcional: la ficha se puede llenar despues */
+            fichaTecnica?: components["schemas"]["TechnicalSheetRequest"];
             /** Format: uuid */
             idEquipo: string;
             /** Format: uuid */
@@ -692,6 +735,8 @@ export interface components {
         };
         ModelResponse: {
             estadoActivo?: boolean;
+            /** @description La ficha tecnica; sus campos son nulos mientras no se conozcan */
+            fichaTecnica?: components["schemas"]["TechnicalSheetResponse"];
             /** Format: uuid */
             id?: string;
             /** Format: uuid */
@@ -708,6 +753,59 @@ export interface components {
         NamedRequest: {
             /** @example Philips */
             nombre: string;
+        };
+        TechnicalSheetRequest: {
+            /**
+             * @description De donde toma la energia
+             * @example Red electrica
+             */
+            alimentacion?: string;
+            /** @description En A */
+            amperaje?: number;
+            caracteristicas?: string;
+            /**
+             * Format: int32
+             * @description En Hz
+             */
+            frecuencia?: number;
+            /**
+             * Format: int32
+             * @description En W
+             */
+            potencia?: number;
+            /**
+             * @description Clasificacion por riesgo del dispositivo medico
+             * @enum {string}
+             */
+            riesgo?: "I" | "IIA" | "IIB" | "III";
+            /**
+             * Format: int32
+             * @description En V
+             */
+            voltaje?: number;
+        };
+        TechnicalSheetResponse: {
+            alimentacion?: string;
+            /** @description En A */
+            amperaje?: number;
+            caracteristicas?: string;
+            /**
+             * Format: int32
+             * @description En Hz
+             */
+            frecuencia?: number;
+            /**
+             * Format: int32
+             * @description En W
+             */
+            potencia?: number;
+            /** @enum {string} */
+            riesgo?: "I" | "IIA" | "IIB" | "III";
+            /**
+             * Format: int32
+             * @description En V
+             */
+            voltaje?: number;
         };
         TypeVerificationRequest: {
             /**
@@ -2750,6 +2848,68 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["InvimaRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ModelResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    describe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TechnicalSheetRequest"];
             };
         };
         responses: {

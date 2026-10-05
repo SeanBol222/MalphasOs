@@ -343,16 +343,21 @@ export interface components {
             tipoIdentificacion: "NIT_JURIDICO" | "NIT_NATURAL" | "CC" | "CE";
         };
         ClientEquipmentRegisterRequest: {
+            /** @description El codigo que el cliente le pone a su maquina */
+            codigoInterno?: string;
             /** Format: date */
             fechaCompra?: string;
             /** Format: uuid */
             idModelo: string;
             numeroInventario?: string;
+            /** @description Quien vendio esta maquina */
+            proveedor?: string;
             serie: string;
             /** Format: int64 */
             valorCompra?: number;
         };
         ClientEquipmentResponse: {
+            codigoInterno?: string;
             estadoActivo?: boolean;
             /** Format: date */
             fechaCompra?: string;
@@ -363,6 +368,7 @@ export interface components {
             /** Format: uuid */
             idModelo?: string;
             numeroInventario?: string;
+            proveedor?: string;
             serie?: string;
             /** Format: int64 */
             valorCompra?: number;

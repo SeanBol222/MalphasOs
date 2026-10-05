@@ -18,7 +18,7 @@ import { traducirError } from '../../../core/errores/traducir';
  * Los tipos de equipo: que clase de aparato es, con su ficha tecnica.
  *
  * <p>Es la unica pieza del catalogo que no cabe en una linea —definicion tecnica, recomendaciones de
- * cuidado, tecnologia, voltaje, amperaje, valor de mantenimiento—, asi que su alta y su edicion tienen
+ * cuidado, tecnologia, uso, limpieza, valor de mantenimiento—, asi que su alta y su edicion tienen
  * pagina propia y aqui solo se listan.
  *
  * <p><b>La modalidad de verificacion si se cambia desde aqui</b>, porque el backend le dio ruta propia
