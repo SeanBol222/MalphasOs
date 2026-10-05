@@ -25,6 +25,7 @@ function hoja(
   return {
     identificacion: {
       idEquipoCliente: ID_EQUIPO,
+      numeroHojaVida: 'HV-HCE-0007',
       serie: 'SN-0001',
       numeroInventario: 'INV-7',
       fechaCompra: '2025-02-01',
@@ -337,6 +338,15 @@ describe('Hoja de vida de un equipo', () => {
     expect(qr?.getAttribute('viewBox')).toBe(`0 0 ${modules.size} ${modules.size}`);
     const oscuros = Array.from(modules.data).filter(Boolean).length;
     expect(qr?.querySelector('path')?.getAttribute('d')?.match(/M/g)?.length).toBe(oscuros);
+  });
+
+  it('el numero de la hoja sale en las dos bandas, el de la primera y el de la segunda pagina', async () => {
+    // HV-<sigla>-0001: lo asigna el servidor al registrar el equipo y no cambia nunca.
+    await abrir(hoja());
+
+    const bandas = [...raiz().querySelectorAll('.hv-banda')].map((b) => b.textContent ?? '');
+    expect(bandas).toHaveLength(2);
+    expect(bandas.every((b) => b.includes('HV-HCE-0007'))).toBe(true);
   });
 
   it('un equipo dado de baja lo dice en la cabecera', async () => {

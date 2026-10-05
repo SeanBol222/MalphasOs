@@ -95,6 +95,18 @@ export class ClienteApi {
   }
 
   /**
+   * Corrige la sigla, la que encabeza el numero de sus hojas de vida. Tiene ruta propia en el backend
+   * porque no es un dato mas del cliente: se genera sola, y corregirla responde 409 si la tiene otro.
+   */
+  corregirSigla() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, sigla }: { id: string; sigla: string }) =>
+        firstValueFrom(this.http.patch<Cliente>(`${this.url}/${id}/acronym`, { sigla })),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /**
    * Retira al cliente.
    *
    * <p>Se llama retirar y no borrar porque el backend no borra: marca el estado en falso y el

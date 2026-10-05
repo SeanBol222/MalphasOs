@@ -56,7 +56,7 @@
             </svg>
             <span><strong>BOLÍVAR</strong> BIOINGENIERÍA</span>
           </p>
-          <p class="hv-banda__rotulo">Hoja de vida</p>
+          <p class="hv-banda__rotulo">Hoja de vida · {{ identificacion()?.numeroHojaVida }}</p>
           <h1 class="hv-banda__titulo">{{ nombreDelEquipo() }}</h1>
           <p class="hv-banda__resumen">
             Serie {{ identificacion()?.serie }} · {{ identificacion()?.areaServicio }} ·
@@ -290,7 +290,8 @@
           <span><strong>BOLÍVAR</strong> BIOINGENIERÍA</span>
         </p>
         <p class="hv-banda__resumen">
-          <strong>{{ nombreDelEquipo() }}</strong> · Serie {{ identificacion()?.serie }}
+          {{ identificacion()?.numeroHojaVida }} · <strong>{{ nombreDelEquipo() }}</strong> · Serie
+          {{ identificacion()?.serie }}
         </p>
       </header>
 

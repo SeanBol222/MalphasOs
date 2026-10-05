@@ -26,8 +26,7 @@ const SIN_DATO = '—';
  * <p><b>Existe desde que el equipo se registra.</b> Un equipo sin mantenimientos tiene su hoja de vida
  * con el historial vacio, y la pagina lo dice en vez de esconderlo.
  *
- * <p><b>Lo que el diseño pide y el sistema todavia no guarda sale con «—»</b>: el numero de hoja, la
- * descripcion y el responsable de cada servicio, el protocolo y la foto. Y lo que se guarda pero nadie
+ * <p><b>Lo que el diseño pide y el sistema todavia no guarda sale con «—»</b>: el protocolo y la foto. Y lo que se guarda pero nadie
  * ha llenado, tambien: un modelo sin ficha tecnica tiene sus datos electricos en blanco. Se iran
  * llenando tanda a tanda sin tocar esta forma. El estado, el ultimo servicio y el numero de
  * intervenciones no esperan a nadie: salen del historial que ya llega.
