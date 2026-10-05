@@ -1602,3 +1602,22 @@ Lo que cambia el plan:
 
 **Tocadas**: [[hoja-de-vida-formato-impreso]], [[index]] y el `CONVENCIONES.md` de la raíz.
 
+## [2026-10-05] ingest | la hoja de vida, en su formato impreso
+
+Construida la tanda 6 de [[hoja-de-vida-formato-impreso]], la primera por decisión del usuario: la
+pantalla con el diseño aprobado y su impresión desde el navegador, con «—» donde el sistema todavía no
+guarda el dato. Mergeada por `ac9c2592`; **438** pruebas del frontend, cuatro mutaciones y las cuatro
+caen. Se comprobó generando el PDF real contra el contenedor: dos páginas carta.
+
+Dos cosas que no estaban en el plan y quedaron escritas en la nota: **las dos fechas tenían su
+trampa de zona horaria** —la de impresión y la de cada servicio—, y **el QR se dibuja desde la
+matriz** porque el corredor de pruebas no tiene `canvas`.
+
+**Y una deuda que no era de esta pantalla**: al medirla en un teléfono, la página tenía 629 px de ancho
+en vez de 390. Antes de culparla se midió `/clientes`, y daba lo mismo: **el menú principal desborda en
+todas las pantallas**. Entra en [[deuda-tecnica-y-riesgos]], que queda en 80 filas, 33 tachadas y 47
+abiertas.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]], [[deuda-tecnica-y-riesgos]], [[index]] y el
+`CONVENCIONES.md` de la raíz.
+
