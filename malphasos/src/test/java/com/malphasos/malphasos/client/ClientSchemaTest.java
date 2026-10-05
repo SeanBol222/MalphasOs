@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -69,10 +70,7 @@ class ClientSchemaTest {
         UUID pais = UUID.randomUUID();
         UUID ciudad = UUID.randomUUID();
         long n = System.nanoTime();
-        String letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String iso = "" + letras.charAt((int) (n % 26))
-                + letras.charAt((int) ((n / 26) % 26))
-                + letras.charAt((int) ((n / 676) % 26));
+        String iso = CodigoIsoLibre.en(jdbcTemplate);
 
         jdbcTemplate.update(
                 "INSERT INTO pais (k_id_pais, k_codigo_iso, n_nombre_pais) VALUES (?, ?, ?)",

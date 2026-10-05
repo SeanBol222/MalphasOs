@@ -2,6 +2,7 @@ package com.malphasos.malphasos.location.infrastructure.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.location.domain.city.City;
 import com.malphasos.malphasos.location.domain.country.Country;
@@ -32,10 +33,7 @@ class LocationPersistenceAdapterTest {
     /** El codigo ISO y el nombre son unicos: cada prueba necesita los suyos. */
     private Country unPais() {
         long n = System.nanoTime();
-        String letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String iso = "" + letras.charAt((int) (n % 26))
-                + letras.charAt((int) ((n / 26) % 26))
-                + letras.charAt((int) ((n / 676) % 26));
+        String iso = CodigoIsoLibre.en(jdbcTemplate);
 
         return Country.create(iso, "Pais " + n);
     }
