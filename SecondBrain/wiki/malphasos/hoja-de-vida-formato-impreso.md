@@ -226,19 +226,91 @@ Cada tanda deja la batería en verde y algo usable.
    público (enlace firmado) y el PDF del servidor (junto con RF-17).
 8. **Lo que espera otro requisito**: el protocolo preventivo, con RF-14.
 
-## Decisiones abiertas, todas juntas
+## Decisiones, todas tomadas el 2026-10-05
 
-1. ¿«Profesional responsable» es el encargado del área, o del de la sede?
-2. ¿Teléfono fijo y móvil se distinguen? Hoy la tabla no lo sabe.
-3. ~~¿Los datos eléctricos van en el tipo o en el modelo?~~ **En el modelo, los cinco**, decidido por el usuario el 2026-10-05.
-4. ¿El número de hoja de vida es consecutivo global o por cliente?
-5. ¿Qué fecha es la «fecha de actualización»?
-6. ¿Dónde se guarda la foto?
-7. ¿Cuál texto del reporte es la descripción del historial, y el responsable sale con nombre?
-8. ¿El valor de compra se imprime? ¿Y el valor unitario de mantenimiento queda fuera?
-9. ¿El QR tiene que abrirse sin cuenta?
-10. ¿Basta la impresión del navegador, o hace falta el PDF del servidor ya?
-11. ¿Los datos de Bolívar de 2019 siguen vigentes?
+Las once que esta nota dejaba abiertas se contestaron el mismo día que se escribió. **Mandan sobre lo
+que dicen las secciones de arriba** donde no coincidan; las secciones conservan el razonamiento.
+
+| # | Pregunta | Decisión |
+|---|---|---|
+| 1 | ¿Quién es el profesional responsable? | **El encargado del área**, y si el área no tiene, **el de la sede** |
+| 2 | ¿Fijo y móvil se distinguen? | **No.** Una sola casilla, «Teléfonos», con los que haya. Sin migración |
+| 3 | ¿Datos eléctricos en el tipo o en el modelo? | **En el modelo, los cinco**, moviendo voltaje y amperaje desde el tipo |
+| 4 | ¿Cómo se numera la hoja? | **`HV-<sigla>-0001`**: una **sigla nueva por cliente** y el consecutivo **por cliente**. Ver abajo |
+| 5 | ¿Qué es la fecha de actualización? | **La fecha de impresión.** Sin migración |
+| 6 | ¿Dónde se guarda la foto? | **Aplazada.** El recuadro sale vacío y no frena nada |
+| 7 | ¿Descripción y responsable del historial? | **Procedimientos** del reporte, y el **nombre del ingeniero** de la orden, los dos congelados al cerrar |
+| 8 | ¿Qué precios se imprimen? | **Solo el valor de compra.** El valor unitario de mantenimiento no sale: es precio interno |
+| 9 | ¿El QR se abre sin cuenta? | **No.** Abre la hoja en la aplicación y pide iniciar sesión. Nada nuevo de seguridad |
+| 10 | ¿Navegador o PDF del servidor? | **Navegador.** El PDF del servidor, si llega, llega con RF-17 |
+| 11 | ¿Siguen vigentes los datos de Bolívar? | **Casi**: ya **no hay teléfonos fijos**. Ver abajo |
+
+Y tres que no estaban en la lista y salieron al contestarla:
+
+- **Uso y limpieza cotidiana van en el tipo**, como proponía la tabla de campos.
+- **El orden de las tandas cambia**: **la pantalla y la impresión van primero**, con «—» en lo que aún no
+  existe, para que el usuario vea el diseño con datos reales cuanto antes. Las tandas de datos la van
+  llenando.
+- **Dónde viven los datos de Bolívar**: en `application.yml` y no en el `.env`. Ver abajo.
+
+### La sigla del cliente y el número de hoja
+
+- **Una columna nueva en `cliente`**: la sigla, de **3 a 6 caracteres**, mayúsculas y dígitos,
+  empezando por letra, y **única** entre clientes.
+- **Se genera sola al crear el cliente, a partir de la razón social** —nadie la escribe—, y es
+  **editable** después desde su ficha, por si sale fea. **No se regenera al corregir la razón social**:
+  nace con el cliente y no sigue a su nombre, porque corregir una tilde no debe cambiar cómo se numeran
+  sus equipos. Las tres cosas, decididas por el usuario el 2026-10-05.
+- **La regla**, que es la misma para el alta y para la migración de los clientes que ya existen —de
+  modo que el código y la migración generan lo mismo, y una prueba debe exigirlo—:
+  1. mayúsculas, sin tildes ni puntuación;
+  2. fuera la forma jurídica (S.A.S., S.A., LTDA., E.U., S. EN C.) y las palabras vacías (DE, DEL, LA,
+     LAS, LOS, Y, E, EN);
+  3. la inicial de cada palabra que queda, hasta 6;
+  4. si salen menos de 3, se completa con las letras siguientes de la última palabra;
+  5. si ya existe, se le añade un número: `CDN`, `CDN2`, `CDN3`.
+
+  | Razón social | Sigla |
+  |---|---|
+  | Clínica Dermatológica del Norte S.A.S. | `CDN` |
+  | Hospital Universitario San Ignacio | `HUSI` |
+  | Bolívar Bioingeniería Ltda. | `BBI` |
+  | Dermacenter S.A.S. | `DER` |
+  | Clínica del Dolor y Neurología S.A., con `CDN` ya usada | `CDN2` |
+
+  ⚠️ **El paso 5 tiene una carrera**: dos altas simultáneas con la misma sigla base pueden elegir el
+  mismo número. Lo para el índice único —una de las dos falla— y el servicio reintenta con el
+  siguiente; sin ese reintento, el usuario vería un conflicto por algo que no escribió.
+- **El consecutivo cuenta por cliente**: `HV-CLD-0001`, `HV-CLD-0002`. Exige un contador por cliente que
+  no se pise con dos altas a la vez —un `SELECT ... FOR UPDATE` sobre la fila del cliente, o un contador
+  propio en ella—; una secuencia de PostgreSQL no sirve, porque es global.
+- **El número se asigna al registrar el equipo y no cambia**. Los equipos que ya existen reciben el suyo
+  en la migración, por orden de alta dentro de cada cliente.
+- **Cambiar la sigla de un cliente no renumera sus hojas**: las ya numeradas **conservan el número
+  viejo para siempre** y solo los equipos nuevos salen con la sigla nueva —decidido por el usuario el
+  mismo día—. Es la opción que no deja ningún papel impreso con un número que ya no está en el sistema,
+  y obliga a **guardar el número entero en la unidad**, sigla incluida, no a componerlo al leer.
+- **Un equipo trasladado no cambia de cliente** —es una regla del sistema, ver
+  [[regla-traslado-mismo-cliente]]—, de modo que la sigla de su hoja nunca deja de ser la de su dueño.
+
+### Los datos de Bolívar, vigentes al 2026-10-05
+
+| | |
+|---|---|
+| Nombre | Bolívar Bioingeniería Ltda. |
+| Dirección | Calle 77 C N.º 100 B 46, Villas del Madrigal |
+| Ciudad | Bogotá |
+| Teléfono fijo | **Ninguno** — los dos de 2019 ya no existen |
+| Móvil | 312 305 5157 |
+| Correo | bolivarbioingenieria@gmail.com |
+
+**Viven en `application.yml`, bajo `app.empresa.*`**, con estos valores versionados y cada uno
+sobrescribible por una variable de entorno, como el origen de CORS. **No en el `.env`**: ese archivo es
+para secretos y para lo que cambia de una máquina a otra, y está fuera de git, de modo que al clonar el
+proyecto los datos no estarían. Estos ni son secretos ni cambian por máquina. El backend los entrega
+**dentro de la respuesta de la hoja de vida**, para que la pantalla y la impresión los tengan en la
+misma petición y el frontend no guarde una copia. Una tabla editable desde la aplicación solo valdría
+la pena si cambiaran a menudo o si el sistema sirviera algún día a más de una empresa.
 
 ## Notas relacionadas
 

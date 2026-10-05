@@ -112,7 +112,7 @@ Las cifras de arriba son el **número de elementos `<testcase>` de los XML de Su
 
 **⚠️ Lo pedido para la sesión siguiente (2026-10-02): una revisión completa y exhaustiva de todo lo desarrollado.** No es seguir construyendo, es contrastar lo construido contra lo escrito; por dónde empezar está en [[hoja-de-ruta-producto]]. Y la primera regla de esa revisión es la que este archivo ya aprendió cuatro veces: **los números se recalculan, no se citan**.
 
-**Lo siguiente decidido, el 2026-10-05: la hoja de vida impresa.** El usuario aprobó el diseño —el «tablero con escudo», con la marca de Bolívar Bioingeniería— y el plan para producirlo, con siete tandas y diez decisiones abiertas —eran once, y la de los datos eléctricos se cerró el mismo día—, está en [[hoja-de-vida-formato-impreso]].
+**Lo siguiente decidido, el 2026-10-05: la hoja de vida impresa.** El usuario aprobó el diseño —el «tablero con escudo», con la marca de Bolívar Bioingeniería— y el plan para producirlo, con siete tandas y **todas sus decisiones tomadas** el mismo día, está en [[hoja-de-vida-formato-impreso]]. Empieza por la **pantalla y la impresión**.
 
 **Después de eso quedan dos caminos abiertos y sin dependencias entre sí**: los **protocolos** (RF-14, camino libre, y detrás RF-13) o la **firma digital** (RF-18 y RF-21, que abre el PDF de RF-17). (Decía tres: el tercero era «la hoja de vida como entidad», **construida el 2026-10-04 y no como entidad** —ver [[hoja-de-vida]]—.) El orden completo, en [[hoja-de-ruta-producto]].
 
