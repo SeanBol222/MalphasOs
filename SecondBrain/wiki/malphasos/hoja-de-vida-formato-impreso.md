@@ -10,8 +10,9 @@ updated: 2026-10-05
 # La hoja de vida impresa: qué hace falta para producirla
 
 **Qué es esta nota**: el plan para llevar a la aplicación el formato de hoja de vida que el usuario
-aprobó el **2026-10-05**. Es un plan y no una descripción: **solo la tanda 6 está construida** —la
-pantalla con el diseño y su impresión, mergeada por `ac9c2592` el mismo día— y lo demás sigue pendiente,
+aprobó el **2026-10-05**. Es un plan y no una descripción: **están construidas las tandas 6, 1 y 5** —la
+pantalla con el diseño y su impresión, mergeada por `ac9c2592`, y los datos sin migración, por
+`9516327e`, las dos el mismo día— y lo demás sigue pendiente,
 salvo lo que la tabla de campos marca como «ya sale». (Decía «nada de lo que sigue está construido»:
 cierto hasta esa tarde.) La hoja de vida que existe hoy —el
 compilado de solo lectura, su historial y el oyente que lo escribe— está en [[hoja-de-vida]].
@@ -211,8 +212,8 @@ y no es un detalle de diseño.
 
 Cada tanda deja la batería en verde y algo usable.
 
-1. **Los datos que ya existen**: ampliar `LifeSheet` con el responsable, los contactos del cliente y
-   el estado derivado del historial. Sin migración.
+1. ~~**Los datos que ya existen**~~ — **construida el 2026-10-05** junto con la 5: el responsable y los
+   contactos del cliente. El estado derivado del historial no hizo falta aquí: lo calcula la pantalla.
 2. **Los campos nuevos del catálogo**: una migración con riesgo, características y **los cinco datos
    eléctricos** en el modelo —moviendo voltaje y amperaje desde el tipo—; uso y limpieza en el tipo;
    código interno y proveedor en la unidad. Sus formularios en el catálogo y en el alta del equipo.
@@ -220,7 +221,7 @@ Cada tanda deja la batería en verde y algo usable.
    los pasa y el relleno desde los reportes.
 4. **El número de hoja de vida**: la secuencia, el relleno de los equipos que ya existen y su
    aparición en la respuesta.
-5. **Los datos de Bolívar en configuración**, expuestos donde la pantalla pueda leerlos.
+5. ~~**Los datos de Bolívar en configuración**~~ — **construida el 2026-10-05** con la 1. Ver abajo.
 6. ~~**La pantalla con el diseño y la impresión**~~ — **construida el 2026-10-05, la primera**, por
    decisión del usuario, con «—» en lo que falta. Ver «La pantalla, construida» abajo.
 7. **Lo que espera una decisión de infraestructura**: la foto (almacenamiento de archivos), el QR
@@ -257,6 +258,28 @@ Lo que se aprendió y no estaba en el plan:
   carta sin márgenes en `styles.css`: hoy solo imprime esta pantalla.
 - **El cuadro de servicio técnico con los datos de Bolívar no está**: esos datos llegan del backend
   (tanda 5), y meterlos a mano en el frontend habría sido la copia que se decidió no tener.
+
+## Los datos sin migración, construidos (2026-10-05)
+
+Mergeados por `9516327e`: el responsable, los contactos del cliente y el membrete de la empresa.
+
+- **Quién responde lo decide `client`, no `equipment`**: es `ServiceAreaResponsiblePort`, el tercer puerto
+  que `client` publica hacia fuera —tras `PersonCommunicationPort`, que es de `person`, y
+  `ClientOwnershipPort`—. `equipment` solo recibe nombres. Habría sido posible que `equipment` leyera
+  los encargados y las personas por su cuenta —`person` no depende de nadie, así que no habría ciclo—,
+  pero la regla «área, y si no, sede» es de quien entiende de encargados.
+- **Devuelve una lista**, en orden alfabético: nada impide dos encargados en un área, y escoger uno
+  sería decidir algo que nadie decidió. La pantalla los une con «·». Los encargados retirados y las
+  personas dadas de baja **no cuentan**; el repositorio devuelve unos y otros, y el filtro está en el
+  servicio.
+- **Solo los contactos vigentes**: un teléfono retirado no se imprime.
+- **El membrete lo pone el adaptador REST**, con `ServiceCompanyProperties` (`shared/config`,
+  prefijo `app.empresa`), no la capa de aplicación: no es un dato del equipo sino del documento.
+  Cada valor se sobrescribe con una variable de entorno, `EMPRESA_MOVIL` y las demás.
+- Verificado con cinco pruebas unitarias de la regla, una de integración contra PostgreSQL que cruza
+  `equipment`, `client` y `person`, y siete mutaciones, todas caídas. En la base de desarrollo el
+  cliente no tiene encargados ni contactos, así que el PDF real sale con «—» en esas tres casillas y
+  con el cuadro de la empresa lleno.
 
 ## Decisiones, todas tomadas el 2026-10-05
 

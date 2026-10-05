@@ -1621,3 +1621,15 @@ abiertas.
 **Tocadas**: [[hoja-de-vida-formato-impreso]], [[deuda-tecnica-y-riesgos]], [[index]] y el
 `CONVENCIONES.md` de la raíz.
 
+## [2026-10-05] ingest | la hoja de vida dice quién responde, cómo encontrar al cliente y quién presta el servicio
+
+Construidas las tandas 1 y 5 de [[hoja-de-vida-formato-impreso]], las que no piden migración, y
+mergeadas por `9516327e`. **989** pruebas del backend en 70 clases y **441** del frontend; siete
+mutaciones y las siete caen.
+
+La decisión de diseño que conviene recordar: **la regla del responsable vive en `client`**, detrás de
+un puerto nuevo, aunque `equipment` podía leer encargados y personas por su cuenta sin ciclo. El
+criterio no fue el grafo de dependencias sino **quién entiende la regla**.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]], [[index]] y el `CONVENCIONES.md` de la raíz.
+
