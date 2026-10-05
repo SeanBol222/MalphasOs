@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -40,12 +41,9 @@ class LocationSchemaTest {
 
     /** El codigo ISO es unico: cada prueba necesita el suyo. */
     private String uniqueIsoCode() {
-        String letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         long n = System.nanoTime();
 
-        return "" + letras.charAt((int) (n % 26))
-                + letras.charAt((int) ((n / 26) % 26))
-                + letras.charAt((int) ((n / 676) % 26));
+        return CodigoIsoLibre.en(jdbcTemplate);
     }
 
     private UUID insertCountry(String isoCode, String name) {

@@ -2,6 +2,7 @@ package com.malphasos.malphasos.report.infrastructure.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
@@ -114,10 +115,7 @@ class ServiceReportPersistenceAdapterTest {
         UUID ciudad = UUID.randomUUID();
         UUID sede = UUID.randomUUID();
         long n = System.nanoTime();
-        String letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String iso = "" + letras.charAt((int) (n % 26))
-                + letras.charAt((int) ((n / 26) % 26))
-                + letras.charAt((int) ((n / 676) % 26));
+        String iso = CodigoIsoLibre.en(jdbcTemplate);
 
         jdbcTemplate.update(
                 "INSERT INTO pais (k_id_pais, k_codigo_iso, n_nombre_pais) VALUES (?, ?, ?)",
