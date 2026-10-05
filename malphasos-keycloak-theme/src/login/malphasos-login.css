@@ -1,0 +1,439 @@
+/*
+ * El login de MalphasOS con el manual de marca: tinta sobre papel, radio cero, una sola familia
+ * -Archivo- y el rojo de marca en el boton principal y los enlaces.
+ *
+ * Copia a proposito las decisiones del frontend de la aplicacion -los mismos tokens, el mismo borde
+ * de campo, la misma altura tactil, el mismo aviso con borde a la izquierda- porque quien inicia sesion
+ * pasa de esta pantalla a la aplicacion en un segundo, y un cambio de estilo entre las dos se lee como
+ * haber salido del producto. El acento #ec3013 no alcanza AA como relleno de boton (3,76:1): el boton
+ * va en #ae1800, igual que en la aplicacion.
+ *
+ * No hay modo oscuro, como en la aplicacion y en la consola de administracion.
+ */
+@import "@fontsource-variable/archivo";
+
+:root {
+    --mos-ink: #201e1d;
+    --mos-paper: #f3f2f2;
+    --mos-brand-black: #2d2b2b;
+    --mos-accent: #ec3013;
+    --mos-accent-100: #fff2ef;
+    --mos-accent-700: #ae1800;
+    --mos-accent-800: #7c1405;
+    --mos-neutral-100: #f8f4f4;
+    --mos-neutral-200: #eae7e7;
+    --mos-neutral-300: #d7d3d3;
+    --mos-neutral-400: #bab6b6;
+    --mos-neutral-500: #9b9797;
+    --mos-neutral-700: #605d5d;
+    --mos-tactil: 44px;
+    color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+.mos-html,
+.mos-body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--mos-paper);
+}
+
+.mos-body {
+    color: var(--mos-ink);
+    font-family: "Archivo Variable", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+}
+
+/* ------------------------------------------------------------------------------------------------ */
+/* El marco                                                                                         */
+/* ------------------------------------------------------------------------------------------------ */
+
+.mos-pagina {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 48px 16px;
+}
+
+.mos-cabecera {
+    margin-bottom: 32px;
+}
+
+/* El logo aparece de abajo hacia arriba y con transparencia: se descubre recortando desde arriba
+ * (clip-path), se funde (opacity) y sube un poco (translateY). No retiene la pantalla: el formulario
+ * esta disponible desde el primer momento, la animacion solo acompana. */
+.mos-logo {
+    display: block;
+    width: 200px;
+    height: auto;
+    animation: mos-logo-aparece 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes mos-logo-aparece {
+    from {
+        clip-path: inset(100% 0 0 0);
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        clip-path: inset(0 0 0 0);
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* WCAG 2.1 AA esta declarado: quien pide menos movimiento ve el logo quieto. */
+@media (prefers-reduced-motion: reduce) {
+    .mos-logo {
+        animation: none;
+    }
+}
+
+.mos-tarjeta {
+    width: 100%;
+    max-width: 440px;
+    padding: 32px;
+    background: var(--mos-neutral-100);
+    border: 1px solid var(--mos-neutral-300);
+    border-top: 4px solid var(--mos-brand-black);
+}
+
+@media (max-width: 480px) {
+    .mos-tarjeta {
+        padding: 24px 16px;
+    }
+}
+
+#kc-page-title {
+    margin: 0 0 24px;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* Cuando Keycloak ya sabe quien es -segunda pantalla de un flujo- muestra el usuario y un enlace para
+ * empezar de nuevo, en lugar del titulo. */
+#kc-username {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+#kc-attempted-username {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.mos-obligatorios {
+    margin: 0 0 16px;
+    color: var(--mos-neutral-700);
+}
+
+.required {
+    color: var(--mos-accent-700);
+}
+
+/* ------------------------------------------------------------------------------------------------ */
+/* El formulario                                                                                    */
+/* ------------------------------------------------------------------------------------------------ */
+
+.mos-grupo {
+    margin-bottom: 24px;
+}
+
+/* El ultimo grupo de un formulario no deja margen: el relleno de la tarjeta ya separa. */
+.mos-tarjeta form > .mos-grupo:last-child {
+    margin-bottom: 0;
+}
+
+.mos-etiqueta,
+.mos-grupo > label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.mos-campo {
+    display: block;
+    width: 100%;
+    min-height: var(--mos-tactil);
+    padding: 8px 12px;
+    font: inherit;
+    color: var(--mos-ink);
+    background: var(--mos-paper);
+    border: 1px solid var(--mos-neutral-400);
+    border-radius: 0;
+}
+
+.mos-campo:focus-visible {
+    outline: 2px solid var(--mos-ink);
+    outline-offset: 2px;
+}
+
+/* Un campo con error se marca con el borde, y el mensaje lo dice en texto: el color solo nunca basta. */
+.mos-campo[aria-invalid="true"] {
+    border: 2px solid var(--mos-accent-700);
+}
+
+.mos-error {
+    display: block;
+    margin-top: 8px;
+    font-weight: 600;
+    color: var(--mos-accent-700);
+}
+
+.mos-ayuda {
+    display: block;
+    margin-top: 8px;
+    color: var(--mos-neutral-700);
+}
+
+/* La clave con su boton de mostrar, pegados: el boton es parte del campo. */
+.mos-grupo-de-campo {
+    display: flex;
+}
+
+.mos-grupo-de-campo .mos-campo {
+    flex: 1;
+    min-width: 0;
+    border-right: 0;
+}
+
+.mos-ver-clave {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--mos-tactil);
+    min-height: var(--mos-tactil);
+    padding: 0;
+    color: var(--mos-ink);
+    background: var(--mos-paper);
+    border: 1px solid var(--mos-neutral-400);
+    border-radius: 0;
+    cursor: pointer;
+}
+
+.mos-ver-clave:hover {
+    background: var(--mos-neutral-200);
+}
+
+.mos-ver-clave:focus-visible {
+    outline: 2px solid var(--mos-ink);
+    outline-offset: 2px;
+}
+
+/* Sin la hoja por defecto no hay fuente de iconos, y cargar una entera para dos ojos es mucho. Van
+ * como mascara SVG, de modo que toman el color del texto del boton. */
+.mos-icono-ojo,
+.mos-icono-ojo-tachado {
+    display: block;
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    -webkit-mask: var(--mos-icono) center / contain no-repeat;
+    mask: var(--mos-icono) center / contain no-repeat;
+}
+
+.mos-icono-ojo {
+    --mos-icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='square'%3E%3Cpath d='M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+}
+
+.mos-icono-ojo-tachado {
+    --mos-icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='square'%3E%3Cpath d='M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M3 3l18 18'/%3E%3C/svg%3E");
+}
+
+/* «Recordarme» y «¿Olvido su contrasena?»: a los dos lados, y uno debajo del otro si no caben. */
+.mos-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+#kc-form-options:empty,
+.mos-opciones__enlaces:empty {
+    display: none;
+}
+
+/* Y si las dos estan vacias -el realm no ofrece ni recordar ni recuperar la clave- la fila entera
+ * sobra: su margen dejaba un hueco de mas antes del boton. */
+.mos-opciones:has(> #kc-form-options:empty):has(> .mos-opciones__enlaces:empty) {
+    display: none;
+}
+
+.checkbox label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--mos-tactil);
+    font-weight: 400;
+}
+
+.checkbox input,
+input[type="checkbox"],
+input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--mos-accent-700);
+}
+
+/* ------------------------------------------------------------------------------------------------ */
+/* Botones y enlaces                                                                                */
+/* ------------------------------------------------------------------------------------------------ */
+
+.mos-boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--mos-tactil);
+    padding: 8px 24px;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 0;
+    cursor: pointer;
+}
+
+.mos-boton--bloque {
+    display: flex;
+    width: 100%;
+}
+
+.mos-boton--primario {
+    color: var(--mos-paper);
+    background: var(--mos-accent-700);
+    border: 2px solid var(--mos-accent-700);
+}
+
+.mos-boton--primario:hover {
+    background: var(--mos-accent-800);
+    border-color: var(--mos-accent-800);
+}
+
+.mos-boton--secundario {
+    color: var(--mos-ink);
+    background: transparent;
+    border: 2px solid var(--mos-ink);
+}
+
+.mos-boton--secundario:hover {
+    background: var(--mos-neutral-200);
+}
+
+.mos-boton:focus-visible {
+    outline: 2px solid var(--mos-ink);
+    outline-offset: 2px;
+}
+
+/* Un boton desactivado -el de entrar, mientras se envia- en gris, como en la aplicacion. */
+.mos-boton:disabled {
+    color: var(--mos-paper);
+    background: var(--mos-neutral-500);
+    border-color: var(--mos-neutral-500);
+    cursor: progress;
+}
+
+/* Las paginas con dos botones -aceptar y cancelar, por ejemplo- los ponen en fila. */
+.mos-botones,
+#kc-form-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.mos-botones > *,
+#kc-form-buttons > :not([type="hidden"]) {
+    flex: 1 1 auto;
+}
+
+.mos-tarjeta a:not(.mos-boton) {
+    font-weight: 600;
+    color: var(--mos-accent-700);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.mos-tarjeta a:not(.mos-boton):hover {
+    color: var(--mos-accent-800);
+}
+
+.mos-tarjeta a:focus-visible {
+    outline: 2px solid var(--mos-ink);
+    outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------------------------------------ */
+/* Avisos                                                                                           */
+/* ------------------------------------------------------------------------------------------------ */
+
+/* Como en la aplicacion: borde a la izquierda y fondo suave. El tipo se distingue por el borde y el
+ * fondo, y el texto siempre lo dice; el error es el unico en rojo. */
+.mos-aviso {
+    margin-bottom: 24px;
+    padding: 16px;
+    border-left: 4px solid var(--mos-ink);
+    background: var(--mos-neutral-200);
+}
+
+.mos-aviso--error {
+    border-left-color: var(--mos-accent-700);
+    background: var(--mos-accent-100);
+}
+
+.mos-aviso__texto {
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------------------------------------------ */
+/* Pie e idioma                                                                                     */
+/* ------------------------------------------------------------------------------------------------ */
+
+.mos-pie {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--mos-neutral-300);
+}
+
+.mos-idioma {
+    margin-bottom: 16px;
+    text-align: right;
+}
+
+.mos-idioma button {
+    min-height: var(--mos-tactil);
+    padding: 0 8px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--mos-ink);
+    background: transparent;
+    border: 1px solid var(--mos-neutral-400);
+    border-radius: 0;
+}
+
+.mos-idioma__lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#kc-social-providers hr {
+    border: 0;
+    border-top: 1px solid var(--mos-neutral-300);
+}
+
+#kc-social-providers ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
