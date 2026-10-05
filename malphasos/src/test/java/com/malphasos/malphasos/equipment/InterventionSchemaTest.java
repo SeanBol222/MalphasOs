@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +19,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
@@ -307,5 +309,95 @@ class InterventionSchemaTest {
 
         assertThat(indices)
                 .anyMatch(d -> d.contains("k_id_equipo_cliente") && d.contains("f_fecha_servicio"));
+    }
+
+    // ------------------------------------------------------------------------
+    // V13: el relleno de los reportes cerrados antes de que existiera el oyente
+    // ------------------------------------------------------------------------
+
+    /**
+     * Ejecuta el contenido de V13 tal cual esta en el disco.
+     *
+     * <p>Flyway la aplico al arrancar, sobre una base vacia, asi que no relleno nada. Para probar lo que
+     * hace con datos hay que volver a ejecutar su SQL despues de crearlos, y se lee del mismo fichero
+     * que se despliega: una copia del SQL en la prueba podria divergir del original sin que nada fallara.
+     */
+    private void ejecutarV13() throws Exception {
+        String sql = new String(
+                new ClassPathResource("db/migration/V13__backfill_intervention_history.sql")
+                        .getInputStream()
+                        .readAllBytes(),
+                StandardCharsets.UTF_8);
+        jdbcTemplate.execute(sql);
+    }
+
+    @Test
+    @DisplayName("V13 anota un reporte que ya estaba cerrado antes de que existiera el oyente")
+    void elRellenoAnotaLosCerradosDeAntes() throws Exception {
+        // El reporte se cierra por SQL, que es como estaban los de antes de V12: sin oyente.
+        Contexto contexto = unReporteFinalizado("CALIBRACION", "OPERATIVO_CON_RESTRICCIONES");
+
+        ejecutarV13();
+
+        Map<String, Object> fila = jdbcTemplate.queryForMap(
+                "SELECT * FROM intervencion WHERE k_id_reporte_servicio = ?", contexto.reporte());
+        assertThat(fila)
+                .containsEntry("k_id_equipo_cliente", contexto.equipo())
+                .containsEntry("t_tipo_servicio", "CALIBRACION")
+                .containsEntry("t_resultado", "OPERATIVO_CON_RESTRICCIONES");
+        assertThat(fila.get("f_fecha_servicio")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("V13 no duplica: ejecutarla dos veces, o donde el oyente ya anoto, deja una linea")
+    void elRellenoEsIdempotente() throws Exception {
+        Contexto contexto = unReporteFinalizado("PREVENTIVO", "OPERATIVO");
+        insertIntervention(contexto, "PREVENTIVO", "OPERATIVO");
+
+        ejecutarV13();
+        ejecutarV13();
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM intervencion WHERE k_id_reporte_servicio = ?",
+                        Integer.class, contexto.reporte()))
+                .isOne();
+    }
+
+    @Test
+    @DisplayName("V13 rellena tambien un reporte cerrado y despues retirado: el mantenimiento ocurrio")
+    void elRellenoIncluyeLosRetirados() throws Exception {
+        // Es la decision tomada para V12, y el relleno no puede contradecirla: el oyente anota al
+        // cerrar, y retirar despues no borra la linea.
+        Contexto contexto = unReporteFinalizado("CORRECTIVO", "FUERA_DE_SERVICIO");
+        jdbcTemplate.update(
+                "UPDATE reporte_servicio SET b_estado_activo = false WHERE k_id_reporte_servicio = ?",
+                contexto.reporte());
+
+        ejecutarV13();
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM intervencion WHERE k_id_reporte_servicio = ?",
+                        Integer.class, contexto.reporte()))
+                .isOne();
+    }
+
+    @Test
+    @DisplayName("V13 no anota un borrador: una intervencion es un mantenimiento hecho")
+    void elRellenoIgnoraLosBorradores() throws Exception {
+        Contexto contexto = unReporteFinalizado("PREVENTIVO", "OPERATIVO");
+        jdbcTemplate.update(
+                """
+                UPDATE reporte_servicio
+                SET t_estado_reporte = 'BORRADOR', t_finalizado = NULL
+                WHERE k_id_reporte_servicio = ?
+                """,
+                contexto.reporte());
+
+        ejecutarV13();
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM intervencion WHERE k_id_reporte_servicio = ?",
+                        Integer.class, contexto.reporte()))
+                .isZero();
     }
 }
