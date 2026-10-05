@@ -87,6 +87,35 @@ exactamente lo que el oyente habría escrito, retirados incluidos, y es idempote
 lleva escrita: copia el tipo de servicio que la orden tiene **hoy**, porque el del momento del cierre
 no se guardó en ninguna parte.
 
+### `V14`: corregir un reporte reemplaza su línea, no la duplica
+
+Un reporte cerrado no se edita: se retira y se abre otro sobre la misma orden y el mismo equipo. Y la
+intervención sobrevive al reporte retirado, porque un mantenimiento hecho no se borra. **Las dos
+decisiones eran buenas por separado y juntas dejaban dos líneas para un solo mantenimiento.** Se
+detectó el mismo día que se construyó el historial, y la salida la eligió el usuario: **el sustituto
+reemplaza al anterior**.
+
+- La línea vieja **no se borra**: queda retirada y apuntando a la que la sustituyó
+  (`k_id_reemplazada_por`), que es el rastro de que hubo una corrección.
+- El reemplazo ocurre **al cerrar el sustituto, no al abrirlo**. Si se abriera y nunca se cerrara,
+  reemplazar al abrir dejaría la hoja de vida sin un mantenimiento que sí ocurrió.
+- Retirar un reporte sin abrir sustituto **no toca la línea**, y un mantenimiento en otra orden del
+  mismo equipo **no reemplaza a nadie**: la regla es por par (orden, equipo).
+- **Quién corrige a quién lo decide `report`**, que es quien conoce los reportes: el oyente busca los
+  otros reportes cerrados del mismo par y se los pasa a `equipment` en el comando, y `equipment` sigue
+  sin leer tablas ajenas. Solo se reemplazan líneas vigentes, de modo que en una cadena de correcciones
+  cada una apunta a la que la sustituyó primero.
+
+**El esquema lo sostiene con dos `CHECK`**: reemplazada implica retirada —con `CASE` y no con `OR`, por
+la trampa del `NULL` que ya costó una vez— y ninguna línea se reemplaza a sí misma. **Y `V14` reconcilia
+lo que `V13` ya rellenó** con la misma regla que el oyente —queda vigente la del reporte activo, o la
+del cierre más reciente si todos están retirados—, de modo que el resultado no depende de si la
+corrección fue antes o después de la migración. El contrato HTTP no cambió: la pantalla siempre mostró
+solo las líneas vigentes.
+
+Verificado recorriendo el flujo entero contra PostgreSQL real —cerrar, retirar, abrir otro, cerrar— y
+encontrando una línea; seis mutaciones, las seis caen.
+
 ## El oyente: el primer consumidor de un evento de dominio
 
 `ServiceReportFinishedListener` anota la intervención al cerrarse un reporte. **Es el primero**: hay
@@ -109,10 +138,8 @@ lo largo de los cambios que sufre, y una intervención no cambia: describe algo 
 
 ## Lo que queda abierto
 
-- ⚠️ **Corregir un reporte deja dos líneas en la hoja de vida.** La pantalla de un reporte cerrado dice
-  que para corregirlo «hay que retirarlo y abrir otro», y con la intervención sobreviviendo al reporte
-  retirado, el mismo mantenimiento queda anotado dos veces: la línea del reporte equivocado y la del
-  bueno. **Pendiente de decisión del usuario**, y afecta igual al oyente que a `V13`.
+- ~~**Corregir un reporte deja dos líneas en la hoja de vida.**~~ **Resuelto el 2026-10-04 con `V14`**,
+  el mismo día: el sustituto reemplaza al anterior. Ver arriba.
 - **El vocabulario del resultado no sale de la ERS**, y ahora lo arrastran dos tablas: cambiarlo cuesta
   dos migraciones. Ver [[deuda-tecnica-y-riesgos]].
 - **La hoja de vida no se ha visto en un navegador con datos**: la base de desarrollo no tiene ningún

@@ -35,7 +35,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[traduccion-de-fallos-de-adaptadores]] — Un adaptador de salida falla de dos maneras; traducir solo una deja escapar 500 fuera del contrato.
 - [[openapi-swagger]] — Un grupo por módulo, y el fallo silencioso de un `pathsToMatch` que no casa con ninguna ruta.
 - [[antipatron-open-in-view]] — Por qué está apagado y qué hacer en su lugar.
-- [[esquema-bd-malphasos]] ⭐ — **El esquema de hoy, con diagramas**: 26 tablas por módulo, las 4 foráneas compuestas que son reglas, los 4 índices únicos parciales y lo que el esquema deliberadamente no dice. Generado leyendo la base en marcha, con las consultas para rehacerlo.
+- [[esquema-bd-malphasos]] ⭐ — **El esquema de hoy, con diagramas**: 27 tablas por módulo hasta `V14`, las 4 foráneas compuestas que son reglas, los 5 índices únicos parciales (esta línea decía 26 y **4**: el cuarto índice dejó de ser cierto con `V11`, y nadie volvió aquí) y lo que el esquema deliberadamente no dice. Generado leyendo la base en marcha, con las consultas para rehacerlo.
 
 ### Los módulos de dominio
 
@@ -60,16 +60,16 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[seguridad-keycloak-backend]] — Resource server + admin client, dos piezas separadas. Incluye la ventana del token ya emitido.
 - [[modelo-de-permisos]] ⭐ — Las **22** autoridades, la expansión en **dos escalones**, la **escalera de usuarios** —quién crea a quién— y la única excepción acotada a la autoridad literal. (Decía «19 autoridades» y «en dos capas»: cierto hasta el **2026-09-13**; «20», hasta el **2026-09-27**, cuando entraron las dos de `report`. Y antes «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `e6dda32`.)
 - [[filtrado-por-dueno]] ⭐ — **Qué filas puede leer cada quien**, que es lo que el modelo de permisos no decía. El alcance como **argumento del caso de uso**; el patrón de **delegar la comprobación en el dueño del recurso**, que resuelve ocho de las dieciocho lecturas sin una guarda propia; y las cuatro decisiones que deja abiertas. Entró el **2026-10-04**, cerrando la mayor deuda del proyecto **sin ninguna migración**: el vínculo con Keycloak estaba decidido desde la migración de `person` y tres notas lo daban por pendiente.
-- [[hoja-de-vida]] ⭐ — **Qué es la hoja de vida de un equipo y qué no es**: un compilado de solo lectura con las cuatro secciones de RF-22, que existe desde que el equipo se registra. Solo su historial tiene tabla, porque una intervención sobrevive al reporte retirado; lo escribe el primer oyente de eventos del sistema, que vive en `report` y no donde la ERS lo reservó. Entró el **2026-10-04** y deja una decisión abierta: corregir un reporte anota el mismo mantenimiento dos veces.
+- [[hoja-de-vida]] ⭐ — **Qué es la hoja de vida de un equipo y qué no es**: un compilado de solo lectura con las cuatro secciones de RF-22, que existe desde que el equipo se registra. Solo su historial tiene tabla, porque una intervención sobrevive al reporte retirado; lo escribe el primer oyente de eventos del sistema, que vive en `report` y no donde la ERS lo reservó. Entró el **2026-10-04**, y la decisión que dejaba abierta —corregir un reporte anotaba el mismo mantenimiento dos veces— se cerró ese día con `V14`: el sustituto reemplaza al anterior.
 - [[sincronizacion-con-proveedor-de-identidad]] — Dos sistemas de registro sin transacción compartida: en qué orden llamarlos y qué queda sin cerrar. (Decía «en rama sin mergear»: **falso desde el 2026-09-09**, está en `main` por `258cd81`.)
 - [[issuer-uri-vs-jwk-set-uri]] — Por qué Keycloak en Docker devuelve 401 con tokens válidos.
 - [[keycloak-configuracion]] — El realm, sus clients y sus grupos.
 
 ### Infraestructura local
 
-- [[tema-de-keycloak]] ⭐ — **Cómo MalphasOS pone su marca en Keycloak**: Keycloakify para el login, tema clásico para la consola, y las cuatro trampas que costó descubrirlo —incluida la que copia 692 archivos de Keycloak dentro del proyecto y la que hace que editar el realm versionado no cambie nada—.
+- [[tema-de-keycloak]] ⭐ — **Cómo MalphasOS pone su marca en Keycloak**: Keycloakify para el login, tema clásico para la consola, y las cuatro trampas que costó descubrirlo —incluida la que copia 692 archivos de Keycloak dentro del proyecto y la que hace que editar el realm versionado no cambie nada—. Desde el **2026-10-04**, el login con el diseño del manual y en español, y por qué la consola que se daba por terminada era ilegible en modo oscuro.
 - [[docker-compose]] — Postgres, Keycloak, RabbitMQ, pgAdmin y el backend.
-- [[dockerfile-y-contenedores]] — Build en dos etapas, usuario sin privilegios, healthcheck real.
+- [[dockerfile-y-contenedores]] — Build en dos etapas, usuario sin privilegios, healthcheck real. Desde el **2026-10-04** también el frontend: nginx sin proxy, en el 5173.
 
 ## 3. Cómo se llegó hasta aquí
 
@@ -112,4 +112,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**56 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-04 · ver [[log.md]] para el historial.
+**56 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-05 · ver [[log.md]] para el historial.

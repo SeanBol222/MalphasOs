@@ -268,6 +268,36 @@ es, de modo que nadie lo corregiría. Se rellena con «Sin nombre», que salta a
 que alguien abre el listado. Es la misma elección que `V8` hizo poniendo `1` en `i_cantidad_datos`: la
 afirmación más débil posible.
 
+## El alta de un equipo elige tipo, marca y modelo, en ese orden (2026-10-04)
+
+**Petición del usuario**: quien registra un equipo no sabe de memoria cómo se llama cada modelo. Tiene
+el aparato delante, sabe que es un monitor y lee la marca en la carcasa. El formulario pedía el modelo de
+**una sola lista**; ahora se elige de lo general a lo concreto, y con los dos primeros pasos el modelo
+ya es una lista corta. **Al servidor solo viaja el modelo, como antes**: el tipo y la marca son controles
+para filtrar, no datos —la misma decisión que el contador de puntos del 2026-10-03—.
+
+- **Solo se ofrecen las marcas con algún modelo vigente de ese tipo.** Una marca sin modelos llevaría a
+  una lista vacía. Si el tipo no tiene ninguno, la pantalla lo dice y señala el botón de crearlo.
+- **Cambiar el tipo borra marca y modelo; cambiar la marca, el modelo.** Una cascada que conserva lo
+  elegido abajo después de cambiar lo de arriba deja combinaciones que no existen.
+- **El panel de crear el modelo en línea se abre con el tipo y la marca ya elegidos**, y al crear
+  **devuelve los tres**: con solo el modelo, el desplegable no lo ofrecería, porque se filtra por lo
+  elegido.
+- Los controles se llaman `idTipoElegido` e `idMarcaElegida`, como el `idAreaElegida` que ya existía,
+  porque el panel tiene sus propios `idTipo` e `idMarca` y abrirlo dentro del formulario dejaba **dos
+  elementos con el mismo `id` en la página**. Hay una prueba que lo exige.
+
+**Y destapó un defecto de la lista vieja que ninguna prueba veía**: se etiquetaba «tipo · marca ·
+fabricante» y **no mostraba el nombre del modelo**, que existe desde `V11`, de modo que dos modelos de
+la misma marca y el mismo tipo salían como dos opciones idénticas. Las pruebas no lo veían porque **el
+modelo de los datos de prueba no tenía nombre**: el doble era más pobre que el contrato. Ahora los
+modelos salen como «nombre · fabricante» —el fabricante no siempre es la marca— y el doble tiene nombre.
+
+Cinco mutaciones, las cinco caen. **Un bucle infinito que apareció al probar era de la prueba y no del
+componente**: una sustitución global convirtió el ayudante `elegirModelo` en una función que se llamaba
+a sí misma, y antes de verlo se le hizo un «arreglo» al componente, que se deshizo entero. La lección es
+la de siempre con un fallo raro: mirar primero lo último que se tocó, y lo último era la prueba.
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — **debería portarse casi completo**, y así se hizo con la primera tanda. El modelo de dominio (`Equipment`, `EquipmentType`, `Brand`, `Manufacturer`, `Model`, `TechnicalVerification`, `MetrologicalData`) es genérico y no acopla nada de facturación/gestión ajena al mantenimiento en sí. Es, junto con `location_hexagon`, la plantilla arquitectónica a seguir para todos los módulos nuevos de MalphasOS — no la de `client_hexagon`.
