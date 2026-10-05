@@ -16,8 +16,12 @@ import org.springframework.stereotype.Component;
 /**
  * Anota la intervención en la hoja de vida del equipo cuando su reporte se cierra.
  *
- * <p>Es <b>el primer consumidor de un evento de dominio de este sistema</b>. Hasta ahora había doce
- * eventos publicándose y ninguno escuchado, y el despachador estaba construido y sin usar.
+ * <p>Es <b>el primer consumidor de un evento de dominio de este sistema</b>. Hay <b>51</b> eventos
+ * declarados en cinco módulos y, hasta este oyente, ninguno escuchado: el despachador estaba
+ * construido y sin usar. (Este comentario decía «doce eventos», escrito de memoria al crearlo el
+ * 2026-10-04; contados ese mismo día con {@code grep}, son 51 —14 de {@code client}, 18 de
+ * {@code equipment}, 7 de {@code location}, 5 de {@code report} y 7 de {@code work-order}—. El
+ * mensaje del commit que lo introdujo arrastra la cifra falsa.)
  *
  * <p>Con esto se cierra el segundo criterio de RF-26 —«no se requiere acción manual para actualizar el
  * historial»— de la única forma que lo cierra de verdad: no hay ninguna operación que anote una

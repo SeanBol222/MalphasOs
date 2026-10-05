@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 26 tablas, 35 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 27 tablas, 37 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -80,12 +80,17 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **11** (`V1`…`V11`) |
-| Tablas de dominio | **26** |
-| Llaves foráneas | **35**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **29** |
+| Migraciones aplicadas | **13** (`V1`…`V13`) |
+| Tablas de dominio | **27** |
+| Llaves foráneas | **37**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **31** |
 | Índices únicos **parciales** | **5** |
-| Tablas con borrado lógico | **26 de 26** — universal, sin excepción |
+| Tablas con borrado lógico | **27 de 27** — universal, sin excepción |
+
+> **Recontado el 2026-10-04, por la tarde.** Las cifras de la mañana eran 11 migraciones, 26 tablas, 35
+> foráneas y 29 `CHECK`. Entraron `V12` —`intervencion`, con dos foráneas y dos `CHECK`— y `V13`, que
+> no cambia el esquema: rellena. Los índices únicos parciales **siguen siendo cinco**, y no es un
+> descuido: la restricción de una línea por reporte de `intervencion` **no es parcial a propósito**.
 
 **El borrado lógico es universal y eso es una afirmación comprobada, no una convención declarada**: la
 consulta que busca tablas sin `b_estado_activo` devuelve cero filas.
@@ -109,12 +114,21 @@ graph TD
     client -->|representante, encargado| person
     equipment -->|pais del fabricante| location
     equipment -->|area donde se instala| client
+    equipment -->|reporte de cada intervencion| report
     workorder -->|cliente y sede| client
     workorder -->|ingeniero asignado| person
     workorder -->|equipo y area| equipment
     report -->|equipo de la orden| workorder
     report -->|verificacion y punto| equipment
 ```
+
+**Desde `V12` hay un par de módulos con referencias en los dos sentidos**, y es el único: `report`
+apunta a `equipment` —la verificación y el punto de cada lectura— y `equipment` apunta a `report`
+—`intervencion` guarda de qué reporte salió—. **El código no tiene ese ciclo**, y a propósito:
+`InterventionEntity` guarda el identificador del reporte como un UUID suelto, sin `@ManyToOne`, y el
+oyente que la escribe vive en `report` y entra por un puerto que `equipment` publica. El ciclo existe
+solo en la base, donde la foránea es lo que garantiza que una línea del historial no apunte a un reporte
+inexistente. Quitarla rompería el ciclo y perdería esa garantía. Ver [[hoja-de-vida]].
 
 ## `location` — 2 tablas
 
@@ -233,10 +247,11 @@ erDiagram
 **Un encargado lo es de una sede o de un área, nunca de las dos ni de ninguna**, y eso lo impone un
 `CHECK` y no una convención.
 
-## `equipment` — 10 tablas
+## `equipment` — 11 tablas
 
-Son dos cosas en un módulo: la **cadena del catálogo** (seis tablas) y el **catálogo metrológico con lo
-que se verifica** (cuatro, de `V8` y `V10`).
+Son tres cosas en un módulo: la **cadena del catálogo** (seis tablas), el **catálogo metrológico con lo
+que se verifica** (cuatro, de `V8` y `V10`) y, desde `V12`, el **historial de intervenciones** de cada
+equipo instalado, que es la única sección de su hoja de vida con tabla propia.
 
 **«Equipo» significa dos cosas**, y es la trampa de este módulo: `equipo` es una **categoría** —la
 combinación de una marca y un tipo— y `equipo_cliente` es la **máquina** instalada en un área.
@@ -248,6 +263,7 @@ erDiagram
     equipo ||--o{ modelo : "concreta"
     fabricante ||--o{ modelo : "fabrica"
     modelo ||--o{ equipo_cliente : "se instala como"
+    equipo_cliente ||--o{ intervencion : "su historial"
     tipo_equipo {
         uuid k_id_tipo_equipo PK
         varchar n_nombre_tipo_equipo UK
@@ -277,6 +293,15 @@ erDiagram
         uuid k_id_area_servicio FK "del modulo client"
         varchar k_serie
         date f_fecha_compra
+        boolean b_estado_activo
+    }
+    intervencion {
+        uuid k_id_intervencion PK
+        uuid k_id_equipo_cliente FK
+        uuid k_id_reporte_servicio FK "del modulo report - UK, no parcial"
+        timestamp f_fecha_servicio "copia congelada del cierre"
+        varchar t_tipo_servicio "copia congelada de la orden"
+        varchar t_resultado "copia congelada del reporte"
         boolean b_estado_activo
     }
 ```
@@ -445,4 +470,4 @@ restricción que el esquema **podría** expresar y que **no debe**, porque conge
   el hecho de que `persona.k_identificador` **es** el identificador que asigna Keycloak. Lo que el
   esquema no tiene, y sigue sin tener, es una columna que lo diga en un solo sitio: el camino del dato
   al dueño son hasta tres saltos y los recorre la capa de aplicación. Ver [[filtrado-por-dueno]].
-- **La firma digital y la hoja de vida como entidad** no tienen tablas todavía.
+- **La firma digital** no tiene tablas todavía. (Esta línea decía también «la hoja de vida como entidad»: **la hoja de vida no es una entidad** y no tiene tabla; lo que sí la tiene desde `V12` es su historial, `intervencion`. Ver [[hoja-de-vida]].)

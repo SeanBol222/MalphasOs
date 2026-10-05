@@ -168,3 +168,24 @@ El rol existe en el código y en Keycloak, y no existe en el requisito. **El mar
 ya contaba como implementado—, pero el modelo de roles de la ERS está incompleto.
 
 **Tocadas**: [[rf-usuarios-seguridad]].
+
+## [2026-10-04] lint | las hojas de vida, completas: 19 de 31
+
+**La categoría 3.2.5 pasa de 2 a 4 de 4**, y el marcador de **17 a 19**. Entran RF-26 —el historial se
+escribe solo al cerrar un reporte— y RF-27 —se consulta ordenado—, y RF-22 y RF-24 dejan de estar «en
+revisión» desde la mañana. **La duda se resolvió construyendo y no reinterpretando**: la sección de
+servicio técnico que faltaba entera existe, y la hoja de vida es un documento y no cinco recursos. Para
+RF-24 hizo falta además una decisión del usuario: la hoja de vida es de solo lectura, y modificarla es
+corregir cada dato donde vive.
+
+**RF-04 no se arrastra con ellos.** Su decisión sigue abierta, porque la de las hojas de vida no se
+tomó relajando el criterio, de modo que no sirve de precedente.
+
+### Un defecto nuevo de la ERS, y de otra clase
+
+El documento reserva `equipment/infrastructure/input/listeners/` para el oyente de RF-26, y **ahí no
+podía estar**: habría creado un ciclo entre `equipment` y `report`. No es una frase que envejeció; es
+una decisión de arquitectura escrita en el documento sin comprobarla contra el grafo de dependencias.
+Registrado en [[estado-de-la-ers-caducado]], con la anotación de RF-27, que era falsa en la mitad.
+
+**Tocadas**: [[estado-de-implementacion]], [[rf-hojas-vida]], [[estado-de-la-ers-caducado]].

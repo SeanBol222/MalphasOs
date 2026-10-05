@@ -164,7 +164,7 @@ El backend estuvo completo un día sin que se pudiera tocar nada desde un navega
 |---|---|---|
 | Ficha del reporte | `/reportes/:id` | Los cinco campos de RF-15, cerrar y retirar |
 | Tabla de verificación | dentro de la ficha | Las lecturas, **con la forma que dicta el tipo del equipo** |
-| Historial de un equipo | `/equipos/:id/historial` | Lo que se le ha hecho a un aparato. **No es la hoja de vida** |
+| Historial de un equipo | `/equipos/:id/historial` | Los reportes de un aparato, borradores y retirados incluidos. **No es la hoja de vida**, que existe desde el 2026-10-04 en `/equipos/:id/hoja-de-vida` y solo cuenta mantenimientos cerrados. Ver [[hoja-de-vida]] |
 | Datos del servicio | dentro de la ficha | RF-11: cliente, sede, responsables y tipo de servicio |
 
 **Se entra desde la orden**, que es lo que pide el tercer criterio de RF-09: cada equipo del alcance lleva su reporte al lado, con un enlace si existe y un botón de abrirlo si no.
@@ -195,6 +195,8 @@ El backend distingue el nulo —«no lo cambies»— del blanco —«bórralo»�
 **Siguen fuera RF-13 y RF-14** —los protocolos, que no existen ni en el esquema ni en el código— y **RF-17**, el PDF, que depende de la firma digital. Ya hay qué exportar, que es lo que faltaba.
 
 **Y el historial de un equipo no es RF-26.** Esa pantalla responde «qué se le ha hecho a este aparato», que es la consulta sobre la que se construirá la hoja de vida; RF-26 y RF-27 piden el historial **dentro de** una hoja de vida que todavía no existe como entidad.
+
+> **Actualizado el 2026-10-04.** RF-26 y RF-27 están construidos, y **no sobre esta consulta**, que es lo que el párrafo de arriba anunciaba: la hoja de vida es un compilado de la cadena del catálogo más un historial propio, `intervencion`, que un oyente escribe al cerrarse cada reporte. **Cerrar un reporte es ahora un hecho con consecuencias fuera de este módulo**, y la primera de las 51 que el sistema declara con alguien escuchando. Ver [[hoja-de-vida]].
 
 ## Notas relacionadas
 

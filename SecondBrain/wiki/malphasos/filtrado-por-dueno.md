@@ -74,7 +74,7 @@ otros tres que lo usan porque el grafo de dependencias ya iba en ese sentido —
 
 ## El patrón que apareció solo: delegar en el dueño del recurso
 
-De las 18 lecturas acotadas, **ocho no comprueban nada por su cuenta**. Cuando una lectura filtra por un
+De las 18 lecturas acotadas, **ocho no comprueban nada por su cuenta**. (Desde la hoja de vida, el 2026-10-04 por la tarde, son **20**: el historial de un equipo delega en el equipo, y la hoja de vida comprueba una vez al principio y no vuelve a hacerlo en sus once saltos —ver [[hoja-de-vida]]—.) Cuando una lectura filtra por un
 recurso ajeno, pasarle el alcance a quien es dueño de ese recurso es *toda* la comprobación: la de
 existencia y la de pertenencia se vuelven la misma llamada.
 

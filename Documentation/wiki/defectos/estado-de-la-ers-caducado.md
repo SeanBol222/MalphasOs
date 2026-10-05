@@ -25,7 +25,7 @@ documenta como inexistente algo que ya existe.
 | 584 | (alcance) | «las cinco migraciones del esquema» | **once** |
 | 683 | RF-01 | «las cinco migraciones del esquema» | **once** |
 | 771 | RF-05 | «las cinco migraciones» | **once** |
-| 1138 | RF-26 | el oyente irá ahí «**cuando el reporte exista**» | el reporte existe desde el **2026-09-27** |
+| 1138 | RF-26 | el oyente irá ahí «**cuando el reporte exista**» | el reporte existe desde el **2026-09-27**, y el oyente desde el **2026-10-04** — **en otro módulo** |
 | 1160 | RF-27 | «las cinco migraciones del esquema» | **once** |
 | 1256 | RF-40 | «las cinco migraciones» | **once** |
 
@@ -38,6 +38,24 @@ decirlo así para no exagerar el defecto.
 `equipment/infrastructure/input/listeners/` «cuando el reporte exista». El reporte existe, con sus
 cinco eventos de dominio, desde el 2026-09-27. Lo que falta no es el reporte: es el oyente. Un lector
 del documento concluiría que RF-26 está bloqueado por una pieza que ya está construida.
+
+### El directorio que la ERS reserva está en el módulo equivocado
+
+Encontrado el 2026-10-04 por la tarde, **al construir el oyente**, y es un defecto distinto de la
+caducidad: no es que la frase envejeciera, es que **nunca pudo ser cierta**. La ERS dice que el oyente
+del cierre de un reporte irá en `equipment/infrastructure/input/listeners/`. Un oyente ahí tiene que
+conocer el evento del módulo de reportes, y `report` ya importa `equipment`: ponerlo donde el documento
+lo reserva habría creado un **ciclo entre los dos módulos**. Vive en `report` y entra por un puerto que
+`equipment` publica.
+
+Lo que conviene llevarse para escribir documentación: **un documento que nombra el directorio donde irá
+una pieza está tomando una decisión de arquitectura**, y esa decisión hay que poder comprobarla contra
+el grafo de dependencias antes de escribirla. Aquí nadie lo hizo, y el directorio estuvo un mes vacío
+esperando algo que no podía llegar.
+
+Y la anotación de **RF-27** —«no hay tabla de historial, ni columnas de fecha de servicio, tipo de
+servicio o resultado»— era **falsa en la mitad** desde el 2026-09-27: las tres columnas existían, en
+`reporte_servicio` y `orden_trabajo`. Lo que faltaba era la tabla, y existe desde `V12`.
 
 ## Y dos requisitos contados como implementados contra el texto de la propia ERS
 
@@ -69,6 +87,12 @@ Y el criterio que este proyecto se fijó por escrito en [[estado-de-implementaci
 todavía: «cuenta como implementado **lo que el backend satisface por completo**; dar por hecho lo demás
 inflaría la cifra y haría desaparecer de la cuenta trabajo que no se ha hecho». Tres de cuatro secciones
 no es por completo.
+
+> **Resuelto el 2026-10-04 por la tarde, construyendo y no reinterpretando.** La sección de servicio
+> técnico se construyó y la hoja de vida es un documento y no cinco recursos, de modo que RF-22 y RF-24
+> cuentan con el criterio aplicado de verdad, y el marcador es **19 de 31** —entraron además RF-26 y
+> RF-27—. Lo que sigue es el razonamiento de la mañana, que se conserva porque es lo que motivó
+> construirlo. Ver [[rf-hojas-vida]].
 
 **Consecuencia sobre la cifra de portada**: si se aplica el criterio escrito, el marcador no es 17 de 31
 sino **15 de 31 con tres desviaciones** —RF-04, RF-22 y RF-24—. **No se ha cambiado**, porque cómo contar

@@ -1462,3 +1462,57 @@ de esa frase era cierta. Un resumen que cambia la decisión de quien lo lee tien
 junto al defecto, o no llevar ninguno de los dos.
 
 **Tocadas**: [[esquema-bd-malphasos]].
+
+## [2026-10-04] ingest | la hoja de vida, que no era lo que se estaba construyendo
+
+**Octava entrada del día, y la que empieza con una corrección del usuario.** (Las dos anteriores se presentan como «segunda» y «tercera» del día y son la **sexta** y la **séptima**: antes del filtrado por dueño ya había cuatro entradas de esta fecha. Se corrige aquí y no allí porque este log solo se añade.) Se estaba construyendo un
+historial de reportes y llamándolo hoja de vida. La aclaración: **la hoja de vida no sale de los
+reportes**; es un compilado del cliente, el tipo, la marca, el modelo, la serie y el fabricante, que
+existe desde que el equipo se registra con su historial en cero. Lo único que sale del reporte es el
+historial. Entra [[hoja-de-vida]].
+
+### Cuatro tandas y dos migraciones
+
+`V12` crea `intervencion` —la única sección con tabla—, el oyente la escribe al cerrarse cada reporte,
+`GET /client-equipments/{id}/life-sheet` compila las cuatro secciones de RF-22, y la pantalla las pinta
+de solo lectura. **`V13` rellena el pasado**, y se encontró **arrancando** `V12` sobre la base de
+desarrollo: los reportes cerrados antes del oyente quedaban sin su línea, y nada lo avisaba.
+
+**El marcador sube de 17 a 19.** Entran RF-26 y RF-27, y RF-22 y RF-24 dejan de estar «en revisión»
+desde la mañana: la sección que faltaba se construyó y el documento es uno.
+
+### Tres decisiones del usuario, y lo que cada una obliga
+
+- **Solo lectura**: cada dato se corrige donde vive. Responde a RF-24.
+- **La intervención sobrevive al reporte retirado**: el mantenimiento ocurrió. Es lo que hace tabla al
+  historial en lugar de consulta.
+- **Nada más por ahora**: ni vencimiento de calibración ni fecha de instalación ni vida útil.
+
+**Y una que las dos primeras dejan abierta**: corregir un reporte es retirarlo y abrir otro, y con la
+intervención sobreviviendo, **el mismo mantenimiento queda anotado dos veces**. Pendiente de decisión.
+
+### Lo que salió de ejecutar y no de leer
+
+- **El primer consumidor de un evento de dominio del sistema**: de **51** eventos declarados, ninguno
+  tenía quien lo escuchara. El javadoc del oyente decía «doce», escrito de memoria; contado, son 51, y
+  el mensaje del commit que lo introdujo arrastra la cifra falsa.
+- **El directorio que la ERS reservó para ese oyente está en el módulo equivocado**: en `equipment`
+  habría creado un ciclo. Vive en `report`. El esquema, en cambio, **sí** tiene ahora referencias entre
+  esos dos módulos en los dos sentidos, y queda registrado como aceptado.
+- **Una tercera causa de intermitencia que nadie había anotado**: once clases inventaban códigos ISO de
+  país sin mirar si existían, contra 249 países sembrados. Una clase fallaba una de cada tres veces.
+- **Dos mutaciones supervivientes y un cambio que nada notó**, los tres cerrados. La forma de uno ya es
+  conocida: **una prueba que pasa porque algo distinto de la regla rechaza** —la hoja de vida de un
+  equipo ajeno se rechazaba al final, por su cuarta sección, después de leer el cliente, la sede y el
+  área **de otro cliente**—. Tercera vez hoy.
+- **El comprobador del esquema** confirma las 128 columnas dibujadas, incluidas las de `intervencion`.
+
+### Un número mío que caducó en la pasada anterior
+
+El párrafo de conteo de [[deuda-tecnica-y-riesgos]] se quedó en 71/28/43 mientras el `CONVENCIONES.md` de
+la raíz ya decía 74/44: se actualizó el resumen y no la nota que lleva la receta. Hoy son **79 filas, 31
+tachadas, 48 abiertas**.
+
+**Tocadas**: [[hoja-de-vida]] (nueva), [[hoja-de-ruta-producto]], [[dominio-reporte-servicio]],
+[[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]], [[decisiones-tecnicas-malphasos]],
+[[filtrado-por-dueno]], [[index]] y el `CONVENCIONES.md` de la raíz.

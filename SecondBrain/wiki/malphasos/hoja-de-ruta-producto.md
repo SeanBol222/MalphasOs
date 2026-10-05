@@ -23,7 +23,9 @@ updated: 2026-10-04
 
 > **Corregido el 2026-09-26, dos veces el mismo día.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak, **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados— y **seis más** del catálogo de equipos con el registro de un equipo en un área, con **262** pruebas. **Con eso existe ya todo lo que una orden de trabajo necesita tocar**: sedes, áreas y equipos por área. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
 
-Los 17 implementados son **RF-08** (crear cliente), **RF-22** y **RF-24** (hoja de vida: crear, modificar/eliminar), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios), **RF-01 a RF-03, RF-05, RF-06 y RF-07** de órdenes de trabajo, y **RF-09, RF-11 y RF-15** de reportes de mantenimiento. **RF-04 queda marcado como desviación**, no como implementado. Todo lo demás está `[PREVISTO]`.
+> **Actualizado el 2026-10-04: son 19.** Entran **RF-26** y **RF-27** con la hoja de vida, y **RF-22** y **RF-24** dejan de estar en duda: la revisión de ese mismo día los había marcado «en revisión» porque la sección de servicio técnico faltaba entera y no había *un* documento sino cinco recursos. Las dos cosas se construyeron. Ver [[hoja-de-vida]].
+
+Los 19 implementados son **RF-08** (crear cliente), **RF-22, RF-24, RF-26 y RF-27** (hoja de vida: el documento, su lectura, el registro automático y el historial), **RF-49 a RF-53** (login, identificación de rol, alta, edición y baja de usuarios), **RF-01 a RF-03, RF-05, RF-06 y RF-07** de órdenes de trabajo, y **RF-09, RF-11 y RF-15** de reportes de mantenimiento. **RF-04 queda marcado como desviación**, no como implementado. Todo lo demás está `[PREVISTO]`.
 
 > **Actualizado el 2026-09-28**: eran **16**. Entra **RF-11** con el frontend de los reportes — la ficha muestra ya cliente, sede, responsables y tipo de servicio **leídos de la orden**, sin un solo control que editar, que es lo que el requisito pide y lo que RNF-07 exige de lo autocompletado. Esta nota lo daba por pendiente el día anterior, con razón: el dato existía y la pantalla no.
 
@@ -49,7 +51,7 @@ El backend de órdenes de trabajo está terminado, y aun así **solo tres de los
 
 **El criterio que se ha aplicado, para que se pueda discutir**: cuenta como implementado el requisito que el backend satisface por completo. El que describe una pantalla se queda abierto aunque el dato que necesita ya exista, porque darlo por hecho inflaría el marcador y haría que el trabajo de frontend desapareciera de la cuenta sin haberse hecho.
 
-Es el mismo criterio que ya deja **RF-22 y RF-24 como implementados y RF-26 no**, y conviene aplicarlo igual cuando lleguen los reportes.
+Es el mismo criterio que dejaba **RF-22 y RF-24 como implementados y RF-26 no**. (Desde el 2026-10-04 los cuatro de la hoja de vida cuentan, y con el criterio aplicado de verdad: el documento existe con sus cuatro secciones, el historial se escribe solo y se lee ordenado.)
 
 Del backend queda además, fuera de la numeración de la ERS, **la segunda tanda de `equipment`**: verificaciones técnicas y datos metrológicos.
 
@@ -64,7 +66,8 @@ Detalle por categoría en `Documentation/wiki/requisitos/estado-de-implementacio
 - ~~**Lo siguiente decidido, y es de frontend**: las pantallas de reportes.~~ **Construidas el 2026-09-28**, en cuatro tandas, y con ellas cerró RF-11. El hueco entre backend y pantalla duró **un día**, contra las dos semanas de las órdenes de trabajo.
 - **El módulo de personas tiene pantallas desde el 2026-10-02**, y conviene decir qué cambia y qué no: **el marcador no sube** —RF-51 a RF-53 ya contaban por el backend— y lo que cierra es que **no había forma de dar de alta a nadie sin `curl`**. Es el caso inverso al de las órdenes de trabajo: allí el frontend subió la cuenta, aquí solo hizo usable lo que ya contaba. El criterio estricto de esta nota da los dos resultados sin contradecirse.
 - **Keycloak lleva la marca desde el 2026-10-02**: el login lo sirve Keycloakify y la consola un tema clásico. No cierra ningún requisito —RF-49 ya estaba— y era un encargo explícito del usuario. Ver [[tema-de-keycloak]].
-- **Lo siguiente sin decidir todavía**: o los **protocolos** (RF-14, camino libre, cierra RF-13 detrás), o la **hoja de vida como entidad** (RF-26 y RF-27, que ya tienen su consulta), o la **firma digital** (RF-18 y RF-21, que abre el PDF de RF-17). Las tres están desbloqueadas; ninguna depende de las otras dos.
+- ~~**La hoja de vida**~~ **construida el 2026-10-04**, en cuatro tandas y dos migraciones, y **no como entidad**: es un compilado de solo lectura con las cuatro secciones de RF-22, y solo su historial tiene tabla. Esta línea decía «la hoja de vida como entidad»; la aclaración del usuario fue justo que no lo es. Ver [[hoja-de-vida]].
+- **Lo siguiente sin decidir todavía**: o los **protocolos** (RF-14, camino libre, cierra RF-13 detrás) o la **firma digital** (RF-18 y RF-21, que abre el PDF de RF-17). Las dos están desbloqueadas y ninguna depende de la otra.
 
 Lo que sigue no vuelve a decidir eso; explica por qué el orden aguanta y qué arrastra cada pieza.
 
@@ -180,7 +183,7 @@ Lo que sí hay que crear con ella: **tipo de servicio y periodicidad no tienen c
 ```
 ordenes de trabajo (RF-01..07)
 ├── reportes de mantenimiento (RF-09, 11, 13, 15, 17)
-│   ├── historial de la hoja de vida (RF-26, RF-27)   <- cuelga del REPORTE, no de la orden
+│   ├── historial de la hoja de vida (RF-26, RF-27)   <- HECHO el 2026-10-04
 │   └── exportar a PDF (RF-17) ── depende ademas de la FIRMA (RF-21)
 ├── firma digital (RF-18, RF-21) ── y del frontend tactil
 ├── modulo comercial: generar OT desde cotizacion (RF-47)
@@ -192,6 +195,8 @@ Precisiones que el diagrama comprime:
 - **El historial de la hoja de vida cuelga del reporte, no de la orden.** RF-26 depende de RF-09 y RF-15, los dos de reportes. La orden de trabajo dice *qué se va a hacer*; el reporte dice *qué se hizo*, y es eso lo que se anota en la hoja de vida. El mecanismo de soporte —el despachador de eventos de dominio— **ya está construido y en uso**; falta el evento del reporte, no el despacho.
 
   > **Actualizado el 2026-09-27**: ese evento **ya existe**. `service-report.finished` viaja con el equipo, el resultado y la fecha de cierre, que es exactamente lo que la hoja de vida anota. Lo que falta ahora es el **consumidor**, no el evento.
+  >
+  > **Y el 2026-10-04 el consumidor existe**, y es el primero del sistema: de 51 eventos declarados ninguno tenía quien lo escuchara. Va en `report` y no en el directorio que la ERS reservó en `equipment`, porque ahí habría creado un ciclo entre los dos módulos. Y el evento **no trae el tipo de servicio**, que es de la orden: el oyente lo consulta.
 - **Exportar un reporte a PDF (RF-17) depende de la firma digital (RF-21).** Y la captura de la firma es **táctil** (RF-18): sin frontend no hay firma, y sin firma no hay PDF según el grafo declarado. Es la cadena que más lejos llega desde el frontend hacia el backend.
 
 ### Alertas y calibración: el caso donde los dos grafos discrepan
