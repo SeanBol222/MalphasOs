@@ -1580,3 +1580,25 @@ cinco datos eléctricos van en el **modelo**, y voltaje y amperaje se mueven des
 [[index]] y el `CONVENCIONES.md` de la raíz. Y en `Documentation/wiki/`, [[rf-hojas-vida]], cuyo cuerpo
 seguía en el estado anterior al 2026-10-04.
 
+## [2026-10-05] query | las decisiones de la hoja de vida impresa, todas tomadas
+
+El usuario contestó las once preguntas que [[hoja-de-vida-formato-impreso]] dejaba abiertas, y de ellas
+salieron cuatro más, también contestadas. Están en una tabla al final de la nota, que **manda sobre lo
+que dicen las secciones de arriba** donde no coincidan.
+
+Lo que cambia el plan:
+
+- **El número de hoja lleva sigla de cliente**: `HV-<sigla>-0001`, consecutivo por cliente. Eso es una
+  columna nueva en `cliente`, generada para los existentes y editable, y un contador que **no puede
+  ser una secuencia de PostgreSQL**, porque una secuencia es global.
+- **La sigla se genera sola desde la razón social**, editable y sin regenerarse al renombrar. La regla
+  quita la forma jurídica y las palabras vacías y toma iniciales; está escrita con ejemplos, y es la
+  misma para el alta y para la migración.
+- **Cambiar la sigla no renumera**: las hojas ya numeradas conservan su número para siempre. Obliga a
+  guardar el número **entero** en la unidad y no a componerlo al leer.
+- **Bolívar ya no tiene teléfonos fijos.** Sus datos van a `application.yml`, no al `.env`, que está
+  fuera de git: el usuario preguntó dónde ponerlos, y la respuesta quedó escrita con su porqué.
+- **La pantalla y la impresión van primero**, con «—» donde falte el dato.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]], [[index]] y el `CONVENCIONES.md` de la raíz.
+
