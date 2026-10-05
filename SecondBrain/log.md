@@ -1675,3 +1675,23 @@ Dos cosas que dejó y no estaban en el plan:
 **Tocadas**: [[hoja-de-vida-formato-impreso]], [[hoja-de-vida]], [[esquema-bd-malphasos]], [[index]] y
 el `CONVENCIONES.md` de la raíz.
 
+## [2026-10-05] ingest | la hoja de vida se numera, y el esquema tiene sus primeros triggers
+
+Construida la tanda 4 de [[hoja-de-vida-formato-impreso]], mergeada por `d2793614`: la sigla de cada
+cliente (`V19`) y el número `HV-<sigla>-0001` de cada equipo (`V20`). **1031** pruebas del backend en 74
+clases y **455** del frontend; doce mutaciones, todas caen. **Con esto la hoja de vida impresa queda
+completa**, salvo la foto y el protocolo.
+
+- **Dos cosas se hicieron distinto de lo que el plan decía, y quedan corregidas con constancia**: la
+  carrera de la sigla no se resuelve reintentando —en PostgreSQL una transacción que falla no se
+  reintenta desde dentro— sino serializando con un candado; y el número lo asigna **un trigger**, que
+  bloquea la fila del cliente al avanzar su contador.
+- **Son los primeros triggers del esquema.** [[esquema-bd-malphasos]] explica por qué estos dos sí.
+- **La regla de la sigla vive en Java y en SQL**, y una prueba exige que coincidan: la mutación que la
+  cambiaba solo en Java la cazó esa prueba.
+- **Ninguna tabla guarda la fecha de alta**: los equipos que ya existían se numeraron por serie. Entra
+  en [[deuda-tecnica-y-riesgos]], que queda en 82 filas, 33 tachadas y 49 abiertas.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]], [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]],
+[[index]] y el `CONVENCIONES.md` de la raíz.
+
