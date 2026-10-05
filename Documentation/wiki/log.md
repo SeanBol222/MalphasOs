@@ -200,3 +200,11 @@ día lo deja fuera por ser un precio interno, pendiente de confirmación.
 
 **Tocadas**: [[rf-hojas-vida]].
 
+## [2026-10-05] ingest | voltaje y amperaje ya no son del tipo de equipo
+
+`V15` los movió al modelo, en su ficha técnica, y [[rf-hojas-vida]] los situaba en el tipo. Corregido
+con constancia. **RF-22 sigue cubierto**: pide esos datos en la hoja de vida, no en una tabla concreta,
+y la hoja de vida los imprime desde el modelo.
+
+**Tocadas**: [[rf-hojas-vida]].
+

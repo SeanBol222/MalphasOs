@@ -1621,3 +1621,38 @@ abiertas.
 **Tocadas**: [[hoja-de-vida-formato-impreso]], [[deuda-tecnica-y-riesgos]], [[index]] y el
 `CONVENCIONES.md` de la raíz.
 
+## [2026-10-05] ingest | la hoja de vida dice quién responde, cómo encontrar al cliente y quién presta el servicio
+
+Construidas las tandas 1 y 5 de [[hoja-de-vida-formato-impreso]], las que no piden migración, y
+mergeadas por `9516327e`. **989** pruebas del backend en 70 clases y **441** del frontend; siete
+mutaciones y las siete caen.
+
+La decisión de diseño que conviene recordar: **la regla del responsable vive en `client`**, detrás de
+un puerto nuevo, aunque `equipment` podía leer encargados y personas por su cuenta sin ciclo. El
+criterio no fue el grafo de dependencias sino **quién entiende la regla**.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]], [[index]] y el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-05] ingest | la ficha técnica baja al modelo
+
+Construida la tanda 2 de [[hoja-de-vida-formato-impreso]], mergeada por `86b39bbc`: `V15` y `V16`.
+**1004** pruebas del backend en 72 clases y **450** del frontend; trece mutaciones, todas caen.
+
+- **`V15` mueve datos**, y es la segunda tras `V10`: voltaje y amperaje dejan el tipo y bajan al modelo,
+  con la clase de riesgo, las características y tres datos eléctricos más. La copia **se comprobó con
+  datos sobre la base de desarrollo**: las pruebas arrancan vacías y no pueden ver una migración de
+  datos.
+- **Dos mutaciones sobrevivieron y pidieron su prueba**, las dos con la forma de siempre —cobertura
+  alrededor, ninguna encima—: la hoja de vida devolviendo una ficha vacía, y el catálogo sin caducar
+  la hoja de vida en caché.
+- **Un `prettier --write` sobre una carpeta entera reformateó veinte archivos ajenos** y metió ruido en
+  once propios cuyo `HEAD` no estaba formateado. Se deshizo y se reaplicaron solo los cambios de
+  contenido. La lección: **se formatea lo que se toca, no la carpeta donde está**.
+- **Y una deuda nueva**: ningún equipo instalado se puede editar desde la aplicación. Entra en
+  [[deuda-tecnica-y-riesgos]], que queda en 81 filas, 33 tachadas y 48 abiertas.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]], [[esquema-bd-malphasos]] —cifras recontadas sobre la base
+con `V16`, 36 `CHECK`, y el guion de columnas pasa con las 138—, [[dominio-equipo-mantenimiento]],
+[[migracion-equipment-hallazgos]], [[deuda-tecnica-y-riesgos]], [[index]] y el `CONVENCIONES.md` de la
+raíz.
+

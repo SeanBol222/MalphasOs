@@ -55,7 +55,7 @@ Es la precisión más importante de esta categoría: los datos que RF-22 pide es
 | Sección de la hoja de vida (según el criterio de aceptación) | Dónde vive |
 |---|---|
 | Identificación de la unidad (número de serie, número de inventario del cliente, fecha y valor de compra, área de servicio) | Tabla `equipo_cliente`, agregado `ClientEquipment`. `POST /v1/api/service-areas/{idAreaServicio}/equipments` |
-| Características técnicas (definición técnica, recomendaciones de cuidado, tecnología, voltaje, amperaje, valor unitario de mantenimiento) | Tipo de equipo. `/v1/api/equipment-types` |
+| Características técnicas (definición técnica, recomendaciones de cuidado, tecnología, valor unitario de mantenimiento) | Tipo de equipo. `/v1/api/equipment-types`. **Voltaje y amperaje** —que RF-22 pone aquí— **viven en el modelo desde el 2026-10-05** (`V15`), en su ficha técnica, junto con la clase de riesgo y tres datos eléctricos más: son de cada modelo y no de la clase. (Esta fila los situaba en el tipo: cierto hasta ese día.) |
 | Fabricante y país de origen | `/v1/api/manufacturers` |
 | Marca | `/v1/api/brands` |
 | Modelo, incluido su registro INVIMA | `/v1/api/models` |
