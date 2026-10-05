@@ -1516,3 +1516,35 @@ tachadas, 48 abiertas**.
 **Tocadas**: [[hoja-de-vida]] (nueva), [[hoja-de-ruta-producto]], [[dominio-reporte-servicio]],
 [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]], [[decisiones-tecnicas-malphasos]],
 [[filtrado-por-dueno]], [[index]] y el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-05] ingest | lo que quedó sin registrar del 2026-10-04: `V14`, la cascada, el contenedor y el tema
+
+Cuatro cosas entraron en `main` el 2026-10-04 después de la última pasada de wiki, y ninguna estaba
+registrada. Esta pasada empezó por `git log`, no por lo que dijo la anterior.
+
+- **`V14`**: corregir un reporte ya no deja dos líneas en la hoja de vida. La decisión fue del usuario
+  —el sustituto reemplaza al anterior, al cerrarse— y la fila de deuda se cerró el mismo día que se
+  abrió. [[hoja-de-vida]], [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]].
+- **El alta de un equipo elige tipo, marca y modelo.** Destapó que la lista vieja no mostraba el nombre
+  del modelo, invisible porque el doble de pruebas no lo tenía. [[dominio-equipo-mantenimiento]].
+- **El frontend en su contenedor**, con nginx sin proxy y en el 5173. [[dockerfile-y-contenedores]].
+- **El tema de Keycloak, terminado en lo visual**: el login con el diseño del manual y en español, y la
+  consola rehecha porque en modo oscuro no se leía. [[tema-de-keycloak]].
+
+**Tres hallazgos de la propia pasada:**
+
+1. **La base de desarrollo estaba en `V13` horas después de mergear `V14`**: el contenedor del backend
+   no se había reconstruido. Las cifras del esquema se recontaron después de reconstruirlo —38 foráneas,
+   33 `CHECK`, 27 tablas, 5 índices parciales— y el guion de columnas pasa con la columna nueva.
+   **Una migración mergeada no es una migración aplicada.**
+2. **El realm versionado no nombra el tema en `adminTheme`** —trae `""` desde `aa089cbf`—, y
+   [[tema-de-keycloak]] afirmaba que sí: describía el servidor, donde se puso con `kcadm`. Corregida con
+   constancia; el arreglo del JSON es un commit de código aparte.
+3. **El índice daba 4 índices únicos parciales** para el esquema, falso desde `V11`.
+
+Recuento de deuda propia con la receta de la nota: **79 filas, 33 tachadas, 46 abiertas** (eran 79/31/48:
+se cerraron dos, la de las dos líneas y la del login sin marca, y no entró ninguna).
+
+**Tocadas**: [[hoja-de-vida]], [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]],
+[[tema-de-keycloak]], [[dominio-equipo-mantenimiento]], [[dockerfile-y-contenedores]],
+[[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]], [[index]] y el `CONVENCIONES.md` de la raíz.

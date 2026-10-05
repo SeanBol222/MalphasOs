@@ -80,13 +80,19 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **13** (`V1`…`V13`) |
+| Migraciones aplicadas | **14** (`V1`…`V14`) |
 | Tablas de dominio | **27** |
-| Llaves foráneas | **37**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **31** |
+| Llaves foráneas | **38**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **33** |
 | Índices únicos **parciales** | **5** |
 | Tablas con borrado lógico | **27 de 27** — universal, sin excepción |
 
+> **Recontado el 2026-10-04, por la noche, sobre la base con `V14` aplicada.** `V14` añade una foránea
+> de `intervencion` a sí misma y dos `CHECK` —una intervención reemplazada está retirada, y ninguna se
+> reemplaza a sí misma—: de 37 a **38** foráneas y de 31 a **33** `CHECK`. Las tablas siguen siendo 27.
+> La base de desarrollo estaba todavía en `V13` horas después del merge de `V14`, porque el contenedor
+> del backend no se había reconstruido: **una migración mergeada no es una migración aplicada**.
+>
 > **Recontado el 2026-10-04, por la tarde.** Las cifras de la mañana eran 11 migraciones, 26 tablas, 35
 > foráneas y 29 `CHECK`. Entraron `V12` —`intervencion`, con dos foráneas y dos `CHECK`— y `V13`, que
 > no cambia el esquema: rellena. Los índices únicos parciales **siguen siendo cinco**, y no es un
@@ -264,6 +270,7 @@ erDiagram
     fabricante ||--o{ modelo : "fabrica"
     modelo ||--o{ equipo_cliente : "se instala como"
     equipo_cliente ||--o{ intervencion : "su historial"
+    intervencion |o--o| intervencion : "reemplazada por"
     tipo_equipo {
         uuid k_id_tipo_equipo PK
         varchar n_nombre_tipo_equipo UK
@@ -302,6 +309,7 @@ erDiagram
         timestamp f_fecha_servicio "copia congelada del cierre"
         varchar t_tipo_servicio "copia congelada de la orden"
         varchar t_resultado "copia congelada del reporte"
+        uuid k_id_reemplazada_por FK "la que la sustituyo - V14"
         boolean b_estado_activo
     }
 ```

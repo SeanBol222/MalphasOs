@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-10-03
+updated: 2026-10-04
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -294,12 +294,20 @@ Cuatro tandas en un día, del esquema al REST. Las decisiones que condicionan lo
 
 Ver [[dominio-reporte-servicio]] para el detalle.
 
-## El tema de Keycloak (2026-09-28 y 2026-10-02)
+## El tema de Keycloak (2026-09-28, 2026-10-02 y 2026-10-04)
 
 - **Dos mecanismos, no uno**: Keycloakify para el login —es una interfaz de verdad— y un **tema clásico** para la consola de administración, donde cambiar logo y colores son cuatro archivos y la vía de Keycloakify son **692**.
 - **El proyecto del tema es React**, y la razón no es de gusto: *«only React supports custom Admin UIs»*. **La primera recomendación de esta sesión fue Angular y estaba mal argumentada** —se invocó el error del `auth/` React del original, que no aplica porque existe librería de Angular—; lo que decide es qué cubre cada opción. Queda escrito en [[tema-de-keycloak]] como patrón de error: el argumento por analogía con una herida vieja sonaba bien y no venía al caso.
 - **Un nombre de tema para los dos**, porque Keycloak resuelve por (nombre, tipo).
 - **El JAR se construye dentro de Docker**, no en la máquina de quien desarrolla: Keycloakify necesita Maven, y montar un JAR ya hecho como volumen falla creando un directorio y arrancando sin tema **en silencio**.
+
+- **El login se estiliza sin la hoja por defecto de Keycloak**, con clases propias (2026-10-04), no sobrescribiéndola: ganarle en especificidad regla a regla obliga a repetirlo con cada versión. La plantilla es propia solo para poner el logo.
+- **Ni el login ni la consola tienen modo oscuro** (2026-10-04), como la aplicación. La consola heredaba `darkMode=true` y la mezcla con una paleta solo clara la dejó ilegible.
+- **El login va en español con un solo idioma** (2026-10-04), y eso se decide en el realm, no en el tema. El realm `master` se queda en inglés porque activar su idioma cambia también la consola.
+## El contenedor del frontend y la corrección de un reporte (2026-10-04)
+
+- **El frontend se sirve con nginx sin proxy y en el 5173** (2026-10-04): el puerto es el que ya conocían el realm y el CORS del backend, de modo que contenedorizar no tocó ninguno de los dos. Ver [[dockerfile-y-contenedores]].
+- **Corregir un reporte reemplaza su línea en la hoja de vida, al cerrar el sustituto** (2026-10-04, decisión del usuario). La línea vieja se retira y apunta a la nueva; no se borra. Ver [[hoja-de-vida]].
 
 ## El módulo de personas en el frontend (2026-10-02)
 
