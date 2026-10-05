@@ -576,6 +576,16 @@ export interface components {
         InvimaRequest: {
             invima?: string;
         };
+        /** @description Viene de la configuracion, no de la base */
+        LifeSheetEmpresa: {
+            ciudad?: string;
+            correo?: string;
+            direccion?: string;
+            movil?: string;
+            nombre?: string;
+            /** @description Telefonos fijos; vacia si no tiene */
+            telefonos?: string[];
+        };
         LifeSheetFabricante: {
             nombre?: string;
             /** @description Opcional */
@@ -585,6 +595,8 @@ export interface components {
             areaServicio?: string;
             ciudadSede?: string;
             cliente?: string;
+            /** @description Correos vigentes del cliente */
+            correosCliente?: string[];
             direccionSede?: string;
             documentoCliente?: string;
             estadoActivo?: boolean;
@@ -593,13 +605,19 @@ export interface components {
             /** Format: uuid */
             idEquipoCliente?: string;
             numeroInventario?: string;
+            /** @description Encargados del area, o de la sede si el area no tiene; vacia si ninguno */
+            responsables?: string[];
             sede?: string;
             serie?: string;
+            /** @description Telefonos vigentes del cliente */
+            telefonosCliente?: string[];
             /** Format: int64 */
             valorCompra?: number;
         };
         /** @description Hoja de vida de un equipo instalado */
         LifeSheetResponse: {
+            /** @description La empresa que presta el servicio: el membrete del documento */
+            empresa?: components["schemas"]["LifeSheetEmpresa"];
             /** @description Quien lo fabrico */
             fabricante?: components["schemas"]["LifeSheetFabricante"];
             /** @description Que unidad es y de quien */

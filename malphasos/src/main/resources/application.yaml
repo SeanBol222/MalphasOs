@@ -66,6 +66,16 @@ app:
       # a quien se le abre la puerta. El 5173 es el del frontend en desarrollo, y es el mismo que el
       # realm declara en las URI de retorno de malphasos-frontend.
       allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  # La empresa que presta el servicio: el membrete de la hoja de vida impresa. No son datos de un
+  # cliente ni secretos, y por eso estan aqui y no en la base ni en el .env. Vigentes el 2026-10-05:
+  # ya no hay telefonos fijos.
+  empresa:
+    nombre: ${EMPRESA_NOMBRE:Bolívar Bioingeniería Ltda.}
+    direccion: ${EMPRESA_DIRECCION:Calle 77 C N.º 100 B 46, Villas del Madrigal}
+    ciudad: ${EMPRESA_CIUDAD:Bogotá}
+    telefonos: ${EMPRESA_TELEFONOS:}
+    movil: ${EMPRESA_MOVIL:312 305 5157}
+    correo: ${EMPRESA_CORREO:bolivarbioingenieria@gmail.com}
 
 # Cliente administrativo de Keycloak (Admin API), para crear usuarios y asignar roles.
 # El cliente se construye sin conectarse: el bean existe aunque Keycloak no este disponible, y solo

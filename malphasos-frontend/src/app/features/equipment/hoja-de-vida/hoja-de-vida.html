@@ -148,15 +148,15 @@
               </div>
               <div>
                 <dt>Responsable</dt>
-                <dd>{{ sinDato }}</dd>
+                <dd>{{ responsable() }}</dd>
               </div>
               <div>
                 <dt>Teléfonos</dt>
-                <dd>{{ sinDato }}</dd>
+                <dd>{{ telefonosDelCliente() }}</dd>
               </div>
               <div class="hv-ancho">
                 <dt>Correo</dt>
-                <dd>{{ sinDato }}</dd>
+                <dd>{{ correosDelCliente() }}</dd>
               </div>
             </dl>
           </section>
@@ -361,10 +361,28 @@
           </table>
         </section>
 
-        <section class="hv-firmas" aria-label="Firmas">
-          <div><span class="hv-linea"></span>Elaboró · Bolívar Bioingeniería</div>
-          <div><span class="hv-linea"></span>Recibió · Profesional responsable</div>
-        </section>
+        <div class="hv-cierre">
+          <!-- Los datos de la empresa vienen del backend, de su configuracion: no hay copia aqui. -->
+          <section class="hv-tarjeta" aria-labelledby="empresa">
+            <h2 id="empresa">Servicio técnico</h2>
+            <address class="hv-empresa">
+              <strong>{{ empresa()?.nombre }}</strong>
+              @if (direccionDeLaEmpresa()) {
+                <span>{{ direccionDeLaEmpresa() }}</span>
+              }
+              @if (telefonosDeLaEmpresa()) {
+                <span>{{ telefonosDeLaEmpresa() }}</span>
+              }
+              @if (empresa()?.correo) {
+                <span>{{ empresa()?.correo }}</span>
+              }
+            </address>
+          </section>
+          <section class="hv-firmas" aria-label="Firmas">
+            <div><span class="hv-linea"></span>Elaboró · {{ empresa()?.nombre }}</div>
+            <div><span class="hv-linea"></span>Recibió · Profesional responsable</div>
+          </section>
+        </div>
 
         <footer class="hv-pie">
           <span>BB-ING-HV-30 · Actualizada el {{ fechaDeActualizacion }}</span>

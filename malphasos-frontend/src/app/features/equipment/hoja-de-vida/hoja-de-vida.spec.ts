@@ -11,7 +11,15 @@ const ID_EQUIPO = 'e1';
 const URL_HOJA = `http://localhost:8081/v1/api/client-equipments/${ID_EQUIPO}/life-sheet`;
 
 /** Una hoja de vida como la compila el servidor, con el historial que se pida. */
-function hoja(servicioTecnico: object[] = [], cambios: { estadoActivo?: boolean } = {}): object {
+function hoja(
+  servicioTecnico: object[] = [],
+  cambios: {
+    estadoActivo?: boolean;
+    responsables?: string[];
+    telefonosCliente?: string[];
+    correosCliente?: string[];
+  } = {},
+): object {
   return {
     identificacion: {
       idEquipoCliente: ID_EQUIPO,
@@ -26,6 +34,9 @@ function hoja(servicioTecnico: object[] = [], cambios: { estadoActivo?: boolean 
       ciudadSede: 'Bogotá',
       areaServicio: 'UCI',
       estadoActivo: cambios.estadoActivo ?? true,
+      responsables: cambios.responsables ?? ['Carla Ruiz'],
+      telefonosCliente: cambios.telefonosCliente ?? ['3001112233', '6015550000'],
+      correosCliente: cambios.correosCliente ?? ['compras@hospital.co'],
     },
     tecnica: {
       tipoEquipo: 'Monitor de signos vitales',
@@ -40,6 +51,14 @@ function hoja(servicioTecnico: object[] = [], cambios: { estadoActivo?: boolean 
     },
     fabricante: { nombre: 'Mindray Medical', pais: 'China' },
     servicioTecnico,
+    empresa: {
+      nombre: 'Bolívar Bioingeniería Ltda.',
+      direccion: 'Calle 77 C N.º 100 B 46, Villas del Madrigal',
+      ciudad: 'Bogotá',
+      telefonos: [],
+      movil: '312 305 5157',
+      correo: 'bolivarbioingenieria@gmail.com',
+    },
   };
 }
 
@@ -120,6 +139,7 @@ describe('Hoja de vida de un equipo', () => {
       'Protocolo preventivo',
       'Cuidado y limpieza',
       'Historial de servicio técnico',
+      'Servicio técnico',
     ]);
     expect(seccion('que-es')?.textContent).toContain('Mindray Medical');
   });
@@ -143,10 +163,40 @@ describe('Hoja de vida de un equipo', () => {
     await abrir(hoja());
 
     expect(dato(estado(), 'Riesgo')).toBe('—');
-    expect(dato(seccion('cliente'), 'Responsable')).toBe('—');
-    expect(dato(seccion('cliente'), 'Teléfonos')).toBe('—');
     expect(dato(seccion('caracteristicas'), 'Uso')).toBe('—');
     expect(dato(seccion('identificacion'), 'Registro INVIMA')).toBe('—');
+  });
+
+  it('el responsable y los contactos del cliente salen en su tarjeta, varios separados por «·»', async () => {
+    await abrir(hoja());
+
+    expect(dato(seccion('cliente'), 'Responsable')).toBe('Carla Ruiz');
+    expect(dato(seccion('cliente'), 'Teléfonos')).toBe('3001112233 · 6015550000');
+    expect(dato(seccion('cliente'), 'Correo')).toBe('compras@hospital.co');
+  });
+
+  it('sin encargado ni contactos registrados, la raya: no se inventa a nadie', async () => {
+    await abrir(hoja([], { responsables: [], telefonosCliente: [], correosCliente: [] }));
+
+    expect(dato(seccion('cliente'), 'Responsable')).toBe('—');
+    expect(dato(seccion('cliente'), 'Teléfonos')).toBe('—');
+    expect(dato(seccion('cliente'), 'Correo')).toBe('—');
+  });
+
+  it('el servicio técnico lleva los datos de la empresa que manda el servidor, sin fijos vacíos', async () => {
+    // Vienen de la configuración del backend. La empresa ya no tiene fijos: la línea de teléfonos
+    // dice solo el móvil, sin un «·» colgando ni una etiqueta vacía.
+    await abrir(hoja());
+
+    const empresa = seccion('empresa')?.textContent?.replace(/\s+/g, ' ');
+    expect(empresa).toContain('Bolívar Bioingeniería Ltda.');
+    expect(empresa).toContain('Calle 77 C N.º 100 B 46, Villas del Madrigal, Bogotá');
+    expect(empresa).toContain('Móvil 312 305 5157');
+    expect(empresa).not.toContain(' · Móvil');
+    expect(empresa).toContain('bolivarbioingenieria@gmail.com');
+    expect(raiz().querySelector('.hv-firmas')?.textContent).toContain(
+      'Elaboró · Bolívar Bioingeniería Ltda.',
+    );
   });
 
   it('las recomendaciones de cuidado salen como lista, una por línea', async () => {

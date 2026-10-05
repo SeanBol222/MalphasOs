@@ -41,7 +41,10 @@ public record LifeSheet(
             String direccionSede,
             String ciudadSede,
             String areaServicio,
-            boolean estadoActivo) {
+            boolean estadoActivo,
+            List<String> responsables,
+            List<String> telefonosCliente,
+            List<String> correosCliente) {
     }
 
     /** Qué es el equipo: su tipo, su marca y su modelo, con lo que el tipo declara. */

@@ -26,7 +26,7 @@ const SIN_DATO = '—';
  * con el historial vacio, y la pagina lo dice en vez de esconderlo.
  *
  * <p><b>Lo que el diseño pide y el sistema todavia no guarda sale con «—»</b>: el riesgo, el uso, los
- * datos electricos nuevos, el responsable, los contactos del cliente, el numero de hoja. Se iran
+ * datos electricos nuevos, el numero de hoja. Se iran
  * llenando tanda a tanda sin tocar esta forma. El estado, el ultimo servicio y el numero de
  * intervenciones no esperan a nadie: salen del historial que ya llega.
  */
@@ -49,6 +49,33 @@ export class HojaDeVida {
   protected readonly identificacion = computed(() => this.hoja.data()?.identificacion);
   protected readonly tecnica = computed(() => this.hoja.data()?.tecnica);
   protected readonly fabricante = computed(() => this.hoja.data()?.fabricante);
+
+  protected readonly empresa = computed(() => this.hoja.data()?.empresa);
+
+  /*
+   * Varios valores en una casilla se separan con «·», como en el resto del documento. Una lista vacia
+   * es la raya: el cliente no tiene ese dato registrado, o el area y la sede no tienen encargado.
+   */
+  protected readonly responsable = computed(() => unidos(this.identificacion()?.responsables));
+  protected readonly telefonosDelCliente = computed(() =>
+    unidos(this.identificacion()?.telefonosCliente),
+  );
+  protected readonly correosDelCliente = computed(() =>
+    unidos(this.identificacion()?.correosCliente),
+  );
+
+  protected readonly direccionDeLaEmpresa = computed(() =>
+    [this.empresa()?.direccion, this.empresa()?.ciudad].filter(Boolean).join(', '),
+  );
+
+  /** Fijos y movil en una linea. Hoy solo hay movil: la empresa ya no tiene fijos. */
+  protected readonly telefonosDeLaEmpresa = computed(() => {
+    const empresa = this.empresa();
+    const fijos = empresa?.telefonos ?? [];
+    const movil = empresa?.movil ? [`Móvil ${empresa.movil}`] : [];
+
+    return [...fijos, ...movil].join(' · ');
+  });
 
   /** «Balanza Beurer GS14»: como se nombra un equipo en voz alta, de lo general a lo concreto. */
   protected readonly nombreDelEquipo = computed(() => {
@@ -142,6 +169,10 @@ export class HojaDeVida {
   protected imprimir(): void {
     window.print();
   }
+}
+
+function unidos(valores: readonly string[] | undefined): string {
+  return valores?.length ? valores.join(' · ') : SIN_DATO;
 }
 
 /**
