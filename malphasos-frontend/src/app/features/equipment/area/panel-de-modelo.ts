@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map } from 'rxjs';
@@ -23,15 +23,45 @@ import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
  * transaccion: si falla la ultima, la marca nueva ya existe. Se dice en pantalla en vez de dejar que
  * alguien lo descubra creando la misma marca tres veces.
  */
+/**
+ * Lo que el panel devuelve al crear: el modelo, y el tipo y la marca de los que cuelga.
+ *
+ * <p>Devuelve los tres y no solo el modelo porque el formulario de alta elige en cascada —tipo, marca,
+ * modelo— y la cascada tiene que quedar coherente con lo creado: con solo el modelo, el desplegable de
+ * modelos no lo ofreceria, porque se filtra por el tipo y la marca elegidos.
+ */
+export interface ModeloCreado {
+  readonly idModelo: string;
+  readonly idTipo: string;
+  readonly idMarca: string;
+}
+
 @Component({
   selector: 'app-panel-de-modelo',
   imports: [ReactiveFormsModule, Buscador],
   templateUrl: './panel-de-modelo.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PanelDeModelo {
-  /** El identificador del modelo recien creado, para que el formulario padre lo seleccione. */
-  readonly creado = output<string>();
+export class PanelDeModelo implements OnInit {
+  /** El modelo recien creado, con su tipo y su marca, para que el formulario padre lo deje elegido. */
+  readonly creado = output<ModeloCreado>();
+
+  /**
+   * El tipo y la marca que ya se habian elegido en el formulario, si se eligieron.
+   *
+   * <p>Quien abre este panel despues de elegir «Monitor» y «Mindray» y no encontrar su modelo no
+   * deberia tener que volver a elegirlos. Se aplican al iniciar y no despues: si luego se cambian
+   * aqui, manda lo que se cambie aqui.
+   */
+  readonly tipoInicial = input('');
+  readonly marcaInicial = input('');
+
+  ngOnInit(): void {
+    this.formulario.patchValue({
+      ...(this.tipoInicial() ? { idTipo: this.tipoInicial() } : {}),
+      ...(this.marcaInicial() ? { idMarca: this.marcaInicial() } : {}),
+    });
+  }
 
   /** Se pide cerrar el panel sin crear nada. */
   readonly cancelado = output<void>();
@@ -208,7 +238,7 @@ export class PanelDeModelo {
           : { nombre: v.nombreDeModelo, idEquipo, idFabricante },
       );
 
-      this.creado.emit(modelo.id!);
+      this.creado.emit({ idModelo: modelo.id!, idTipo, idMarca });
     } catch (fallo) {
       this.fallo.set(fallo);
     } finally {

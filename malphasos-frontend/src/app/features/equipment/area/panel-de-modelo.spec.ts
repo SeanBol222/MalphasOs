@@ -15,7 +15,7 @@ import {
   URL_MODELOS,
   URL_TIPOS,
 } from '../../../../testing/catalogo';
-import { PanelDeModelo } from './panel-de-modelo';
+import { ModeloCreado, PanelDeModelo } from './panel-de-modelo';
 
 const URL_PAISES = 'http://localhost:8081/v1/api/countries';
 
@@ -23,10 +23,17 @@ const URL_PAISES = 'http://localhost:8081/v1/api/countries';
 @Component({
   selector: 'app-padre-falso',
   imports: [PanelDeModelo],
-  template: `<app-panel-de-modelo (creado)="recibido.set($event)" />`,
+  template: `<app-panel-de-modelo
+    [tipoInicial]="tipo()"
+    [marcaInicial]="marca()"
+    (creado)="recibido.set($event)"
+  />`,
 })
 class PadreFalso {
-  readonly recibido = signal('');
+  readonly recibido = signal<ModeloCreado | null>(null);
+  /** Lo que el formulario de alta ya tuviera elegido al abrir el panel. */
+  readonly tipo = signal('');
+  readonly marca = signal('');
 }
 
 describe('Panel para crear un modelo sin salir del alta', () => {
@@ -60,6 +67,24 @@ describe('Panel para crear un modelo sin salir del alta', () => {
       .click();
     fixture.detectChanges();
   }
+
+  it('se abre con el tipo y la marca que ya se habian elegido en el formulario', async () => {
+    // Quien elige «Tensiometro» y «Welch Allyn» y no encuentra su modelo no deberia tener que volver
+    // a elegirlos.
+    fixture.componentInstance.tipo.set(ID_TIPO);
+    fixture.componentInstance.marca.set(ID_MARCA);
+    await abrir();
+
+    expect(raiz().querySelector<HTMLSelectElement>('#idTipo')!.value).toBe(ID_TIPO);
+    expect(raiz().querySelector<HTMLSelectElement>('#idMarca')!.value).toBe(ID_MARCA);
+  });
+
+  it('sin nada elegido en el formulario se abre en blanco', async () => {
+    await abrir();
+
+    expect(raiz().querySelector<HTMLSelectElement>('#idTipo')!.value).toBe('');
+    expect(raiz().querySelector<HTMLSelectElement>('#idMarca')!.value).toBe('');
+  });
 
   it('ofrece crear cada pieza desde su propio desplegable', async () => {
     await abrir();
@@ -100,7 +125,13 @@ describe('Panel para crear un modelo sin salir del alta', () => {
     await asentar(fixture);
 
     // Y el padre se queda con el modelo nuevo: es lo que se vino a hacer.
-    expect(fixture.componentInstance.recibido()).toBe('mo9');
+    // Devuelve tambien el tipo y la marca: la cascada del formulario tiene que quedar coherente con
+    // lo creado, o el desplegable del modelo no lo ofreceria.
+    expect(fixture.componentInstance.recibido()).toEqual({
+      idModelo: 'mo9',
+      idTipo: ID_TIPO,
+      idMarca: ID_MARCA,
+    });
   });
 
   it('si la combinacion de tipo y marca no existe, la crea antes del modelo', async () => {
@@ -186,7 +217,8 @@ describe('Panel para crear un modelo sin salir del alta', () => {
     http.match(() => true).forEach((p) => p.flush([]));
     await asentar(fixture);
 
-    expect(fixture.componentInstance.recibido()).toBe('mo9');
+    // Con las piezas nuevas, el tipo y la marca que vuelven son los recien creados.
+    expect(fixture.componentInstance.recibido()).toEqual({ idModelo: 'mo9', idTipo: 't9', idMarca: 'm9' });
   });
 
   it('avisa de que las piezas nuevas quedan creadas para todos', async () => {
@@ -235,7 +267,7 @@ describe('Panel para crear un modelo sin salir del alta', () => {
     expect(aviso?.textContent).toContain('Revise los datos del equipo');
     expect(aviso?.textContent).toContain('sigue creado');
     // Y no se emite nada: el padre no debe quedarse con un modelo que no existe.
-    expect(fixture.componentInstance.recibido()).toBe('');
+    expect(fixture.componentInstance.recibido()).toBeNull();
     http.match(() => true).forEach((p) => p.flush([]));
     await asentar(fixture);
   });

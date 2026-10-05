@@ -99,7 +99,16 @@ export const EQUIPOS = [
 ];
 
 export const MODELOS = [
-  { id: ID_MODELO, idEquipo: ID_EQUIPO, idFabricante: ID_FABRICANTE, invima: 'INV-1', estadoActivo: true },
+  // Con nombre: desde V11 es obligatorio, y el alta de un equipo lo ensena. Antes este dato de prueba
+  // no lo llevaba, que es como el formulario pudo pasar meses sin mostrarlo sin que nada fallara.
+  {
+    id: ID_MODELO,
+    nombre: 'Connex Spot',
+    idEquipo: ID_EQUIPO,
+    idFabricante: ID_FABRICANTE,
+    invima: 'INV-1',
+    estadoActivo: true,
+  },
 ];
 
 /** Responde a las consultas del catalogo que la pantalla haya lanzado, en cualquier orden. */
