@@ -176,6 +176,23 @@ services:
 
   # Solo para desarrollo: inspeccion visual de la base de datos.
   # Levantalo con: docker compose --profile tools up -d
+  frontend:
+    container_name: malphasos-frontend
+    build:
+      context: ./malphasos-frontend
+      dockerfile: Dockerfile
+    # Se publica en el 5173 a proposito: es el origen que el realm de Keycloak tiene como URI de
+    # redireccion y el que el backend admite en CORS. Servirlo en otro puerto obligaria a tocar los
+    # dos, y es la misma URL con la que se trabaja con ng serve, de modo que se cambia de una forma de
+    # arrancar a la otra sin reconfigurar nada. No pueden correr las dos a la vez.
+    ports:
+      - "5173:8080"
+    # No depende del backend para arrancar: sirve ficheros estaticos. El navegador es quien llama al
+    # API y a Keycloak, y si no estan, la pantalla lo dira.
+    restart: unless-stopped
+    networks:
+      - malphasos-network
+
   pgadmin:
     container_name: malphasos-pgadmin
     image: dpage/pgadmin4
