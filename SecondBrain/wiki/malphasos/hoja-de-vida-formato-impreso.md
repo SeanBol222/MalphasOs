@@ -10,8 +10,10 @@ updated: 2026-10-05
 # La hoja de vida impresa: qué hace falta para producirla
 
 **Qué es esta nota**: el plan para llevar a la aplicación el formato de hoja de vida que el usuario
-aprobó el **2026-10-05**. Es un plan y no una descripción: **nada de lo que sigue está construido
-todavía**, salvo lo que la tabla de campos marca como «ya sale». La hoja de vida que existe hoy —el
+aprobó el **2026-10-05**. Es un plan y no una descripción: **solo la tanda 6 está construida** —la
+pantalla con el diseño y su impresión, mergeada por `ac9c2592` el mismo día— y lo demás sigue pendiente,
+salvo lo que la tabla de campos marca como «ya sale». (Decía «nada de lo que sigue está construido»:
+cierto hasta esa tarde.) La hoja de vida que existe hoy —el
 compilado de solo lectura, su historial y el oyente que lo escribe— está en [[hoja-de-vida]].
 
 **Lo que pidió el usuario, en sus palabras**: no replicar el formato de 2019 «tal cual», sino «algo más
@@ -219,12 +221,42 @@ Cada tanda deja la batería en verde y algo usable.
 4. **El número de hoja de vida**: la secuencia, el relleno de los equipos que ya existen y su
    aparición en la respuesta.
 5. **Los datos de Bolívar en configuración**, expuestos donde la pantalla pueda leerlos.
-6. **La pantalla con el diseño y la impresión**: el componente, la hoja de impresión y el botón.
-   **Es la tanda en la que el usuario ve el resultado**, y podría ir antes que la 2 a la 5, con los
-   campos que falten mostrando «—».
+6. ~~**La pantalla con el diseño y la impresión**~~ — **construida el 2026-10-05, la primera**, por
+   decisión del usuario, con «—» en lo que falta. Ver «La pantalla, construida» abajo.
 7. **Lo que espera una decisión de infraestructura**: la foto (almacenamiento de archivos), el QR
    público (enlace firmado) y el PDF del servidor (junto con RF-17).
 8. **Lo que espera otro requisito**: el protocolo preventivo, con RF-14.
+
+## La pantalla, construida (2026-10-05)
+
+`features/equipment/hoja-de-vida/`, mergeada por `ac9c2592`. Se comprobó **generando el PDF real**
+desde un navegador sin interfaz contra el contenedor del frontend: **dos páginas carta**, con la banda,
+el escudo, el QR y los pies donde el diseño los pone. En un teléfono las columnas se apilan. El equipo
+de la base de desarrollo no tiene intervenciones, así que **el historial lleno solo lo ven las
+pruebas**.
+
+Lo que se aprendió y no estaba en el plan:
+
+- **Lo que no espera a nadie, ya sale**: el estado actual, el último servicio y el número de
+  intervenciones **se derivan del historial**, que el servidor manda de la más reciente a la más
+  antigua. Sin intervenciones, «Sin servicios».
+- **La fecha de impresión se toma en la zona local.** `toISOString()` da la de Greenwich, y en Bogotá a
+  partir de las siete de la noche ya es mañana. Lo mismo para la fecha de un servicio: se corta la
+  parte de la fecha del texto que manda el servidor en vez de pasarla por `Date`, o un cierre de las
+  21:30 salía al día siguiente. Las dos las caza una mutación.
+- **El QR se dibuja como SVG desde la matriz de módulos** de la librería `qrcode`, no con `canvas`: el
+  corredor de pruebas no tiene `canvas`, y así la prueba compara contra la matriz real que la librería
+  genera para esa dirección.
+- **«Página 2», no «Página 2 de 2»**: el navegador no puede contar las hojas si el historial sigue en
+  una tercera. Lo había anunciado la sección de impresión, y se cumplió.
+- **Es la única pantalla con hoja de estilos propia** (`hoja-de-vida.css`), y fue a propósito: un
+  documento con medidas de papel, marca de agua y reglas de impresión es ilegible en clases de
+  utilidad. **Subió el presupuesto de estilos por componente de 4 a 8 kB** —la hoja pesa 6— y `qrcode`
+  quedó declarada como dependencia CommonJS permitida.
+- **El marco de la aplicación se oculta al imprimir** (`print:hidden` en la cabecera) y `@page` fija
+  carta sin márgenes en `styles.css`: hoy solo imprime esta pantalla.
+- **El cuadro de servicio técnico con los datos de Bolívar no está**: esos datos llegan del backend
+  (tanda 5), y meterlos a mano en el frontend habría sido la copia que se decidió no tener.
 
 ## Decisiones, todas tomadas el 2026-10-05
 
