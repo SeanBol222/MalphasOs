@@ -80,13 +80,21 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **18** (`V1`…`V18`) |
+| Migraciones aplicadas | **20** (`V1`…`V20`) |
 | Tablas de dominio | **27** |
 | Llaves foráneas | **38**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **36** |
+| Restricciones `CHECK` propias | **38** |
+| Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **5** |
 | Tablas con borrado lógico | **27 de 27** — universal, sin excepción |
 
+> **Recontado el 2026-10-05, por la noche, sobre la base con `V20`.** `V19` y `V20` traen dos `CHECK`
+> —el formato de la sigla y un consecutivo no negativo—, dos `UNIQUE` y **los dos primeros triggers del
+> esquema**: uno pone la sigla al cliente que entra sin ella, el otro el número de hoja de vida al
+> equipo. Y una función que no es de ningún trigger, `sigla_base`, que **se queda en la base a
+> propósito**: es la gemela de `ClientAcronym.base` y una prueba exige que las dos coincidan. 38 `CHECK`,
+> 38 foráneas, 27 tablas.
+>
 > **Recontado el 2026-10-05, más tarde, sobre la base con `V18`.** `V17` solo añade dos columnas
 > opcionales a `intervencion` y `V18` las rellena: las cifras no se mueven —38 foráneas, 36 `CHECK`,
 > 27 tablas—.
@@ -109,6 +117,24 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 **El borrado lógico es universal y eso es una afirmación comprobada, no una convención declarada**: la
 consulta que busca tablas sin `b_estado_activo` devuelve cero filas.
+
+## Los triggers, y por qué estos dos sí
+
+Hasta `V19` el esquema no tenía ninguno, y la regla era que lo que el esquema puede expresar va en
+`CHECK` y lo demás vive en el servicio. **Los dos que entraron no la contradicen: son la otra mitad de
+un contador.**
+
+- **`TRG_equipo_cliente_numero_hoja_vida`** asigna `HV-<sigla>-0001` avanzando el contador del cliente
+  con un `UPDATE ... RETURNING`, que bloquea su fila hasta el final de la transacción. Un contador por
+  cliente correcto con altas concurrentes necesita ese bloqueo; en Java habría sido leer, sumar y
+  escribir, con la carrera en medio. Una secuencia no servía, porque es global.
+- **`TRG_cliente_sigla`** pone la sigla al cliente que entra **sin** ella, con la misma función, el mismo
+  desempate y el mismo candado que el servicio. El alta por la aplicación ya la trae; el trigger es para
+  lo que entra por fuera del dominio —un `INSERT` a mano, los datos de una prueba—, que si no
+  chocaría contra el `NOT NULL`.
+
+Los dos cubren también las filas que insertan las pruebas por SQL, que son muchas, y sin ellos habría
+que haber inventado siglas y números en cada una.
 
 ## El mapa de módulos
 
@@ -234,6 +260,8 @@ erDiagram
         varchar k_documento UK "NO se llama n_nit: puede no ser un NIT"
         varchar n_tipo_identificacion "que clase de documento es"
         varchar n_razon_social
+        varchar n_sigla UK "CDN - V19, generada y corregible"
+        integer i_consecutivo_hoja_vida "lo avanza el trigger de V20"
         uuid k_id_pais FK
         boolean b_estado_activo
     }
@@ -316,6 +344,7 @@ erDiagram
         uuid k_id_area_servicio FK "del modulo client"
         varchar k_serie
         date f_fecha_compra
+        varchar n_numero_hoja_vida UK "HV-CDN-0001 - V20, lo pone un trigger"
         varchar n_codigo_interno "V16"
         varchar n_proveedor "V16"
         boolean b_estado_activo

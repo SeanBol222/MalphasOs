@@ -11,7 +11,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 ## 1. Qué falta por construir
 
 - [[hoja-de-ruta-producto]] ⭐ — **Empieza aquí si vas a construir algo nuevo.** Lo que queda del producto, backend y frontend, ordenado por dependencias reales y no por numeración de requisitos.
-- [[hoja-de-vida-formato-impreso]] ⭐ — **El siguiente trabajo decidido: la hoja de vida impresa.** El diseño que aprobó el usuario el **2026-10-05** —el «tablero con escudo», con la marca de Bolívar—, campo por campo de dónde sale cada dato, las migraciones que pide, cómo se imprime, siete tandas y **todas sus decisiones tomadas** ese mismo día. **La pantalla, la impresión, los datos sin migración, los campos del catálogo y el historial completo ya están construidos**; queda el número de hoja.
+- [[hoja-de-vida-formato-impreso]] ⭐ — **El siguiente trabajo decidido: la hoja de vida impresa.** El diseño que aprobó el usuario el **2026-10-05** —el «tablero con escudo», con la marca de Bolívar—, campo por campo de dónde sale cada dato, las migraciones que pide, cómo se imprime, siete tandas y **todas sus decisiones tomadas** ese mismo día. **Construida entera el 2026-10-05**, salvo la foto y el protocolo, que esperan a otras decisiones.
 - [[deuda-tecnica-y-riesgos]] ⭐ — Todo lo detectado como defecto, en dos secciones que no se mezclan: lo heredado del original y lo que hemos introducido nosotros. Consultar antes de tocar cualquier pieza.
 - [[checklist-reutilizacion]] — **Registro cerrado** de la migración desde `bolivarbioingenieria-app`, con el progreso real marcado. No es una lista de tareas pendientes.
 - [[alcance-malphasos]] — Qué entró y qué se quedó fuera, módulo por módulo. Escrita antes de empezar.

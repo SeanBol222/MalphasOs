@@ -10,10 +10,11 @@ updated: 2026-10-05
 # La hoja de vida impresa: qué hace falta para producirla
 
 **Qué es esta nota**: el plan para llevar a la aplicación el formato de hoja de vida que el usuario
-aprobó el **2026-10-05**. Es un plan y no una descripción: **están construidas las tandas 6, 1, 5, 2 y 3** —la
+aprobó el **2026-10-05**. Es un plan y no una descripción: **están construidas las seis tandas que no esperan a nadie —6, 1, 5, 2, 3 y 4—** —la
 pantalla con el diseño y su impresión, mergeada por `ac9c2592`; los datos sin migración, por
-`9516327e`; los campos nuevos del catálogo, por `86b39bbc`; y el historial completo, por
-`26e64149`, todas el mismo día— y lo demás sigue pendiente,
+`9516327e`; los campos nuevos del catálogo, por `86b39bbc`; el historial completo, por
+`26e64149`; y la numeración, por `d2793614`, todas el mismo día—. **Lo que queda es lo que espera
+a otra cosa**: la foto, a que se decida dónde guardar archivos, y el protocolo, a RF-14 y lo demás sigue pendiente,
 salvo lo que la tabla de campos marca como «ya sale». (Decía «nada de lo que sigue está construido»:
 cierto hasta esa tarde.) La hoja de vida que existe hoy —el
 compilado de solo lectura, su historial y el oyente que lo escribe— está en [[hoja-de-vida]].
@@ -219,8 +220,8 @@ Cada tanda deja la batería en verde y algo usable.
    campos del catálogo, construidos» abajo.
 3. ~~**El historial completo**~~ — **construida el 2026-10-05** con `V17` y `V18`. Ver «El historial
    completo, construido» abajo.
-4. **El número de hoja de vida**: la secuencia, el relleno de los equipos que ya existen y su
-   aparición en la respuesta.
+4. ~~**El número de hoja de vida**~~ — **construida el 2026-10-05** con `V19` y `V20`, junto con la sigla.
+   Ver «La numeración, construida» abajo.
 5. ~~**Los datos de Bolívar en configuración**~~ — **construida el 2026-10-05** con la 1. Ver abajo.
 6. ~~**La pantalla con el diseño y la impresión**~~ — **construida el 2026-10-05, la primera**, por
    decisión del usuario, con «—» en lo que falta. Ver «La pantalla, construida» abajo.
@@ -338,6 +339,27 @@ empresa; sin procedimientos, la raya.
   fallaba era la restauración. Es la cuarta forma del mismo problema que el proyecto ya conoce: **un
   arnés que no comprueba que dejó las cosas como estaban** se lee como si lo hubiera hecho.
 
+## La numeración, construida (2026-10-05)
+
+Mergeada por `d2793614`. Cada cliente tiene su sigla (`V19`) y cada equipo su número (`V20`), y la hoja
+de vida lo lleva en las dos bandas: `HV-CLI-0001` en la base de desarrollo.
+
+- **La sigla se genera en Java y en SQL, y una prueba exige que coincidan.** La de SQL —`sigla_base`,
+  que se queda en la base— dio sigla a los clientes que ya existían; la de Java, a los que se crean.
+  Una mutación que cambiaba la regla solo en Java la cazó esa prueba, que es para lo que está.
+- **El número lo asigna la base, con un trigger.** Es un contador por cliente, y el `UPDATE ...
+  RETURNING` sobre la fila del cliente lo bloquea hasta el final de la transacción: dos altas a la vez
+  esperan una a la otra, y si el alta falla el contador vuelve atrás con ella. Hibernate lo relee con
+  `@Generated(event = INSERT)`, y **el adaptador hace `saveAndFlush`**: con `save` el `INSERT` ocurría
+  al confirmar y la unidad volvía sin número —una mutación lo comprobó—.
+- **Son los primeros triggers del esquema**, y no rompen la regla de que lo demás vive en el servicio:
+  uno es la mitad de un contador y el otro cubre lo que entra por fuera del dominio. Ver
+  [[esquema-bd-malphasos]].
+- **Los equipos que ya existían se numeraron por serie** dentro de cada cliente: **ninguna tabla guarda
+  la fecha de alta**, y es la primera vez que eso importa. Anotado en [[deuda-tecnica-y-riesgos]].
+- **La sigla tiene ruta propia**, `PATCH /clients/{id}/acronym`, con `ERR_CLIENT_008` y 409 si la tiene
+  otro cliente. La edición del cliente la manda solo si cambió y después de los demás datos.
+
 ## Decisiones, todas tomadas el 2026-10-05
 
 Las once que esta nota dejaba abiertas se contestaron el mismo día que se escribió. **Mandan sobre lo
@@ -391,11 +413,15 @@ Y tres que no estaban en la lista y salieron al contestarla:
   | Clínica del Dolor y Neurología S.A., con `CDN` ya usada | `CDN2` |
 
   ⚠️ **El paso 5 tiene una carrera**: dos altas simultáneas con la misma sigla base pueden elegir el
-  mismo número. Lo para el índice único —una de las dos falla— y el servicio reintenta con el
-  siguiente; sin ese reintento, el usuario vería un conflicto por algo que no escribió.
+  mismo número. ~~Lo para el índice único y el servicio reintenta con el siguiente.~~ **Corregido al
+  construirlo, el 2026-10-05: no se reintenta, se serializa.** En PostgreSQL una transacción que falla
+  no se puede reintentar desde dentro, de modo que el reintento habría tenido que ser de otra capa. Un
+  candado de transacción (`pg_advisory_xact_lock`) antes de buscar la sigla libre hace que la segunda
+  alta espere y la encuentre ocupada.
 - **El consecutivo cuenta por cliente**: `HV-CLD-0001`, `HV-CLD-0002`. Exige un contador por cliente que
   no se pise con dos altas a la vez —un `SELECT ... FOR UPDATE` sobre la fila del cliente, o un contador
-  propio en ella—; una secuencia de PostgreSQL no sirve, porque es global.
+  propio en ella—; una secuencia de PostgreSQL no sirve, porque es global. **Construido el 2026-10-05
+  como contador en la fila y trigger**: ver «La numeración, construida» abajo.
 - **El número se asigna al registrar el equipo y no cambia**. Los equipos que ya existen reciben el suyo
   en la migración, por orden de alta dentro de cada cliente.
 - **Cambiar la sigla de un cliente no renumera sus hojas**: las ya numeradas **conservan el número
