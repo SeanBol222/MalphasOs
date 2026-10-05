@@ -327,7 +327,8 @@
                   <td class="hv-negrita">{{ linea.fecha }}</td>
                   <td>{{ linea.servicio }}</td>
                   <td>
-                    {{ sinDato }}
+                    {{ linea.descripcion }}
+                    <span class="hv-responsable">{{ linea.responsable }}</span>
                     <a
                       class="hv-enlace hv-solo-pantalla"
                       [routerLink]="['/reportes', linea.idReporte]"

@@ -444,6 +444,12 @@ p {
   background: var(--hv-tarjeta);
 }
 
+.hv-responsable {
+  display: block;
+  font-size: 12px;
+  color: var(--hv-gris-texto);
+}
+
 .hv-tabla .hv-enlace {
   margin-left: 8px;
   font-size: 12px;

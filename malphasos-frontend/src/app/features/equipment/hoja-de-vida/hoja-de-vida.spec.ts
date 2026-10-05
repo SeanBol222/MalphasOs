@@ -84,6 +84,8 @@ const RECIENTE = {
   fechaServicio: '2026-10-04T21:30:00',
   tipoServicio: 'CALIBRACION',
   resultado: 'OPERATIVO_CON_RESTRICCIONES',
+  descripcion: 'Ajuste del sensor de presion contra patron',
+  responsable: 'Grace Hopper',
 };
 
 const ANTIGUA = {
@@ -291,6 +293,28 @@ describe('Hoja de vida de un equipo', () => {
     expect(filas[0].querySelector('.hv-marca--OPERATIVO_CON_RESTRICCIONES')).not.toBeNull();
     expect(filas[1].querySelector('.hv-marca--OPERATIVO')).not.toBeNull();
     expect(filas[0].querySelector('a')?.getAttribute('href')).toBe('/reportes/r2');
+  });
+
+  it('cada servicio dice que se hizo y quien lo hizo: el ingeniero y la empresa', async () => {
+    // Decidido el 2026-10-05: los procedimientos del reporte, y el ingeniero mas Bolivar.
+    await abrir(hoja([RECIENTE]));
+
+    const celda = filasDelHistorial()[0].querySelectorAll('td')[2];
+    expect(celda.textContent).toContain('Ajuste del sensor de presion contra patron');
+    expect(celda.querySelector('.hv-responsable')?.textContent?.trim()).toBe(
+      'Grace Hopper · Bolívar Bioingeniería Ltda.',
+    );
+  });
+
+  it('un servicio sin ingeniero ni procedimientos dice la empresa y la raya, sin huecos', async () => {
+    // Las lineas anteriores a V17 que no se pudieron rellenar, o una orden que nunca tuvo ingeniero.
+    await abrir(hoja([ANTIGUA]));
+
+    const celda = filasDelHistorial()[0].querySelectorAll('td')[2];
+    expect(celda.textContent).toContain('—');
+    expect(celda.querySelector('.hv-responsable')?.textContent?.trim()).toBe(
+      'Bolívar Bioingeniería Ltda.',
+    );
   });
 
   it('deja filas en blanco para anotar a mano, que no cuentan como intervenciones', async () => {
