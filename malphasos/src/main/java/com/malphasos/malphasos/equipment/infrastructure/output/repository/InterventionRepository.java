@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.infrastructure.output.repository;
 
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.InterventionEntity;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,4 +19,6 @@ public interface InterventionRepository extends JpaRepository<InterventionEntity
             UUID idEquipoCliente);
 
     boolean existsByIdReporteServicio(UUID idReporteServicio);
+
+    List<InterventionEntity> findByIdReporteServicioIn(Collection<UUID> idsReportes);
 }

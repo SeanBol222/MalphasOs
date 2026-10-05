@@ -46,7 +46,8 @@ class InterventionServiceTest {
                 REPORTE,
                 LocalDateTime.now(),
                 InterventionType.PREVENTIVO,
-                InterventionResult.OPERATIVO);
+                InterventionResult.OPERATIVO,
+                Set.of());
     }
 
     @Test
@@ -148,5 +149,91 @@ class InterventionServiceTest {
                                         com.malphasos.malphasos.report.domain.serviceReport.ServiceResult.values())
                                 .map(Enum::name)
                                 .toList());
+    }
+
+    // ------------------------------------------------------------------------
+    // El sustituto reemplaza al anterior: corregir no deja dos lineas
+    // ------------------------------------------------------------------------
+
+    private static final UUID REPORTE_CORREGIDO = UUID.randomUUID();
+
+    private Intervention vigenteDe(UUID reporte) {
+        return Intervention.record(EQUIPO, reporte, LocalDateTime.now().minusDays(1),
+                InterventionType.PREVENTIVO, InterventionResult.FUERA_DE_SERVICIO);
+    }
+
+    private RecordInterventionCommand unCierreQueCorrige(Set<UUID> corregidos) {
+        return new RecordInterventionCommand(EQUIPO, REPORTE, LocalDateTime.now(),
+                InterventionType.PREVENTIVO, InterventionResult.OPERATIVO, corregidos);
+    }
+
+    @Test
+    @DisplayName("cerrar un reporte que corrige a otro deja la linea vieja reemplazada por la nueva")
+    void elSustitutoReemplazaAlAnterior() {
+        Intervention vieja = vigenteDe(REPORTE_CORREGIDO);
+        when(interventionPersistencePort.existsByReport(REPORTE)).thenReturn(false);
+        when(interventionPersistencePort.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(interventionPersistencePort.findByReports(Set.of(REPORTE_CORREGIDO))).thenReturn(List.of(vieja));
+
+        service.record(unCierreQueCorrige(Set.of(REPORTE_CORREGIDO)));
+
+        ArgumentCaptor<Intervention> guardadas = ArgumentCaptor.forClass(Intervention.class);
+        verify(interventionPersistencePort, org.mockito.Mockito.times(2)).save(guardadas.capture());
+        Intervention nueva = guardadas.getAllValues().getFirst();
+        Intervention reemplazada = guardadas.getAllValues().getLast();
+
+        // No se borra: queda apuntando a la que la sustituyo, que es el rastro de la correccion.
+        assertThat(reemplazada.id()).isEqualTo(vieja.id());
+        assertThat(reemplazada.estadoActivo()).isFalse();
+        assertThat(reemplazada.reemplazadaPor()).isEqualTo(nueva.id());
+        assertThat(nueva.estadoActivo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("una linea ya reemplazada no se vuelve a reemplazar: la cadena no se reescribe")
+    void unaReemplazadaSeQuedaComoEsta() {
+        // En una cadena de correcciones cada linea apunta a la que la sustituyo primero.
+        Intervention yaReemplazada = vigenteDe(REPORTE_CORREGIDO).reemplazadaPor(UUID.randomUUID());
+        when(interventionPersistencePort.existsByReport(REPORTE)).thenReturn(false);
+        when(interventionPersistencePort.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(interventionPersistencePort.findByReports(Set.of(REPORTE_CORREGIDO)))
+                .thenReturn(List.of(yaReemplazada));
+
+        service.record(unCierreQueCorrige(Set.of(REPORTE_CORREGIDO)));
+
+        // Solo se guarda la nueva.
+        verify(interventionPersistencePort, org.mockito.Mockito.times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("un cierre que no corrige nada no busca lineas que reemplazar")
+    void sinCorreccionNoSeBusca() {
+        when(interventionPersistencePort.existsByReport(REPORTE)).thenReturn(false);
+
+        service.record(unCierreQueCorrige(Set.of()));
+
+        verify(interventionPersistencePort, never()).findByReports(any());
+    }
+
+    @Test
+    @DisplayName("un cierre repetido no reemplaza dos veces: sale antes de tocar nada")
+    void unCierreRepetidoNoTocaNada() {
+        when(interventionPersistencePort.existsByReport(REPORTE)).thenReturn(true);
+
+        service.record(unCierreQueCorrige(Set.of(REPORTE_CORREGIDO)));
+
+        verify(interventionPersistencePort, never()).findByReports(any());
+        verify(interventionPersistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("una intervencion no puede estar reemplazada y seguir activa, ni reemplazarse a si misma")
+    void lasDosGuardasDelReemplazo() {
+        Intervention una = vigenteDe(REPORTE);
+
+        assertThatThrownBy(() -> una.reemplazadaPor(una.id())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Intervention.rehydrate(UUID.randomUUID(), EQUIPO, REPORTE, LocalDateTime.now(),
+                        InterventionType.PREVENTIVO, InterventionResult.OPERATIVO, true, UUID.randomUUID()))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

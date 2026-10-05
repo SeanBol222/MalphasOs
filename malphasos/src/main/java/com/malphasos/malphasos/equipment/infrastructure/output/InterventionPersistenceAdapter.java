@@ -6,6 +6,7 @@ import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.InterventionEntity;
 import com.malphasos.malphasos.equipment.infrastructure.output.repository.InterventionRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,13 @@ public class InterventionPersistenceAdapter implements InterventionPersistencePo
     }
 
     @Override
+    public List<Intervention> findByReports(Collection<UUID> idsReportes) {
+        return interventionRepository.findByIdReporteServicioIn(idsReportes).stream()
+                .map(InterventionPersistenceAdapter::toDomain)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public Intervention save(Intervention intervention) {
         return toDomain(interventionRepository.save(toEntity(intervention)));
@@ -58,6 +66,7 @@ public class InterventionPersistenceAdapter implements InterventionPersistencePo
         entity.setTipoServicio(intervention.tipoServicio().name());
         entity.setResultado(intervention.resultado().name());
         entity.setEstadoActivo(intervention.estadoActivo());
+        entity.setReemplazadaPor(intervention.reemplazadaPor());
 
         return entity;
     }
@@ -70,6 +79,7 @@ public class InterventionPersistenceAdapter implements InterventionPersistencePo
                 entity.getFechaServicio(),
                 InterventionType.valueOf(entity.getTipoServicio()),
                 InterventionResult.valueOf(entity.getResultado()),
-                entity.isEstadoActivo());
+                entity.isEstadoActivo(),
+                entity.getReemplazadaPor());
     }
 }

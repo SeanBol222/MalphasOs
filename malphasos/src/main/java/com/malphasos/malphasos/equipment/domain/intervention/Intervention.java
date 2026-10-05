@@ -26,7 +26,8 @@ public record Intervention(
         LocalDateTime fechaServicio,
         InterventionType tipoServicio,
         InterventionResult resultado,
-        boolean estadoActivo) {
+        boolean estadoActivo,
+        UUID reemplazadaPor) {
 
     public Intervention {
         exigir(id, "identificador");
@@ -35,6 +36,12 @@ public record Intervention(
         exigir(fechaServicio, "la fecha en que se hizo");
         exigir(tipoServicio, "el tipo de servicio");
         exigir(resultado, "el resultado");
+
+        if (reemplazadaPor != null && estadoActivo) {
+            throw new IllegalArgumentException(
+                    "Una intervencion reemplazada no puede seguir activa: contaria dos veces el mismo "
+                            + "mantenimiento");
+        }
     }
 
     /**
@@ -59,7 +66,31 @@ public record Intervention(
                 fechaServicio,
                 tipoServicio,
                 resultado,
-                true);
+                true,
+                null);
+    }
+
+    /**
+     * Esta misma intervención, reemplazada por la del reporte que la corrigió.
+     *
+     * <p>Es lo único que le puede pasar a una intervención después de registrarse, y no es un cambio
+     * de lo que describe: el mantenimiento sigue habiendo ocurrido como dice. Lo que cambia es que
+     * <b>deja de contar</b> en la hoja de vida, porque otra línea describe ya el mismo servicio, y
+     * queda apuntando a ella para que el rastro de la corrección no se pierda.
+     *
+     * <p>Devuelve una copia —es un {@code record}— y es idempotente: reemplazar dos veces por la misma
+     * sustituta da lo mismo.
+     */
+    public Intervention reemplazadaPor(UUID idSustituta) {
+        exigir(idSustituta, "la intervencion que la sustituye");
+
+        if (idSustituta.equals(id)) {
+            throw new IllegalArgumentException("Una intervencion no se reemplaza a si misma");
+        }
+
+        return new Intervention(
+                id, idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado,
+                false, idSustituta);
     }
 
     /**
@@ -76,10 +107,12 @@ public record Intervention(
             LocalDateTime fechaServicio,
             InterventionType tipoServicio,
             InterventionResult resultado,
-            boolean estadoActivo) {
+            boolean estadoActivo,
+            UUID reemplazadaPor) {
 
         return new Intervention(
-                id, idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado, estadoActivo);
+                id, idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado,
+                estadoActivo, reemplazadaPor);
     }
 
     /**
