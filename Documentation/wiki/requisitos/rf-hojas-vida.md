@@ -1,6 +1,6 @@
 ---
 name: rf-hojas-vida
-description: RF-22, 24, 26, 27, Hojas de Vida de los Equipos (ERS 3.2.5). Dos implementados sin que exista una entidad "hoja de vida", dos previstos
+description: RF-22, 24, 26, 27, Hojas de Vida de los Equipos (ERS 3.2.5). Los cuatro implementados desde el 2026-10-04, con la hoja de vida como compilado de solo lectura y no como entidad
 tags: [requisitos, rf, hojas-de-vida, equipos]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2.5"
 estado: vigente
@@ -9,6 +9,15 @@ updated: 2026-10-04
 
 # 3.2.5. Hojas de Vida de los Equipos (RF-22, 24, 26, 27)
 
+> **Resuelto el 2026-10-04 por la tarde: los cuatro están implementados.** La hoja de vida se
+> construyó, y **no como entidad**: es un compilado de la cadena del catálogo y de la organización del
+> cliente, con las cuatro secciones que pide RF-22 —identificación, técnica, fabricante y servicio
+> técnico—, y existe desde que el equipo se registra con su historial en cero. Solo el historial tiene
+> tabla; un oyente lo escribe al cerrarse cada reporte (RF-26) y se lee ordenado con fecha, tipo y
+> resultado (RF-27). **RF-24 se satisface siendo de solo lectura**, por decisión del usuario: cada dato
+> se corrige donde vive. El detalle técnico, en `SecondBrain/wiki/dominio/hoja-de-vida.md`. Lo que sigue
+> es la duda de la mañana, que se conserva porque es lo que motivó construirlo.
+>
 > **⚠️ Revisado el 2026-10-04: los dos «implementado» de abajo están en duda, y la duda la plantea el
 > propio texto de la ERS.** RF-22 exige un formulario con cuatro secciones, y el bloque de estado del
 > `.tex` dice que la de **servicio técnico** «falta, y falta entera»; además no hay *un* formulario, sino
@@ -23,10 +32,10 @@ updated: 2026-10-04
 
 | Código | Requisito | MoSCoW | Estado |
 |---|---|---|---|
-| RF-22 | Crear hoja de vida | Could Have | **Implementado ⚠️ en revisión** |
-| RF-24 | Modificar/eliminar hoja de vida | Could Have | **Implementado ⚠️ en revisión** |
-| RF-26 | Registro automático de intervenciones | Could Have | Previsto |
-| RF-27 | Historial de intervenciones | Could Have | Previsto |
+| RF-22 | Crear hoja de vida | Could Have | **Implementado** |
+| RF-24 | Modificar/eliminar hoja de vida | Could Have | **Implementado** (solo lectura: ver abajo) |
+| RF-26 | Registro automático de intervenciones | Could Have | **Implementado** |
+| RF-27 | Historial de intervenciones | Could Have | **Implementado** |
 
 ## No existe una entidad llamada "hoja de vida"
 

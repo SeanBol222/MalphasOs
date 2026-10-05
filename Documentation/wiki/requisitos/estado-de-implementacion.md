@@ -1,6 +1,6 @@
 ---
 name: estado-de-implementacion
-description: La cifra agregada de implementacion de MalphasOS -17 de 31 RF, 1 de 23 RNF- con como se verifico, cuando caduco y donde esta el detalle
+description: La cifra agregada de implementacion de MalphasOS -19 de 31 RF, 1 de 23 RNF- con como se verifico, cuando caduco y donde esta el detalle
 tags: [requisitos, estado, trazabilidad]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2; Documentation/TraceabilityMatrix/MatrizDeTrazabilidad.tex"
 estado: vigente
@@ -17,7 +17,7 @@ updated: 2026-10-04
 
 | Tipo de requisito | Total | Implementado | Previsto | Fuente de la evaluación |
 |---|---|---|---|---|
-| Funcionales (RF) | 31 | **17** | 13 + 1 desviación | ERS, apartado 3.2, recontado el 2026-09-28 contra el código |
+| Funcionales (RF) | 31 | **19** | 11 + 1 desviación | ERS, apartado 3.2, recontado el 2026-10-04 contra el código |
 | No funcionales (RNF) | 23 | **1** (RNF-23, JWT) | 22 | Matriz de trazabilidad (primera evaluación; la ERS no marca RNF) |
 | De dominio (RD) | 6 | 2 inferidos (RD-03, RD-04) | 4 no verificables | Matriz de trazabilidad, con salvedad — ver [[requisitos-de-dominio]] |
 
@@ -57,12 +57,29 @@ Tres categorías fundacionales concentraron todo lo construido al principio: ges
 | 3.2.2 Clientes | RF-08 | 1 | 1 | [[rf-clientes]] |
 | 3.2.3 Reportes de Mantenimiento | RF-09 a RF-17 | 6 | **3** | [[rf-reportes-mantenimiento]] |
 | 3.2.4 Firma Digital | RF-18, RF-21 | 2 | 0 | [[rf-firma-digital]] |
-| 3.2.5 Hojas de Vida | RF-22 a RF-27 | 4 | 2 | [[rf-hojas-vida]] |
+| 3.2.5 Hojas de Vida | RF-22 a RF-27 | 4 | **4** | [[rf-hojas-vida]] |
 | 3.2.6 Inventario | RF-36, RF-37 | 2 | 0 | [[rf-inventario]] |
 | 3.2.7 Alertas y calibración | RF-40, RF-41 | 2 | 0 | [[rf-alertas-calibracion]] |
 | 3.2.8 Módulo Comercial | RF-45, RF-47 | 2 | 0 | [[rf-modulo-comercial]] |
 | 3.2.9 Usuarios y seguridad | RF-49 a RF-53 | 5 | 5 | [[rf-usuarios-seguridad]] |
-| **Total** | | **31** | **17** | |
+| **Total** | | **31** | **19** | |
+
+## Séptima verificación, 4 de octubre de 2026 por la tarde: 19, y la duda de la mañana resuelta
+
+**Las hojas de vida pasan de 2 a 4 de 4**, y es la primera categoría que se completa entera desde
+Usuarios y seguridad. Entran **RF-26** —el historial se escribe solo al cerrar un reporte— y **RF-27**
+—se consulta ordenado, con fecha, tipo y resultado—.
+
+Y **RF-22 y RF-24 dejan de estar en duda**, que es lo que la sexta verificación pedía decidir. Los dos
+motivos de la duda desaparecieron construyendo, no reinterpretando: la sección de **servicio técnico**,
+que «faltaba entera», existe; y hay **un** documento —un recurso, una pantalla— en lugar de cinco
+recursos sueltos. Para RF-24 hizo falta además una decisión del usuario: **la hoja de vida es de solo
+lectura**, y modificarla es corregir cada dato donde vive, con las operaciones que ya existían. Con ese
+criterio el requisito se satisface por completo; sin él habría que construir una edición que
+reparte cambios entre cinco agregados.
+
+**RF-04 sigue como desviación**, y su decisión sigue abierta: la de RF-22 y RF-24 no se tomó
+reinterpretando el criterio sino construyendo lo que faltaba, de modo que no sirve de precedente.
 
 ## ⚠️ Sexta verificación, 4 de octubre de 2026: dos de los 17 están en duda
 
