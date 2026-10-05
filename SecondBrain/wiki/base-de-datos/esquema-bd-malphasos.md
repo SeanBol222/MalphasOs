@@ -4,7 +4,7 @@ description: El esquema de MalphasOS hoy — 27 tablas, 37 foráneas, con diagra
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # El esquema de MalphasOS, hoy
@@ -80,13 +80,18 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **14** (`V1`…`V14`) |
+| Migraciones aplicadas | **16** (`V1`…`V16`) |
 | Tablas de dominio | **27** |
 | Llaves foráneas | **38**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **33** |
+| Restricciones `CHECK` propias | **36** |
 | Índices únicos **parciales** | **5** |
 | Tablas con borrado lógico | **27 de 27** — universal, sin excepción |
 
+> **Recontado el 2026-10-05, sobre la base con `V16` aplicada.** `V15` quita dos `CHECK` del tipo
+> —voltaje y amperaje positivos— y pone cinco en el modelo —la clase de riesgo y los cuatro datos
+> eléctricos numéricos positivos—: de 33 a **36**. `V16` solo añade dos columnas opcionales a
+> `equipo_cliente`. Las foráneas siguen en 38 y las tablas en 27.
+>
 > **Recontado el 2026-10-04, por la noche, sobre la base con `V14` aplicada.** `V14` añade una foránea
 > de `intervencion` a sí misma y dos `CHECK` —una intervención reemplazada está retirada, y ninguna se
 > reemplaza a sí misma—: de 37 a **38** foráneas y de 31 a **33** `CHECK`. Las tablas siguen siendo 27.
@@ -275,8 +280,8 @@ erDiagram
         uuid k_id_tipo_equipo PK
         varchar n_nombre_tipo_equipo UK
         varchar t_definicion_tecnica
-        integer i_voltage
-        numeric d_amperaje
+        varchar t_uso "V15"
+        varchar t_limpieza_cotidiana "V15"
         bigint m_valor_unitario_mantenimiento
         boolean b_estado_activo
     }
@@ -292,6 +297,13 @@ erDiagram
         uuid k_id_fabricante FK
         varchar n_nombre_modelo "IdeaPad 3 - UK por equipo"
         varchar n_invima "anulable: se tramita despues"
+        varchar n_clase_riesgo "I, IIA, IIB o III - V15"
+        varchar t_caracteristicas
+        varchar n_alimentacion
+        integer i_voltaje "bajo del tipo en V15"
+        integer i_potencia
+        numeric d_amperaje "bajo del tipo en V15"
+        integer i_frecuencia
         boolean b_estado_activo
     }
     equipo_cliente {
@@ -300,6 +312,8 @@ erDiagram
         uuid k_id_area_servicio FK "del modulo client"
         varchar k_serie
         date f_fecha_compra
+        varchar n_codigo_interno "V16"
+        varchar n_proveedor "V16"
         boolean b_estado_activo
     }
     intervencion {

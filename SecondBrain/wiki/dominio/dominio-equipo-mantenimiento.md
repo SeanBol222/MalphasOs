@@ -298,6 +298,16 @@ componente**: una sustitución global convirtió el ayudante `elegirModelo` en u
 a sí misma, y antes de verlo se le hizo un «arreglo» al componente, que se deshizo entero. La lección es
 la de siempre con un fallo raro: mirar primero lo último que se tocó, y lo último era la prueba.
 
+## La ficha técnica baja al modelo (2026-10-05)
+
+**Voltaje y amperaje dejaron el tipo de equipo** con `V15`: estaban ahí por herencia del original, y
+son de cada modelo. Junto con ellos, el modelo tiene ahora una `TechnicalSheet` con la clase de riesgo,
+las características y los cinco datos eléctricos; el tipo gana su **uso** y su **limpieza cotidiana**, y
+el equipo instalado su **código interno** y su **proveedor** (`V16`). El reparto sigue una regla que
+conviene tener a mano para lo que venga: **en el tipo, lo que comparten todas las máquinas de esa clase;
+en el modelo, lo que dice la placa; en la unidad, lo que es de esa máquina**. Detalle y porqués en
+[[hoja-de-vida-formato-impreso]].
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — **debería portarse casi completo**, y así se hizo con la primera tanda. El modelo de dominio (`Equipment`, `EquipmentType`, `Brand`, `Manufacturer`, `Model`, `TechnicalVerification`, `MetrologicalData`) es genérico y no acopla nada de facturación/gestión ajena al mantenimiento en sí. Es, junto con `location_hexagon`, la plantilla arquitectónica a seguir para todos los módulos nuevos de MalphasOS — no la de `client_hexagon`.

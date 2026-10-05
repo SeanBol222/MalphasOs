@@ -10,9 +10,9 @@ updated: 2026-10-05
 # La hoja de vida impresa: qué hace falta para producirla
 
 **Qué es esta nota**: el plan para llevar a la aplicación el formato de hoja de vida que el usuario
-aprobó el **2026-10-05**. Es un plan y no una descripción: **están construidas las tandas 6, 1 y 5** —la
-pantalla con el diseño y su impresión, mergeada por `ac9c2592`, y los datos sin migración, por
-`9516327e`, las dos el mismo día— y lo demás sigue pendiente,
+aprobó el **2026-10-05**. Es un plan y no una descripción: **están construidas las tandas 6, 1, 5 y 2** —la
+pantalla con el diseño y su impresión, mergeada por `ac9c2592`; los datos sin migración, por
+`9516327e`; y los campos nuevos del catálogo, por `86b39bbc`, las tres el mismo día— y lo demás sigue pendiente,
 salvo lo que la tabla de campos marca como «ya sale». (Decía «nada de lo que sigue está construido»:
 cierto hasta esa tarde.) La hoja de vida que existe hoy —el
 compilado de solo lectura, su historial y el oyente que lo escribe— está en [[hoja-de-vida]].
@@ -214,9 +214,8 @@ Cada tanda deja la batería en verde y algo usable.
 
 1. ~~**Los datos que ya existen**~~ — **construida el 2026-10-05** junto con la 5: el responsable y los
    contactos del cliente. El estado derivado del historial no hizo falta aquí: lo calcula la pantalla.
-2. **Los campos nuevos del catálogo**: una migración con riesgo, características y **los cinco datos
-   eléctricos** en el modelo —moviendo voltaje y amperaje desde el tipo—; uso y limpieza en el tipo;
-   código interno y proveedor en la unidad. Sus formularios en el catálogo y en el alta del equipo.
+2. ~~**Los campos nuevos del catálogo**~~ — **construida el 2026-10-05**, con `V15` y `V16`. Ver «Los
+   campos del catálogo, construidos» abajo.
 3. **El historial completo**: descripción y responsable congelados en `intervencion`, el oyente que
    los pasa y el relleno desde los reportes.
 4. **El número de hoja de vida**: la secuencia, el relleno de los equipos que ya existen y su
@@ -280,6 +279,38 @@ Mergeados por `9516327e`: el responsable, los contactos del cliente y el membret
   `equipment`, `client` y `person`, y siete mutaciones, todas caídas. En la base de desarrollo el
   cliente no tiene encargados ni contactos, así que el PDF real sale con «—» en esas tres casillas y
   con el cuadro de la empresa lleno.
+
+## Los campos del catálogo, construidos (2026-10-05)
+
+Mergeados por `86b39bbc`. Con ellos, **las únicas rayas que le quedan a la hoja de vida son las de lo que
+nadie ha llenado**, más el número de hoja, la descripción y el responsable de cada servicio, el
+protocolo y la foto, que tienen su propia tanda.
+
+- **`V15` mueve voltaje y amperaje del tipo al modelo** y le da al modelo su `TechnicalSheet`: clase de
+  riesgo (I, IIa, IIb, III), características, alimentación, voltaje, potencia, corriente y frecuencia.
+  **Cada modelo hereda el valor que su tipo tenía**, que es el que tenía hasta hoy; se comprobó sobre la
+  base de desarrollo, con datos —las pruebas arrancan con la base vacía y no pueden verlo—. Es la
+  misma forma que `V10`: un dato que estaba un nivel por encima del que le corresponde. El tipo gana
+  `t_uso` y `t_limpieza_cotidiana`.
+- **`V16` da a cada equipo instalado su código interno y su proveedor**, que son de esa máquina y no
+  de su modelo. Texto libre: un catálogo de proveedores no lo pidió nadie.
+- **La ficha es un valor del modelo, no siete campos sueltos**, y se corrige **entera** por ruta
+  propia, `PATCH /models/{id}/technical-sheet`, como el INVIMA. Lo que no viaja queda vacío.
+- **El amperaje se normaliza a dos decimales y rechaza un tercero** en vez de redondearlo. No es
+  cosmético: `BigDecimal.equals` distingue 2.5 de 2.50, y sin normalizar, reenviar la misma ficha
+  contaba como cambio y emitía un evento.
+- **Pantalla nueva**: Catálogo › Modelos › «Ficha técnica», con página propia. La edición del tipo
+  manda el uso y la limpieza **siempre, vacíos incluidos**, porque un blanco es la única forma de
+  quitarlos.
+- **Una escritura del catálogo caduca la hoja de vida en caché**: imprime el uso del tipo y la ficha
+  del modelo.
+- **Dos mutaciones sobrevivían y pidieron su prueba**: la hoja de vida devolviendo una ficha vacía en
+  lugar de la del modelo, y el catálogo sin caducar la hoja de vida. Las dos tenían cobertura
+  alrededor y ninguna encima.
+- ⚠️ **Un equipo instalado no se puede editar desde la aplicación.** El API lo permite
+  (`PATCH /client-equipments/{id}`) y el frontend tiene la mutación escrita, pero **ninguna pantalla la
+  usa**: el código interno y el proveedor solo se escriben en el alta. Anotado en
+  [[deuda-tecnica-y-riesgos]].
 
 ## Decisiones, todas tomadas el 2026-10-05
 

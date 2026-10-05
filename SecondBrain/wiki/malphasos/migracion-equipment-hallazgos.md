@@ -77,7 +77,7 @@ Todos corregidos en `V5__equipment_catalog.sql`:
 
 Y en el dominio: `Equipment` guardaba cada referencia **dos veces**, como identificador y como objeto completo, sin nada que mantuviera ambos al día. Aquí solo hay identificadores, como manda la convención del proyecto.
 
-Validaciones que el original no hacía: voltaje y amperaje positivos, valor de mantenimiento no negativo, y que un equipo no se compró en el futuro.
+Validaciones que el original no hacía: voltaje y amperaje positivos, valor de mantenimiento no negativo, y que un equipo no se compró en el futuro. (**Desde el 2026-10-05 voltaje y amperaje no son del tipo sino del modelo**, con `V15`; las dos validaciones se fueron con ellos, junto con tres datos eléctricos más. Ver [[dominio-equipo-mantenimiento]].)
 
 ## La prueba centinela que se rompió a propósito
 
