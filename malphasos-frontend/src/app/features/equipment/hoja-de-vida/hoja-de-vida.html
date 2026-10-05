@@ -5,116 +5,373 @@
     <p class="font-semibold">{{ mensajeDeError() }}</p>
   </div>
 } @else {
-  <h1 class="text-2xl font-bold">Hoja de vida · {{ identificacion()?.serie }}</h1>
-  <p class="text-neutral-700">
-    {{ tecnica()?.tipoEquipo }} {{ tecnica()?.marca }} {{ tecnica()?.modelo }}
-    <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
-    · <span [class.font-semibold]="identificacion()?.estadoActivo">
-      {{ identificacion()?.estadoActivo ? 'En servicio' : 'De baja' }}
-    </span>
-  </p>
+  <div class="hv-acciones">
+    <button type="button" class="hv-boton" (click)="imprimir()">Imprimir</button>
+    <a class="hv-enlace" [routerLink]="['/equipos', id(), 'historial']">Ver los reportes</a>
+    <a class="hv-enlace" routerLink="/equipos">Volver a los equipos</a>
+  </div>
 
   <!--
-    Las cuatro secciones son las que enumera RF-22, con esos nombres y en ese orden, para que el
-    documento y el requisito se puedan leer uno contra el otro.
+    Dos hojas carta. En pantalla se ven como papel sobre el fondo; al imprimir, cada una es una pagina.
+    Lo que el sistema todavia no guarda sale con «—»: ver el comentario de la clase.
   -->
-  <section class="mt-3" aria-labelledby="identificacion">
-    <h2 id="identificacion" class="text-lg font-semibold">Identificación</h2>
-    <dl class="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
-      <dt class="font-semibold">Serie</dt>
-      <dd>{{ identificacion()?.serie }}</dd>
-      <dt class="font-semibold">N.º de inventario</dt>
-      <dd>{{ identificacion()?.numeroInventario || '—' }}</dd>
-      <dt class="font-semibold">Fecha de compra</dt>
-      <dd>{{ identificacion()?.fechaCompra || '—' }}</dd>
-      <dt class="font-semibold">Valor de compra</dt>
-      <dd>{{ valorDeCompra() || '—' }}</dd>
-      <dt class="font-semibold">Cliente</dt>
-      <dd>{{ identificacion()?.cliente }} · {{ identificacion()?.documentoCliente }}</dd>
-      <dt class="font-semibold">Sede</dt>
-      <dd>
-        {{ identificacion()?.sede }} · {{ identificacion()?.direccionSede }},
-        {{ identificacion()?.ciudadSede }}
-      </dd>
-      <dt class="font-semibold">Área de servicio</dt>
-      <dd>{{ identificacion()?.areaServicio }}</dd>
-    </dl>
-  </section>
+  <article class="hv" aria-label="Hoja de vida del equipo">
+    <div class="hv-hoja">
+      <!-- El escudo de la marca, detras de todo: decidido por el usuario, centrado y en el naranja del logo. -->
+      <svg class="hv-escudo" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+        <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
+          <line x1="28" y1="12" x2="72" y2="30" />
+          <line x1="72" y1="30" x2="28" y2="50" />
+          <line x1="28" y1="50" x2="80" y2="72" />
+          <line x1="80" y1="72" x2="28" y2="88" />
+          <line x1="28" y1="12" x2="28" y2="88" />
+        </g>
+        <g fill="#EC3013">
+          <circle cx="28" cy="12" r="5" />
+          <circle cx="72" cy="30" r="5" />
+          <circle cx="28" cy="50" r="5" />
+          <circle cx="80" cy="72" r="5" />
+          <circle cx="28" cy="88" r="5" />
+        </g>
+      </svg>
 
-  <section class="mt-3" aria-labelledby="tecnica">
-    <h2 id="tecnica" class="text-lg font-semibold">Técnica</h2>
-    <dl class="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
-      <dt class="font-semibold">Tipo de equipo</dt>
-      <dd>{{ tecnica()?.tipoEquipo }}</dd>
-      <dt class="font-semibold">Marca</dt>
-      <dd>{{ tecnica()?.marca }}</dd>
-      <dt class="font-semibold">Modelo</dt>
-      <dd>{{ tecnica()?.modelo }}</dd>
-      <dt class="font-semibold">Registro INVIMA</dt>
-      <dd>{{ tecnica()?.registroInvima || '—' }}</dd>
-      <dt class="font-semibold">Tecnología predominante</dt>
-      <dd>{{ tecnica()?.tecnologiaPredominante }}</dd>
-      <dt class="font-semibold">Voltaje</dt>
-      <dd>{{ tecnica()?.voltaje != null ? tecnica()?.voltaje + ' V' : '—' }}</dd>
-      <dt class="font-semibold">Amperaje</dt>
-      <dd>{{ tecnica()?.amperaje != null ? tecnica()?.amperaje + ' A' : '—' }}</dd>
-      <dt class="font-semibold">Definición técnica</dt>
-      <dd>{{ tecnica()?.definicionTecnica }}</dd>
-      <dt class="font-semibold">Recomendaciones de cuidado</dt>
-      <dd>{{ tecnica()?.recomendacionesCuidado }}</dd>
-    </dl>
-  </section>
+      <header class="hv-banda">
+        <div class="hv-banda__texto">
+          <p class="hv-logo">
+            <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true" focusable="false">
+              <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
+                <line x1="28" y1="12" x2="72" y2="30" />
+                <line x1="72" y1="30" x2="28" y2="50" />
+                <line x1="28" y1="50" x2="80" y2="72" />
+                <line x1="80" y1="72" x2="28" y2="88" />
+                <line x1="28" y1="12" x2="28" y2="88" />
+              </g>
+              <g fill="#EC3013">
+                <circle cx="28" cy="12" r="5" />
+                <circle cx="72" cy="30" r="5" />
+                <circle cx="28" cy="50" r="5" />
+                <circle cx="80" cy="72" r="5" />
+                <circle cx="28" cy="88" r="5" />
+              </g>
+            </svg>
+            <span><strong>BOLÍVAR</strong> BIOINGENIERÍA</span>
+          </p>
+          <p class="hv-banda__rotulo">Hoja de vida</p>
+          <h1 class="hv-banda__titulo">{{ nombreDelEquipo() }}</h1>
+          <p class="hv-banda__resumen">
+            Serie {{ identificacion()?.serie }} · {{ identificacion()?.areaServicio }} ·
+            {{ identificacion()?.cliente }}
+            @if (!identificacion()?.estadoActivo) {
+              · <strong>De baja</strong>
+            }
+          </p>
+        </div>
+        <figure class="hv-qr">
+          <svg
+            [attr.viewBox]="'0 0 ' + qr().lado + ' ' + qr().lado"
+            shape-rendering="crispEdges"
+            role="img"
+            [attr.aria-label]="'Código QR que abre esta hoja de vida: ' + qr().direccion"
+          >
+            <rect [attr.width]="qr().lado" [attr.height]="qr().lado" fill="#ffffff" />
+            <path [attr.d]="qr().trazo" fill="#201e1d" />
+          </svg>
+          <figcaption>Versión digital</figcaption>
+        </figure>
+      </header>
 
-  <section class="mt-3" aria-labelledby="fabricante">
-    <h2 id="fabricante" class="text-lg font-semibold">Fabricante</h2>
-    <dl class="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
-      <dt class="font-semibold">Nombre</dt>
-      <dd>{{ fabricante()?.nombre }}</dd>
-      <dt class="font-semibold">País</dt>
-      <dd>{{ fabricante()?.pais || '—' }}</dd>
-    </dl>
-  </section>
+      <dl class="hv-estado" aria-label="Estado del equipo">
+        <div>
+          <dt>Estado actual</dt>
+          <dd>{{ estadoActual() }}</dd>
+        </div>
+        <div>
+          <dt>Último servicio</dt>
+          <dd>{{ ultimaIntervencion()?.fecha ?? sinDato }}</dd>
+        </div>
+        <div>
+          <dt>Intervenciones</dt>
+          <dd>{{ historial().length }}</dd>
+        </div>
+        <div>
+          <dt>Riesgo</dt>
+          <dd class="hv-rojo">{{ sinDato }}</dd>
+        </div>
+      </dl>
 
-  <section class="mt-3" aria-labelledby="servicio-tecnico">
-    <h2 id="servicio-tecnico" class="text-lg font-semibold">Servicio técnico</h2>
-    @if (!historial().length) {
-      <!--
-        No se esconde la seccion: una hoja de vida existe desde que el equipo se registra, y que el
-        historial este vacio es un dato, no una ausencia.
-      -->
-      <p class="mt-1 text-neutral-700">
-        Sin intervenciones todavía. Se anotan solas al cerrar un reporte de servicio.
-      </p>
-    } @else {
-      <table class="mt-1 w-full border-collapse text-left">
-        <caption class="sr-only">Intervenciones, de la más reciente a la más antigua</caption>
-        <thead>
-          <tr class="border-b border-neutral-300">
-            <th scope="col" class="py-1 pr-2 font-semibold">Fecha</th>
-            <th scope="col" class="py-1 pr-2 font-semibold">Servicio</th>
-            <th scope="col" class="py-1 pr-2 font-semibold">Resultado</th>
-            <th scope="col" class="py-1 font-semibold">Reporte</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (linea of historial(); track linea.id) {
-            <tr class="border-b border-neutral-200">
-              <td class="py-1 pr-2">{{ linea.fecha }}</td>
-              <td class="py-1 pr-2">{{ linea.servicio }}</td>
-              <td class="py-1 pr-2">{{ linea.resultado }}</td>
-              <td class="py-1">
-                <a class="font-semibold underline" [routerLink]="['/reportes', linea.idReporte]">Ver</a>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    }
-  </section>
+      <div class="hv-cuerpo">
+        <div class="hv-dos">
+          <section class="hv-tarjeta" aria-labelledby="identificacion">
+            <h2 id="identificacion">Identificación</h2>
+            <dl class="hv-datos">
+              <div>
+                <dt>Tipo</dt>
+                <dd>{{ tecnica()?.tipoEquipo }}</dd>
+              </div>
+              <div>
+                <dt>Marca · Modelo</dt>
+                <dd>{{ tecnica()?.marca }} · {{ tecnica()?.modelo }}</dd>
+              </div>
+              <div>
+                <dt>Serie</dt>
+                <dd>{{ identificacion()?.serie }}</dd>
+              </div>
+              <div>
+                <dt>Placa · Código interno</dt>
+                <dd>{{ identificacion()?.numeroInventario || sinDato }} · {{ sinDato }}</dd>
+              </div>
+              <div>
+                <dt>Registro INVIMA</dt>
+                <dd>{{ tecnica()?.registroInvima || sinDato }}</dd>
+              </div>
+              <div>
+                <dt>Área</dt>
+                <dd>{{ identificacion()?.areaServicio }}</dd>
+              </div>
+            </dl>
+          </section>
 
-  <p class="mt-3 print:hidden">
-    <button type="button" class="font-semibold underline" (click)="imprimir()">Imprimir</button>
-    ·
-    <a class="font-semibold underline" routerLink="/equipos">Volver a los equipos</a>
-  </p>
+          <section class="hv-tarjeta" aria-labelledby="cliente">
+            <h2 id="cliente">Cliente</h2>
+            <dl class="hv-datos">
+              <div class="hv-ancho">
+                <dt>Razón social · NIT</dt>
+                <dd>{{ identificacion()?.cliente }} · {{ identificacion()?.documentoCliente }}</dd>
+              </div>
+              <div>
+                <dt>Sede · Ciudad</dt>
+                <dd>{{ identificacion()?.sede }} · {{ identificacion()?.ciudadSede }}</dd>
+              </div>
+              <div>
+                <dt>Dirección</dt>
+                <dd>{{ identificacion()?.direccionSede || sinDato }}</dd>
+              </div>
+              <div>
+                <dt>Responsable</dt>
+                <dd>{{ sinDato }}</dd>
+              </div>
+              <div>
+                <dt>Teléfonos</dt>
+                <dd>{{ sinDato }}</dd>
+              </div>
+              <div class="hv-ancho">
+                <dt>Correo</dt>
+                <dd>{{ sinDato }}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <section class="hv-que-es" aria-labelledby="que-es">
+          <div class="hv-foto" aria-hidden="true">Foto del equipo</div>
+          <div>
+            <h2 id="que-es">Qué es</h2>
+            <p>{{ tecnica()?.definicionTecnica }}</p>
+            <p class="hv-nota">
+              Fabricante {{ fabricante()?.nombre }} · {{ fabricante()?.pais || sinDato }} ·
+              Proveedor {{ sinDato }} · Compra {{ fechaDeCompra() }} · Valor {{ valorDeCompra() }}
+            </p>
+          </div>
+        </section>
+
+        <section aria-labelledby="caracteristicas">
+          <h2 id="caracteristicas">Características técnicas</h2>
+          <dl class="hv-rejilla">
+            <div>
+              <dt>Tecnología</dt>
+              <dd>{{ tecnica()?.tecnologiaPredominante || sinDato }}</dd>
+            </div>
+            <div>
+              <dt>Uso</dt>
+              <dd>{{ sinDato }}</dd>
+            </div>
+            <div>
+              <dt>Alimentación</dt>
+              <dd>{{ sinDato }}</dd>
+            </div>
+            <div>
+              <dt>Frecuencia</dt>
+              <dd>{{ sinDato }} Hz</dd>
+            </div>
+            <div>
+              <dt>Voltaje</dt>
+              <dd>{{ tecnica()?.voltaje ?? sinDato }} V</dd>
+            </div>
+            <div>
+              <dt>Potencia</dt>
+              <dd>{{ sinDato }} W</dd>
+            </div>
+            <div>
+              <dt>Corriente</dt>
+              <dd>{{ tecnica()?.amperaje ?? sinDato }} A</dd>
+            </div>
+            <div>
+              <dt>Específicas</dt>
+              <dd>{{ sinDato }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <div class="hv-dos">
+          <section aria-labelledby="protocolo">
+            <h2 id="protocolo">Protocolo preventivo</h2>
+            <!-- Los protocolos son RF-14 y no existen todavia: no se inventa una lista aqui. -->
+            <p class="hv-nota">Sin protocolo registrado.</p>
+          </section>
+          <section aria-labelledby="cuidado">
+            <h2 id="cuidado">Cuidado y limpieza</h2>
+            @if (recomendaciones().length) {
+              <ul class="hv-lista">
+                @for (recomendacion of recomendaciones(); track $index) {
+                  <li>{{ recomendacion }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="hv-nota">{{ sinDato }}</p>
+            }
+          </section>
+        </div>
+
+        <footer class="hv-pie">
+          <span>BB-ING-HV-30 · Actualizada el {{ fechaDeActualizacion }}</span>
+          <span>Página 1</span>
+        </footer>
+      </div>
+    </div>
+
+    <div class="hv-hoja">
+      <svg
+        class="hv-escudo hv-escudo--segunda"
+        viewBox="0 0 100 100"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
+          <line x1="28" y1="12" x2="72" y2="30" />
+          <line x1="72" y1="30" x2="28" y2="50" />
+          <line x1="28" y1="50" x2="80" y2="72" />
+          <line x1="80" y1="72" x2="28" y2="88" />
+          <line x1="28" y1="12" x2="28" y2="88" />
+        </g>
+        <g fill="#EC3013">
+          <circle cx="28" cy="12" r="5" />
+          <circle cx="72" cy="30" r="5" />
+          <circle cx="28" cy="50" r="5" />
+          <circle cx="80" cy="72" r="5" />
+          <circle cx="28" cy="88" r="5" />
+        </g>
+      </svg>
+
+      <header class="hv-banda hv-banda--estrecha">
+        <p class="hv-logo">
+          <svg viewBox="0 0 100 100" width="26" height="26" aria-hidden="true" focusable="false">
+            <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
+              <line x1="28" y1="12" x2="72" y2="30" />
+              <line x1="72" y1="30" x2="28" y2="50" />
+              <line x1="28" y1="50" x2="80" y2="72" />
+              <line x1="80" y1="72" x2="28" y2="88" />
+              <line x1="28" y1="12" x2="28" y2="88" />
+            </g>
+            <g fill="#EC3013">
+              <circle cx="28" cy="12" r="5" />
+              <circle cx="72" cy="30" r="5" />
+              <circle cx="28" cy="50" r="5" />
+              <circle cx="80" cy="72" r="5" />
+              <circle cx="28" cy="88" r="5" />
+            </g>
+          </svg>
+          <span><strong>BOLÍVAR</strong> BIOINGENIERÍA</span>
+        </p>
+        <p class="hv-banda__resumen">
+          <strong>{{ nombreDelEquipo() }}</strong> · Serie {{ identificacion()?.serie }}
+        </p>
+      </header>
+
+      <div class="hv-cuerpo">
+        <section aria-labelledby="servicio-tecnico">
+          <div class="hv-encabezado">
+            <h2 id="servicio-tecnico" class="hv-titulo">Historial de servicio técnico</h2>
+            <!-- Las marcas se distinguen por la forma, no solo por el color: se leen en blanco y negro. -->
+            <ul class="hv-leyenda" aria-label="Leyenda de resultados">
+              <li><span class="hv-marca hv-marca--OPERATIVO"></span>Operativo</li>
+              <li>
+                <span class="hv-marca hv-marca--OPERATIVO_CON_RESTRICCIONES"></span>Con
+                restricciones
+              </li>
+              <li><span class="hv-marca hv-marca--FUERA_DE_SERVICIO"></span>Fuera de servicio</li>
+            </ul>
+          </div>
+
+          <table class="hv-tabla">
+            <caption class="sr-only">
+              Intervenciones, de la más reciente a la más antigua
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Fecha</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Descripción y responsable</th>
+                <th scope="col">Resultado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (linea of historial(); track linea.id) {
+                <tr class="hv-fila">
+                  <td class="hv-negrita">{{ linea.fecha }}</td>
+                  <td>{{ linea.servicio }}</td>
+                  <td>
+                    {{ sinDato }}
+                    <a
+                      class="hv-enlace hv-solo-pantalla"
+                      [routerLink]="['/reportes', linea.idReporte]"
+                      >Ver reporte</a
+                    >
+                  </td>
+                  <td>
+                    <span
+                      class="hv-resultado"
+                      [class.hv-rojo]="linea.resultado && linea.resultado !== 'OPERATIVO'"
+                    >
+                      <span class="hv-marca hv-marca--{{ linea.resultado }}"></span
+                      >{{ linea.etiquetaDelResultado }}
+                    </span>
+                  </td>
+                </tr>
+              } @empty {
+                <!--
+                  No se esconde: una hoja de vida existe desde que el equipo se registra, y que el
+                  historial este vacio es un dato.
+                -->
+                <tr>
+                  <td colspan="4" class="hv-nota">
+                    Sin intervenciones todavía. Se anotan solas al cerrar un reporte de servicio.
+                  </td>
+                </tr>
+              }
+              <!-- Para anotar a mano un servicio hecho fuera del sistema: solo tienen sentido en papel. -->
+              @for (vacia of filasEnBlanco; track $index) {
+                <tr class="hv-en-blanco">
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+
+        <section class="hv-firmas" aria-label="Firmas">
+          <div><span class="hv-linea"></span>Elaboró · Bolívar Bioingeniería</div>
+          <div><span class="hv-linea"></span>Recibió · Profesional responsable</div>
+        </section>
+
+        <footer class="hv-pie">
+          <span>BB-ING-HV-30 · Actualizada el {{ fechaDeActualizacion }}</span>
+          <!-- Sin «de N»: el historial puede seguir en mas hojas, y el navegador no sabe contarlas. -->
+          <span>Página 2</span>
+        </footer>
+      </div>
+    </div>
+  </article>
 }

@@ -1,0 +1,570 @@
+/*
+ * La hoja de vida tiene hoja de estilos propia, y es la unica pantalla que la tiene: es un documento
+ * que se imprime en hojas carta, con medidas de papel, una marca de agua y reglas de impresion que en
+ * clases de utilidad serian ilegibles. Las medidas son las del diseño aprobado el 2026-10-05, en px a
+ * 96 ppp —816 x 1056 es la hoja carta—, y los colores son los tokens del manual, que son los mismos en
+ * la marca de Bolivar y en la de MalphasOS.
+ */
+
+:host {
+  --hv-tinta: var(--color-ink);
+  --hv-rojo: var(--color-accent-700);
+  --hv-gris-texto: var(--color-neutral-700);
+  --hv-gris-linea: var(--color-neutral-300);
+  --hv-gris-borde: var(--color-neutral-400);
+  /* Las tarjetas dejan ver el escudo: opacas lo cortarian en recuadros. */
+  --hv-tarjeta: rgb(234 231 231 / 55%);
+
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------------------------- */
+/* Lo que solo existe en pantalla                                                                   */
+/* ---------------------------------------------------------------------------------------------- */
+
+.hv-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.hv-boton {
+  min-height: var(--spacing-tactil);
+  padding: 0 24px;
+  font-weight: 600;
+  color: var(--color-paper);
+  background: var(--hv-rojo);
+}
+
+.hv-enlace {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.hv-en-blanco {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- */
+/* La hoja                                                                                          */
+/* ---------------------------------------------------------------------------------------------- */
+
+.hv {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hv-hoja {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 816px;
+  min-height: 1056px;
+  background: #ffffff;
+  border: 1px solid var(--hv-gris-linea);
+  color: var(--hv-tinta);
+}
+
+/* El escudo: la «B» del logo a 620 px, centrada a lo ancho, en el naranja de la marca al 6 %. */
+.hv-escudo {
+  position: absolute;
+  top: 300px;
+  left: 50%;
+  width: 620px;
+  height: 620px;
+  transform: translateX(-50%);
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+.hv-escudo--segunda {
+  top: 250px;
+}
+
+/* Todo lo demas va por encima del escudo. */
+.hv-banda,
+.hv-estado,
+.hv-cuerpo {
+  position: relative;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+dl,
+dd {
+  margin: 0;
+}
+
+dt {
+  font-size: 12px;
+  color: var(--hv-gris-texto);
+}
+
+dd {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+p {
+  margin: 0;
+  max-width: none;
+}
+
+.hv-nota {
+  font-size: 12px;
+  color: var(--hv-gris-texto);
+}
+
+.hv-rojo {
+  color: var(--hv-rojo);
+}
+
+.hv-negrita {
+  font-weight: 700;
+}
+
+/* La banda oscura ------------------------------------------------------------------------------- */
+
+.hv-banda {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 36px 48px 28px;
+  background: var(--hv-tinta);
+  color: var(--color-paper);
+}
+
+.hv-banda--estrecha {
+  padding: 22px 48px;
+}
+
+.hv-banda__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hv-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+.hv-banda--estrecha .hv-logo {
+  margin: 0;
+  font-size: 13px;
+}
+
+.hv-logo strong {
+  font-weight: 800;
+}
+
+.hv-banda__rotulo {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-neutral-400);
+}
+
+.hv-banda__titulo {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: -0.8px;
+  line-height: 1;
+}
+
+.hv-banda__resumen {
+  font-size: 14px;
+  color: var(--color-neutral-300);
+}
+
+.hv-banda__resumen strong {
+  color: var(--color-paper);
+}
+
+.hv-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.hv-qr svg {
+  display: block;
+  width: 84px;
+  height: 84px;
+  padding: 4px;
+  background: #ffffff;
+}
+
+.hv-qr figcaption {
+  font-size: 12px;
+  color: var(--color-neutral-300);
+}
+
+/* La fila de estado ----------------------------------------------------------------------------- */
+
+.hv-estado {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--hv-gris-linea);
+  background: #ffffff;
+}
+
+.hv-estado > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--hv-gris-linea);
+}
+
+.hv-estado > div:first-child {
+  padding-left: 48px;
+}
+
+.hv-estado > div:last-child {
+  padding-right: 48px;
+  border-right: 0;
+}
+
+.hv-estado dd {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+/* El cuerpo ------------------------------------------------------------------------------------- */
+
+.hv-cuerpo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 48px 36px;
+}
+
+.hv-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.hv-tarjeta {
+  padding: 14px 16px;
+  background: var(--hv-tarjeta);
+}
+
+.hv-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.hv-datos > div,
+.hv-rejilla > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.hv-ancho {
+  grid-column: span 2;
+}
+
+.hv-que-es {
+  display: flex;
+  gap: 16px;
+}
+
+.hv-que-es p {
+  font-size: 13px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.hv-que-es .hv-nota {
+  margin-top: 8px;
+}
+
+/* El recuadro de la foto: aplazada el 2026-10-05 hasta decidir donde se guardan los archivos. */
+.hv-foto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 132px;
+  height: 132px;
+  border: 1px solid var(--hv-gris-borde);
+  background: #ffffff;
+  font-size: 12px;
+  color: var(--hv-gris-texto);
+  text-align: center;
+}
+
+.hv-rejilla {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 2px solid var(--hv-tinta);
+}
+
+.hv-rejilla > div {
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid var(--hv-gris-linea);
+}
+
+.hv-lista {
+  margin: 0;
+  padding: 0 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.hv-pie {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--hv-gris-linea);
+  font-size: 12px;
+  color: var(--hv-gris-texto);
+}
+
+/* El historial ---------------------------------------------------------------------------------- */
+
+.hv-encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+
+.hv-titulo {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.hv-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.hv-leyenda li,
+.hv-resultado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hv-resultado {
+  font-weight: 800;
+}
+
+/* El resultado por la forma, no solo por el color: relleno en tinta, hueco en rojo, relleno en rojo. */
+.hv-marca {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+}
+
+.hv-marca--OPERATIVO {
+  background: var(--hv-tinta);
+}
+
+.hv-marca--OPERATIVO_CON_RESTRICCIONES {
+  border: 2px solid var(--hv-rojo);
+}
+
+.hv-marca--FUERA_DE_SERVICIO {
+  background: var(--hv-rojo);
+}
+
+.hv-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.hv-tabla th {
+  padding: 8px 10px;
+  font-size: 12px;
+  border-bottom: 2px solid var(--hv-tinta);
+}
+
+.hv-tabla td {
+  padding: 10px;
+  vertical-align: top;
+}
+
+.hv-tabla th:first-child,
+.hv-tabla td:first-child {
+  padding-left: 8px;
+}
+
+.hv-fila:nth-child(odd) {
+  background: var(--hv-tarjeta);
+}
+
+.hv-tabla .hv-enlace {
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.hv-firmas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--hv-gris-texto);
+}
+
+.hv-linea {
+  display: block;
+  height: 36px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--hv-tinta);
+}
+
+/* ---------------------------------------------------------------------------------------------- */
+/* En un telefono: las columnas se apilan y el escudo se queda dentro de la hoja                     */
+/* ---------------------------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .hv-hoja {
+    min-height: 0;
+  }
+
+  .hv-banda,
+  .hv-banda--estrecha {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 16px;
+  }
+
+  .hv-banda__titulo {
+    font-size: 28px;
+  }
+
+  .hv-estado,
+  .hv-rejilla {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hv-estado > div,
+  .hv-estado > div:first-child,
+  .hv-estado > div:last-child {
+    padding: 12px 16px;
+  }
+
+  .hv-cuerpo {
+    padding: 16px;
+  }
+
+  .hv-dos,
+  .hv-firmas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hv-que-es {
+    flex-direction: column;
+  }
+
+  .hv-escudo {
+    width: 90%;
+    height: auto;
+  }
+
+  .hv-tabla {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- */
+/* Al imprimir: cada hoja es una pagina carta                                                        */
+/* ---------------------------------------------------------------------------------------------- */
+
+@media print {
+  :host {
+    /* Sin esto el navegador no imprime fondos: la banda y las tarjetas saldrian en blanco. */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .hv-acciones,
+  .hv-solo-pantalla {
+    display: none;
+  }
+
+  .hv {
+    gap: 0;
+  }
+
+  .hv-hoja {
+    width: 8.5in;
+    max-width: none;
+    min-height: 11in;
+    border: 0;
+    overflow: visible;
+    break-after: page;
+  }
+
+  .hv-hoja:last-child {
+    break-after: auto;
+  }
+
+  .hv-en-blanco {
+    display: table-row;
+    height: 44px;
+    border-bottom: 1px solid var(--hv-gris-linea);
+  }
+
+  /* Si el historial sigue en otra hoja, la cabecera de la tabla se repite y una fila no se parte. */
+  .hv-tabla thead {
+    display: table-header-group;
+  }
+
+  .hv-tabla tr {
+    break-inside: avoid;
+  }
+}

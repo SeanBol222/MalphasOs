@@ -119,3 +119,18 @@
     max-width: 70ch;
   }
 }
+
+/*
+ * Al imprimir, la pagina es la hoja: carta y sin margenes del navegador, porque los margenes los pone
+ * el documento. Hoy solo imprime la hoja de vida; si otra pantalla imprime, que tenga los suyos.
+ */
+@media print {
+  @page {
+    size: letter;
+    margin: 0;
+  }
+
+  html {
+    background-color: #ffffff;
+  }
+}
