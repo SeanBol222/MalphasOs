@@ -160,6 +160,13 @@ supervivientes, y un cambio que pasó sin que nada lo notara; los tres se cerrar
 - y no una mutación sino un cambio real: sustituir «Ver» por dos enlaces en la lista de equipos dejó
   las 410 pruebas del frontend en verde. Nada probaba ese enlace.
 
+## Qué se hizo y quién lo hizo (2026-10-05)
+
+Desde `V17` cada intervención guarda también la **descripción** —los procedimientos del reporte— y el
+**responsable** —el nombre del ingeniero de la orden—, congelados igual que los otros tres datos y
+opcionales: una orden puede no tener ingeniero. `V18` los rellenó en las líneas anteriores. Detalle en
+[[hoja-de-vida-formato-impreso]].
+
 ## Lo que viene: el formato impreso
 
 El **2026-10-05** el usuario aprobó un diseño nuevo para la hoja de vida, pensado para imprimir y con la

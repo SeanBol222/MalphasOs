@@ -1656,3 +1656,22 @@ con `V16`, 36 `CHECK`, y el guion de columnas pasa con las 138—, [[dominio-equ
 [[migracion-equipment-hallazgos]], [[deuda-tecnica-y-riesgos]], [[index]] y el `CONVENCIONES.md` de la
 raíz.
 
+## [2026-10-05] ingest | cada servicio dice qué se hizo y quién lo hizo
+
+Construida la tanda 3 de [[hoja-de-vida-formato-impreso]], mergeada por `26e64149`: `V17` añade la
+descripción y el responsable a `intervencion`, y `V18` los rellena. **1008** pruebas del backend en 72
+clases y **452** del frontend; cinco mutaciones, todas caen.
+
+Dos cosas que dejó y no estaban en el plan:
+
+- **Un relleno que se quiere probar va en su propia migración.** El primer intento metía el `UPDATE`
+  en `V17` junto al `ALTER TABLE`, y la prueba que reejecuta el SQL sobre datos chocó con las columnas
+  ya creadas. Es la razón —que hasta hoy no estaba escrita— de que `V13` fuera aparte de `V12`.
+- **El arnés de mutación dejó el código mutado.** Copiaba el archivo mutado sobre la copia de
+  seguridad antes de restaurar. Se vio revisando `git status`; se deshicieron las cuatro y la batería
+  volvió a pasar entera. La regla, escrita en el `CONVENCIONES.md` de la raíz: un arnés que modifica
+  el árbol comprueba que lo dejó como estaba.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]], [[hoja-de-vida]], [[esquema-bd-malphasos]], [[index]] y
+el `CONVENCIONES.md` de la raíz.
+
