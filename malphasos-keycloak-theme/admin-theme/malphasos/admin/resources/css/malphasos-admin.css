@@ -11,44 +11,174 @@
  * Se tocan variables de PatternFly, que es lo que la consola usa por dentro, en vez de perseguir
  * selectores concretos: una clase minificada cambia con cada version de Keycloak y una variable de
  * diseno, no. Si algo se queda sin marcar tras una actualizacion, es preferible eso a que se rompa.
+ *
+ * REHECHO EL 2026-10-04. La version anterior solo tocaba siete variables -el primario, los enlaces,
+ * dos de texto, una de fondo, el radio- y la barra superior. Con la consola en modo oscuro eso daba
+ * texto ilegible, y en modo claro dejaba sin marcar el menu, los fondos, los bordes, las pestanas y la
+ * tipografia. La consola ya no tiene modo oscuro -ver darkMode=false en theme.properties- y aqui va la
+ * paleta entera.
  */
 
+/* La tipografia del manual, servida desde el propio tema como la sirve el frontend: los dos ficheros
+ * son los de @fontsource-variable/archivo, copiados. Archivo tiene licencia OFL. Latin cubre el
+ * espanol; latin-ext, los nombres propios con diacriticos de otras lenguas. */
+@font-face {
+  font-family: 'Archivo Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../fonts/archivo-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Archivo Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../fonts/archivo-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
+  /* Los tokens del manual, con los nombres del frontend. */
   --malphasos-ink: #201e1d;
   --malphasos-paper: #f3f2f2;
+  --malphasos-brand-black: #2d2b2b;
   --malphasos-accent: #ec3013;
-  --malphasos-accent-texto: #ae1800;
+  --malphasos-accent-100: #fff2ef;
+  --malphasos-accent-200: #ffe0d9;
+  --malphasos-accent-700: #ae1800;
+  --malphasos-accent-800: #7c1405;
+  --malphasos-neutral-100: #f8f4f4;
   --malphasos-neutral-200: #eae7e7;
+  --malphasos-neutral-300: #d7d3d3;
+  --malphasos-neutral-400: #bab6b6;
   --malphasos-neutral-700: #605d5d;
+  --malphasos-neutral-800: #444141;
 
-  /* El azul de PatternFly, que es el color con el que la consola pinta enlaces, botones primarios y
-   * pestanas activas, pasa al rojo que si sostiene texto. */
-  --pf-v5-global--primary-color--100: var(--malphasos-accent-texto);
-  --pf-v5-global--primary-color--200: #7c1405;
-  --pf-v5-global--link--Color: var(--malphasos-accent-texto);
-  --pf-v5-global--link--Color--hover: #7c1405;
-  --pf-v5-global--active-color--100: var(--malphasos-accent-texto);
-  --pf-v5-global--BorderColor--100: var(--malphasos-neutral-200);
+  /* Tipografia: una sola familia, la del manual. */
+  --pf-v5-global--FontFamily--text: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+  --pf-v5-global--FontFamily--heading: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+  --pf-v5-global--FontFamily--redhat-updated--sans-serif: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+  --pf-v5-global--FontFamily--redhat-updated--heading--sans-serif: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+
+  /* El azul de PatternFly -enlaces, botones primarios, pestanas activas, foco- pasa al rojo que si
+   * sostiene texto. */
+  --pf-v5-global--primary-color--100: var(--malphasos-accent-700);
+  --pf-v5-global--primary-color--200: var(--malphasos-accent-800);
+  --pf-v5-global--primary-color--light-100: var(--malphasos-accent-200);
+  --pf-v5-global--link--Color: var(--malphasos-accent-700);
+  --pf-v5-global--link--Color--hover: var(--malphasos-accent-800);
+  --pf-v5-global--active-color--100: var(--malphasos-accent-700);
+  --pf-v5-global--active-color--200: var(--malphasos-accent-100);
+  --pf-v5-global--active-color--300: var(--malphasos-accent-700);
 
   /* Tinta y papel del manual, en lugar de los grises de PatternFly. */
   --pf-v5-global--Color--100: var(--malphasos-ink);
   --pf-v5-global--Color--200: var(--malphasos-neutral-700);
-  --pf-v5-global--BackgroundColor--100: var(--malphasos-paper);
+  --pf-v5-global--Color--300: var(--malphasos-neutral-800);
+  --pf-v5-global--BackgroundColor--100: var(--malphasos-neutral-100);
+  --pf-v5-global--BackgroundColor--150: var(--malphasos-paper);
+  --pf-v5-global--BackgroundColor--200: var(--malphasos-paper);
+  --pf-v5-global--BorderColor--100: var(--malphasos-neutral-300);
+  --pf-v5-global--BorderColor--200: var(--malphasos-neutral-400);
+  --pf-v5-global--BorderColor--300: var(--malphasos-neutral-200);
 
   /* Radio cero: es lo primero que dice el manual y lo que mas se nota. */
   --pf-v5-global--BorderRadius--sm: 0;
   --pf-v5-global--BorderRadius--lg: 0;
 }
 
-/* La barra superior, en el negro de marca en vez del azul oscuro de Keycloak. */
+/* La barra superior, en el negro de marca: el mismo #2d2b2b que el fondo del logo, para que el logo no
+ * se vea dentro de un recuadro. */
 .pf-v5-c-masthead {
-  background-color: var(--malphasos-ink);
+  --pf-v5-c-masthead--BackgroundColor: var(--malphasos-brand-black);
+  background-color: var(--malphasos-brand-black);
 }
 
-/* El logo del masthead viene por theme.properties; aqui solo se le da una altura sensata para que no
- * se coma la barra ni se quede diminuto. */
 .pf-v5-c-masthead__brand img,
 .pf-v5-c-brand {
   max-height: 32px;
   width: auto;
+}
+
+/* El menu lateral, en papel con tinta, y la entrada activa marcada con el acento: un borde, no un
+ * relleno de color, que es como el manual distingue un estado. */
+.pf-v5-c-page__sidebar {
+  --pf-v5-c-page__sidebar--BackgroundColor: var(--malphasos-neutral-100);
+  border-right: 1px solid var(--malphasos-neutral-300);
+}
+
+/* Con .pf-v5-c-nav__section tambien, y no es redundante: el menu de la consola agrupa sus entradas
+ * en secciones, y PatternFly vuelve a fijar en cada seccion las variables del enlace -entre ellas la
+ * barra azul de la entrada activa-, de modo que lo puesto solo en .pf-v5-c-nav no llega al enlace.
+ * Se midio en la pagina: la variable resolvia a #73bcf7 dentro de la seccion. */
+.pf-v5-c-nav,
+.pf-v5-c-nav__section {
+  --pf-v5-c-nav__link--Color: var(--malphasos-ink);
+  --pf-v5-c-nav__link--hover--Color: var(--malphasos-ink);
+  --pf-v5-c-nav__link--hover--BackgroundColor: var(--malphasos-neutral-200);
+  --pf-v5-c-nav__link--focus--Color: var(--malphasos-ink);
+  --pf-v5-c-nav__link--active--Color: var(--malphasos-ink);
+  --pf-v5-c-nav__link--m-current--Color: var(--malphasos-ink);
+  --pf-v5-c-nav__link--m-current--BackgroundColor: var(--malphasos-neutral-200);
+  --pf-v5-c-nav__link--before--BorderColor: transparent;
+  --pf-v5-c-nav__section-title--Color: var(--malphasos-neutral-700);
+  /* La barra de la izquierda de la entrada activa es un ::after de PatternFly con su propio color: la
+   * primera version la tapaba con una sombra y quedaba azul igual. Se cambia la variable que la pinta. */
+  --pf-v5-c-nav__link--after--BorderColor: transparent;
+  --pf-v5-c-nav__link--m-current--after--BorderColor: var(--malphasos-accent);
+  --pf-v5-c-nav__link--hover--after--BorderColor: var(--malphasos-neutral-400);
+  --pf-v5-c-nav__link--active--after--BorderColor: var(--malphasos-accent);
+}
+
+.pf-v5-c-nav__link.pf-m-current {
+  font-weight: 600;
+}
+
+/* El boton principal: el rojo que sostiene texto blanco con AA, no el acento puro. */
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--malphasos-accent-700);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--malphasos-accent-800);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--malphasos-accent-800);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--malphasos-accent-800);
+}
+
+/* Los secundarios, con el borde y el texto del acento en lugar del azul. */
+.pf-v5-c-button.pf-m-secondary {
+  --pf-v5-c-button--m-secondary--Color: var(--malphasos-accent-700);
+  --pf-v5-c-button--m-secondary--BorderColor: var(--malphasos-accent-700);
+  --pf-v5-c-button--m-secondary--hover--Color: var(--malphasos-accent-800);
+  --pf-v5-c-button--m-secondary--hover--BorderColor: var(--malphasos-accent-800);
+}
+
+/* La pestana activa, subrayada en el acento. */
+.pf-v5-c-tabs {
+  --pf-v5-c-tabs__link--after--BorderColor: var(--malphasos-neutral-300);
+  --pf-v5-c-tabs__item--m-current__link--after--BorderColor: var(--malphasos-accent);
+}
+
+/* Los enlaces dentro de las tablas -el nombre de un usuario, de un cliente, de un rol- son <a> sin
+ * clase que NO leen la variable de enlace de PatternFly: salian con su #0066cc fijo aunque todo lo demas
+ * ya fuera rojo. Se encontro midiendo el color calculado en la pagina, no leyendo este archivo. Los
+ * botones con aspecto de enlace se excluyen: esos ya siguen la variable. */
+.pf-v5-c-table a:not(.pf-v5-c-button) {
+  color: var(--malphasos-accent-700);
+}
+
+.pf-v5-c-table a:not(.pf-v5-c-button):hover {
+  color: var(--malphasos-accent-800);
+}
+
+/* La etiqueta azul de PatternFly -«Current realm» y las de estado informativo- pasa al acento claro,
+ * con texto del rojo oscuro para que siga alcanzando AA. */
+.pf-v5-c-label.pf-m-blue {
+  --pf-v5-c-label--m-blue--BackgroundColor: var(--malphasos-accent-100);
+  --pf-v5-c-label--m-blue__icon--Color: var(--malphasos-accent-700);
+  --pf-v5-c-label--m-blue__content--Color: var(--malphasos-accent-800);
+  --pf-v5-c-label--m-blue__content--before--BorderColor: var(--malphasos-accent-200);
 }
