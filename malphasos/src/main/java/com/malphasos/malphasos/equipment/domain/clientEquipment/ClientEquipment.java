@@ -42,6 +42,12 @@ public class ClientEquipment extends AggregateRoot {
 
     private Long valorCompra;
 
+    /** El código que el cliente le pone a su máquina, como la placa. Opcional; entró con {@code V16}. */
+    private String codigoInterno;
+
+    /** Quien vendió esta máquina, en texto libre. Opcional; entró con {@code V16}. */
+    private String proveedor;
+
     private boolean estadoActivo;
 
     private ClientEquipment(
@@ -52,6 +58,8 @@ public class ClientEquipment extends AggregateRoot {
             String numeroInventario,
             LocalDate fechaCompra,
             Long valorCompra,
+            String codigoInterno,
+            String proveedor,
             boolean estadoActivo) {
 
         this.id = id;
@@ -61,6 +69,8 @@ public class ClientEquipment extends AggregateRoot {
         this.numeroInventario = numeroInventario;
         this.fechaCompra = fechaCompra;
         this.valorCompra = valorCompra;
+        this.codigoInterno = codigoInterno;
+        this.proveedor = proveedor;
         this.estadoActivo = estadoActivo;
     }
 
@@ -70,7 +80,9 @@ public class ClientEquipment extends AggregateRoot {
             UUID idAreaServicio,
             String numeroInventario,
             LocalDate fechaCompra,
-            Long valorCompra) {
+            Long valorCompra,
+            String codigoInterno,
+            String proveedor) {
 
         ClientEquipment unidad = new ClientEquipment(
                 UUID.randomUUID(),
@@ -80,6 +92,8 @@ public class ClientEquipment extends AggregateRoot {
                 normalizar(numeroInventario),
                 validarFecha(fechaCompra),
                 validarValor(valorCompra),
+                normalizar(codigoInterno),
+                normalizar(proveedor),
                 true);
 
         unidad.registerEvent(new ClientEquipmentRegisteredEvent(
@@ -96,10 +110,12 @@ public class ClientEquipment extends AggregateRoot {
             String numeroInventario,
             LocalDate fechaCompra,
             Long valorCompra,
+            String codigoInterno,
+            String proveedor,
             boolean estadoActivo) {
 
         return new ClientEquipment(id, serie, idModelo, idAreaServicio, numeroInventario,
-                fechaCompra, valorCompra, estadoActivo);
+                fechaCompra, valorCompra, codigoInterno, proveedor, estadoActivo);
     }
 
     /** Traslada la unidad a otra área de servicio. */
@@ -116,7 +132,12 @@ public class ClientEquipment extends AggregateRoot {
     }
 
     /** Corrige los datos de compra y el inventario. Un valor nulo deja el campo como está. */
-    public void update(String numeroInventario, LocalDate fechaCompra, Long valorCompra) {
+    public void update(
+            String numeroInventario,
+            LocalDate fechaCompra,
+            Long valorCompra,
+            String codigoInterno,
+            String proveedor) {
         boolean cambio = false;
 
         if (numeroInventario != null
@@ -130,6 +151,14 @@ public class ClientEquipment extends AggregateRoot {
         }
         if (valorCompra != null && !valorCompra.equals(this.valorCompra)) {
             this.valorCompra = validarValor(valorCompra);
+            cambio = true;
+        }
+        if (codigoInterno != null && !Objects.equals(normalizar(codigoInterno), this.codigoInterno)) {
+            this.codigoInterno = normalizar(codigoInterno);
+            cambio = true;
+        }
+        if (proveedor != null && !Objects.equals(normalizar(proveedor), this.proveedor)) {
+            this.proveedor = normalizar(proveedor);
             cambio = true;
         }
 

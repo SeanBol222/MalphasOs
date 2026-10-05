@@ -41,6 +41,12 @@ public class ClientEquipmentEntity {
     @Column(name = "v_valor_compra")
     private Long valorCompra;
 
+    @Column(name = "n_codigo_interno")
+    private String codigoInterno;
+
+    @Column(name = "n_proveedor")
+    private String proveedor;
+
     @Column(name = "k_id_modelo", nullable = false)
     private UUID idModelo;
 

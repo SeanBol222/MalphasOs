@@ -71,8 +71,8 @@ public class EquipmentTypeRestAdapter {
                         request.definicionTecnica(),
                         request.recomendacionesCuidado(),
                         request.tecnologiaPredominante(),
-                        request.voltaje(),
-                        request.amperaje(),
+                        request.uso(),
+                        request.limpiezaCotidiana(),
                         verificacionesDe(request.verificaciones()),
                         request.valorUnitarioMantenimiento())));
 
@@ -92,8 +92,8 @@ public class EquipmentTypeRestAdapter {
                 request.definicionTecnica(),
                 request.recomendacionesCuidado(),
                 request.tecnologiaPredominante(),
-                request.voltaje(),
-                request.amperaje(),
+                request.uso(),
+                request.limpiezaCotidiana(),
                 request.valorUnitarioMantenimiento())));
     }
 

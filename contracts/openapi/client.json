@@ -34,6 +34,12 @@
       },
       "ClientEquipmentRegisterRequest" : {
         "properties" : {
+          "codigoInterno" : {
+            "description" : "El codigo que el cliente le pone a su maquina",
+            "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
           "fechaCompra" : {
             "format" : "date",
             "type" : "string"
@@ -44,6 +50,12 @@
           },
           "numeroInventario" : {
             "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "proveedor" : {
+            "description" : "Quien vendio esta maquina",
+            "maxLength" : 100,
             "minLength" : 0,
             "type" : "string"
           },
@@ -62,6 +74,9 @@
       },
       "ClientEquipmentResponse" : {
         "properties" : {
+          "codigoInterno" : {
+            "type" : "string"
+          },
           "estadoActivo" : {
             "type" : "boolean"
           },
@@ -82,6 +97,9 @@
             "type" : "string"
           },
           "numeroInventario" : {
+            "type" : "string"
+          },
+          "proveedor" : {
             "type" : "string"
           },
           "serie" : {

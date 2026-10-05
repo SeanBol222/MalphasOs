@@ -1,7 +1,6 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.model.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
@@ -23,8 +22,8 @@ public record EquipmentTypeResponse(
         String definicionTecnica,
         String recomendacionesCuidado,
         String tecnologiaPredominante,
-        Integer voltaje,
-        BigDecimal amperaje,
+        String uso,
+        String limpiezaCotidiana,
         boolean verificable,
         List<TypeVerificationResponse> verificaciones,
         long valorUnitarioMantenimiento,

@@ -5,7 +5,6 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.events.EquipmentTy
 import com.malphasos.malphasos.equipment.domain.equipmentType.events.EquipmentTypePayload;
 import com.malphasos.malphasos.equipment.domain.equipmentType.events.EquipmentTypeUpdatedEvent;
 import com.malphasos.malphasos.shared.domain.events.AggregateRoot;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -56,11 +55,14 @@ public class EquipmentType extends AggregateRoot {
 
     private String tecnologiaPredominante;
 
-    /** Voltaje nominal, opcional. */
-    private Integer voltaje;
+    /**
+     * Para qué se usa esta clase de equipo, opcional. Entró el 2026-10-05 con la hoja de vida impresa,
+     * en el lugar que dejaron voltaje y amperaje al bajar al modelo —ver {@code TechnicalSheet}—.
+     */
+    private String uso;
 
-    /** Amperaje nominal, opcional. */
-    private BigDecimal amperaje;
+    /** Cómo se limpia al terminar la jornada, opcional. Como las recomendaciones, es de toda la clase. */
+    private String limpiezaCotidiana;
 
     /**
      * Qué se verifica en este tipo de equipo, retiradas incluidas.
@@ -80,8 +82,8 @@ public class EquipmentType extends AggregateRoot {
             String definicionTecnica,
             String recomendacionesCuidado,
             String tecnologiaPredominante,
-            Integer voltaje,
-            BigDecimal amperaje,
+            String uso,
+            String limpiezaCotidiana,
             List<TypeVerification> verificaciones,
             long valorUnitarioMantenimiento,
             boolean estadoActivo) {
@@ -91,8 +93,8 @@ public class EquipmentType extends AggregateRoot {
         this.definicionTecnica = definicionTecnica;
         this.recomendacionesCuidado = recomendacionesCuidado;
         this.tecnologiaPredominante = tecnologiaPredominante;
-        this.voltaje = voltaje;
-        this.amperaje = amperaje;
+        this.uso = uso;
+        this.limpiezaCotidiana = limpiezaCotidiana;
         this.valorUnitarioMantenimiento = valorUnitarioMantenimiento;
         this.estadoActivo = estadoActivo;
 
@@ -106,8 +108,8 @@ public class EquipmentType extends AggregateRoot {
             String definicionTecnica,
             String recomendacionesCuidado,
             String tecnologiaPredominante,
-            Integer voltaje,
-            BigDecimal amperaje,
+            String uso,
+            String limpiezaCotidiana,
             List<TypeVerification> verificaciones,
             long valorUnitarioMantenimiento) {
 
@@ -119,8 +121,8 @@ public class EquipmentType extends AggregateRoot {
                 exigirTexto(definicionTecnica, "definicion tecnica"),
                 exigirTexto(recomendacionesCuidado, "recomendaciones de cuidado"),
                 exigirTexto(tecnologiaPredominante, "tecnologia predominante"),
-                validarVoltaje(voltaje),
-                validarAmperaje(amperaje),
+                opcional(uso),
+                opcional(limpiezaCotidiana),
                 declaradas,
                 validarValor(valorUnitarioMantenimiento),
                 true);
@@ -137,8 +139,8 @@ public class EquipmentType extends AggregateRoot {
             String definicionTecnica,
             String recomendacionesCuidado,
             String tecnologiaPredominante,
-            Integer voltaje,
-            BigDecimal amperaje,
+            String uso,
+            String limpiezaCotidiana,
             List<TypeVerification> verificaciones,
             long valorUnitarioMantenimiento,
             boolean estadoActivo) {
@@ -146,7 +148,7 @@ public class EquipmentType extends AggregateRoot {
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
         return new EquipmentType(id, nombre, definicionTecnica, recomendacionesCuidado,
-                tecnologiaPredominante, voltaje, amperaje, verificaciones,
+                tecnologiaPredominante, uso, limpiezaCotidiana, verificaciones,
                 valorUnitarioMantenimiento, estadoActivo);
     }
 
@@ -184,14 +186,17 @@ public class EquipmentType extends AggregateRoot {
         return verificacionesActivas().stream().mapToInt(TypeVerification::lecturasEsperadas).sum();
     }
 
-    /** Cambia las características. Un valor nulo deja el campo como está. */
+    /**
+     * Cambia las características. Un valor nulo deja el campo como está; en los opcionales, un texto en
+     * blanco lo vacía.
+     */
     public void update(
             String nombre,
             String definicionTecnica,
             String recomendacionesCuidado,
             String tecnologiaPredominante,
-            Integer voltaje,
-            BigDecimal amperaje,
+            String uso,
+            String limpiezaCotidiana,
             Long valorUnitarioMantenimiento) {
 
         boolean cambio = false;
@@ -212,12 +217,13 @@ public class EquipmentType extends AggregateRoot {
             this.tecnologiaPredominante = exigirTexto(tecnologiaPredominante, "tecnologia predominante");
             cambio = true;
         }
-        if (voltaje != null) {
-            this.voltaje = validarVoltaje(voltaje);
+        if (uso != null && !java.util.Objects.equals(opcional(uso), this.uso)) {
+            this.uso = opcional(uso);
             cambio = true;
         }
-        if (amperaje != null) {
-            this.amperaje = validarAmperaje(amperaje);
+        if (limpiezaCotidiana != null
+                && !java.util.Objects.equals(opcional(limpiezaCotidiana), this.limpiezaCotidiana)) {
+            this.limpiezaCotidiana = opcional(limpiezaCotidiana);
             cambio = true;
         }
         if (valorUnitarioMantenimiento != null) {
@@ -328,20 +334,9 @@ public class EquipmentType extends AggregateRoot {
         return valor.trim();
     }
 
-    private static Integer validarVoltaje(Integer voltaje) {
-        if (voltaje != null && voltaje <= 0) {
-            throw new IllegalArgumentException("El voltaje es positivo, y se recibio " + voltaje);
-        }
-
-        return voltaje;
-    }
-
-    private static BigDecimal validarAmperaje(BigDecimal amperaje) {
-        if (amperaje != null && amperaje.signum() <= 0) {
-            throw new IllegalArgumentException("El amperaje es positivo, y se recibio " + amperaje);
-        }
-
-        return amperaje;
+    /** Un texto opcional en blanco es lo mismo que no tenerlo. */
+    private static String opcional(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
     private static long validarValor(long valor) {

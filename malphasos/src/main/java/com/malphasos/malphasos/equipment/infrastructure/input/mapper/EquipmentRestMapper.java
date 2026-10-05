@@ -5,7 +5,11 @@ import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.manufacturer.Manufacturer;
+import com.malphasos.malphasos.equipment.application.services.model.commands.TechnicalSheetCommand;
 import com.malphasos.malphasos.equipment.domain.model.Model;
+import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.request.TechnicalSheetRequest;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.TechnicalSheetResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.BrandResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ClientEquipmentResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentResponse;
@@ -55,8 +59,8 @@ public class EquipmentRestMapper {
                 .definicionTecnica(tipo.getDefinicionTecnica())
                 .recomendacionesCuidado(tipo.getRecomendacionesCuidado())
                 .tecnologiaPredominante(tipo.getTecnologiaPredominante())
-                .voltaje(tipo.getVoltaje())
-                .amperaje(tipo.getAmperaje())
+                .uso(tipo.getUso())
+                .limpiezaCotidiana(tipo.getLimpiezaCotidiana())
                 .verificable(tipo.isVerificable())
                 // Solo las activas, y dentro de cada una solo sus puntos activos: lo retirado se guarda
                 // por los reportes que se hicieron con ello, y devolverlo lo pondria a competir con lo
@@ -119,7 +123,21 @@ public class EquipmentRestMapper {
 
     public ModelResponse toResponse(Model modelo) {
         return new ModelResponse(modelo.getId(), modelo.getNombre(), modelo.getInvima(),
-                modelo.getIdFabricante(), modelo.getIdEquipo(), modelo.isEstadoActivo());
+                modelo.getIdFabricante(), modelo.getIdEquipo(), toResponse(modelo.getFichaTecnica()),
+                modelo.isEstadoActivo());
+    }
+
+    public TechnicalSheetResponse toResponse(TechnicalSheet ficha) {
+        return new TechnicalSheetResponse(ficha.riesgo(), ficha.caracteristicas(), ficha.alimentacion(),
+                ficha.voltaje(), ficha.potencia(), ficha.amperaje(), ficha.frecuencia());
+    }
+
+    /** Lo que llega por HTTP, sin validar todavia: lo valida el dominio al construir la ficha. */
+    public TechnicalSheetCommand toCommand(TechnicalSheetRequest ficha) {
+        return ficha == null
+                ? null
+                : new TechnicalSheetCommand(ficha.riesgo(), ficha.caracteristicas(), ficha.alimentacion(),
+                        ficha.voltaje(), ficha.potencia(), ficha.amperaje(), ficha.frecuencia());
     }
 
     public List<ModelResponse> toModelList(List<Model> modelos) {
@@ -133,6 +151,8 @@ public class EquipmentRestMapper {
                 .numeroInventario(unidad.getNumeroInventario())
                 .fechaCompra(unidad.getFechaCompra())
                 .valorCompra(unidad.getValorCompra())
+                .codigoInterno(unidad.getCodigoInterno())
+                .proveedor(unidad.getProveedor())
                 .idModelo(unidad.getIdModelo())
                 .idAreaServicio(unidad.getIdAreaServicio())
                 .estadoActivo(unidad.isEstadoActivo())

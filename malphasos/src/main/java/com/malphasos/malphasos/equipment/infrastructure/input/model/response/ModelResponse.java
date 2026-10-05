@@ -12,5 +12,7 @@ public record ModelResponse(
         String invima,
         UUID idFabricante,
         UUID idEquipo,
+        @Schema(description = "La ficha tecnica; sus campos son nulos mientras no se conozcan")
+        TechnicalSheetResponse fichaTecnica,
         boolean estadoActivo) {
 }

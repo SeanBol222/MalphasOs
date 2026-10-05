@@ -12,6 +12,7 @@ import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoun
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
+import com.malphasos.malphasos.equipment.domain.model.RiskClass;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
@@ -316,6 +317,46 @@ class InterventionRecordingIntegrationTest {
         assertThat(hoja.fabricante().nombre()).isNotBlank();
 
         assertThat(hoja.servicioTecnico()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("la hoja de vida trae la ficha del modelo, el uso del tipo y el codigo y proveedor de la unidad")
+    void laFichaDelModelo() {
+        // Desde V15 voltaje y amperaje salen del modelo y no del tipo. Esta prueba existe porque una
+        // mutacion que devolvia la ficha vacia sobrevivio: nada miraba de donde salia.
+        Contexto contexto = unBorrador("PREVENTIVO");
+        jdbcTemplate.update(
+                """
+                UPDATE modelo SET n_clase_riesgo = 'IIA', i_voltaje = 110, d_amperaje = 2.5
+                WHERE k_id_modelo = (SELECT k_id_modelo FROM equipo_cliente WHERE k_id_equipo_cliente = ?)
+                """,
+                contexto.equipo());
+        jdbcTemplate.update(
+                """
+                UPDATE tipo_equipo SET t_uso = 'Pesaje de pacientes'
+                WHERE k_id_tipo_equipo = (
+                    SELECT e.k_id_tipo_equipo FROM equipo_cliente u
+                    JOIN modelo m ON m.k_id_modelo = u.k_id_modelo
+                    JOIN equipo e ON e.k_id_equipo = m.k_id_equipo
+                    WHERE u.k_id_equipo_cliente = ?)
+                """,
+                contexto.equipo());
+
+        jdbcTemplate.update(
+                """
+                UPDATE equipo_cliente SET n_codigo_interno = 'BAL-07', n_proveedor = 'Distribuidora Medica'
+                WHERE k_id_equipo_cliente = ?
+                """,
+                contexto.equipo());
+
+        LifeSheet hoja = lifeSheetServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted());
+
+        assertThat(hoja.identificacion().codigoInterno()).isEqualTo("BAL-07");
+        assertThat(hoja.identificacion().proveedor()).isEqualTo("Distribuidora Medica");
+        assertThat(hoja.tecnica().fichaTecnica().riesgo()).isEqualTo(RiskClass.IIA);
+        assertThat(hoja.tecnica().fichaTecnica().voltaje()).isEqualTo(110);
+        assertThat(hoja.tecnica().fichaTecnica().amperaje()).isEqualByComparingTo("2.50");
+        assertThat(hoja.tecnica().uso()).isEqualTo("Pesaje de pacientes");
     }
 
     @Test

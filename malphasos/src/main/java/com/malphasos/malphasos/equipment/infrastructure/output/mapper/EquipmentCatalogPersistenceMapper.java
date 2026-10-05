@@ -73,8 +73,8 @@ public class EquipmentCatalogPersistenceMapper {
                 entity.getDefinicionTecnica(),
                 entity.getRecomendacionesCuidado(),
                 entity.getTecnologiaPredominante(),
-                entity.getVoltaje(),
-                entity.getAmperaje(),
+                entity.getUso(),
+                entity.getLimpiezaCotidiana(),
                 entity.getVerificaciones().stream().map(this::toDomain).toList(),
                 entity.getValorUnitarioMantenimiento(),
                 entity.isEstadoActivo());
@@ -131,8 +131,8 @@ public class EquipmentCatalogPersistenceMapper {
         entity.setDefinicionTecnica(tipo.getDefinicionTecnica());
         entity.setRecomendacionesCuidado(tipo.getRecomendacionesCuidado());
         entity.setTecnologiaPredominante(tipo.getTecnologiaPredominante());
-        entity.setVoltaje(tipo.getVoltaje());
-        entity.setAmperaje(tipo.getAmperaje());
+        entity.setUso(tipo.getUso());
+        entity.setLimpiezaCotidiana(tipo.getLimpiezaCotidiana());
         entity.setValorUnitarioMantenimiento(tipo.getValorUnitarioMantenimiento());
         entity.setEstadoActivo(tipo.isEstadoActivo());
 

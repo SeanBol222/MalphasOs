@@ -26,6 +26,10 @@ import lombok.Getter;
  * <p>El registro INVIMA sí puede faltar y sí puede cambiar: se tramita después de dar de alta el
  * modelo, y se corrige si llega mal. <b>El nombre también se corrige</b> —una errata es una errata—
  * pero por su propia operación, igual que una marca se renombra.
+ *
+ * <p><b>Desde el 2026-10-05 lleva su {@link TechnicalSheet}</b>: la clase de riesgo, las
+ * características y los datos eléctricos que la hoja de vida imprime. Voltaje y amperaje bajaron aquí
+ * desde el tipo de equipo, donde estaban por herencia del original.
  */
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -44,6 +48,9 @@ public class Model extends AggregateRoot {
 
     private final UUID idEquipo;
 
+    /** Nunca nula: un modelo sin ficha tiene la ficha vacía. */
+    private TechnicalSheet fichaTecnica;
+
     private boolean estadoActivo;
 
     private Model(
@@ -52,6 +59,7 @@ public class Model extends AggregateRoot {
             String invima,
             UUID idFabricante,
             UUID idEquipo,
+            TechnicalSheet fichaTecnica,
             boolean estadoActivo) {
 
         this.id = id;
@@ -59,16 +67,25 @@ public class Model extends AggregateRoot {
         this.invima = invima;
         this.idFabricante = idFabricante;
         this.idEquipo = idEquipo;
+        this.fichaTecnica = fichaTecnica == null ? TechnicalSheet.EMPTY : fichaTecnica;
         this.estadoActivo = estadoActivo;
     }
 
+    /** Un modelo del que solo se sabe el nombre: la ficha se llena cuando alguien lea la placa. */
     public static Model create(String nombre, String invima, UUID idFabricante, UUID idEquipo) {
+        return create(nombre, invima, idFabricante, idEquipo, TechnicalSheet.EMPTY);
+    }
+
+    public static Model create(
+            String nombre, String invima, UUID idFabricante, UUID idEquipo, TechnicalSheet fichaTecnica) {
+
         Model modelo = new Model(
                 UUID.randomUUID(),
                 exigirNombre(nombre),
                 normalizar(invima),
                 exigir(idFabricante, "fabricante"),
                 exigir(idEquipo, "equipo"),
+                fichaTecnica,
                 true);
 
         modelo.registerEvent(new ModelCreatedEvent(
@@ -83,11 +100,12 @@ public class Model extends AggregateRoot {
             String invima,
             UUID idFabricante,
             UUID idEquipo,
+            TechnicalSheet fichaTecnica,
             boolean estadoActivo) {
 
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple
         // una regla nueva tiene que poder cargarse para poder corregirla.
-        return new Model(id, nombre, invima, idFabricante, idEquipo, estadoActivo);
+        return new Model(id, nombre, invima, idFabricante, idEquipo, fichaTecnica, estadoActivo);
     }
 
     /** Corrige el nombre. No hace nada si es el que ya tenía. */
@@ -112,6 +130,24 @@ public class Model extends AggregateRoot {
         }
 
         this.invima = normalizado;
+        registerEvent(new ModelUpdatedEvent(metadataFor(ModelUpdatedEvent.TYPE), payload()));
+    }
+
+    /**
+     * Reemplaza la ficha técnica entera: lo que no venga queda vacío. No hace nada si es la misma.
+     *
+     * <p>Entera y no campo a campo porque quien la corrige tiene la placa delante y la lee completa,
+     * y porque así «vaciar un dato» tiene una forma de decirse.
+     */
+    public void describe(TechnicalSheet fichaTecnica) {
+        TechnicalSheet nueva = fichaTecnica == null ? TechnicalSheet.EMPTY : fichaTecnica;
+
+        if (nueva.equals(this.fichaTecnica)) {
+            // Un cambio que no cambia nada no emite evento.
+            return;
+        }
+
+        this.fichaTecnica = nueva;
         registerEvent(new ModelUpdatedEvent(metadataFor(ModelUpdatedEvent.TYPE), payload()));
     }
 

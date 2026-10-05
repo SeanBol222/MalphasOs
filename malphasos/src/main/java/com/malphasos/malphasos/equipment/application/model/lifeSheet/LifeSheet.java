@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.application.model.lifeSheet;
 
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
+import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +34,8 @@ public record LifeSheet(
             UUID idEquipoCliente,
             String serie,
             String numeroInventario,
+            String codigoInterno,
+            String proveedor,
             LocalDate fechaCompra,
             Long valorCompra,
             String cliente,
@@ -53,11 +56,12 @@ public record LifeSheet(
             String definicionTecnica,
             String tecnologiaPredominante,
             String recomendacionesCuidado,
-            Integer voltaje,
-            java.math.BigDecimal amperaje,
+            String uso,
+            String limpiezaCotidiana,
             String marca,
             String modelo,
-            String registroInvima) {
+            String registroInvima,
+            TechnicalSheet fichaTecnica) {
     }
 
     /** Quién lo fabricó y dónde. */

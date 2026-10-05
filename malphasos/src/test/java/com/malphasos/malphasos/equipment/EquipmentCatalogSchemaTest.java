@@ -68,16 +68,16 @@ class EquipmentCatalogSchemaTest {
      * Un tipo de equipo. <b>Ya no recibe modalidad ni verificable</b>: las tres columnas bajaron a
      * {@code verificacion_tipo_equipo} en {@code V10}, y «se verifica» es «tiene filas allí».
      */
-    private UUID insertType(BigDecimal amperaje) {
+    private UUID insertType() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
                 INSERT INTO tipo_equipo (k_id_tipo_equipo, n_nombre_tipo_equipo, t_definicion_tecnica,
                                          t_recomendaciones_cuidado, t_tecnologia_predominante,
-                                         d_amperaje, m_valor_unitario_mantenimiento)
-                VALUES (?, ?, 'Definicion', 'Cuidados', 'Electronica', ?, 150000)
+                                         m_valor_unitario_mantenimiento)
+                VALUES (?, ?, 'Definicion', 'Cuidados', 'Electronica', 150000)
                 """,
-                id, "Tipo " + unico(), amperaje);
+                id, "Tipo " + unico());
 
         return id;
     }
@@ -202,7 +202,7 @@ class EquipmentCatalogSchemaTest {
     void unidadDeOtraMagnitud() {
         // Es la regla que el esquema SI puede expresar, y la expresa: la foranea apunta al par
         // (magnitud, unidad) a la vez, de modo que %HR para temperatura es imposible de escribir.
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
 
         assertThatThrownBy(() -> jdbcTemplate.update(
                         """
@@ -220,7 +220,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("un tipo no declara dos veces la misma magnitud, pero una retirada no estorba")
     void magnitudUnicaPorTipo() {
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
         insertVerification(tipo, "presion", "mmHg", "patron_constante", 3);
 
         assertThatThrownBy(() -> insertVerification(tipo, "presion", "kPa", "equipo_constante", 1))
@@ -237,7 +237,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("dos magnitudes distintas en el mismo tipo si valen: es el termohigrometro")
     void dosMagnitudesEnElMismoTipo() {
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
         insertVerification(tipo, "temperatura", "°C", "patron_constante", 3);
 
         assertThatCode(() -> insertVerification(
@@ -259,15 +259,18 @@ class EquipmentCatalogSchemaTest {
     @DisplayName("el amperaje admite decimales y valores por encima de 99")
     void amperajeConDecimales() {
         // El original lo declaraba numeric(2): maximo 99 y sin decimales, de modo que 2.5 A se
-        // redondeaba a 3.
-        UUID tipo = insertType(new BigDecimal("2.50"));
+        // redondeaba a 3. Desde V15 vive en el modelo y no en el tipo, con la misma precision.
+        UUID modelo = UUID.randomUUID();
+        jdbcTemplate.update(INSERT_MODELO, modelo, "GS14", null, insertManufacturerRow(),
+                insertEquipment(insertType(), insertBrand()));
 
+        jdbcTemplate.update("UPDATE modelo SET d_amperaje = 2.50 WHERE k_id_modelo = ?", modelo);
         assertThat(jdbcTemplate.queryForObject(
-                        "SELECT d_amperaje FROM tipo_equipo WHERE k_id_tipo_equipo = ?",
-                        BigDecimal.class, tipo))
+                        "SELECT d_amperaje FROM modelo WHERE k_id_modelo = ?", BigDecimal.class, modelo))
                 .isEqualByComparingTo("2.50");
 
-        assertThatCode(() -> insertType(new BigDecimal("120.75")))
+        assertThatCode(() -> jdbcTemplate.update(
+                        "UPDATE modelo SET d_amperaje = 120.75 WHERE k_id_modelo = ?", modelo))
                 .doesNotThrowAnyException();
     }
 
@@ -276,7 +279,7 @@ class EquipmentCatalogSchemaTest {
     void modalidadObligatoriaYDelCatalogo() {
         // Antes la modalidad del TIPO podia ser nula y significaba 'no se verifica'. Ahora eso se dice
         // con la ausencia de filas, y una verificacion sin modalidad no tiene sentido.
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
 
         assertThatThrownBy(() -> insertVerification(tipo, "presion", "mmHg", null, 3))
                 .describedAs("sin modalidad")
@@ -304,7 +307,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("la misma marca no fabrica dos veces el mismo tipo de equipo")
     void asociacionUnica() {
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
         UUID marca = insertBrand();
         insertEquipment(tipo, marca);
 
@@ -316,7 +319,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("un modelo necesita fabricante y equipo")
     void modeloNecesitaSusReferencias() {
-        UUID equipo = insertEquipment(insertType(null), insertBrand());
+        UUID equipo = insertEquipment(insertType(), insertBrand());
 
         assertThatThrownBy(() -> jdbcTemplate.update(
                         "INSERT INTO modelo (k_id_modelo, n_nombre_modelo, k_id_fabricante,"
@@ -333,7 +336,7 @@ class EquipmentCatalogSchemaTest {
                 "INSERT INTO fabricante (k_id_fabricante, n_nombre_fabricante) VALUES (?, ?)",
                 fabricante, "Fabricante " + unico());
 
-        UUID equipo = insertEquipment(insertType(null), insertBrand());
+        UUID equipo = insertEquipment(insertType(), insertBrand());
         String invima = "INVIMA-" + unico();
 
         jdbcTemplate.update(
@@ -359,7 +362,7 @@ class EquipmentCatalogSchemaTest {
         // Hasta V11 lo unico legible que un modelo llevaba era su INVIMA, que es un numero de tramite
         // y ademas anulable: cabia un modelo sin nada que escribir en una fila.
         UUID fabricante = insertManufacturerRow();
-        UUID equipo = insertEquipment(insertType(null), insertBrand());
+        UUID equipo = insertEquipment(insertType(), insertBrand());
 
         assertThatThrownBy(() -> jdbcTemplate.update(
                         INSERT_MODELO, UUID.randomUUID(), null, null, fabricante, equipo))
@@ -375,7 +378,7 @@ class EquipmentCatalogSchemaTest {
     @DisplayName("el nombre no se repite en la misma marca, pero si en otra, y un retirado no estorba")
     void nombreUnicoPorEquipo() {
         UUID fabricante = insertManufacturerRow();
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
         UUID deLenovo = insertEquipment(tipo, insertBrand());
         UUID retirado = UUID.randomUUID();
 
@@ -420,7 +423,7 @@ class EquipmentCatalogSchemaTest {
     void modalidadConstanteExigeCantidad() {
         // Sin esto cabe una verificacion que dice comparar contra un patron constante sin decir
         // cuantas lecturas se toman, y el reporte no se puede llenar.
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
 
         assertThatThrownBy(() -> insertVerification(tipo, "presion", "mmHg", "patron_constante", null))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -429,7 +432,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("la modalidad variable no admite cantidad: la decide el ingeniero en campo")
     void modalidadVariableProhibeCantidad() {
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
 
         assertThatThrownBy(() -> insertVerification(
                         tipo, "presion", "mmHg", "patron_equipo_variable", 5))
@@ -439,7 +442,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("la cantidad de datos va de 1 a 100")
     void cantidadAcotada() {
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
 
         for (int cantidad : new int[] {0, 101}) {
             assertThatThrownBy(() -> insertVerification(
@@ -453,7 +456,7 @@ class EquipmentCatalogSchemaTest {
     @DisplayName("un punto de verificacion admite valores negativos: un congelador se verifica a -20 grados")
     void puntoAdmiteNegativos() {
         // Un CHECK de positividad aqui habria dejado fuera media cadena de frio.
-        UUID verificacion = unaVerificacionConstante(insertType(null));
+        UUID verificacion = unaVerificacionConstante(insertType());
 
         assertThatCode(() -> insertPoint(verificacion, "-20.0000", true)).doesNotThrowAnyException();
     }
@@ -485,7 +488,7 @@ class EquipmentCatalogSchemaTest {
     @Test
     @DisplayName("dos puntos activos iguales son el mismo dos veces, pero uno retirado no estorba")
     void puntoActivoUnico() {
-        UUID verificacion = unaVerificacionConstante(insertType(null));
+        UUID verificacion = unaVerificacionConstante(insertType());
         insertPoint(verificacion, "100.0000", true);
 
         assertThatThrownBy(() -> insertPoint(verificacion, "100.0000", true))
@@ -502,7 +505,7 @@ class EquipmentCatalogSchemaTest {
     void puntoDistinguePorVerificacion() {
         // Antes se distinguian por la unidad escrita a mano en el punto; ahora por su verificacion,
         // que es lo que hace que 40 grados y 40 por ciento no choquen.
-        UUID tipo = insertType(null);
+        UUID tipo = insertType();
         UUID dePresion = insertVerification(tipo, "presion", "mmHg", "patron_constante", 3);
         UUID deTemperatura = insertVerification(tipo, "temperatura", "°C", "equipo_constante", 1);
         insertPoint(dePresion, "100.0000", true);

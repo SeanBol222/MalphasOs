@@ -4,11 +4,13 @@ import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePor
 import com.malphasos.malphasos.equipment.application.services.model.commands.ChangeModelInvimaCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.CreateModelCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.DeactivateModelCommand;
+import com.malphasos.malphasos.equipment.application.services.model.commands.DescribeModelCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.RenameModelCommand;
 import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.InvimaRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.NamedRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.ModelCreateRequest;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.request.TechnicalSheetRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ModelResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -63,7 +65,8 @@ public class ModelRestAdapter {
     @PostMapping
     public ResponseEntity<ModelResponse> create(@Valid @RequestBody ModelCreateRequest request) {
         ModelResponse creado = mapper.toResponse(modelServicePort.create(new CreateModelCommand(
-                request.nombre(), request.invima(), request.idFabricante(), request.idEquipo())));
+                request.nombre(), request.invima(), request.idFabricante(), request.idEquipo(),
+                mapper.toCommand(request.fichaTecnica()))));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
@@ -84,6 +87,16 @@ public class ModelRestAdapter {
     public ModelResponse changeInvima(@PathVariable UUID id, @Valid @RequestBody InvimaRequest request) {
         return mapper.toResponse(
                 modelServicePort.changeInvima(new ChangeModelInvimaCommand(id, request.invima())));
+    }
+
+    @Operation(summary = "Corregir la ficha tecnica",
+            description = "Se manda entera: lo que no venga queda vacio. Ruta propia, como el INVIMA:"
+                    + " quien la llena tiene la placa del equipo delante y la lee completa.")
+    @PreAuthorize("hasAuthority('equipment.write')")
+    @PatchMapping("/{id}/technical-sheet")
+    public ModelResponse describe(@PathVariable UUID id, @Valid @RequestBody TechnicalSheetRequest request) {
+        return mapper.toResponse(
+                modelServicePort.describe(new DescribeModelCommand(id, mapper.toCommand(request))));
     }
 
     @Operation(summary = "Retirar un modelo", description = "No lo borra: lo deja inactivo.")

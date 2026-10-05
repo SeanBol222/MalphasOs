@@ -101,7 +101,7 @@ class WorkOrderServiceTest {
     }
 
     private static ClientEquipment unaUnidad(UUID area, boolean activa) {
-        return ClientEquipment.rehydrate(EQUIPO, "SN-1", UUID.randomUUID(), area, null, null, null,
+        return ClientEquipment.rehydrate(EQUIPO, "SN-1", UUID.randomUUID(), area, null, null, null, null, null,
                 activa);
     }
 

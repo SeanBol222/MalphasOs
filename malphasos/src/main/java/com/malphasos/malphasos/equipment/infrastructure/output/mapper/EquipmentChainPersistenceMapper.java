@@ -3,6 +3,8 @@ package com.malphasos.malphasos.equipment.infrastructure.output.mapper;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.model.Model;
+import com.malphasos.malphasos.equipment.domain.model.RiskClass;
+import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.ClientEquipmentEntity;
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.EquipmentEntity;
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.ModelEntity;
@@ -29,7 +31,7 @@ public class EquipmentChainPersistenceMapper {
 
     public Model toDomain(ModelEntity entity) {
         return Model.rehydrate(entity.getId(), entity.getNombre(), entity.getInvima(),
-                entity.getIdFabricante(), entity.getIdEquipo(), entity.isEstadoActivo());
+                entity.getIdFabricante(), entity.getIdEquipo(), fichaDe(entity), entity.isEstadoActivo());
     }
 
     public List<Model> toModelList(List<ModelEntity> entities) {
@@ -37,8 +39,36 @@ public class EquipmentChainPersistenceMapper {
     }
 
     public ModelEntity toEntity(Model modelo) {
-        return new ModelEntity(modelo.getId(), modelo.getNombre(), modelo.getInvima(),
-                modelo.getIdFabricante(), modelo.getIdEquipo(), modelo.isEstadoActivo());
+        TechnicalSheet ficha = modelo.getFichaTecnica();
+        ModelEntity entity = new ModelEntity();
+
+        entity.setId(modelo.getId());
+        entity.setNombre(modelo.getNombre());
+        entity.setInvima(modelo.getInvima());
+        entity.setIdFabricante(modelo.getIdFabricante());
+        entity.setIdEquipo(modelo.getIdEquipo());
+        entity.setClaseRiesgo(ficha.riesgo() == null ? null : ficha.riesgo().name());
+        entity.setCaracteristicas(ficha.caracteristicas());
+        entity.setAlimentacion(ficha.alimentacion());
+        entity.setVoltaje(ficha.voltaje());
+        entity.setPotencia(ficha.potencia());
+        entity.setAmperaje(ficha.amperaje());
+        entity.setFrecuencia(ficha.frecuencia());
+        entity.setEstadoActivo(modelo.isEstadoActivo());
+
+        return entity;
+    }
+
+    /** Sin pasar por TechnicalSheet.of: leer no valida, igual que rehydrate. */
+    private static TechnicalSheet fichaDe(ModelEntity entity) {
+        return new TechnicalSheet(
+                entity.getClaseRiesgo() == null ? null : RiskClass.valueOf(entity.getClaseRiesgo()),
+                entity.getCaracteristicas(),
+                entity.getAlimentacion(),
+                entity.getVoltaje(),
+                entity.getPotencia(),
+                entity.getAmperaje(),
+                entity.getFrecuencia());
     }
 
     public ClientEquipment toDomain(ClientEquipmentEntity entity) {
@@ -50,6 +80,8 @@ public class EquipmentChainPersistenceMapper {
                 entity.getNumeroInventario(),
                 entity.getFechaCompra(),
                 entity.getValorCompra(),
+                entity.getCodigoInterno(),
+                entity.getProveedor(),
                 entity.isEstadoActivo());
     }
 
@@ -64,6 +96,8 @@ public class EquipmentChainPersistenceMapper {
                 unidad.getNumeroInventario(),
                 unidad.getFechaCompra(),
                 unidad.getValorCompra(),
+                unidad.getCodigoInterno(),
+                unidad.getProveedor(),
                 unidad.getIdModelo(),
                 unidad.getIdAreaServicio(),
                 unidad.isEstadoActivo());

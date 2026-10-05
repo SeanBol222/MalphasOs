@@ -33,6 +33,7 @@ import com.malphasos.malphasos.equipment.domain.exception.BrandNotFoundException
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.model.Model;
+import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.shared.domain.events.DomainEvent;
 import com.malphasos.malphasos.shared.domain.events.Payload;
@@ -177,7 +178,7 @@ class EquipmentChainServiceTest {
 
         private void elModeloEsta(boolean activo) {
             when(modelService.findById(MODELO))
-                    .thenReturn(Model.rehydrate(MODELO, "IdeaPad 3", "INV-1", FABRICANTE, EQUIPO, activo));
+                    .thenReturn(Model.rehydrate(MODELO, "IdeaPad 3", "INV-1", FABRICANTE, EQUIPO, TechnicalSheet.EMPTY, activo));
         }
 
         @Test
@@ -260,7 +261,7 @@ class EquipmentChainServiceTest {
             elAreaEsta(true);
             sonDelMismoCliente(areaActual, AREA, cliente);
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, areaActual, null, null, null, true)));
+                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, true)));
             when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
 
             service().relocate(new RelocateClientEquipmentCommand(id, AREA));
@@ -286,7 +287,7 @@ class EquipmentChainServiceTest {
             // sedes distintas por construccion, al ser UUID generados sin relacion entre si.
             sonDelMismoCliente(areaActual, AREA, cliente);
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, areaActual, null, null, null, true)));
+                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, true)));
             when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
 
             ClientEquipment resultado = service().relocate(new RelocateClientEquipmentCommand(id, AREA));
@@ -305,7 +306,7 @@ class EquipmentChainServiceTest {
             elAreaEsta(true);
             sonDelMismoCliente(AREA, AREA, cliente);
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, AREA, null, null, null, true)));
+                    id, "SN-001", MODELO, AREA, null, null, null, null, null, true)));
             when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
 
             service().relocate(new RelocateClientEquipmentCommand(id, AREA));
@@ -325,7 +326,7 @@ class EquipmentChainServiceTest {
             when(areaService.findOwningClient(AREA)).thenReturn(UUID.randomUUID());
             when(areaService.findOwningClient(areaActual)).thenReturn(UUID.randomUUID());
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, areaActual, null, null, null, true)));
+                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, true)));
 
             assertThatThrownBy(() -> service().relocate(new RelocateClientEquipmentCommand(id, AREA)))
                     .isInstanceOf(CrossClientRelocationException.class);

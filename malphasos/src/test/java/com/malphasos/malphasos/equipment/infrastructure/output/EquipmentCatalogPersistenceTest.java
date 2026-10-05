@@ -90,7 +90,7 @@ class EquipmentCatalogPersistenceTest {
 
     private EquipmentType unTipo(List<TypeVerification> verificaciones) {
         return EquipmentType.create("Tipo " + unico(), "Definicion", "Cuidados", "Electronica",
-                110, new BigDecimal("2.50"), verificaciones, 150_000L);
+                "Pesaje de pacientes", "Paño con alcohol al 70 %", verificaciones, 150_000L);
     }
 
     private TypeVerification enTemperatura(Integer cantidad, String... valores) {
@@ -289,13 +289,15 @@ class EquipmentCatalogPersistenceTest {
     }
 
     @Test
-    @DisplayName("el amperaje conserva sus decimales al ir y volver de la base")
-    void amperajePersiste() {
+    @DisplayName("el uso y la limpieza cotidiana van y vuelven de la base")
+    void usoYLimpiezaPersisten() {
+        // Entraron con V15, en el lugar de voltaje y amperaje, que bajaron al modelo: su ida y vuelta
+        // se prueba ahora en ModelTechnicalSheetPersistenceTest.
         EquipmentType tipo = equipmentTypeAdapter.save(unTipo(List.of()));
 
-        // En el esquema original numeric(2) lo habria redondeado a 3.
-        assertThat(equipmentTypeAdapter.findById(tipo.getId()).orElseThrow().getAmperaje())
-                .isEqualByComparingTo("2.50");
+        EquipmentType leido = equipmentTypeAdapter.findById(tipo.getId()).orElseThrow();
+        assertThat(leido.getUso()).isEqualTo("Pesaje de pacientes");
+        assertThat(leido.getLimpiezaCotidiana()).isEqualTo("Paño con alcohol al 70 %");
     }
 
     @Test

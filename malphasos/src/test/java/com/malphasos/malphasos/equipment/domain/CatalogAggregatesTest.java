@@ -17,6 +17,7 @@ import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
 import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
 import com.malphasos.malphasos.equipment.domain.manufacturer.Manufacturer;
 import com.malphasos.malphasos.equipment.domain.model.Model;
+import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import java.math.BigDecimal;
 import java.util.List;
 import java.time.LocalDate;
@@ -63,7 +64,7 @@ class CatalogAggregatesTest {
                         constante ? List.of(VerificationPoint.of(new BigDecimal("100"))) : List.of()));
 
         return EquipmentType.create("Monitor", "Definicion", "Cuidados", "Electronica",
-                110, new BigDecimal("2.50"), verificaciones, 150_000L);
+                "Pesaje de pacientes", "Paño con alcohol al 70 %", verificaciones, 150_000L);
     }
 
     @Nested
@@ -152,25 +153,32 @@ class CatalogAggregatesTest {
             assertThat(tipo.pullEvents()).isEmpty();
         }
 
+        // Voltaje y amperaje se probaban aqui hasta V15: bajaron al modelo, ver ModelTechnicalSheetTest.
+
         @Test
-        @DisplayName("el amperaje conserva sus decimales")
-        void amperajeConDecimales() {
-            // En el esquema original numeric(2) redondeaba 2.5 a 3.
-            assertThat(unTipo(null).getAmperaje()).isEqualByComparingTo("2.50");
+        @DisplayName("el uso y la limpieza cotidiana son opcionales, y un texto en blanco es no tenerlos")
+        void usoYLimpiezaOpcionales() {
+            EquipmentType tipo = EquipmentType.create("M", "D", "C", "E", "  ", null, List.of(), 1000L);
+
+            assertThat(tipo.getUso()).isNull();
+            assertThat(tipo.getLimpiezaCotidiana()).isNull();
+            assertThat(unTipo(null).getUso()).isEqualTo("Pesaje de pacientes");
         }
 
         @Test
-        @DisplayName("voltaje y amperaje, si vienen, son positivos")
-        void magnitudesPositivas() {
-            assertThatThrownBy(() -> EquipmentType.create("M", "D", "C", "E",
-                            0, null, List.of(), 1000L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("voltaje");
+        @DisplayName("al corregir, un nulo deja el uso como esta y un blanco lo vacia")
+        void corregirUso() {
+            EquipmentType tipo = unTipo(null);
+            tipo.pullEvents();
 
-            assertThatThrownBy(() -> EquipmentType.create("M", "D", "C", "E",
-                            110, new BigDecimal("-1"), List.of(), 1000L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("amperaje");
+            tipo.update(null, null, null, null, null, null, null);
+            assertThat(tipo.getUso()).isEqualTo("Pesaje de pacientes");
+            assertThat(tipo.pullEvents()).isEmpty();
+
+            tipo.update(null, null, null, null, " ", "Paño seco", null);
+            assertThat(tipo.getUso()).isNull();
+            assertThat(tipo.getLimpiezaCotidiana()).isEqualTo("Paño seco");
+            assertThat(tipo.pullEvents()).hasSize(1);
         }
 
         @Test
@@ -587,7 +595,35 @@ class CatalogAggregatesTest {
 
         private ClientEquipment unaUnidad() {
             return ClientEquipment.register("SN-001", MODELO, AREA, "INV-42",
-                    LocalDate.now().minusYears(1), 5_000_000L);
+                    LocalDate.now().minusYears(1), 5_000_000L, null, null);
+        }
+
+        @Test
+        @DisplayName("el codigo interno y el proveedor son opcionales, y un blanco es no tenerlos")
+        void codigoYProveedorOpcionales() {
+            ClientEquipment unidad = ClientEquipment.register("SN-002", MODELO, AREA, null, null, null,
+                    "  BAL-07 ", " ");
+
+            assertThat(unidad.getCodigoInterno()).isEqualTo("BAL-07");
+            assertThat(unidad.getProveedor()).isNull();
+        }
+
+        @Test
+        @DisplayName("corregir el proveedor emite un evento; un nulo lo deja y un blanco lo vacia")
+        void corregirProveedor() {
+            ClientEquipment unidad = unaUnidad();
+            unidad.pullEvents();
+
+            unidad.update(null, null, null, null, "Distribuidora Medica");
+            assertThat(unidad.getProveedor()).isEqualTo("Distribuidora Medica");
+            assertThat(unidad.pullEvents()).hasSize(1);
+
+            unidad.update(null, null, null, null, null);
+            assertThat(unidad.getProveedor()).isEqualTo("Distribuidora Medica");
+            assertThat(unidad.pullEvents()).isEmpty();
+
+            unidad.update(null, null, null, null, " ");
+            assertThat(unidad.getProveedor()).isNull();
         }
 
         @Test
@@ -604,11 +640,11 @@ class CatalogAggregatesTest {
         @Test
         @DisplayName("una unidad sin serie, sin modelo o sin area se rechaza")
         void referenciasObligatorias() {
-            assertThatThrownBy(() -> ClientEquipment.register(" ", MODELO, AREA, null, null, null))
+            assertThatThrownBy(() -> ClientEquipment.register(" ", MODELO, AREA, null, null, null, null, null))
                     .isInstanceOf(IllegalArgumentException.class);
-            assertThatThrownBy(() -> ClientEquipment.register("SN", null, AREA, null, null, null))
+            assertThatThrownBy(() -> ClientEquipment.register("SN", null, AREA, null, null, null, null, null))
                     .isInstanceOf(IllegalArgumentException.class);
-            assertThatThrownBy(() -> ClientEquipment.register("SN", MODELO, null, null, null, null))
+            assertThatThrownBy(() -> ClientEquipment.register("SN", MODELO, null, null, null, null, null, null))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -616,7 +652,7 @@ class CatalogAggregatesTest {
         @DisplayName("un equipo no se compro en el futuro")
         void fechaDeCompraNoFutura() {
             assertThatThrownBy(() -> ClientEquipment.register("SN", MODELO, AREA, null,
-                            LocalDate.now().plusDays(1), null))
+                            LocalDate.now().plusDays(1), null, null, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("futuro");
         }
@@ -675,8 +711,8 @@ class CatalogAggregatesTest {
         assertThat(Brand.rehydrate(id, "Uno", true)).isEqualTo(Brand.rehydrate(id, "Otro", false));
         assertThat(Manufacturer.rehydrate(id, "Uno", null, true).hasPendingEvents()).isFalse();
         assertThat(Equipment.rehydrate(id, TIPO, MARCA, true).hasPendingEvents()).isFalse();
-        assertThat(Model.rehydrate(id, "IdeaPad 3", null, FABRICANTE, EQUIPO, true).hasPendingEvents()).isFalse();
-        assertThat(ClientEquipment.rehydrate(id, "SN", MODELO, AREA, null, null, null, true)
+        assertThat(Model.rehydrate(id, "IdeaPad 3", null, FABRICANTE, EQUIPO, TechnicalSheet.EMPTY, true).hasPendingEvents()).isFalse();
+        assertThat(ClientEquipment.rehydrate(id, "SN", MODELO, AREA, null, null, null, null, null, true)
                         .hasPendingEvents())
                 .isFalse();
     }

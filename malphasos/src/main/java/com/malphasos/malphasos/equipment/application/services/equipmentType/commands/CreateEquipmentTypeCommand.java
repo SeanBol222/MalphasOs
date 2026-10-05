@@ -1,6 +1,5 @@
 package com.malphasos.malphasos.equipment.application.services.equipmentType.commands;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -18,8 +17,8 @@ public record CreateEquipmentTypeCommand(
         String definicionTecnica,
         String recomendacionesCuidado,
         String tecnologiaPredominante,
-        Integer voltaje,
-        BigDecimal amperaje,
+        String uso,
+        String limpiezaCotidiana,
         List<TypeVerificationCommand> verificaciones,
         long valorUnitarioMantenimiento) {
 }
