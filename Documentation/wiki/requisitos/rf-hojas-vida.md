@@ -4,7 +4,7 @@ description: RF-22, 24, 26, 27, Hojas de Vida de los Equipos (ERS 3.2.5). Los cu
 tags: [requisitos, rf, hojas-de-vida, equipos]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2.5"
 estado: vigente
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # 3.2.5. Hojas de Vida de los Equipos (RF-22, 24, 26, 27)
@@ -39,6 +39,17 @@ updated: 2026-10-04
 
 ## No existe una entidad llamada "hoja de vida"
 
+> **Corregido el 2026-10-05.** Esta sección y las dos siguientes describían el estado **anterior al
+> 2026-10-04**, aunque el resumen de arriba ya estaba al día: el cuerpo no se actualizó con él. Desde
+> ese día la hoja de vida **se sirve como un solo recurso**, `GET /v1/api/client-equipments/{id}/life-sheet`,
+> con las cuatro secciones; el historial **existe** (tabla `intervencion`, `V12` a `V14`), y el oyente
+> que lo escribe **no vive** en `equipment/infrastructure/input/listeners/` sino en `report`, porque
+> allí habría creado un ciclo. La tabla de abajo sigue siendo cierta en lo que dice de **dónde vive cada
+> dato**. Y un matiz que nadie había anotado: RF-22 pide el **valor unitario de mantenimiento** entre
+> las características técnicas y **la hoja de vida no lo trae**; el diseño impreso aprobado el
+> 2026-10-05 lo deja fuera a propósito, por ser un precio interno, pendiente de que el usuario lo
+> confirme. Ver `SecondBrain/wiki/malphasos/hoja-de-vida-formato-impreso.md`.
+
 Es la precisión más importante de esta categoría: los datos que RF-22 pide están repartidos por la cadena del catálogo de equipos, y **cada eslabón tiene su propio recurso REST**:
 
 | Sección de la hoja de vida (según el criterio de aceptación) | Dónde vive |
@@ -48,7 +59,7 @@ Es la precisión más importante de esta categoría: los datos que RF-22 pide es
 | Fabricante y país de origen | `/v1/api/manufacturers` |
 | Marca | `/v1/api/brands` |
 | Modelo, incluido su registro INVIMA | `/v1/api/models` |
-| Servicio técnico (historial de intervenciones) | **No existe.** Presupone RF-26 y RF-27, ambos previstos |
+| Servicio técnico (historial de intervenciones) | Tabla `intervencion` desde el 2026-10-04. (Decía «**No existe.** Presupone RF-26 y RF-27, ambos previstos»: cierto hasta ese día) |
 
 Ver [[glosario-dominio]] para el término "equipo" desdoblado en tipo/marca/modelo/unidad, y [[correspondencia-terminologica]] para por qué "hoja de vida" no tiene equivalente de código.
 
@@ -58,7 +69,7 @@ Ver [[glosario-dominio]] para el término "equipo" desdoblado en tipo/marca/mode
 
 **Dos datos no se pueden cambiar, y es intencional**: el número de serie y el modelo de una unidad son inmutables en el agregado `ClientEquipment` — una unidad no se convierte en otra cosa —; y la asociación entre una marca y un tipo de equipo no admite modificación en absoluto, fijada por una prueba, porque cambiarla volvería mentira todos los modelos que cuelgan de ella.
 
-## RF-26 y RF-27: previstos, con el mecanismo de soporte ya construido
+## RF-26 y RF-27: previstos, con el mecanismo de soporte ya construido — **histórico, ver la corrección de arriba**
 
 `equipment/infrastructure/input/listeners/` está creado y vacío — es donde iría el oyente que reaccione al cierre de un reporte. El despachador de eventos de dominio que compartirían todos los módulos (`shared/domain/events`) **sí está construido y en uso** por los agregados existentes; falta el evento del reporte que no existe todavía, no el mecanismo de despacho.
 

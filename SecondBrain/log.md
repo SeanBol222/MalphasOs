@@ -1548,3 +1548,35 @@ se cerraron dos, la de las dos líneas y la del login sin marca, y no entró nin
 **Tocadas**: [[hoja-de-vida]], [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]],
 [[tema-de-keycloak]], [[dominio-equipo-mantenimiento]], [[dockerfile-y-contenedores]],
 [[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]], [[index]] y el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-05] query | el formato impreso de la hoja de vida: del diseño al plan
+
+El usuario pidió replantear la hoja de vida y diseñar **cómo la ve y cómo la imprime**. Se inventarió
+lo que trae hoy contra el formato BB-ING-HV-30 que la empresa usa desde 2019, se hicieron tres
+propuestas en Claude Design con la marca nueva de Bolívar —encontrada en `landingPage/brand-assets/`— y
+el usuario eligió la «tablero de estado», con el escudo del logo centrado detrás, en el naranja de la
+marca y muy transparente. Después pidió **todo lo necesario para producirla en la aplicación**: es
+[[hoja-de-vida-formato-impreso]].
+
+Lo que la nota deja escrito y conviene no perder:
+
+- **Once datos del diseño no existen** en ninguna tabla, y **la mitad del trabajo es decidir dónde
+  viven** —tipo, modelo o unidad—, porque eso decide qué se repite entre máquinas. La propuesta va con
+  su porqué, para discutirla.
+- **Los datos eléctricos están en el tipo por herencia del original**, y son del modelo. Añadir tres
+  más al lado de voltaje y amperaje sin decidirlo dejaría el error más grande.
+- **El historial necesita descripción y responsable**, y la única forma limpia es **congelarlos al
+  cerrar**: `equipment` no puede leer `report` sin el ciclo que ya obligó a poner el oyente en `report`.
+- **El backend no tiene ni librería de PDF ni almacenamiento de archivos.** La impresión se recomienda
+  desde el navegador; el PDF del servidor es la misma decisión que RF-17, y la foto, una decisión de
+  infraestructura por sí sola.
+- **El diseño son dos páginas cerradas y un equipo real puede tener cuarenta servicios**: la nota
+  escribe cómo fluye el historial y qué no resuelve la impresión del navegador —el «página 2 de 3»—.
+
+Once decisiones abiertas, listadas al final de la nota. **Una se cerró en la misma conversación**: los
+cinco datos eléctricos van en el **modelo**, y voltaje y amperaje se mueven desde el tipo. Quedan diez.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]] (nueva), [[hoja-de-vida]], [[hoja-de-ruta-producto]],
+[[index]] y el `CONVENCIONES.md` de la raíz. Y en `Documentation/wiki/`, [[rf-hojas-vida]], cuyo cuerpo
+seguía en el estado anterior al 2026-10-04.
+
