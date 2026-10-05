@@ -10,6 +10,7 @@ import { environment } from '../../../environments/environment';
 import {
   CambioDeEquipoDeCliente,
   EquipoDeCliente,
+  HojaDeVida,
   NuevoEquipoDeCliente,
 } from '../../core/api/tipos';
 import { SedeApi } from '../client/sede-api';
@@ -38,6 +39,13 @@ export class EquipoApi {
 
   static readonly CLAVE = ['equipos-de-cliente'] as const;
 
+  /**
+   * La hoja de vida va fuera de {@link CLAVE} a proposito: su cuarta seccion cambia cuando se cierra un
+   * reporte, que es una escritura de otro modulo. {@code ReporteApi} invalida este prefijo al cerrar,
+   * y no tendria por que conocer las claves de los equipos.
+   */
+  static readonly CLAVE_HOJA_DE_VIDA = ['hoja-de-vida'] as const;
+
   static claveDeArea(idArea: string) {
     return [...EquipoApi.CLAVE, idArea] as const;
   }
@@ -45,15 +53,32 @@ export class EquipoApi {
   /**
    * Todos los equipos de cliente registrados.
    *
-   * <p>Sin filtros, porque el API no los ofrece: es la misma ausencia que el filtrado por dueno. Con
-   * el catalogo de desarrollo no se nota; con miles de equipos habra que pedir paginacion y filtro por
-   * cliente o por area.
+   * <p>Sin filtros de consulta, porque el API no los ofrece. Lo que <b>si</b> filtra desde el
+   * 2026-10-04 es el servidor, por dueno: un representante legal recibe solo los equipos de sus
+   * clientes. (Este comentario decia que la ausencia de filtros era «la misma que el filtrado por
+   * dueno»: cierto hasta ese dia.) Con miles de equipos seguira haciendo falta paginacion.
    */
   listarTodos() {
     return injectQuery(() => ({
       queryKey: EquipoApi.CLAVE,
       queryFn: () =>
         firstValueFrom(this.http.get<EquipoDeCliente[]>(`${this.api}/client-equipments`)),
+    }));
+  }
+
+  /**
+   * La hoja de vida completa de un equipo, en una sola peticion.
+   *
+   * <p>Antes pintarla exigia nueve consultas cruzadas aqui, porque ninguna respuesta del modulo trae
+   * nombres. El servidor la compila ahora, con el alcance ya aplicado.
+   */
+  hojaDeVida(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...EquipoApi.CLAVE_HOJA_DE_VIDA, id()],
+      queryFn: () =>
+        firstValueFrom(
+          this.http.get<HojaDeVida>(`${this.api}/client-equipments/${id()}/life-sheet`),
+        ),
     }));
   }
 

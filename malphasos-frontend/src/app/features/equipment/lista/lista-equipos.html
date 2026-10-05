@@ -57,8 +57,12 @@
               tiene ficha: lo que hay es este listado. Se ve tambien de un equipo de baja, que es
               justo cuando mas interesa saber que se le hizo.
             -->
+            <a class="font-semibold underline" [routerLink]="['/equipos', fila.id, 'hoja-de-vida']">
+              Hoja de vida
+            </a>
+            ·
             <a class="font-semibold underline" [routerLink]="['/equipos', fila.id, 'historial']">
-              Ver
+              Reportes
             </a>
           </td>
         </tr>

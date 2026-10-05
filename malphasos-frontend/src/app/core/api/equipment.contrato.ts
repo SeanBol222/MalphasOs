@@ -86,6 +86,46 @@ export interface paths {
         patch: operations["update_2"];
         trace?: never;
     };
+    "/v1/api/client-equipments/{id}/interventions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historial de intervenciones de un equipo
+         * @description De la mas reciente a la mas antigua. Se alimenta solo al cerrar un reporte.
+         */
+        get: operations["getByEquipment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/client-equipments/{id}/life-sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hoja de vida de un equipo
+         * @description Identificacion, tecnica, fabricante e historial de intervenciones.
+         */
+        get: operations["getLifeSheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/client-equipments/{id}/service-area/{idAreaServicio}": {
         parameters: {
             query?: never;
@@ -499,8 +539,88 @@ export interface components {
             /** Format: date-time */
             timestamp?: string;
         };
+        /** @description Una intervencion registrada en la hoja de vida */
+        InterventionResponse: {
+            /**
+             * Format: date-time
+             * @description Cuando se completo el servicio
+             * @example 2026-10-04T15:30:00
+             */
+            fechaServicio?: string;
+            /**
+             * Format: uuid
+             * @description Identificador de la intervencion
+             */
+            id?: string;
+            /**
+             * Format: uuid
+             * @description Equipo instalado al que se le hizo
+             */
+            idEquipoCliente?: string;
+            /**
+             * Format: uuid
+             * @description Reporte de servicio del que sale, para abrirlo desde el historial
+             */
+            idReporteServicio?: string;
+            /**
+             * @description Estado en que quedo el equipo
+             * @example OPERATIVO
+             */
+            resultado?: string;
+            /**
+             * @description Tipo de servicio prestado
+             * @example PREVENTIVO
+             */
+            tipoServicio?: string;
+        };
         InvimaRequest: {
             invima?: string;
+        };
+        LifeSheetFabricante: {
+            nombre?: string;
+            /** @description Opcional */
+            pais?: string;
+        };
+        LifeSheetIdentificacion: {
+            areaServicio?: string;
+            ciudadSede?: string;
+            cliente?: string;
+            direccionSede?: string;
+            documentoCliente?: string;
+            estadoActivo?: boolean;
+            /** Format: date */
+            fechaCompra?: string;
+            /** Format: uuid */
+            idEquipoCliente?: string;
+            numeroInventario?: string;
+            sede?: string;
+            serie?: string;
+            /** Format: int64 */
+            valorCompra?: number;
+        };
+        /** @description Hoja de vida de un equipo instalado */
+        LifeSheetResponse: {
+            /** @description Quien lo fabrico */
+            fabricante?: components["schemas"]["LifeSheetFabricante"];
+            /** @description Que unidad es y de quien */
+            identificacion?: components["schemas"]["LifeSheetIdentificacion"];
+            /** @description Historial de intervenciones, de la mas reciente a la mas antigua */
+            servicioTecnico?: components["schemas"]["InterventionResponse"][];
+            /** @description Que es el equipo: tipo, marca y modelo */
+            tecnica?: components["schemas"]["LifeSheetTecnica"];
+        };
+        LifeSheetTecnica: {
+            amperaje?: number;
+            definicionTecnica?: string;
+            marca?: string;
+            modelo?: string;
+            recomendacionesCuidado?: string;
+            /** @description Registro INVIMA del modelo, opcional */
+            registroInvima?: string;
+            tecnologiaPredominante?: string;
+            tipoEquipo?: string;
+            /** Format: int32 */
+            voltaje?: number;
         };
         MagnitudeResponse: {
             /**
@@ -1149,6 +1269,88 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getByEquipment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del equipo instalado */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InterventionResponse"][];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getLifeSheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del equipo instalado */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LifeSheetResponse"];
                 };
             };
             /** @description Conflict */

@@ -146,7 +146,19 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('person.read')],
       },
       {
-        // El historial de un equipo: la consulta sobre la que se construira la hoja de vida (RF-26).
+        // La hoja de vida de un equipo: las cuatro secciones de RF-22, de solo lectura. Exige
+        // equipment.read porque es un documento del equipo; su historial sale de reportes cerrados,
+        // pero ya compilado por el servidor.
+        path: 'equipos/:id/hoja-de-vida',
+        loadComponent: () =>
+          import('./features/equipment/hoja-de-vida/hoja-de-vida').then((m) => m.HojaDeVida),
+        canActivate: [requiereAutoridad('equipment.read')],
+      },
+      {
+        // Los reportes de un equipo, incluidos borradores y retirados: lo que se esta haciendo o se
+        // hizo al aparato. No es la hoja de vida -esa solo cuenta mantenimientos cerrados-, y por eso
+        // conviven. (Este comentario decia que era «la consulta sobre la que se construira la hoja de
+        // vida»: la hoja de vida se construyo el 2026-10-04 y no sale de aqui.)
         // Exige report.read porque lo que lista son reportes, no equipos.
         path: 'equipos/:id/historial',
         loadComponent: () =>

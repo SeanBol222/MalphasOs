@@ -152,6 +152,16 @@ export type EquipoDeCliente = equipos['schemas']['ClientEquipmentResponse'];
 export type NuevoEquipoDeCliente = equipos['schemas']['ClientEquipmentRegisterRequest'];
 export type CambioDeEquipoDeCliente = equipos['schemas']['ClientEquipmentUpdateRequest'];
 
+/**
+ * La hoja de vida de un equipo instalado: las cuatro secciones que enumera RF-22 —identificacion,
+ * tecnica, fabricante y servicio tecnico—. Es un documento compilado y de solo lectura: cada dato se
+ * corrige donde vive, no aqui.
+ */
+export type HojaDeVida = equipos['schemas']['LifeSheetResponse'];
+
+/** Una linea del historial: la cuarta seccion de la hoja de vida, que se escribe sola al cerrar un reporte. */
+export type Intervencion = equipos['schemas']['InterventionResponse'];
+
 /** Las tres modalidades de verificacion, en el orden en que el esquema las declara. */
 export const MODALIDADES_DE_VERIFICACION: readonly ModalidadDeVerificacion[] = [
   'PATRON_CONSTANTE',

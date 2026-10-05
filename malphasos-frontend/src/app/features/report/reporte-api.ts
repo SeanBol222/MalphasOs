@@ -158,5 +158,9 @@ export class ReporteApi {
    */
   private invalidar(): void {
     void this.queryClient.invalidateQueries({ queryKey: ReporteApi.CLAVE });
+    // Cerrar un reporte escribe una linea en la hoja de vida de su equipo: el servidor la anota solo,
+    // y aqui hay que enterarse. Se invalida el prefijo entero porque esta clase no sabe de que equipo
+    // es cada reporte sin consultarlo, y una hoja de vida de mas recargada no cuesta nada.
+    void this.queryClient.invalidateQueries({ queryKey: ['hoja-de-vida'] });
   }
 }
