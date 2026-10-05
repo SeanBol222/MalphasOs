@@ -62,7 +62,7 @@ class EquipmentOwnershipFilteringTest {
 
     private ClientEquipment unaUnidad(UUID id, UUID idArea) {
         return ClientEquipment.rehydrate(id, "S-" + id.hashCode(), UUID.randomUUID(), idArea,
-                "INV-1", null, null, true);
+                "INV-1", null, null, null, null, true);
     }
 
     @Test

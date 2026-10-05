@@ -14,6 +14,8 @@ public record ClientEquipmentResponse(
         String numeroInventario,
         LocalDate fechaCompra,
         Long valorCompra,
+        String codigoInterno,
+        String proveedor,
         UUID idModelo,
         UUID idAreaServicio,
         boolean estadoActivo) {

@@ -38,8 +38,8 @@ export class EditarTipo {
     tecnologiaPredominante: ['', [Validators.required, Validators.maxLength(50)]],
     definicionTecnica: ['', [Validators.required, Validators.maxLength(250)]],
     recomendacionesCuidado: ['', [Validators.required, Validators.maxLength(250)]],
-    voltaje: [null as number | null],
-    amperaje: [null as number | null],
+    uso: ['', Validators.maxLength(250)],
+    limpiezaCotidiana: ['', Validators.maxLength(250)],
     valorUnitarioMantenimiento: [null as number | null],
   });
 
@@ -53,8 +53,8 @@ export class EditarTipo {
           tecnologiaPredominante: datos.tecnologiaPredominante ?? '',
           definicionTecnica: datos.definicionTecnica ?? '',
           recomendacionesCuidado: datos.recomendacionesCuidado ?? '',
-          voltaje: datos.voltaje ?? null,
-          amperaje: datos.amperaje ?? null,
+          uso: datos.uso ?? '',
+          limpiezaCotidiana: datos.limpiezaCotidiana ?? '',
           valorUnitarioMantenimiento: datos.valorUnitarioMantenimiento ?? null,
         });
       }
@@ -92,8 +92,10 @@ export class EditarTipo {
           tecnologiaPredominante: datos.tecnologiaPredominante,
           definicionTecnica: datos.definicionTecnica,
           recomendacionesCuidado: datos.recomendacionesCuidado,
-          ...(datos.voltaje === null ? {} : { voltaje: datos.voltaje }),
-          ...(datos.amperaje === null ? {} : { amperaje: datos.amperaje }),
+          // Se mandan siempre, vacios incluidos: para el backend un blanco es «vaciar», y es la unica
+          // forma de quitar un uso que ya no aplica.
+          uso: datos.uso,
+          limpiezaCotidiana: datos.limpiezaCotidiana,
           ...(datos.valorUnitarioMantenimiento === null
             ? {}
             : { valorUnitarioMantenimiento: datos.valorUnitarioMantenimiento }),

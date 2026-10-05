@@ -18,6 +18,8 @@ function hoja(
     responsables?: string[];
     telefonosCliente?: string[];
     correosCliente?: string[];
+    /** Un equipo cuyo modelo, tipo y unidad no tienen llenos los datos opcionales. */
+    sinOpcionales?: boolean;
   } = {},
 ): object {
   return {
@@ -37,17 +39,30 @@ function hoja(
       responsables: cambios.responsables ?? ['Carla Ruiz'],
       telefonosCliente: cambios.telefonosCliente ?? ['3001112233', '6015550000'],
       correosCliente: cambios.correosCliente ?? ['compras@hospital.co'],
+      codigoInterno: cambios.sinOpcionales ? null : 'MON-03',
+      proveedor: cambios.sinOpcionales ? null : 'Distribuidora Médica',
     },
     tecnica: {
       tipoEquipo: 'Monitor de signos vitales',
       definicionTecnica: 'Mide y muestra signos vitales',
       tecnologiaPredominante: 'Electrónica',
       recomendacionesCuidado: 'No exponer a humedad\nLimpiar la pantalla con un paño seco',
-      voltaje: 110,
-      amperaje: 1.5,
+      uso: cambios.sinOpcionales ? null : 'Monitoreo de pacientes',
+      limpiezaCotidiana: cambios.sinOpcionales ? null : 'Paño con alcohol al 70 %',
       marca: 'Mindray',
       modelo: 'iMEC 10',
       registroInvima: null,
+      fichaTecnica: cambios.sinOpcionales
+        ? {}
+        : {
+            riesgo: 'IIA',
+            caracteristicas: 'Pantalla táctil',
+            alimentacion: 'Red eléctrica',
+            voltaje: 110,
+            potencia: 45,
+            amperaje: 1.5,
+            frecuencia: 60,
+          },
     },
     fabricante: { nombre: 'Mindray Medical', pais: 'China' },
     servicioTecnico,
@@ -162,8 +177,32 @@ describe('Hoja de vida de un equipo', () => {
     // inventado en un documento que se firma sería peor que uno vacío.
     await abrir(hoja());
 
+    expect(dato(seccion('identificacion'), 'Registro INVIMA')).toBe('—');
+  });
+
+  it('la ficha del modelo, el uso del tipo y el codigo y proveedor de la unidad salen en su sitio', async () => {
+    // Entraron el 2026-10-05. Voltaje y amperaje salen ahora de la ficha del MODELO, no del tipo.
+    await abrir(hoja());
+
+    expect(dato(estado(), 'Riesgo')).toBe('Clase IIa');
+    expect(dato(seccion('caracteristicas'), 'Uso')).toBe('Monitoreo de pacientes');
+    expect(dato(seccion('caracteristicas'), 'Alimentación')).toBe('Red eléctrica');
+    expect(dato(seccion('caracteristicas'), 'Potencia')).toBe('45 W');
+    expect(dato(seccion('caracteristicas'), 'Frecuencia')).toBe('60 Hz');
+    expect(dato(seccion('caracteristicas'), 'Específicas')).toBe('Pantalla táctil');
+    expect(dato(seccion('identificacion'), 'Placa · Código interno')).toBe('INV-7 · MON-03');
+    expect(seccion('que-es')?.textContent).toContain('Proveedor Distribuidora Médica');
+    expect(seccion('cuidado')?.textContent).toContain('Cada día: Paño con alcohol al 70 %');
+  });
+
+  it('un equipo sin los datos opcionales llenos los imprime con la raya', async () => {
+    await abrir(hoja([], { sinOpcionales: true }));
+
     expect(dato(estado(), 'Riesgo')).toBe('—');
     expect(dato(seccion('caracteristicas'), 'Uso')).toBe('—');
+    expect(dato(seccion('caracteristicas'), 'Voltaje')).toBe('— V');
+    expect(dato(seccion('identificacion'), 'Placa · Código interno')).toBe('INV-7 · —');
+    expect(seccion('cuidado')?.textContent).not.toContain('Cada día');
     expect(dato(seccion('identificacion'), 'Registro INVIMA')).toBe('—');
   });
 
@@ -205,7 +244,12 @@ describe('Hoja de vida de un equipo', () => {
     const consejos = [...(seccion('cuidado')?.querySelectorAll('li') ?? [])].map((li) =>
       li.textContent?.trim(),
     );
-    expect(consejos).toEqual(['No exponer a humedad', 'Limpiar la pantalla con un paño seco']);
+    // Las recomendaciones del tipo, una por linea, y al final la limpieza diaria, tambien del tipo.
+    expect(consejos).toEqual([
+      'No exponer a humedad',
+      'Limpiar la pantalla con un paño seco',
+      'Cada día: Paño con alcohol al 70 %',
+    ]);
   });
 
   it('la fila de estado sale del historial: la intervención más reciente es el estado actual', async () => {

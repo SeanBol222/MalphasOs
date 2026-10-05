@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.model.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -22,5 +23,7 @@ public record ModelCreateRequest(
         @Size(max = 50, message = "El registro INVIMA no puede pasar de 50 caracteres")
         String invima,
         @NotNull(message = "El fabricante es obligatorio") UUID idFabricante,
-        @NotNull(message = "El equipo es obligatorio") UUID idEquipo) {
+        @NotNull(message = "El equipo es obligatorio") UUID idEquipo,
+        @Valid @Schema(description = "Opcional: la ficha se puede llenar despues")
+        TechnicalSheetRequest fichaTecnica) {
 }

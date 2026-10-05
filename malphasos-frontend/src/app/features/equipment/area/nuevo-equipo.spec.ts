@@ -234,6 +234,8 @@ describe('Registro de un equipo en un area', () => {
     expect(alta.request.body).not.toHaveProperty('numeroInventario');
     expect(alta.request.body).not.toHaveProperty('fechaCompra');
     expect(alta.request.body).not.toHaveProperty('valorCompra');
+    expect(alta.request.body).not.toHaveProperty('codigoInterno');
+    expect(alta.request.body).not.toHaveProperty('proveedor');
     alta.flush({ id: 'ec1' });
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));
@@ -247,6 +249,8 @@ describe('Registro de un equipo en un area', () => {
     escribir('numeroInventario', 'INV-77');
     escribir('fechaCompra', '2026-01-15');
     escribir('valorCompra', '1500000');
+    escribir('codigoInterno', ' MON-03 ');
+    escribir('proveedor', 'Distribuidora Médica');
     await enviar();
 
     const alta = http.expectOne({ method: 'POST', url: URL_EQUIPOS_DEL_AREA });
@@ -257,6 +261,9 @@ describe('Registro de un equipo en un area', () => {
       numeroInventario: 'INV-77',
       fechaCompra: '2026-01-15',
       valorCompra: 1500000,
+      // Entraron el 2026-10-05 para la hoja de vida impresa; recortados como el resto.
+      codigoInterno: 'MON-03',
+      proveedor: 'Distribuidora Médica',
     });
     alta.flush({ id: 'ec1' });
     await asentar(fixture);
@@ -314,6 +321,8 @@ describe('Registro de un equipo en un area', () => {
         'numeroInventario',
         'fechaCompra',
         'valorCompra',
+        'codigoInterno',
+        'proveedor',
       ]) {
         expect(raiz().querySelector(`label[for="${id}"]`)).toBeTruthy();
       }

@@ -7,6 +7,8 @@ import com.malphasos.malphasos.equipment.application.ports.output.ModelPersisten
 import com.malphasos.malphasos.equipment.application.services.model.commands.ChangeModelInvimaCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.CreateModelCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.DeactivateModelCommand;
+import com.malphasos.malphasos.equipment.application.services.model.commands.DescribeModelCommand;
+import com.malphasos.malphasos.equipment.application.services.model.commands.TechnicalSheetCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.RenameModelCommand;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
@@ -66,7 +68,8 @@ public class ModelService implements ModelServicePort {
         }
 
         return persistAndPublish(Model.create(
-                command.nombre(), command.invima(), command.idFabricante(), command.idEquipo()));
+                command.nombre(), command.invima(), command.idFabricante(), command.idEquipo(),
+                TechnicalSheetCommand.toDomain(command.fichaTecnica())));
     }
 
     @Override
@@ -84,6 +87,14 @@ public class ModelService implements ModelServicePort {
         Model modelo = findById(command.id());
         modelo.changeInvima(command.invima());
 
+        return persistAndPublish(modelo);
+    }
+
+    @Override
+    @Transactional
+    public Model describe(DescribeModelCommand command) {
+        Model modelo = findById(command.id());
+        modelo.describe(TechnicalSheetCommand.toDomain(command.fichaTecnica()));
         return persistAndPublish(modelo);
     }
 

@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -49,11 +48,12 @@ public class EquipmentTypeEntity {
     @Column(name = "t_tecnologia_predominante", nullable = false)
     private String tecnologiaPredominante;
 
-    @Column(name = "i_voltage")
-    private Integer voltaje;
+    // Voltaje y amperaje vivian aqui hasta V15: bajaron al modelo, ver ModelEntity.
+    @Column(name = "t_uso")
+    private String uso;
 
-    @Column(name = "d_amperaje")
-    private BigDecimal amperaje;
+    @Column(name = "t_limpieza_cotidiana")
+    private String limpiezaCotidiana;
 
     // orphanRemoval queda fuera a proposito, igual que en los contactos de un cliente: una verificacion
     // retirada no se borra, se marca inactiva y sigue en la lista, porque con ella se firmaron reportes.

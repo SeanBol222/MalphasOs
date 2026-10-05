@@ -18,6 +18,12 @@
       },
       "ClientEquipmentRegisterRequest" : {
         "properties" : {
+          "codigoInterno" : {
+            "description" : "El codigo que el cliente le pone a su maquina",
+            "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
           "fechaCompra" : {
             "format" : "date",
             "type" : "string"
@@ -28,6 +34,12 @@
           },
           "numeroInventario" : {
             "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "proveedor" : {
+            "description" : "Quien vendio esta maquina",
+            "maxLength" : 100,
             "minLength" : 0,
             "type" : "string"
           },
@@ -46,6 +58,9 @@
       },
       "ClientEquipmentResponse" : {
         "properties" : {
+          "codigoInterno" : {
+            "type" : "string"
+          },
           "estadoActivo" : {
             "type" : "boolean"
           },
@@ -68,6 +83,9 @@
           "numeroInventario" : {
             "type" : "string"
           },
+          "proveedor" : {
+            "type" : "string"
+          },
           "serie" : {
             "type" : "string"
           },
@@ -80,12 +98,24 @@
       },
       "ClientEquipmentUpdateRequest" : {
         "properties" : {
+          "codigoInterno" : {
+            "description" : "El codigo que el cliente le pone a su maquina",
+            "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
           "fechaCompra" : {
             "format" : "date",
             "type" : "string"
           },
           "numeroInventario" : {
             "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "proveedor" : {
+            "description" : "Quien vendio esta maquina",
+            "maxLength" : 100,
             "minLength" : 0,
             "type" : "string"
           },
@@ -165,10 +195,13 @@
       },
       "EquipmentTypeCreateRequest" : {
         "properties" : {
-          "amperaje" : {
-            "type" : "number"
-          },
           "definicionTecnica" : {
+            "maxLength" : 250,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "limpiezaCotidiana" : {
+            "description" : "Como se limpia al terminar la jornada",
             "maxLength" : 250,
             "minLength" : 0,
             "type" : "string"
@@ -185,6 +218,13 @@
           },
           "tecnologiaPredominante" : {
             "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "uso" : {
+            "description" : "Para que se usa esta clase de equipo",
+            "example" : "Pesaje de pacientes",
+            "maxLength" : 250,
             "minLength" : 0,
             "type" : "string"
           },
@@ -198,10 +238,6 @@
               "$ref" : "#/components/schemas/TypeVerificationRequest"
             },
             "type" : "array"
-          },
-          "voltaje" : {
-            "format" : "int32",
-            "type" : "integer"
           }
         },
         "required" : [ "definicionTecnica", "nombre", "recomendacionesCuidado", "tecnologiaPredominante" ],
@@ -209,9 +245,6 @@
       },
       "EquipmentTypeResponse" : {
         "properties" : {
-          "amperaje" : {
-            "type" : "number"
-          },
           "definicionTecnica" : {
             "type" : "string"
           },
@@ -222,6 +255,9 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "limpiezaCotidiana" : {
+            "type" : "string"
+          },
           "nombre" : {
             "type" : "string"
           },
@@ -229,6 +265,9 @@
             "type" : "string"
           },
           "tecnologiaPredominante" : {
+            "type" : "string"
+          },
+          "uso" : {
             "type" : "string"
           },
           "valorUnitarioMantenimiento" : {
@@ -243,20 +282,19 @@
               "$ref" : "#/components/schemas/TypeVerificationResponse"
             },
             "type" : "array"
-          },
-          "voltaje" : {
-            "format" : "int32",
-            "type" : "integer"
           }
         },
         "type" : "object"
       },
       "EquipmentTypeUpdateRequest" : {
         "properties" : {
-          "amperaje" : {
-            "type" : "number"
-          },
           "definicionTecnica" : {
+            "maxLength" : 250,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "limpiezaCotidiana" : {
+            "description" : "Como se limpia al terminar la jornada; en blanco la vacia",
             "maxLength" : 250,
             "minLength" : 0,
             "type" : "string"
@@ -276,12 +314,14 @@
             "minLength" : 0,
             "type" : "string"
           },
+          "uso" : {
+            "description" : "Para que se usa; en blanco lo vacia",
+            "maxLength" : 250,
+            "minLength" : 0,
+            "type" : "string"
+          },
           "valorUnitarioMantenimiento" : {
             "format" : "int64",
-            "type" : "integer"
-          },
-          "voltaje" : {
-            "format" : "int32",
             "type" : "integer"
           }
         },
@@ -406,6 +446,10 @@
           "cliente" : {
             "type" : "string"
           },
+          "codigoInterno" : {
+            "description" : "Opcional",
+            "type" : "string"
+          },
           "correosCliente" : {
             "description" : "Correos vigentes del cliente",
             "items" : {
@@ -431,6 +475,10 @@
             "type" : "string"
           },
           "numeroInventario" : {
+            "type" : "string"
+          },
+          "proveedor" : {
+            "description" : "Quien vendio esta maquina, opcional",
             "type" : "string"
           },
           "responsables" : {
@@ -491,10 +539,15 @@
       },
       "LifeSheetTecnica" : {
         "properties" : {
-          "amperaje" : {
-            "type" : "number"
-          },
           "definicionTecnica" : {
+            "type" : "string"
+          },
+          "fichaTecnica" : {
+            "$ref" : "#/components/schemas/TechnicalSheetResponse",
+            "description" : "Del modelo: riesgo, caracteristicas y datos electricos"
+          },
+          "limpiezaCotidiana" : {
+            "description" : "Del tipo de equipo, opcional",
             "type" : "string"
           },
           "marca" : {
@@ -516,9 +569,9 @@
           "tipoEquipo" : {
             "type" : "string"
           },
-          "voltaje" : {
-            "format" : "int32",
-            "type" : "integer"
+          "uso" : {
+            "description" : "Del tipo de equipo, opcional",
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -595,6 +648,10 @@
       },
       "ModelCreateRequest" : {
         "properties" : {
+          "fichaTecnica" : {
+            "$ref" : "#/components/schemas/TechnicalSheetRequest",
+            "description" : "Opcional: la ficha se puede llenar despues"
+          },
           "idEquipo" : {
             "format" : "uuid",
             "type" : "string"
@@ -623,6 +680,10 @@
         "properties" : {
           "estadoActivo" : {
             "type" : "boolean"
+          },
+          "fichaTecnica" : {
+            "$ref" : "#/components/schemas/TechnicalSheetResponse",
+            "description" : "La ficha tecnica; sus campos son nulos mientras no se conozcan"
           },
           "id" : {
             "format" : "uuid",
@@ -657,6 +718,81 @@
           }
         },
         "required" : [ "nombre" ],
+        "type" : "object"
+      },
+      "TechnicalSheetRequest" : {
+        "properties" : {
+          "alimentacion" : {
+            "description" : "De donde toma la energia",
+            "example" : "Red electrica",
+            "maxLength" : 50,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "amperaje" : {
+            "description" : "En A",
+            "type" : "number"
+          },
+          "caracteristicas" : {
+            "maxLength" : 250,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "frecuencia" : {
+            "description" : "En Hz",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "potencia" : {
+            "description" : "En W",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "riesgo" : {
+            "description" : "Clasificacion por riesgo del dispositivo medico",
+            "enum" : [ "I", "IIA", "IIB", "III" ],
+            "type" : "string"
+          },
+          "voltaje" : {
+            "description" : "En V",
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "TechnicalSheetResponse" : {
+        "properties" : {
+          "alimentacion" : {
+            "type" : "string"
+          },
+          "amperaje" : {
+            "description" : "En A",
+            "type" : "number"
+          },
+          "caracteristicas" : {
+            "type" : "string"
+          },
+          "frecuencia" : {
+            "description" : "En Hz",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "potencia" : {
+            "description" : "En W",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "riesgo" : {
+            "enum" : [ "I", "IIA", "IIB", "III" ],
+            "type" : "string"
+          },
+          "voltaje" : {
+            "description" : "En V",
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "TypeVerificationRequest" : {
@@ -3154,6 +3290,85 @@
           }
         },
         "summary" : "Anotar o corregir el registro INVIMA",
+        "tags" : [ "Model" ]
+      }
+    },
+    "/v1/api/models/{id}/technical-sheet" : {
+      "patch" : {
+        "description" : "Se manda entera: lo que no venga queda vacio. Ruta propia, como el INVIMA: quien la llena tiene la placa del equipo delante y la lee completa.",
+        "operationId" : "describe",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TechnicalSheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModelResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Corregir la ficha tecnica",
         "tags" : [ "Model" ]
       }
     },

@@ -73,7 +73,9 @@ public class ClientEquipmentRestAdapter {
                         idAreaServicio,
                         request.numeroInventario(),
                         request.fechaCompra(),
-                        request.valorCompra())));
+                        request.valorCompra(),
+                        request.codigoInterno(),
+                        request.proveedor())));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(creada);
     }
@@ -102,7 +104,8 @@ public class ClientEquipmentRestAdapter {
             @PathVariable UUID id, @Valid @RequestBody ClientEquipmentUpdateRequest request) {
 
         return mapper.toResponse(clientEquipmentServicePort.update(new UpdateClientEquipmentCommand(
-                id, request.numeroInventario(), request.fechaCompra(), request.valorCompra())));
+                id, request.numeroInventario(), request.fechaCompra(), request.valorCompra(),
+                request.codigoInterno(), request.proveedor())));
     }
 
     @Operation(summary = "Trasladar una unidad a otra area de servicio",

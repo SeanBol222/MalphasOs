@@ -4,6 +4,7 @@ import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeRes
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
+import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.InterventionResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.LifeSheetResponse;
 import com.malphasos.malphasos.shared.config.ServiceCompanyProperties;
@@ -43,6 +44,7 @@ public class LifeSheetRestAdapter {
     /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
     private final ReadScopeResolver readScopeResolver;
     private final ServiceCompanyProperties empresa;
+    private final EquipmentRestMapper restMapper;
 
     @Operation(
             summary = "Hoja de vida de un equipo",
@@ -66,6 +68,8 @@ public class LifeSheetRestAdapter {
                         hoja.identificacion().idEquipoCliente(),
                         hoja.identificacion().serie(),
                         hoja.identificacion().numeroInventario(),
+                        hoja.identificacion().codigoInterno(),
+                        hoja.identificacion().proveedor(),
                         hoja.identificacion().fechaCompra(),
                         hoja.identificacion().valorCompra(),
                         hoja.identificacion().cliente(),
@@ -83,11 +87,12 @@ public class LifeSheetRestAdapter {
                         hoja.tecnica().definicionTecnica(),
                         hoja.tecnica().tecnologiaPredominante(),
                         hoja.tecnica().recomendacionesCuidado(),
-                        hoja.tecnica().voltaje(),
-                        hoja.tecnica().amperaje(),
+                        hoja.tecnica().uso(),
+                        hoja.tecnica().limpiezaCotidiana(),
                         hoja.tecnica().marca(),
                         hoja.tecnica().modelo(),
-                        hoja.tecnica().registroInvima()),
+                        hoja.tecnica().registroInvima(),
+                        restMapper.toResponse(hoja.tecnica().fichaTecnica())),
                 new LifeSheetResponse.Fabricante(
                         hoja.fabricante().nombre(), hoja.fabricante().pais()),
                 hoja.servicioTecnico().stream().map(LifeSheetRestAdapter::toResponse).toList(),

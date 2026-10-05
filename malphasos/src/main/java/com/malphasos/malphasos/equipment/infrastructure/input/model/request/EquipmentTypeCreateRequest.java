@@ -5,7 +5,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -36,8 +35,12 @@ public record EquipmentTypeCreateRequest(
         @Size(max = 50, message = "La tecnologia no puede pasar de 50 caracteres")
         String tecnologiaPredominante,
 
-        Integer voltaje,
-        BigDecimal amperaje,
+        @Size(max = 250, message = "El uso no puede pasar de 250 caracteres")
+        @Schema(description = "Para que se usa esta clase de equipo", example = "Pesaje de pacientes")
+        String uso,
+        @Size(max = 250, message = "La limpieza cotidiana no puede pasar de 250 caracteres")
+        @Schema(description = "Como se limpia al terminar la jornada")
+        String limpiezaCotidiana,
 
         @Valid
         @Schema(description = "Que se le verifica. Vacia o ausente significa que este tipo no se verifica")

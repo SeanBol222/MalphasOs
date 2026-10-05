@@ -1,7 +1,6 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.model.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +26,8 @@ public record LifeSheetResponse(
             UUID idEquipoCliente,
             String serie,
             String numeroInventario,
+            @Schema(description = "Opcional") String codigoInterno,
+            @Schema(description = "Quien vendio esta maquina, opcional") String proveedor,
             LocalDate fechaCompra,
             Long valorCompra,
             String cliente,
@@ -48,11 +49,13 @@ public record LifeSheetResponse(
             String definicionTecnica,
             String tecnologiaPredominante,
             String recomendacionesCuidado,
-            Integer voltaje,
-            BigDecimal amperaje,
+            @Schema(description = "Del tipo de equipo, opcional") String uso,
+            @Schema(description = "Del tipo de equipo, opcional") String limpiezaCotidiana,
             String marca,
             String modelo,
-            @Schema(description = "Registro INVIMA del modelo, opcional") String registroInvima) {
+            @Schema(description = "Registro INVIMA del modelo, opcional") String registroInvima,
+            @Schema(description = "Del modelo: riesgo, caracteristicas y datos electricos")
+            TechnicalSheetResponse fichaTecnica) {
     }
 
     @Schema(name = "LifeSheetEmpresa", description = "Viene de la configuracion, no de la base")

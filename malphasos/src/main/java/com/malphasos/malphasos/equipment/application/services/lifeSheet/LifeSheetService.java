@@ -87,6 +87,8 @@ public class LifeSheetService implements LifeSheetServicePort {
                         unidad.getId(),
                         unidad.getSerie(),
                         unidad.getNumeroInventario(),
+                        unidad.getCodigoInterno(),
+                        unidad.getProveedor(),
                         unidad.getFechaCompra(),
                         unidad.getValorCompra(),
                         cliente.getRazonSocial(),
@@ -110,11 +112,13 @@ public class LifeSheetService implements LifeSheetServicePort {
                         tipo.getDefinicionTecnica(),
                         tipo.getTecnologiaPredominante(),
                         tipo.getRecomendacionesCuidado(),
-                        tipo.getVoltaje(),
-                        tipo.getAmperaje(),
+                        tipo.getUso(),
+                        tipo.getLimpiezaCotidiana(),
                         brandServicePort.findById(delCatalogo.getIdMarca()).getNombre(),
                         modelo.getNombre(),
-                        modelo.getInvima()),
+                        modelo.getInvima(),
+                        // Voltaje y amperaje salen de aqui desde V15, y ya no del tipo.
+                        modelo.getFichaTecnica()),
                 new LifeSheet.Fabricante(
                         fabricante.getNombre(), paisDe(fabricante)),
                 // La cuarta seccion, y la unica que sale de los reportes. Se pide con el alcance

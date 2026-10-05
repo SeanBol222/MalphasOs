@@ -3,7 +3,6 @@ package com.malphasos.malphasos.equipment.infrastructure.input.model.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 
 /**
  * Cambio de las características de un tipo. Un campo ausente deja el valor como está.
@@ -16,8 +15,9 @@ public record EquipmentTypeUpdateRequest(
         @Size(max = 250) String definicionTecnica,
         @Size(max = 250) String recomendacionesCuidado,
         @Size(max = 50) String tecnologiaPredominante,
-        Integer voltaje,
-        BigDecimal amperaje,
+        @Size(max = 250) @Schema(description = "Para que se usa; en blanco lo vacia") String uso,
+        @Size(max = 250) @Schema(description = "Como se limpia al terminar la jornada; en blanco la vacia")
+        String limpiezaCotidiana,
         @PositiveOrZero(message = "El valor del mantenimiento no puede ser negativo")
         Long valorUnitarioMantenimiento) {
 }

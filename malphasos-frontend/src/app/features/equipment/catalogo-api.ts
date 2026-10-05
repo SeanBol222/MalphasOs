@@ -11,6 +11,7 @@ import {
   CambioDeTipoDeEquipo,
   EquipoDeCatalogo,
   Fabricante,
+  FichaTecnica,
   Magnitud,
   Marca,
   Modelo,
@@ -225,6 +226,26 @@ export class CatalogoApi {
     return this.retirar('models');
   }
 
+  /** Un modelo por su identificador, para la pantalla de su ficha tecnica. */
+  detalleModelo(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...CatalogoApi.clave('modelos'), id()],
+      queryFn: () => firstValueFrom(this.http.get<Modelo>(`${this.api}/models/${id()}`)),
+    }));
+  }
+
+  /**
+   * Reemplaza la ficha tecnica entera: lo que no viaje queda vacio en el servidor. Tiene ruta propia,
+   * como el nombre y el INVIMA.
+   */
+  describirModelo() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, ficha }: { id: string; ficha: FichaTecnica }) =>
+        firstValueFrom(this.http.patch<Modelo>(`${this.api}/models/${id}/technical-sheet`, ficha)),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
   /** El registro INVIMA de un modelo, que tambien tiene ruta propia en el backend. */
   anotarInvima() {
     return injectMutation(() => ({
@@ -269,5 +290,8 @@ export class CatalogoApi {
   private invalidar(): void {
     // Sin `return`: ver la nota de la clase. La recarga ocurre igual, pero no bloquea a quien escribio.
     void this.queryClient.invalidateQueries({ queryKey: CatalogoApi.CLAVE });
+    // La hoja de vida imprime el uso del tipo y la ficha del modelo: una escritura del catalogo la deja
+    // vieja. Solo se recargan las que esten abiertas, que casi nunca es ninguna.
+    void this.queryClient.invalidateQueries({ queryKey: ['hoja-de-vida'] });
   }
 }

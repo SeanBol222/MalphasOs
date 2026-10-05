@@ -55,8 +55,8 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
                 command.definicionTecnica(),
                 command.recomendacionesCuidado(),
                 command.tecnologiaPredominante(),
-                command.voltaje(),
-                command.amperaje(),
+                command.uso(),
+                command.limpiezaCotidiana(),
                 verificacionesDe(command.verificaciones()),
                 command.valorUnitarioMantenimiento()));
     }
@@ -70,8 +70,8 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
                 command.definicionTecnica(),
                 command.recomendacionesCuidado(),
                 command.tecnologiaPredominante(),
-                command.voltaje(),
-                command.amperaje(),
+                command.uso(),
+                command.limpiezaCotidiana(),
                 command.valorUnitarioMantenimiento());
 
         return persistAndPublish(tipo);

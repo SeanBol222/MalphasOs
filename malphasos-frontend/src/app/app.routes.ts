@@ -70,6 +70,14 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('equipment.write')],
       },
       {
+        // La ficha tecnica de un modelo, con pagina propia como la edicion de un tipo: siete datos que
+        // se leen de la placa del equipo. Entro el 2026-10-05 para la hoja de vida impresa.
+        path: 'catalogo/modelos/:id/ficha',
+        loadComponent: () =>
+          import('./features/equipment/catalogo/ficha-de-modelo').then((m) => m.FichaDeModelo),
+        canActivate: [requiereAutoridad('equipment.write')],
+      },
+      {
         // Alta desde el listado de equipos: el area se elige en el formulario, encadenada al cliente y
         // su sede. Es la misma pantalla que la de abajo; lo unico que cambia es de donde sale el area.
         path: 'equipos/nuevo',

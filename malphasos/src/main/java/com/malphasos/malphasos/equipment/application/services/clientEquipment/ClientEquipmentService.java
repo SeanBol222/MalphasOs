@@ -120,7 +120,9 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
                 command.idAreaServicio(),
                 command.numeroInventario(),
                 command.fechaCompra(),
-                command.valorCompra()));
+                command.valorCompra(),
+                command.codigoInterno(),
+                command.proveedor()));
     }
 
     @Override
@@ -141,7 +143,8 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
     @Transactional
     public ClientEquipment update(UpdateClientEquipmentCommand command) {
         ClientEquipment unidad = findById(command.id(), ReadScope.unrestricted());
-        unidad.update(command.numeroInventario(), command.fechaCompra(), command.valorCompra());
+        unidad.update(command.numeroInventario(), command.fechaCompra(), command.valorCompra(),
+                command.codigoInterno(), command.proveedor());
 
         return persistAndPublish(unidad);
     }

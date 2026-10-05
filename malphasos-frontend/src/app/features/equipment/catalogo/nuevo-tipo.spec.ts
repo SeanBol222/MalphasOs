@@ -92,7 +92,7 @@ describe('Alta de un tipo de equipo', () => {
   });
 
   it('con solo los obligatorios, manda cuatro campos y ni uno mas', async () => {
-    // Un cero no es "no se sabe": mandar voltaje 0 o una modalidad vacia haria que el backend
+    // Un vacio no es "no se sabe": mandar un uso en blanco o una modalidad vacia haria que el backend
     // guardara un dato inventado.
     rellenarObligatorios();
     await enviar();
@@ -113,8 +113,8 @@ describe('Alta de un tipo de equipo', () => {
 
   it('con los opcionales rellenos, los manda con su tipo', async () => {
     rellenarObligatorios();
-    escribir('voltaje', '110');
-    escribir('amperaje', '2.5');
+    escribir('uso', ' Medir la presion arterial ');
+    escribir('limpiezaCotidiana', 'Paño con alcohol al 70 %');
     escribir('valorUnitarioMantenimiento', '80000');
     await enviar();
 
@@ -125,8 +125,8 @@ describe('Alta de un tipo de equipo', () => {
       tecnologiaPredominante: 'Electrónica',
       definicionTecnica: 'Mide presión arterial',
       recomendacionesCuidado: 'No golpear',
-      voltaje: 110,
-      amperaje: 2.5,
+      uso: 'Medir la presion arterial',
+      limpiezaCotidiana: 'Paño con alcohol al 70 %',
       valorUnitarioMantenimiento: 80000,
     });
     alta.flush({ id: 't9' });

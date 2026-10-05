@@ -10,5 +10,14 @@ public record RegisterClientEquipmentCommand(
         UUID idAreaServicio,
         String numeroInventario,
         LocalDate fechaCompra,
-        Long valorCompra) {
+        Long valorCompra,
+        String codigoInterno,
+        String proveedor) {
+
+    /** Un alta sin código interno ni proveedor, que es como llega casi siempre. */
+    public RegisterClientEquipmentCommand(
+            String serie, UUID idModelo, UUID idAreaServicio, String numeroInventario,
+            LocalDate fechaCompra, Long valorCompra) {
+        this(serie, idModelo, idAreaServicio, numeroInventario, fechaCompra, valorCompra, null, null);
+    }
 }

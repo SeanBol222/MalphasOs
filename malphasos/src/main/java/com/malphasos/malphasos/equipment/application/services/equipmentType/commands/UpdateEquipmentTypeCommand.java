@@ -1,6 +1,5 @@
 package com.malphasos.malphasos.equipment.application.services.equipmentType.commands;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -14,7 +13,7 @@ public record UpdateEquipmentTypeCommand(
         String definicionTecnica,
         String recomendacionesCuidado,
         String tecnologiaPredominante,
-        Integer voltaje,
-        BigDecimal amperaje,
+        String uso,
+        String limpiezaCotidiana,
         Long valorUnitarioMantenimiento) {
 }

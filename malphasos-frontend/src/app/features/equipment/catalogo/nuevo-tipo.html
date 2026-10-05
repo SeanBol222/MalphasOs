@@ -87,27 +87,33 @@
 
   <app-verificacion (cambio)="verificacion.set($event)" />
 
+  <!--
+    Voltaje y amperaje estaban aqui hasta el 2026-10-05: son de cada modelo y no del tipo, y se
+    anotan en su ficha tecnica, en Catalogo > Modelos.
+  -->
+  <div class="mb-3">
+    <label class="block font-semibold" for="uso">Uso</label>
+    <textarea
+      id="uso"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      rows="2"
+      formControlName="uso"
+      maxlength="250"
+    ></textarea>
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" for="limpiezaCotidiana">Limpieza cotidiana</label>
+    <textarea
+      id="limpiezaCotidiana"
+      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      rows="2"
+      formControlName="limpiezaCotidiana"
+      maxlength="250"
+    ></textarea>
+  </div>
+
   <div class="mb-3 grid gap-3 sm:grid-cols-3">
-    <div>
-      <label class="block font-semibold" for="voltaje">Voltaje</label>
-      <input
-        id="voltaje"
-        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
-        type="number"
-        inputmode="numeric"
-        formControlName="voltaje"
-      />
-    </div>
-    <div>
-      <label class="block font-semibold" for="amperaje">Amperaje</label>
-      <input
-        id="amperaje"
-        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
-        type="number"
-        step="0.01"
-        formControlName="amperaje"
-      />
-    </div>
     <div>
       <label class="block font-semibold" for="valorUnitarioMantenimiento">Valor mantenimiento</label>
       <input

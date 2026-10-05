@@ -34,6 +34,12 @@
             </span>
           </span>
           @if (puedeEscribir() && fila.estadoActivo) {
+            <a
+              class="flex min-h-tactil items-center px-1 font-semibold underline"
+              [routerLink]="['/catalogo', 'modelos', fila.id, 'ficha']"
+            >
+              Ficha técnica
+            </a>
             <button
               class="min-h-tactil px-1 font-semibold underline"
               type="button"

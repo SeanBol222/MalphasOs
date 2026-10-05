@@ -74,6 +74,8 @@ export class NuevoEquipo {
     numeroInventario: ['', Validators.maxLength(50)],
     fechaCompra: [''],
     valorCompra: [null as number | null],
+    codigoInterno: ['', Validators.maxLength(50)],
+    proveedor: ['', Validators.maxLength(100)],
   });
 
   /** Los formularios reactivos no son senales; sin esto, ningun calculado volveria a evaluarse. */
@@ -270,6 +272,8 @@ export class NuevoEquipo {
           ...(datos.numeroInventario ? { numeroInventario: datos.numeroInventario } : {}),
           ...(datos.fechaCompra ? { fechaCompra: datos.fechaCompra } : {}),
           ...(datos.valorCompra === null ? {} : { valorCompra: datos.valorCompra }),
+          ...(datos.codigoInterno.trim() ? { codigoInterno: datos.codigoInterno.trim() } : {}),
+          ...(datos.proveedor.trim() ? { proveedor: datos.proveedor.trim() } : {}),
         },
       },
       { onSuccess: () => void this.router.navigate(['/areas', this.idArea()]) },

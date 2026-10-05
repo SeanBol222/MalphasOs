@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import QRCode from 'qrcode';
 import {
   ETIQUETA_DE_RESULTADO,
+  ETIQUETA_DE_RIESGO,
   ETIQUETA_DE_TIPO_DE_SERVICIO,
   ResultadoDeServicio,
   TipoDeServicio,
@@ -25,8 +26,9 @@ const SIN_DATO = '—';
  * <p><b>Existe desde que el equipo se registra.</b> Un equipo sin mantenimientos tiene su hoja de vida
  * con el historial vacio, y la pagina lo dice en vez de esconderlo.
  *
- * <p><b>Lo que el diseño pide y el sistema todavia no guarda sale con «—»</b>: el riesgo, el uso, los
- * datos electricos nuevos, el numero de hoja. Se iran
+ * <p><b>Lo que el diseño pide y el sistema todavia no guarda sale con «—»</b>: el numero de hoja, la
+ * descripcion y el responsable de cada servicio, el protocolo y la foto. Y lo que se guarda pero nadie
+ * ha llenado, tambien: un modelo sin ficha tecnica tiene sus datos electricos en blanco. Se iran
  * llenando tanda a tanda sin tocar esta forma. El estado, el ultimo servicio y el numero de
  * intervenciones no esperan a nadie: salen del historial que ya llega.
  */
@@ -51,6 +53,14 @@ export class HojaDeVida {
   protected readonly fabricante = computed(() => this.hoja.data()?.fabricante);
 
   protected readonly empresa = computed(() => this.hoja.data()?.empresa);
+
+  /** La ficha tecnica del modelo: riesgo, caracteristicas y datos electricos, desde V15. */
+  protected readonly ficha = computed(() => this.tecnica()?.fichaTecnica);
+  protected readonly riesgo = computed(() => {
+    const clase = this.ficha()?.riesgo;
+
+    return clase ? ETIQUETA_DE_RIESGO[clase] : SIN_DATO;
+  });
 
   /*
    * Varios valores en una casilla se separan con «·», como en el resto del documento. Una lista vacia

@@ -26,6 +26,9 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
 import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
 import com.malphasos.malphasos.equipment.domain.model.Model;
+import com.malphasos.malphasos.equipment.domain.model.RiskClass;
+import com.malphasos.malphasos.equipment.application.services.model.commands.DescribeModelCommand;
+import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.*;
@@ -84,7 +87,7 @@ class EquipmentRestAdapterTest {
 
     private EquipmentType tipoCon(List<TypeVerification> verificaciones) {
         return EquipmentType.rehydrate(UUID.randomUUID(), "Monitor", "Def", "Cuid", "Electronica",
-                110, new BigDecimal("2.50"), verificaciones, 150_000L, true);
+                "Monitoreo", "Paño seco", verificaciones, 150_000L, true);
     }
 
     /** Las modalidades constantes traen su cantidad y un punto; la variable, ninguno de los dos. */
@@ -135,7 +138,9 @@ class EquipmentRestAdapterTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].verificable").value(true))
                 .andExpect(jsonPath("$[0].verificaciones[0].modalidad").value("PATRON_CONSTANTE"))
-                .andExpect(jsonPath("$[0].amperaje").value(2.50));
+                // El amperaje se miraba aqui hasta V15; ahora es del modelo, y el tipo expone su uso.
+                .andExpect(jsonPath("$[0].amperaje").doesNotExist())
+                .andExpect(jsonPath("$[0].uso").value("Monitoreo"));
     }
 
     @Test
@@ -287,12 +292,12 @@ class EquipmentRestAdapterTest {
         UUID area = UUID.randomUUID();
         UUID modelo = UUID.randomUUID();
         when(clientEquipmentServicePort.register(any())).thenReturn(ClientEquipment.rehydrate(
-                UUID.randomUUID(), "SN-001", modelo, area, null, null, null, true));
+                UUID.randomUUID(), "SN-001", modelo, area, null, null, null, null, null, true));
 
         mockMvc.perform(post("/v1/api/service-areas/" + area + "/equipments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new ClientEquipmentRegisterRequest(
-                                "SN-001", modelo, "INV-42", LocalDate.now().minusYears(1), 5_000_000L))))
+                                "SN-001", modelo, "INV-42", LocalDate.now().minusYears(1), 5_000_000L, null, null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.idAreaServicio").value(area.toString()));
 
@@ -309,7 +314,7 @@ class EquipmentRestAdapterTest {
         mockMvc.perform(post("/v1/api/service-areas/" + UUID.randomUUID() + "/equipments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new ClientEquipmentRegisterRequest(
-                                "SN-001", UUID.randomUUID(), null, LocalDate.now().plusDays(1), null))))
+                                "SN-001", UUID.randomUUID(), null, LocalDate.now().plusDays(1), null, null, null))))
                 .andExpect(status().isBadRequest());
 
         verify(clientEquipmentServicePort, never()).register(any());
@@ -325,7 +330,7 @@ class EquipmentRestAdapterTest {
         mockMvc.perform(post("/v1/api/service-areas/" + area + "/equipments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new ClientEquipmentRegisterRequest(
-                                "SN-001", UUID.randomUUID(), null, null, null))))
+                                "SN-001", UUID.randomUUID(), null, null, null, null, null))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_009"));
     }
@@ -338,7 +343,7 @@ class EquipmentRestAdapterTest {
         mockMvc.perform(post("/v1/api/models")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new ModelCreateRequest(
-                                "  ", "INV-1", UUID.randomUUID(), UUID.randomUUID()))))
+                                "  ", "INV-1", UUID.randomUUID(), UUID.randomUUID(), null))))
                 .andExpect(status().isBadRequest());
 
         verify(modelServicePort, never()).create(any());
@@ -351,12 +356,12 @@ class EquipmentRestAdapterTest {
         UUID equipo = UUID.randomUUID();
         ArgumentCaptor<CreateModelCommand> comando = ArgumentCaptor.forClass(CreateModelCommand.class);
         when(modelServicePort.create(any())).thenReturn(
-                Model.rehydrate(UUID.randomUUID(), "IdeaPad 3", "INV-1", fabricante, equipo, true));
+                Model.rehydrate(UUID.randomUUID(), "IdeaPad 3", "INV-1", fabricante, equipo, TechnicalSheet.EMPTY, true));
 
         mockMvc.perform(post("/v1/api/models")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new ModelCreateRequest(
-                                "IdeaPad 3", "INV-1", fabricante, equipo))))
+                                "IdeaPad 3", "INV-1", fabricante, equipo, null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nombre").value("IdeaPad 3"));
 
@@ -369,13 +374,56 @@ class EquipmentRestAdapterTest {
     void renombrarModelo() throws Exception {
         UUID id = UUID.randomUUID();
         when(modelServicePort.rename(any())).thenReturn(
-                Model.rehydrate(id, "IdeaPad 5", null, UUID.randomUUID(), UUID.randomUUID(), true));
+                Model.rehydrate(id, "IdeaPad 5", null, UUID.randomUUID(), UUID.randomUUID(), TechnicalSheet.EMPTY, true));
 
         mockMvc.perform(patch("/v1/api/models/" + id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new NamedRequest("IdeaPad 5"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("IdeaPad 5"));
+    }
+
+    @Test
+    @DisplayName("la ficha tecnica tiene su ruta, y llega entera al servicio")
+    void fichaTecnica() throws Exception {
+        UUID id = UUID.randomUUID();
+        ArgumentCaptor<DescribeModelCommand> comando = ArgumentCaptor.forClass(DescribeModelCommand.class);
+        when(modelServicePort.describe(any())).thenReturn(Model.rehydrate(id, "GS14", null, UUID.randomUUID(),
+                UUID.randomUUID(), new TechnicalSheet(RiskClass.I, null, "Baterias", null, null,
+                        new BigDecimal("0.50"), null), true));
+
+        mockMvc.perform(patch("/v1/api/models/" + id + "/technical-sheet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"riesgo\":\"I\",\"alimentacion\":\"Baterias\",\"amperaje\":0.5}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fichaTecnica.riesgo").value("I"))
+                .andExpect(jsonPath("$.fichaTecnica.alimentacion").value("Baterias"));
+
+        verify(modelServicePort).describe(comando.capture());
+        assertThat(comando.getValue().id()).isEqualTo(id);
+        assertThat(comando.getValue().fichaTecnica().riesgo()).isEqualTo(RiskClass.I);
+        assertThat(comando.getValue().fichaTecnica().voltaje()).isNull();
+    }
+
+    @Test
+    @DisplayName("una ficha con un voltaje en cero o un amperaje con tres decimales no llega al servicio")
+    void fichaInvalida() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(patch("/v1/api/models/" + id + "/technical-sheet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"voltaje\":0}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(patch("/v1/api/models/" + id + "/technical-sheet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amperaje\":1.255}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(patch("/v1/api/models/" + id + "/technical-sheet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"riesgo\":\"IV\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(modelServicePort, never()).describe(any());
     }
 
     @Test
@@ -398,7 +446,7 @@ class EquipmentRestAdapterTest {
         mockMvc.perform(post("/v1/api/service-areas/" + UUID.randomUUID() + "/equipments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new ClientEquipmentRegisterRequest(
-                                "SN-001", UUID.randomUUID(), null, null, null))))
+                                "SN-001", UUID.randomUUID(), null, null, null, null, null))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_007"));
     }

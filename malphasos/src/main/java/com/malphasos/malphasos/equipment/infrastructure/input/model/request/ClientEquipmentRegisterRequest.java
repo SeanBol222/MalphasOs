@@ -21,5 +21,8 @@ public record ClientEquipmentRegisterRequest(
 
         @PastOrPresent(message = "Un equipo no se compro en el futuro") LocalDate fechaCompra,
 
-        @PositiveOrZero(message = "El valor de compra no puede ser negativo") Long valorCompra) {
+        @PositiveOrZero(message = "El valor de compra no puede ser negativo") Long valorCompra,
+        @Size(max = 50) @Schema(description = "El codigo que el cliente le pone a su maquina")
+        String codigoInterno,
+        @Size(max = 100) @Schema(description = "Quien vendio esta maquina") String proveedor) {
 }
