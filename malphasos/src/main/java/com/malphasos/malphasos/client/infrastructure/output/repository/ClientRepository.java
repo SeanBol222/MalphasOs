@@ -12,6 +12,8 @@ public interface ClientRepository extends JpaRepository<ClientEntity, UUID> {
 
     Optional<ClientEntity> findByDocumento(String documento);
 
+    boolean existsBySigla(String sigla);
+
     /**
      * Clientes que esta persona representa, por el lado de la tabla puente.
      *

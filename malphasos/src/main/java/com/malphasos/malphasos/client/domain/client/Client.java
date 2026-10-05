@@ -42,6 +42,12 @@ public class Client extends AggregateRoot {
 
     private String razonSocial;
 
+    /**
+     * Encabeza el número de las hojas de vida: «HV-CDN-0001». Desde {@code V19}. Se genera de la razón
+     * social al crear el cliente y no la sigue después; ver {@link ClientAcronym}.
+     */
+    private String sigla;
+
     /** Puede faltar: el esquema lo admite nulo. */
     private UUID idPais;
 
@@ -59,6 +65,7 @@ public class Client extends AggregateRoot {
             String documento,
             IdentificationType tipoIdentificacion,
             String razonSocial,
+            String sigla,
             UUID idPais,
             boolean estadoActivo,
             List<EmailClient> correos,
@@ -69,6 +76,7 @@ public class Client extends AggregateRoot {
         this.documento = documento;
         this.tipoIdentificacion = tipoIdentificacion;
         this.razonSocial = razonSocial;
+        this.sigla = sigla;
         this.idPais = idPais;
         this.estadoActivo = estadoActivo;
         // Copias propias: el agregado no comparte sus colecciones con quien lo construyo. En el
@@ -79,15 +87,33 @@ public class Client extends AggregateRoot {
         this.representantes = new LinkedHashSet<>(representantes);
     }
 
-    /** Registra un cliente nuevo. */
+    /**
+     * Registra un cliente nuevo, con la sigla que le corresponde a su razón social.
+     *
+     * <p>Sin mirar si otro cliente ya la tiene: el desempate es del servicio, que sabe qué siglas
+     * existen. Este camino queda para quien no necesita desempatar —las pruebas, sobre todo—.
+     */
     public static Client create(
             String documento, IdentificationType tipoIdentificacion, String razonSocial, UUID idPais) {
+
+        return create(documento, tipoIdentificacion, razonSocial, idPais,
+                ClientAcronym.base(validarRazonSocial(razonSocial)));
+    }
+
+    /** Registra un cliente nuevo con la sigla ya desempatada. */
+    public static Client create(
+            String documento,
+            IdentificationType tipoIdentificacion,
+            String razonSocial,
+            UUID idPais,
+            String sigla) {
 
         Client cliente = new Client(
                 UUID.randomUUID(),
                 validarDocumento(documento),
                 exigirTipo(tipoIdentificacion),
                 validarRazonSocial(razonSocial),
+                ClientAcronym.validar(sigla),
                 idPais,
                 true,
                 List.of(),
@@ -106,6 +132,7 @@ public class Client extends AggregateRoot {
             String documento,
             IdentificationType tipoIdentificacion,
             String razonSocial,
+            String sigla,
             UUID idPais,
             boolean estadoActivo,
             List<EmailClient> correos,
@@ -113,7 +140,7 @@ public class Client extends AggregateRoot {
             Set<UUID> representantes) {
 
         return new Client(
-                id, documento, tipoIdentificacion, razonSocial, idPais, estadoActivo,
+                id, documento, tipoIdentificacion, razonSocial, sigla, idPais, estadoActivo,
                 correos, telefonos, representantes);
     }
 
@@ -136,6 +163,25 @@ public class Client extends AggregateRoot {
         if (cambio) {
             registerEvent(new ClientUpdatedEvent(metadataFor(ClientUpdatedEvent.TYPE), payload()));
         }
+    }
+
+    /**
+     * Corrige la sigla. No hace nada si es la que ya tenía.
+     *
+     * <p>Que no la tenga otro cliente lo comprueba el servicio. Las hojas de vida ya numeradas
+     * conservan su número con la sigla vieja: decidido por el usuario el 2026-10-05, para que ningún
+     * papel impreso deje de coincidir con el sistema.
+     */
+    public void changeAcronym(String sigla) {
+        String nueva = ClientAcronym.validar(sigla);
+
+        if (nueva.equals(this.sigla)) {
+            // Un cambio que no cambia nada no emite evento.
+            return;
+        }
+
+        this.sigla = nueva;
+        registerEvent(new ClientUpdatedEvent(metadataFor(ClientUpdatedEvent.TYPE), payload()));
     }
 
     /** Retira el cliente sin borrarlo. Retirar dos veces no emite dos eventos. */

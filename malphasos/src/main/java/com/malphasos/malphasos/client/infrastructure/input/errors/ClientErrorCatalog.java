@@ -25,7 +25,9 @@ public enum ClientErrorCatalog {
     // el cliente del API necesita saber cual de las referencias fallo, y "datos invalidos" no se
     // lo dice.
     CITY_NOT_FOUND("ERR_CLIENT_006", "City not found"),
-    PERSON_NOT_FOUND("ERR_CLIENT_007", "Person not found");
+    PERSON_NOT_FOUND("ERR_CLIENT_007", "Person not found"),
+    // Un conflicto y no datos invalidos: la sigla esta bien escrita, pero la tiene otro cliente.
+    ACRONYM_TAKEN("ERR_CLIENT_008", "Client acronym already in use");
 
     private final String code;
     private final String message;

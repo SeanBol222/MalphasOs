@@ -261,7 +261,7 @@ class EquipmentChainServiceTest {
             elAreaEsta(true);
             sonDelMismoCliente(areaActual, AREA, cliente);
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, true)));
+                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, null, true)));
             when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
 
             service().relocate(new RelocateClientEquipmentCommand(id, AREA));
@@ -287,7 +287,7 @@ class EquipmentChainServiceTest {
             // sedes distintas por construccion, al ser UUID generados sin relacion entre si.
             sonDelMismoCliente(areaActual, AREA, cliente);
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, true)));
+                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, null, true)));
             when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
 
             ClientEquipment resultado = service().relocate(new RelocateClientEquipmentCommand(id, AREA));
@@ -306,7 +306,7 @@ class EquipmentChainServiceTest {
             elAreaEsta(true);
             sonDelMismoCliente(AREA, AREA, cliente);
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, AREA, null, null, null, null, null, true)));
+                    id, "SN-001", MODELO, AREA, null, null, null, null, null, null, true)));
             when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
 
             service().relocate(new RelocateClientEquipmentCommand(id, AREA));
@@ -326,7 +326,7 @@ class EquipmentChainServiceTest {
             when(areaService.findOwningClient(AREA)).thenReturn(UUID.randomUUID());
             when(areaService.findOwningClient(areaActual)).thenReturn(UUID.randomUUID());
             when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
-                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, true)));
+                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, null, true)));
 
             assertThatThrownBy(() -> service().relocate(new RelocateClientEquipmentCommand(id, AREA)))
                     .isInstanceOf(CrossClientRelocationException.class);

@@ -83,7 +83,7 @@ class WorkOrderServiceTest {
     }
 
     private static Client unCliente(boolean activo) {
-        return Client.rehydrate(CLIENTE, "900123456", IdentificationType.NIT_JURIDICO, "Hospital",
+        return Client.rehydrate(CLIENTE, "900123456", IdentificationType.NIT_JURIDICO, "Hospital", "CLI",
                 UUID.randomUUID(), activo, List.of(), List.of(), Set.of());
     }
 
@@ -101,7 +101,7 @@ class WorkOrderServiceTest {
     }
 
     private static ClientEquipment unaUnidad(UUID area, boolean activa) {
-        return ClientEquipment.rehydrate(EQUIPO, "SN-1", UUID.randomUUID(), area, null, null, null, null, null,
+        return ClientEquipment.rehydrate(EQUIPO, "SN-1", UUID.randomUUID(), area, null, null, null, null, null, null,
                 activa);
     }
 

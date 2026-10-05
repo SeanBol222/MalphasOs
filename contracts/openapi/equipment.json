@@ -80,6 +80,10 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "numeroHojaVida" : {
+            "description" : "HV-<sigla>-0001, asignado al registrar el equipo y fijo",
+            "type" : "string"
+          },
           "numeroInventario" : {
             "type" : "string"
           },
@@ -480,6 +484,11 @@
           },
           "idEquipoCliente" : {
             "format" : "uuid",
+            "type" : "string"
+          },
+          "numeroHojaVida" : {
+            "description" : "HV-<sigla>-0001, asignado al registrar el equipo",
+            "example" : "HV-CDN-0001",
             "type" : "string"
           },
           "numeroInventario" : {

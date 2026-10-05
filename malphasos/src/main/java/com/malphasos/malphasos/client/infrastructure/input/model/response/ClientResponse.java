@@ -14,6 +14,7 @@ public record ClientResponse(
         String documento,
         IdentificationType tipoIdentificacion,
         String razonSocial,
+        @Schema(description = "Encabeza el numero de sus hojas de vida", example = "CDN") String sigla,
         UUID idPais,
         boolean estadoActivo,
         List<ContactResponse> correos,

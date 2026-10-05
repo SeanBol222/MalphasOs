@@ -11,6 +11,8 @@ import lombok.Builder;
 public record ClientEquipmentResponse(
         UUID id,
         String serie,
+        @Schema(description = "HV-<sigla>-0001, asignado al registrar el equipo y fijo")
+        String numeroHojaVida,
         String numeroInventario,
         LocalDate fechaCompra,
         Long valorCompra,

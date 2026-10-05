@@ -1,6 +1,19 @@
 {
   "components" : {
     "schemas" : {
+      "ClientAcronymRequest" : {
+        "properties" : {
+          "sigla" : {
+            "description" : "Encabeza el numero de las hojas de vida",
+            "example" : "CDN",
+            "minLength" : 1,
+            "pattern" : "^\\s*[A-Za-z][A-Za-z0-9]{2,5}\\s*$",
+            "type" : "string"
+          }
+        },
+        "required" : [ "sigla" ],
+        "type" : "object"
+      },
       "ClientCreateRequest" : {
         "properties" : {
           "documento" : {
@@ -96,6 +109,10 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "numeroHojaVida" : {
+            "description" : "HV-<sigla>-0001, asignado al registrar el equipo y fijo",
+            "type" : "string"
+          },
           "numeroInventario" : {
             "type" : "string"
           },
@@ -166,6 +183,11 @@
             },
             "type" : "array",
             "uniqueItems" : true
+          },
+          "sigla" : {
+            "description" : "Encabeza el numero de sus hojas de vida",
+            "example" : "CDN",
+            "type" : "string"
           },
           "telefonos" : {
             "items" : {
@@ -984,6 +1006,85 @@
           }
         },
         "summary" : "Cambiar los datos de un cliente",
+        "tags" : [ "Client" ]
+      }
+    },
+    "/v1/api/clients/{id}/acronym" : {
+      "patch" : {
+        "description" : "La sigla se genera sola al crear el cliente; esta ruta es para corregirla. Las hojas de vida ya numeradas conservan su numero. 409 si la tiene otro cliente.",
+        "operationId" : "changeAcronym",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClientAcronymRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Corregir la sigla de un cliente",
         "tags" : [ "Client" ]
       }
     },

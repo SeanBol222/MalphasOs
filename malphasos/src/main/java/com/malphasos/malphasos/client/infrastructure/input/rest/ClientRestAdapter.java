@@ -5,6 +5,7 @@ import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeRes
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientPhoneCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.ChangeClientAcronymCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.CreateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.DeactivateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientEmailCommand;
@@ -12,6 +13,7 @@ import com.malphasos.malphasos.client.application.services.client.commands.Remov
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveRepresentativeCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.UpdateClientCommand;
 import com.malphasos.malphasos.client.infrastructure.input.mapper.ClientRestMapper;
+import com.malphasos.malphasos.client.infrastructure.input.model.request.ClientAcronymRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ClientCreateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ClientUpdateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ContactRequest;
@@ -107,6 +109,19 @@ public class ClientRestAdapter {
 
         return clientRestMapper.toResponse(clientServicePort.update(
                 new UpdateClientCommand(id, request.razonSocial(), request.idPais())));
+    }
+
+    @Operation(
+            summary = "Corregir la sigla de un cliente",
+            description = "La sigla se genera sola al crear el cliente; esta ruta es para corregirla."
+                    + " Las hojas de vida ya numeradas conservan su numero. 409 si la tiene otro cliente.")
+    @PreAuthorize("hasAuthority('client.write')")
+    @PatchMapping("/{id}/acronym")
+    public ClientResponse changeAcronym(
+            @PathVariable UUID id, @Valid @RequestBody ClientAcronymRequest request) {
+
+        return clientRestMapper.toResponse(
+                clientServicePort.changeAcronym(new ChangeClientAcronymCommand(id, request.sigla())));
     }
 
     @Operation(summary = "Retirar un cliente", description = "No lo borra: lo deja inactivo.")

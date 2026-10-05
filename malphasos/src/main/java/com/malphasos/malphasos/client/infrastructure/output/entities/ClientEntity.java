@@ -37,6 +37,9 @@ public class ClientEntity {
     @Column(name = "n_razon_social", nullable = false)
     private String razonSocial;
 
+    @Column(name = "n_sigla", nullable = false, unique = true, length = 6)
+    private String sigla;
+
     @Column(name = "k_id_pais")
     private UUID idPais;
 

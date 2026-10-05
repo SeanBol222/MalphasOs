@@ -6,6 +6,7 @@ import com.malphasos.malphasos.client.infrastructure.output.entities.ClientEntit
 import com.malphasos.malphasos.client.infrastructure.output.mapper.ClientPersistenceMapper;
 import com.malphasos.malphasos.client.infrastructure.output.repository.ClientRepository;
 import java.util.List;
+import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -27,6 +28,7 @@ public class ClientPersistenceAdapter implements ClientPersistencePort {
 
     private final ClientRepository clientRepository;
     private final ClientPersistenceMapper clientPersistenceMapper;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -56,6 +58,21 @@ public class ClientPersistenceAdapter implements ClientPersistencePort {
     @Transactional(readOnly = true)
     public Optional<Client> findByDocumento(String documento) {
         return clientRepository.findByDocumento(documento).map(clientPersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsBySigla(String sigla) {
+        return clientRepository.existsBySigla(sigla);
+    }
+
+    @Override
+    @Transactional
+    public void lockAcronymAllocation() {
+        // Un candado de transaccion de PostgreSQL con una clave fija: se suelta solo al terminar la
+        // transaccion que lo tomo, que es la del alta o el cambio de sigla.
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtext('cliente.n_sigla'))")
+                .getSingleResult();
     }
 
     @Override

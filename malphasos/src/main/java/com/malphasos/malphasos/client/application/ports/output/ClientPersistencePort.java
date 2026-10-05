@@ -41,4 +41,17 @@ public interface ClientPersistencePort {
     Optional<Client> findByDocumento(String documento);
 
     Client save(Client client);
+
+    /** Si algún cliente, activo o retirado, tiene ya esta sigla. */
+    boolean existsBySigla(String sigla);
+
+    /**
+     * Serializa la asignación de siglas hasta el final de la transacción en curso.
+     *
+     * <p>Sin esto, dos altas a la vez con la misma sigla base podrían elegir la misma: las dos verían
+     * que está libre. El índice único lo pararía, pero en PostgreSQL una transacción que falla no se
+     * puede reintentar desde dentro, y quien dio de alta vería un conflicto por algo que no escribió.
+     * Con el bloqueo, la segunda espera a que la primera termine y ve la sigla ocupada.
+     */
+    void lockAcronymAllocation();
 }

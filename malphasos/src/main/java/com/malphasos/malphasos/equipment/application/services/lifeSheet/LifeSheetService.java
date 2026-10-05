@@ -85,6 +85,7 @@ public class LifeSheetService implements LifeSheetServicePort {
         return new LifeSheet(
                 new LifeSheet.Identificacion(
                         unidad.getId(),
+                        unidad.getNumeroHojaVida(),
                         unidad.getSerie(),
                         unidad.getNumeroInventario(),
                         unidad.getCodigoInterno(),

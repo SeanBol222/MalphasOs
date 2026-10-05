@@ -3,6 +3,7 @@ package com.malphasos.malphasos.client.application.ports.input;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientPhoneCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.ChangeClientAcronymCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.CreateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.DeactivateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientEmailCommand;
@@ -36,6 +37,9 @@ public interface ClientServicePort {
     Client findById(UUID id, ReadScope alcance);
 
     Client create(CreateClientCommand command);
+
+    /** Corrige la sigla. Si la tiene otro cliente, lanza {@code ClientAcronymTakenException}. */
+    Client changeAcronym(ChangeClientAcronymCommand command);
 
     Client update(UpdateClientCommand command);
 

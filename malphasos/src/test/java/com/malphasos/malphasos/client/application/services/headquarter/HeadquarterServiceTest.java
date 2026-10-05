@@ -54,7 +54,7 @@ class HeadquarterServiceTest {
     private void elClienteExiste() {
         when(clientPort.findById(CLIENTE)).thenReturn(Optional.of(
                 Client.rehydrate(CLIENTE, "900123456", IdentificationType.NIT_JURIDICO,
-                        "Hospital", null, true, List.of(), List.of(), Set.of())));
+                        "Hospital", "CLI", null, true, List.of(), List.of(), Set.of())));
     }
 
     @SuppressWarnings("unchecked")

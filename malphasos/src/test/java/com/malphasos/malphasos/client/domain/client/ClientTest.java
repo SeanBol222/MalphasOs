@@ -228,9 +228,9 @@ class ClientTest {
     @DisplayName("rehidratar no registra nada, y la igualdad es por identidad")
     void rehidratar() {
         UUID id = UUID.randomUUID();
-        Client uno = Client.rehydrate(id, "900123456", IdentificationType.CC, "Uno", null, true,
+        Client uno = Client.rehydrate(id, "900123456", IdentificationType.CC, "Uno", "CLI", null, true,
                 List.of(), List.of(), Set.of());
-        Client otro = Client.rehydrate(id, "900123456", IdentificationType.CC, "Otro", null, false,
+        Client otro = Client.rehydrate(id, "900123456", IdentificationType.CC, "Otro", "CLI", null, false,
                 List.of(), List.of(), Set.of());
 
         assertThat(uno.hasPendingEvents()).isFalse();

@@ -306,6 +306,8 @@ class InterventionRecordingIntegrationTest {
         LifeSheet hoja = lifeSheetServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted());
 
         assertThat(hoja.identificacion().serie()).isNotBlank();
+        // El numero de la hoja (V20): lo puso el trigger al insertar el equipo, aunque entrara por SQL.
+        assertThat(hoja.identificacion().numeroHojaVida()).matches("HV-[A-Z][A-Z0-9]{2,5}-0001");
         assertThat(hoja.identificacion().cliente()).isEqualTo("Hospital Central");
         assertThat(hoja.identificacion().sede()).isNotBlank();
         assertThat(hoja.identificacion().direccionSede()).isEqualTo("Calle 10 # 20 - 30-40");

@@ -48,6 +48,7 @@ public class ClientPersistenceMapper {
                 entity.getDocumento(),
                 IdentificationType.desdeEsquema(entity.getTipoIdentificacion()),
                 entity.getRazonSocial(),
+                entity.getSigla(),
                 entity.getIdPais(),
                 entity.isEstadoActivo(),
                 correos,
@@ -73,6 +74,7 @@ public class ClientPersistenceMapper {
         entity.setDocumento(cliente.getDocumento());
         entity.setTipoIdentificacion(cliente.getTipoIdentificacion().valorEnEsquema());
         entity.setRazonSocial(cliente.getRazonSocial());
+        entity.setSigla(cliente.getSigla());
         entity.setIdPais(cliente.getIdPais());
         entity.setEstadoActivo(cliente.isEstadoActivo());
 
