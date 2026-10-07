@@ -1695,3 +1695,13 @@ completa**, salvo la foto y el protocolo.
 **Tocadas**: [[hoja-de-vida-formato-impreso]], [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]],
 [[index]] y el `CONVENCIONES.md` de la raíz.
 
+## [2026-10-06] query | los protocolos, investigados y aparcados
+
+El usuario eligió los protocolos (RF-14 y, detrás, RF-13) como lo siguiente tras la hoja de vida, y
+antes de diseñar pidió cambiar de tema: rehacer el estilo visual del frontend. Lo reunido —el texto de
+la ERS, la casilla que tenía el original, la lista de pasos del papel de 2019— y **las cinco preguntas
+que hay que hacerle antes de construir** quedan en [[hoja-de-ruta-producto]], para retomarlo sin volver
+a buscar.
+
+**Tocadas**: [[hoja-de-ruta-producto]].
+

@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # Hoja de ruta del producto
@@ -219,6 +219,45 @@ No es un bloqueo técnico, es uno de especificación: **antes de construirlos ha
 ### Lo que se puede construir hoy sin esperar a nada
 
 **RF-14, la configuración de protocolos por tipo de equipo y servicio**, depende únicamente de **RF-22, que está implementado**. Es la única pieza de reportes cuyo camino está libre hoy, y es la que RF-13 necesitará después. Si el bloque de órdenes de trabajo se atasca, es lo que se puede adelantar sin deuda.
+
+### Protocolos (RF-13 y RF-14): lo investigado el 2026-10-05, antes de diseñar
+
+El usuario eligió los protocolos como lo siguiente tras la hoja de vida, y la sesión se detuvo **antes
+de diseñar nada**, porque pidió cambiar de tema —rehacer el estilo visual del frontend—. Queda aquí lo
+que se reunió, para no tener que buscarlo otra vez:
+
+- **Lo que dice la ERS** (`IEEE830.tex`, §3.2.3). **RF-14**: «la configuración previa de protocolos
+  asociados a cada tipo de equipo y tipo de servicio»; un módulo para crearlos y editarlos, **cada
+  protocolo se asocia a uno o más tipos de equipo y a un tipo de servicio**, y quedan disponibles para la
+  asignación automática. Depende de RF-22. **RF-13**: al generar el reporte, el protocolo correcto se
+  carga solo, según el tipo de equipo **y** el tipo de servicio, sin selección manual. Depende de RF-09
+  y RF-14. El texto de estado de RF-13 dice que el tipo de servicio no está modelado: **falso desde el
+  2026-09-12**, existe desde `V6` en `orden_trabajo.t_tipo_servicio`.
+- **Lo que tenía el original** (`DataBase/v4/initdb/A_Sigma_DB_V4.sql`): una tabla
+  `protocolo_mantenimiento` con un booleano `b_ejecucion_protocolo` —«un check si el protocolo fue
+  ejecutado sobre el equipo»— y una foránea al reporte. **Sin pasos y sin relación con el tipo de
+  equipo**: era una casilla por reporte, no un protocolo.
+- **Lo que usa la empresa en papel** (la hoja de vida BB-ING-HV-30 de 2019): el protocolo de
+  mantenimiento preventivo de una balanza es **una lista ordenada de pasos** —«Limpieza y desinfección
+  inicial», «Verificación del estado físico y operativo», «Verificación, ajuste y limpieza del sistema
+  electrónico»…—. Es el contenido que la sección «Protocolo preventivo» de la hoja de vida impresa
+  espera, y que hoy dice «Sin protocolo registrado».
+
+**Las preguntas que hay que hacerle al usuario antes de construir**, porque cambian el esquema:
+
+1. ¿Un protocolo es solo una **lista ordenada de pasos** en texto, o cada paso lleva algo más —un
+   resultado, un valor medido—?
+2. ¿En el reporte, el técnico **marca cada paso como hecho**, o el protocolo solo se muestra como guía?
+3. ¿Puede haber **dos protocolos para el mismo par** (tipo de equipo, tipo de servicio)? RF-13 exige
+   elegir uno solo y automáticamente, lo que pide que el par sea único entre los vigentes.
+4. ¿El reporte **congela** el protocolo con el que se hizo —como la intervención congela la fecha y el
+   resultado— para que editar el protocolo después no cambie reportes viejos? Es lo que el proyecto ha
+   hecho siempre con lo histórico ([[congelar-una-referencia-historica]]).
+5. ¿Vive en `equipment`, junto al tipo de equipo, o en un módulo propio? El tipo de servicio es de
+   `work-order`, pero `equipment` ya tiene su propia copia del vocabulario (`InterventionType`).
+
+Con RF-14 construido, la hoja de vida impresa llenaría su sección de protocolo preventivo con el del
+tipo del equipo, y RF-13 cargaría el protocolo al abrir el reporte.
 
 > **Sigue siendo cierto el 2026-09-27, y ahora es lo único que le falta a la categoría.** El módulo de reportes se construyó sin protocolos a propósito: un protocolo es *qué hay que revisar*, y el reporte funciona sin él —se escriben los procedimientos a mano—. Con RF-14 construido, RF-13 sería cargarlos solos al abrir el reporte. Su otra mitad, **el tipo de servicio, sí existe ya** desde `V6`: la nota de requisitos que decía que no estaba modelado caducó el 2026-09-12.
 
