@@ -291,7 +291,7 @@ El lienzo es un artefacto privado de claude.ai, `MalphasOS — rediseño visual`
 |---|---|---|---|
 | 1 | **Armazón**: barra lateral en tinta, menú en dos bloques, sesión y cerrar sesión al pie, menú plegable en un teléfono | No | **Hecha el 2026-10-10**, `a5161573` |
 | 2 | **Estilo común**: encabezados de página, tablas, botones y superficies blancas, aplicado a listados y fichas | No | **Hecha el 2026-10-10**, `1227feaf` |
-| 3 | **Inicio con agenda**, por semana y por mes, con «solo mis órdenes» | Quizá una consulta por rango de fechas; `orden_trabajo` ya guarda `f_mantenimiento` y el ingeniero | Pendiente |
+| 3 | **Inicio con agenda**, por semana y por mes, con «solo mis órdenes» | Sí: la consulta por periodo, `2abeebfa` | **Hecha el 2026-10-10**, `4cee773b` |
 | 4 | **El llenado del reporte** con secciones numeradas y el panel de lo que falta para cerrar | No | Pendiente |
 | 5 | **Protocolos (RF-14) y la lista de verificación del reporte (RF-13)** | Sí, y las tres preguntas que siguen abiertas | Pendiente |
 

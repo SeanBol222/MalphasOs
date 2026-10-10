@@ -104,6 +104,24 @@ Es la primera tanda del rediseño que el usuario eligió —la «sala de control
 - Los iconos viven en el armazón y no en `NAVEGACION`, porque la lista la leen también las rutas, que no
   pintan nada.
 
+### El inicio es una agenda desde el 2026-10-10
+
+Tercera tanda del rediseño. Tres piezas que la agenda trajo y que sirven fuera de ella:
+
+- **`core/fechas.ts`**: fechas de calendario en la zona local —`fechaIso`, `desdeIso`, `lunesDe`,
+  `sumarDias`— y el token **`HOY`**, que las pruebas fijan. Es la tercera vez que una pantalla depende
+  del día: la hoja de vida cayó dos veces en la fecha de Greenwich, y esta vez las funciones existen
+  antes de que nadie las necesite a mano.
+- **`Sesion.identificador()`**: el `sub` del token, que es también el de la persona —el backend da a
+  cada persona el identificador de Keycloak—. «Solo mis órdenes» no pregunta quién soy.
+- **`proveerApiVacio()`** en `src/testing/entorno.ts`: un servidor que responde `[]` al instante. Lo
+  necesitó el armazón cuando el inicio empezó a pedir datos: sus pruebas usan `whenStable()`, y en
+  zoneless una petición pendiente lo espera para siempre.
+
+La consulta del periodo cuelga de `['ordenes']`, así que programar, iniciar o anular una orden refresca
+también la agenda: la invalidación es por prefijo. Y **quien no lee órdenes no ve la agenda**, no
+porque se oculte sino porque no se pinta: pediría un periodo que el servidor le negaría.
+
 ### Las claves de caché son jerárquicas, y eso es lo que evita el defecto clásico
 
 `['clientes'] → ['clientes', id] → ['clientes', id, 'sedes'] → ['sedes', id] → ['sedes', id, 'areas']`.
