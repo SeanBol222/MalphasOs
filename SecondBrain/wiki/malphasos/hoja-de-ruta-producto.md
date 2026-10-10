@@ -270,6 +270,38 @@ verificación es el diseño de RF-14 y RF-13, no un cambio de pantalla.
 Con RF-14 construido, la hoja de vida impresa llenaría su sección de protocolo preventivo con el del
 tipo del equipo, y RF-13 cargaría el protocolo al abrir el reporte.
 
+#### Decidido el 2026-10-10: un protocolo es una actividad reutilizable, no la lista de un tipo
+
+Al preguntarle por la unicidad, el usuario **cambió el modelo**, y para mejor: «Limpieza y desinfección»
+se repite en muchos tipos de equipo, así que **un protocolo es cada actividad**, vive una vez en un
+catálogo y **se asigna** a los tipos que la necesitan. La pregunta 3 —«¿dos protocolos para el mismo
+par?»— deja de tener sentido tal como estaba escrita: un tipo tiene **varios** protocolos asignados, en
+orden, y esa lista es la que se carga sola.
+
+| Pregunta | Respuesta |
+|---|---|
+| Qué es un protocolo | Una actividad del catálogo: **nombre** y **una línea de qué hacer** |
+| Cómo llega a un tipo | **Se asigna con una prioridad** —1, 2, 3…— que guarda la tabla de unión y que **decide el usuario, nunca el programa**. Las prioridades de un tipo van **seguidas, sin huecos ni repetidas**: al mover o quitar uno se renumeran. Al asignarlo se le puede poner **una indicación propia** («alcohol isopropílico, no al 70 %»); la descripción general es la misma para todos |
+| Cómo se asigna en pantalla | Al **crear o editar el tipo de equipo**: una lista de los protocolos existentes para elegir, y los elegidos en una **lista que se arrastra** para cambiar su prioridad —con botones de subir y bajar además, porque arrastrar no se puede con el teclado—. Si el protocolo no existe, se crea en un **panel aparte dentro del tipo que avisa de los parecidos** mientras se escribe el nombre —sin tildes ni mayúsculas— y ofrece usar uno de ellos; el servidor rechaza además dos nombres iguales. Pedido así para que **no sea fácil repetir protocolos** |
+| Para qué servicio | **Solo preventivo**. Un correctivo es una reparación distinta cada vez y se describe con texto libre |
+| Qué hace el reporte | **Copia** los pasos al abrirse —nombre, descripción, indicación, orden— y en la copia se marca cada uno **hecho** o **no aplica**, con nota. Editar el protocolo después no cambia reportes viejos ([[congelar-una-referencia-historica]]) |
+| Qué pasa con «Procedimientos» | Pasa a llamarse **«Trabajo adicional»**. Con pasos, cerrar exige **todos marcados** y el texto es opcional; sin pasos —un correctivo, o un tipo sin protocolos— el texto sigue siendo obligatorio, como hoy |
+| Dónde vive | En `equipment`, junto al tipo de equipo, con `equipment.write` y sin autoridad nueva. Lo decidió la sesión; el usuario no lo objetó |
+
+**El diseño que sale de ahí, para construir en cuatro tandas:**
+
+1. **Catálogo** (`V21`): `protocolo` —nombre único entre los vigentes sin distinguir mayúsculas ni
+   tildes, descripción, borrado lógico— y `protocolo_tipo_equipo` —tipo, protocolo, `i_prioridad` única
+   por tipo, indicación—. Dominio, servicio, persistencia y REST en `equipment`. **La asignación se manda
+   entera, como lista ordenada** —un `PATCH` con los protocolos y sus indicaciones—, y la prioridad la
+   deriva el servidor de la posición: así no puede llegar un hueco ni una repetida, que es la regla.
+2. **El reporte copia los pasos** (`V22`): `paso_reporte` con lo copiado y el estado de cada paso. Se
+   copian al abrir un reporte de una orden **preventiva**; la regla de cierre cambia como dice la tabla.
+3. **Pantallas del catálogo**: Catálogo › Protocolos, y en el alta y la edición del tipo de equipo la
+   lista que se arrastra, con el panel que crea y avisa de parecidos.
+4. **La lista de verificación del reporte** —la de la maqueta— y **la hoja de vida** llenando su sección
+   «Protocolo preventivo», que hoy dice «Sin protocolo registrado».
+
 > **Sigue siendo cierto el 2026-09-27, y ahora es lo único que le falta a la categoría.** El módulo de reportes se construyó sin protocolos a propósito: un protocolo es *qué hay que revisar*, y el reporte funciona sin él —se escriben los procedimientos a mano—. Con RF-14 construido, RF-13 sería cargarlos solos al abrir el reporte. Su otra mitad, **el tipo de servicio, sí existe ya** desde `V6`: la nota de requisitos que decía que no estaba modelado caducó el 2026-09-12.
 
 ## El rediseño visual: la «sala de control» (2026-10-06 y 2026-10-10)
@@ -292,7 +324,7 @@ El lienzo es un artefacto privado de claude.ai, `MalphasOS — rediseño visual`
 | 1 | **Armazón**: barra lateral en tinta, menú en dos bloques, sesión y cerrar sesión al pie, menú plegable en un teléfono | No | **Hecha el 2026-10-10**, `a5161573` |
 | 2 | **Estilo común**: encabezados de página, tablas, botones y superficies blancas, aplicado a listados y fichas | No | **Hecha el 2026-10-10**, `1227feaf` |
 | 3 | **Inicio con agenda**, por semana y por mes, con «solo mis órdenes» | Sí: la consulta por periodo, `2abeebfa` | **Hecha el 2026-10-10**, `4cee773b` |
-| 4 | **El llenado del reporte** con secciones numeradas y el panel de lo que falta para cerrar | No | Pendiente |
+| 4 | **El llenado del reporte** con secciones numeradas y el panel de lo que falta para cerrar | No | **Hecha el 2026-10-10**, `62b3663b` |
 | 5 | **Protocolos (RF-14) y la lista de verificación del reporte (RF-13)** | Sí, y las tres preguntas que siguen abiertas | Pendiente |
 
 **Una desviación de la maqueta, consciente**: en un teléfono la A dibujaba una barra de pestañas abajo, y
