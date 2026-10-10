@@ -1,10 +1,10 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 27 tablas, 37 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 29 tablas, 40 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-10-05
+updated: 2026-10-10
 ---
 
 # El esquema de MalphasOS, hoy
@@ -76,17 +76,23 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-04
+## Las cifras, medidas el 2026-10-10
 
 | | |
 |---|---|
-| Migraciones aplicadas | **20** (`V1`…`V20`) |
-| Tablas de dominio | **27** |
-| Llaves foráneas | **38**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **38** |
+| Migraciones aplicadas | **21** (`V1`…`V21`) |
+| Tablas de dominio | **29** |
+| Llaves foráneas | **40**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **43** |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
-| Índices únicos **parciales** | **5** |
-| Tablas con borrado lógico | **27 de 27** — universal, sin excepción |
+| Índices únicos **parciales** | **7** |
+| Tablas con borrado lógico | **29 de 29** — universal, sin excepción |
+
+> **Recontado el 2026-10-10, sobre la base con `V21`**, leyendo `pg_constraint` y `pg_index`. `V21` trae
+> los protocolos de mantenimiento: **dos tablas**, **dos foráneas** —las de la tabla de unión—, **cinco
+> `CHECK`** y **dos índices únicos parciales**. Las cifras de antes eran 27 tablas, 38 foráneas, 38
+> `CHECK` y 5 parciales. Hay además una página con el modelo relacional completo generada de la misma
+> lectura, en un artefacto privado de claude.ai: `https://claude.ai/artifact/L4Wjqomxy6T6LGx1X3jf1k`.
 
 > **Recontado el 2026-10-05, por la noche, sobre la base con `V20`.** `V19` y `V20` traen dos `CHECK`
 > —el formato de la sigla y un consecutivo no negativo—, dos `UNIQUE` y **los dos primeros triggers del
@@ -290,9 +296,10 @@ erDiagram
 **Un encargado lo es de una sede o de un área, nunca de las dos ni de ninguna**, y eso lo impone un
 `CHECK` y no una convención.
 
-## `equipment` — 11 tablas
+## `equipment` — 13 tablas
 
-Son tres cosas en un módulo: la **cadena del catálogo** (seis tablas), el **catálogo metrológico con lo
+**Desde `V21` son cuatro cosas**: lo de abajo, más los **protocolos de mantenimiento** de su propia
+sección. Son tres cosas en un módulo: la **cadena del catálogo** (seis tablas), el **catálogo metrológico con lo
 que se verifica** (cuatro, de `V8` y `V10`) y, desde `V12`, el **historial de intervenciones** de cada
 equipo instalado, que es la única sección de su hoja de vida con tabla propia.
 
@@ -415,6 +422,45 @@ anterior había que registrarlo como dos tipos de equipo. Las 20 magnitudes y 46
 `V10` y **no hay pantalla que las administre**, igual que los países. Ver
 [[dominio-equipo-mantenimiento]].
 
+### Los protocolos de mantenimiento — 2 tablas, desde `V21`
+
+Un protocolo es **una actividad reutilizable** —«Limpieza y desinfección»— que se escribe una vez y se
+**asigna** a los tipos de equipo que la necesitan, con una **prioridad** que decide el usuario. Decidido
+el 2026-10-10; ver [[hoja-de-ruta-producto]].
+
+```mermaid
+erDiagram
+    protocolo ||--o{ protocolo_tipo_equipo : "se asigna a"
+    tipo_equipo ||--o{ protocolo_tipo_equipo : "lleva"
+    protocolo {
+        uuid k_id_protocolo PK
+        varchar n_nombre
+        varchar n_clave "UK parcial entre vigentes"
+        varchar t_descripcion
+        boolean b_estado_activo
+    }
+    protocolo_tipo_equipo {
+        uuid k_id_tipo_equipo PK
+        uuid k_id_protocolo PK
+        smallint i_prioridad "UK parcial por tipo"
+        varchar t_indicacion "nula o con texto"
+        boolean b_estado_activo
+    }
+```
+
+**Tres cosas que no se ven en el diagrama:**
+
+- **`n_clave` es el nombre sin mayúsculas, sin tildes y con los espacios colapsados**, y es lo que no se
+  repite. **La calcula la aplicación** (`Protocol.clave`) y no la base: `unaccent` no es `IMMUTABLE` y
+  no puede ir en un índice. La base solo exige que esté en minúsculas.
+- **La prioridad va seguida —1, 2, 3— y eso no lo garantiza el esquema**: el índice parcial impide las
+  repetidas y el `CHECK` las no positivas, pero los huecos los evita la aplicación, que la **deriva de la
+  posición** en la lista que recibe.
+- **La tabla de unión se escribe con SQL y no con JPA.** Reordenar fila a fila choca a mitad de camino
+  con su propio índice parcial —que no se puede diferir—, así que se retiran todas las filas vigentes
+  del tipo y se reactivan con su prioridad nueva, en la misma transacción. Es la tercera vez que un
+  índice parcial obliga a imponer el orden en el adaptador.
+
 ## `work-order` — 2 tablas
 
 ```mermaid
@@ -493,18 +539,20 @@ cuatro y cada una tapa un estado que de otro modo se podría escribir:
 nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
 lectura sin punto pasa y la que trae punto queda atada.
 
-## Los 5 índices únicos parciales, y por qué son parciales
+## Los 7 índices únicos parciales, y por qué son parciales
 
 `UQ_reporte_servicio_activo`, `UQ_verificacion_magnitud_activa_por_tipo`,
-`UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo` y, desde `V11`,
-`UQ_modelo_nombre_activo_por_equipo`. Los cinco llevan `WHERE b_estado_activo`, y la razón es la misma
+`UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo`, desde `V11`
+`UQ_modelo_nombre_activo_por_equipo` y, desde `V21`, `UQ_protocolo_clave_activo` y
+`UQ_protocolo_tipo_equipo_prioridad_activa`. (Decía **cinco**: cierto hasta el **2026-10-10**.) Los siete llevan `WHERE b_estado_activo`, y la razón es la misma
 en todos: **aquí nada se borra**. Una restricción normal impediría volver a dar de alta algo que se
 retiró, de modo que reconfigurar hacia atrás sería imposible.
 
 **Y cobran un precio**: Hibernate vacía los `INSERT` antes que los `UPDATE`, así que
 sustituir una fila activa por otra equivalente choca contra el índice. Un índice **parcial** no se
 puede declarar diferido —`DEFERRABLE` es de las restricciones, y una restricción no admite `WHERE`—,
-así que el orden se impone en el adaptador con un `saveAndFlush` intermedio. Lo pagaron dos módulos:
+así que el orden se impone en el adaptador con un `saveAndFlush` intermedio —o, en la asignación de
+protocolos del 2026-10-10, con SQL en dos pasos—. Lo pagaron dos módulos:
 `report` el 2026-09-27 y `equipment` el 2026-10-03, donde llevaba **latente** porque ninguna prueba lo
 ejercía. Ver [[stack-spring-boot-4-particularidades]].
 

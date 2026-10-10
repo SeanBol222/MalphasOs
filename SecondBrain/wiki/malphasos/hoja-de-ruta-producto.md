@@ -290,7 +290,7 @@ orden, y esa lista es la que se carga sola.
 
 **El diseño que sale de ahí, para construir en cuatro tandas:**
 
-1. **Catálogo** (`V21`): `protocolo` —nombre único entre los vigentes sin distinguir mayúsculas ni
+1. **Hecha el 2026-10-10**, `371d0908`. **Catálogo** (`V21`): `protocolo` —nombre único entre los vigentes sin distinguir mayúsculas ni
    tildes, descripción, borrado lógico— y `protocolo_tipo_equipo` —tipo, protocolo, `i_prioridad` única
    por tipo, indicación—. Dominio, servicio, persistencia y REST en `equipment`. **La asignación se manda
    entera, como lista ordenada** —un `PATCH` con los protocolos y sus indicaciones—, y la prioridad la
