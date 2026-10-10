@@ -1750,3 +1750,17 @@ solo preventivo; el reporte copia los pasos y «Procedimientos» pasa a «Trabaj
 cuatro tandas está en [[hoja-de-ruta-producto]].
 
 **Tocadas**: [[hoja-de-ruta-producto]].
+
+## [2026-10-10] ingest | el catálogo de protocolos, y el esquema en 29 tablas
+
+Primera tanda de RF-14 (`371d0908`): `V21` con `protocolo` y `protocolo_tipo_equipo`, dos agregados
+—el protocolo y la asignación a un tipo, que deriva la prioridad de la posición— y la API. La tabla de
+unión se guarda con SQL en dos pasos, porque reordenar choca con su índice parcial. Ninguna prueba
+estructural se enteró de los dos controladores nuevos; y apareció que una escritura con cuerpo responde
+400 antes que 403. 1094 pruebas del backend.
+
+[[esquema-bd-malphasos]] recontada sobre la base: 29 tablas, 40 foráneas, 43 `CHECK`, 7 índices
+parciales; el guion de columnas pasa con 153. Y un artefacto con el modelo relacional completo,
+generado de la misma lectura.
+
+**Tocadas**: [[esquema-bd-malphasos]], [[stack-spring-boot-4-particularidades]], [[hoja-de-ruta-producto]].

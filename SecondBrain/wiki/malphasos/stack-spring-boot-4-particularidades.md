@@ -108,6 +108,17 @@ rm -rf target/test-classes && ./mvnw -o test-compile
 compilación: el mismo defecto, veinte minutos más tarde y peor explicado. **La regla: al cambiar una
 firma pública que las pruebas usan, el `test-compile` incremental no es una comprobación.**
 
+## 8. Una escritura con cuerpo responde 400 antes que 403
+
+Encontrado el 2026-10-10 con la asignación de protocolos. `@PreAuthorize` se evalúa **al invocar el
+método**, y para invocarlo Spring ya ha leído y validado el cuerpo: un `PATCH` sin cuerpo, o con uno que
+no cumple `@Valid`, responde **400 a quien ni siquiera tiene permiso**. No se filtra ningún dato —el 400
+habla del formato, no del recurso—, pero tiene una consecuencia en las pruebas: la de
+`SecurityIntegrationTest` que exige **403** a un rol que no otorga nada **solo puede incluir rutas sin
+cuerpo**, y por eso ninguna escritura con cuerpo de todo el sistema estaba en ella. Lo dice ahora un
+comentario en la propia lista. Que esas rutas lleven su autoridad lo garantiza otra prueba, la que exige
+`@PreAuthorize` en cada operación.
+
 ## Surefire da dos conteos distintos de la misma ejecución
 
 Al citar un número de pruebas conviene saber que **depende de dónde se mire**, y que el camino más obvio da otro.
