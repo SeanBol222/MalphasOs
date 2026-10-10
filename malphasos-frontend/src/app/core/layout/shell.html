@@ -1,90 +1,215 @@
 <!--
-  El manual de marca: alineado a la izquierda, radio cero, el acento solo para
-  senalar. La retícula son 12 columnas con margenes de 48 px en escritorio; en
-  telefono, 4 columnas y 16 px -extension propia, el manual no resuelve anchos
-  estrechos-.
+  La «sala de control», elegida el 2026-10-10 entre tres propuestas: una barra lateral en tinta con el
+  menu en dos bloques, y el contenido sobre papel. En un telefono la barra se esconde tras un boton y se
+  abre a pantalla completa, que es lo que arregla el menu que se desbordaba con seis destinos en fila.
+  El manual de marca sigue mandando: radio cero, el acento solo para senalar.
 -->
 <a
-  class="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:m-1 focus:bg-ink focus:px-2 focus:py-1 focus:text-paper"
+  class="sr-only focus:not-sr-only focus:absolute focus:z-30 focus:m-1 focus:bg-ink focus:px-2 focus:py-1 focus:text-paper"
   href="#contenido"
 >
   Saltar al contenido
 </a>
 
-<!-- Al imprimir solo sale el contenido: hoy lo usa la hoja de vida, que es un documento. -->
-<header class="border-b border-neutral-300 bg-paper print:hidden">
-  <div class="mx-auto flex max-w-[1440px] items-center gap-2 px-2 py-2 md:px-6">
-    <span class="text-lg font-bold tracking-tight">
-      Malphas<span class="text-accent-700">OS</span>
-    </span>
-    <span class="text-sm text-neutral-700">Gestión de mantenimiento</span>
-  </div>
+<div class="min-h-dvh md:flex print:block">
+  <!-- Al imprimir solo sale el contenido: hoy lo usa la hoja de vida, que es un documento. -->
+  <header
+    class="bg-ink text-paper md:sticky md:top-0 md:flex md:h-dvh md:w-[15.5rem] md:flex-none md:flex-col md:overflow-y-auto print:hidden"
+    [class.max-md:fixed]="menuAbierto()"
+    [class.max-md:inset-0]="menuAbierto()"
+    [class.max-md:z-20]="menuAbierto()"
+    [class.max-md:flex]="menuAbierto()"
+    [class.max-md:flex-col]="menuAbierto()"
+    [class.max-md:overflow-y-auto]="menuAbierto()"
+    (keydown.escape)="cerrarMenu()"
+  >
+    <div class="flex items-center gap-2 px-2 py-2 md:px-3 md:py-3">
+      <span
+        class="flex h-5 w-5 flex-none items-center justify-center bg-paper text-xl font-extrabold text-ink"
+        aria-hidden="true"
+      >
+        M
+      </span>
+      <span class="flex flex-col">
+        <span class="text-xl leading-none font-extrabold tracking-tight">
+          Malphas<span class="text-accent-500">OS</span>
+        </span>
+        <span class="text-xs tracking-[0.14em] text-neutral-400 uppercase">Mantenimiento</span>
+      </span>
 
-  <nav aria-label="Navegación principal" class="mx-auto max-w-[1440px] px-2 md:px-6">
-    <ul class="flex list-none gap-1">
-      @for (entrada of navegacion(); track entrada.ruta) {
-        <li class="relative">
-          @if (entrada.hijos) {
-            <!--
-              Un boton y no un enlace: «catalogo» no es una pantalla. Y se abre al pulsar, no al pasar
-              el raton, porque con el raton por encima no se navega con el teclado y en un telefono no
-              hay raton.
-            -->
-            <button
-              class="flex min-h-tactil items-center gap-1 border-b-2 border-transparent px-2 font-semibold text-neutral-800 hover:text-ink"
-              [class.border-accent]="desplegada() === entrada.ruta"
-              [class.text-ink]="desplegada() === entrada.ruta"
-              type="button"
-              [attr.aria-expanded]="desplegada() === entrada.ruta"
-              [attr.aria-controls]="entrada.ruta + '-submenu'"
-              (click)="alternar(entrada)"
-              (keydown.escape)="cerrar()"
-            >
-              {{ entrada.etiqueta }}
-              <span aria-hidden="true">{{ desplegada() === entrada.ruta ? '▴' : '▾' }}</span>
-            </button>
-
-            @if (desplegada() === entrada.ruta) {
-              <ul
-                class="absolute z-10 min-w-[12rem] list-none border border-neutral-400 bg-paper"
-                [id]="entrada.ruta + '-submenu'"
-                (keydown.escape)="cerrar()"
-              >
-                @for (hija of entrada.hijos; track hija.ruta) {
-                  <li>
-                    <a
-                      class="flex min-h-tactil items-center px-2 font-semibold text-neutral-800 hover:bg-neutral-200 hover:text-ink"
-                      routerLinkActive="bg-neutral-200 text-ink"
-                      ariaCurrentWhenActive="page"
-                      [routerLink]="[entrada.ruta, hija.ruta]"
-                      (click)="cerrar()"
-                    >
-                      {{ hija.etiqueta }}
-                    </a>
-                  </li>
-                }
-              </ul>
-            }
+      <button
+        class="ml-auto flex h-tactil w-tactil items-center justify-center md:hidden"
+        type="button"
+        [attr.aria-expanded]="menuAbierto()"
+        aria-controls="menu-principal"
+        [attr.aria-label]="menuAbierto() ? 'Cerrar el menú' : 'Abrir el menú'"
+        (click)="alternarMenu()"
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          @if (menuAbierto()) {
+            <path d="M5 5l14 14M19 5L5 19" />
           } @else {
-            <a
-              class="flex min-h-tactil items-center border-b-2 border-transparent px-2 font-semibold text-neutral-800 hover:text-ink"
-              routerLinkActive="border-accent text-ink"
-              ariaCurrentWhenActive="page"
-              [routerLink]="entrada.ruta"
-            >
-              {{ entrada.etiqueta }}
-            </a>
+            <path d="M4 7h16M4 12h16M4 17h16" />
           }
-        </li>
-      }
-    </ul>
-  </nav>
-</header>
+        </svg>
+      </button>
+    </div>
 
-<main
-  id="contenido"
-  class="mx-auto max-w-[1440px] px-2 py-3 md:px-6 print:max-w-none print:p-0"
-  tabindex="-1"
->
-  <router-outlet />
-</main>
+    <nav
+      id="menu-principal"
+      aria-label="Navegación principal"
+      class="flex-col pt-2 md:flex md:pt-1"
+      [class.hidden]="!menuAbierto()"
+      [class.flex]="menuAbierto()"
+    >
+      @for (grupo of grupos(); track grupo.id) {
+        <p class="px-2 pt-2 pb-1 text-xs tracking-[0.14em] text-neutral-500 uppercase md:px-3">
+          {{ grupo.etiqueta }}
+        </p>
+        <ul class="list-none">
+          @for (entrada of grupo.entradas; track entrada.ruta) {
+            <li>
+              @if (entrada.hijos) {
+                <!--
+                  Un boton y no un enlace: «catalogo» no es una pantalla. Y se abre al pulsar, no al pasar
+                  el raton, porque con el raton por encima no se navega con el teclado y en un telefono no
+                  hay raton. En la barra lateral se despliega debajo, empujando lo que sigue, y no flota.
+                -->
+                <button
+                  class="flex min-h-tactil w-full items-center gap-2 px-2 text-left font-medium text-neutral-300 hover:bg-brand-black hover:text-white md:px-3"
+                  [class.text-white]="desplegada() === entrada.ruta"
+                  type="button"
+                  [attr.aria-expanded]="desplegada() === entrada.ruta"
+                  [attr.aria-controls]="entrada.ruta + '-submenu'"
+                  (click)="alternar(entrada)"
+                  (keydown.escape)="cerrar()"
+                >
+                  <ng-container
+                    [ngTemplateOutlet]="icono"
+                    [ngTemplateOutletContext]="{ $implicit: entrada.ruta }"
+                  />
+                  {{ entrada.etiqueta }}
+                  <svg
+                    class="ml-auto"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      [attr.d]="desplegada() === entrada.ruta ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'"
+                    />
+                  </svg>
+                </button>
+
+                @if (desplegada() === entrada.ruta) {
+                  <ul class="list-none bg-brand-black py-1" [id]="entrada.ruta + '-submenu'">
+                    @for (hija of entrada.hijos; track hija.ruta) {
+                      <li>
+                        <a
+                          class="flex min-h-tactil items-center pr-2 pl-6 text-sm text-neutral-300 hover:text-white md:pl-7"
+                          routerLinkActive="font-bold text-white"
+                          ariaCurrentWhenActive="page"
+                          [routerLink]="[entrada.ruta, hija.ruta]"
+                          (click)="cerrarMenu()"
+                        >
+                          {{ hija.etiqueta }}
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                }
+              } @else {
+                <a
+                  class="flex min-h-tactil items-center gap-2 px-2 font-medium text-neutral-300 hover:bg-brand-black hover:text-white md:px-3"
+                  routerLinkActive="bg-brand-black font-bold text-white shadow-[inset_4px_0_0_var(--color-accent)]"
+                  ariaCurrentWhenActive="page"
+                  [routerLink]="entrada.ruta"
+                  (click)="cerrarMenu()"
+                >
+                  <ng-container
+                    [ngTemplateOutlet]="icono"
+                    [ngTemplateOutletContext]="{ $implicit: entrada.ruta }"
+                  />
+                  {{ entrada.etiqueta }}
+                </a>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </nav>
+
+    <div
+      class="mt-auto items-center gap-2 border-t border-neutral-800 px-2 py-2 md:flex md:px-3"
+      [class.hidden]="!menuAbierto()"
+      [class.flex]="menuAbierto()"
+    >
+      <span
+        class="flex h-tactil w-tactil flex-none items-center justify-center bg-neutral-700 text-sm font-bold"
+        aria-hidden="true"
+      >
+        {{ iniciales() }}
+      </span>
+      <span class="min-w-0 truncate text-sm font-bold">{{ sesion.nombre() }}</span>
+      <button
+        class="ml-auto flex h-tactil w-tactil flex-none items-center justify-center text-neutral-400 hover:text-white"
+        type="button"
+        aria-label="Cerrar sesión"
+        title="Cerrar sesión"
+        (click)="sesion.salir()"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main
+    id="contenido"
+    class="min-w-0 flex-1 px-2 py-3 md:px-6 md:py-5 print:max-w-none print:p-0"
+    tabindex="-1"
+  >
+    <div class="mx-auto max-w-[1280px] print:max-w-none">
+      <router-outlet />
+    </div>
+  </main>
+</div>
+
+<!-- Un icono de trazo por destino. Decorativo: la etiqueta ya dice adonde lleva. -->
+<ng-template #icono let-ruta>
+  <svg
+    class="flex-none"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    aria-hidden="true"
+  >
+    @for (trazo of iconoDe(ruta); track $index) {
+      <path [attr.d]="trazo" />
+    }
+  </svg>
+</ng-template>

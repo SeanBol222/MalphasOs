@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import Keycloak from 'keycloak-js';
+import { KeycloakFalso } from '../../../testing/keycloak-falso';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { proveerSesionFalsa } from '../../../testing/keycloak-falso';
@@ -61,7 +63,88 @@ describe('Armazón', () => {
     expect(destinos).toContain('Clientes');
     expect(destinos).toContain('Equipos');
     expect(destinos).not.toContain('Personas');
-    expect(destinos).not.toContain('Órdenes');
+    expect(destinos).not.toContain('Órdenes de trabajo');
+  });
+
+  describe('Los dos bloques del menú', () => {
+    const rotulos = (raiz: HTMLElement) =>
+      [...raiz.querySelectorAll('nav > p')].map((p) => (p.textContent ?? '').trim());
+
+    it('reparte los destinos en operación y administración, en ese orden', async () => {
+      const raiz = await pintar();
+      const bloques = [...raiz.querySelectorAll('nav > ul')].map((ul) =>
+        [...ul.querySelectorAll(':scope > li')].map((li) => (li.textContent ?? '').trim()),
+      );
+
+      expect(rotulos(raiz)).toEqual(['Operación', 'Administración']);
+      expect(bloques).toEqual([
+        ['Inicio', 'Órdenes de trabajo', 'Equipos', 'Clientes'],
+        ['Personas', 'Catálogo'],
+      ]);
+    });
+
+    it('un bloque sin destinos no pinta su rótulo', async () => {
+      // Quien solo tiene client.read no administra nada visible: el rotulo solo seria ruido. Y el
+      // catalogo se lee con equipment.read, asi que sin el tambien desaparece «Catalogo».
+      const raiz = await pintar('/inicio', ['client.read']);
+
+      expect(rotulos(raiz)).toEqual(['Operación']);
+    });
+
+    it('toda entrada de primer nivel declara su bloque', () => {
+      // Sin bloque, la entrada caeria en «Operacion» por omision y nadie lo notaria.
+      for (const entrada of NAVEGACION) {
+        expect(entrada.grupo, `la entrada "${entrada.ruta}"`).toBeDefined();
+      }
+    });
+  });
+
+  describe('La sesión, al pie de la barra', () => {
+    it('muestra quién está dentro', async () => {
+      const raiz = await pintar();
+
+      expect(raiz.querySelector('header')?.textContent).toContain('Sean Bolívar');
+      expect(raiz.querySelector('header')?.textContent).toContain('SB');
+    });
+
+    it('cerrar sesión le pide la salida a Keycloak', async () => {
+      // No existia en ninguna pantalla hasta el 2026-10-10.
+      const raiz = await pintar();
+      const boton = raiz.querySelector('button[aria-label="Cerrar sesión"]') as HTMLButtonElement;
+
+      boton.click();
+
+      expect((TestBed.inject(Keycloak) as KeycloakFalso).salidasPedidas).toBe(1);
+    });
+  });
+
+  describe('En un teléfono', () => {
+    const botonMenu = (raiz: HTMLElement) =>
+      raiz.querySelector('button[aria-controls="menu-principal"]') as HTMLButtonElement;
+
+    it('el menú empieza cerrado y el botón lo dice', async () => {
+      // La clase hidden la anula md:flex en escritorio; jsdom no aplica estilos, asi que se comprueba
+      // la clase y el estado que lee un lector de pantalla.
+      const raiz = await pintar();
+
+      expect(botonMenu(raiz).getAttribute('aria-expanded')).toBe('false');
+      expect(botonMenu(raiz).getAttribute('aria-label')).toBe('Abrir el menú');
+      expect(raiz.querySelector('#menu-principal')!.classList).toContain('hidden');
+    });
+
+    it('se abre con el botón y se cierra al elegir un destino', async () => {
+      const raiz = await pintar();
+      botonMenu(raiz).click();
+      armazon.detectChanges();
+
+      expect(botonMenu(raiz).getAttribute('aria-expanded')).toBe('true');
+      expect(raiz.querySelector('#menu-principal')!.classList).not.toContain('hidden');
+
+      (raiz.querySelector('#menu-principal a') as HTMLAnchorElement).click();
+      armazon.detectChanges();
+
+      expect(botonMenu(raiz).getAttribute('aria-expanded')).toBe('false');
+    });
   });
 
   it('quien trae admin.full lo ve todo, sin nombrar una sola autoridad de recurso', async () => {
