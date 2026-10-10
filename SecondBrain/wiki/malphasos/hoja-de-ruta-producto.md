@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-06
+updated: 2026-10-10
 ---
 
 # Hoja de ruta del producto
@@ -256,10 +256,48 @@ que se reunió, para no tener que buscarlo otra vez:
 5. ¿Vive en `equipment`, junto al tipo de equipo, o en un módulo propio? El tipo de servicio es de
    `work-order`, pero `equipment` ya tiene su propia copia del vocabulario (`InterventionType`).
 
+**Dos respuestas llegaron el 2026-10-06, por el diseño y no por la pregunta.** Al ver la maqueta del
+llenado del reporte, el usuario pidió que «lo que se hizo» fuera **una lista de verificación** en vez de
+un texto, y aprobó esta forma: el protocolo llega cargado según el tipo de equipo y el de servicio, cada
+paso tiene título y una línea de qué hacer, y en el reporte **cada paso se marca como hecho o como «no
+aplica»**, con una nota opcional; lo hecho fuera del protocolo va en un campo de «trabajo adicional», y
+el reporte **no se cierra con pasos sin marcar**. Eso contesta la 1 —una lista ordenada de pasos de
+texto— y la 2 —se marcan—. **Siguen abiertas la 3, la 4 y la 5.** Y una corrección de vocabulario que
+conviene no perder: el usuario habló de que «el procedimiento se guarda como protocolo», y **no es así
+hoy**: `reporte_servicio.t_procedimientos` es un texto libre y los protocolos no existen. La lista de
+verificación es el diseño de RF-14 y RF-13, no un cambio de pantalla.
+
 Con RF-14 construido, la hoja de vida impresa llenaría su sección de protocolo preventivo con el del
 tipo del equipo, y RF-13 cargaría el protocolo al abrir el reporte.
 
 > **Sigue siendo cierto el 2026-09-27, y ahora es lo único que le falta a la categoría.** El módulo de reportes se construyó sin protocolos a propósito: un protocolo es *qué hay que revisar*, y el reporte funciona sin él —se escriben los procedimientos a mano—. Con RF-14 construido, RF-13 sería cargarlos solos al abrir el reporte. Su otra mitad, **el tipo de servicio, sí existe ya** desde `V6`: la nota de requisitos que decía que no estaba modelado caducó el 2026-09-12.
+
+## El rediseño visual: la «sala de control» (2026-10-06 y 2026-10-10)
+
+El 2026-10-06 el usuario pidió rehacer el aspecto del frontend —«no me gusta como se ve»—. Se le
+propusieron **tres direcciones** en un lienzo de diseño, las tres dentro del manual de marca: **A, sala de
+control** —barra lateral en tinta, datos densos—, **B, editorial** —retícula suiza, titulares grandes,
+reglas de tinta— y **C, instrumental** —paneles blancos, etiquetas condensadas, búsqueda global y una
+agenda semanal—. **Eligió la A**, y pidió dos piezas más sobre ella: el llenado del reporte de servicio y
+un Inicio **con agenda** como la de la C, que prefirió al Inicio sin ella.
+
+El lienzo es un artefacto privado de claude.ai, `MalphasOS — rediseño visual`
+(`https://claude.ai/artifact/1TYREfJ9XHVeL8biAgKVie`); las pantallas de la A son `Main`, `A-Equipos`,
+`A-Orden`, `A-Movil`, `A-Reporte` y `A-Agenda`.
+
+**El plan, en tandas, una rama cada una:**
+
+| # | Tanda | Necesita backend | Estado |
+|---|---|---|---|
+| 1 | **Armazón**: barra lateral en tinta, menú en dos bloques, sesión y cerrar sesión al pie, menú plegable en un teléfono | No | **Hecha el 2026-10-10**, `a5161573` |
+| 2 | **Estilo común**: encabezados de página, tablas, botones y superficies blancas, aplicado a listados y fichas | No | Pendiente |
+| 3 | **Inicio con agenda**, por semana y por mes, con «solo mis órdenes» | Quizá una consulta por rango de fechas; `orden_trabajo` ya guarda `f_mantenimiento` y el ingeniero | Pendiente |
+| 4 | **El llenado del reporte** con secciones numeradas y el panel de lo que falta para cerrar | No | Pendiente |
+| 5 | **Protocolos (RF-14) y la lista de verificación del reporte (RF-13)** | Sí, y las tres preguntas que siguen abiertas | Pendiente |
+
+**Una desviación de la maqueta, consciente**: en un teléfono la A dibujaba una barra de pestañas abajo, y
+se construyó un **menú plegable** —la misma barra lateral abierta a pantalla completa—. Así hay una sola
+navegación, y no dos que puedan desincronizarse. Queda anotado para discutirlo.
 
 ## El orden propuesto
 

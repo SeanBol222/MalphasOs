@@ -4,7 +4,7 @@ description: Como se construye el frontend de MalphasOS -Angular, por modulo de 
 tags: [frontend, arquitectura, angular, "describe:malphasos"]
 source: Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex
 estado: estable
-updated: 2026-10-03
+updated: 2026-10-10
 ---
 
 # Arquitectura del frontend de MalphasOS
@@ -77,13 +77,32 @@ Una entrada puede tener **hijas**, y entonces cambia de naturaleza: **no tiene p
 
 | Dónde | Qué hay |
 |---|---|
-| Cabecera | `Catálogo ▾` despliega las cinco piezas, cada una con su dirección |
+| Barra lateral | `Catálogo ▾` despliega las cinco piezas debajo, cada una con su dirección. (Decía «Cabecera»: cierto hasta el **2026-10-10**, cuando el menú dejó de ser una fila) |
 | Dentro de la sección | Una subnavegación con las mismas cinco, para saltar sin volver a la cabecera |
 | URL | `/catalogo/fabricantes` — **se puede enlazar, recargar y volver con el botón de atrás** |
 
 **Rutas y no pestañas con estado interno**, y las tres cosas de esa última fila son la razón. Además, cada pieza se convierte en **su propio trozo diferido**: quien entra a corregir una marca ya no descarga los modelos.
 
 **El desplegable se abre al pulsar, no al pasar el ratón.** Con el ratón por encima no se puede navegar con el teclado y en un teléfono no hay ratón. Es un `button` con `aria-expanded` y `aria-controls`: sin lo segundo, un lector de pantalla se entera de que algo se abrió pero no de qué.
+
+### El armazón es una barra lateral desde el 2026-10-10
+
+Es la primera tanda del rediseño que el usuario eligió —la «sala de control», ver
+[[hoja-de-ruta-producto]]—. Lo que cambió y por qué:
+
+- **El menú está en dos bloques**, «Operación» y «Administración», y el bloque lo declara la propia
+  entrada de `NAVEGACION` con `grupo`, igual que declara su autoridad. Un bloque que se queda sin
+  destinos para la sesión **no pinta su rótulo**. Una prueba exige que toda entrada de primer nivel
+  declare el suyo: sin ella, caería en «Operación» por omisión y nadie lo notaría.
+- **Las órdenes de trabajo subieron al segundo puesto** y se llaman «Órdenes de trabajo»: son el
+  trabajo del día.
+- **En un teléfono la barra se esconde tras un botón** con `aria-expanded` y se abre a pantalla
+  completa; elegir un destino la cierra. Es lo que cerró el menú que desbordaba —no se arregló la fila,
+  se quitó—.
+- **Entró cerrar sesión**, que no existía en ninguna pantalla: `Sesion.salir()` estaba escrito y nadie
+  lo llamaba.
+- Los iconos viven en el armazón y no en `NAVEGACION`, porque la lista la leen también las rutas, que no
+  pintan nada.
 
 ### Las claves de caché son jerárquicas, y eso es lo que evita el defecto clásico
 
