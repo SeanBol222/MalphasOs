@@ -83,6 +83,50 @@ describe('Sistema de diseño', () => {
     });
   });
 
+  describe('Las piezas comunes de las pantallas (2026-10-10)', () => {
+    const regla = (clase: string) => {
+      const css = leerHojaDeEstilos();
+      // Con la sangria de primer nivel: `.tabla` aparece tambien anidada dentro de `.superficie`.
+      const inicio = css.indexOf(`\n  .${clase} {`);
+
+      expect(inicio, `la clase .${clase} existe`).toBeGreaterThan(-1);
+
+      return css.slice(inicio, css.indexOf('\n  }\n', inicio));
+    };
+
+    it('el botón principal se rellena con accent-700 y no con el acento de marca', () => {
+      // Es la misma decision que el contraste de arriba, ahora en un solo sitio: hasta el 2026-10-10
+      // se escribia en 47 botones, y uno con bg-accent no lo habria detectado nadie.
+      expect(regla('boton-primario')).toContain('var(--color-accent-700)');
+      expect(regla('boton-primario')).not.toMatch(/var\(--color-accent\)/);
+    });
+
+    it('las cabeceras de tabla se leen sobre su fondo con AA', () => {
+      expect(regla('tabla')).toContain('color: var(--color-neutral-700)');
+      expect(regla('tabla')).toContain('background-color: var(--color-neutral-100)');
+      expect(
+        contraste(TOKENS['--color-neutral-700'], TOKENS['--color-neutral-100']),
+      ).toBeGreaterThanOrEqual(AA_TEXTO);
+    });
+
+    it('el texto de un botón desactivado se sigue leyendo', () => {
+      // WCAG exime a los controles desactivados, pero un boton ilegible no dice por que no se puede
+      // pulsar. Con neutral-700 daba 4,4:1; con neutral-800 pasa.
+      expect(regla('boton-primario')).toContain('color: var(--color-neutral-800)');
+      expect(
+        contraste(TOKENS['--color-neutral-800'], TOKENS['--color-neutral-300']),
+      ).toBeGreaterThanOrEqual(AA_TEXTO);
+    });
+
+    it('ninguna pieza común fija el área táctil: se escribe en cada control', () => {
+      // Si min-height viviera dentro de .boton-primario, las pruebas que buscan min-h-tactil en
+      // cada control dejarian de demostrar nada.
+      for (const clase of ['boton-primario', 'boton-secundario', 'campo']) {
+        expect(regla(clase)).not.toContain('min-height');
+      }
+    });
+  });
+
   describe('Forma', () => {
     it('el espaciado base son 8 px, de modo que la escala no puede expresar 4', () => {
       // El manual manda multiplos de 8. Con la base en 0.5rem, p-1 son 8 px:

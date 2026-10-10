@@ -10,7 +10,7 @@
   @if (area.data(); as datos) {
     <div class="flex flex-wrap items-start justify-between gap-2">
       <div>
-        <h1 class="text-2xl font-bold">{{ datos.nombre }}</h1>
+        <h1 class="titulo-pagina">{{ datos.nombre }}</h1>
         <p class="text-neutral-700" [class.font-semibold]="datos.estadoActivo">
           {{ datos.estadoActivo ? 'Área abierta' : 'Área cerrada' }}
         </p>
@@ -18,7 +18,7 @@
 
       @if (puedeRegistrar() && datos.estadoActivo) {
         <a
-          class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+          class="boton-primario flex min-h-tactil items-center"
           [routerLink]="['/areas', id(), 'equipos', 'nuevo']"
         >
           Registrar equipo
@@ -26,8 +26,8 @@
       }
     </div>
 
-    <section class="mt-3">
-      <h2 class="text-xl font-bold">Equipos instalados</h2>
+    <section class="superficie mt-3">
+      <h2 class="titulo-seccion">Equipos instalados</h2>
 
       @if (cargando()) {
         <p class="text-neutral-700" role="status">Cargando los equipos…</p>
@@ -37,16 +37,16 @@
           catálogo.
         </p>
       } @else {
-        <table class="mt-1 w-full border-collapse text-left">
+        <table class="tabla mt-1">
           <caption class="sr-only">Equipos instalados en esta área</caption>
           <thead>
-            <tr class="border-b border-neutral-300">
-              <th scope="col" class="py-1 pr-2 font-semibold">Serie</th>
-              <th scope="col" class="py-1 pr-2 font-semibold">Modelo</th>
-              <th scope="col" class="py-1 pr-2 font-semibold">Inventario</th>
-              <th scope="col" class="py-1 pr-2 font-semibold">Estado</th>
+            <tr>
+              <th scope="col" class="font-semibold">Serie</th>
+              <th scope="col" class="font-semibold">Modelo</th>
+              <th scope="col" class="font-semibold">Inventario</th>
+              <th scope="col" class="font-semibold">Estado</th>
               @if (puedeEditar()) {
-                <th scope="col" class="py-1 font-semibold">
+                <th scope="col" class="font-semibold">
                   <span class="sr-only">Acciones</span>
                 </th>
               }
@@ -54,19 +54,19 @@
           </thead>
           <tbody>
             @for (fila of filas(); track fila.id) {
-              <tr class="border-b border-neutral-200">
-                <td class="py-1 pr-2 font-semibold">{{ fila.serie }}</td>
-                <td class="py-1 pr-2">{{ fila.modelo }}</td>
-                <td class="py-1 pr-2">{{ fila.numeroInventario || '—' }}</td>
-                <td class="py-1 pr-2" [class.font-semibold]="fila.estadoActivo">
+              <tr>
+                <td class="font-semibold">{{ fila.serie }}</td>
+                <td>{{ fila.modelo }}</td>
+                <td>{{ fila.numeroInventario || '—' }}</td>
+                <td [class.font-semibold]="fila.estadoActivo">
                   {{ fila.estadoActivo ? 'En servicio' : 'De baja' }}
                 </td>
                 @if (puedeEditar()) {
-                  <td class="py-1">
+                  <td>
                     @if (fila.estadoActivo) {
                       @if (confirmandoBaja() === fila.id) {
                         <button
-                          class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+                          class="boton-primario min-h-tactil"
                           type="button"
                           [disabled]="baja.isPending()"
                           (click)="darDeBaja(fila.id)"

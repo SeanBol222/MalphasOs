@@ -1,9 +1,9 @@
 <div class="flex flex-wrap items-center justify-between gap-2">
-  <h1 class="text-2xl font-bold">Equipos</h1>
+  <h1 class="titulo-pagina">Equipos</h1>
 
   @if (puedeRegistrar()) {
     <a
-      class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+      class="boton-primario flex min-h-tactil items-center"
       routerLink="/equipos/nuevo"
     >
       Registrar equipo
@@ -23,35 +23,35 @@
     del catálogo.
   </p>
 } @else {
-  <table class="mt-3 w-full border-collapse text-left">
+  <table class="tabla mt-3">
     <caption class="sr-only">Equipos de cliente registrados</caption>
     <thead>
-      <tr class="border-b border-neutral-300">
-        <th scope="col" class="py-1 pr-2 font-semibold">Serie</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Modelo</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Inventario</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Área</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Estado</th>
-        <th scope="col" class="py-1 font-semibold">Historial</th>
+      <tr>
+        <th scope="col" class="font-semibold">Serie</th>
+        <th scope="col" class="font-semibold">Modelo</th>
+        <th scope="col" class="font-semibold">Inventario</th>
+        <th scope="col" class="font-semibold">Área</th>
+        <th scope="col" class="font-semibold">Estado</th>
+        <th scope="col" class="font-semibold">Historial</th>
       </tr>
     </thead>
     <tbody>
       @for (fila of filas(); track fila.id) {
-        <tr class="border-b border-neutral-200">
-          <td class="py-1 pr-2 font-semibold">{{ fila.serie }}</td>
-          <td class="py-1 pr-2">{{ fila.modelo }}</td>
-          <td class="py-1 pr-2">{{ fila.numeroInventario || '—' }}</td>
-          <td class="py-1 pr-2">
+        <tr>
+          <td class="font-semibold">{{ fila.serie }}</td>
+          <td>{{ fila.modelo }}</td>
+          <td>{{ fila.numeroInventario || '—' }}</td>
+          <td>
             <!-- El area enlaza a su ficha, que es donde se da de baja un equipo o se registra otro. -->
             <a class="font-semibold underline" [routerLink]="['/areas', fila.idArea]">
               {{ fila.area }}
             </a>
           </td>
           <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
-          <td class="py-1 pr-2" [class.font-semibold]="fila.estadoActivo">
+          <td [class.font-semibold]="fila.estadoActivo">
             {{ fila.estadoActivo ? 'En servicio' : 'De baja' }}
           </td>
-          <td class="py-1">
+          <td>
             <!--
               El historial se enlaza desde aqui y no desde una ficha del equipo, porque el equipo no
               tiene ficha: lo que hay es este listado. Se ve tambien de un equipo de baja, que es

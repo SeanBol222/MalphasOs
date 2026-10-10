@@ -1,9 +1,9 @@
-<h1 class="text-2xl font-bold">Nueva sede</h1>
+<h1 class="titulo-pagina">Nueva sede</h1>
 @if (cliente.data(); as datos) {
   <p class="text-neutral-700">de {{ datos.razonSocial }}</p>
 }
 
-<form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+<form class="superficie mt-3 max-w-[720px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
 
   <p class="mb-3 text-neutral-700">
     Los campos marcados con <span class="text-accent-700" aria-hidden="true">*</span> son obligatorios.
@@ -25,7 +25,7 @@
     <label class="block font-semibold" for="nombre">Nombre de la sede <span class="text-accent-700" aria-hidden="true">*</span></label>
     <input
       id="nombre"
-      class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+      class="campo mt-1 min-h-tactil w-full"
       formControlName="nombre"
       maxlength="50"
       [attr.aria-invalid]="malo('nombre') || null"
@@ -63,7 +63,7 @@
       <label class="block font-semibold" for="calle">Calle <span class="text-accent-700" aria-hidden="true">*</span></label>
       <input
         id="calle"
-        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        class="campo mt-1 min-h-tactil w-full"
         formControlName="calle"
         [attr.aria-invalid]="malo('calle') || null"
       aria-required="true"
@@ -73,7 +73,7 @@
       <label class="block font-semibold" for="carrera">Carrera <span class="text-accent-700" aria-hidden="true">*</span></label>
       <input
         id="carrera"
-        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        class="campo mt-1 min-h-tactil w-full"
         formControlName="carrera"
         [attr.aria-invalid]="malo('carrera') || null"
       aria-required="true"
@@ -83,7 +83,7 @@
       <label class="block font-semibold" for="numero">Número <span class="text-accent-700" aria-hidden="true">*</span></label>
       <input
         id="numero"
-        class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+        class="campo mt-1 min-h-tactil w-full"
         formControlName="numero"
         [attr.aria-invalid]="malo('numero') || null"
       aria-required="true"
@@ -98,7 +98,7 @@
 
   <div class="flex gap-2">
     <button
-      class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+      class="boton-primario min-h-tactil"
       type="submit"
       [disabled]="enviando()"
     >
@@ -106,7 +106,7 @@
     </button>
 
     <a
-      class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold"
+      class="boton-secundario flex min-h-tactil items-center"
       [routerLink]="['/clientes', id()]"
     >
       Cancelar

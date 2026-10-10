@@ -1,8 +1,8 @@
 <div class="flex flex-wrap items-center justify-between gap-2">
-  <h1 class="text-2xl font-bold">Clientes</h1>
+  <h1 class="titulo-pagina">Clientes</h1>
 
   <a
-    class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+    class="boton-primario flex min-h-tactil items-center"
     routerLink="/clientes/nuevo"
   >
     Nuevo cliente
@@ -21,26 +21,26 @@
     Todavía no hay clientes registrados. Empiece dando de alta el primero.
   </p>
 } @else {
-  <table class="mt-3 w-full border-collapse text-left">
+  <table class="tabla mt-3">
     <caption class="sr-only">Clientes registrados</caption>
     <thead>
-      <tr class="border-b border-neutral-300">
-        <th scope="col" class="py-1 pr-2 font-semibold">Razón social</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Documento</th>
-        <th scope="col" class="py-1 font-semibold">Estado</th>
+      <tr>
+        <th scope="col" class="font-semibold">Razón social</th>
+        <th scope="col" class="font-semibold">Documento</th>
+        <th scope="col" class="font-semibold">Estado</th>
       </tr>
     </thead>
     <tbody>
       @for (cliente of clientes.data(); track cliente.id) {
-        <tr class="border-b border-neutral-200">
-          <td class="py-1 pr-2">
+        <tr>
+          <td>
             <!-- La razon social es el enlace: es lo que alguien busca con la vista al recorrer la
                  tabla, y hace de la fila algo mas que texto. -->
             <a class="font-semibold underline" [routerLink]="['/clientes', cliente.id]">
               {{ cliente.razonSocial }}
             </a>
           </td>
-          <td class="py-1 pr-2">
+          <td>
             {{ cliente.documento }}
             <span class="text-neutral-700">· {{ etiqueta(cliente.tipoIdentificacion) }}</span>
           </td>
@@ -48,7 +48,7 @@
             El manual: los estados se distinguen por peso tipografico y no por colores nuevos.
             Un cliente retirado NO se pinta de rojo.
           -->
-          <td class="py-1" [class.font-semibold]="cliente.estadoActivo">
+          <td [class.font-semibold]="cliente.estadoActivo">
             {{ cliente.estadoActivo ? 'Activo' : 'Retirado' }}
           </td>
         </tr>

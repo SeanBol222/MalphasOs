@@ -17,7 +17,7 @@
   @if (cliente.data(); as datos) {
     <div class="flex flex-wrap items-start justify-between gap-2">
       <div>
-        <h1 class="text-2xl font-bold">{{ datos.razonSocial }}</h1>
+        <h1 class="titulo-pagina">{{ datos.razonSocial }}</h1>
         <!-- El estado por peso tipografico, no por color. Lo manda el manual de marca. -->
         <p class="text-neutral-700" [class.font-semibold]="datos.estadoActivo">
           {{ datos.estadoActivo ? 'Activo' : 'Retirado' }}
@@ -26,7 +26,7 @@
 
       <div class="flex flex-wrap gap-2">
         <a
-          class="flex min-h-tactil items-center border-2 border-ink px-3 font-semibold"
+          class="boton-secundario flex min-h-tactil items-center"
           [routerLink]="['/clientes', id(), 'editar']"
         >
           Editar
@@ -35,7 +35,7 @@
         @if (datos.estadoActivo) {
           @if (confirmandoBaja()) {
             <button
-              class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+              class="boton-primario min-h-tactil"
               type="button"
               [disabled]="baja.isPending()"
               (click)="retirar()"
@@ -43,7 +43,7 @@
               {{ baja.isPending() ? 'Retirando…' : 'Confirmar retiro' }}
             </button>
             <button
-              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              class="boton-secundario min-h-tactil"
               type="button"
               (click)="confirmandoBaja.set(false)"
             >
@@ -51,7 +51,7 @@
             </button>
           } @else {
             <button
-              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              class="boton-secundario min-h-tactil"
               type="button"
               (click)="confirmandoBaja.set(true)"
             >
@@ -68,7 +68,7 @@
       </p>
     }
 
-    <dl class="mt-3 grid max-w-[640px] grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+    <dl class="superficie mt-3 grid max-w-[720px] grid-cols-[auto_1fr] gap-x-3 gap-y-1">
       <dt class="font-semibold">Documento</dt>
       <dd>{{ datos.documento }} · {{ etiqueta(datos.tipoIdentificacion) }}</dd>
 
@@ -88,11 +88,11 @@
       <dd>{{ datos.representantes?.length || 'Ninguno' }}</dd>
     </dl>
 
-    <section class="mt-3">
+    <section class="superficie mt-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-xl font-bold">Sedes</h2>
+        <h2 class="titulo-seccion">Sedes</h2>
         <a
-          class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+          class="boton-primario flex min-h-tactil items-center"
           [routerLink]="['/clientes', id(), 'sedes', 'nueva']"
         >
           Nueva sede
@@ -122,8 +122,8 @@
       }
     </section>
 
-    <section class="mt-3">
-      <h2 class="text-xl font-bold">Correos</h2>
+    <section class="superficie mt-3">
+      <h2 class="titulo-seccion">Correos</h2>
 
       @if (!datos.correos?.length) {
         <p class="text-neutral-700">Sin correos registrados.</p>
@@ -150,7 +150,7 @@
           <label class="block font-semibold" for="correoNuevo">Añadir un correo <span class="text-accent-700" aria-hidden="true">*</span></label>
           <input
             id="correoNuevo"
-            class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+            class="campo mt-1 min-h-tactil w-full"
             type="email"
             inputmode="email"
             [formControl]="correoNuevo"
@@ -162,7 +162,7 @@
           />
         </div>
         <button
-          class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+          class="boton-primario min-h-tactil"
           type="button"
           [disabled]="altaDeCorreo.isPending()"
           (click)="agregarCorreo()"
@@ -177,8 +177,8 @@
       }
     </section>
 
-    <section class="mt-3">
-      <h2 class="text-xl font-bold">Teléfonos</h2>
+    <section class="superficie mt-3">
+      <h2 class="titulo-seccion">Teléfonos</h2>
 
       @if (!datos.telefonos?.length) {
         <p class="text-neutral-700">Sin teléfonos registrados.</p>
@@ -205,7 +205,7 @@
           <label class="block font-semibold" for="telefonoNuevo">Añadir un teléfono <span class="text-accent-700" aria-hidden="true">*</span></label>
           <input
             id="telefonoNuevo"
-            class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+            class="campo mt-1 min-h-tactil w-full"
             inputmode="tel"
             [formControl]="telefonoNuevo"
             [attr.aria-invalid]="telefonoNuevo.invalid && telefonoNuevo.touched ? 'true' : null"
@@ -216,7 +216,7 @@
           />
         </div>
         <button
-          class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+          class="boton-primario min-h-tactil"
           type="button"
           [disabled]="altaDeTelefono.isPending()"
           (click)="agregarTelefono()"

@@ -121,6 +121,144 @@
 }
 
 /*
+ * Las piezas comunes de las pantallas, desde el 2026-10-10: la «sala de control» que el usuario eligio.
+ *
+ * Son clases con nombre y no cadenas de utilidades repetidas porque hasta entonces lo eran: el boton
+ * principal se escribia igual en 47 sitios, y cambiar su aspecto era tocar 47 sitios. Viven en la capa
+ * de componentes, asi que una utilidad puesta al lado -un margen, min-h-tactil- sigue mandando sobre
+ * ellas. El area tactil NO va dentro: se queda escrita en cada control, que es lo que las pruebas
+ * comprueban y lo que hace visible que se cumple.
+ */
+@layer components {
+  /* El titulo de cada pantalla: grande y apretado, como en la maqueta. */
+  .titulo-pagina {
+    font-size: 2rem;
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+
+    @media (width >= 48rem) {
+      font-size: 2.5rem;
+    }
+  }
+
+  .titulo-seccion {
+    font-size: 1.25rem;
+    line-height: 1.2;
+    font-weight: 800;
+  }
+
+  /* La accion principal: relleno accent-700, el unico rojo que sostiene texto blanco (ver arriba). */
+  .boton-primario {
+    background-color: var(--color-accent-700);
+    color: #ffffff;
+    padding-inline: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--color-accent-800);
+    }
+
+    &:disabled {
+      background-color: var(--color-neutral-300);
+      color: var(--color-neutral-800);
+      cursor: not-allowed;
+    }
+  }
+
+  .boton-secundario {
+    border: 1px solid var(--color-ink);
+    background-color: #ffffff;
+    color: var(--color-ink);
+    padding-inline: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--color-neutral-100);
+    }
+
+    &:disabled {
+      border-color: var(--color-neutral-400);
+      color: var(--color-neutral-600);
+      cursor: not-allowed;
+    }
+  }
+
+  /*
+   * Una superficie blanca sobre el papel: cada bloque de una ficha o de un formulario. Es lo que separa
+   * en la maqueta un bloque de otro sin dibujar cajas de mas. Una tabla dentro pierde su propio borde.
+   */
+  .superficie {
+    background-color: #ffffff;
+    border: 1px solid var(--color-neutral-300);
+    padding: 1.5rem;
+
+    & .tabla {
+      border: 0;
+    }
+  }
+
+  /* Los campos se escriben en blanco sobre el papel: se distinguen de lo que solo se lee. */
+  .campo {
+    border: 1px solid var(--color-neutral-500);
+    background-color: #ffffff;
+    padding-inline: 0.75rem;
+
+    &:disabled,
+    &[readonly] {
+      background-color: var(--color-neutral-200);
+    }
+  }
+
+  /*
+   * Las tablas son superficies blancas con cabecera en versalitas: los datos densos de la maqueta. Los
+   * estados siguen distinguiendose por peso tipografico, que lo pone cada celda.
+   */
+  .tabla {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    background-color: #ffffff;
+    border: 1px solid var(--color-neutral-300);
+    font-size: 0.9375rem;
+
+    /*
+     * En un telefono una tabla ancha se desplaza dentro de su caja y no empuja la pagina: antes del
+     * 2026-10-10 el listado de equipos media 704 px a 390 de ancho. Como bloque, la tabla es su propio
+     * contenedor de desplazamiento; sus filas siguen siendo una tabla.
+     */
+    @media (width < 48rem) {
+      display: block;
+      overflow-x: auto;
+    }
+
+    & caption + thead tr,
+    & thead tr {
+      background-color: var(--color-neutral-100);
+    }
+
+    & th[scope='col'] {
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-neutral-700);
+      border-bottom: 1px solid var(--color-neutral-300);
+    }
+
+    & td,
+    & tbody th {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--color-neutral-200);
+      vertical-align: top;
+    }
+  }
+}
+
+/*
  * Al imprimir, la pagina es la hoja: carta y sin margenes del navegador, porque los margenes los pone
  * el documento. Hoy solo imprime la hoja de vida; si otra pantalla imprime, que tenga los suyos.
  */

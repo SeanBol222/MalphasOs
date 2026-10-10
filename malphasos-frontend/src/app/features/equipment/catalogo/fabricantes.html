@@ -1,5 +1,5 @@
 <section>
-  <h2 class="text-xl font-bold">Fabricantes</h2>
+  <h2 class="titulo-seccion">Fabricantes</h2>
   <p class="text-neutral-700">
     Quién produce el equipo, y en qué país. No es lo mismo que la marca: un modelo junta las dos cosas.
   </p>
@@ -43,7 +43,7 @@
         <label class="block font-semibold" for="fabricanteNuevo">Nombre del fabricante <span class="text-accent-700" aria-hidden="true">*</span></label>
         <input
           id="fabricanteNuevo"
-          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          class="campo mt-1 min-h-tactil w-full"
           formControlName="nombre"
           maxlength="50"
       aria-required="true"
@@ -60,7 +60,7 @@
         />
       </div>
       <button
-        class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+        class="boton-primario min-h-tactil"
         type="submit"
         [disabled]="alta.isPending()"
       >

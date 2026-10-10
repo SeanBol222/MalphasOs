@@ -1,9 +1,9 @@
 <section>
   <div class="flex flex-wrap items-center justify-between gap-2">
-    <h2 class="text-xl font-bold">Tipos de equipo</h2>
+    <h2 class="titulo-seccion">Tipos de equipo</h2>
     @if (puedeEscribir()) {
       <a
-        class="flex min-h-tactil items-center bg-accent-700 px-3 font-semibold text-paper"
+        class="boton-primario flex min-h-tactil items-center"
         routerLink="/catalogo/tipos/nuevo"
       >
         Nuevo tipo
@@ -85,7 +85,7 @@
 
               <div class="flex flex-wrap gap-2">
                 <button
-                  class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+                  class="boton-primario min-h-tactil"
                   type="button"
                   [disabled]="cambioDeVerificaciones.isPending()"
                   (click)="declararVerificaciones(tipo.id!)"
@@ -93,7 +93,7 @@
                   {{ cambioDeVerificaciones.isPending() ? 'Guardando…' : 'Guardar' }}
                 </button>
                 <button
-                  class="min-h-tactil border-2 border-ink px-3 font-semibold"
+                  class="boton-secundario min-h-tactil"
                   type="button"
                   (click)="cambiando.set(null)"
                 >

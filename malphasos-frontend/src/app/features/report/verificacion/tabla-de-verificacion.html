@@ -1,5 +1,5 @@
-<section class="mt-3">
-  <h2 class="text-xl font-bold">Verificación metrológica</h2>
+<section class="superficie mt-3">
+  <h2 class="titulo-seccion">Verificación metrológica</h2>
 
   @if (cargando()) {
     <p class="text-neutral-700" role="status">Consultando cómo se verifica este equipo…</p>
@@ -42,30 +42,30 @@
             }
           </p>
 
-          <table class="mt-1 w-full max-w-[560px] border-collapse">
+          <table class="tabla mt-1 max-w-[560px]">
             <caption class="text-left text-neutral-700">
               Los valores se expresan en {{ grupo.unidad }}.
             </caption>
             <thead>
               <tr class="border-b-2 border-ink text-left">
-                <th class="py-1" scope="col">Punto</th>
-                <th class="py-1" scope="col">Nº</th>
-                <th class="py-1" scope="col">Patrón</th>
-                <th class="py-1" scope="col">Equipo</th>
+                <th scope="col">Punto</th>
+                <th scope="col">Nº</th>
+                <th scope="col">Patrón</th>
+                <th scope="col">Equipo</th>
               </tr>
             </thead>
             <tbody formArrayName="casillas">
               @for (par of grupo.filas; track par.indice) {
-                <tr class="border-b border-neutral-200" [formGroupName]="par.indice">
-                  <td class="py-1">{{ par.fila.punto }}</td>
-                  <td class="py-1">{{ par.fila.secuencia }}</td>
-                  <td class="py-1">
+                <tr [formGroupName]="par.indice">
+                  <td>{{ par.fila.punto }}</td>
+                  <td>{{ par.fila.secuencia }}</td>
+                  <td>
                     <label class="sr-only" [for]="'patron-' + par.indice">
                       Valor del patrón de {{ grupo.magnitud }} en {{ par.fila.punto }}, lectura
                       {{ par.fila.secuencia }}
                     </label>
                     <input
-                      class="min-h-tactil w-full border-2 border-ink px-1 disabled:bg-neutral-200"
+                      class="campo min-h-tactil w-full"
                       [id]="'patron-' + par.indice"
                       type="number"
                       step="any"
@@ -73,13 +73,13 @@
                       formControlName="valorPatron"
                     />
                   </td>
-                  <td class="py-1">
+                  <td>
                     <label class="sr-only" [for]="'equipo-' + par.indice">
                       Valor del equipo de {{ grupo.magnitud }} en {{ par.fila.punto }}, lectura
                       {{ par.fila.secuencia }}
                     </label>
                     <input
-                      class="min-h-tactil w-full border-2 border-ink px-1 disabled:bg-neutral-200"
+                      class="campo min-h-tactil w-full"
                       [id]="'equipo-' + par.indice"
                       type="number"
                       step="any"
@@ -98,7 +98,7 @@
               por verificacion: una lectura de temperatura no es una lectura de humedad.
             -->
             <button
-              class="mt-1 min-h-tactil border-2 border-ink px-3 font-semibold"
+              class="boton-secundario mt-1 min-h-tactil"
               type="button"
               (click)="anadirFila(grupo)"
             >
@@ -111,7 +111,7 @@
       @if (editable()) {
         <div class="mt-3 flex flex-wrap gap-2">
           <button
-            class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+            class="boton-primario min-h-tactil"
             type="submit"
             [disabled]="registro.isPending() || !hayAlgoQueMandar()"
           >
