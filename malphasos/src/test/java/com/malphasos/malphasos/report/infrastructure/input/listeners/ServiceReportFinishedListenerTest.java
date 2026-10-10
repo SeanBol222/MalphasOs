@@ -17,6 +17,8 @@ import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
+import com.malphasos.malphasos.report.domain.serviceReport.StepState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportPayload;
@@ -107,6 +109,27 @@ class ServiceReportFinishedListenerTest {
 
         // El tipo NO viene en el evento: sale de la orden, y es el unico dato que cuesta una consulta.
         assertThat(anotado.tipoServicio()).isEqualTo(InterventionType.CALIBRACION);
+    }
+
+    @Test
+    @DisplayName("con pasos del protocolo, la descripcion son los pasos hechos y detras el trabajo adicional")
+    void descripcionConPasos() {
+        // Decidido por el usuario el 2026-10-10. Antes de V22 la linea copiaba el texto a secas, y con
+        // pasos ese texto es opcional: la linea habria podido quedar vacia.
+        laOrdenEsDeTipo(ServiceType.PREVENTIVO);
+        ServiceReport conPasos = ServiceReport.rehydrate(REPORTE, ORDEN, EQUIPO, ReportState.FINALIZADO,
+                null, null, "Cambio de pila", null, ServiceResult.OPERATIVO, CERRADO, java.util.List.of(),
+                java.util.List.of(
+                        new ReportStep(UUID.randomUUID(), 1, UUID.randomUUID(), "Limpieza", "D", null,
+                                StepState.HECHO, null),
+                        new ReportStep(UUID.randomUUID(), 2, UUID.randomUUID(), "Batería", "D", null,
+                                StepState.NO_APLICA, "No tiene")),
+                true);
+        when(serviceReportServicePort.findById(REPORTE, ReadScope.unrestricted())).thenReturn(conPasos);
+
+        listener.onReportFinished(elCierre(ServiceResult.OPERATIVO));
+
+        assertThat(loAnotado().descripcion()).isEqualTo("Limpieza. Además: Cambio de pila");
     }
 
     @Test

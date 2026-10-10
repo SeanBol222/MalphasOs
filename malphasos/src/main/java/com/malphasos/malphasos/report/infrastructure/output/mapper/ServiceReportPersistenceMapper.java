@@ -1,9 +1,12 @@
 package com.malphasos.malphasos.report.infrastructure.output.mapper;
 
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
+import com.malphasos.malphasos.report.domain.serviceReport.StepState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
+import com.malphasos.malphasos.report.infrastructure.output.entities.ReportStepEntity;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ServiceReportEntity;
 import com.malphasos.malphasos.report.infrastructure.output.entities.VerificationReadingEntity;
 import java.util.LinkedHashMap;
@@ -62,6 +65,17 @@ public class ServiceReportPersistenceMapper {
                 entity.getResultado() == null ? null : ServiceResult.valueOf(entity.getResultado()),
                 entity.getFinalizado(),
                 lecturas,
+                entity.getPasos().stream()
+                        .map(fila -> new ReportStep(
+                                fila.getId(),
+                                fila.getOrden(),
+                                fila.getIdProtocolo(),
+                                fila.getNombre(),
+                                fila.getDescripcion(),
+                                fila.getIndicacion(),
+                                StepState.valueOf(fila.getEstado()),
+                                fila.getNota()))
+                        .toList(),
                 entity.isEstadoActivo());
     }
 
@@ -93,8 +107,39 @@ public class ServiceReportPersistenceMapper {
         entity.setEstadoActivo(reporte.isEstadoActivo());
 
         actualizarLecturasExistentes(reporte, entity);
+        volcarPasos(reporte, entity);
 
         return entity;
+    }
+
+    /**
+     * Los pasos del protocolo: se insertan al abrir el reporte y después solo cambian de estado y de
+     * nota. Por eso no tienen el problema de orden de las lecturas —nunca hay dos filas activas
+     * compitiendo por el mismo sitio— y van en una sola pasada: se pone al día la fila que ya está y
+     * se añade la que falta.
+     */
+    private void volcarPasos(ServiceReport reporte, ServiceReportEntity entity) {
+        Map<UUID, ReportStepEntity> porId = new LinkedHashMap<>();
+        entity.getPasos().forEach(fila -> porId.put(fila.getId(), fila));
+
+        for (ReportStep paso : reporte.getPasos()) {
+            ReportStepEntity fila = porId.get(paso.id());
+
+            if (fila == null) {
+                fila = new ReportStepEntity();
+                fila.setId(paso.id());
+                fila.setReporte(entity);
+                fila.setOrden(paso.orden());
+                fila.setIdProtocolo(paso.idProtocolo());
+                fila.setNombre(paso.nombre());
+                fila.setDescripcion(paso.descripcion());
+                fila.setIndicacion(paso.indicacion());
+                entity.getPasos().add(fila);
+            }
+
+            fila.setEstado(paso.estado().name());
+            fila.setNota(paso.nota());
+        }
     }
 
     /**

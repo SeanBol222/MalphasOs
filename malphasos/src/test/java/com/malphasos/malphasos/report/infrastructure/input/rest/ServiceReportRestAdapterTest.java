@@ -20,6 +20,9 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
+import com.malphasos.malphasos.report.domain.serviceReport.StepState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordVerificationRequest;
@@ -210,6 +213,40 @@ class ServiceReportRestAdapterTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("FINALIZADO"))
                 .andExpect(jsonPath("$.finalizado").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("marcar un paso llega al servicio con su orden, su estado y su nota, y los pasos salen en la respuesta")
+    void marcarPaso() throws Exception {
+        ServiceReport reporte = ServiceReport.open(UUID.randomUUID(), UUID.randomUUID(), List.of(
+                ReportStep.copied(1, UUID.randomUUID(), "Batería", "Revisar la batería.", null)));
+        reporte.markStep(1, StepState.NO_APLICA, "No tiene");
+        when(serviceReportServicePort.markStep(any())).thenReturn(reporte);
+
+        mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/steps/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"estado\": \"NO_APLICA\", \"nota\": \"No tiene\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pasos[0].nombre").value("Batería"))
+                .andExpect(jsonPath("$.pasos[0].estado").value("NO_APLICA"))
+                .andExpect(jsonPath("$.pasos[0].nota").value("No tiene"));
+
+        ArgumentCaptor<MarkReportStepCommand> comando = ArgumentCaptor.forClass(MarkReportStepCommand.class);
+        verify(serviceReportServicePort).markStep(comando.capture());
+        assertThat(comando.getValue().orden()).isEqualTo(1);
+        assertThat(comando.getValue().estado()).isEqualTo(StepState.NO_APLICA);
+        assertThat(comando.getValue().nota()).isEqualTo("No tiene");
+    }
+
+    @Test
+    @DisplayName("marcar un paso sin estado responde 400 sin llegar al servicio")
+    void marcarPasoSinEstado() throws Exception {
+        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/steps/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nota\": \"Algo\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(serviceReportServicePort, never()).markStep(any());
     }
 
     @Test

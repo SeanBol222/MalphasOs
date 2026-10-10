@@ -5,6 +5,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportF
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportOpenedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportPayload;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStepMarkedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportVerifiedEvent;
 import com.malphasos.malphasos.shared.domain.events.AggregateRoot;
 import java.time.LocalDateTime;
@@ -76,7 +77,16 @@ public class ServiceReport extends AggregateRoot {
      */
     private final List<VerificationReading> lecturas = new ArrayList<>();
 
+    /**
+     * Los pasos del protocolo preventivo, copiados al abrir el reporte y en su orden. Vacía en un
+     * correctivo, en un tipo sin protocolos y en los reportes abiertos antes de V22.
+     */
+    private final List<ReportStep> pasos = new ArrayList<>();
+
     private boolean estadoActivo;
+
+    /** Lo que cabe en la descripción de una intervención de la hoja de vida: {@code varchar(500)}. */
+    static final int LARGO_DESCRIPCION_DEL_SERVICIO = 500;
 
     private ServiceReport(
             UUID id,
@@ -90,6 +100,7 @@ public class ServiceReport extends AggregateRoot {
             ServiceResult resultado,
             LocalDateTime finalizado,
             Collection<VerificationReading> lecturas,
+            Collection<ReportStep> pasos,
             boolean estadoActivo) {
 
         this.id = id;
@@ -107,10 +118,32 @@ public class ServiceReport extends AggregateRoot {
         if (lecturas != null) {
             this.lecturas.addAll(lecturas);
         }
+        if (pasos != null) {
+            pasos.stream()
+                    .sorted((a, b) -> Integer.compare(a.orden(), b.orden()))
+                    .forEach(this.pasos::add);
+        }
     }
 
-    /** Abre el reporte de un equipo de una orden. Nace en borrador, vacío y sin lecturas. */
+    /** Abre el reporte de un equipo de una orden, sin pasos de protocolo: un correctivo. */
     public static ServiceReport open(UUID idOrdenTrabajo, UUID idEquipoCliente) {
+        return open(idOrdenTrabajo, idEquipoCliente, List.of());
+    }
+
+    /**
+     * Abre el reporte de un equipo de una orden. Nace en borrador, vacío y sin lecturas, con los pasos
+     * del protocolo que se le den —los del preventivo del tipo del equipo— pendientes y en su orden.
+     *
+     * <p>Qué pasos le tocan lo decide el servicio, que es quien sabe el tipo de servicio de la orden y
+     * el tipo del equipo. Aquí solo se exige que no se repita un orden.
+     */
+    public static ServiceReport open(UUID idOrdenTrabajo, UUID idEquipoCliente, List<ReportStep> pasos) {
+        List<ReportStep> copiados = pasos == null ? List.of() : List.copyOf(pasos);
+
+        if (copiados.stream().map(ReportStep::orden).distinct().count() != copiados.size()) {
+            throw new IllegalArgumentException("Dos pasos del protocolo no pueden tener el mismo orden");
+        }
+
         ServiceReport reporte = new ServiceReport(
                 UUID.randomUUID(),
                 exigir(idOrdenTrabajo, "orden de trabajo"),
@@ -123,6 +156,7 @@ public class ServiceReport extends AggregateRoot {
                 null,
                 null,
                 List.of(),
+                copiados,
                 true);
 
         reporte.registerEvent(new ServiceReportOpenedEvent(
@@ -145,10 +179,29 @@ public class ServiceReport extends AggregateRoot {
             Collection<VerificationReading> lecturas,
             boolean estadoActivo) {
 
+        return rehydrate(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada, diagnostico,
+                procedimientos, observaciones, resultado, finalizado, lecturas, List.of(), estadoActivo);
+    }
+
+    public static ServiceReport rehydrate(
+            UUID id,
+            UUID idOrdenTrabajo,
+            UUID idEquipoCliente,
+            ReportState estado,
+            String fallaReportada,
+            String diagnostico,
+            String procedimientos,
+            String observaciones,
+            ServiceResult resultado,
+            LocalDateTime finalizado,
+            Collection<VerificationReading> lecturas,
+            Collection<ReportStep> pasos,
+            boolean estadoActivo) {
+
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
         return new ServiceReport(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada,
-                diagnostico, procedimientos, observaciones, resultado, finalizado, lecturas,
+                diagnostico, procedimientos, observaciones, resultado, finalizado, lecturas, pasos,
                 estadoActivo);
     }
 
@@ -255,6 +308,74 @@ public class ServiceReport extends AggregateRoot {
     }
 
     // ---------------------------------------------------------------------------
+    // Los pasos del protocolo: RF-13
+    // ---------------------------------------------------------------------------
+
+    /** Los pasos del protocolo, en su orden, como copia inmutable. */
+    public List<ReportStep> getPasos() {
+        return List.copyOf(pasos);
+    }
+
+    /**
+     * Marca un paso: hecho, no aplica —con nota que diga por qué— o de vuelta a pendiente.
+     *
+     * <p>De uno en uno y no la lista entera, porque en pantalla cada casilla se guarda al pulsarla. Un
+     * cambio que no cambia nada no emite evento.
+     */
+    public void markStep(int orden, StepState estado, String nota) {
+        exigirModificable("marcar un paso del protocolo");
+
+        int indice = -1;
+        for (int i = 0; i < pasos.size(); i++) {
+            if (pasos.get(i).orden() == orden) {
+                indice = i;
+            }
+        }
+        if (indice < 0) {
+            throw new IllegalArgumentException("Este reporte no tiene un paso " + orden + " en su protocolo");
+        }
+
+        ReportStep marcado = pasos.get(indice).marked(estado, nota);
+
+        if (marcado.equals(pasos.get(indice))) {
+            return;
+        }
+
+        pasos.set(indice, marcado);
+        registerEvent(new ServiceReportStepMarkedEvent(
+                metadataFor(ServiceReportStepMarkedEvent.TYPE), payload()));
+    }
+
+    /**
+     * Lo que se hizo, en una línea, para la hoja de vida del equipo.
+     *
+     * <p>Decidido por el usuario el 2026-10-10: los nombres de los pasos hechos, en su orden, y detrás
+     * el trabajo adicional que se escribió a mano. Los que no aplicaron no salen: no se hicieron. Sin
+     * pasos es el texto escrito, como antes de V22. Si no cabe en la columna de la hoja de vida se
+     * recorta con puntos suspensivos; el reporte conserva el detalle entero.
+     */
+    public String descripcionDelServicio() {
+        List<String> hechos = pasos.stream()
+                .filter(paso -> paso.estado() == StepState.HECHO)
+                .map(ReportStep::nombre)
+                .toList();
+
+        String descripcion;
+        if (hechos.isEmpty()) {
+            descripcion = procedimientos;
+        } else {
+            descripcion = String.join("; ", hechos) + "."
+                    + (procedimientos == null ? "" : " Además: " + procedimientos);
+        }
+
+        if (descripcion == null || descripcion.length() <= LARGO_DESCRIPCION_DEL_SERVICIO) {
+            return descripcion;
+        }
+
+        return descripcion.substring(0, LARGO_DESCRIPCION_DEL_SERVICIO - 1) + "…";
+    }
+
+    // ---------------------------------------------------------------------------
     // Ciclo de vida
     // ---------------------------------------------------------------------------
 
@@ -272,7 +393,15 @@ public class ServiceReport extends AggregateRoot {
     public void finish() {
         exigirModificable("cerrar el reporte");
 
-        if (procedimientos == null) {
+        // Con pasos, lo que se hizo lo dicen ellos y el texto es trabajo adicional, opcional. Sin pasos,
+        // el texto es lo unico que cuenta que se hizo. Desde V22; antes se exigia siempre.
+        long pendientes = pasos.stream().filter(paso -> !paso.marcado()).count();
+
+        if (pendientes > 0) {
+            throw new IllegalStateException("No se puede cerrar un reporte con " + pendientes
+                    + (pendientes == 1 ? " paso" : " pasos") + " del protocolo sin marcar");
+        }
+        if (pasos.isEmpty() && procedimientos == null) {
             throw new IllegalStateException(
                     "No se puede cerrar un reporte sin procedimientos: es lo que se hizo");
         }

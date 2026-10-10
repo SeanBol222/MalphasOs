@@ -4,6 +4,7 @@ import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipment
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
@@ -14,10 +15,12 @@ import com.malphasos.malphasos.report.application.ports.output.ServiceReportPers
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
@@ -26,6 +29,7 @@ import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
+import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import java.util.List;
 import java.util.Objects;
@@ -60,6 +64,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final ModelServicePort modelServicePort;
     private final EquipmentServicePort equipmentServicePort;
     private final EquipmentTypeServicePort equipmentTypeServicePort;
+    private final ProtocolServicePort protocolServicePort;
     private final EventDispatcherPort eventDispatcherPort;
 
     // ---------------------------------------------------------------------------
@@ -132,8 +137,34 @@ public class ServiceReportService implements ServiceReportServicePort {
         requireEquipmentInScopeOf(orden, command.idEquipoCliente());
         requireNoOpenReport(command.idOrdenTrabajo(), command.idEquipoCliente());
 
-        return persistAndPublish(
-                ServiceReport.open(command.idOrdenTrabajo(), command.idEquipoCliente()));
+        return persistAndPublish(ServiceReport.open(
+                command.idOrdenTrabajo(),
+                command.idEquipoCliente(),
+                pasosDelProtocolo(orden, command.idEquipoCliente())));
+    }
+
+    /**
+     * Los protocolos del preventivo del tipo del equipo, copiados como pasos pendientes. RF-13: se
+     * cargan solos, sin que nadie los elija.
+     *
+     * <p>Solo en una orden preventiva, decidido por el usuario el 2026-10-10: un correctivo es una
+     * reparación distinta cada vez y se describe con texto libre. Se copian ahora, al abrir, y no al
+     * cerrar: el ingeniero los marca mientras trabaja, y lo que marca tiene que ser lo que había ese
+     * día aunque el protocolo se edite a media orden.
+     */
+    private List<ReportStep> pasosDelProtocolo(WorkOrder orden, UUID idEquipoCliente) {
+        if (orden.getTipoServicio() != ServiceType.PREVENTIVO) {
+            return List.of();
+        }
+
+        return protocolServicePort.protocolsOf(tipoDelEquipo(idEquipoCliente).getId()).stream()
+                .map(asignado -> ReportStep.copied(
+                        asignado.prioridad(),
+                        asignado.protocolo().getId(),
+                        asignado.protocolo().getNombre(),
+                        asignado.protocolo().getDescripcion(),
+                        asignado.indicacion()))
+                .toList();
     }
 
     // ---------------------------------------------------------------------------
@@ -175,6 +206,15 @@ public class ServiceReportService implements ServiceReportServicePort {
         EquipmentType tipo = tipoDelEquipo(reporte.getIdEquipoCliente());
 
         reporte.recordVerification(traducirLecturas(tipo, command.lecturas()));
+
+        return persistAndPublish(reporte);
+    }
+
+    @Override
+    @Transactional
+    public ServiceReport markStep(MarkReportStepCommand command) {
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        reporte.markStep(command.orden(), command.estado(), command.nota());
 
         return persistAndPublish(reporte);
     }

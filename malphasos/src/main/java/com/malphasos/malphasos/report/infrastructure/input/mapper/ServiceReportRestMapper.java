@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.report.infrastructure.input.mapper;
 
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
+import com.malphasos.malphasos.report.infrastructure.input.model.response.ReportStepResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ServiceReportResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.VerificationReadingResponse;
 import java.util.List;
@@ -39,6 +40,16 @@ public class ServiceReportRestMapper {
                 .resultado(reporte.getResultado())
                 .finalizado(reporte.getFinalizado())
                 .lecturas(lecturas)
+                .pasos(reporte.getPasos().stream()
+                        .map(paso -> new ReportStepResponse(
+                                paso.orden(),
+                                paso.idProtocolo(),
+                                paso.nombre(),
+                                paso.descripcion(),
+                                paso.indicacion(),
+                                paso.estado(),
+                                paso.nota()))
+                        .toList())
                 .estadoActivo(reporte.isEstadoActivo())
                 .build();
     }

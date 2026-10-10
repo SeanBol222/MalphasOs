@@ -6,10 +6,12 @@ import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.infrastructure.input.mapper.ServiceReportRestMapper;
+import com.malphasos.malphasos.report.infrastructure.input.model.request.MarkReportStepRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordVerificationRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
@@ -157,8 +159,21 @@ public class ServiceReportRestAdapter {
                 new RecordVerificationCommand(id, lecturas)));
     }
 
+    @Operation(summary = "Marcar un paso del protocolo",
+            description = "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del "
+                    + "paso dentro del reporte. Solo en un borrador.")
+    @PreAuthorize("hasAuthority('report.write')")
+    @PatchMapping("/{id}/steps/{orden}")
+    public ServiceReportResponse markStep(
+            @PathVariable UUID id, @PathVariable int orden, @Valid @RequestBody MarkReportStepRequest request) {
+
+        return mapper.toResponse(serviceReportServicePort.markStep(
+                new MarkReportStepCommand(id, orden, request.estado(), request.nota())));
+    }
+
     @Operation(summary = "Cerrar el reporte",
-            description = "Exige procedimientos y resultado, y la verificacion completa si el tipo "
+            description = "Exige resultado; todos los pasos del protocolo marcados si los tiene, o "
+                    + "procedimientos si no; y la verificacion completa si el tipo "
                     + "del equipo se verifica. Un equipo que queda fuera de servicio se cierra sin "
                     + "lecturas: no se le puede medir nada. Desde aqui el reporte ya no cambia.")
     @PreAuthorize("hasAuthority('report.write')")

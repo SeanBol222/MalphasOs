@@ -81,12 +81,13 @@ public class ServiceReportFinishedListener {
 
         UUID idReporte = UUID.fromString(evento.metadata().aggregateId());
 
-        // Que se hizo y quien lo hizo, desde V17: los procedimientos del reporte y el nombre del
-        // ingeniero de la orden, congelados en la linea. No viajan en el evento porque el evento dice
-        // que el reporte se cerro, no que contenia; se leen aqui, una vez, y no se vuelven a consultar.
+        // Que se hizo y quien lo hizo, desde V17: lo hecho en el reporte y el nombre del ingeniero de
+        // la orden, congelados en la linea. No viajan en el evento porque el evento dice que el reporte
+        // se cerro, no que contenia; se leen aqui, una vez, y no se vuelven a consultar. Desde V22 lo
+        // hecho son los pasos del protocolo y detras el trabajo adicional: ver descripcionDelServicio.
         String procedimientos = serviceReportServicePort
                 .findById(idReporte, ReadScope.unrestricted())
-                .getProcedimientos();
+                .descripcionDelServicio();
 
         interventionRecordingPort.record(new RecordInterventionCommand(
                 evento.payload().idEquipoCliente(),

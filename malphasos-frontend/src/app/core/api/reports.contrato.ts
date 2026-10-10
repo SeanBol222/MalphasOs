@@ -84,9 +84,29 @@ export interface paths {
         head?: never;
         /**
          * Cerrar el reporte
-         * @description Exige procedimientos y resultado, y la verificacion completa si el tipo del equipo se verifica. Un equipo que queda fuera de servicio se cierra sin lecturas: no se le puede medir nada. Desde aqui el reporte ya no cambia.
+         * @description Exige resultado; todos los pasos del protocolo marcados si los tiene, o procedimientos si no; y la verificacion completa si el tipo del equipo se verifica. Un equipo que queda fuera de servicio se cierra sin lecturas: no se le puede medir nada. Desde aqui el reporte ya no cambia.
          */
         patch: operations["finish"];
+        trace?: never;
+    };
+    "/v1/api/reports/{id}/steps/{orden}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Marcar un paso del protocolo
+         * @description HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.
+         */
+        patch: operations["markStep"];
         trace?: never;
     };
     "/v1/api/reports/{id}/verification": {
@@ -120,8 +140,31 @@ export interface components {
             /** Format: date-time */
             timestamp?: string;
         };
+        MarkReportStepRequest: {
+            /** @enum {string} */
+            estado: "PENDIENTE" | "HECHO" | "NO_APLICA";
+            /** @example El equipo no tiene batería */
+            nota?: string;
+        };
         RecordVerificationRequest: {
             lecturas: components["schemas"]["VerificationReadingRequest"][];
+        };
+        ReportStepResponse: {
+            descripcion?: string;
+            /** @enum {string} */
+            estado?: "PENDIENTE" | "HECHO" | "NO_APLICA";
+            /** Format: uuid */
+            idProtocolo?: string;
+            /** @description Lo propio del tipo del equipo. Nula si no hay */
+            indicacion?: string;
+            nombre?: string;
+            /** @description Obligatoria cuando el estado es NO_APLICA */
+            nota?: string;
+            /**
+             * Format: int32
+             * @description 1 el primero. Es el que se usa para marcarlo
+             */
+            orden?: number;
         };
         ServiceReportErrorResponse: {
             code?: string;
@@ -166,6 +209,8 @@ export interface components {
             idOrdenTrabajo?: string;
             lecturas?: components["schemas"]["VerificationReadingResponse"][];
             observaciones?: string;
+            /** @description Los pasos del protocolo preventivo, en su orden. Vacia en un correctivo */
+            pasos?: components["schemas"]["ReportStepResponse"][];
             procedimientos?: string;
             /** @enum {string} */
             resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
@@ -523,6 +568,69 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    markStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                orden: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkReportStepRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {

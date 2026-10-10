@@ -3,6 +3,7 @@ package com.malphasos.malphasos.report.application.ports.input;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
@@ -45,6 +46,9 @@ public interface ServiceReportServicePort {
     ServiceReport fill(FillServiceReportCommand command);
 
     ServiceReport recordVerification(RecordVerificationCommand command);
+
+    /** Marca un paso del protocolo: hecho, no aplica o pendiente otra vez. */
+    ServiceReport markStep(MarkReportStepCommand command);
 
     ServiceReport finish(FinishServiceReportCommand command);
 

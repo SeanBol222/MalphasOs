@@ -22,6 +22,22 @@
         },
         "type" : "object"
       },
+      "MarkReportStepRequest" : {
+        "properties" : {
+          "estado" : {
+            "enum" : [ "PENDIENTE", "HECHO", "NO_APLICA" ],
+            "type" : "string"
+          },
+          "nota" : {
+            "example" : "El equipo no tiene batería",
+            "maxLength" : 300,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "estado" ],
+        "type" : "object"
+      },
       "RecordVerificationRequest" : {
         "properties" : {
           "lecturas" : {
@@ -33,6 +49,38 @@
           }
         },
         "required" : [ "lecturas" ],
+        "type" : "object"
+      },
+      "ReportStepResponse" : {
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "estado" : {
+            "enum" : [ "PENDIENTE", "HECHO", "NO_APLICA" ],
+            "type" : "string"
+          },
+          "idProtocolo" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "indicacion" : {
+            "description" : "Lo propio del tipo del equipo. Nula si no hay",
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "nota" : {
+            "description" : "Obligatoria cuando el estado es NO_APLICA",
+            "type" : "string"
+          },
+          "orden" : {
+            "description" : "1 el primero. Es el que se usa para marcarlo",
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "ServiceReportErrorResponse" : {
@@ -138,6 +186,13 @@
           },
           "observaciones" : {
             "type" : "string"
+          },
+          "pasos" : {
+            "description" : "Los pasos del protocolo preventivo, en su orden. Vacia en un correctivo",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportStepResponse"
+            },
+            "type" : "array"
           },
           "procedimientos" : {
             "type" : "string"
@@ -613,7 +668,7 @@
     },
     "/v1/api/reports/{id}/finish" : {
       "patch" : {
-        "description" : "Exige procedimientos y resultado, y la verificacion completa si el tipo del equipo se verifica. Un equipo que queda fuera de servicio se cierra sin lecturas: no se le puede medir nada. Desde aqui el reporte ya no cambia.",
+        "description" : "Exige resultado; todos los pasos del protocolo marcados si los tiene, o procedimientos si no; y la verificacion completa si el tipo del equipo se verifica. Un equipo que queda fuera de servicio se cierra sin lecturas: no se le puede medir nada. Desde aqui el reporte ya no cambia.",
         "operationId" : "finish",
         "parameters" : [ {
           "in" : "path",
@@ -677,6 +732,93 @@
           }
         },
         "summary" : "Cerrar el reporte",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/steps/{orden}" : {
+      "patch" : {
+        "description" : "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.",
+        "operationId" : "markStep",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "orden",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MarkReportStepRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Marcar un paso del protocolo",
         "tags" : [ "ServiceReport" ]
       }
     },
