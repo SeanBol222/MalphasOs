@@ -124,6 +124,36 @@ export class DetalleReporte {
 
   protected readonly cerrable = computed(() => sePuedeCerrar(this.reporte.data()));
 
+  /**
+   * Lo que el servidor exige para cerrar, con lo que ya esta guardado: es lo que pinta el panel de la
+   * derecha. Se mira lo guardado y no lo escrito, igual que {@link cerrable}, porque cerrar opera
+   * sobre lo que el servidor tiene; lo escrito sin guardar lo avisa el formulario aparte.
+   *
+   * <p>La verificacion no esta en la lista: si el tipo del equipo la tiene, la exige el servidor, y lo
+   * que falta lo dice la propia tabla. Contarla aqui obligaria a duplicar su regla.
+   */
+  protected readonly requisitos = computed(() => {
+    const datos = this.reporte.data();
+
+    return [
+      { texto: 'Procedimientos', hecho: !!datos?.procedimientos?.trim() },
+      { texto: 'Resultado', hecho: !!datos?.resultado },
+    ];
+  });
+
+  protected readonly avance = computed(() => {
+    const requisitos = this.requisitos();
+
+    return Math.round((requisitos.filter((r) => r.hecho).length / requisitos.length) * 100);
+  });
+
+  /** Una linea que dice que significa cada resultado, debajo de su nombre. */
+  protected readonly ayudaDeResultado: Readonly<Record<string, string>> = {
+    OPERATIVO: 'Funciona sin limitaciones',
+    OPERATIVO_CON_RESTRICCIONES: 'Funciona, con salvedades que van en observaciones',
+    FUERA_DE_SERVICIO: 'No debe usarse',
+  };
+
   protected readonly estado = computed(() => {
     const datos = this.reporte.data();
 

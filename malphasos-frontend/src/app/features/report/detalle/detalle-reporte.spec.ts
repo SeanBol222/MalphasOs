@@ -95,7 +95,10 @@ describe('Ficha de un reporte de servicio', () => {
   const raiz = () => fixture.nativeElement as HTMLElement;
   const texto = () => raiz().textContent ?? '';
   const campo = (id: string) => raiz().querySelector<HTMLTextAreaElement>(`#${id}`)!;
-  const seleccion = () => raiz().querySelector<HTMLSelectElement>('#resultado')!;
+  /** Las tres opciones del resultado: desde el 2026-10-10 son radios y no un desplegable. */
+  const opcionesDeResultado = () =>
+    [...raiz().querySelectorAll<HTMLInputElement>('input[type="radio"][name="resultado"]')];
+  const resultadoElegido = () => opcionesDeResultado().find((opcion) => opcion.checked)?.value;
 
   /**
    * Abre la ficha y responde a sus cinco consultas.
@@ -158,8 +161,10 @@ describe('Ficha de un reporte de servicio', () => {
   }
 
   function pulsar(etiqueta: string): void {
-    const boton = [...raiz().querySelectorAll('button')].find((b) =>
-      (b.textContent ?? '').includes(etiqueta),
+    // Texto exacto y no includes: la tabla de verificacion tiene su propio boton de guardar, y desde
+    // que va encima del del reporte un includes pulsaba ese. Es la trampa de CONVENCIONES.md.
+    const boton = [...raiz().querySelectorAll('button')].find(
+      (b) => (b.textContent ?? '').trim() === etiqueta,
     );
 
     if (!boton) {
@@ -201,12 +206,13 @@ describe('Ficha de un reporte de servicio', () => {
   it('lo autocompletado no tiene ningún campo que editar (RNF-07)', async () => {
     await abrir();
 
-    // Cuatro areas de texto y un desplegable: son los cinco campos de RF-15 —el quinto, el resultado,
-    // es el desplegable— y ni uno mas. Si algun dato de la orden llegara como campo editable, aqui
+    // Cuatro areas de texto y tres radios: son los cinco campos de RF-15 —el quinto, el resultado, son
+    // los radios desde el 2026-10-10; antes era un desplegable— y ni uno mas. Si algun dato de la orden llegara como campo editable, aqui
     // saldria un control de sobra. Los numericos de la verificacion no cuentan: son lecturas, no datos
     // autocompletados.
     expect(raiz().querySelectorAll('textarea')).toHaveLength(4);
-    expect(raiz().querySelectorAll('select')).toHaveLength(1);
+    expect(raiz().querySelectorAll('select')).toHaveLength(0);
+    expect(opcionesDeResultado()).toHaveLength(3);
     expect(
       [...raiz().querySelectorAll('input')].filter((i) => i.type === 'text').length,
     ).toBe(0);
@@ -233,7 +239,7 @@ describe('Ficha de un reporte de servicio', () => {
     expect(campo('diagnostico').value).toBe('Fuente quemada');
     expect(campo('procedimientos').value).toBe('Cambio de fuente');
     expect(campo('observaciones').value).toBe('Queda en prueba');
-    expect(seleccion().value).toBe('OPERATIVO_CON_RESTRICCIONES');
+    expect(resultadoElegido()).toBe('OPERATIVO_CON_RESTRICCIONES');
   });
 
   it('guardar manda los cinco campos tal como se ven', async () => {
@@ -278,6 +284,65 @@ describe('Ficha de un reporte de servicio', () => {
     expect(peticion.request.body.resultado).toBeUndefined();
     peticion.flush(reporte({ procedimientos: 'Limpieza' }));
     await atenderTodo();
+  });
+
+  it('elegir el resultado con su opción lo manda al guardar', async () => {
+    await abrir();
+    const fuera = opcionesDeResultado().find((opcion) => opcion.value === 'FUERA_DE_SERVICIO')!;
+    fuera.click();
+    fixture.detectChanges();
+
+    pulsar('Guardar');
+    await asentar(fixture);
+
+    const peticion = http.expectOne(urlReporte(ID_REPORTE));
+    expect(peticion.request.body.resultado).toBe('FUERA_DE_SERVICIO');
+    peticion.flush(reporte({ resultado: 'FUERA_DE_SERVICIO' }));
+    await atenderTodo();
+  });
+
+  describe('El panel de cierre', () => {
+    const panel = () => raiz().querySelector('aside')!.textContent ?? '';
+
+    it('cuenta lo que falta de lo que el servidor exige, y lo dice en palabras', async () => {
+      await abrir(reporte({ procedimientos: 'Limpieza' }));
+
+      expect(panel()).toContain('50 %');
+      expect(panel()).toContain('Procedimientos');
+      expect(panel()).toContain('(listo)');
+      expect(panel()).toContain('(falta)');
+    });
+
+    it('con lo exigido guardado llega al 100 % y deja cerrar', async () => {
+      await abrir(reporteCerrable());
+
+      expect(panel()).toContain('100 %');
+      expect(panel()).not.toContain('(falta)');
+    });
+
+    it('cuenta lo guardado y no lo escrito: cerrar opera sobre lo que el servidor tiene', async () => {
+      // Escribir los procedimientos sin guardar no acerca el cierre: el servidor no los tiene.
+      await abrir();
+      escribir('procedimientos', 'Limpieza');
+      // Una recarga del reporte hace que el panel se recalcule: sin ella la prueba pasaria igual
+      // leyendo lo escrito, porque el formulario no es una senal. Lo destapo una mutacion.
+      // La recarga trae otro diagnostico y sigue sin procedimientos: con datos iguales TanStack conserva
+      // la misma referencia y el panel ni se recalcularia.
+      void TestBed.inject(QueryClient).invalidateQueries({ queryKey: ReporteApi.CLAVE });
+      await atenderTodo(reporte({ diagnostico: 'Revisado por otra persona' }));
+
+      // Ni un requisito listo. Se comprueba asi y no buscando «0 %», porque «50 %» tambien lo contiene:
+      // la primera version de esta prueba pasaba con el defecto dentro.
+      expect(panel()).not.toContain('(listo)');
+      expect(texto()).toContain('Hay cambios sin guardar');
+    });
+
+    it('un reporte cerrado no enseña la cuenta, dice que está cerrado', async () => {
+      await abrir(reporteCerrable({ estado: 'FINALIZADO', finalizado: '2026-09-27T10:00:00' }));
+
+      expect(panel()).toContain('Reporte cerrado');
+      expect(panel()).not.toContain('%');
+    });
   });
 
   it('no deja cerrar sin procedimientos ni resultado, que es lo que el servidor exige', async () => {
@@ -337,7 +402,7 @@ describe('Ficha de un reporte de servicio', () => {
     );
 
     expect(campo('procedimientos').disabled).toBe(true);
-    expect(seleccion().disabled).toBe(true);
+    expect(opcionesDeResultado().every((opcion) => opcion.disabled)).toBe(true);
     expect(texto()).toContain('Para corregirlo hay que retirarlo y abrir otro');
     expect(texto()).toContain('cerrado el 2026-09-27');
     expect(

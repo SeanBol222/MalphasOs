@@ -1,3 +1,9 @@
+<!--
+  La ficha del reporte con el diseño de la «sala de control» (2026-10-10): lo que viene de la orden en
+  una franja que no se edita, lo que se escribe en cuatro bloques numerados en el orden en que se trabaja
+  —lo que se encontró, lo que se hizo, lo que se midió, cómo queda—, y a la derecha lo que falta para
+  cerrar. Las reglas son las de antes; lo que cambia es dónde se ven.
+-->
 @if (reporte.isPending()) {
   <p class="text-neutral-700" role="status">Cargando el reporte…</p>
 } @else {
@@ -17,104 +23,26 @@
   @if (reporte.data(); as datos) {
     <div class="flex flex-wrap items-start justify-between gap-2">
       <div>
-        <h1 class="titulo-pagina">Reporte de {{ equipo() }}</h1>
-        <p class="text-neutral-700" [class.font-semibold]="datos.estado === 'FINALIZADO'">
-          {{ estado() }}
-          @if (datos.finalizado) {
-            · cerrado el {{ datos.finalizado.slice(0, 10) }}
-          }
+        <p class="text-xs font-bold tracking-[0.14em] text-accent-700 uppercase">
+          Reporte de servicio · {{ servicio() }}
         </p>
+        <h1 class="titulo-pagina mt-0.5">Reporte de {{ equipo() }}</h1>
       </div>
 
-      <div class="flex flex-wrap gap-2">
-        @if (puedeEscribir() && datos.estadoActivo) {
-          <!--
-            Cerrar es una operacion y aparece solo cuando se puede usar, igual que iniciar una orden.
-            El boton se desactiva sin procedimientos ni resultado, que es lo mismo que el servidor
-            exige: ofrecerlo y que responda 409 seria ofrecer algo que no existe.
-          -->
-          @if (datos.estado === 'BORRADOR') {
-            @if (confirmandoCierre()) {
-              <button
-                class="boton-primario min-h-tactil"
-                type="button"
-                [disabled]="cierre.isPending()"
-                (click)="cerrar()"
-              >
-                Confirmar cierre
-              </button>
-              <button
-                class="boton-secundario min-h-tactil"
-                type="button"
-                (click)="confirmandoCierre.set(false)"
-              >
-                Cancelar
-              </button>
-            } @else {
-              <button
-                class="boton-primario min-h-tactil"
-                type="button"
-                [disabled]="!cerrable()"
-                (click)="confirmandoCierre.set(true)"
-              >
-                Cerrar reporte
-              </button>
-            }
-          }
-
-          @if (confirmandoRetiro()) {
-            <button
-              class="boton-primario min-h-tactil"
-              type="button"
-              [disabled]="retiro.isPending()"
-              (click)="retirar()"
-            >
-              Confirmar retiro
-            </button>
-            <button
-              class="boton-secundario min-h-tactil"
-              type="button"
-              (click)="confirmandoRetiro.set(false)"
-            >
-              Cancelar
-            </button>
-          } @else {
-            <button
-              class="boton-secundario min-h-tactil"
-              type="button"
-              (click)="confirmandoRetiro.set(true)"
-            >
-              Retirar
-            </button>
-          }
+      <!-- El estado como sello: por peso y borde, no por un color nuevo. -->
+      <p
+        class="inline-flex min-h-tactil items-center gap-1 border-2 border-ink px-1.5 text-sm"
+        [class.font-extrabold]="datos.estado === 'BORRADOR' && datos.estadoActivo"
+        [class.font-semibold]="datos.estado === 'FINALIZADO'"
+        [class.border-dashed]="!datos.estadoActivo"
+      >
+        <span class="inline-block h-1 w-1 bg-ink" aria-hidden="true"></span>
+        {{ estado() }}
+        @if (datos.finalizado) {
+          · cerrado el {{ datos.finalizado.slice(0, 10) }}
         }
-      </div>
+      </p>
     </div>
-
-    @if (confirmandoCierre()) {
-      <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
-        Un reporte cerrado ya no se modifica. Si después hay que corregir algo, se retira y se abre
-        otro para el mismo equipo.
-      </p>
-    }
-    @if (confirmandoRetiro()) {
-      <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
-        El reporte queda retirado con sus datos y sus lecturas intactos, y deja de contar como el
-        reporte de este equipo en la orden. No se borra nada.
-      </p>
-    }
-
-    @if (datos.estado === 'BORRADOR' && !cerrable() && puedeEscribir() && datos.estadoActivo) {
-      <p class="mt-2 text-neutral-700">
-        Para cerrarlo hacen falta los procedimientos y el resultado. Si el equipo se verifica, el
-        servidor exige además la verificación completa.
-      </p>
-    }
-    @if (datos.estado === 'FINALIZADO' && datos.estadoActivo) {
-      <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
-        Este reporte está cerrado y no se modifica. Para corregirlo hay que retirarlo y abrir otro.
-      </p>
-    }
 
     <!--
       RF-11: cliente, sede, responsables y tipo de servicio se autocompletan desde la orden. Van como
@@ -122,141 +50,369 @@
       no hay nada que editar. Y no se copian en el reporte, se leen de la orden, de modo que no pueden
       discrepar de ella.
     -->
-    <section class="superficie mt-3">
-      <h2 class="titulo-seccion">Datos del servicio</h2>
-      <p class="text-neutral-700">
-        Vienen de la orden de trabajo. No se escriben aquí: para cambiarlos se cambia la orden.
-      </p>
-
-      <dl class="mt-2 grid max-w-[640px] grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-        <dt class="font-semibold">Cliente</dt>
-        <dd>{{ cliente() }}</dd>
-
-        <dt class="font-semibold">Sede</dt>
-        <dd>{{ sede() }}</dd>
-
-        <dt class="font-semibold">Servicio</dt>
-        <dd>{{ servicio() }}</dd>
-
-        <dt class="font-semibold">Fecha programada</dt>
-        <dd>{{ fechaProgramada() }}</dd>
-
-        <dt class="font-semibold">Ingeniero</dt>
-        <dd>
-          @if (ingeniero()) {
-            {{ ingeniero() }}
-          } @else {
-            <span class="text-neutral-700">Sin asignar en la orden</span>
-          }
-        </dd>
-
-        <dt class="font-semibold">Encargado de la sede</dt>
-        <dd>
-          @if (encargado()) {
-            {{ encargado() }}
-          } @else {
-            <!-- Se distingue «no tiene» de «no se pudo consultar», como en el resto de la aplicacion. -->
-            <span class="text-neutral-700">Esta sede no tiene encargado registrado</span>
-          }
-        </dd>
+    <section
+      class="mt-3 flex flex-wrap border border-neutral-300 bg-neutral-100"
+      aria-labelledby="de-la-orden"
+    >
+      <h2
+        id="de-la-orden"
+        class="flex items-center gap-1 border-neutral-300 px-2 py-1.5 text-xs font-semibold tracking-[0.08em] text-neutral-700 uppercase max-md:w-full max-md:border-b md:border-r"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" />
+        </svg>
+        De la orden
+      </h2>
+      <dl class="contents">
+        <div class="px-2 py-1.5">
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Cliente</dt>
+          <dd class="font-semibold">{{ cliente() }}</dd>
+        </div>
+        <div class="px-2 py-1.5">
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Sede</dt>
+          <dd class="font-semibold">{{ sede() }}</dd>
+        </div>
+        <div class="px-2 py-1.5">
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Servicio</dt>
+          <dd class="font-semibold">{{ servicio() }}</dd>
+        </div>
+        <div class="px-2 py-1.5">
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Fecha programada</dt>
+          <dd class="font-semibold">{{ fechaProgramada() }}</dd>
+        </div>
+        <div class="px-2 py-1.5">
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Ingeniero</dt>
+          <dd class="font-semibold">
+            @if (ingeniero()) {
+              {{ ingeniero() }}
+            } @else {
+              <span class="font-normal text-neutral-700">Sin asignar en la orden</span>
+            }
+          </dd>
+        </div>
+        <div class="px-2 py-1.5">
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Encargado de la sede</dt>
+          <dd class="font-semibold">
+            @if (encargado()) {
+              {{ encargado() }}
+            } @else {
+              <!-- Se distingue «no tiene» de «no se pudo consultar», como en el resto de la aplicacion. -->
+              <span class="font-normal text-neutral-700"
+                >Esta sede no tiene encargado registrado</span
+              >
+            }
+          </dd>
+        </div>
       </dl>
     </section>
 
-    <form class="superficie mt-3 max-w-[720px]" [formGroup]="formulario" (ngSubmit)="guardar()">
-      <p class="text-neutral-700">
-        Ningún campo es obligatorio para guardar: el reporte se llena mientras se trabaja.
-      </p>
+    <div class="mt-3 flex flex-wrap items-start gap-3">
+      <div class="min-w-0 flex-[2_1_36rem]">
+        <!--
+          Los bloques 1 y 2 cuelgan del grupo con un div y no con un form: la tabla de verificacion, que
+          va en medio, tiene su propio formulario, y un form dentro de otro no es HTML —el navegador tira
+          el de dentro—. El form de verdad es el del bloque 4, que es el que lleva el boton de guardar.
+        -->
+        <div [formGroup]="formulario">
+          <section class="superficie p-0" aria-labelledby="seccion-encontrado">
+            <h2
+              id="seccion-encontrado"
+              class="titulo-seccion flex items-center gap-1.5 border-b border-neutral-300 px-3 py-2"
+            >
+              <span
+                class="flex h-[1.75rem] w-[1.75rem] items-center justify-center bg-ink text-sm text-white"
+                aria-hidden="true"
+                >1</span
+              >
+              Lo que se encontró
+            </h2>
+            <div class="grid gap-2 p-3 md:grid-cols-2">
+              <div>
+                <label class="block font-bold" for="fallaReportada">Falla reportada</label>
+                <p class="text-sm text-neutral-700">Lo que dijo el cliente, si dijo algo</p>
+                <textarea
+                  class="campo mt-1 min-h-tactil w-full p-1"
+                  id="fallaReportada"
+                  rows="3"
+                  maxlength="500"
+                  formControlName="fallaReportada"
+                ></textarea>
+              </div>
+              <div>
+                <label class="block font-bold" for="diagnostico">Diagnóstico</label>
+                <p class="text-sm text-neutral-700">El estado en que se encontró el equipo</p>
+                <textarea
+                  class="campo mt-1 min-h-tactil w-full p-1"
+                  id="diagnostico"
+                  rows="3"
+                  maxlength="500"
+                  formControlName="diagnostico"
+                ></textarea>
+              </div>
+            </div>
+          </section>
 
-      <label class="mt-2 block font-semibold" for="fallaReportada">Falla reportada</label>
-      <textarea
-        class="campo min-h-tactil w-full p-1"
-        id="fallaReportada"
-        rows="2"
-        maxlength="500"
-        formControlName="fallaReportada"
-      ></textarea>
-
-      <label class="mt-2 block font-semibold" for="diagnostico">Diagnóstico</label>
-      <textarea
-        class="campo min-h-tactil w-full p-1"
-        id="diagnostico"
-        rows="2"
-        maxlength="500"
-        formControlName="diagnostico"
-      ></textarea>
-
-      <label class="mt-2 block font-semibold" for="procedimientos">
-        Procedimientos <span aria-hidden="true">*</span>
-      </label>
-      <textarea
-        class="campo min-h-tactil w-full p-1"
-        id="procedimientos"
-        rows="3"
-        maxlength="500"
-        formControlName="procedimientos"
-      ></textarea>
-
-      <label class="mt-2 block font-semibold" for="observaciones">Observaciones</label>
-      <textarea
-        class="campo min-h-tactil w-full p-1"
-        id="observaciones"
-        rows="2"
-        maxlength="500"
-        formControlName="observaciones"
-      ></textarea>
-
-      <label class="mt-2 block font-semibold" for="resultado">
-        Resultado <span aria-hidden="true">*</span>
-      </label>
-      <select
-        class="campo min-h-tactil w-full"
-        id="resultado"
-        formControlName="resultado"
-      >
-        <option value="">Sin definir</option>
-        @for (resultado of RESULTADOS; track resultado) {
-          <!--
-            El valor elegido se marca en la opcion y no con [value] en el select: al llegar los datos,
-            la asignacion ocurre antes de que existan las opciones y el navegador la descarta en
-            silencio. Ya paso una vez, en el panel de verificacion del tipo de equipo.
-          -->
-          <option [value]="resultado" [selected]="resultado === formulario.value.resultado">
-            {{ etiquetaDeResultado[resultado] }}
-          </option>
-        }
-      </select>
-
-      <p class="mt-1 text-neutral-700">
-        Los campos marcados con <span aria-hidden="true">*</span> hacen falta para cerrar el reporte.
-      </p>
-
-      @if (editable()) {
-        <div class="mt-2 flex flex-wrap gap-2">
-          <button
-            class="boton-primario min-h-tactil"
-            type="submit"
-            [disabled]="guardado.isPending()"
-          >
-            {{ guardado.isPending() ? 'Guardando…' : 'Guardar' }}
-          </button>
-          @if (formulario.dirty) {
-            <p class="self-center text-neutral-700" role="status">Hay cambios sin guardar.</p>
-          }
+          <section class="superficie mt-3 p-0" aria-labelledby="seccion-hecho">
+            <h2
+              id="seccion-hecho"
+              class="titulo-seccion flex items-center gap-1.5 border-b border-neutral-300 px-3 py-2"
+            >
+              <span
+                class="flex h-[1.75rem] w-[1.75rem] items-center justify-center bg-ink text-sm text-white"
+                aria-hidden="true"
+                >2</span
+              >
+              Lo que se hizo
+            </h2>
+            <div class="p-3">
+              <label class="block font-bold" for="procedimientos">
+                Procedimientos <span class="text-accent-700" aria-hidden="true">*</span>
+              </label>
+              <textarea
+                class="campo mt-1 min-h-tactil w-full p-1"
+                id="procedimientos"
+                rows="4"
+                maxlength="500"
+                aria-required="true"
+                formControlName="procedimientos"
+              ></textarea>
+            </div>
+          </section>
         </div>
-      }
-    </form>
 
-    <app-tabla-de-verificacion
-      [idReporte]="id()"
-      [idEquipoCliente]="datos.idEquipoCliente ?? ''"
-      [lecturas]="datos.lecturas ?? []"
-      [editable]="editable()"
-    />
+        <!-- La verificacion tiene su propio formulario: guarda sus lecturas por su cuenta. -->
+        <app-tabla-de-verificacion
+          [idReporte]="id()"
+          [idEquipoCliente]="datos.idEquipoCliente ?? ''"
+          [lecturas]="datos.lecturas ?? []"
+          [editable]="editable()"
+        />
 
-    <p class="mt-3">
-      <a class="font-semibold underline" [routerLink]="['/ordenes', datos.idOrdenTrabajo]">
-        Volver a la orden
-      </a>
-    </p>
+        <form [formGroup]="formulario" (ngSubmit)="guardar()">
+          <section class="superficie mt-3 p-0" aria-labelledby="seccion-resultado">
+            <h2
+              id="seccion-resultado"
+              class="titulo-seccion flex items-center gap-1.5 border-b border-neutral-300 px-3 py-2"
+            >
+              <span
+                class="flex h-[1.75rem] w-[1.75rem] items-center justify-center bg-ink text-sm text-white"
+                aria-hidden="true"
+                >4</span
+              >
+              Cómo queda el equipo
+            </h2>
+            <div class="p-3">
+              <fieldset>
+                <legend class="font-bold">
+                  Resultado <span class="text-accent-700" aria-hidden="true">*</span>
+                </legend>
+                <!--
+                  [attr.value] ademas de [value]: la directiva de radio se queda [value] como entrada
+                  propia y no lo escribe en el elemento, de modo que los tres decian «on».
+
+                  Tres opciones grandes y no un desplegable: son pocas, se eligen con el equipo delante y
+                  el resultado es lo que mas pesa del reporte —de el cuelgan la hoja de vida y las alertas—.
+                  Siguen siendo radios de verdad, asi que se recorren con las flechas.
+                -->
+                <div class="mt-1 grid gap-1.5 md:grid-cols-3">
+                  @for (resultado of RESULTADOS; track resultado) {
+                    <label
+                      class="flex min-h-tactil cursor-pointer gap-1 border p-1.5 has-[:checked]:border-2 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:disabled]:cursor-not-allowed"
+                      [class.border-neutral-400]="formulario.value.resultado !== resultado"
+                    >
+                      <input
+                        class="mt-0.5 accent-white"
+                        type="radio"
+                        name="resultado"
+                        [value]="resultado"
+                        [attr.value]="resultado"
+                        formControlName="resultado"
+                      />
+                      <span class="flex flex-col">
+                        <span class="font-extrabold">{{ etiquetaDeResultado[resultado] }}</span>
+                        <span class="text-sm opacity-90">{{ ayudaDeResultado[resultado] }}</span>
+                      </span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+
+              <label class="mt-2 block font-bold" for="observaciones">Observaciones</label>
+              <textarea
+                class="campo mt-1 min-h-tactil w-full p-1"
+                id="observaciones"
+                rows="3"
+                maxlength="500"
+                formControlName="observaciones"
+              ></textarea>
+
+              <p class="mt-1 text-sm text-neutral-700">
+                Ningún campo es obligatorio para guardar: el reporte se llena mientras se trabaja.
+                Los marcados con <span aria-hidden="true">*</span> hacen falta para cerrarlo.
+              </p>
+            </div>
+          </section>
+
+          @if (editable()) {
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                class="boton-primario min-h-tactil"
+                type="submit"
+                [disabled]="guardado.isPending()"
+              >
+                {{ guardado.isPending() ? 'Guardando…' : 'Guardar' }}
+              </button>
+              @if (formulario.dirty) {
+                <p class="font-semibold" role="status">Hay cambios sin guardar.</p>
+              }
+            </div>
+          }
+        </form>
+
+        <p class="mt-3">
+          <a class="font-semibold underline" [routerLink]="['/ordenes', datos.idOrdenTrabajo]">
+            Volver a la orden
+          </a>
+        </p>
+      </div>
+
+      <!-- El panel de cierre: lo que falta, y las dos operaciones que cambian el estado del reporte. -->
+      <aside
+        class="min-w-0 flex-[1_1_18rem] bg-ink p-3 text-paper md:sticky md:top-3"
+        aria-labelledby="para-cerrar"
+      >
+        <h2 id="para-cerrar" class="text-xs font-bold tracking-[0.14em] text-accent-400 uppercase">
+          @if (datos.estado === 'FINALIZADO' && datos.estadoActivo) {
+            Reporte cerrado
+          } @else if (!datos.estadoActivo) {
+            Reporte retirado
+          } @else {
+            Para cerrar el reporte
+          }
+        </h2>
+
+        @if (datos.estado === 'BORRADOR' && datos.estadoActivo) {
+          <p class="mt-1 flex items-baseline gap-1">
+            <span class="text-5xl leading-none font-extrabold tracking-tight"
+              >{{ avance() }} %</span
+            >
+            <span class="text-sm text-neutral-300">de lo que se exige</span>
+          </p>
+          <div class="mt-1.5 h-[0.375rem] bg-neutral-700" aria-hidden="true">
+            <div class="h-full bg-accent" [style.width.%]="avance()"></div>
+          </div>
+          <ul class="mt-2 list-none space-y-1">
+            @for (requisito of requisitos(); track requisito.texto) {
+              <li
+                class="flex gap-1"
+                [class.text-neutral-400]="requisito.hecho"
+                [class.font-extrabold]="!requisito.hecho"
+              >
+                <span aria-hidden="true" class="w-2">{{ requisito.hecho ? '✓' : '○' }}</span>
+                {{ requisito.texto }}
+                <span class="sr-only">{{ requisito.hecho ? '(listo)' : '(falta)' }}</span>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (datos.estado === 'BORRADOR' && !cerrable() && puedeEscribir() && datos.estadoActivo) {
+          <p class="mt-2 text-sm text-neutral-300">
+            Para cerrarlo hacen falta los procedimientos y el resultado, guardados. Si el equipo se
+            verifica, el servidor exige además la verificación completa.
+          </p>
+        }
+        @if (datos.estado === 'FINALIZADO' && datos.estadoActivo) {
+          <p class="mt-2 text-sm text-neutral-300">
+            Este reporte está cerrado y no se modifica. Para corregirlo hay que retirarlo y abrir
+            otro.
+          </p>
+        }
+
+        @if (puedeEscribir() && datos.estadoActivo) {
+          <div class="mt-3 flex flex-col gap-1.5">
+            <!--
+              Cerrar es una operacion y aparece solo cuando se puede usar, igual que iniciar una orden.
+              El boton se desactiva sin procedimientos ni resultado, que es lo mismo que el servidor
+              exige: ofrecerlo y que responda 409 seria ofrecer algo que no existe.
+            -->
+            @if (datos.estado === 'BORRADOR') {
+              @if (confirmandoCierre()) {
+                <p class="border-l-2 border-accent bg-brand-black p-1.5 text-sm">
+                  Un reporte cerrado ya no se modifica. Si después hay que corregir algo, se retira
+                  y se abre otro para el mismo equipo.
+                </p>
+                <button
+                  class="boton-primario min-h-tactil"
+                  type="button"
+                  [disabled]="cierre.isPending()"
+                  (click)="cerrar()"
+                >
+                  Confirmar cierre
+                </button>
+                <button
+                  class="min-h-tactil border border-neutral-500 font-bold"
+                  type="button"
+                  (click)="confirmandoCierre.set(false)"
+                >
+                  Cancelar
+                </button>
+              } @else {
+                <button
+                  class="boton-primario min-h-tactil"
+                  type="button"
+                  [disabled]="!cerrable()"
+                  (click)="confirmandoCierre.set(true)"
+                >
+                  Cerrar reporte
+                </button>
+              }
+            }
+
+            @if (confirmandoRetiro()) {
+              <p class="border-l-2 border-accent bg-brand-black p-1.5 text-sm">
+                El reporte queda retirado con sus datos y sus lecturas intactos, y deja de contar
+                como el reporte de este equipo en la orden. No se borra nada.
+              </p>
+              <button
+                class="boton-primario min-h-tactil"
+                type="button"
+                [disabled]="retiro.isPending()"
+                (click)="retirar()"
+              >
+                Confirmar retiro
+              </button>
+              <button
+                class="min-h-tactil border border-neutral-500 font-bold"
+                type="button"
+                (click)="confirmandoRetiro.set(false)"
+              >
+                Cancelar
+              </button>
+            } @else {
+              <button
+                class="min-h-tactil border border-neutral-500 font-bold hover:border-white"
+                type="button"
+                (click)="confirmandoRetiro.set(true)"
+              >
+                Retirar
+              </button>
+            }
+          </div>
+        }
+
+        <p class="mt-3 text-sm text-neutral-400">
+          Al cerrarlo, la intervención entra en la hoja de vida del equipo.
+        </p>
+      </aside>
+    </div>
   }
 }
