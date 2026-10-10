@@ -18,11 +18,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -63,8 +65,9 @@ public class WorkOrderRestAdapter {
     private final ReadScopeResolver readScopeResolver;
 
     @Operation(summary = "Listar ordenes de trabajo",
-            description = "Los parametros filtran por cliente, sede, ingeniero o equipo. "
-                    + "Solo se admite uno a la vez.")
+            description = "Los parametros filtran por cliente, sede, ingeniero o equipo, y solo se admite "
+                    + "uno a la vez. La excepcion es la agenda: desde y hasta, que van juntos, devuelven "
+                    + "las ordenes de ese periodo ordenadas por fecha y se combinan con el ingeniero.")
     @PreAuthorize("hasAuthority('work-order.read')")
     @GetMapping
     public List<WorkOrderResponse> getAll(
@@ -72,9 +75,23 @@ public class WorkOrderRestAdapter {
             @Parameter(description = "Filtra por sede") @RequestParam(required = false) UUID idSede,
             @Parameter(description = "Filtra por ingeniero asignado") @RequestParam(required = false) UUID idIngeniero,
             @Parameter(description = "Filtra por equipo incluido en el alcance") @RequestParam(required = false) UUID idEquipoCliente,
+            @Parameter(description = "Primer dia del periodo, incluido. Va con hasta")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @Parameter(description = "Ultimo dia del periodo, incluido. Va con desde")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             Authentication autenticacion) {
 
         ReadScope alcance = readScopeResolver.scopeFor(autenticacion);
+
+        // La agenda va primero: es la unica combinacion que se admite, con el ingeniero y con nada mas.
+        if (desde != null || hasta != null) {
+            if (idCliente != null || idSede != null || idEquipoCliente != null) {
+                throw new IllegalArgumentException(
+                        "Un periodo solo se combina con el ingeniero, no con cliente, sede ni equipo");
+            }
+
+            return mapper.toList(workOrderServicePort.findInPeriod(desde, hasta, idIngeniero, alcance));
+        }
 
         long filtros = java.util.stream.Stream
                 .of(idCliente, idSede, idIngeniero, idEquipoCliente)

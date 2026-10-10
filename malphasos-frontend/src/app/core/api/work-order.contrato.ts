@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Listar ordenes de trabajo
-         * @description Los parametros filtran por cliente, sede, ingeniero o equipo. Solo se admite uno a la vez.
+         * @description Los parametros filtran por cliente, sede, ingeniero o equipo, y solo se admite uno a la vez. La excepcion es la agenda: desde y hasta, que van juntos, devuelven las ordenes de ese periodo ordenadas por fecha y se combinan con el ingeniero.
          */
         get: operations["getAll"];
         put?: never;
@@ -238,6 +238,10 @@ export interface operations {
                 idIngeniero?: string;
                 /** @description Filtra por equipo incluido en el alcance */
                 idEquipoCliente?: string;
+                /** @description Primer dia del periodo, incluido. Va con hasta */
+                desde?: string;
+                /** @description Ultimo dia del periodo, incluido. Va con desde */
+                hasta?: string;
             };
             header?: never;
             path?: never;

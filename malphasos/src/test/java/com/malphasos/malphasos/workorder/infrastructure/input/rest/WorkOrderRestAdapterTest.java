@@ -253,4 +253,66 @@ class WorkOrderRestAdapterTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].estadoEjecucion").value("CREADA"));
     }
+
+    @Test
+    @DisplayName("la agenda: desde y hasta llegan al servicio como fechas, sin ingeniero")
+    void agendaDeUnPeriodo() throws Exception {
+        LocalDate desde = LocalDate.of(2026, 10, 1);
+        LocalDate hasta = LocalDate.of(2026, 10, 31);
+        when(workOrderServicePort.findInPeriod(desde, hasta, null, ReadScope.unrestricted()))
+                .thenReturn(List.of(unaOrden()));
+
+        mockMvc.perform(get("/v1/api/work-orders").param("desde", "2026-10-01").param("hasta", "2026-10-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].fechaMantenimiento").exists());
+
+        verify(workOrderServicePort, never()).findAll(any());
+    }
+
+    @Test
+    @DisplayName("la agenda se combina con el ingeniero: solo mis ordenes")
+    void agendaDeUnIngeniero() throws Exception {
+        UUID ingeniero = UUID.randomUUID();
+        LocalDate desde = LocalDate.of(2026, 10, 5);
+        LocalDate hasta = LocalDate.of(2026, 10, 11);
+        when(workOrderServicePort.findInPeriod(desde, hasta, ingeniero, ReadScope.unrestricted()))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/v1/api/work-orders")
+                        .param("desde", "2026-10-05")
+                        .param("hasta", "2026-10-11")
+                        .param("idIngeniero", ingeniero.toString()))
+                .andExpect(status().isOk());
+
+        // Sin el periodo, idIngeniero solo iria a findByEngineer: que no se use prueba que gano la agenda.
+        verify(workOrderServicePort).findInPeriod(desde, hasta, ingeniero, ReadScope.unrestricted());
+        verify(workOrderServicePort, never()).findByEngineer(any(), any());
+    }
+
+    @Test
+    @DisplayName("un periodo con cliente, sede o equipo se rechaza: solo se combina con el ingeniero")
+    void agendaConOtroFiltro() throws Exception {
+        for (String filtro : List.of("idCliente", "idSede", "idEquipoCliente")) {
+            mockMvc.perform(get("/v1/api/work-orders")
+                            .param("desde", "2026-10-01")
+                            .param("hasta", "2026-10-31")
+                            .param(filtro, UUID.randomUUID().toString()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_002"));
+        }
+
+        verify(workOrderServicePort, never()).findInPeriod(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("un periodo invalido que el servicio rechaza responde 400")
+    void agendaInvalida() throws Exception {
+        when(workOrderServicePort.findInPeriod(LocalDate.of(2026, 10, 31), LocalDate.of(2026, 10, 1), null,
+                        ReadScope.unrestricted()))
+                .thenThrow(new IllegalArgumentException("El periodo termina antes de empezar"));
+
+        mockMvc.perform(get("/v1/api/work-orders").param("desde", "2026-10-31").param("hasta", "2026-10-01"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_002"));
+    }
 }
