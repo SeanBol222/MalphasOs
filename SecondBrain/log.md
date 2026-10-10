@@ -1705,3 +1705,17 @@ a buscar.
 
 **Tocadas**: [[hoja-de-ruta-producto]].
 
+
+## [2026-10-10] ingest | el rediseño visual: la sala de control, y su primera tanda
+
+El 2026-10-06 el usuario pidió rehacer el aspecto del frontend. Se le propusieron tres direcciones en un
+lienzo de diseño —sala de control, editorial e instrumental— y eligió la **sala de control**, más un
+Inicio con agenda y el llenado del reporte con el protocolo como **lista de verificación**. Esa última
+contesta dos de las cinco preguntas de los protocolos.
+
+Construida la tanda 1 de cinco, el armazón (`a5161573`): barra lateral en tinta, menú en dos bloques,
+cerrar sesión —que no existía— y un menú plegable en el teléfono, que **cierra la deuda del menú que
+desbordaba**. 462 pruebas del frontend, medidas sobre ese commit; la deuda propia queda en 82/34/48,
+recontada con la receta.
+
+**Tocadas**: [[hoja-de-ruta-producto]], [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]].
