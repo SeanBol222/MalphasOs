@@ -33,6 +33,11 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
+import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
+import com.malphasos.malphasos.equipment.application.model.AssignedProtocolDetail;
+import com.malphasos.malphasos.equipment.domain.protocol.Protocol;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
+import com.malphasos.malphasos.report.domain.serviceReport.StepState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
@@ -84,19 +89,24 @@ class ServiceReportServiceTest {
     @Mock private EquipmentServicePort equipmentServicePort;
     @Mock private EquipmentTypeServicePort equipmentTypeServicePort;
     @Mock private EventDispatcherPort eventDispatcherPort;
+    @Mock private ProtocolServicePort protocolServicePort;
 
     @InjectMocks private ServiceReportService service;
 
     // ---- Dobles de los otros modulos ----
 
     private static WorkOrder unaOrden(ExecutionState estado, boolean activa, UUID... equipos) {
+        return unaOrden(ServiceType.PREVENTIVO, estado, activa, equipos);
+    }
+
+    private static WorkOrder unaOrden(ServiceType servicio, ExecutionState estado, boolean activa, UUID... equipos) {
         return WorkOrder.rehydrate(
                 ORDEN,
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 LocalDate.now(),
                 Periodicity.ANUAL,
-                ServiceType.PREVENTIVO,
+                servicio,
                 estado,
                 UUID.randomUUID(),
                 java.util.Arrays.stream(equipos)
@@ -169,6 +179,12 @@ class ServiceReportServiceTest {
         when(equipmentTypeServicePort.findById(TIPO)).thenReturn(tipo);
     }
 
+    /** Los protocolos del tipo del equipo, con la cadena del catálogo estubada hasta llegar a él. */
+    private void estubarProtocolos(AssignedProtocolDetail... protocolos) {
+        estubarCadenaDelCatalogo(unTipo(null, null, List.of()));
+        when(protocolServicePort.protocolsOf(TIPO)).thenReturn(List.of(protocolos));
+    }
+
     private void estubarGuardado() {
         when(serviceReportPersistencePort.save(any(ServiceReport.class)))
                 .thenAnswer(llamada -> llamada.getArgument(0));
@@ -188,6 +204,7 @@ class ServiceReportServiceTest {
             when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
             when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
                     .thenReturn(Optional.empty());
+            estubarProtocolos();
             estubarGuardado();
 
             ServiceReport reporte = service.open(new OpenServiceReportCommand(ORDEN, EQUIPO));
@@ -195,6 +212,55 @@ class ServiceReportServiceTest {
             assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
             assertThat(reporte.getIdOrdenTrabajo()).isEqualTo(ORDEN);
             verify(eventDispatcherPort).dispatch(any());
+        }
+
+        @Test
+        @DisplayName("en un preventivo copia los protocolos del tipo como pasos pendientes, en su orden")
+        void copiaLosPasos() {
+            // RF-13: se cargan solos. Se copian el nombre, la descripcion y la indicacion de ese dia.
+            Protocol limpieza = Protocol.create("Limpieza", "Paño humedecido.");
+            Protocol electrico = Protocol.create("Eléctrico", "Multímetro.");
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
+            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
+                    .thenReturn(Optional.empty());
+            estubarProtocolos(
+                    new AssignedProtocolDetail(limpieza, 1, "Con guantes"),
+                    new AssignedProtocolDetail(electrico, 2, null));
+            estubarGuardado();
+
+            ServiceReport reporte = service.open(new OpenServiceReportCommand(ORDEN, EQUIPO));
+
+            assertThat(reporte.getPasos())
+                    .extracting(ReportStep::orden, ReportStep::nombre, ReportStep::indicacion, ReportStep::estado)
+                    .containsExactly(
+                            org.assertj.core.groups.Tuple.tuple(1, "Limpieza", "Con guantes", StepState.PENDIENTE),
+                            org.assertj.core.groups.Tuple.tuple(2, "Eléctrico", null, StepState.PENDIENTE));
+        }
+
+        @Test
+        @DisplayName("en un correctivo no copia pasos, ni siquiera pregunta por ellos")
+        void correctivoSinPasos() {
+            // Decidido por el usuario: un correctivo es una reparacion distinta cada vez. Los protocolos
+            // se dejan estubados para que, si la regla faltara, la prueba caiga por tener pasos.
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+                    .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EN_EJECUCION, true, EQUIPO));
+            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
+                    .thenReturn(Optional.empty());
+            org.mockito.Mockito.lenient().when(protocolServicePort.protocolsOf(any()))
+                    .thenReturn(List.of(new AssignedProtocolDetail(Protocol.create("Limpieza", "x"), 1, null)));
+            org.mockito.Mockito.lenient().when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted()))
+                    .thenReturn(ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, null, null, null, true));
+            org.mockito.Mockito.lenient().when(modelServicePort.findById(MODELO)).thenReturn(
+                    Model.rehydrate(MODELO, "IdeaPad 3", null, UUID.randomUUID(), EQUIPO_CATALOGO, TechnicalSheet.EMPTY, true));
+            org.mockito.Mockito.lenient().when(equipmentServicePort.findById(EQUIPO_CATALOGO)).thenReturn(
+                    Equipment.rehydrate(EQUIPO_CATALOGO, TIPO, UUID.randomUUID(), true));
+            org.mockito.Mockito.lenient().when(equipmentTypeServicePort.findById(TIPO))
+                    .thenReturn(unTipo(null, null, List.of()));
+            estubarGuardado();
+
+            ServiceReport reporte = service.open(new OpenServiceReportCommand(ORDEN, EQUIPO));
+
+            assertThat(reporte.getPasos()).isEmpty();
         }
 
         @Test
@@ -216,6 +282,7 @@ class ServiceReportServiceTest {
                     .thenReturn(unaOrden(ExecutionState.EJECUTADA, true, EQUIPO));
             when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
                     .thenReturn(Optional.empty());
+            estubarProtocolos();
             estubarGuardado();
 
             assertThatCode(() -> service.open(new OpenServiceReportCommand(ORDEN, EQUIPO)))

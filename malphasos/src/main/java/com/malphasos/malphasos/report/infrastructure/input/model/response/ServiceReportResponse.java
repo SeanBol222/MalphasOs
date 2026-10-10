@@ -33,5 +33,7 @@ public record ServiceReportResponse(
         @Schema(description = "Cuando se cerro el reporte. Nulo mientras es borrador")
         LocalDateTime finalizado,
         List<VerificationReadingResponse> lecturas,
+        @Schema(description = "Los pasos del protocolo preventivo, en su orden. Vacia en un correctivo")
+        List<ReportStepResponse> pasos,
         boolean estadoActivo) {
 }

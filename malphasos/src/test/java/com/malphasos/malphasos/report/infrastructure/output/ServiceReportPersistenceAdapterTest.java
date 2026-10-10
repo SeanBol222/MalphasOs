@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.report.infrastructure.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
@@ -38,6 +39,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
+import com.malphasos.malphasos.report.domain.serviceReport.StepState;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -59,6 +63,8 @@ import org.springframework.test.context.jdbc.Sql;
 @Sql(
         statements = {
             "DELETE FROM dato_verificacion",
+            "DELETE FROM paso_reporte",
+            "DELETE FROM protocolo",
             "DELETE FROM reporte_servicio",
             "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
@@ -465,6 +471,79 @@ class ServiceReportPersistenceAdapterTest {
 
             assertThat(adapter.findByEquipment(alcance.equipo())).hasSize(1);
             assertThat(adapter.findByEquipment(UUID.randomUUID())).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Los pasos del protocolo, desde V22")
+    class LosPasos {
+
+        /** Un protocolo de verdad en la base: el paso lleva una foránea a él. */
+        private UUID unProtocolo(String nombre) {
+            UUID id = UUID.randomUUID();
+            jdbcTemplate.update(
+                    "INSERT INTO protocolo (k_id_protocolo, n_nombre, n_clave, t_descripcion) VALUES (?, ?, ?, 'D')",
+                    id, nombre, nombre.toLowerCase() + " " + System.nanoTime());
+
+            return id;
+        }
+
+        @Test
+        @DisplayName("se guardan al abrir, con lo copiado, y vuelven en su orden")
+        void idaYVuelta() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo(), List.of(
+                    ReportStep.copied(2, unProtocolo("Eléctrico"), "Eléctrico", "Multímetro.", null),
+                    ReportStep.copied(1, unProtocolo("Limpieza"), "Limpieza", "Paño.", "Con guantes")));
+            adapter.save(reporte);
+
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().getPasos())
+                    .extracting(ReportStep::orden, ReportStep::nombre, ReportStep::indicacion, ReportStep::estado)
+                    .containsExactly(
+                            org.assertj.core.groups.Tuple.tuple(1, "Limpieza", "Con guantes", StepState.PENDIENTE),
+                            org.assertj.core.groups.Tuple.tuple(2, "Eléctrico", null, StepState.PENDIENTE));
+        }
+
+        @Test
+        @DisplayName("marcar un paso se guarda sobre la misma fila, sin duplicarla")
+        void marcarPersiste() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo(), List.of(
+                    ReportStep.copied(1, unProtocolo("Batería"), "Batería", "Revisar.", null)));
+            adapter.save(reporte);
+
+            ServiceReport leido = adapter.findById(reporte.getId()).orElseThrow();
+            leido.markStep(1, StepState.NO_APLICA, "No tiene batería");
+            adapter.save(leido);
+
+            assertThat(jdbcTemplate.queryForObject(
+                            "SELECT count(*) FROM paso_reporte WHERE k_id_reporte_servicio = ?", Integer.class,
+                            reporte.getId()))
+                    .isEqualTo(1);
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().getPasos().getFirst())
+                    .extracting(ReportStep::estado, ReportStep::nota)
+                    .containsExactly(StepState.NO_APLICA, "No tiene batería");
+        }
+
+        @Test
+        @DisplayName("la base tampoco deja un «no aplica» sin nota, ni dos pasos con el mismo orden")
+        void restricciones() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            adapter.save(reporte);
+            UUID protocolo = unProtocolo("Limpieza");
+            String insertar = "INSERT INTO paso_reporte (k_id_paso_reporte, k_id_reporte_servicio, i_orden,"
+                    + " k_id_protocolo, n_nombre, t_descripcion, t_estado_paso, t_nota)"
+                    + " VALUES (?, ?, ?, ?, 'Limpieza', 'D', ?, ?)";
+
+            assertThatThrownBy(() -> jdbcTemplate.update(insertar,
+                            UUID.randomUUID(), reporte.getId(), 1, protocolo, "NO_APLICA", null))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+
+            jdbcTemplate.update(insertar, UUID.randomUUID(), reporte.getId(), 1, protocolo, "HECHO", null);
+            assertThatThrownBy(() -> jdbcTemplate.update(insertar,
+                            UUID.randomUUID(), reporte.getId(), 1, protocolo, "HECHO", null))
+                    .isInstanceOf(DataIntegrityViolationException.class);
         }
     }
 }

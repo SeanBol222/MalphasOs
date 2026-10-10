@@ -481,13 +481,17 @@ class ServiceReportSchemaTest {
     }
 
     @Test
-    @DisplayName("finalizar sin procedimientos falla: es la mitad de lo que el reporte existe para contar")
-    void finalizarSinProcedimientosFalla() {
+    @DisplayName("desde V22 la base deja cerrar sin procedimientos: con pasos del protocolo son opcionales")
+    void finalizarSinProcedimientosLoDecideElDominio() {
+        // Hasta V22 esta prueba exigia el rechazo. Ahora un reporte con pasos se cierra con todos
+        // marcados y el texto -«trabajo adicional»- es opcional; uno sin pasos lo sigue exigiendo. Eso
+        // mira otra tabla y un CHECK no puede, asi que la regla vive en ServiceReport.finish y la prueba
+        // que la sostiene esta en el dominio. Aqui se fija que la base ya no la impone.
         UUID[] alcance = insertEquipmentInOrder();
 
-        assertThatThrownBy(() -> insertReport(
+        assertThatCode(() -> insertReport(
                         alcance[0], alcance[1], "FINALIZADO", null, "OPERATIVO", LocalDateTime.now()))
-                .isInstanceOf(DataIntegrityViolationException.class);
+                .doesNotThrowAnyException();
     }
 
     @Test

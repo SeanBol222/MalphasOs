@@ -72,4 +72,8 @@ public class ServiceReportEntity {
 
     @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<VerificationReadingEntity> lecturas = new ArrayList<>();
+
+    /** Los pasos del protocolo, desde V22. */
+    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ReportStepEntity> pasos = new ArrayList<>();
 }
