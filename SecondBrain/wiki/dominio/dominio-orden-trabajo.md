@@ -4,7 +4,7 @@ description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatr
 tags: [dominio, work-order, esquema, mantenimiento, "describe:ambos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/workorder/ y malphasos/src/main/resources/db/migration/V6__work_order.sql
 estado: estable
-updated: 2026-09-27
+updated: 2026-10-10
 ---
 
 # Órdenes de trabajo — el módulo completo
@@ -281,6 +281,18 @@ De paso apareció que `equipoDeOtroCliente` —anterior a este arreglo— monta 
 **Que asignar tenga autoridad propia es lo que permite que un coordinador reparta trabajo sin poder alterar lo que se va a hacer.** Sin esa separación, `work-order.write` lo cubriría todo y el permiso no significaría nada distinto. Ver [[modelo-de-permisos]].
 
 Los **cuatro filtros del listado son mutuamente excluyentes** —cliente, sede, ingeniero, equipo— y pasar dos responde 400. Combinarlos exigiría un puerto por combinación, y la respuesta correcta a «¿y si quiero dos?» es una consulta nueva y explícita, no un producto cartesiano implícito.
+
+**Y esa consulta nueva llegó el 2026-10-10, exactamente con esa forma**: la agenda del inicio
+(`2abeebfa`). `?desde=&hasta=` devuelve las órdenes cuya `f_fecha_mantenimiento` cae en el periodo,
+**los dos días incluidos y ordenadas por fecha**, y es **el único filtro que se combina con otro**, el
+ingeniero —«solo mis órdenes»—. Con cliente, sede o equipo responde 400. El servicio rechaza un periodo
+al revés o incompleto sin consultar, y acota como `findByEngineer`: el periodo no es de ningún cliente,
+así que se recorta el resultado y no se delega. En el puerto de salida es **un método con dos nulos**
+—ingeniero nulo es «de cualquiera», clientes nulos es «sin acotar» y vacíos es «de ninguno»— que el
+adaptador reparte entre cuatro derivaciones, porque `:x is null` con un UUID nulo no le dice a
+PostgreSQL de qué tipo es. **Una mutación sobrevivió**: una guarda para la lista vacía de clientes no
+cambiaba nada —Hibernate ya traduce el `IN` vacío a «ninguna fila»— y su comentario daba una razón
+falsa. Se quitó; la prueba que fija el comportamiento se quedó.
 
 ### El catálogo distingue tres cosas que un solo código confundiría
 

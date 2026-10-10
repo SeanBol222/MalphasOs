@@ -1727,3 +1727,12 @@ las 35 pantallas las usan (`1227feaf`). El área táctil se queda escrita en cad
 De paso, las tablas anchas dejan de empujar la página en un teléfono. 466 pruebas del frontend.
 
 **Tocadas**: [[sistema-de-diseno-malphasos]], [[hoja-de-ruta-producto]].
+
+## [2026-10-10] ingest | la tercera tanda del rediseño: la agenda del inicio
+
+El backend aprendió a devolver las órdenes de un periodo (`2abeebfa`), el único filtro que se combina
+con otro —el ingeniero—, y el inicio pasó a ser una agenda por semana o por mes (`4cee773b`). Una
+mutación sobrevivió en el adaptador y destapó una guarda inútil con un comentario falso; se quitó.
+1045 pruebas del backend y 481 del frontend, medidas sobre esos commits.
+
+**Tocadas**: [[dominio-orden-trabajo]], [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]].
