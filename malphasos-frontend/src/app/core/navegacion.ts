@@ -32,6 +32,16 @@ export interface EntradaDeNavegacion {
   readonly autoridad?: string;
 
   /**
+   * El bloque del menu en que se pinta: lo que se usa a diario arriba, administrar quien existe y que
+   * catalogo hay debajo. Solo lo leen las entradas de primer nivel.
+   *
+   * <p>Entro el <b>2026-10-10</b> con la barra lateral, que es el armazon que el usuario eligio entre
+   * tres propuestas («sala de control»). Con el menu en una fila no hacia falta: la fila no tenia sitio
+   * para dos grupos, y por eso mismo se desbordaba en un telefono.
+   */
+  readonly grupo?: GrupoDeNavegacion;
+
+  /**
    * Las piezas que cuelgan de esta entrada.
    *
    * <p>Una entrada con hijas <b>no tiene pagina propia</b>: su ruta lleva a la primera hija. El
@@ -40,24 +50,42 @@ export interface EntradaDeNavegacion {
   readonly hijos?: readonly EntradaDeNavegacion[];
 }
 
+/** Los dos bloques del menu, en el orden en que se pintan. */
+export type GrupoDeNavegacion = 'operacion' | 'administracion';
+
+export const GRUPOS_DE_NAVEGACION: readonly {
+  readonly id: GrupoDeNavegacion;
+  readonly etiqueta: string;
+}[] = [
+  { id: 'operacion', etiqueta: 'Operación' },
+  { id: 'administracion', etiqueta: 'Administración' },
+];
+
 /**
  * Los destinos de la navegacion principal, en el orden en que se muestran.
  */
 export const NAVEGACION: readonly EntradaDeNavegacion[] = [
   // Inicio no exige nada: es la unica pagina que cualquiera con sesion puede ver.
-  { ruta: 'inicio', etiqueta: 'Inicio' },
-  { ruta: 'clientes', etiqueta: 'Clientes', autoridad: 'client.read' },
+  { ruta: 'inicio', etiqueta: 'Inicio', grupo: 'operacion' },
+  // Las ordenes van primero desde el 2026-10-10, con la barra lateral: son el trabajo del dia, y el
+  // resto de la operacion -equipos y clientes- se consulta desde ellas. Hasta entonces iban cuartas.
+  // Entraron el 2026-09-27: el backend las termino el 2026-09-13 y cuatro de sus siete requisitos
+  // describen un formulario que hasta entonces no existia.
+  {
+    ruta: 'ordenes',
+    etiqueta: 'Órdenes de trabajo',
+    autoridad: 'work-order.read',
+    grupo: 'operacion',
+  },
   // Los equipos de cliente van antes que el catalogo, y el orden importa: lo que se consulta a diario
   // es «que equipos hay», no «que marcas existen». Hasta el 2026-09-26 el catalogo ocupaba este sitio y
   // los equipos no tenian listado propio.
-  { ruta: 'equipos', etiqueta: 'Equipos', autoridad: 'equipment.read' },
-  // Las ordenes de trabajo cierran el primer bloque del frontend: el backend las termino el 2026-09-13 y
-  // cuatro de sus siete requisitos describen un formulario que hasta ahora no existia.
-  { ruta: 'ordenes', etiqueta: 'Órdenes', autoridad: 'work-order.read' },
+  { ruta: 'equipos', etiqueta: 'Equipos', autoridad: 'equipment.read', grupo: 'operacion' },
+  { ruta: 'clientes', etiqueta: 'Clientes', autoridad: 'client.read', grupo: 'operacion' },
   // Las personas van despues del trabajo diario y antes del catalogo: administrar quien existe es una
   // tarea de administracion, como el catalogo, y no algo que se consulte a cada rato. Entro el
   // 2026-10-02, cuando el modulo dejo de tener catorce operaciones y ninguna pantalla.
-  { ruta: 'personas', etiqueta: 'Personas', autoridad: 'person.read' },
+  { ruta: 'personas', etiqueta: 'Personas', autoridad: 'person.read', grupo: 'administracion' },
   // El catalogo conserva su entrada porque administrarlo es una tarea aparte: no debe exigir empezar a
   // registrar un equipo para crear una marca.
   //
@@ -69,6 +97,7 @@ export const NAVEGACION: readonly EntradaDeNavegacion[] = [
     etiqueta: 'Catálogo',
     // El catalogo entero se lee con equipment.read, que es lo que exigen sus cinco recursos.
     autoridad: 'equipment.read',
+    grupo: 'administracion',
     hijos: [
       // El tipo va primero, pedido el 2026-09-26: es la pieza que describe QUE es el aparato, y la
       // que mas trabajo cuesta dar de alta -cuatro campos obligatorios y su ficha tecnica-. La marca

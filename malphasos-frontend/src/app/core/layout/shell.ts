@@ -1,14 +1,39 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { EntradaDeNavegacion, NAVEGACION } from '../navegacion';
+import { EntradaDeNavegacion, GRUPOS_DE_NAVEGACION, NAVEGACION } from '../navegacion';
 import { Sesion } from '../auth/sesion';
 
 /**
- * El armazon de la aplicacion: cabecera, navegacion principal y el contenido.
+ * Los trazos del icono de cada destino de primer nivel, en una reticula de 24.
+ *
+ * <p>Viven aqui y no en {@link NAVEGACION} porque son de este armazon: la lista de navegacion la leen
+ * tambien las rutas, que no pintan nada.
+ */
+const ICONOS: Readonly<Record<string, readonly string[]>> = {
+  inicio: ['M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+  ordenes: ['M4 3h16v18H4z', 'M8 7h8M8 11h8M8 15h5'],
+  equipos: ['M3 6h18v12H3z', 'M7 10h4M7 14h2M15 12h2'],
+  clientes: ['M4 21V5l8-2 8 2v16', 'M9 21v-5h6v5M8 9h2M14 9h2M8 13h2M14 13h2'],
+  personas: [
+    'M5 8a4 4 0 1 0 8 0a4 4 0 1 0-8 0',
+    'M2 21c0-4 3-6 7-6s7 2 7 6M17 4a4 4 0 0 1 0 8M22 21c0-3-2-5-4-6',
+  ],
+  catalogo: ['M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'],
+};
+
+/**
+ * El armazon de la aplicacion: la barra lateral con la navegacion principal, y el contenido.
  *
  * <p>Envuelve solo a las rutas de dentro de la sesion. Las publicas -el inicio
  * de sesion- cuelgan de la raiz y no lo arrastran, que es la razon de que este
  * armazon no viva en el componente raiz.
+ *
+ * <p><b>Es una barra lateral desde el 2026-10-10</b>, la «sala de control» que el usuario eligio entre
+ * tres propuestas. Hasta entonces el menu era una fila bajo la cabecera, y con seis destinos se
+ * desbordaba en un telefono: estaba anotado como deuda. Ahora en un telefono la barra se esconde tras
+ * un boton y se abre a pantalla completa. Y trae algo que el armazon anterior no tenia: <b>cerrar
+ * sesion</b>, que no existia en ninguna pantalla.
  *
  * <p>Tres cosas que no son decorativas y que WCAG 2.1 AA exige: el enlace de
  * salto, para no obligar a tabular la navegacion entera en cada pagina; los
@@ -34,12 +59,12 @@ import { Sesion } from '../auth/sesion';
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet],
   templateUrl: './shell.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Shell {
-  private readonly sesion = inject(Sesion);
+  protected readonly sesion = inject(Sesion);
 
   /**
    * Los destinos que esta sesion puede usar de verdad.
@@ -51,8 +76,32 @@ export class Shell {
     NAVEGACION.filter((entrada) => !entrada.autoridad || this.sesion.puede(entrada.autoridad)),
   );
 
+  /**
+   * Los destinos repartidos en los bloques del menu. Un bloque que se queda sin destinos no se pinta:
+   * un rotulo «Administracion» sin nada debajo es ruido para quien no administra.
+   */
+  protected readonly grupos = computed(() =>
+    GRUPOS_DE_NAVEGACION.map((grupo) => ({
+      ...grupo,
+      entradas: this.navegacion().filter((entrada) => (entrada.grupo ?? 'operacion') === grupo.id),
+    })).filter((grupo) => grupo.entradas.length > 0),
+  );
+
+  /** Las iniciales del nombre de la sesion, para el cuadro junto a el. */
+  protected readonly iniciales = computed(() =>
+    String(this.sesion.nombre())
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((palabra: string) => palabra[0]!.toUpperCase())
+      .join(''),
+  );
+
   /** La entrada cuyo desplegable esta abierto, si hay alguno. Solo uno a la vez. */
   protected readonly desplegada = signal<string | null>(null);
+
+  /** Si el menu esta abierto en un telefono. En escritorio la barra se ve siempre. */
+  protected readonly menuAbierto = signal(false);
 
   protected alternar(entrada: EntradaDeNavegacion): void {
     this.desplegada.update((abierta) => (abierta === entrada.ruta ? null : entrada.ruta));
@@ -60,5 +109,18 @@ export class Shell {
 
   protected cerrar(): void {
     this.desplegada.set(null);
+  }
+
+  protected alternarMenu(): void {
+    this.menuAbierto.update((abierto) => !abierto);
+  }
+
+  /** Al elegir un destino el menu del telefono se cierra: se abrio para ir a algun sitio. */
+  protected cerrarMenu(): void {
+    this.menuAbierto.set(false);
+  }
+
+  protected iconoDe(ruta: string): readonly string[] {
+    return ICONOS[ruta] ?? [];
   }
 }
