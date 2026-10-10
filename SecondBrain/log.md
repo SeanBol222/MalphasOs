@@ -1719,3 +1719,11 @@ desbordaba**. 462 pruebas del frontend, medidas sobre ese commit; la deuda propi
 recontada con la receta.
 
 **Tocadas**: [[hoja-de-ruta-producto]], [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]].
+
+## [2026-10-10] ingest | la segunda tanda del rediseño: las piezas comunes
+
+Título de página, botones, campo, tabla y superficie pasan a ser piezas con nombre en `styles.css`, y
+las 35 pantallas las usan (`1227feaf`). El área táctil se queda escrita en cada control, a propósito.
+De paso, las tablas anchas dejan de empujar la página en un teléfono. 466 pruebas del frontend.
+
+**Tocadas**: [[sistema-de-diseno-malphasos]], [[hoja-de-ruta-producto]].

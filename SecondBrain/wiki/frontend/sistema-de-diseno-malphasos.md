@@ -4,7 +4,7 @@ description: El manual de marca traducido a decisiones de interfaz: tokens, cont
 tags: [frontend, diseno, marca, accesibilidad, "describe:malphasos"]
 source: Documentation/FrontendDesign/BrandManual/ y DeclaracionDeDisenoFrontend.tex
 estado: estable
-updated: 2026-09-13
+updated: 2026-10-10
 ---
 
 # Sistema de diseño de MalphasOS
@@ -151,6 +151,31 @@ La **tecnología predominante** de un tipo de equipo usa este campo aunque el ba
 **Accesibilidad, que aquí no es opcional**: `role="combobox"` con `aria-expanded`, la lista con `role="listbox"`, `aria-activedescendant` apuntando a la opción resaltada, y flechas, Enter y Escape. Sin `aria-activedescendant`, quien no ve la pantalla escribe a ciegas. Está todo fijado por pruebas.
 
 **Y un hallazgo del entorno**: el corredor de pruebas de Angular **no expone `localStorage`** —acceder a él da `undefined`—, aunque sí expone `document`. El navegador lo tiene, así que lo que falta es el doble, y vive en `src/testing/almacenamiento.ts`. Es también la razón de que cada acceso vaya envuelto en producción: si el propio corredor puede no tenerlo, una ventana privada tampoco.
+
+## Las piezas comunes tienen nombre (2026-10-10)
+
+Hasta la segunda tanda del rediseño —la «sala de control», ver [[hoja-de-ruta-producto]]— el aspecto
+de cada pantalla vivía en cadenas de utilidades repetidas: **el botón principal estaba escrito igual en
+47 sitios**. Desde entonces son piezas con nombre en la capa `components` de `styles.css`:
+
+| Pieza | Qué es |
+|---|---|
+| `titulo-pagina`, `titulo-seccion` | 40 px en escritorio, 32 en teléfono, peso 800 y apretado; y el de bloque, 20 px |
+| `boton-primario`, `boton-secundario` | Relleno `accent-700` con texto blanco; blanco con borde de tinta |
+| `campo` | Blanco sobre el papel, borde `neutral-500`: lo que se escribe se distingue de lo que se lee |
+| `tabla` | Superficie blanca, cabecera en versalitas `neutral-700` sobre `neutral-100`; **en un teléfono se desplaza dentro de su caja** |
+| `superficie` | El bloque blanco de una ficha o un formulario |
+
+Dos reglas que salieron de hacerlo:
+
+- **El área táctil no entra en las piezas.** `min-h-tactil` se sigue escribiendo en cada control, porque
+  es lo que comprueban las pruebas de cada pantalla: metido dentro de `.boton-primario` esas pruebas
+  seguirían en verde sin demostrar nada. Una prueba de `design-system.spec.ts` lo exige.
+- **Un botón desactivado tiene que leerse**: WCAG lo exime, pero un botón ilegible no dice por qué no
+  se puede pulsar. Con `neutral-700` sobre `neutral-300` daba **4,4:1**; va `neutral-800`.
+
+Y lo que destapó: **las tablas anchas empujaban la página en un teléfono** —el listado de equipos medía
+704 px a 390 de ancho, el de personas 534—. Lo tapaba el menú en fila, que ya desbordaba por su cuenta.
 
 ## Las dos extensiones propias
 
