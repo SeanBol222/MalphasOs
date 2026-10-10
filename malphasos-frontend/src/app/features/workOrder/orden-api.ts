@@ -45,6 +45,29 @@ export class OrdenApi {
     }));
   }
 
+  /**
+   * Las ordenes de un periodo, ordenadas por fecha: la agenda del inicio. Con ingeniero, solo las
+   * suyas.
+   *
+   * <p>La clave cuelga de {@code ['ordenes']}, asi que programar, iniciar o anular una orden refresca
+   * tambien la agenda sin que nadie lo pida: la invalidacion es por prefijo.
+   */
+  periodo(desde: Signal<string>, hasta: Signal<string>, idIngeniero: Signal<string | null>) {
+    return injectQuery(() => ({
+      queryKey: [...OrdenApi.CLAVE, 'periodo', desde(), hasta(), idIngeniero() ?? 'todas'] as const,
+      queryFn: () =>
+        firstValueFrom(
+          this.http.get<OrdenDeTrabajo[]>(this.url, {
+            params: {
+              desde: desde(),
+              hasta: hasta(),
+              ...(idIngeniero() ? { idIngeniero: idIngeniero()! } : {}),
+            },
+          }),
+        ),
+    }));
+  }
+
   detalle(id: Signal<string>) {
     return injectQuery(() => ({
       queryKey: OrdenApi.claveDetalle(id()),

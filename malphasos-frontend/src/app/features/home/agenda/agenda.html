@@ -1,0 +1,231 @@
+<div class="flex flex-wrap items-start gap-3">
+  <section
+    class="min-w-0 flex-[3_1_40rem] border border-neutral-300 bg-white"
+    aria-labelledby="agenda-titulo"
+  >
+    <div class="flex flex-wrap items-center gap-2 border-b border-neutral-300 px-2 py-1.5 md:px-3">
+      <h2 id="agenda-titulo" class="titulo-seccion">Agenda</h2>
+
+      <div class="flex items-center">
+        <button
+          class="boton-secundario flex min-h-tactil min-w-tactil items-center justify-center px-0"
+          type="button"
+          [attr.aria-label]="vista() === 'semana' ? 'Semana anterior' : 'Mes anterior'"
+          (click)="mover(-1)"
+        >
+          ‹
+        </button>
+        <p
+          class="min-w-[14rem] px-2 text-center font-bold first-letter:uppercase"
+          aria-live="polite"
+        >
+          {{ titulo() }}
+        </p>
+        <button
+          class="boton-secundario flex min-h-tactil min-w-tactil items-center justify-center px-0"
+          type="button"
+          [attr.aria-label]="vista() === 'semana' ? 'Semana siguiente' : 'Mes siguiente'"
+          (click)="mover(1)"
+        >
+          ›
+        </button>
+      </div>
+      <button class="boton-secundario min-h-tactil" type="button" (click)="irAHoy()">Hoy</button>
+
+      <div class="ml-auto flex" role="group" aria-label="Vista de la agenda">
+        <button
+          class="min-h-tactil border border-ink px-2 font-bold"
+          [class.bg-ink]="vista() === 'semana'"
+          [class.text-white]="vista() === 'semana'"
+          type="button"
+          [attr.aria-pressed]="vista() === 'semana'"
+          (click)="verVista('semana')"
+        >
+          Semana
+        </button>
+        <button
+          class="min-h-tactil border border-l-0 border-ink px-2 font-bold"
+          [class.bg-ink]="vista() === 'mes'"
+          [class.text-white]="vista() === 'mes'"
+          type="button"
+          [attr.aria-pressed]="vista() === 'mes'"
+          (click)="verVista('mes')"
+        >
+          Mes
+        </button>
+      </div>
+
+      <label class="flex min-h-tactil items-center gap-1">
+        <input
+          class="h-[1.125rem] w-[1.125rem] accent-ink"
+          type="checkbox"
+          [checked]="soloMias()"
+          (change)="alternarMias()"
+        />
+        Solo mis órdenes
+      </label>
+    </div>
+
+    @if (hayError()) {
+      <div class="m-2 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+        <p class="font-semibold">{{ mensajeDeError() }}</p>
+      </div>
+    }
+
+    <!-- La cabecera de dias solo tiene sentido con siete columnas: en un telefono cada dia dice el suyo. -->
+    <div
+      class="hidden grid-cols-7 border-b border-neutral-300 bg-neutral-100 md:grid"
+      aria-hidden="true"
+    >
+      @for (dia of cabecera; track dia) {
+        <div class="px-1.5 py-1 text-xs font-semibold tracking-[0.08em] text-neutral-700 uppercase">
+          {{ dia }}
+        </div>
+      }
+    </div>
+
+    <ol class="grid list-none grid-cols-1 md:grid-cols-7" [attr.aria-busy]="ordenes.isPending()">
+      @for (celda of celdas(); track celda.iso) {
+        <!--
+          En un telefono los dias sin ordenes se esconden: siete casillas vacias en columna son una
+          pantalla de nada. Hoy se ve siempre, para saber donde se esta.
+        -->
+        <li
+          class="flex min-w-0 flex-col gap-1 border-b border-neutral-200 p-1 md:border-r"
+          [ngClass]="{
+            'md:min-h-[22rem]': vista() === 'semana',
+            'md:min-h-[7rem]': vista() === 'mes',
+            'max-md:hidden': !celda.ordenes.length && !celda.esHoy,
+          }"
+          [class.bg-neutral-100]="celda.finDeSemana"
+          [attr.aria-label]="celda.nombre"
+          [attr.data-dia]="celda.iso"
+        >
+          <span class="flex items-center gap-1">
+            <span
+              class="px-0.5 tabular-nums"
+              [class.bg-accent-700]="celda.esHoy"
+              [class.text-white]="celda.esHoy"
+              [class.font-extrabold]="celda.esHoy"
+              [class.text-neutral-500]="celda.fueraDelMes && !celda.esHoy"
+              [class.text-lg]="vista() === 'semana'"
+            >
+              {{ celda.numero }}
+            </span>
+            <span class="text-sm text-neutral-700 md:hidden">{{ celda.nombre }}</span>
+            @if (celda.esHoy) {
+              <span class="sr-only">(hoy)</span>
+            }
+          </span>
+
+          @for (bloque of celda.ordenes; track bloque.id) {
+            <button
+              class="flex min-h-tactil w-full min-w-0 flex-col border px-1 py-0.5 text-left text-sm leading-tight [overflow-wrap:anywhere]"
+              [class.bg-ink]="bloque.estado === 'EN_EJECUCION'"
+              [class.text-white]="bloque.estado === 'EN_EJECUCION'"
+              [class.border-ink]="bloque.estado === 'EN_EJECUCION' || bloque.estado === 'CREADA'"
+              [class.bg-white]="bloque.estado === 'CREADA'"
+              [class.border-dashed]="bloque.estado === 'EJECUTADA' || bloque.estado === 'ANULADA'"
+              [class.border-neutral-500]="
+                bloque.estado === 'EJECUTADA' || bloque.estado === 'ANULADA'
+              "
+              [class.bg-neutral-100]="bloque.estado === 'EJECUTADA' || bloque.estado === 'ANULADA'"
+              [class.text-neutral-700]="
+                bloque.estado === 'EJECUTADA' || bloque.estado === 'ANULADA'
+              "
+              [class.line-through]="bloque.estado === 'ANULADA'"
+              [class.outline-2]="elegida() === bloque.id"
+              [class.outline-offset-2]="elegida() === bloque.id"
+              [class.outline-accent]="elegida() === bloque.id"
+              type="button"
+              [attr.aria-pressed]="elegida() === bloque.id"
+              [attr.aria-label]="bloque.cliente + ', ' + bloque.sede + '. ' + bloque.etiquetaEstado"
+              (click)="elegir(bloque.id)"
+            >
+              <span class="font-bold">{{ bloque.cliente }}</span>
+              @if (vista() === 'semana') {
+                <span class="opacity-90"
+                  >{{ bloque.sede }} · {{ bloque.servicio }} · {{ bloque.equipos }}</span
+                >
+              }
+            </button>
+          }
+        </li>
+      }
+    </ol>
+
+    <p class="flex flex-wrap gap-x-3 gap-y-1 px-2 py-1.5 text-sm text-neutral-700 md:px-3">
+      <span class="inline-flex items-center gap-1"
+        ><span class="inline-block h-[0.875rem] w-[0.875rem] bg-ink"></span>En ejecución</span
+      >
+      <span class="inline-flex items-center gap-1"
+        ><span class="inline-block h-[0.875rem] w-[0.875rem] border border-ink bg-white"></span
+        >Creada</span
+      >
+      <span class="inline-flex items-center gap-1"
+        ><span
+          class="inline-block h-[0.875rem] w-[0.875rem] border border-dashed border-neutral-500 bg-neutral-100"
+        ></span
+        >Ejecutada</span
+      >
+      <span class="line-through">Anulada</span>
+    </p>
+  </section>
+
+  <aside
+    class="superficie min-w-0 flex-[1_1_18rem]"
+    aria-labelledby="orden-elegida"
+    aria-live="polite"
+  >
+    @if (seleccion(); as orden) {
+      <p class="text-xs font-bold tracking-[0.14em] text-accent-700 uppercase">
+        {{ orden.fechaLarga }}
+      </p>
+      <h2 id="orden-elegida" class="titulo-seccion mt-0.5">{{ orden.cliente }}</h2>
+      <p class="text-neutral-700">{{ orden.sede }}</p>
+
+      <dl class="mt-2 grid grid-cols-2 gap-2">
+        <div>
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Servicio</dt>
+          <dd class="font-semibold">{{ orden.servicio }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Periodicidad</dt>
+          <dd class="font-semibold">{{ orden.periodicidad }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Estado</dt>
+          <dd class="font-extrabold">{{ orden.etiquetaEstado }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Equipos</dt>
+          <dd class="font-semibold">{{ orden.equipos }}</dd>
+        </div>
+        <div class="col-span-2">
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Ingeniero</dt>
+          <dd class="font-semibold">
+            {{ orden.mia ? 'Usted' : orden.asignada ? 'Otro ingeniero' : 'Sin asignar' }}
+          </dd>
+        </div>
+      </dl>
+
+      <a
+        class="boton-primario mt-2 flex min-h-tactil items-center justify-center bg-ink hover:bg-brand-black"
+        [routerLink]="['/ordenes', orden.id]"
+      >
+        Abrir la orden
+      </a>
+    } @else {
+      <h2 id="orden-elegida" class="titulo-seccion">Orden elegida</h2>
+      <p class="mt-1 text-neutral-700">
+        @if (ordenes.isPending()) {
+          Consultando las órdenes del periodo…
+        } @else if (!ordenes.data()?.length) {
+          No hay órdenes en este periodo.
+        } @else {
+          Elija una orden en la agenda para ver su resumen.
+        }
+      </p>
+    }
+  </aside>
+</div>

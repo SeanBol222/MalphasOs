@@ -78,6 +78,7 @@ export const PERSONAS = [
 export function orden(
   cambios: Partial<{
     id: string;
+    fechaMantenimiento: string;
     estadoEjecucion: string;
     estadoActivo: boolean;
     idIngeniero: string | undefined;

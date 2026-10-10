@@ -4,6 +4,7 @@ import { KeycloakFalso } from '../../../testing/keycloak-falso';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { proveerSesionFalsa } from '../../../testing/keycloak-falso';
+import { proveerApiVacio } from '../../../testing/entorno';
 import { NAVEGACION } from '../navegacion';
 import { routes } from '../../app.routes';
 import { Shell } from './shell';
@@ -32,7 +33,12 @@ describe('Armazón', () => {
     autoridades: readonly string[] = LECTURA_COMPLETA,
   ): Promise<HTMLElement> {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), ...proveerSesionFalsa({ autoridades })],
+      providers: [
+        provideRouter(routes),
+        ...proveerSesionFalsa({ autoridades }),
+        // El inicio pide la agenda desde el 2026-10-10: aqui no importa la respuesta, solo que llegue.
+        ...proveerApiVacio(),
+      ],
     });
     armazon = await RouterTestingHarness.create();
     await armazon.navigateByUrl(destino);

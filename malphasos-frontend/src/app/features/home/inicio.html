@@ -1,5 +1,14 @@
-<h1 class="titulo-pagina">Gestión de mantenimiento</h1>
-
-<p class="mt-2 text-neutral-800">
-  Órdenes de trabajo, clientes y equipos de BolívarBioingeniería.
+<p class="text-xs font-bold tracking-[0.14em] text-accent-700 uppercase first-letter:uppercase">
+  {{ fecha }}
 </p>
+<h1 class="titulo-pagina mt-0.5">{{ saludo() }}</h1>
+
+@if (veOrdenes()) {
+  <div class="mt-3">
+    <app-agenda />
+  </div>
+} @else {
+  <p class="mt-2 text-neutral-800">
+    Órdenes de trabajo, clientes y equipos de Bolívar Bioingeniería.
+  </p>
+}

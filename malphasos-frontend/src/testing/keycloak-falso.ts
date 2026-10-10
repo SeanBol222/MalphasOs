@@ -7,6 +7,7 @@ export interface SesionFalsa {
   readonly autenticado?: boolean;
   readonly autoridades?: readonly string[];
   readonly nombre?: string;
+  readonly identificador?: string;
 }
 
 /** Lo que las pruebas pueden mirar del Keycloak de mentira. */
@@ -31,6 +32,7 @@ export function proveerSesionFalsa(sesion: SesionFalsa = {}): Provider[] {
     authenticated: autenticado,
     tokenParsed: autenticado
       ? {
+          sub: sesion.identificador ?? 'p-sesion',
           name: sesion.nombre ?? 'Sean Bolívar',
           preferred_username: 'sbolivar',
           resource_access: { [CLIENT_API]: { roles: [...(sesion.autoridades ?? [])] } },
