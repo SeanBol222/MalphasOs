@@ -1736,3 +1736,17 @@ mutación sobrevivió en el adaptador y destapó una guarda inútil con un comen
 1045 pruebas del backend y 481 del frontend, medidas sobre esos commits.
 
 **Tocadas**: [[dominio-orden-trabajo]], [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]].
+
+## [2026-10-10] ingest | el reporte rediseñado, y los protocolos decididos
+
+Cuarta tanda del rediseño (`62b3663b`): la ficha del reporte en cuatro bloques numerados con un panel
+de lo que falta para cerrar. Dos hallazgos: un formulario dentro de otro no es HTML —la tabla de
+verificación tiene el suyo—, y una prueba del panel sobrevivió dos veces a su mutación —«50 %» contiene
+«0 %»—. 486 pruebas del frontend.
+
+Y los protocolos quedaron decididos, con un cambio de modelo que propuso el usuario: **un protocolo es
+una actividad reutilizable** que se asigna, en orden y con indicación opcional, a los tipos de equipo;
+solo preventivo; el reporte copia los pasos y «Procedimientos» pasa a «Trabajo adicional». El diseño en
+cuatro tandas está en [[hoja-de-ruta-producto]].
+
+**Tocadas**: [[hoja-de-ruta-producto]].
