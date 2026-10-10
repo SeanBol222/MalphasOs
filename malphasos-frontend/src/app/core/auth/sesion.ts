@@ -23,6 +23,13 @@ export class Sesion {
   /** Nombre para mostrar. Cae al usuario si el token no trae nombre completo. */
   readonly nombre = computed(() => this.estado().nombre);
 
+  /**
+   * El identificador de quien esta dentro, que es tambien el de su fila en {@code persona}: el backend
+   * da a cada persona el identificador que le asigna Keycloak. Es lo que permite pedir «mis ordenes»
+   * sin una consulta previa. Vacio sin sesion.
+   */
+  readonly identificador = computed(() => this.estado().identificador);
+
   constructor() {
     // Cada evento de Keycloak -listo, token renovado, sesion terminada- puede
     // cambiar quien esta dentro. Releer es mas barato que mantener un espejo.
@@ -59,6 +66,7 @@ export class Sesion {
       autenticado: this.keycloak.authenticated ?? false,
       autoridades: autoridadesDe(token),
       nombre: token?.['name'] ?? token?.['preferred_username'] ?? '',
+      identificador: (token?.['sub'] as string | undefined) ?? '',
     };
   }
 }
