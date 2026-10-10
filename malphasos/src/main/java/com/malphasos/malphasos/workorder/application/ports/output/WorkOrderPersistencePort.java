@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.workorder.application.ports.output;
 
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Collection;
 import java.util.Optional;
@@ -37,6 +38,15 @@ public interface WorkOrderPersistencePort {
 
     /** El historial de un equipo: en qué órdenes se le ha intervenido. */
     List<WorkOrder> findByEquipment(UUID idEquipoCliente);
+
+    /**
+     * Las órdenes con fecha de mantenimiento entre dos días, ambos incluidos, ordenadas por fecha.
+     *
+     * <p>Los dos filtros opcionales van como nulos y no como cuatro métodos: {@code idIngeniero} nulo
+     * es «de cualquiera», e {@code idsClientes} nulo es «sin acotar» —una lista vacía, en cambio, es
+     * «de ningún cliente» y devuelve nada, que no es lo mismo—.
+     */
+    List<WorkOrder> findInPeriod(LocalDate desde, LocalDate hasta, UUID idIngeniero, Collection<UUID> idsClientes);
 
     WorkOrder save(WorkOrder orden);
 }

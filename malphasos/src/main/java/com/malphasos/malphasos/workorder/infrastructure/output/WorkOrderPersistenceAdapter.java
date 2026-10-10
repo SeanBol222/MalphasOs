@@ -5,6 +5,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.infrastructure.output.entities.WorkOrderEntity;
 import com.malphasos.malphasos.workorder.infrastructure.output.mapper.WorkOrderPersistenceMapper;
 import com.malphasos.malphasos.workorder.infrastructure.output.repository.WorkOrderRepository;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Collection;
 import java.util.Optional;
@@ -82,6 +83,32 @@ public class WorkOrderPersistenceAdapter implements WorkOrderPersistencePort {
     @Transactional(readOnly = true)
     public List<WorkOrder> findByEquipment(UUID idEquipoCliente) {
         return mapper.toDomainList(workOrderRepository.findByEquipment(idEquipoCliente));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrder> findInPeriod(
+            LocalDate desde, LocalDate hasta, UUID idIngeniero, Collection<UUID> idsClientes) {
+
+        // Una lista vacía de clientes no necesita guarda: Hibernate traduce el IN vacío a «ninguna
+        // fila», y la prueba de la agenda lo fija. Hubo una guarda aquí y una mutación demostró que no
+        // cambiaba nada.
+        List<WorkOrderEntity> filas;
+        if (idIngeniero == null && idsClientes == null) {
+            filas = workOrderRepository.findByFechaMantenimientoBetweenOrderByFechaMantenimientoAsc(desde, hasta);
+        } else if (idsClientes == null) {
+            filas = workOrderRepository.findByFechaMantenimientoBetweenAndIdIngenieroOrderByFechaMantenimientoAsc(
+                    desde, hasta, idIngeniero);
+        } else if (idIngeniero == null) {
+            filas = workOrderRepository.findByFechaMantenimientoBetweenAndIdClienteInOrderByFechaMantenimientoAsc(
+                    desde, hasta, idsClientes);
+        } else {
+            filas = workOrderRepository
+                    .findByFechaMantenimientoBetweenAndIdIngenieroAndIdClienteInOrderByFechaMantenimientoAsc(
+                            desde, hasta, idIngeniero, idsClientes);
+        }
+
+        return mapper.toDomainList(filas);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.workorder.infrastructure.output.repository;
 
 import com.malphasos.malphasos.workorder.infrastructure.output.entities.WorkOrderEntity;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Collection;
 import java.util.UUID;
@@ -18,6 +19,21 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrderEntity, UUID
     List<WorkOrderEntity> findByIdClienteIn(Collection<UUID> idsClientes);
 
     List<WorkOrderEntity> findByIdIngenieroAndIdClienteIn(UUID idIngeniero, Collection<UUID> idsClientes);
+
+    // La agenda: cuatro derivaciones y no una consulta con «:x is null», porque un parámetro UUID nulo
+    // no le dice a PostgreSQL de qué tipo es y la consulta falla al prepararse.
+
+    List<WorkOrderEntity> findByFechaMantenimientoBetweenOrderByFechaMantenimientoAsc(
+            LocalDate desde, LocalDate hasta);
+
+    List<WorkOrderEntity> findByFechaMantenimientoBetweenAndIdIngenieroOrderByFechaMantenimientoAsc(
+            LocalDate desde, LocalDate hasta, UUID idIngeniero);
+
+    List<WorkOrderEntity> findByFechaMantenimientoBetweenAndIdClienteInOrderByFechaMantenimientoAsc(
+            LocalDate desde, LocalDate hasta, Collection<UUID> idsClientes);
+
+    List<WorkOrderEntity> findByFechaMantenimientoBetweenAndIdIngenieroAndIdClienteInOrderByFechaMantenimientoAsc(
+            LocalDate desde, LocalDate hasta, UUID idIngeniero, Collection<UUID> idsClientes);
 
     /**
      * Las órdenes que incluyen un equipo, contando solo las filas del puente que siguen activas.

@@ -20,6 +20,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -411,6 +412,89 @@ class WorkOrderPersistenceAdapterTest {
             adapter.save(orden);
 
             assertThat(adapter.findById(orden.getId()).orElseThrow().isEstadoActivo()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("La agenda: las ordenes de un periodo")
+    class Agenda {
+
+        private WorkOrder ordenDel(UUID cliente, UUID sede, LocalDate fecha) {
+            WorkOrder orden = WorkOrder.schedule(cliente, sede, fecha, Periodicity.TRIMESTRAL, ServiceType.PREVENTIVO);
+            adapter.save(orden);
+
+            return orden;
+        }
+
+        @Test
+        @DisplayName("los dos extremos van incluidos, lo de fuera no entra, y sale ordenado por fecha")
+        void extremosIncluidosYOrdenadas() {
+            UUID cliente = unCliente();
+            UUID sede = unaSedeDe(cliente);
+
+            WorkOrder ultimo = ordenDel(cliente, sede, LocalDate.of(2026, 10, 31));
+            WorkOrder primero = ordenDel(cliente, sede, LocalDate.of(2026, 10, 1));
+            WorkOrder enMedio = ordenDel(cliente, sede, LocalDate.of(2026, 10, 15));
+            ordenDel(cliente, sede, LocalDate.of(2026, 9, 30));
+            ordenDel(cliente, sede, LocalDate.of(2026, 11, 1));
+
+            // Se guardaron desordenadas a proposito: el orden tiene que venir de la consulta.
+            assertThat(adapter.findInPeriod(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), null, null))
+                    .extracting(WorkOrder::getId)
+                    .containsExactly(primero.getId(), enMedio.getId(), ultimo.getId());
+        }
+
+        @Test
+        @DisplayName("con ingeniero, solo las suyas")
+        void soloLasDelIngeniero() {
+            UUID cliente = unCliente();
+            UUID sede = unaSedeDe(cliente);
+            UUID ingeniero = unIngeniero();
+
+            WorkOrder suya = ordenDel(cliente, sede, LocalDate.of(2026, 10, 5));
+            suya.assignTo(ingeniero);
+            adapter.save(suya);
+            ordenDel(cliente, sede, LocalDate.of(2026, 10, 6));
+
+            assertThat(adapter.findInPeriod(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), ingeniero, null))
+                    .extracting(WorkOrder::getId)
+                    .containsExactly(suya.getId());
+        }
+
+        @Test
+        @DisplayName("acotada a unos clientes, solo las de esos; con la lista vacia, ninguna")
+        void acotadaAClientes() {
+            UUID mio = unCliente();
+            UUID ajeno = unCliente();
+            WorkOrder propia = ordenDel(mio, unaSedeDe(mio), LocalDate.of(2026, 10, 5));
+            ordenDel(ajeno, unaSedeDe(ajeno), LocalDate.of(2026, 10, 5));
+
+            LocalDate desde = LocalDate.of(2026, 10, 1);
+            LocalDate hasta = LocalDate.of(2026, 10, 31);
+
+            assertThat(adapter.findInPeriod(desde, hasta, null, Set.of(mio)))
+                    .extracting(WorkOrder::getId).containsExactly(propia.getId());
+            assertThat(adapter.findInPeriod(desde, hasta, null, Set.of())).isEmpty();
+        }
+
+        @Test
+        @DisplayName("ingeniero y clientes a la vez: las del ingeniero en esos clientes")
+        void ingenieroYClientes() {
+            UUID mio = unCliente();
+            UUID ajeno = unCliente();
+            UUID ingeniero = unIngeniero();
+
+            WorkOrder enMio = ordenDel(mio, unaSedeDe(mio), LocalDate.of(2026, 10, 5));
+            enMio.assignTo(ingeniero);
+            adapter.save(enMio);
+            WorkOrder enAjeno = ordenDel(ajeno, unaSedeDe(ajeno), LocalDate.of(2026, 10, 5));
+            enAjeno.assignTo(ingeniero);
+            adapter.save(enAjeno);
+
+            assertThat(adapter.findInPeriod(
+                            LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31), ingeniero, Set.of(mio)))
+                    .extracting(WorkOrder::getId)
+                    .containsExactly(enMio.getId());
         }
     }
 }

@@ -24,6 +24,7 @@ import com.malphasos.malphasos.workorder.application.services.workOrder.commands
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.StartWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -103,6 +104,25 @@ public class WorkOrderService implements WorkOrderServicePort {
         headquarterServicePort.findById(idSede, alcance);
 
         return workOrderPersistencePort.findByHeadquarter(idSede);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrder> findInPeriod(LocalDate desde, LocalDate hasta, UUID idIngeniero, ReadScope alcance) {
+        if (desde == null || hasta == null) {
+            throw new IllegalArgumentException("Un periodo necesita su primer y su último día");
+        }
+        if (hasta.isBefore(desde)) {
+            throw new IllegalArgumentException(
+                    "El periodo termina el " + hasta + ", antes de empezar el " + desde);
+        }
+        if (idIngeniero != null) {
+            personCommunicationPort.findById(idIngeniero);
+        }
+
+        // Igual que findByEngineer: el periodo no es de ningún cliente, así que se acota el resultado.
+        return workOrderPersistencePort.findInPeriod(
+                desde, hasta, idIngeniero, alcance.coversEverything() ? null : alcance.visibleClients());
     }
 
     @Override

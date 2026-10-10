@@ -179,7 +179,7 @@
   "paths" : {
     "/v1/api/work-orders" : {
       "get" : {
-        "description" : "Los parametros filtran por cliente, sede, ingeniero o equipo. Solo se admite uno a la vez.",
+        "description" : "Los parametros filtran por cliente, sede, ingeniero o equipo, y solo se admite uno a la vez. La excepcion es la agenda: desde y hasta, que van juntos, devuelven las ordenes de ese periodo ordenadas por fecha y se combinan con el ingeniero.",
         "operationId" : "getAll",
         "parameters" : [ {
           "description" : "Filtra por cliente",
@@ -215,6 +215,24 @@
           "required" : false,
           "schema" : {
             "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Primer dia del periodo, incluido. Va con hasta",
+          "in" : "query",
+          "name" : "desde",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Ultimo dia del periodo, incluido. Va con desde",
+          "in" : "query",
+          "name" : "hasta",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
             "type" : "string"
           }
         } ],

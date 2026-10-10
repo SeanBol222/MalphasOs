@@ -181,4 +181,70 @@ class WorkOrderOwnershipFilteringTest {
         assertThat(service.findByEngineer(INGENIERO, ReadScope.unrestricted())).hasSize(2);
         verify(workOrderPersistencePort, never()).findByEngineerAndClientIn(any(), any());
     }
+
+    // -------------------------------------------------------------------------------------------
+    // La agenda (2026-10-10): un periodo, y opcionalmente un ingeniero
+    // -------------------------------------------------------------------------------------------
+
+    private static final LocalDate DESDE = LocalDate.of(2026, 10, 1);
+    private static final LocalDate HASTA = LocalDate.of(2026, 10, 31);
+
+    @Test
+    @DisplayName("el periodo se acota al resultado: las ordenes de MIS clientes en esas fechas")
+    void periodoAcotado() {
+        when(workOrderPersistencePort.findInPeriod(DESDE, HASTA, null, Set.of(MIO)))
+                .thenReturn(List.of(unaOrden(MIO)));
+
+        assertThat(service.findInPeriod(DESDE, HASTA, null, SOLO_MIO)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("sin restriccion el periodo no se acota: los clientes van nulos y no vacios")
+    void periodoLibre() {
+        // Nulo es «sin acotar» y vacio es «de ningun cliente»: confundirlos dejaria la agenda en
+        // blanco para el administrador, o abierta para un representante.
+        when(workOrderPersistencePort.findInPeriod(DESDE, HASTA, null, null))
+                .thenReturn(List.of(unaOrden(MIO), unaOrden(AJENO)));
+
+        assertThat(service.findInPeriod(DESDE, HASTA, null, ReadScope.unrestricted())).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("solo mis ordenes: el ingeniero se comprueba y viaja hasta el almacen")
+    void periodoDeUnIngeniero() {
+        when(workOrderPersistencePort.findInPeriod(DESDE, HASTA, INGENIERO, null))
+                .thenReturn(List.of(unaOrden(MIO)));
+
+        assertThat(service.findInPeriod(DESDE, HASTA, INGENIERO, ReadScope.unrestricted())).hasSize(1);
+        verify(personCommunicationPort).findById(INGENIERO);
+    }
+
+    @Test
+    @DisplayName("un periodo que termina antes de empezar se rechaza sin consultar")
+    void periodoAlReves() {
+        assertThatThrownBy(() -> service.findInPeriod(HASTA, DESDE, null, ReadScope.unrestricted()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("antes de empezar");
+
+        verify(workOrderPersistencePort, never()).findInPeriod(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("un periodo sin uno de sus extremos se rechaza")
+    void periodoIncompleto() {
+        assertThatThrownBy(() -> service.findInPeriod(DESDE, null, null, ReadScope.unrestricted()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.findInPeriod(null, HASTA, null, ReadScope.unrestricted()))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(workOrderPersistencePort, never()).findInPeriod(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("un periodo de un solo dia es valido: los dos extremos van incluidos")
+    void periodoDeUnDia() {
+        when(workOrderPersistencePort.findInPeriod(DESDE, DESDE, null, null)).thenReturn(List.of());
+
+        assertThat(service.findInPeriod(DESDE, DESDE, null, ReadScope.unrestricted())).isEmpty();
+    }
 }
