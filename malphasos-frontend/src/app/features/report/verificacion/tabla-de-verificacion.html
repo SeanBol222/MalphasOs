@@ -1,5 +1,15 @@
 <section class="superficie mt-3">
-  <h2 class="titulo-seccion">Verificación metrológica</h2>
+  <!-- Es el bloque 3 de la ficha del reporte: lo que se midio, entre lo que se hizo y como queda. -->
+  <h2
+    class="titulo-seccion -mx-3 -mt-3 mb-2 flex items-center gap-1.5 border-b border-neutral-300 px-3 py-2"
+  >
+    <span
+      class="flex h-[1.75rem] w-[1.75rem] items-center justify-center bg-ink text-sm text-white"
+      aria-hidden="true"
+      >3</span
+    >
+    Verificación metrológica
+  </h2>
 
   @if (cargando()) {
     <p class="text-neutral-700" role="status">Consultando cómo se verifica este equipo…</p>
@@ -44,7 +54,10 @@
 
           <table class="tabla mt-1 max-w-[560px]">
             <caption class="text-left text-neutral-700">
-              Los valores se expresan en {{ grupo.unidad }}.
+              Los valores se expresan en
+              {{
+                grupo.unidad
+              }}.
             </caption>
             <thead>
               <tr class="border-b-2 border-ink text-left">
