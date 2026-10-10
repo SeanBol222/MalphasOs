@@ -17,7 +17,7 @@
   @if (reporte.data(); as datos) {
     <div class="flex flex-wrap items-start justify-between gap-2">
       <div>
-        <h1 class="text-2xl font-bold">Reporte de {{ equipo() }}</h1>
+        <h1 class="titulo-pagina">Reporte de {{ equipo() }}</h1>
         <p class="text-neutral-700" [class.font-semibold]="datos.estado === 'FINALIZADO'">
           {{ estado() }}
           @if (datos.finalizado) {
@@ -36,7 +36,7 @@
           @if (datos.estado === 'BORRADOR') {
             @if (confirmandoCierre()) {
               <button
-                class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+                class="boton-primario min-h-tactil"
                 type="button"
                 [disabled]="cierre.isPending()"
                 (click)="cerrar()"
@@ -44,7 +44,7 @@
                 Confirmar cierre
               </button>
               <button
-                class="min-h-tactil border-2 border-ink px-3 font-semibold"
+                class="boton-secundario min-h-tactil"
                 type="button"
                 (click)="confirmandoCierre.set(false)"
               >
@@ -52,7 +52,7 @@
               </button>
             } @else {
               <button
-                class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+                class="boton-primario min-h-tactil"
                 type="button"
                 [disabled]="!cerrable()"
                 (click)="confirmandoCierre.set(true)"
@@ -64,7 +64,7 @@
 
           @if (confirmandoRetiro()) {
             <button
-              class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+              class="boton-primario min-h-tactil"
               type="button"
               [disabled]="retiro.isPending()"
               (click)="retirar()"
@@ -72,7 +72,7 @@
               Confirmar retiro
             </button>
             <button
-              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              class="boton-secundario min-h-tactil"
               type="button"
               (click)="confirmandoRetiro.set(false)"
             >
@@ -80,7 +80,7 @@
             </button>
           } @else {
             <button
-              class="min-h-tactil border-2 border-ink px-3 font-semibold"
+              class="boton-secundario min-h-tactil"
               type="button"
               (click)="confirmandoRetiro.set(true)"
             >
@@ -122,8 +122,8 @@
       no hay nada que editar. Y no se copian en el reporte, se leen de la orden, de modo que no pueden
       discrepar de ella.
     -->
-    <section class="mt-3">
-      <h2 class="text-xl font-bold">Datos del servicio</h2>
+    <section class="superficie mt-3">
+      <h2 class="titulo-seccion">Datos del servicio</h2>
       <p class="text-neutral-700">
         Vienen de la orden de trabajo. No se escriben aquí: para cambiarlos se cambia la orden.
       </p>
@@ -162,14 +162,14 @@
       </dl>
     </section>
 
-    <form class="mt-3 max-w-[640px]" [formGroup]="formulario" (ngSubmit)="guardar()">
+    <form class="superficie mt-3 max-w-[720px]" [formGroup]="formulario" (ngSubmit)="guardar()">
       <p class="text-neutral-700">
         Ningún campo es obligatorio para guardar: el reporte se llena mientras se trabaja.
       </p>
 
       <label class="mt-2 block font-semibold" for="fallaReportada">Falla reportada</label>
       <textarea
-        class="min-h-tactil w-full border-2 border-ink p-1 disabled:bg-neutral-200"
+        class="campo min-h-tactil w-full p-1"
         id="fallaReportada"
         rows="2"
         maxlength="500"
@@ -178,7 +178,7 @@
 
       <label class="mt-2 block font-semibold" for="diagnostico">Diagnóstico</label>
       <textarea
-        class="min-h-tactil w-full border-2 border-ink p-1 disabled:bg-neutral-200"
+        class="campo min-h-tactil w-full p-1"
         id="diagnostico"
         rows="2"
         maxlength="500"
@@ -189,7 +189,7 @@
         Procedimientos <span aria-hidden="true">*</span>
       </label>
       <textarea
-        class="min-h-tactil w-full border-2 border-ink p-1 disabled:bg-neutral-200"
+        class="campo min-h-tactil w-full p-1"
         id="procedimientos"
         rows="3"
         maxlength="500"
@@ -198,7 +198,7 @@
 
       <label class="mt-2 block font-semibold" for="observaciones">Observaciones</label>
       <textarea
-        class="min-h-tactil w-full border-2 border-ink p-1 disabled:bg-neutral-200"
+        class="campo min-h-tactil w-full p-1"
         id="observaciones"
         rows="2"
         maxlength="500"
@@ -209,7 +209,7 @@
         Resultado <span aria-hidden="true">*</span>
       </label>
       <select
-        class="min-h-tactil w-full border-2 border-ink px-1 disabled:bg-neutral-200"
+        class="campo min-h-tactil w-full"
         id="resultado"
         formControlName="resultado"
       >
@@ -233,7 +233,7 @@
       @if (editable()) {
         <div class="mt-2 flex flex-wrap gap-2">
           <button
-            class="min-h-tactil bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+            class="boton-primario min-h-tactil"
             type="submit"
             [disabled]="guardado.isPending()"
           >

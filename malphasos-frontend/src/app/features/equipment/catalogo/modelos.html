@@ -1,5 +1,5 @@
 <section>
-  <h2 class="text-xl font-bold">Modelos</h2>
+  <h2 class="titulo-seccion">Modelos</h2>
   <p class="text-neutral-700">
     Un equipo del catálogo más su fabricante. <strong>Es lo único que se puede instalar</strong>: sin
     modelos, el alta de un equipo aparece sin opciones.
@@ -60,7 +60,7 @@
         <label class="block font-semibold" for="equipoDelModelo">Equipo del catálogo <span class="text-accent-700" aria-hidden="true">*</span></label>
         <select
           id="equipoDelModelo"
-          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          class="campo mt-1 min-h-tactil w-full"
           formControlName="idEquipo"
       aria-required="true"
         >
@@ -74,7 +74,7 @@
         <label class="block font-semibold" for="fabricanteDelModelo">Fabricante <span class="text-accent-700" aria-hidden="true">*</span></label>
         <select
           id="fabricanteDelModelo"
-          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          class="campo mt-1 min-h-tactil w-full"
           formControlName="idFabricante"
       aria-required="true"
         >
@@ -90,7 +90,7 @@
         </label>
         <input
           id="nombreDelModelo"
-          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          class="campo mt-1 min-h-tactil w-full"
           formControlName="nombre"
           maxlength="50"
           aria-required="true"
@@ -102,13 +102,13 @@
         <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
         <input
           id="invimaDelModelo"
-          class="mt-1 min-h-tactil w-full border border-neutral-400 bg-paper px-1"
+          class="campo mt-1 min-h-tactil w-full"
           formControlName="invima"
           maxlength="50"
         />
       </div>
       <button
-        class="min-h-tactil self-end bg-accent-700 px-3 font-semibold text-paper disabled:bg-neutral-500"
+        class="boton-primario min-h-tactil self-end"
         type="submit"
         [disabled]="alta.isPending()"
       >

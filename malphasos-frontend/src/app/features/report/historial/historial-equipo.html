@@ -1,4 +1,4 @@
-<h1 class="text-2xl font-bold">Historial de {{ serie() }}</h1>
+<h1 class="titulo-pagina">Historial de {{ serie() }}</h1>
 <p class="text-neutral-700">
   Los reportes de servicio de este equipo, del más reciente al más antiguo.
 </p>
@@ -15,34 +15,34 @@
     interviene.
   </p>
 } @else {
-  <table class="mt-3 w-full border-collapse text-left">
+  <table class="tabla mt-3">
     <caption class="sr-only">Reportes de servicio de {{ serie() }}</caption>
     <thead>
-      <tr class="border-b border-neutral-300">
-        <th scope="col" class="py-1 pr-2 font-semibold">Fecha</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Servicio</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Resultado</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Lecturas</th>
-        <th scope="col" class="py-1 pr-2 font-semibold">Estado</th>
-        <th scope="col" class="py-1 font-semibold">Ver</th>
+      <tr>
+        <th scope="col" class="font-semibold">Fecha</th>
+        <th scope="col" class="font-semibold">Servicio</th>
+        <th scope="col" class="font-semibold">Resultado</th>
+        <th scope="col" class="font-semibold">Lecturas</th>
+        <th scope="col" class="font-semibold">Estado</th>
+        <th scope="col" class="font-semibold">Ver</th>
       </tr>
     </thead>
     <tbody>
       @for (fila of filas(); track fila.id) {
-        <tr class="border-b border-neutral-200">
-          <td class="py-1 pr-2">
+        <tr>
+          <td>
             {{ fila.fecha || 'Sin fecha' }}
             @if (!fila.cerrado) {
               <!-- La fecha de un borrador es la programada de su orden, no la del servicio. -->
               <span class="text-neutral-700">(programada)</span>
             }
           </td>
-          <td class="py-1 pr-2">{{ fila.servicio || '—' }}</td>
-          <td class="py-1 pr-2">{{ fila.resultado || '—' }}</td>
-          <td class="py-1 pr-2">{{ fila.lecturas || '—' }}</td>
+          <td>{{ fila.servicio || '—' }}</td>
+          <td>{{ fila.resultado || '—' }}</td>
+          <td>{{ fila.lecturas || '—' }}</td>
           <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
-          <td class="py-1 pr-2" [class.font-semibold]="fila.activo">{{ fila.estado }}</td>
-          <td class="py-1">
+          <td [class.font-semibold]="fila.activo">{{ fila.estado }}</td>
+          <td>
             <a class="font-semibold underline" [routerLink]="['/reportes', fila.id]">Reporte</a>
             @if (fila.idOrden) {
               ·
