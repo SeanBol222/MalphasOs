@@ -487,7 +487,11 @@ class EquipmentRestAdapterTest {
                 .contains("/v1/api/equipments")
                 .contains("/v1/api/models")
                 .contains("/v1/api/client-equipments")
-                .contains("/v1/api/magnitudes");
+                .contains("/v1/api/magnitudes")
+                // Los protocolos, del 2026-10-10. Al nacer, ninguna prueba se entero de sus dos
+                // controladores: esta lista no los nombraba.
+                .contains("/v1/api/protocols")
+                .contains("/v1/api/equipment-types/{id}/protocols");
     }
 
     @Test

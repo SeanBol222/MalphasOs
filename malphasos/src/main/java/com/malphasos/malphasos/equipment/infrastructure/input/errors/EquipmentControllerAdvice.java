@@ -2,6 +2,9 @@ package com.malphasos.malphasos.equipment.infrastructure.input.errors;
 
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.BrandNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ProtocolInUseException;
+import com.malphasos.malphasos.equipment.domain.exception.ProtocolNameTakenException;
+import com.malphasos.malphasos.equipment.domain.exception.ProtocolNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentNotFoundException;
@@ -12,6 +15,8 @@ import com.malphasos.malphasos.equipment.domain.exception.MeasurementUnitNotFoun
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeException;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.BrandRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.ProtocolRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ClientEquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeRestAdapter;
@@ -41,7 +46,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             EquipmentRestAdapter.class,
             ModelRestAdapter.class,
             ClientEquipmentRestAdapter.class,
-            MetrologyCatalogRestAdapter.class
+            MetrologyCatalogRestAdapter.class,
+            ProtocolRestAdapter.class,
+            EquipmentTypeProtocolRestAdapter.class
         })
 public class EquipmentControllerAdvice {
 
@@ -146,6 +153,29 @@ public class EquipmentControllerAdvice {
     public EquipmentErrorResponse handleCrossClientRelocation(CrossClientRelocationException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.CROSS_CLIENT_RELOCATION, List.of(ex.getMessage()));
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(ProtocolNotFoundException.class)
+    public EquipmentErrorResponse handleProtocol(ProtocolNotFoundException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.PROTOCOL_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** Otro protocolo vigente ya tiene ese nombre, sin contar mayúsculas ni tildes. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ProtocolNameTakenException.class)
+    public EquipmentErrorResponse handleProtocolNameTaken(ProtocolNameTakenException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.PROTOCOL_NAME_TAKEN, List.of(ex.getMessage()));
+    }
+
+    /** Un protocolo que se quiere retirar mientras lo usan tipos de equipo vigentes. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ProtocolInUseException.class)
+    public EquipmentErrorResponse handleProtocolInUse(ProtocolInUseException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.PROTOCOL_IN_USE, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */

@@ -35,7 +35,14 @@ public enum EquipmentErrorCatalog {
     // CROSS_CLIENT_RELOCATION, y por eso lleva codigo propio.
     MAGNITUDE_NOT_FOUND("ERR_EQUIPMENT_011", "Magnitude not found"),
     MEASUREMENT_UNIT_NOT_FOUND("ERR_EQUIPMENT_012", "Measurement unit not found"),
-    UNIT_OUTSIDE_MAGNITUDE("ERR_EQUIPMENT_013", "The unit does not belong to that magnitude");
+    UNIT_OUTSIDE_MAGNITUDE("ERR_EQUIPMENT_013", "The unit does not belong to that magnitude"),
+
+    // Los protocolos de mantenimiento, del 2026-10-10. El primero es "no existe"; los otros dos son
+    // conflictos con el estado actual —otro protocolo ya tiene ese nombre, o este lo usan tipos
+    // vigentes—, no datos mal formados, y por eso no entran por INVALID_EQUIPMENT_DATA.
+    PROTOCOL_NOT_FOUND("ERR_EQUIPMENT_014", "Protocol not found"),
+    PROTOCOL_NAME_TAKEN("ERR_EQUIPMENT_015", "A protocol with that name already exists"),
+    PROTOCOL_IN_USE("ERR_EQUIPMENT_016", "The protocol is assigned to active equipment types");
 
     private final String code;
     private final String message;

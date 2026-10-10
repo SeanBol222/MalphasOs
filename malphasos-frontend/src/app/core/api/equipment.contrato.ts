@@ -12,10 +12,10 @@ export interface paths {
             cookie?: never;
         };
         /** Listar todas las marcas */
-        get: operations["getAll_4"];
+        get: operations["getAll_5"];
         put?: never;
         /** Registrar una marca */
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -30,14 +30,14 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener una marca por su identificador */
-        get: operations["getById_4"];
+        get: operations["getById_5"];
         put?: never;
         post?: never;
         /**
          * Retirar una marca
          * @description No la borra: la deja inactiva.
          */
-        delete: operations["deactivate_3"];
+        delete: operations["deactivate_4"];
         options?: never;
         head?: never;
         /** Cambiar el nombre de una marca */
@@ -52,7 +52,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar todas las unidades */
-        get: operations["getAll_6"];
+        get: operations["getAll_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -69,7 +69,7 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener una unidad por su identificador */
-        get: operations["getById_3"];
+        get: operations["getById_4"];
         put?: never;
         post?: never;
         /**
@@ -83,7 +83,7 @@ export interface paths {
          * Corregir los datos de compra de una unidad
          * @description Los campos ausentes conservan su valor.
          */
-        patch: operations["update_2"];
+        patch: operations["update_3"];
         trace?: never;
     };
     "/v1/api/client-equipments/{id}/interventions": {
@@ -154,13 +154,13 @@ export interface paths {
             cookie?: never;
         };
         /** Listar todos los tipos de equipo */
-        get: operations["getAll_3"];
+        get: operations["getAll_4"];
         put?: never;
         /**
          * Registrar un tipo de equipo
          * @description Si se indica alguna verificacion, el tipo queda como verificable.
          */
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -175,21 +175,42 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener un tipo por su identificador */
-        get: operations["getById_2"];
+        get: operations["getById_3"];
         put?: never;
         post?: never;
         /**
          * Retirar un tipo de equipo
          * @description No lo borra: lo deja inactivo.
          */
-        delete: operations["deactivate_2"];
+        delete: operations["deactivate_3"];
         options?: never;
         head?: never;
         /**
          * Cambiar las caracteristicas de un tipo
          * @description Los campos ausentes conservan su valor. Las verificaciones tienen ruta propia.
          */
-        patch: operations["update_1"];
+        patch: operations["update_2"];
+        trace?: never;
+    };
+    "/v1/api/equipment-types/{id}/protocols": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar los protocolos de un tipo de equipo, en orden de prioridad */
+        get: operations["getAll_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Fijar los protocolos de un tipo de equipo
+         * @description La lista entera, en el orden de su prioridad: el primero es la prioridad 1. Vacia, los quita todos.
+         */
+        patch: operations["assign"];
         trace?: never;
     };
     "/v1/api/equipment-types/{id}/verifications": {
@@ -223,10 +244,10 @@ export interface paths {
          * Listar asociaciones
          * @description Con el parametro idMarca, solo las de esa marca.
          */
-        get: operations["getAll_2"];
+        get: operations["getAll_3"];
         put?: never;
         /** Registrar que una marca fabrica un tipo de equipo */
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -241,14 +262,14 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener una asociacion por su identificador */
-        get: operations["getById_5"];
+        get: operations["getById_6"];
         put?: never;
         post?: never;
         /**
          * Retirar una asociacion
          * @description No la borra: la deja inactiva.
          */
-        delete: operations["deactivate_4"];
+        delete: operations["deactivate_5"];
         options?: never;
         head?: never;
         patch?: never;
@@ -262,7 +283,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar las magnitudes que se pueden verificar */
-        get: operations["getAll_5"];
+        get: operations["getAll_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -299,10 +320,10 @@ export interface paths {
             cookie?: never;
         };
         /** Listar todos los fabricantes */
-        get: operations["getAll_1"];
+        get: operations["getAll_2"];
         put?: never;
         /** Registrar un fabricante */
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -317,21 +338,21 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener un fabricante por su identificador */
-        get: operations["getById_1"];
+        get: operations["getById_2"];
         put?: never;
         post?: never;
         /**
          * Retirar un fabricante
          * @description No lo borra: lo deja inactivo.
          */
-        delete: operations["deactivate_1"];
+        delete: operations["deactivate_2"];
         options?: never;
         head?: never;
         /**
          * Cambiar los datos de un fabricante
          * @description Los campos ausentes conservan su valor.
          */
-        patch: operations["update"];
+        patch: operations["update_1"];
         trace?: never;
     };
     "/v1/api/models": {
@@ -345,13 +366,13 @@ export interface paths {
          * Listar modelos
          * @description Con el parametro idEquipo, solo los de esa asociacion marca-tipo.
          */
-        get: operations["getAll"];
+        get: operations["getAll_1"];
         put?: never;
         /**
          * Registrar un modelo
          * @description La asociacion marca-tipo debe estar activa.
          */
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -366,14 +387,14 @@ export interface paths {
             cookie?: never;
         };
         /** Obtener un modelo por su identificador */
-        get: operations["getById"];
+        get: operations["getById_1"];
         put?: never;
         post?: never;
         /**
          * Retirar un modelo
          * @description No lo borra: lo deja inactivo.
          */
-        delete: operations["deactivate"];
+        delete: operations["deactivate_1"];
         options?: never;
         head?: never;
         /**
@@ -423,6 +444,55 @@ export interface paths {
         patch: operations["describe"];
         trace?: never;
     };
+    "/v1/api/protocols": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar todos los protocolos
+         * @description Vigentes y retirados, por nombre.
+         */
+        get: operations["getAll"];
+        put?: never;
+        /**
+         * Registrar un protocolo
+         * @description El nombre no puede repetir el de otro vigente sin contar mayusculas ni tildes: 409.
+         */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/protocols/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obtener un protocolo por su identificador */
+        get: operations["getById"];
+        put?: never;
+        post?: never;
+        /**
+         * Retirar un protocolo
+         * @description No lo borra. Si esta asignado a algun tipo de equipo vigente responde 409.
+         */
+        delete: operations["deactivate"];
+        options?: never;
+        head?: never;
+        /**
+         * Cambiar el nombre y la descripcion de un protocolo
+         * @description Los reportes que ya lo copiaron no cambian.
+         */
+        patch: operations["update"];
+        trace?: never;
+    };
     "/v1/api/service-areas/{idAreaServicio}/equipments": {
         parameters: {
             query?: never;
@@ -448,6 +518,31 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AssignProtocolsItem: {
+            /** Format: uuid */
+            idProtocolo: string;
+            /**
+             * @description Lo que este tipo añade al texto general del protocolo
+             * @example Usar alcohol isopropílico, no al 70 %
+             */
+            indicacion?: string;
+        };
+        AssignProtocolsRequest: {
+            protocolos: components["schemas"]["AssignProtocolsItem"][];
+        };
+        AssignedProtocolResponse: {
+            descripcion?: string;
+            /** Format: uuid */
+            idProtocolo?: string;
+            /** @description Nula si el tipo no añade nada al texto general */
+            indicacion?: string;
+            nombre?: string;
+            /**
+             * Format: int32
+             * @description 1 es el primero. Van seguidas, sin huecos
+             */
+            prioridad?: number;
+        };
         BrandResponse: {
             estadoActivo?: boolean;
             /** Format: uuid */
@@ -765,6 +860,19 @@ export interface components {
             /** @example Philips */
             nombre: string;
         };
+        ProtocolRequest: {
+            /** @example Limpieza externa con paño humedecido y desinfección de superficies de contacto. */
+            descripcion: string;
+            /** @example Limpieza y desinfección */
+            nombre: string;
+        };
+        ProtocolResponse: {
+            descripcion?: string;
+            estadoActivo?: boolean;
+            /** Format: uuid */
+            id?: string;
+            nombre?: string;
+        };
         TechnicalSheetRequest: {
             /**
              * @description De donde toma la energia
@@ -894,7 +1002,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    getAll_4: {
+    getAll_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -950,7 +1058,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1010,7 +1118,7 @@ export interface operations {
             };
         };
     };
-    getById_4: {
+    getById_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1068,7 +1176,7 @@ export interface operations {
             };
         };
     };
-    deactivate_3: {
+    deactivate_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1186,7 +1294,7 @@ export interface operations {
             };
         };
     };
-    getAll_6: {
+    getAll_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -1242,7 +1350,7 @@ export interface operations {
             };
         };
     };
-    getById_3: {
+    getById_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1356,7 +1464,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1559,7 +1667,7 @@ export interface operations {
             };
         };
     };
-    getAll_3: {
+    getAll_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1615,7 +1723,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1675,7 +1783,7 @@ export interface operations {
             };
         };
     };
-    getById_2: {
+    getById_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1733,7 +1841,7 @@ export interface operations {
             };
         };
     };
-    deactivate_2: {
+    deactivate_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1789,7 +1897,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1811,6 +1919,126 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EquipmentTypeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getAll_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssignedProtocolResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    assign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignProtocolsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssignedProtocolResponse"][];
                 };
             };
             /** @description Bad Request */
@@ -1913,7 +2141,7 @@ export interface operations {
             };
         };
     };
-    getAll_2: {
+    getAll_3: {
         parameters: {
             query?: {
                 /** @description Filtra por marca */
@@ -1972,7 +2200,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2032,7 +2260,7 @@ export interface operations {
             };
         };
     };
-    getById_5: {
+    getById_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2090,7 +2318,7 @@ export interface operations {
             };
         };
     };
-    deactivate_4: {
+    deactivate_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2146,7 +2374,7 @@ export interface operations {
             };
         };
     };
-    getAll_5: {
+    getAll_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -2260,7 +2488,7 @@ export interface operations {
             };
         };
     };
-    getAll_1: {
+    getAll_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2316,7 +2544,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2376,7 +2604,7 @@ export interface operations {
             };
         };
     };
-    getById_1: {
+    getById_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2434,7 +2662,7 @@ export interface operations {
             };
         };
     };
-    deactivate_1: {
+    deactivate_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2490,7 +2718,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2552,7 +2780,7 @@ export interface operations {
             };
         };
     };
-    getAll: {
+    getAll_1: {
         parameters: {
             query?: {
                 /** @description Filtra por asociacion marca-tipo */
@@ -2611,7 +2839,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2671,7 +2899,7 @@ export interface operations {
             };
         };
     };
-    getById: {
+    getById_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2729,7 +2957,7 @@ export interface operations {
             };
         };
     };
-    deactivate: {
+    deactivate_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2931,6 +3159,298 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ModelResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProtocolResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProtocolRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProtocolResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProtocolResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    deactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProtocolRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProtocolResponse"];
                 };
             };
             /** @description Bad Request */

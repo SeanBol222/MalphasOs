@@ -461,7 +461,14 @@ class SecurityIntegrationTest {
             "DELETE, /v1/api/equipment-types/" + ID,
             "DELETE, /v1/api/equipments/" + ID,
             "DELETE, /v1/api/client-equipments/" + ID,
-            "PATCH, /v1/api/client-equipments/" + ID + "/service-area/" + ID
+            "PATCH, /v1/api/client-equipments/" + ID + "/service-area/" + ID,
+            // Los protocolos, del 2026-10-10: el catalogo y su asignacion a un tipo.
+            "GET, /v1/api/protocols",
+            "DELETE, /v1/api/protocols/" + ID,
+            // El PATCH de la asignacion no esta, y no por olvido: lleva cuerpo, y sin el Spring responde
+            // 400 al validarlo ANTES de evaluar @PreAuthorize, asi que aqui no se veria el 403. Es la
+            // razon de que ninguna escritura con cuerpo este en esta lista.
+            "GET, /v1/api/equipment-types/" + ID + "/protocols"
         })
         @DisplayName("responde 403 a un rol que no otorga nada")
         void laRutaExisteYPide(String verbo, String ruta) throws Exception {
@@ -573,7 +580,8 @@ class SecurityIntegrationTest {
             "/v1/api/models/" + ID + ", equipment.read",
             "/v1/api/equipment-types/" + ID + ", equipment.read",
             "/v1/api/equipments/" + ID + ", equipment.read",
-            "/v1/api/client-equipments/" + ID + ", equipment.read"
+            "/v1/api/client-equipments/" + ID + ", equipment.read",
+            "/v1/api/protocols/" + ID + ", equipment.read"
         })
         @DisplayName("un DELETE con solo la autoridad de lectura de su propio recurso responde 403")
         void elDeleteConSoloLecturaResponde403(String ruta, String autoridadDeLectura) throws Exception {

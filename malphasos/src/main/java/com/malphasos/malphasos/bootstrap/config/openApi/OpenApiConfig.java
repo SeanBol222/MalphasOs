@@ -109,7 +109,10 @@ public class OpenApiConfig {
                         // misma autoridad. Se quedo fuera al nacer el 2026-10-03 -- controlador escrito,
                         // patron sin anadir -- y lo delato la prueba de cobertura del grupo, que para
                         // eso existe.
-                        API + "/magnitudes/**")
+                        API + "/magnitudes/**",
+                        // Los protocolos de mantenimiento, del 2026-10-10. Su asignacion cuelga de
+                        // /equipment-types/**, que ya estaba.
+                        API + "/protocols/**")
                 .build();
     }
 
