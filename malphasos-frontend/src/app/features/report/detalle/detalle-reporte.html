@@ -172,16 +172,166 @@
               >
               Lo que se hizo
             </h2>
+            @if (pasos().length) {
+              <!--
+                RF-13: los protocolos del tipo del equipo, copiados al abrir el reporte. Cada casilla se
+                guarda al pulsarla, sin pasar por «Guardar»: es lo que se marca con el equipo delante.
+              -->
+              <div
+                class="flex flex-wrap items-center gap-1.5 border-b border-neutral-300 bg-neutral-100 px-3 py-1.5 text-sm text-neutral-700"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path d="M5 3h14v18H5zM9 8h6M9 12h6M9 16h3" />
+                </svg>
+                <span class="min-w-0 flex-1">
+                  Protocolo del preventivo, copiado al abrir el reporte. Cada paso se marca hecho o
+                  «no aplica», con una nota que diga por qué.
+                </span>
+              </div>
+              <ol class="list-none" aria-label="Pasos del protocolo">
+                @for (paso of pasos(); track paso.orden) {
+                  <li
+                    class="flex flex-wrap items-start gap-2 border-b border-neutral-200 px-3 py-2"
+                    [attr.data-paso]="paso.orden"
+                  >
+                    <button
+                      class="flex h-[1.75rem] w-[1.75rem] flex-none items-center justify-center border-2 border-ink"
+                      [class.bg-ink]="paso.estado === 'HECHO'"
+                      [class.text-white]="paso.estado === 'HECHO'"
+                      type="button"
+                      role="checkbox"
+                      [attr.aria-checked]="paso.estado === 'HECHO'"
+                      [attr.aria-label]="paso.nombre + ': hecho'"
+                      [disabled]="!editable() || marca.isPending()"
+                      (click)="alternarHecho(paso)"
+                    >
+                      @if (paso.estado === 'HECHO') {
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          aria-hidden="true"
+                        >
+                          <path d="M5 12l5 5 9-10" />
+                        </svg>
+                      }
+                    </button>
+
+                    <div class="min-w-0 flex-[1_1_18rem]">
+                      <p class="flex items-baseline gap-1">
+                        <span class="text-sm text-neutral-700 tabular-nums">{{ paso.orden }}</span>
+                        <span
+                          class="font-bold"
+                          [class.line-through]="paso.estado === 'NO_APLICA'"
+                          [class.text-neutral-700]="paso.estado === 'NO_APLICA'"
+                        >
+                          {{ paso.nombre }}
+                        </span>
+                        @if (paso.estado === 'NO_APLICA') {
+                          <span class="text-sm font-semibold">— no aplica</span>
+                        }
+                      </p>
+                      <p class="text-sm text-neutral-700">{{ paso.descripcion }}</p>
+                      @if (paso.indicacion) {
+                        <p class="mt-0.5 text-sm">
+                          <span class="font-semibold">Para este tipo:</span> {{ paso.indicacion }}
+                        </p>
+                      }
+                      @if (paso.nota && notaEnCurso()?.orden !== paso.orden) {
+                        <p class="mt-0.5 text-sm">
+                          <span class="font-semibold">Nota:</span> {{ paso.nota }}
+                        </p>
+                      }
+
+                      @if (notaEnCurso()?.orden === paso.orden) {
+                        <div class="mt-1 flex flex-wrap items-end gap-1.5">
+                          <div class="min-w-0 flex-[1_1_14rem]">
+                            <label class="block text-sm font-semibold" [for]="'nota-' + paso.orden">
+                              Por qué no aplica
+                              <span class="text-accent-700" aria-hidden="true">*</span>
+                            </label>
+                            <input
+                              class="campo mt-0.5 min-h-tactil w-full"
+                              [id]="'nota-' + paso.orden"
+                              type="text"
+                              maxlength="300"
+                              aria-required="true"
+                              [value]="notaEnCurso()!.texto"
+                              (input)="
+                                notaEnCurso.set({
+                                  orden: paso.orden!,
+                                  texto: $any($event.target).value,
+                                })
+                              "
+                              (keydown.enter)="$event.preventDefault(); confirmarNoAplica()"
+                            />
+                          </div>
+                          <button
+                            class="boton-primario min-h-tactil"
+                            type="button"
+                            [disabled]="!notaEnCurso()!.texto.trim() || marca.isPending()"
+                            (click)="confirmarNoAplica()"
+                          >
+                            Marcar no aplica
+                          </button>
+                          <button
+                            class="boton-secundario min-h-tactil"
+                            type="button"
+                            (click)="notaEnCurso.set(null)"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      }
+                    </div>
+
+                    @if (
+                      editable() &&
+                      paso.estado !== 'NO_APLICA' &&
+                      notaEnCurso()?.orden !== paso.orden
+                    ) {
+                      <button
+                        class="boton-secundario min-h-tactil"
+                        type="button"
+                        [attr.aria-label]="paso.nombre + ': no aplica'"
+                        (click)="empezarNoAplica(paso)"
+                      >
+                        No aplica
+                      </button>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+
             <div class="p-3">
-              <label class="block font-bold" for="procedimientos">
-                Procedimientos <span class="text-accent-700" aria-hidden="true">*</span>
-              </label>
+              @if (pasos().length) {
+                <label class="block font-bold" for="procedimientos">Trabajo adicional</label>
+                <p class="text-sm text-neutral-700">
+                  Lo que se hizo fuera del protocolo, si hubo algo.
+                </p>
+              } @else {
+                <label class="block font-bold" for="procedimientos">
+                  Procedimientos <span class="text-accent-700" aria-hidden="true">*</span>
+                </label>
+              }
               <textarea
                 class="campo mt-1 min-h-tactil w-full p-1"
                 id="procedimientos"
                 rows="4"
                 maxlength="500"
-                aria-required="true"
+                [attr.aria-required]="pasos().length ? null : 'true'"
                 formControlName="procedimientos"
               ></textarea>
             </div>
@@ -326,8 +476,14 @@
 
         @if (datos.estado === 'BORRADOR' && !cerrable() && puedeEscribir() && datos.estadoActivo) {
           <p class="mt-2 text-sm text-neutral-300">
-            Para cerrarlo hacen falta los procedimientos y el resultado, guardados. Si el equipo se
-            verifica, el servidor exige además la verificación completa.
+            @if (pasos().length) {
+              Para cerrarlo hacen falta todos los pasos del protocolo marcados y el resultado,
+              guardados. Si el equipo se verifica, el servidor exige además la verificación
+              completa.
+            } @else {
+              Para cerrarlo hacen falta los procedimientos y el resultado, guardados. Si el equipo
+              se verifica, el servidor exige además la verificación completa.
+            }
           </p>
         }
         @if (datos.estado === 'FINALIZADO' && datos.estadoActivo) {

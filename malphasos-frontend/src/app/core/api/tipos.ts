@@ -354,6 +354,14 @@ export function exigeEscalonDeArriba(tipo: TipoDePersona | undefined): boolean {
  * orden, que es lo que RF-11 llama autocompletar. Copiarlos seria una tercera copia que mantener.
  */
 export type ReporteDeServicio = reportes['schemas']['ServiceReportResponse'];
+
+/**
+ * Un paso del protocolo copiado en el reporte, del 2026-10-10: se marca hecho o no aplica, y «no
+ * aplica» exige nota. Ver `ServiceReport` en el backend.
+ */
+export type PasoDeReporte = reportes['schemas']['ReportStepResponse'];
+export type EstadoDePaso = NonNullable<PasoDeReporte['estado']>;
+export type MarcaDePaso = reportes['schemas']['MarkReportStepRequest'];
 export type LlenarReporte = reportes['schemas']['ServiceReportFillRequest'];
 export type LecturaDeVerificacion = reportes['schemas']['VerificationReadingResponse'];
 export type NuevaLectura = reportes['schemas']['VerificationReadingRequest'];
@@ -398,11 +406,15 @@ export const ETIQUETA_DE_RESULTADO: Readonly<Record<ResultadoDeServicio, string>
  * pantalla no puede saber sin consultarlo.
  */
 export function sePuedeCerrar(reporte: ReporteDeServicio | undefined): boolean {
-  return (
-    !!reporte &&
-    reporte.estado === 'BORRADOR' &&
-    !!reporte.estadoActivo &&
-    !!reporte.procedimientos?.trim() &&
-    !!reporte.resultado
-  );
+  if (!reporte || reporte.estado !== 'BORRADOR' || !reporte.estadoActivo || !reporte.resultado) {
+    return false;
+  }
+
+  // Desde el 2026-10-10, como en el servidor: con pasos del protocolo se exigen todos marcados y el
+  // texto es trabajo adicional, opcional; sin pasos el texto sigue siendo lo que cuenta que se hizo.
+  const pasos = reporte.pasos ?? [];
+
+  return pasos.length
+    ? pasos.every((paso) => paso.estado !== 'PENDIENTE')
+    : !!reporte.procedimientos?.trim();
 }
