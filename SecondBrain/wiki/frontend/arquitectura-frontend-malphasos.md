@@ -104,6 +104,30 @@ Es la primera tanda del rediseño que el usuario eligió —la «sala de control
 - Los iconos viven en el armazón y no en `NAVEGACION`, porque la lista la leen también las rutas, que no
   pintan nada.
 
+### Los protocolos: un catálogo y una lista que se arrastra (2026-10-11)
+
+La sexta pieza del catálogo —Catálogo › Protocolos— y, en el alta y la edición del tipo de equipo, el
+bloque `app-protocolos-del-tipo`. Tres cosas que conviene saber antes de tocarlo:
+
+- **El orden es la prioridad, y la decide quien ordena.** Se arrastra con `@angular/cdk/drag-drop` —que
+  entró ese día: el diseño del frontend ya nombraba el CDK y no estaba instalado— y, como arrastrar no
+  se puede con el teclado, hay además flechas de subir y bajar. Lo que viaja es la lista en orden; el
+  servidor deriva la prioridad de la posición.
+- **Se guarda con el botón del tipo**, como el bloque de verificación: el bloque emite lo que tiene por
+  `cambio` y no guarda nada. En el alta son dos llamadas —crear el tipo y fijar sus protocolos— sin
+  transacción entre ellas, y si falla la segunda la pantalla dice que el tipo **sí** se creó, para que
+  nadie intente crearlo otra vez y choque con su propio nombre. La edición manda la lista siempre que se
+  haya cargado, aunque nadie la tocara.
+- **`parecidos.ts`** es la regla de «se parece»: el mismo nombre sin tildes ni mayúsculas, uno contenido
+  en el otro, o una palabra de cuatro letras o más en común; los retirados no cuentan. La usan las dos
+  pantallas donde se crea un protocolo, porque el usuario pidió que no fuera fácil repetirlos. Que los
+  retirados no contaran no lo comprobaba nada hasta que una mutación lo destapó.
+
+**Dos trampas que salieron**: el buscador **elige solo** cuando el texto coincide exactamente con una
+opción, así que una prueba que escribe la etiqueta entera ve desaparecer la sugerencia que iba a pulsar
+—en las de protocolos se escribe parte del nombre—; y su aviso de «catálogo vacío» salía también cuando
+lo que pasaba es que ya estaban todos elegidos, que es otro caso y ahora lo dice.
+
 ### El inicio es una agenda desde el 2026-10-10
 
 Tercera tanda del rediseño. Tres piezas que la agenda trajo y que sirven fuera de ella:

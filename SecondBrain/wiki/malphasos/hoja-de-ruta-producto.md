@@ -299,7 +299,7 @@ orden, y esa lista es la que se carga sola.
    deriva el servidor de la posición: así no puede llegar un hueco ni una repetida, que es la regla.
 2. **Hecha el 2026-10-10**, `ef2e121c`. **El reporte copia los pasos** (`V22`): `paso_reporte` con lo copiado y el estado de cada paso. Se
    copian al abrir un reporte de una orden **preventiva**; la regla de cierre cambia como dice la tabla.
-3. **Pantallas del catálogo**: Catálogo › Protocolos, y en el alta y la edición del tipo de equipo la
+3. **Hecha el 2026-10-11**, `71d2277e`. **Pantallas del catálogo**: Catálogo › Protocolos, y en el alta y la edición del tipo de equipo la
    lista que se arrastra, con el panel que crea y avisa de parecidos.
 4. **La lista de verificación del reporte** —la de la maqueta— y **la hoja de vida** llenando su sección
    «Protocolo preventivo», que hoy dice «Sin protocolo registrado».
@@ -327,7 +327,7 @@ El lienzo es un artefacto privado de claude.ai, `MalphasOS — rediseño visual`
 | 2 | **Estilo común**: encabezados de página, tablas, botones y superficies blancas, aplicado a listados y fichas | No | **Hecha el 2026-10-10**, `1227feaf` |
 | 3 | **Inicio con agenda**, por semana y por mes, con «solo mis órdenes» | Sí: la consulta por periodo, `2abeebfa` | **Hecha el 2026-10-10**, `4cee773b` |
 | 4 | **El llenado del reporte** con secciones numeradas y el panel de lo que falta para cerrar | No | **Hecha el 2026-10-10**, `62b3663b` |
-| 5 | **Protocolos (RF-14) y la lista de verificación del reporte (RF-13)** | Sí, y las tres preguntas que siguen abiertas | Pendiente |
+| 5 | **Protocolos (RF-14) y la lista de verificación del reporte (RF-13)** | Sí: `V21`, `V22` y `V23`, ya construidos | **En curso**: catálogo, copia en el reporte y pantallas del catálogo hechos (`371d0908`, `ef2e121c`, `71d2277e`); falta la lista de verificación en el reporte y la sección de la hoja de vida |
 
 **Una desviación de la maqueta, consciente**: en un teléfono la A dibujaba una barra de pestañas abajo, y
 se construyó un **menú plegable** —la misma barra lateral abierta a pantalla completa—. Así hay una sola
