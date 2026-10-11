@@ -15,6 +15,8 @@ public interface ServiceAreaRepository extends JpaRepository<ServiceAreaEntity, 
 
     List<ServiceAreaEntity> findByIdSede(UUID idSede);
 
+    List<ServiceAreaEntity> findByIdSedeIn(Collection<UUID> idsSedes);
+
     /**
      * Áreas de un conjunto de clientes, uniendo por la sede.
      *

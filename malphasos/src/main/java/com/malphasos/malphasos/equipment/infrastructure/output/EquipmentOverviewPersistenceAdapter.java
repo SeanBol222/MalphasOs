@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.equipment.infrastructure.output;
 
+import com.malphasos.malphasos.equipment.application.model.overview.EquipmentAreaSummary;
 import com.malphasos.malphasos.equipment.application.model.overview.EquipmentOverview;
 import com.malphasos.malphasos.equipment.application.model.overview.EquipmentOverviewQuery;
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentOverviewPersistencePort;
@@ -77,6 +78,47 @@ public class EquipmentOverviewPersistenceAdapter implements EquipmentOverviewPer
                 (fila, numero) -> fila(fila));
 
         return new EquipmentOverview(filas, total == null ? 0 : total, consulta.pagina(), consulta.tamano());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EquipmentAreaSummary> countByArea(Set<UUID> areas) {
+        MapSqlParameterSource parametros = new MapSqlParameterSource();
+        String filtro = "";
+        if (areas != null) {
+            filtro = "AND u.k_id_area_servicio IN (:areas)";
+            parametros.addValue("areas", areas);
+        }
+
+        return jdbc.query(
+                """
+                SELECT u.k_id_area_servicio,
+                       count(*) AS equipos,
+                       count(*) FILTER (WHERE ult.t_resultado = 'FUERA_DE_SERVICIO') AS fuera,
+                       max(ult.f_fecha_servicio) AS ultimo
+                FROM equipo_cliente u
+                LEFT JOIN LATERAL (
+                    SELECT i.f_fecha_servicio, i.t_resultado
+                    FROM intervencion i
+                    WHERE i.k_id_equipo_cliente = u.k_id_equipo_cliente AND i.b_estado_activo
+                    ORDER BY i.f_fecha_servicio DESC
+                    LIMIT 1
+                ) ult ON true
+                WHERE u.b_estado_activo
+                """ + filtro + """
+                GROUP BY u.k_id_area_servicio
+                """,
+                parametros,
+                (fila, numero) -> {
+                    Timestamp ultimo = fila.getTimestamp("ultimo");
+                    return new EquipmentAreaSummary(
+                            fila.getObject("k_id_area_servicio", UUID.class),
+                            null,
+                            null,
+                            fila.getLong("equipos"),
+                            fila.getLong("fuera"),
+                            ultimo == null ? null : ultimo.toLocalDateTime());
+                });
     }
 
     private static String donde(EquipmentOverviewQuery consulta, Set<UUID> areas, MapSqlParameterSource parametros) {

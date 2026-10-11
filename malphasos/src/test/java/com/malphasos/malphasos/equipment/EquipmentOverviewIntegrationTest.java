@@ -365,6 +365,41 @@ class EquipmentOverviewIntegrationTest {
     }
 
     @Test
+    @DisplayName("el resumen por area cuenta los equipos en servicio, los fuera de servicio y el ultimo servicio")
+    void resumenPorArea() {
+        Lugar lugar = unLugar("Clinica con dos areas");
+        Lugar otro = unLugar("Clinica ajena");
+        Catalogo catalogo = unModelo("Balanza", "Kern");
+        UUID bien = unEquipo(lugar, catalogo, "BIEN");
+        UUID roto = unEquipo(lugar, catalogo, "ROTO");
+        unEquipo(lugar, catalogo, "SIN-SERVICIO");
+        UUID baja = unEquipo(lugar, catalogo, "BAJA");
+        jdbcTemplate.update("UPDATE equipo_cliente SET b_estado_activo = false WHERE k_id_equipo_cliente = ?", baja);
+        unServicio(lugar, bien, LocalDateTime.of(2026, 9, 1, 10, 0), InterventionResult.OPERATIVO, true);
+        unServicio(lugar, roto, LocalDateTime.of(2026, 10, 2, 18, 0), InterventionResult.FUERA_DE_SERVICIO, true);
+        // Un fuera de servicio viejo no cuenta: lo que vale es como quedo en el ultimo.
+        unServicio(lugar, bien, LocalDateTime.of(2026, 8, 1, 10, 0), InterventionResult.FUERA_DE_SERVICIO, true);
+        unEquipo(otro, catalogo, "AJENO");
+
+        var resumen = servicio.summarizeByArea(null, ReadScope.ofClients(List.of(lugar.cliente())));
+
+        assertThat(resumen).singleElement().satisfies(area -> {
+            assertThat(area.idArea()).isEqualTo(lugar.area());
+            assertThat(area.idSede()).isEqualTo(lugar.sede());
+            assertThat(area.idCliente()).isEqualTo(lugar.cliente());
+            // Tres en servicio: el dado de baja no cuenta.
+            assertThat(area.equipos()).isEqualTo(3);
+            assertThat(area.fueraDeServicio()).isEqualTo(1);
+            assertThat(area.ultimoServicio()).isEqualTo(LocalDateTime.of(2026, 10, 2, 18, 0));
+        });
+
+        // Por un cliente ajeno al alcance, nada; sin restriccion, el filtro por cliente acota.
+        assertThat(servicio.summarizeByArea(otro.cliente(), ReadScope.ofClients(List.of(lugar.cliente())))).isEmpty();
+        assertThat(servicio.summarizeByArea(otro.cliente(), ReadScope.unrestricted()))
+                .singleElement().satisfies(area -> assertThat(area.equipos()).isEqualTo(1));
+    }
+
+    @Test
     @DisplayName("un tamano fuera de rango se acota, no se rechaza")
     void tamanoAcotado() {
         assertThat(new EquipmentOverviewQuery(" ", null, null, null, false, -3, 0))

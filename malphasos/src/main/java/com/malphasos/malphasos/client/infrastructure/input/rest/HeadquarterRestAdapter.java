@@ -1,5 +1,7 @@
 package com.malphasos.malphasos.client.infrastructure.input.rest;
 
+import com.malphasos.malphasos.client.application.ports.input.HeadquarterSummaryServicePort;
+import com.malphasos.malphasos.client.infrastructure.input.model.response.HeadquarterSummaryResponse;
 import com.malphasos.malphasos.client.application.ports.input.HeadquarterServicePort;
 import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
 import com.malphasos.malphasos.client.application.services.headquarter.commands.CreateHeadquarterCommand;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,9 +48,31 @@ import org.springframework.web.bind.annotation.RestController;
 public class HeadquarterRestAdapter {
 
     private final HeadquarterServicePort headquarterServicePort;
+    private final HeadquarterSummaryServicePort headquarterSummaryServicePort;
     private final ClientRestMapper clientRestMapper;
     /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
     private final ReadScopeResolver readScopeResolver;
+
+    @Operation(summary = "Resumen de sedes con sus areas, de todos los clientes o de uno",
+            description = "Para los listados: cuenta sedes, areas y ciudades sin pedir cada ficha. "
+                    + "Incluye lo cerrado, con su estado.")
+    @PreAuthorize("hasAuthority('client.read')")
+    @GetMapping("/headquarters/summary")
+    public List<HeadquarterSummaryResponse> getSummary(
+            @RequestParam(required = false) UUID idCliente, Authentication autenticacion) {
+
+        return headquarterSummaryServicePort.summarize(idCliente, readScopeResolver.scopeFor(autenticacion)).stream()
+                .map(sede -> new HeadquarterSummaryResponse(
+                        sede.id(),
+                        sede.nombre(),
+                        sede.idCliente(),
+                        sede.idCiudad(),
+                        sede.abierta(),
+                        sede.areas().stream()
+                                .map(area -> new HeadquarterSummaryResponse.Area(area.id(), area.nombre(), area.abierta()))
+                                .toList()))
+                .toList();
+    }
 
     @Operation(summary = "Listar las sedes de un cliente")
     @PreAuthorize("hasAuthority('client.read')")

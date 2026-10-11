@@ -37,6 +37,11 @@ public class ServiceAreaPersistenceAdapter implements ServiceAreaPersistencePort
     }
 
     @Override
+    public List<ServiceArea> findByHeadquarters(Collection<UUID> idsSedes) {
+        return serviceAreaPersistenceMapper.toDomainList(serviceAreaRepository.findByIdSedeIn(idsSedes));
+    }
+
+    @Override
     public Set<UUID> findIdsByClients(Collection<UUID> idsClientes) {
         return serviceAreaRepository.findIdsByClients(idsClientes);
     }

@@ -268,6 +268,8 @@ class ClientRestAdapterTest {
                 .contains("/v1/api/clients")
                 .contains("/v1/api/headquarters")
                 .contains("/v1/api/service-areas")
-                .contains("/v1/api/managers");
+                .contains("/v1/api/managers")
+                // El resumen de sedes del rediseño, del 2026-10-11.
+                .contains("/v1/api/headquarters/summary");
     }
 }

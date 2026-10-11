@@ -6,6 +6,7 @@ import com.malphasos.malphasos.equipment.application.model.overview.EquipmentOve
 import com.malphasos.malphasos.equipment.application.model.overview.EquipmentOverviewQuery;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentOverviewServicePort;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentAreaSummaryResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.EquipmentOverviewResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -64,6 +65,21 @@ public class EquipmentOverviewRestAdapter {
                 listado.total(),
                 listado.pagina(),
                 listado.tamano());
+    }
+
+    @Operation(summary = "Contar los equipos en servicio por area",
+            description = "Para las fichas de cliente y de sede: equipos, fuera de servicio y ultimo "
+                    + "servicio de cada area con equipos, con su sede y su cliente.")
+    @PreAuthorize("hasAuthority('equipment.read')")
+    @GetMapping("/client-equipments/summary")
+    public List<EquipmentAreaSummaryResponse> summary(
+            @RequestParam(required = false) UUID idCliente, Authentication autenticacion) {
+
+        return equipmentOverviewServicePort.summarizeByArea(idCliente, readScopeResolver.scopeFor(autenticacion)).stream()
+                .map(conteo -> new EquipmentAreaSummaryResponse(
+                        conteo.idArea(), conteo.idSede(), conteo.idCliente(), conteo.equipos(),
+                        conteo.fueraDeServicio(), conteo.ultimoServicio()))
+                .toList();
     }
 
     private static EquipmentOverviewResponse.Fila fila(EquipmentOverview.Row fila) {
