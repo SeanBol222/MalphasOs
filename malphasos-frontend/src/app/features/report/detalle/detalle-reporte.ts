@@ -19,10 +19,12 @@ import { ReporteApi } from '../reporte-api';
 import { TablaDeVerificacion } from '../verificacion/tabla-de-verificacion';
 import { Sesion } from '../../../core/auth/sesion';
 import {
+  EstadoDePaso,
   ETIQUETA_DE_ESTADO_DE_REPORTE,
   ETIQUETA_DE_PERIODICIDAD,
   ETIQUETA_DE_RESULTADO,
   ETIQUETA_DE_TIPO_DE_SERVICIO,
+  PasoDeReporte,
   RESULTADOS_DE_SERVICIO,
   sePuedeCerrar,
 } from '../../../core/api/tipos';
@@ -74,6 +76,45 @@ export class DetalleReporte {
   protected readonly guardado = this.api.llenar();
   protected readonly cierre = this.api.cerrar();
   protected readonly retiro = this.api.retirar();
+  protected readonly marca = this.api.marcarPaso();
+
+  // --- Los pasos del protocolo (RF-13, desde el 2026-10-10) ---------------------
+
+  /** Los pasos del protocolo, en su orden. Vacia en un correctivo o en un reporte anterior a ellos. */
+  protected readonly pasos = computed(() => this.reporte.data()?.pasos ?? []);
+
+  /** El paso al que se le esta escribiendo la nota de «no aplica», y lo escrito. */
+  protected readonly notaEnCurso = signal<{ orden: number; texto: string } | null>(null);
+
+  /** Hecho y pendiente se alternan con la casilla; un «no aplica» se deshace con ella tambien. */
+  protected alternarHecho(paso: PasoDeReporte): void {
+    this.marcar(paso.orden!, paso.estado === 'HECHO' ? 'PENDIENTE' : 'HECHO');
+  }
+
+  protected empezarNoAplica(paso: PasoDeReporte): void {
+    this.notaEnCurso.set({ orden: paso.orden!, texto: paso.nota ?? '' });
+  }
+
+  /**
+   * «No aplica» sin nota no llega al servidor, que tambien lo rechazaria: saltarse un paso del
+   * protocolo queda justificado, decidido por el usuario el 2026-10-10.
+   */
+  protected confirmarNoAplica(): void {
+    const enCurso = this.notaEnCurso();
+
+    if (!enCurso || !enCurso.texto.trim()) {
+      return;
+    }
+
+    this.marcar(enCurso.orden, 'NO_APLICA', enCurso.texto.trim(), () => this.notaEnCurso.set(null));
+  }
+
+  private marcar(orden: number, estado: EstadoDePaso, nota?: string, alTerminar?: () => void): void {
+    this.marca.mutate(
+      { id: this.id(), orden, marca: { estado, ...(nota ? { nota } : {}) } },
+      { onSuccess: () => alTerminar?.() },
+    );
+  }
 
   private readonly equipos = inject(EquipoApi).listarTodos();
 
@@ -135,13 +176,39 @@ export class DetalleReporte {
   protected readonly requisitos = computed(() => {
     const datos = this.reporte.data();
 
+    const pasos = datos?.pasos ?? [];
+
+    // Con pasos, lo que se hizo lo dicen ellos y el texto es opcional; sin pasos, el texto. Es la misma
+    // regla que sePuedeCerrar y que el servidor.
+    if (pasos.length) {
+      const marcados = pasos.filter((paso) => paso.estado !== 'PENDIENTE').length;
+
+      return [
+        { texto: `Protocolo: ${marcados} de ${pasos.length} pasos`, hecho: marcados === pasos.length },
+        { texto: 'Resultado', hecho: !!datos?.resultado },
+      ];
+    }
+
     return [
       { texto: 'Procedimientos', hecho: !!datos?.procedimientos?.trim() },
       { texto: 'Resultado', hecho: !!datos?.resultado },
     ];
   });
 
+  /**
+   * Cuanto falta, en porcentaje. Con pasos, el protocolo cuenta por lo que va marcado y no solo cuando
+   * esta completo: con dos de tres pasos marcados el panel decia 0 %, y eso no es lo que se ha hecho.
+   */
   protected readonly avance = computed(() => {
+    const pasos = this.pasos();
+    const resultado = this.reporte.data()?.resultado ? 1 : 0;
+
+    if (pasos.length) {
+      const marcados = pasos.filter((paso) => paso.estado !== 'PENDIENTE').length;
+
+      return Math.round(((marcados / pasos.length + resultado) / 2) * 100);
+    }
+
     const requisitos = this.requisitos();
 
     return Math.round((requisitos.filter((r) => r.hecho).length / requisitos.length) * 100);
@@ -253,11 +320,16 @@ export class DetalleReporte {
       this.reporte.isError() ||
       this.guardado.isError() ||
       this.cierre.isError() ||
-      this.retiro.isError(),
+      this.retiro.isError() ||
+      this.marca.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
     traducirError(
-      this.reporte.error() ?? this.guardado.error() ?? this.cierre.error() ?? this.retiro.error(),
+      this.reporte.error() ??
+        this.guardado.error() ??
+        this.cierre.error() ??
+        this.retiro.error() ??
+        this.marca.error(),
     ),
   );
   protected readonly detalles = computed(() =>

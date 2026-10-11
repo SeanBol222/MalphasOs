@@ -7,7 +7,7 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LlenarReporte, NuevaLectura, ReporteDeServicio } from '../../core/api/tipos';
+import { LlenarReporte, MarcaDePaso, NuevaLectura, ReporteDeServicio } from '../../core/api/tipos';
 
 /**
  * La unica puerta al servidor para los reportes de servicio.
@@ -126,6 +126,24 @@ export class ReporteApi {
   }
 
   /** Cierra el reporte. Desde aqui ya no cambia: corregirlo es retirarlo y abrir otro. */
+  /**
+   * Marca un paso del protocolo: hecho, no aplica —con nota— o pendiente otra vez.
+   *
+   * <p>Cada casilla se guarda al pulsarla, asi que esto se llama mucho. Por eso no invalida y recarga:
+   * pone en la cache la respuesta, que ya es el reporte entero con el paso marcado. Recargar en cada
+   * clic haria parpadear la ficha y, con el formulario a medio escribir, no aporta nada.
+   */
+  marcarPaso() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, orden, marca }: { id: string; orden: number; marca: MarcaDePaso }) =>
+        firstValueFrom(
+          this.http.patch<ReporteDeServicio>(`${this.url}/${id}/steps/${orden}`, marca),
+        ),
+      onSuccess: (reporte: ReporteDeServicio) =>
+        this.queryClient.setQueryData(ReporteApi.claveDetalle(reporte.id!), reporte),
+    }));
+  }
+
   cerrar() {
     return injectMutation(() => ({
       mutationFn: (id: string) =>

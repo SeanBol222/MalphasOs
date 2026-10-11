@@ -301,6 +301,136 @@ describe('Ficha de un reporte de servicio', () => {
     await atenderTodo();
   });
 
+  describe('La lista de verificación del protocolo (2026-10-11)', () => {
+    const PASOS = [
+      { orden: 1, idProtocolo: 'pr1', nombre: 'Limpieza', descripcion: 'Paño.', indicacion: 'Con guantes', estado: 'PENDIENTE' as const },
+      { orden: 2, idProtocolo: 'pr2', nombre: 'Batería', descripcion: 'Revisar la carga.', estado: 'PENDIENTE' as const },
+    ];
+    const conPasos = (cambios: object = {}) => reporte({ pasos: PASOS, ...cambios });
+    const casilla = (orden: number) =>
+      raiz().querySelector<HTMLButtonElement>(`li[data-paso="${orden}"] button[role="checkbox"]`)!;
+    const panel = () => raiz().querySelector('aside')!.textContent ?? '';
+
+    /** Responde el PATCH de un paso con el reporte entero, como hace el servidor. */
+    async function responderPaso(orden: number, devuelto: object): Promise<{ estado: string; nota?: string }> {
+      const peticion = http.expectOne({ method: 'PATCH', url: `${urlReporte(ID_REPORTE)}/steps/${orden}` });
+      const cuerpo = peticion.request.body;
+      peticion.flush(devuelto);
+      await asentar(fixture);
+
+      return cuerpo;
+    }
+
+    it('pinta los pasos en orden con su indicación, y el texto pasa a trabajo adicional sin asterisco', async () => {
+      await abrir(conPasos());
+
+      expect(
+        [...raiz().querySelectorAll('li[data-paso]')].map((li) => li.getAttribute('data-paso')),
+      ).toEqual(['1', '2']);
+      expect(texto()).toContain('Para este tipo: Con guantes');
+      expect(raiz().querySelector('label[for="procedimientos"]')!.textContent).toContain('Trabajo adicional');
+      expect(campo('procedimientos').getAttribute('aria-required')).toBeNull();
+    });
+
+    it('pulsar la casilla marca el paso al momento, sin pasar por guardar ni recargar', async () => {
+      await abrir(conPasos());
+      casilla(1).click();
+      await asentar(fixture);
+
+      expect(await responderPaso(1, conPasos({ pasos: [{ ...PASOS[0], estado: 'HECHO' }, PASOS[1]] }))).toEqual({
+        estado: 'HECHO',
+      });
+      // La respuesta se pone en la cache: no hay una recarga del reporte detras.
+      expect(http.match(urlReporte(ID_REPORTE))).toHaveLength(0);
+      expect(casilla(1).getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('volver a pulsarla lo deja pendiente otra vez', async () => {
+      await abrir(conPasos({ pasos: [{ ...PASOS[0], estado: 'HECHO' }, PASOS[1]] }));
+      casilla(1).click();
+      await asentar(fixture);
+
+      expect((await responderPaso(1, conPasos())).estado).toBe('PENDIENTE');
+    });
+
+    it('«no aplica» pide la nota y no deja marcarlo sin ella', async () => {
+      await abrir(conPasos());
+      pulsar('No aplica');
+      await asentar(fixture);
+
+      const marcar = [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Marcar no aplica')!;
+      expect(marcar.disabled).toBe(true);
+
+      const nota = raiz().querySelector<HTMLInputElement>('#nota-1')!;
+      nota.value = ' El equipo no tiene batería ';
+      nota.dispatchEvent(new Event('input'));
+      await asentar(fixture);
+      marcar.click();
+      await asentar(fixture);
+
+      expect(
+        await responderPaso(
+          1,
+          conPasos({ pasos: [{ ...PASOS[0], estado: 'NO_APLICA', nota: 'El equipo no tiene batería' }, PASOS[1]] }),
+        ),
+      ).toEqual({ estado: 'NO_APLICA', nota: 'El equipo no tiene batería' });
+      expect(texto()).toContain('no aplica');
+      expect(texto()).toContain('Nota: El equipo no tiene batería');
+    });
+
+    it('el panel cuenta los pasos, y con todos marcados y resultado se cierra sin trabajo adicional', async () => {
+      await abrir(conPasos({ resultado: 'OPERATIVO' }));
+
+      expect(panel()).toContain('Protocolo: 0 de 2 pasos');
+      // El avance cuenta lo marcado del protocolo, no solo si esta completo: aqui ningun paso y el
+      // resultado son la mitad.
+      expect(panel()).toContain('50 %');
+      const cerrar = () =>
+        [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Cerrar reporte')!;
+      expect(cerrar().disabled).toBe(true);
+    });
+
+    it('el avance cuenta los pasos marcados, no solo el protocolo completo', async () => {
+      // Con dos de tres pasos el panel decia 0 %: un requisito incompleto contaba como nada. Este caso
+      // es el que separa las dos formulas, porque con cero pasos marcados las dos dan lo mismo.
+      await abrir(conPasos({ resultado: 'OPERATIVO', pasos: [{ ...PASOS[0], estado: 'HECHO' }, PASOS[1]] }));
+
+      expect(panel()).toContain('75 %');
+    });
+
+    it('con todos los pasos marcados, sin texto escrito, deja cerrar', async () => {
+      // Es la regla de V22: con pasos el texto es opcional. Antes de ella este reporte no se cerraba.
+      await abrir(
+        conPasos({
+          resultado: 'OPERATIVO',
+          pasos: [
+            { ...PASOS[0], estado: 'HECHO' },
+            { ...PASOS[1], estado: 'NO_APLICA', nota: 'No tiene' },
+          ],
+        }),
+      );
+
+      expect(panel()).toContain('Protocolo: 2 de 2 pasos');
+      expect(panel()).toContain('100 %');
+      const cerrar = [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Cerrar reporte')!;
+      expect(cerrar.disabled).toBe(false);
+    });
+
+    it('un reporte cerrado no deja marcar ni ofrece «no aplica»', async () => {
+      await abrir(
+        conPasos({
+          estado: 'FINALIZADO',
+          resultado: 'OPERATIVO',
+          finalizado: '2026-10-11T10:00:00',
+          pasos: [{ ...PASOS[0], estado: 'HECHO' }, { ...PASOS[1], estado: 'HECHO' }],
+        }),
+      );
+
+      expect(casilla(1).disabled).toBe(true);
+      expect([...raiz().querySelectorAll('button')].some((b) => b.textContent?.trim() === 'No aplica')).toBe(false);
+    });
+  });
+
   describe('El panel de cierre', () => {
     const panel = () => raiz().querySelector('aside')!.textContent ?? '';
 
