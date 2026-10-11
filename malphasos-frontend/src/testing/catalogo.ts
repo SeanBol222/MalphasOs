@@ -18,6 +18,15 @@ export const URL_FABRICANTES = `${API}/manufacturers`;
 export const URL_EQUIPOS = `${API}/equipments`;
 export const URL_MODELOS = `${API}/models`;
 export const URL_MAGNITUDES = `${API}/magnitudes`;
+export const URL_PROTOCOLOS = `${API}/protocols`;
+export const URL_PROTOCOLOS_DE_TIPO = (tipoId: string) => `${API}/equipment-types/${tipoId}/protocols`;
+
+/** El catalogo de protocolos: dos vigentes y uno retirado, que no se ofrece. */
+export const PROTOCOLOS = [
+  { id: 'pr1', nombre: 'Limpieza y desinfección', descripcion: 'Paño humedecido.', estadoActivo: true },
+  { id: 'pr2', nombre: 'Verificación eléctrica', descripcion: 'Multímetro.', estadoActivo: true },
+  { id: 'pr3', nombre: 'Protocolo viejo', descripcion: 'Ya no se usa.', estadoActivo: false },
+];
 
 /** Un catalogo de ejemplo, encadenado como el de verdad: marca y tipo → equipo → modelo. */
 export const ID_MARCA = 'm1';

@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
-import { asentar, elegirEnBuscador, responderA } from '../../../../testing/pantalla';
+import { asentar, elegirEnBuscador, escribirEnBuscador, responderA } from '../../../../testing/pantalla';
 import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
 import {
   ID_CELSIUS,
@@ -11,9 +11,12 @@ import {
   ID_PRESION,
   ID_TEMPERATURA,
   MAGNITUDES,
+  PROTOCOLOS,
   TIPOS,
   UNIDADES,
   URL_MAGNITUDES,
+  URL_PROTOCOLOS,
+  URL_PROTOCOLOS_DE_TIPO,
   URL_TIPOS,
   URL_UNIDADES_DE,
 } from '../../../../testing/catalogo';
@@ -45,6 +48,8 @@ describe('Alta de un tipo de equipo', () => {
     // modo que el panel que se abra despues ya los tiene. Hay que responderlo en TODA prueba de esta
     // pantalla o verify() lanza en afterEach.
     await responderA(fixture, http, URL_MAGNITUDES, MAGNITUDES);
+    // Desde el 2026-10-10 el bloque de protocolos pide el catalogo al montarse.
+    await responderA(fixture, http, URL_PROTOCOLOS, []);
   });
 
   const raiz = () => fixture.nativeElement as HTMLElement;
@@ -64,6 +69,7 @@ describe('Alta de un tipo de equipo', () => {
     fixture.detectChanges();
     await responderA(fixture, http, URL_TIPOS, tipos);
     await responderA(fixture, http, URL_MAGNITUDES, MAGNITUDES);
+    await responderA(fixture, http, URL_PROTOCOLOS, []);
   }
 
   function escribir(id: string, valor: string): void {
@@ -85,6 +91,73 @@ describe('Alta de un tipo de equipo', () => {
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
     await asentar(fixture);
   }
+
+  describe('Los protocolos del preventivo, con el mismo botón (2026-10-10)', () => {
+    /** Vuelve a montar con el catalogo de protocolos lleno: el de arriba lo responde vacio. */
+    async function conCatalogoDeProtocolos(): Promise<void> {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [...proveerApiSimulado(), provideRouter([{ path: 'catalogo', component: CatalogoFalso }])],
+      });
+      fixture = TestBed.createComponent(NuevoTipo);
+      http = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+      await responderA(fixture, http, URL_TIPOS, TIPOS);
+      await responderA(fixture, http, URL_MAGNITUDES, MAGNITUDES);
+      await responderA(fixture, http, URL_PROTOCOLOS, PROTOCOLOS);
+    }
+
+    async function agregarLimpieza(): Promise<void> {
+      await escribirEnBuscador(fixture, 'agregarProtocolo', 'limp');
+      [...raiz().querySelectorAll<HTMLElement>('#agregarProtocolo-lista [role="option"]')]
+        .find((opcion) => opcion.textContent?.trim() === 'Limpieza y desinfección')!
+        .dispatchEvent(new MouseEvent('mousedown'));
+      await asentar(fixture);
+    }
+
+    it('crea el tipo y después le fija los protocolos en su orden', async () => {
+      await conCatalogoDeProtocolos();
+      await agregarLimpieza();
+      rellenarObligatorios();
+      await enviar();
+
+      const alta = http.expectOne({ method: 'POST', url: URL_TIPOS });
+      // Los protocolos no viajan con el tipo: tienen su propia ruta, y el tipo aun no tiene id.
+      expect(alta.request.body).not.toHaveProperty('protocolos');
+      alta.flush({ id: 't9' });
+      await asentar(fixture);
+
+      const asignacion = http.expectOne({ method: 'PATCH', url: URL_PROTOCOLOS_DE_TIPO('t9') });
+      expect(asignacion.request.body).toEqual({ protocolos: [{ idProtocolo: 'pr1' }] });
+      asignacion.flush([]);
+      for (let ronda = 0; ronda < 2; ronda += 1) {
+        await asentar(fixture);
+        http.match(() => true).forEach((p) => p.flush([]));
+      }
+      await asentar(fixture);
+
+      expect(TestBed.inject(Router).url).toBe('/catalogo');
+    });
+
+    it('si los protocolos fallan, dice que el tipo sí se creó, para no intentar crearlo otra vez', async () => {
+      await conCatalogoDeProtocolos();
+      await agregarLimpieza();
+      rellenarObligatorios();
+      await enviar();
+
+      http.expectOne({ method: 'POST', url: URL_TIPOS }).flush({ id: 't9' });
+      await asentar(fixture);
+      http
+        .expectOne({ method: 'PATCH', url: URL_PROTOCOLOS_DE_TIPO('t9') })
+        .flush({ code: 'ERR_EQUIPMENT_014' }, { status: 404, statusText: 'Not Found' });
+      await asentar(fixture);
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+
+      expect(texto()).toContain('El tipo se creó, pero sus protocolos no se guardaron');
+      expect(TestBed.inject(Router).url).not.toBe('/catalogo');
+    });
+  });
 
   it('dice cuales campos son opcionales, en vez de dejarlo para el momento de guardar', () => {
     expect(texto()).toContain('Datos opcionales');

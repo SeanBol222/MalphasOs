@@ -87,6 +87,8 @@
 
   <app-verificacion (cambio)="verificacion.set($event)" />
 
+  <app-protocolos-del-tipo (cambio)="protocolos.set($event)" />
+
   <!--
     Voltaje y amperaje estaban aqui hasta el 2026-10-05: son de cada modelo y no del tipo, y se
     anotan en su ficha tecnica, en Catalogo > Modelos.

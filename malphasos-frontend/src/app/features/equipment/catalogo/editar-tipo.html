@@ -125,6 +125,11 @@
     </div>
   </div>
 
+  <app-protocolos-del-tipo
+    [inicial]="protocolosActuales.data() ?? null"
+    (cambio)="protocolos.set($event)"
+  />
+
   <div class="flex gap-2">
     <button
       class="boton-primario min-h-tactil"

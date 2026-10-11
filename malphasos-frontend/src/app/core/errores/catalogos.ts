@@ -39,7 +39,8 @@ export const CATALOGO_LOCATION: Readonly<Record<string, string>> = {
 };
 
 /**
- * Y los del modulo de equipos, que son diez.
+ * Y los del modulo de equipos, que son dieciseis. (Decia diez: los seis ultimos llegaron con el catalogo
+ * metrologico y los protocolos, y los tres primeros de esos faltaron aqui una semana.)
  *
  * <p><b>Seis de ellos dicen «no existe» de seis cosas distintas</b>, y por eso no se funden: al
  * registrar un equipo se manejan cinco referencias a la vez —marca, tipo, equipo, fabricante,
@@ -59,6 +60,15 @@ export const CATALOGO_EQUIPMENT: Readonly<Record<string, string>> = {
   ERR_EQUIPMENT_008: 'Ese país no existe.',
   ERR_EQUIPMENT_009: 'Esa área de servicio no existe o fue cerrada.',
   ERR_EQUIPMENT_010: 'Un equipo no se puede trasladar al área de otro cliente.',
+  // El catalogo metrologico, del 2026-10-03. Faltaban aqui hasta el 2026-10-10: el backend los
+  // devolvia y la pantalla los traducia con el mensaje generico.
+  ERR_EQUIPMENT_011: 'Esa magnitud no existe en el catálogo metrológico.',
+  ERR_EQUIPMENT_012: 'Esa unidad de medida no existe en el catálogo metrológico.',
+  ERR_EQUIPMENT_013: 'Esa unidad no es de la magnitud elegida.',
+  // Los protocolos de mantenimiento, del 2026-10-10.
+  ERR_EQUIPMENT_014: 'Ese protocolo no existe o fue retirado.',
+  ERR_EQUIPMENT_015: 'Ya hay un protocolo con ese nombre. Use el que existe en lugar de crear otro.',
+  ERR_EQUIPMENT_016: 'Ese protocolo está asignado a tipos de equipo. Quítelo de ellos antes de retirarlo.',
 };
 
 /**

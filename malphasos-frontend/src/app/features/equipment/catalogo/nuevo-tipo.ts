@@ -5,6 +5,8 @@ import { CatalogoApi } from '../catalogo-api';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
 import { Buscador } from '../../../shared/buscador/buscador';
 import { ConfiguracionDeVerificacion, Verificacion } from './verificacion';
+import { ProtocolosDelTipo } from './protocolos-del-tipo';
+import { AsignacionDeProtocolos } from '../../../core/api/tipos';
 import { tecnologiasAutorizadas } from './tecnologias';
 
 /**
@@ -20,7 +22,7 @@ import { tecnologiasAutorizadas } from './tecnologias';
  */
 @Component({
   selector: 'app-nuevo-tipo',
-  imports: [ReactiveFormsModule, RouterLink, Buscador, Verificacion],
+  imports: [ReactiveFormsModule, RouterLink, Buscador, Verificacion, ProtocolosDelTipo],
   templateUrl: './nuevo-tipo.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -30,6 +32,10 @@ export class NuevoTipo {
   private readonly api = inject(CatalogoApi);
 
   protected readonly alta = this.api.crearTipo();
+  protected readonly asignacion = this.api.asignarProtocolos();
+
+  /** Los protocolos del preventivo, en orden. Se guardan despues del tipo, con el mismo boton. */
+  protected readonly protocolos = signal<AsignacionDeProtocolos>({ protocolos: [] });
 
   /**
    * Las tecnologias autorizadas: las que esta empresa ya usa, y despues las de partida.
@@ -66,10 +72,23 @@ export class NuevoTipo {
     valorUnitarioMantenimiento: [null as number | null],
   });
 
-  protected readonly enviando = computed(() => this.alta.isPending());
-  protected readonly mensajeDeError = computed(() =>
-    this.alta.isError() ? traducirError(this.alta.error()) : '',
-  );
+  protected readonly enviando = computed(() => this.alta.isPending() || this.asignacion.isPending());
+
+  /**
+   * Si fallan los protocolos el tipo ya existe: se dice asi, para que no se intente crearlo otra vez y
+   * choque con su propio nombre. Son dos llamadas porque el API las separa, y no hay transaccion entre
+   * ellas.
+   */
+  protected readonly mensajeDeError = computed(() => {
+    if (this.alta.isError()) {
+      return traducirError(this.alta.error());
+    }
+    if (this.asignacion.isError()) {
+      return `El tipo se creó, pero sus protocolos no se guardaron: ${traducirError(this.asignacion.error())} Asígnelos desde su edición.`;
+    }
+
+    return '';
+  });
   protected readonly detalles = computed(() => detallesDe(this.alta.error()));
 
   protected malo(campo: string): boolean {
@@ -112,6 +131,22 @@ export class NuevoTipo {
           ? {}
           : { valorUnitarioMantenimiento: datos.valorUnitarioMantenimiento }),
       },
+      { onSuccess: (creado) => this.guardarProtocolos(creado.id!) },
+    );
+  }
+
+  /** Sin protocolos no hay nada que mandar: un tipo nuevo ya nace sin ninguno. */
+  private guardarProtocolos(id: string): void {
+    const asignacion = this.protocolos();
+
+    if (!asignacion.protocolos?.length) {
+      void this.router.navigate(['/catalogo']);
+
+      return;
+    }
+
+    this.asignacion.mutate(
+      { id, asignacion },
       { onSuccess: () => void this.router.navigate(['/catalogo']) },
     );
   }

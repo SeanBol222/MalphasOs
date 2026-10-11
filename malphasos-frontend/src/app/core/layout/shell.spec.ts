@@ -173,7 +173,7 @@ describe('Armazón', () => {
       expect(raiz.querySelector('#catalogo-submenu')).toBeNull();
     });
 
-    it('al pulsarla ofrece las cinco piezas, cada una con su dirección', async () => {
+    it('al pulsarla ofrece las seis piezas, cada una con su dirección', async () => {
       const raiz = await pintar();
       boton(raiz).click();
       // Sin detectar cambios el desplegable no se pinta: la senal cambio, no el DOM.
@@ -187,6 +187,7 @@ describe('Armazón', () => {
         'Fabricantes',
         'Equipos del catálogo',
         'Modelos',
+        'Protocolos',
       ]);
       expect(enlaces.map((a) => a.getAttribute('href'))).toContain('/catalogo/fabricantes');
       expect(boton(raiz).getAttribute('aria-expanded')).toBe('true');

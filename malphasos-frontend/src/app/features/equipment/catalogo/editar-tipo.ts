@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
 import { Buscador } from '../../../shared/buscador/buscador';
 import { tecnologiasAutorizadas } from './tecnologias';
+import { ProtocolosDelTipo } from './protocolos-del-tipo';
+import { AsignacionDeProtocolos } from '../../../core/api/tipos';
 
 /**
  * Edicion de un tipo de equipo.
@@ -15,7 +17,7 @@ import { tecnologiasAutorizadas } from './tecnologias';
  */
 @Component({
   selector: 'app-editar-tipo',
-  imports: [ReactiveFormsModule, RouterLink, Buscador],
+  imports: [ReactiveFormsModule, RouterLink, Buscador, ProtocolosDelTipo],
   templateUrl: './editar-tipo.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -32,6 +34,13 @@ export class EditarTipo {
 
   private readonly tipos = this.api.listarTipos();
   protected readonly cambio = this.api.editarTipo();
+
+  /** Los protocolos que el tipo tiene hoy, para empezar la lista. */
+  protected readonly protocolosActuales = this.api.protocolosDeTipo(this.id);
+  protected readonly asignacion = this.api.asignarProtocolos();
+
+  /** La lista tal como esta en pantalla. Se guarda despues del tipo, con el mismo boton. */
+  protected readonly protocolos = signal<AsignacionDeProtocolos | null>(null);
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(50)]],
@@ -61,12 +70,16 @@ export class EditarTipo {
     });
   }
 
-  protected readonly enviando = computed(() => this.cambio.isPending());
-  protected readonly mensajeDeError = computed(() =>
-    this.cambio.isError() || this.tipo.isError()
+  protected readonly enviando = computed(() => this.cambio.isPending() || this.asignacion.isPending());
+  protected readonly mensajeDeError = computed(() => {
+    if (this.asignacion.isError()) {
+      return `Los datos del tipo se guardaron, pero sus protocolos no: ${traducirError(this.asignacion.error())}`;
+    }
+
+    return this.cambio.isError() || this.tipo.isError()
       ? traducirError(this.cambio.error() ?? this.tipo.error())
-      : '',
-  );
+      : '';
+  });
   protected readonly detalles = computed(() => detallesDe(this.cambio.error()));
 
   protected malo(campo: string): boolean {
@@ -101,6 +114,25 @@ export class EditarTipo {
             : { valorUnitarioMantenimiento: datos.valorUnitarioMantenimiento }),
         },
       },
+      { onSuccess: () => this.guardarProtocolos() },
+    );
+  }
+
+  /**
+   * Se manda siempre que la lista se haya cargado, aunque nadie la tocara: reordenar sin cambiar nada
+   * mas es una edicion, y el servidor no emite nada si lo que llega es lo que ya habia.
+   */
+  private guardarProtocolos(): void {
+    const asignacion = this.protocolos();
+
+    if (!asignacion || !this.protocolosActuales.isSuccess()) {
+      void this.router.navigate(['/catalogo']);
+
+      return;
+    }
+
+    this.asignacion.mutate(
+      { id: this.id(), asignacion },
       { onSuccess: () => void this.router.navigate(['/catalogo']) },
     );
   }
