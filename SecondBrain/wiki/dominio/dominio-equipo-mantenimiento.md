@@ -3,7 +3,7 @@ name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
 tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
-updated: 2026-10-04
+updated: 2026-10-11
 ---
 
 # Dominio Equipo y Mantenimiento Preventivo (`equipment_hexagon`)
@@ -307,6 +307,30 @@ el equipo instalado su **código interno** y su **proveedor** (`V16`). El repart
 conviene tener a mano para lo que venga: **en el tipo, lo que comparten todas las máquinas de esa clase;
 en el modelo, lo que dice la placa; en la unidad, lo que es de esa máquina**. Detalle y porqués en
 [[hoja-de-vida-formato-impreso]].
+
+## El listado de equipos lo compila el servidor (2026-10-11)
+
+`GET /v1/api/client-equipments/overview` devuelve **una página** de equipos instalados con lo que el
+listado del rediseño pinta: número de hoja de vida, tipo, marca, modelo, serie, cliente, sede, área, y
+**fecha y resultado del último servicio**. Filtra por texto —serie, hoja de vida, modelo, tipo y marca,
+sin mayúsculas ni tildes—, cliente, tipo, resultado y dados de baja. `GET /client-equipments` sigue
+como estaba, porque otras pantallas necesitan la lista entera.
+
+Tres decisiones que conviene no deshacer sin pensarlo:
+
+- **Es un modelo de lectura**, `EquipmentOverview`, como la hoja de vida: no es un agregado y se
+  consulta en SQL con `NamedParameterJdbcTemplate`, porque es una proyección de cinco tablas con un
+  `LATERAL` y filtros que se componen.
+- **No cruza el borde del módulo en SQL.** La consulta solo toca tablas de `equipment`; cliente, sede
+  y área los da `ServiceAreaLocationPort`, el cuarto puerto que `client` publica, **en una consulta
+  para toda la página**. El alcance y el filtro por cliente se traducen a áreas antes de consultar,
+  con `ClientOwnershipPort`, igual que `ClientEquipmentService.findAll`.
+- **El último servicio es la intervención vigente más reciente.** Las reemplazadas por `V14` no
+  cuentan: corregir un reporte no deja a la vista el resultado viejo.
+
+Al escribir el servicio se quitó una guarda: rechazar un cliente fuera del alcance hacía lo mismo que la
+intersección de áreas que viene detrás, y con las dos **ninguna mutación sobre cualquiera de ellas
+podía fallar**. Es el caso de las guardas gemelas que el `CONVENCIONES.md` de la raíz cuenta en «Mutar para saber si una prueba ejerce algo», evitado al nacer.
 
 ## Reutilizable en MalphasOS
 

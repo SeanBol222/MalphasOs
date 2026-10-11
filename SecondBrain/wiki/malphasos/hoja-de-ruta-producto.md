@@ -338,6 +338,19 @@ El lienzo es un artefacto privado de claude.ai, `MalphasOS — rediseño visual`
 se construyó un **menú plegable** —la misma barra lateral abierta a pantalla completa—. Así hay una sola
 navegación, y no dos que puedan desincronizarse. Queda anotado para discutirlo.
 
+### Segunda fase: las demás pantallas (2026-10-11)
+
+Con las cinco tandas hechas, todas las pantallas llevaban ya las clases comunes, pero solo Inicio y el
+reporte tenían la forma de su maqueta. El usuario pidió rediseñar el resto, y decidió dos cosas: **lo
+que no tiene maqueta se dibuja primero** y se aprueba antes de construirlo, y **el listado de equipos
+amplía el backend** en vez de filtrar en el navegador.
+
+| Pantalla | Maqueta | Necesita backend | Estado |
+|---|---|---|---|
+| **Equipos** | `A-Equipos`, aprobada el 2026-10-06 | Sí: `GET /client-equipments/overview`, `b253345f` | **Hecha el 2026-10-11**, `6394cf4b` |
+| **Orden de trabajo** | `A-Orden`, aprobada el 2026-10-06 | Por ver: los equipos agrupados por área y el avance salen de lo que ya hay | Pendiente |
+| **Clientes, ficha de cliente, sede, personas y catálogo** | `A-Clientes`, `A-Cliente`, `A-Sede`, `A-Personas` y `A-Catalogo`, dibujadas el 2026-10-11 | Sí, si se aprueban: los conteos de sedes, áreas y equipos, el último servicio por cliente, y los modelos y pasos por tipo no los calcula nadie | **Esperan la revisión del usuario** |
+
 ## El orden propuesto
 
 | # | Bloque | Desbloquea | Estado de sus dependencias |
