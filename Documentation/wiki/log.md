@@ -208,3 +208,13 @@ y la hoja de vida los imprime desde el modelo.
 
 **Tocadas**: [[rf-hojas-vida]].
 
+
+## [2026-10-10] ingest | RF-13 y RF-14, implementados: 21 de 31
+
+Los protocolos de mantenimiento se construyeron en `malphasos/` (`V21` y `V22`): el catálogo con su
+asignación a tipos de equipo, y la copia de los pasos en cada reporte preventivo. Entran **RF-13** tal
+cual y **RF-14** con una interpretación escrita —solo el preventivo lleva protocolo, por decisión del
+usuario—. El marcador pasa de 19 a 21. **El `.tex` de la ERS no se tocó**: su campo de estado sigue
+diciendo «Previsto», y es otra de las afirmaciones que [[estado-de-la-ers-caducado]] recoge.
+
+**Tocadas**: [[estado-de-implementacion]], [[rf-reportes-mantenimiento]].

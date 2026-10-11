@@ -17,11 +17,13 @@ updated: 2026-10-10
 
 | | Total | Implementado | Fuente |
 |---|---|---|---|
-| Requisitos funcionales | 31 | **17** | ERS 3.2, verificada dos veces contra el código |
+| Requisitos funcionales | 31 | **21** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
 | Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio y personas**, todo de extremo a extremo, con **409** pruebas | Medido el 2026-10-03 sobre el árbol del repositorio |
 
 > **Corregido el 2026-09-26, dos veces el mismo día.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak, **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados— y **seis más** del catálogo de equipos con el registro de un equipo en un área, con **262** pruebas. **Con eso existe ya todo lo que una orden de trabajo necesita tocar**: sedes, áreas y equipos por área. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
+
+> **Actualizado el 2026-10-10: son 21.** Entran **RF-13** y **RF-14** con los protocolos —el catálogo en `V21` y la copia en cada reporte preventivo en `V22`—. RF-14 cuenta con una interpretación escrita en `Documentation/wiki`: solo el preventivo lleva protocolo, por decisión del usuario.
 
 > **Actualizado el 2026-10-04: son 19.** Entran **RF-26** y **RF-27** con la hoja de vida, y **RF-22** y **RF-24** dejan de estar en duda: la revisión de ese mismo día los había marcado «en revisión» porque la sección de servicio técnico faltaba entera y no había *un* documento sino cinco recursos. Las dos cosas se construyeron. Ver [[hoja-de-vida]].
 
@@ -295,7 +297,7 @@ orden, y esa lista es la que se carga sola.
    por tipo, indicación—. Dominio, servicio, persistencia y REST en `equipment`. **La asignación se manda
    entera, como lista ordenada** —un `PATCH` con los protocolos y sus indicaciones—, y la prioridad la
    deriva el servidor de la posición: así no puede llegar un hueco ni una repetida, que es la regla.
-2. **El reporte copia los pasos** (`V22`): `paso_reporte` con lo copiado y el estado de cada paso. Se
+2. **Hecha el 2026-10-10**, `ef2e121c`. **El reporte copia los pasos** (`V22`): `paso_reporte` con lo copiado y el estado de cada paso. Se
    copian al abrir un reporte de una orden **preventiva**; la regla de cierre cambia como dice la tabla.
 3. **Pantallas del catálogo**: Catálogo › Protocolos, y en el alta y la edición del tipo de equipo la
    lista que se arrastra, con el panel que crea y avisa de parecidos.

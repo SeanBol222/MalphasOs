@@ -174,6 +174,15 @@ marca de Bolívar Bioingeniería. Pide datos que hoy no existen —riesgo, uso, 
 número de hoja, foto— y una descripción y un responsable en cada línea del historial. El plan entero
 está en [[hoja-de-vida-formato-impreso]].
 
+## La línea de un preventivo con protocolo (2026-10-10)
+
+Desde `V22` un reporte preventivo lleva los pasos de su protocolo, y el texto de procedimientos pasa a
+ser «trabajo adicional», opcional. La descripción que el oyente congela en `intervencion.t_descripcion`
+la arma ahora `ServiceReport.descripcionDelServicio()`: **los pasos hechos, en su orden, y detrás el
+trabajo adicional** —decidido por el usuario—. Los que no aplicaron no salen. Sin pasos es el texto a
+secas, como antes. Si no cabe en los 500 caracteres de la columna se recorta con «…»; el reporte guarda
+el detalle entero. Ver [[dominio-reporte-servicio]].
+
 ## Notas relacionadas
 
 [[hoja-de-vida-formato-impreso]] · [[dominio-equipo-mantenimiento]] · [[dominio-reporte-servicio]] · [[congelar-una-referencia-historica]] · [[filtrado-por-dueno]] · [[esquema-bd-malphasos]] · [[deuda-tecnica-y-riesgos]] · [[hoja-de-ruta-producto]]

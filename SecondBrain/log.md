@@ -1764,3 +1764,18 @@ parciales; el guion de columnas pasa con 153. Y un artefacto con el modelo relac
 generado de la misma lectura.
 
 **Tocadas**: [[esquema-bd-malphasos]], [[stack-spring-boot-4-particularidades]], [[hoja-de-ruta-producto]].
+
+## [2026-10-10] ingest | los pasos del protocolo en el reporte: RF-13 y RF-14 cuentan
+
+Segunda tanda de protocolos (`ef2e121c`): `V22` crea `paso_reporte` y saca del `CHECK` de cierre de `V9`
+la exigencia de procedimientos, que ahora depende de si hay pasos. Al abrir un preventivo se copian los
+protocolos del tipo; «no aplica» exige nota; la línea de la hoja de vida son los pasos hechos y el
+trabajo adicional. 1114 pruebas del backend. El marcador pasa de 19 a **21**, con RF-14 contado bajo una
+interpretación escrita en `Documentation/wiki`.
+
+**Y un descuido propio, destapado al recontar el esquema**: `paso_reporte` no tiene `b_estado_activo`,
+la primera tabla sin borrado lógico. Queda en [[deuda-tecnica-y-riesgos]], pendiente de decidir.
+Esquema: 30 tablas, 42 foráneas, 47 `CHECK`; el guion de columnas pasa con 162.
+
+**Tocadas**: [[dominio-reporte-servicio]], [[hoja-de-vida]], [[esquema-bd-malphasos]],
+[[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]].
