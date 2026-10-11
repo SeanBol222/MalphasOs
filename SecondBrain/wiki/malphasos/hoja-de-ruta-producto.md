@@ -348,7 +348,7 @@ amplía el backend** en vez de filtrar en el navegador.
 | Pantalla | Maqueta | Necesita backend | Estado |
 |---|---|---|---|
 | **Equipos** | `A-Equipos`, aprobada el 2026-10-06 | Sí: `GET /client-equipments/overview`, `b253345f` | **Hecha el 2026-10-11**, `6394cf4b` |
-| **Orden de trabajo** | `A-Orden`, aprobada el 2026-10-06 | Por ver: los equipos agrupados por área y el avance salen de lo que ya hay | Pendiente |
+| **Orden de trabajo** | `A-Orden`, aprobada el 2026-10-06 | Sí, poco: el listado de equipos admite `ids`, `a53540ea` | **Hecha el 2026-10-11**, `3fecdcab`. Sin las fechas de cada paso del estado, que la maqueta dibujaba y no se guardan en ninguna parte |
 | **Clientes, ficha de cliente, sede, personas y catálogo** | `A-Clientes`, `A-Cliente`, `A-Sede`, `A-Personas` y `A-Catalogo`, dibujadas el 2026-10-11 | Sí, si se aprueban: los conteos de sedes, áreas y equipos, el último servicio por cliente, y los modelos y pasos por tipo no los calcula nadie | **Esperan la revisión del usuario** |
 
 ## El orden propuesto
