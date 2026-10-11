@@ -8,218 +8,331 @@
   }
 
   @if (orden.data(); as datos) {
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <div>
-        <h1 class="titulo-pagina">Orden del {{ datos.fechaMantenimiento }}</h1>
-        <p class="text-neutral-700" [class.font-semibold]="datos.estadoActivo">
-          {{ datos.estadoActivo ? estado() : 'Anulada' }}
-        </p>
-      </div>
+    <!-- La cabecera de la maqueta: qué servicio es, dónde, quién y cuándo, y en qué paso va. -->
+    <header class="superficie">
+      <div class="flex flex-wrap items-start gap-2">
+        <div class="min-w-0 flex-[1_1_24rem]">
+          <p class="text-sm font-bold tracking-[0.14em] text-accent-700 uppercase">
+            {{ servicio() }}
+          </p>
+          <h1 class="titulo-pagina mt-1">{{ cliente() }} — {{ sede() }}</h1>
+          <p class="mt-1 text-neutral-800">
+            Ingeniero:
+            @if (ingeniero()) {
+              <strong class="text-ink">{{ ingeniero() }}</strong>
+            } @else {
+              sin asignar
+            }
+            · Programada para el {{ programada() }}
+          </p>
+        </div>
 
-      <div class="flex flex-wrap gap-2">
-        @if (puedeEscribir()) {
-          <!--
-            Los dos botones aparecen solo cuando el estado lo permite. Un desplegable de estados
-            invitaria a saltarse el orden, y el backend responderia «el estado no lo permite» a algo
-            que la pantalla habia ofrecido.
-          -->
-          @if (puedeIniciar()) {
-            <button
-              class="boton-primario min-h-tactil"
-              type="button"
-              [disabled]="inicio.isPending()"
-              (click)="iniciar()"
+        <div class="flex flex-wrap gap-1">
+          @if (puedeEscribir() && datos.estadoActivo) {
+            <a
+              class="boton-secundario flex min-h-tactil items-center"
+              [routerLink]="['/ordenes', id(), 'equipos']"
             >
-              {{ inicio.isPending() ? 'Iniciando…' : 'Iniciar trabajo' }}
-            </button>
+              Añadir equipos
+            </a>
           }
-          @if (puedeEjecutar()) {
-            <button
-              class="boton-primario min-h-tactil"
-              type="button"
-              [disabled]="ejecucion.isPending()"
-              (click)="ejecutar()"
-            >
-              {{ ejecucion.isPending() ? 'Cerrando…' : 'Marcar como ejecutada' }}
-            </button>
-          }
-
-          @if (datos.estadoActivo) {
-            @if (confirmandoAnulacion()) {
+          @if (puedeEscribir()) {
+            <!--
+              Los dos botones aparecen solo cuando el estado lo permite. Un desplegable de estados
+              invitaria a saltarse el orden, y el backend responderia «el estado no lo permite» a algo
+              que la pantalla habia ofrecido.
+            -->
+            @if (puedeIniciar()) {
               <button
                 class="boton-primario min-h-tactil"
                 type="button"
-                [disabled]="anulacion.isPending()"
-                (click)="anular()"
+                [disabled]="inicio.isPending()"
+                (click)="iniciar()"
               >
-                Confirmar anulación
+                {{ inicio.isPending() ? 'Iniciando…' : 'Iniciar trabajo' }}
               </button>
+            }
+            @if (puedeEjecutar()) {
               <button
-                class="boton-secundario min-h-tactil"
+                class="boton-primario min-h-tactil"
                 type="button"
-                (click)="confirmandoAnulacion.set(false)"
+                [disabled]="ejecucion.isPending()"
+                (click)="ejecutar()"
               >
-                Cancelar
+                {{ ejecucion.isPending() ? 'Cerrando…' : 'Marcar como ejecutada' }}
               </button>
+            }
+          }
+        </div>
+      </div>
+
+      @if (datos.estadoActivo) {
+        <ol class="mt-3 grid max-w-[720px] grid-cols-3 gap-1" aria-label="Estado de la orden">
+          @for (paso of pasos(); track paso.etiqueta) {
+            <li
+              class="border-t-4 pt-1 text-sm"
+              [class]="
+                paso.actual
+                  ? 'border-accent font-extrabold'
+                  : paso.hecho
+                    ? 'border-ink text-neutral-800'
+                    : 'border-neutral-300 text-neutral-700'
+              "
+              [attr.aria-current]="paso.actual ? 'step' : null"
+            >
+              {{ paso.etiqueta }}
+            </li>
+          }
+        </ol>
+      } @else {
+        <p class="mt-3 border-t-4 border-ink pt-1 font-extrabold">
+          Anulada. Su historia queda intacta y sigue en el listado.
+        </p>
+      }
+    </header>
+
+    <div class="mt-3 flex flex-wrap items-start gap-3">
+      <section class="flex min-w-0 flex-[2_1_34rem] flex-col gap-2" aria-labelledby="alcance">
+        <div class="flex flex-wrap items-baseline gap-2">
+          <h2 id="alcance" class="titulo-seccion">Equipos de la orden</h2>
+          @if (totalDeEquipos()) {
+            <span class="text-sm text-neutral-800">
+              {{ cerrados() }} de {{ totalDeEquipos() }} con reporte cerrado
+            </span>
+          }
+        </div>
+
+        @if (!totalDeEquipos()) {
+          <p class="superficie text-neutral-800">
+            Esta orden no tiene equipos. Solo se pueden añadir equipos de áreas de su propia sede.
+          </p>
+        } @else {
+          <div
+            class="h-1 bg-neutral-200"
+            role="progressbar"
+            aria-label="Equipos con reporte cerrado"
+            [attr.aria-valuenow]="avance()"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <div class="h-1 bg-ink" [style.width.%]="avance()"></div>
+          </div>
+
+          @if (!sePuedeReportar() && datos.estadoActivo) {
+            <!--
+              Es la regla del servidor, no una decision de esta pantalla: un reporte cuenta lo que se
+              hizo, y en una orden que nadie ha empezado no se ha hecho nada.
+            -->
+            <p class="text-neutral-800">
+              Los reportes se abren cuando la orden empieza: primero hay que iniciar el trabajo.
+            </p>
+          }
+
+          <!--
+            Cada equipo lleva su reporte al lado, que es como RF-09 pide llegar a el: «se puede acceder
+            al reporte desde la orden de trabajo». Hay uno por equipo, no uno por orden.
+          -->
+          @for (grupo of grupos(); track grupo.area) {
+            <section class="border border-neutral-300 bg-white" [attr.aria-label]="grupo.area">
+              <h3
+                class="border-b border-neutral-300 bg-neutral-100 px-2 py-1 text-sm font-bold tracking-[0.08em] uppercase"
+              >
+                {{ grupo.area }}
+              </h3>
+              <ul>
+                @for (equipo of grupo.equipos; track equipo.id) {
+                  <li
+                    class="flex flex-wrap items-center gap-2 border-b border-neutral-200 px-2 py-1.5 last:border-b-0"
+                    [attr.data-equipo]="equipo.id"
+                  >
+                    <div class="min-w-0 flex-[1_1_15rem]">
+                      <p class="font-bold">{{ equipo.nombre }}</p>
+                      <p class="text-sm text-neutral-700">
+                        {{ equipo.detalle }}{{ equipo.deBaja ? ' · Dado de baja' : '' }}
+                      </p>
+                    </div>
+
+                    <span
+                      class="inline-flex flex-[0_0_12rem] items-center gap-1 text-sm"
+                      [class]="equipo.peso"
+                    >
+                      <span
+                        class="size-1 shrink-0 border border-ink"
+                        [class]="equipo.cuadro"
+                        aria-hidden="true"
+                      ></span>
+                      {{ equipo.reporte }}
+                    </span>
+
+                    <div class="flex flex-wrap gap-1">
+                      @if (equipo.idReporte) {
+                        <a
+                          class="boton-secundario flex min-h-tactil items-center text-sm"
+                          [routerLink]="['/reportes', equipo.idReporte]"
+                        >
+                          {{ equipo.cerrado ? 'Ver reporte' : 'Continuar' }}
+                        </a>
+                      } @else if (puedeReportar() && sePuedeReportar()) {
+                        <button
+                          class="boton-secundario min-h-tactil text-sm"
+                          type="button"
+                          [disabled]="apertura.isPending()"
+                          (click)="abrirReporte(equipo.id)"
+                        >
+                          Abrir reporte
+                        </button>
+                      }
+
+                      @if (puedeEscribir() && datos.estadoActivo) {
+                        <button
+                          class="min-h-tactil px-1 text-sm font-semibold underline"
+                          type="button"
+                          [attr.aria-label]="'Quitar ' + equipo.nombre + ' de la orden'"
+                          [disabled]="bajaDeEquipo.isPending()"
+                          (click)="quitarEquipo(equipo.id)"
+                        >
+                          Quitar
+                        </button>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+        }
+      </section>
+
+      <aside class="flex min-w-0 flex-[1_1_18rem] flex-col gap-3">
+        <section class="superficie" aria-labelledby="datos-orden">
+          <h2 id="datos-orden" class="titulo-seccion">Datos de la orden</h2>
+          <dl class="mt-1.5 grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Cliente</dt>
+              <dd class="mt-0.5 font-semibold">{{ cliente() }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Sede</dt>
+              <dd class="mt-0.5 font-semibold">{{ sede() }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Servicio</dt>
+              <dd class="mt-0.5 font-semibold">{{ servicio() }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Estado</dt>
+              <dd class="mt-0.5 font-semibold">{{ datos.estadoActivo ? estado() : 'Anulada' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="superficie" aria-labelledby="ingeniero">
+          <h2 id="ingeniero" class="titulo-seccion">Ingeniero</h2>
+
+          @if (ingeniero()) {
+            <p class="mt-1 font-semibold">{{ ingeniero() }}</p>
+          } @else {
+            <!-- Sin ingeniero la orden esta programada pero no repartida: nadie va a ir. -->
+            <p class="mt-1 text-neutral-800">
+              Sin asignar. La orden está programada, pero nadie la ejecuta.
+            </p>
+          }
+
+          @if (puedeAsignar()) {
+            @if (asignando()) {
+              <div class="mt-2">
+                <app-buscador
+                  [formControl]="ingenieroElegido"
+                  campo="idIngeniero"
+                  etiqueta="Ingeniero"
+                  historial="ingeniero"
+                  [opciones]="opcionesDeIngeniero()"
+                />
+                <div class="mt-2 flex flex-wrap gap-1">
+                  <button
+                    class="boton-primario min-h-tactil"
+                    type="button"
+                    [disabled]="asignacion.isPending()"
+                    (click)="asignar()"
+                  >
+                    {{ asignacion.isPending() ? 'Asignando…' : 'Asignar' }}
+                  </button>
+                  <button
+                    class="boton-secundario min-h-tactil"
+                    type="button"
+                    (click)="asignando.set(false)"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             } @else {
               <button
-                class="boton-secundario min-h-tactil"
+                class="mt-1 min-h-tactil font-semibold underline"
+                type="button"
+                (click)="asignando.set(true)"
+              >
+                {{ ingeniero() ? 'Cambiar de ingeniero' : 'Asignar un ingeniero' }}
+              </button>
+            }
+          }
+        </section>
+
+        @if (puedeVerEncargados()) {
+          <section class="superficie" aria-labelledby="encargados">
+            <h2 id="encargados" class="titulo-seccion">Encargados del sitio</h2>
+            @for (encargado of encargadosDelSitio(); track encargado.id + encargado.aCargoDe) {
+              <p class="mt-1.5 text-sm">
+                <strong>{{ encargado.nombre }}</strong>
+                <span class="block text-neutral-700">{{ encargado.aCargoDe }}</span>
+              </p>
+            } @empty {
+              <p class="mt-1 text-sm text-neutral-800">
+                Nadie figura como responsable de esta sede ni de las áreas de la orden.
+              </p>
+            }
+          </section>
+        }
+
+        @if (puedeEscribir() && datos.estadoActivo) {
+          <!-- Anular va aparte y abajo: es lo que menos se hace y lo que no tiene vuelta atrás. -->
+          <section class="superficie" aria-label="Anular la orden">
+            @if (confirmandoAnulacion()) {
+              <p class="text-sm">
+                La orden queda anulada con su historia intacta y sigue en el listado. No se borra
+                nada.
+              </p>
+              <div class="mt-1.5 flex flex-wrap gap-1">
+                <button
+                  class="boton-primario min-h-tactil"
+                  type="button"
+                  [disabled]="anulacion.isPending()"
+                  (click)="anular()"
+                >
+                  Confirmar anulación
+                </button>
+                <button
+                  class="boton-secundario min-h-tactil"
+                  type="button"
+                  (click)="confirmandoAnulacion.set(false)"
+                >
+                  Cancelar
+                </button>
+              </div>
+            } @else {
+              <button
+                class="boton-secundario min-h-tactil w-full"
                 type="button"
                 (click)="confirmandoAnulacion.set(true)"
               >
                 Anular
               </button>
             }
-          }
+          </section>
         }
-      </div>
+
+        <a class="font-semibold underline" routerLink="/ordenes">Volver al listado</a>
+      </aside>
     </div>
-
-    @if (confirmandoAnulacion()) {
-      <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
-        La orden queda anulada con su historia intacta y sigue en el listado. No se borra nada.
-      </p>
-    }
-
-    <dl class="superficie mt-3 grid max-w-[720px] grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-      <dt class="font-semibold">Cliente</dt>
-      <dd>{{ cliente() }}</dd>
-
-      <dt class="font-semibold">Sede</dt>
-      <dd>{{ sede() }}</dd>
-
-      <dt class="font-semibold">Servicio</dt>
-      <dd>{{ servicio() }}</dd>
-    </dl>
-
-    <section class="superficie mt-3">
-      <h2 class="titulo-seccion">Ingeniero</h2>
-
-      @if (ingeniero()) {
-        <p [class.font-semibold]="true">{{ ingeniero() }}</p>
-      } @else {
-        <!-- Sin ingeniero la orden esta programada pero no repartida: nadie va a ir. -->
-        <p class="text-neutral-700">Sin asignar. La orden está programada, pero nadie la ejecuta.</p>
-      }
-
-      @if (puedeAsignar()) {
-        @if (asignando()) {
-          <div class="mt-2 max-w-[24rem]">
-            <app-buscador
-              [formControl]="ingenieroElegido"
-              campo="idIngeniero"
-              etiqueta="Ingeniero"
-              historial="ingeniero"
-              [opciones]="opcionesDeIngeniero()"
-            />
-            <div class="mt-2 flex flex-wrap gap-2">
-              <button
-                class="boton-primario min-h-tactil"
-                type="button"
-                [disabled]="asignacion.isPending()"
-                (click)="asignar()"
-              >
-                {{ asignacion.isPending() ? 'Asignando…' : 'Asignar' }}
-              </button>
-              <button
-                class="boton-secundario min-h-tactil"
-                type="button"
-                (click)="asignando.set(false)"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        } @else {
-          <button
-            class="mt-1 min-h-tactil px-1 font-semibold underline"
-            type="button"
-            (click)="asignando.set(true)"
-          >
-            {{ ingeniero() ? 'Cambiar de ingeniero' : 'Asignar un ingeniero' }}
-          </button>
-        }
-      }
-    </section>
-
-    <section class="superficie mt-3">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="titulo-seccion">Equipos de la orden</h2>
-        @if (puedeEscribir() && datos.estadoActivo) {
-          <a
-            class="boton-primario flex min-h-tactil items-center"
-            [routerLink]="['/ordenes', id(), 'equipos']"
-          >
-            Añadir equipos
-          </a>
-        }
-      </div>
-
-      @if (!alcance().length) {
-        <p class="text-neutral-700">
-          Esta orden no tiene equipos. Solo se pueden añadir equipos de áreas de su propia sede.
-        </p>
-      } @else {
-        <!--
-          Cada equipo de la orden lleva su reporte al lado, que es como RF-09 pide llegar a el: «se puede
-          acceder al reporte desde la orden de trabajo». Hay uno por equipo, no uno por orden.
-        -->
-        <ul>
-          @for (equipo of alcance(); track equipo.id) {
-            <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
-              <span class="grow">
-                <span class="font-semibold">{{ equipo.serie }}</span>
-                <span class="text-neutral-700">· {{ equipo.area }}</span>
-              </span>
-
-              @if (equipo.idReporte) {
-                <a
-                  class="min-h-tactil px-1 font-semibold underline"
-                  [routerLink]="['/reportes', equipo.idReporte]"
-                >
-                  Reporte · {{ equipo.estadoDelReporte }}
-                </a>
-              } @else if (puedeReportar() && sePuedeReportar()) {
-                <button
-                  class="min-h-tactil px-1 font-semibold underline"
-                  type="button"
-                  [disabled]="apertura.isPending()"
-                  (click)="abrirReporte(equipo.id)"
-                >
-                  Abrir reporte
-                </button>
-              } @else {
-                <span class="text-neutral-700">Sin reporte</span>
-              }
-
-              @if (puedeEscribir() && datos.estadoActivo) {
-                <button
-                  class="min-h-tactil px-1 font-semibold underline"
-                  type="button"
-                  [disabled]="bajaDeEquipo.isPending()"
-                  (click)="quitarEquipo(equipo.id)"
-                >
-                  Quitar
-                </button>
-              }
-            </li>
-          }
-        </ul>
-
-        @if (!sePuedeReportar() && datos.estadoActivo) {
-          <!--
-            Es la regla del servidor, no una decision de esta pantalla: un reporte cuenta lo que se hizo,
-            y en una orden que nadie ha empezado no se ha hecho nada.
-          -->
-          <p class="mt-1 text-neutral-700">
-            Los reportes se abren cuando la orden empieza: primero hay que iniciar el trabajo.
-          </p>
-        }
-      }
-    </section>
-
-    <p class="mt-3">
-      <a class="font-semibold underline" routerLink="/ordenes">Volver al listado</a>
-    </p>
   }
 }

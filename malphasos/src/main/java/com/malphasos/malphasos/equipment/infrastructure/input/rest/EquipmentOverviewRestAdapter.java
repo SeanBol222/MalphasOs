@@ -10,6 +10,8 @@ import com.malphasos.malphasos.equipment.infrastructure.input.model.response.Equ
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -46,12 +48,15 @@ public class EquipmentOverviewRestAdapter {
             @RequestParam(required = false) UUID idTipoEquipo,
             @Parameter(description = "Resultado del ultimo servicio") @RequestParam(required = false) InterventionResult resultado,
             @Parameter(description = "true para listar los dados de baja") @RequestParam(defaultValue = "false") boolean dadosDeBaja,
+            @Parameter(description = "Solo estos equipos, separados por comas; con ellos no se filtra por baja")
+            @RequestParam(required = false) List<UUID> ids,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "" + EquipmentOverviewQuery.TAMANO_POR_DEFECTO) int tamano,
             Authentication autenticacion) {
 
         EquipmentOverview listado = equipmentOverviewServicePort.list(
-                new EquipmentOverviewQuery(q, idCliente, idTipoEquipo, resultado, dadosDeBaja, pagina, tamano),
+                new EquipmentOverviewQuery(q, idCliente, idTipoEquipo, resultado, dadosDeBaja,
+                        ids == null ? null : new HashSet<>(ids), pagina, tamano),
                 readScopeResolver.scopeFor(autenticacion));
 
         return new EquipmentOverviewResponse(

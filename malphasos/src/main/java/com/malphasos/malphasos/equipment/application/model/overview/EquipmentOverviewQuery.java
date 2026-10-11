@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.application.model.overview;
 
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -14,6 +15,9 @@ import java.util.UUID;
  *                     sin distinguir mayúsculas ni tildes
  * @param resultado    el del último servicio cerrado del equipo
  * @param dadosDeBaja  {@code false} lista los equipos en servicio; {@code true}, los dados de baja
+ * @param ids          solo estos equipos, <b>estén como estén</b>: con identificadores no se filtra por
+ *                     {@code dadosDeBaja}, porque quien los pide —la ficha de una orden— necesita también
+ *                     el que se dio de baja después de entrar en ella. Vacío o nulo no filtra
  */
 public record EquipmentOverviewQuery(
         String texto,
@@ -21,6 +25,7 @@ public record EquipmentOverviewQuery(
         UUID idTipoEquipo,
         InterventionResult resultado,
         boolean dadosDeBaja,
+        Set<UUID> ids,
         int pagina,
         int tamano) {
 
@@ -29,7 +34,15 @@ public record EquipmentOverviewQuery(
 
     public EquipmentOverviewQuery {
         texto = texto == null || texto.isBlank() ? null : texto.strip();
+        ids = ids == null || ids.isEmpty() ? null : Set.copyOf(ids);
         pagina = Math.max(pagina, 0);
         tamano = Math.clamp(tamano, 1, TAMANO_MAXIMO);
+    }
+
+    /** La consulta de siempre, sin identificadores: es la del listado. */
+    public EquipmentOverviewQuery(
+            String texto, UUID idCliente, UUID idTipoEquipo, InterventionResult resultado,
+            boolean dadosDeBaja, int pagina, int tamano) {
+        this(texto, idCliente, idTipoEquipo, resultado, dadosDeBaja, null, pagina, tamano);
     }
 }

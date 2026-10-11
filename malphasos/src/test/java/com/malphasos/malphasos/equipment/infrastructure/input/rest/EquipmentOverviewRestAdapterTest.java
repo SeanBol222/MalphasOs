@@ -80,6 +80,18 @@ class EquipmentOverviewRestAdapterTest {
     }
 
     @Test
+    @DisplayName("los identificadores llegan como conjunto, separados por comas")
+    void identificadores() throws Exception {
+        UUID uno = UUID.randomUUID();
+        UUID dos = UUID.randomUUID();
+        when(servicio.list(any(), any())).thenReturn(new EquipmentOverview(List.of(), 0, 0, 25));
+
+        mockMvc.perform(get(RUTA).param("ids", uno + "," + dos)).andExpect(status().isOk());
+
+        assertThat(consultaRecibida().ids()).containsExactlyInAnyOrder(uno, dos);
+    }
+
+    @Test
     @DisplayName("un resultado que no existe responde 400 sin llegar al servicio")
     void resultadoInvalido() throws Exception {
         mockMvc.perform(get(RUTA).param("resultado", "ROTO")).andExpect(status().isBadRequest());

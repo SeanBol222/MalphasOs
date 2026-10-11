@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, Signal } from '@angular/core';
 import {
   injectMutation,
   injectQuery,
@@ -34,10 +34,15 @@ export class EncargadoApi {
 
   static readonly CLAVE = ['encargados'] as const;
 
-  listar() {
+  /**
+   * Todos los encargados. Admite una senal que la apaga, como {@code ClienteApi.listar}: la ficha de una
+   * orden la ensena solo a quien tiene {@code engineer.read}, y pedirla sin permiso seria un 403.
+   */
+  listar(habilitada?: Signal<boolean>) {
     return injectQuery(() => ({
       queryKey: EncargadoApi.CLAVE,
       queryFn: () => firstValueFrom(this.http.get<Encargado[]>(this.url)),
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 
