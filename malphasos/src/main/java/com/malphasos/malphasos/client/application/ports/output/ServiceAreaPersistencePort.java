@@ -17,6 +17,8 @@ public interface ServiceAreaPersistencePort {
 
     List<ServiceArea> findByHeadquarter(UUID idSede);
 
+    List<ServiceArea> findByHeadquarters(Collection<UUID> idsSedes);
+
     /**
      * Identificadores de las áreas de estos clientes, cruzando por la sede.
      *

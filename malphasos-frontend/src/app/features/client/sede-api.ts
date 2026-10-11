@@ -7,7 +7,7 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CambioDeSede, NuevaSede, Sede } from '../../core/api/tipos';
+import { CambioDeSede, NuevaSede, ResumenDeSede, Sede } from '../../core/api/tipos';
 import { ClienteApi } from './cliente-api';
 
 /**
@@ -41,6 +41,26 @@ export class SedeApi {
 
   static claveDetalle(id: string) {
     return [...SedeApi.CLAVE, id] as const;
+  }
+
+  /**
+   * Las sedes con sus areas, de todos los clientes o de uno (2026-10-11): lo que los listados del
+   * rediseño cuentan. Cuelga de {@link CLAVE}, asi que abrir o cerrar una sede o un area lo recarga.
+   */
+  resumen(idCliente?: Signal<string>) {
+    return injectQuery(() => {
+      const id = idCliente?.() ?? '';
+
+      return {
+        queryKey: [...SedeApi.CLAVE, 'resumen', id || 'todas'],
+        queryFn: () =>
+          firstValueFrom(
+            this.http.get<ResumenDeSede[]>(`${environment.api}/v1/api/headquarters/summary`, {
+              params: id ? { idCliente: id } : {},
+            }),
+          ),
+      };
+    });
   }
 
   listarDe(idCliente: Signal<string>) {
@@ -81,9 +101,7 @@ export class SedeApi {
   crear() {
     return injectMutation(() => ({
       mutationFn: ({ idCliente, sede }: { idCliente: string; sede: NuevaSede }) =>
-        firstValueFrom(
-          this.http.post<Sede>(`${this.urlClientes}/${idCliente}/headquarters`, sede),
-        ),
+        firstValueFrom(this.http.post<Sede>(`${this.urlClientes}/${idCliente}/headquarters`, sede)),
       onSuccess: () => this.invalidar(),
     }));
   }

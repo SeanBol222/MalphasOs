@@ -4,6 +4,11 @@ import { Router, RouterLink } from '@angular/router';
 import { ClienteApi } from '../cliente-api';
 import { SedeApi } from '../sede-api';
 import { UbicacionApi } from '../../location/ubicacion-api';
+import { EquipoApi } from '../../equipment/equipo-api';
+import { nombreCompleto, PersonaApi } from '../../person/persona-api';
+import { Sesion } from '../../../core/auth/sesion';
+import { fechaCorta } from '../../../core/fechas';
+import { conteoDe, contar } from '../conteos';
 import { ETIQUETA_DE_IDENTIFICACION, TipoIdentificacion } from '../../../core/api/tipos';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
 
@@ -15,6 +20,10 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  *
  * <p>Y sus sedes, que es por donde se entra a las areas de servicio y a los equipos: la ficha del
  * cliente es la raiz de todo lo que cuelga de el.
+ *
+ * <p><b>Rehecha el 2026-10-11 con el rediseño</b> —la maqueta «A-Cliente»—: cabecera con la sigla y
+ * cuatro cifras, las sedes como tarjetas con sus áreas y sus equipos, y a un lado los representantes y
+ * el contacto. Las cifras salen de los dos resúmenes del servidor, sumados en {@link contar}.
  *
  * <p><b>El identificador entra por la ruta como una senal de entrada</b>, no leyendo el snapshot del
  * router. Asi, navegar de un cliente a otro sin destruir el componente vuelve a consultar en vez de
@@ -36,6 +45,65 @@ export class DetalleCliente {
   protected readonly cliente = this.api.detalle(this.id);
   protected readonly sedes = inject(SedeApi).listarDe(this.id);
   private readonly paises = inject(UbicacionApi).listarPaises();
+  private readonly sesion = inject(Sesion);
+
+  protected readonly veEquipos = computed(() => this.sesion.puede('equipment.read'));
+  protected readonly vePersonas = computed(() => this.sesion.puede('person.read'));
+  protected readonly registraPersonas = computed(() => this.sesion.puede('person.write'));
+  private readonly resumenDeSedes = inject(SedeApi).resumen(this.id);
+  private readonly equipos = inject(EquipoApi).conteoPorArea(this.id, this.veEquipos);
+  private readonly ciudades = inject(UbicacionApi).listarCiudades(
+    computed(() => this.sesion.puede('location.read')),
+  );
+  private readonly personas = inject(PersonaApi).listar(this.vePersonas);
+
+  /** Las cuatro cifras de la cabecera. */
+  protected readonly cifras = computed(() => {
+    return conteoDe(
+      contar(this.resumenDeSedes.data() ?? [], this.equipos.data() ?? [], 'idCliente'),
+      this.id(),
+    );
+  });
+
+  /** Las sedes como tarjetas: dirección, ciudad, áreas abiertas y equipos en servicio. */
+  protected readonly tarjetas = computed(() => {
+    const porSede = contar(this.resumenDeSedes.data() ?? [], this.equipos.data() ?? [], 'id');
+    const ciudades = new Map((this.ciudades.data() ?? []).map((c) => [c.id, c.nombre]));
+    const resumen = new Map((this.resumenDeSedes.data() ?? []).map((s) => [s.id, s]));
+
+    return (this.sedes.data() ?? [])
+      .slice()
+      .sort((a, b) => Number(b.estadoActivo) - Number(a.estadoActivo))
+      .map((sede) => {
+        const conteo = conteoDe(porSede, sede.id);
+
+        return {
+          id: sede.id!,
+          nombre: sede.nombre ?? '',
+          abierta: !!sede.estadoActivo,
+          direccion: `Calle ${sede.calle} · Carrera ${sede.carrera} · N.º ${sede.numero}`,
+          ciudad: ciudades.get(sede.idCiudad ?? '') ?? '',
+          // Una sede cerrada no cuenta en las cifras, pero su tarjeta sí dice cuántas áreas tenía.
+          areas: sede.estadoActivo
+            ? conteo.areas
+            : (resumen.get(sede.id)?.areas ?? []).filter((a) => a.abierta).length,
+          equipos: conteo.equipos,
+          ultimoServicio: fechaCorta(conteo.ultimoServicio),
+        };
+      });
+  });
+
+  /** Los representantes con nombre; sin {@code person.read}, solo cuántos son. */
+  protected readonly representantes = computed(() => {
+    const ids = this.cliente.data()?.representantes ?? [];
+    const personas = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
+
+    return ids.map((id) => {
+      const persona = personas.get(id);
+
+      return persona ? nombreCompleto(persona) : 'Representante';
+    });
+  });
 
   protected readonly baja = this.api.retirar();
   protected readonly altaDeCorreo = this.api.agregarCorreo();

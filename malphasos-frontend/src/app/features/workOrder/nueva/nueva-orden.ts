@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  untracked,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -35,6 +43,13 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
 export class NuevaOrden {
   private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
+
+  /**
+   * Cliente y sede ya elegidos, desde la ficha de una sede —«Nueva orden aquí», del rediseño del
+   * 2026-10-11—. Llegan como parámetros de consulta y son solo el punto de partida: se pueden cambiar.
+   */
+  readonly cliente = input<string>();
+  readonly sede = input<string>();
 
   protected readonly periodicidades = PERIODICIDADES;
   protected readonly etiquetasDePeriodicidad = ETIQUETA_DE_PERIODICIDAD;
@@ -103,6 +118,29 @@ export class NuevaOrden {
         this.formulario.patchValue({ idSede: '' });
       }
     }
+  });
+
+  /**
+   * Pone el cliente y la sede que traiga la ruta, una sola vez y solo si nadie eligió nada aún.
+   *
+   * <p>Marca el cliente como el anterior <b>antes</b> de ponerlo: si no, el efecto de arriba lo vería
+   * como un cambio de cliente y borraría la sede recién puesta.
+   */
+  private readonly precargar = effect(() => {
+    const cliente = this.cliente();
+    const sede = this.sede();
+
+    if (!cliente) {
+      return;
+    }
+
+    untracked(() => {
+      if (this.formulario.getRawValue().idCliente) {
+        return;
+      }
+      this.clienteAnterior = cliente;
+      this.formulario.patchValue({ idCliente: cliente, idSede: sede ?? '' });
+    });
   });
 
   protected malo(campo: string): boolean {

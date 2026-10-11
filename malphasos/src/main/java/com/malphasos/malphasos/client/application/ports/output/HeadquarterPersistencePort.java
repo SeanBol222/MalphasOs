@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.client.application.ports.output;
 
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,8 @@ public interface HeadquarterPersistencePort {
     Optional<Headquarter> findById(UUID id);
 
     List<Headquarter> findByClient(UUID idCliente);
+
+    List<Headquarter> findByClients(Collection<UUID> idsClientes);
 
     Headquarter save(Headquarter headquarter);
 }

@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, Signal } from '@angular/core';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -38,11 +38,13 @@ export class UbicacionApi {
     }));
   }
 
-  listarCiudades() {
+  /** Admite una senal que la apaga: quien lee clientes no siempre tiene {@code location.read}. */
+  listarCiudades(habilitada?: Signal<boolean>) {
     return injectQuery(() => ({
       queryKey: UbicacionApi.CLAVE_CIUDADES,
       queryFn: () => firstValueFrom(this.http.get<Ciudad[]>(this.urlCiudades)),
       staleTime: UbicacionApi.VIGENCIA,
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 }

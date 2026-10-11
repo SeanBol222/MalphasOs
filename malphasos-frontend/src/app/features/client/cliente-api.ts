@@ -68,6 +68,9 @@ export class ClienteApi {
     return injectQuery(() => ({
       queryKey: ClienteApi.claveDetalle(id()),
       queryFn: () => firstValueFrom(this.http.get<Cliente>(`${this.url}/${id()}`)),
+      // Vacio mientras quien lo pide no sabe aun de que cliente se trata —la ficha de una sede, hasta
+      // que llega la sede—: sin esto se pediria /clients/ a secas, que es el listado y no una ficha.
+      enabled: !!id(),
     }));
   }
 

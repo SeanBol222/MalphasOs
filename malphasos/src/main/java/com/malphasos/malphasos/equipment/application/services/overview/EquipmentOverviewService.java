@@ -8,7 +8,9 @@ import com.malphasos.malphasos.equipment.application.model.overview.EquipmentOve
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentOverviewServicePort;
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentOverviewPersistencePort;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
+import com.malphasos.malphasos.equipment.application.model.overview.EquipmentAreaSummary;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -57,6 +59,29 @@ public class EquipmentOverviewService implements EquipmentOverviewServicePort {
                 pagina.total(),
                 pagina.pagina(),
                 pagina.tamano());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EquipmentAreaSummary> summarizeByArea(UUID idCliente, ReadScope alcance) {
+        Set<UUID> areas = areasPermitidas(
+                new EquipmentOverviewQuery(null, idCliente, null, null, false, 0, 1), alcance);
+
+        if (areas != null && areas.isEmpty()) {
+            return List.of();
+        }
+
+        List<EquipmentAreaSummary> conteos = equipmentOverviewPersistencePort.countByArea(areas);
+        Map<UUID, ServiceAreaLocation> ubicaciones = serviceAreaLocationPort.locate(
+                conteos.stream().map(EquipmentAreaSummary::idArea).collect(Collectors.toSet()));
+
+        return conteos.stream()
+                .filter(conteo -> ubicaciones.containsKey(conteo.idArea()))
+                .map(conteo -> {
+                    ServiceAreaLocation donde = ubicaciones.get(conteo.idArea());
+                    return conteo.enSede(donde.idSede(), donde.idCliente());
+                })
+                .toList();
     }
 
     /** Las áreas a las que se limita la consulta, o {@code null} si no se limita. */

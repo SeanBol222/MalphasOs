@@ -38,10 +38,12 @@ export class OrdenApi {
     return [...OrdenApi.CLAVE, id] as const;
   }
 
-  listar() {
+  /** Admite una senal que la apaga: la ficha de una sede la pide solo con {@code work-order.read}. */
+  listar(habilitada?: Signal<boolean>) {
     return injectQuery(() => ({
       queryKey: OrdenApi.CLAVE,
       queryFn: () => firstValueFrom(this.http.get<OrdenDeTrabajo[]>(this.url)),
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 
@@ -103,9 +105,7 @@ export class OrdenApi {
   quitarEquipo() {
     return injectMutation(() => ({
       mutationFn: ({ id, idEquipoCliente }: { id: string; idEquipoCliente: string }) =>
-        firstValueFrom(
-          this.http.delete<void>(`${this.url}/${id}/equipments/${idEquipoCliente}`),
-        ),
+        firstValueFrom(this.http.delete<void>(`${this.url}/${id}/equipments/${idEquipoCliente}`)),
       onSuccess: () => this.invalidar(),
     }));
   }

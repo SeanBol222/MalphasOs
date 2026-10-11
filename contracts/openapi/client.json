@@ -345,6 +345,53 @@
         },
         "type" : "object"
       },
+      "HeadquarterSummaryArea" : {
+        "properties" : {
+          "abierta" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HeadquarterSummaryResponse" : {
+        "description" : "Una sede con sus areas, para los listados",
+        "properties" : {
+          "abierta" : {
+            "description" : "Si la sede esta abierta",
+            "type" : "boolean"
+          },
+          "areas" : {
+            "description" : "Todas sus areas, abiertas y cerradas, por nombre",
+            "items" : {
+              "$ref" : "#/components/schemas/HeadquarterSummaryArea"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idCiudad" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idCliente" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "HeadquarterUpdateRequest" : {
         "properties" : {
           "calle" : {
@@ -1547,6 +1594,78 @@
         },
         "summary" : "Nombrar representante legal",
         "tags" : [ "Client" ]
+      }
+    },
+    "/v1/api/headquarters/summary" : {
+      "get" : {
+        "description" : "Para los listados: cuenta sedes, areas y ciudades sin pedir cada ficha. Incluye lo cerrado, con su estado.",
+        "operationId" : "getSummary",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "idCliente",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/HeadquarterSummaryResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Resumen de sedes con sus areas, de todos los clientes o de uno",
+        "tags" : [ "Headquarter" ]
       }
     },
     "/v1/api/headquarters/{idSede}/service-areas" : {

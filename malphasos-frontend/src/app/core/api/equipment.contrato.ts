@@ -81,6 +81,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/client-equipments/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contar los equipos en servicio por area
+         * @description Para las fichas de cliente y de sede: equipos, fuera de servicio y ultimo servicio de cada area con equipos, con su sede y su cliente.
+         */
+        get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/client-equipments/{id}": {
         parameters: {
             query?: never;
@@ -616,6 +636,27 @@ export interface components {
         DeclareVerificationsRequest: {
             /** @description Una lista vacia o ausente significa que el tipo deja de verificarse */
             verificaciones?: components["schemas"]["TypeVerificationRequest"][];
+        };
+        /** @description Los equipos en servicio de un area, contados */
+        EquipmentAreaSummaryResponse: {
+            /** Format: int64 */
+            equipos?: number;
+            /**
+             * Format: int64
+             * @description Los que quedaron fuera de servicio en su ultimo servicio cerrado
+             */
+            fueraDeServicio?: number;
+            /** Format: uuid */
+            idArea?: string;
+            /** Format: uuid */
+            idCliente?: string;
+            /** Format: uuid */
+            idSede?: string;
+            /**
+             * Format: date-time
+             * @description El mas reciente de los ultimos servicios de sus equipos
+             */
+            ultimoServicio?: string;
         };
         EquipmentCreateRequest: {
             /** Format: uuid */
@@ -1456,6 +1497,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EquipmentOverviewResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    summary: {
+        parameters: {
+            query?: {
+                idCliente?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentAreaSummaryResponse"][];
                 };
             };
             /** @description Conflict */

@@ -4,6 +4,7 @@ import com.malphasos.malphasos.client.application.ports.output.HeadquarterPersis
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.infrastructure.output.mapper.HeadquarterPersistenceMapper;
 import com.malphasos.malphasos.client.infrastructure.output.repository.HeadquarterRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +33,11 @@ public class HeadquarterPersistenceAdapter implements HeadquarterPersistencePort
     public List<Headquarter> findByClient(UUID idCliente) {
         return headquarterPersistenceMapper.toDomainList(
                 headquarterRepository.findByIdCliente(idCliente));
+    }
+
+    @Override
+    public List<Headquarter> findByClients(Collection<UUID> idsClientes) {
+        return headquarterPersistenceMapper.toDomainList(headquarterRepository.findByIdClienteIn(idsClientes));
     }
 
     @Override

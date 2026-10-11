@@ -17,6 +17,8 @@ const URL_AREAS = `${URL}/service-areas`;
 const URL_AREA = 'http://localhost:8081/v1/api/service-areas';
 const URL_ENCARGADOS = 'http://localhost:8081/v1/api/managers';
 const URL_PERSONAS = 'http://localhost:8081/v1/api/persons';
+const URL_CLIENTE = `http://localhost:8081/v1/api/clients/${ID_CLIENTE}`;
+const CLIENTE = { id: ID_CLIENTE, razonSocial: 'Hospital Central', estadoActivo: true };
 
 const SEDE = {
   id: ID,
@@ -64,7 +66,14 @@ const PERSONAS = [
 ];
 
 /** Lo que un administrador trae y hace visible toda la pantalla. */
-const AUTORIDADES = ['client.read', 'client.write', 'engineer.read', 'engineer.assign', 'person.read'];
+const AUTORIDADES = [
+  'client.read',
+  'client.write',
+  'engineer.read',
+  'engineer.assign',
+  'person.read',
+  'location.read',
+];
 
 @Component({ selector: 'app-ficha-cliente-falsa', template: '' })
 class FichaClienteFalsa {}
@@ -103,6 +112,9 @@ describe('Ficha de una sede', () => {
     await responderA(fixture, http, URL_AREAS, AREAS);
     await responderA(fixture, http, URL_ENCARGADOS, ENCARGADOS);
     await responderA(fixture, http, URL_PERSONAS, PERSONAS);
+    // El cliente de la sede, para la línea de arriba: se pide cuando la sede llega.
+    http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+    await asentar(fixture);
   }
 
   function pulsar(etiqueta: string): void {
@@ -132,13 +144,21 @@ describe('Ficha de una sede', () => {
   it('si el catalogo de ciudades no se pudo consultar, lo dice en vez de dejarlo en blanco', async () => {
     fixture.detectChanges();
     await responderA(fixture, http, URL, SEDE);
-    await responderA(fixture, http, URL_CIUDADES, { code: 'ERR_LOCATION_002' }, {
-      status: 403,
-      statusText: 'Forbidden',
-    });
+    await responderA(
+      fixture,
+      http,
+      URL_CIUDADES,
+      { code: 'ERR_LOCATION_002' },
+      {
+        status: 403,
+        statusText: 'Forbidden',
+      },
+    );
     await responderA(fixture, http, URL_AREAS, AREAS);
     await responderA(fixture, http, URL_ENCARGADOS, ENCARGADOS);
     await responderA(fixture, http, URL_PERSONAS, PERSONAS);
+    http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+    await asentar(fixture);
 
     expect(texto()).toContain('No disponible');
   });
@@ -171,6 +191,8 @@ describe('Ficha de una sede', () => {
       await asentar(fixture);
       await atenderRefresco(fixture, http, URL, SEDE);
       await atenderRefresco(fixture, http, URL_AREAS, AREAS);
+      // Cerrar una sede caduca también su cliente, que esta ficha nombra desde el rediseño.
+      await atenderRefresco(fixture, http, URL_CLIENTE, CLIENTE);
 
       expect(TestBed.inject(Router).url).toBe(`/clientes/${ID_CLIENTE}`);
     });
@@ -178,9 +200,9 @@ describe('Ficha de una sede', () => {
     it('una sede ya cerrada no ofrece cerrarse otra vez', async () => {
       await abrir({ ...SEDE, estadoActivo: false });
 
-      expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).not.toContain(
-        'Cerrar sede',
-      );
+      expect(
+        [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
+      ).not.toContain('Cerrar sede');
     });
   });
 
@@ -226,10 +248,16 @@ describe('Ficha de una sede', () => {
       await responderA(fixture, http, URL_AREAS, AREAS);
       await responderA(fixture, http, URL_ENCARGADOS, ENCARGADOS);
       // Sin person.read el backend responde 403, y es el caso real del grupo clients.
-      await responderA(fixture, http, URL_PERSONAS, { code: 'ERR_PERSON_001' }, {
-        status: 403,
-        statusText: 'Forbidden',
-      });
+      await responderA(
+        fixture,
+        http,
+        URL_PERSONAS,
+        { code: 'ERR_PERSON_001' },
+        {
+          status: 403,
+          statusText: 'Forbidden',
+        },
+      );
 
       expect(texto()).toContain('no se pudo consultar');
     });
@@ -241,24 +269,25 @@ describe('Ficha de una sede', () => {
         montar(['client.read']);
         fixture.detectChanges();
         await responderA(fixture, http, URL, SEDE);
-        await responderA(fixture, http, URL_CIUDADES, CIUDADES);
         await responderA(fixture, http, URL_AREAS, AREAS);
-        await responderA(fixture, http, URL_ENCARGADOS, ENCARGADOS);
-        await responderA(fixture, http, URL_PERSONAS, PERSONAS);
 
-        expect(texto()).not.toContain('Encargados');
+        expect(texto()).not.toContain('Encargado');
+        // Y no se piden: desde el rediseño, sin la autoridad la consulta ni sale.
+        expect(http.match(URL_ENCARGADOS)).toHaveLength(0);
+        expect(http.match(URL_PERSONAS)).toHaveLength(0);
+        expect(http.match(URL_CIUDADES)).toHaveLength(0);
       });
 
       it('con engineer.read pero sin engineer.assign se ven y no se tocan', async () => {
         // Es el caso del grupo engineers: consulta quien es el responsable, no lo cambia.
         TestBed.resetTestingModule();
-        montar(['client.read', 'engineer.read', 'person.read']);
+        montar(['client.read', 'engineer.read', 'person.read', 'location.read']);
         await abrir();
 
         expect(texto()).toContain('Ana María Ruiz');
-        expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).not.toContain(
-          'Quitar',
-        );
+        expect(
+          [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
+        ).not.toContain('Quitar');
         expect([...raiz().querySelectorAll('a')].map((a) => a.textContent?.trim())).not.toContain(
           'Registrar encargado',
         );
@@ -368,16 +397,142 @@ describe('Ficha de una sede', () => {
     expect(aviso?.textContent).not.toContain('not found');
   });
 
-  it('el estado se distingue por peso tipografico y no por un color nuevo', async () => {
+  it('el estado se dice en palabras, con el mismo color abierta y cerrada', async () => {
     await abrir({ ...SEDE, estadoActivo: false });
+    const cerrada = raiz().querySelector('header p')!;
 
-    const estado = [...raiz().querySelectorAll('p')].find((p) =>
-      (p.textContent ?? '').includes('Cerrada'),
-    )!;
-
-    expect(estado.className).not.toContain('font-semibold');
-    expect(estado.className).not.toContain('text-accent');
+    expect(cerrada.textContent).toContain('Sede cerrada');
+    const clases = cerrada.className;
+    http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+    TestBed.resetTestingModule();
+    montar();
+    await abrir();
+    expect(raiz().querySelector('header p')!.className).toBe(clases);
   });
 
-  afterEach(() => http.verify());
+  describe('Lo que trajo el rediseño (2026-10-11)', () => {
+    const URL_CONTEOS = 'http://localhost:8081/v1/api/client-equipments/summary';
+    const URL_ORDENES = 'http://localhost:8081/v1/api/work-orders';
+    const TODO = [
+      ...AUTORIDADES,
+      'equipment.read',
+      'equipment.assign',
+      'work-order.read',
+      'work-order.write',
+    ];
+
+    async function abrirConTodo(): Promise<void> {
+      TestBed.resetTestingModule();
+      montar(TODO);
+      await abrir();
+      const conteos = http.match((r) => r.url === URL_CONTEOS);
+      // Los conteos se piden por el cliente de la sede, que llega con ella.
+      expect(conteos.map((r) => r.request.params.get('idCliente'))).toEqual([ID_CLIENTE]);
+      conteos.forEach((p) =>
+        p.flush([
+          { idArea: 'a1', idSede: ID, idCliente: ID_CLIENTE, equipos: 4, fueraDeServicio: 0 },
+        ]),
+      );
+      http.match(URL_ORDENES).forEach((p) =>
+        p.flush([
+          {
+            id: 'o1',
+            idSede: ID,
+            estadoActivo: true,
+            estadoEjecucion: 'EN_EJECUCION',
+            fechaMantenimiento: '2026-10-06',
+          },
+          {
+            id: 'o2',
+            idSede: ID,
+            estadoActivo: true,
+            estadoEjecucion: 'EJECUTADA',
+            fechaMantenimiento: '2026-09-01',
+          },
+          {
+            id: 'o3',
+            idSede: ID,
+            estadoActivo: false,
+            estadoEjecucion: 'CREADA',
+            fechaMantenimiento: '2026-11-01',
+          },
+          {
+            id: 'o4',
+            idSede: 'otra',
+            estadoActivo: true,
+            estadoEjecucion: 'CREADA',
+            fechaMantenimiento: '2026-11-01',
+          },
+        ]),
+      );
+      await asentar(fixture);
+    }
+
+    const fila = (id: string) => raiz().querySelector(`[data-area="${id}"]`)!;
+    const celdas = (id: string) =>
+      [...fila(id).querySelectorAll('td')].map((td) => td.textContent?.replace(/\s+/g, ' ').trim());
+
+    it('nombra al cliente arriba, enlazado a su ficha', async () => {
+      await abrir();
+
+      const enlace = raiz().querySelector('header p a');
+      expect(enlace?.textContent?.trim()).toBe('Hospital Central');
+      expect(enlace?.getAttribute('href')).toBe(`/clientes/${ID_CLIENTE}`);
+    });
+
+    it('cada área dice sus equipos y su encargado; sin uno propio, el de la sede, y se nota', async () => {
+      await abrirConTodo();
+
+      expect(celdas('a1').slice(0, 3)).toEqual(['Urgencias', '4', 'Luis Peña']);
+      expect(celdas('a2').slice(0, 3)).toEqual([
+        'Bodega vieja Cerrada',
+        '0',
+        'De la sede: Ana María Ruiz',
+      ]);
+      expect(fila('a2').querySelectorAll('td')[2].className).toContain('text-neutral-700');
+    });
+
+    it('registrar un equipo se ofrece en las áreas abiertas, y solo con equipment.assign', async () => {
+      await abrirConTodo();
+
+      expect(fila('a1').querySelector('a[href="/areas/a1/equipos/nuevo"]')).not.toBeNull();
+      expect(fila('a2').querySelector('a[href="/areas/a2/equipos/nuevo"]')).toBeNull();
+    });
+
+    it('cuenta las órdenes abiertas de esta sede: ni ejecutadas, ni anuladas, ni de otra', async () => {
+      await abrirConTodo();
+
+      const bloque = raiz().querySelector('section[aria-labelledby="ordenes-sede"]')!;
+      expect(bloque.querySelector('p')?.textContent?.trim()).toBe('1');
+      expect([...bloque.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
+        '/ordenes/o1',
+      ]);
+    });
+
+    it('«Nueva orden aquí» lleva al alta con el cliente y la sede puestos', async () => {
+      await abrirConTodo();
+
+      const enlace = [...raiz().querySelectorAll('a')].find(
+        (a) => a.textContent?.trim() === 'Nueva orden aquí',
+      );
+      expect(enlace?.getAttribute('href')).toBe(`/ordenes/nueva?cliente=${ID_CLIENTE}&sede=${ID}`);
+    });
+
+    it('sin work-order.* ni equipment.* no pide ni pinta órdenes, conteos ni el alta', async () => {
+      await abrir();
+
+      expect(http.match(URL_ORDENES)).toHaveLength(0);
+      expect(http.match((r) => r.url === URL_CONTEOS)).toHaveLength(0);
+      expect(raiz().querySelector('section[aria-labelledby="ordenes-sede"]')).toBeNull();
+      expect(texto()).not.toContain('Nueva orden aquí');
+      expect(texto()).not.toContain('Registrar equipo');
+    });
+  });
+
+  afterEach(() => {
+    // El nombre del cliente se pide cuando llega la sede y casi ninguna prueba lo mira: se responde
+    // aqui para no repetirlo en cada una. Lo que si importa de el tiene su propia prueba.
+    http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+    http.verify();
+  });
 });

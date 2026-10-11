@@ -47,10 +47,12 @@ export class PersonaApi {
     return [...PersonaApi.CLAVE, id] as const;
   }
 
-  listar() {
+  /** Admite una senal que la apaga, como {@code ClienteApi.listar}: no todos tienen {@code person.read}. */
+  listar(habilitada?: Signal<boolean>) {
     return injectQuery(() => ({
       queryKey: PersonaApi.CLAVE,
       queryFn: () => firstValueFrom(this.http.get<Persona[]>(this.url)),
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 
@@ -177,9 +179,7 @@ export class PersonaApi {
   private retirarContacto(recurso: 'emails' | 'phones') {
     return injectMutation(() => ({
       mutationFn: ({ idPersona, idContacto }: { idPersona: string; idContacto: string }) =>
-        firstValueFrom(
-          this.http.delete<void>(`${this.url}/${idPersona}/${recurso}/${idContacto}`),
-        ),
+        firstValueFrom(this.http.delete<void>(`${this.url}/${idPersona}/${recurso}/${idContacto}`)),
       onSuccess: () => this.invalidar(),
     }));
   }

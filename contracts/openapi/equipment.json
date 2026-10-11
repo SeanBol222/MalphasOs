@@ -195,6 +195,38 @@
         },
         "type" : "object"
       },
+      "EquipmentAreaSummaryResponse" : {
+        "description" : "Los equipos en servicio de un area, contados",
+        "properties" : {
+          "equipos" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "fueraDeServicio" : {
+            "description" : "Los que quedaron fuera de servicio en su ultimo servicio cerrado",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "idArea" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idCliente" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idSede" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "ultimoServicio" : {
+            "description" : "El mas reciente de los ultimos servicios de sus equipos",
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "EquipmentCreateRequest" : {
         "properties" : {
           "idMarca" : {
@@ -1663,6 +1695,58 @@
           }
         },
         "summary" : "Listar los equipos instalados, con su ubicacion y su ultimo servicio",
+        "tags" : [ "EquipmentOverview" ]
+      }
+    },
+    "/v1/api/client-equipments/summary" : {
+      "get" : {
+        "description" : "Para las fichas de cliente y de sede: equipos, fuera de servicio y ultimo servicio de cada area con equipos, con su sede y su cliente.",
+        "operationId" : "summary",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "idCliente",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/EquipmentAreaSummaryResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Contar los equipos en servicio por area",
         "tags" : [ "EquipmentOverview" ]
       }
     },
