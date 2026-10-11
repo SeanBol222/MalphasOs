@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.client.infrastructure.output.repository;
 
+import com.malphasos.malphasos.client.application.model.ServiceAreaLocation;
 import com.malphasos.malphasos.client.infrastructure.output.entities.ServiceAreaEntity;
 import com.malphasos.malphasos.client.infrastructure.output.entities.HeadquarterEntity;
 import java.util.List;
@@ -36,4 +37,18 @@ public interface ServiceAreaRepository extends JpaRepository<ServiceAreaEntity, 
               and s.idCliente in :idsClientes
             """)
     Set<UUID> findIdsByClients(@Param("idsClientes") Collection<UUID> idsClientes);
+
+    /**
+     * Área, sede y cliente de cada área pedida. Sin filtrar por estado: un equipo dado de baja en un
+     * área que cerró sigue diciendo dónde estuvo.
+     */
+    @Query("""
+            select new com.malphasos.malphasos.client.application.model.ServiceAreaLocation(
+                a.id, a.nombre, s.id, s.nombre, c.id, c.razonSocial, c.sigla)
+            from ServiceAreaEntity a, HeadquarterEntity s, ClientEntity c
+            where a.idSede = s.id
+              and s.idCliente = c.id
+              and a.id in :idsAreas
+            """)
+    List<ServiceAreaLocation> locate(@Param("idsAreas") Collection<UUID> idsAreas);
 }
