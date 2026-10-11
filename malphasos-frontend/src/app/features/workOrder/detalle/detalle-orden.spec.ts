@@ -7,9 +7,7 @@ import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
 import { asentar, elegirEnBuscador, responderA } from '../../../../testing/pantalla';
 import {
-  AREAS,
   CLIENTES,
-  EQUIPOS,
   ID_AREA,
   ID_EQUIPO,
   ID_INGENIERO,
@@ -19,10 +17,8 @@ import {
   PERSONAS,
   SEDE,
   URL_CLIENTES,
-  URL_EQUIPOS_DE_CLIENTE,
   URL_ORDENES,
   URL_PERSONAS,
-  urlArea,
   urlSede,
 } from '../../../../testing/ordenes';
 import {
@@ -34,6 +30,45 @@ import {
 import { DetalleOrden } from './detalle-orden';
 
 const URL = `${URL_ORDENES}/${ID_ORDEN}`;
+const API = 'http://localhost:8081/v1/api';
+const URL_RESUMEN = `${API}/client-equipments/overview`;
+const URL_ENCARGADOS = `${API}/managers`;
+
+/** Lo que el listado de equipos sabe de los dos equipos de prueba, pedidos por identificador. */
+const RESUMEN = {
+  total: 2,
+  pagina: 0,
+  tamano: 100,
+  filas: [
+    {
+      id: ID_EQUIPO,
+      numeroHojaVida: 'HV-HCE-0001',
+      serie: 'SN-0001',
+      tipoEquipo: 'Monitor',
+      marca: 'Mindray',
+      modelo: 'iMEC 10',
+      estadoActivo: true,
+      idAreaServicio: ID_AREA,
+      areaServicio: 'Urgencias',
+    },
+    {
+      id: 'ec2',
+      numeroHojaVida: 'HV-HCE-0002',
+      serie: 'SN-0002',
+      tipoEquipo: 'Balanza',
+      marca: 'Kern',
+      modelo: 'PCB',
+      estadoActivo: false,
+      idAreaServicio: 'a3',
+      areaServicio: 'Laboratorio',
+    },
+  ],
+};
+
+const ENCARGADOS = [
+  { idPersona: 'p2', idSede: ID_SEDE, tipo: 'HEADQUARTER', estadoActivo: true },
+  { idPersona: 'p2', idAreaServicio: 'a9', tipo: 'SERVICE_AREA', estadoActivo: true },
+];
 
 /** Todas las autoridades que esta pantalla mira: un administrador. */
 const TODAS = [
@@ -79,22 +114,20 @@ describe('Ficha de una orden de trabajo', () => {
   /**
    * Abre la ficha y responde a las consultas que necesita para poner nombres.
    *
-   * <p>Son seis desde que los reportes cuelgan de aquí: la orden, los clientes, los equipos, las
-   * personas, la sede y el área — más los reportes de la orden. Ninguna trae nombres, que es la
-   * ausencia ya anotada cuatro veces.
+   * <p>Desde el 2026-10-11 los equipos del alcance salen del listado de equipos pedido por sus
+   * identificadores —una petición, con tipo, modelo, hoja de vida y área—, en lugar de la lista entera
+   * más una petición por área.
    */
-  async function abrir(
-    datos: object = orden(),
-    reportes: readonly object[] = [],
-  ): Promise<void> {
+  async function abrir(datos: object = orden(), reportes: readonly object[] = []): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, URL, datos);
     await responderA(fixture, http, URL_CLIENTES, CLIENTES);
-    await responderA(fixture, http, URL_EQUIPOS_DE_CLIENTE, EQUIPOS);
     await responderA(fixture, http, URL_PERSONAS, PERSONAS);
     http.match(urlReportesDeOrden(ID_ORDEN)).forEach((peticion) => peticion.flush(reportes));
     http.match(urlSede(ID_SEDE)).forEach((peticion) => peticion.flush(SEDE));
-    http.match(urlArea(ID_AREA)).forEach((peticion) => peticion.flush(AREAS[0]));
+    http.match(URL_ENCARGADOS).forEach((peticion) => peticion.flush(ENCARGADOS));
+    await asentar(fixture);
+    http.match((peticion) => peticion.url === URL_RESUMEN).forEach((p) => p.flush(RESUMEN));
     await asentar(fixture);
   }
 
@@ -137,9 +170,9 @@ describe('Ficha de una orden de trabajo', () => {
       pulsar('Iniciar trabajo');
       await asentar(fixture);
 
-      http.expectOne({ method: 'PATCH', url: `${URL}/start` }).flush(
-        orden({ estadoEjecucion: 'EN_EJECUCION' }),
-      );
+      http
+        .expectOne({ method: 'PATCH', url: `${URL}/start` })
+        .flush(orden({ estadoEjecucion: 'EN_EJECUCION' }));
       await asentar(fixture);
       http.match(() => true).forEach((p) => p.flush([]));
       await asentar(fixture);
@@ -168,9 +201,9 @@ describe('Ficha de una orden de trabajo', () => {
       pulsar('Marcar como ejecutada');
       await asentar(fixture);
 
-      http.expectOne({ method: 'PATCH', url: `${URL}/execute` }).flush(
-        orden({ estadoEjecucion: 'EJECUTADA' }),
-      );
+      http
+        .expectOne({ method: 'PATCH', url: `${URL}/execute` })
+        .flush(orden({ estadoEjecucion: 'EJECUTADA' }));
       await asentar(fixture);
       http.match(() => true).forEach((p) => p.flush([]));
       await asentar(fixture);
@@ -180,10 +213,16 @@ describe('Ficha de una orden de trabajo', () => {
       await abrir();
       pulsar('Iniciar trabajo');
       await asentar(fixture);
-      http.expectOne({ method: 'PATCH', url: `${URL}/start` }).flush(
-        { code: 'ERR_WORK_ORDER_003', message: 'Work order state does not allow it', details: [] },
-        { status: 409, statusText: 'Conflict' },
-      );
+      http
+        .expectOne({ method: 'PATCH', url: `${URL}/start` })
+        .flush(
+          {
+            code: 'ERR_WORK_ORDER_003',
+            message: 'Work order state does not allow it',
+            details: [],
+          },
+          { status: 409, statusText: 'Conflict' },
+        );
       await asentar(fixture);
 
       expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
@@ -272,13 +311,64 @@ describe('Ficha de una orden de trabajo', () => {
       montar(['work-order.read', 'work-order.write', 'person.read']);
       await abrir();
 
-      expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).not.toContain(
-        'Asignar un ingeniero',
-      );
+      expect(
+        [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
+      ).not.toContain('Asignar un ingeniero');
       // Y lo demas sigue disponible.
       expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).toContain(
         'Iniciar trabajo',
       );
+    });
+  });
+
+  describe('La cabecera', () => {
+    it('dice cliente y sede en el título, y la fecha programada en palabras', async () => {
+      await abrir();
+
+      expect(raiz().querySelector('h1')?.textContent?.trim()).toBe('Hospital Central — Sede Norte');
+      expect(texto()).toContain('Programada para el 15 oct 2026');
+    });
+
+    it('la línea de estado marca el paso actual', async () => {
+      await abrir(orden({ estadoEjecucion: 'EN_EJECUCION' }));
+
+      const actual = raiz().querySelector('[aria-current="step"]');
+      expect(actual?.textContent?.trim()).toBe('2 · En ejecución');
+      expect(raiz().querySelectorAll('ol[aria-label="Estado de la orden"] li').length).toBe(3);
+    });
+
+    it('una orden anulada lo dice en lugar de la línea de estado', async () => {
+      await abrir(orden({ estadoActivo: false }));
+
+      expect(raiz().querySelector('[aria-current="step"]')).toBeNull();
+      expect(texto()).toContain('Anulada. Su historia queda intacta');
+    });
+  });
+
+  describe('Los encargados del sitio', () => {
+    it('con engineer.read enseña los de la sede y los de las áreas de la orden, no los demás', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'engineer.read']);
+      await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
+
+      const seccion = raiz().querySelector('section[aria-labelledby="encargados"]')!;
+      expect(seccion.textContent).toContain('Luis Peña');
+      expect(seccion.textContent).toContain('Toda la sede');
+      // El segundo es de un área que la orden no toca.
+      expect(seccion.querySelectorAll('p').length).toBe(1);
+    });
+
+    it('sin engineer.read no se ve la sección ni se piden los encargados', async () => {
+      // Sin abrir(): ese ayudante responde a los encargados si se piden, y un expectNone despues no
+      // veria nada. La primera version de esta prueba paso con la guarda quitada por eso.
+      fixture.detectChanges();
+      await responderA(fixture, http, URL, orden());
+      await asentar(fixture);
+
+      expect(http.match(URL_ENCARGADOS)).toHaveLength(0);
+      expect(raiz().querySelector('section[aria-labelledby="encargados"]')).toBeNull();
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
     });
   });
 
@@ -289,20 +379,62 @@ describe('Ficha de una orden de trabajo', () => {
       expect(texto()).toContain('áreas de su propia sede');
     });
 
-    it('cada equipo se enseña por su serie y su área', async () => {
-      await abrir(
-        orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }),
-      );
+    it('cada equipo se enseña por lo que es, su hoja de vida y su serie, bajo su área', async () => {
+      await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
 
-      expect(texto()).toContain('SN-0001');
-      expect(texto()).toContain('Urgencias');
+      const fila = raiz().querySelector(`[data-equipo="${ID_EQUIPO}"]`)!;
+      expect(fila.textContent).toContain('Monitor Mindray iMEC 10');
+      expect(fila.textContent).toContain('HV-HCE-0001 · Serie SN-0001');
+      expect(fila.closest('section')?.querySelector('h3')?.textContent?.trim()).toBe('Urgencias');
       expect(texto()).not.toContain(ID_EQUIPO);
     });
 
-    it('quitar un equipo llama al sub-recurso con su identificador', async () => {
-      await abrir(
-        orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }),
+    it('pide sus equipos al listado por identificador, en una sola petición', async () => {
+      fixture.detectChanges();
+      await responderA(
+        fixture,
+        http,
+        URL,
+        orden({
+          equipos: [
+            { idEquipoCliente: 'ec2', idAreaServicio: 'a3' },
+            { idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA },
+          ],
+        }),
       );
+      await asentar(fixture);
+
+      const peticiones = http.match((peticion) => peticion.url === URL_RESUMEN);
+      expect(peticiones.length).toBe(1);
+      expect(peticiones[0].request.params.get('ids')).toBe(`${ID_EQUIPO},ec2`);
+      peticiones[0].flush(RESUMEN);
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+    });
+
+    it('agrupa por área, dice cuántos tienen el reporte cerrado y marca el dado de baja', async () => {
+      await abrir(
+        orden({
+          estadoEjecucion: 'EN_EJECUCION',
+          equipos: [
+            { idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA },
+            { idEquipoCliente: 'ec2', idAreaServicio: 'a3' },
+          ],
+        }),
+        [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO', resultado: 'OPERATIVO' })],
+      );
+
+      const areas = [...raiz().querySelectorAll('h3')].map((h) => h.textContent?.trim());
+      expect(areas).toEqual(['Laboratorio', 'Urgencias']);
+      expect(texto()).toContain('1 de 2 con reporte cerrado');
+      expect(raiz().querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe(
+        '50',
+      );
+      expect(raiz().querySelector('[data-equipo="ec2"]')?.textContent).toContain('Dado de baja');
+    });
+
+    it('quitar un equipo llama al sub-recurso con su identificador', async () => {
+      await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
       pulsar('Quitar');
       await asentar(fixture);
 
@@ -321,11 +453,28 @@ describe('Ficha de una orden de trabajo', () => {
         [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO' })],
       );
 
-      const enlace = [...raiz().querySelectorAll('a')].find((a) =>
-        (a.textContent ?? '').includes('Reporte'),
-      );
-      expect(enlace?.textContent).toContain('Finalizado');
+      const fila = raiz().querySelector(`[data-equipo="${ID_EQUIPO}"]`)!;
+      const enlace = fila.querySelector('a');
+      expect(fila.textContent).toContain('Cerrado');
+      expect(enlace?.textContent?.trim()).toBe('Ver reporte');
       expect(enlace?.getAttribute('href')).toBe(`/reportes/${ID_REPORTE}`);
+    });
+
+    it('un borrador pesa más que lo cerrado y se continúa, no se abre otro', async () => {
+      await abrir(
+        orden({
+          estadoEjecucion: 'EN_EJECUCION',
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+        }),
+        [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'BORRADOR' })],
+      );
+
+      const fila = raiz().querySelector(`[data-equipo="${ID_EQUIPO}"]`)!;
+      expect(fila.querySelector('a')?.textContent?.trim()).toBe('Continuar');
+      expect(
+        [...fila.querySelectorAll('span')].find((s) => s.textContent?.trim() === 'Borrador')
+          ?.classList,
+      ).toContain('font-extrabold');
     });
 
     it('un equipo sin reporte ofrece abrirlo, y abrirlo lleva al reporte', async () => {
@@ -358,9 +507,9 @@ describe('Ficha de una orden de trabajo', () => {
       // hecho nada. Ofrecer el boton seria ofrecer un 409.
       await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
 
-      expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).not.toContain(
-        'Abrir reporte',
-      );
+      expect(
+        [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
+      ).not.toContain('Abrir reporte');
       expect(texto()).toContain('Los reportes se abren cuando la orden empieza');
     });
 
@@ -388,9 +537,9 @@ describe('Ficha de una orden de trabajo', () => {
         }),
       );
 
-      expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).not.toContain(
-        'Quitar',
-      );
+      expect(
+        [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
+      ).not.toContain('Quitar');
       expect([...raiz().querySelectorAll('a')].map((a) => a.textContent?.trim())).not.toContain(
         'Añadir equipos',
       );

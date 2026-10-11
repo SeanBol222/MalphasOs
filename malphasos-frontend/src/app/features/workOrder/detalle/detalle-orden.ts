@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AreaApi } from '../../client/area-api';
 import { ClienteApi } from '../../client/cliente-api';
+import { EncargadoApi } from '../../client/encargado-api';
 import { SedeApi } from '../../client/sede-api';
 import { EquipoApi } from '../../equipment/equipo-api';
 import { OrdenApi } from '../orden-api';
@@ -11,10 +11,14 @@ import { nombreCompleto, PersonaApi } from '../../person/persona-api';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   ETIQUETA_DE_ESTADO,
-  ETIQUETA_DE_ESTADO_DE_REPORTE,
   ETIQUETA_DE_PERIODICIDAD,
+  ETIQUETA_DE_RESULTADO,
   ETIQUETA_DE_TIPO_DE_SERVICIO,
+  EstadoDeEjecucion,
+  ESTADOS_DE_EJECUCION,
+  FilaDeResumenDeEquipos,
 } from '../../../core/api/tipos';
+import { fechaCorta } from '../../../core/fechas';
 import { Buscador, Opcion } from '../../../shared/buscador/buscador';
 import { traducirError } from '../../../core/errores/traducir';
 
@@ -29,8 +33,11 @@ import { traducirError } from '../../../core/errores/traducir';
  * {@code work-order.write}. Es del backend y la separación es buena — repartir trabajo no es lo mismo que
  * alterarlo—, así que el selector solo se ve con ella.
  *
- * <p>Cada equipo del alcance llega como identificador; la serie y el área se resuelven cruzando la lista
- * de equipos y las áreas de la sede, que es la tercera vez que este proyecto cruza listas por lo mismo.
+ * <p><b>Rehecha el 2026-10-11 con el rediseño</b> —la maqueta «A-Orden»—: cabecera con la línea de
+ * estado, los equipos agrupados por área con su avance, y a un lado los datos, el ingeniero y los
+ * encargados del sitio. Cada equipo del alcance llega como identificador, y lo que se sabe de él —tipo,
+ * modelo, hoja de vida, serie y área— sale del listado de equipos pedido por esos identificadores, en una
+ * petición. Hasta ese día se cruzaba la lista entera de equipos con una petición por área.
  */
 @Component({
   selector: 'app-detalle-orden',
@@ -54,6 +61,10 @@ export class DetalleOrden {
   protected readonly asignacion = this.api.asignarIngeniero();
 
   private readonly clientes = inject(ClienteApi).listar();
+  private readonly idsDelAlcance = computed(() =>
+    (this.orden.data()?.equipos ?? []).map((equipo) => equipo.idEquipoCliente!).filter(Boolean),
+  );
+  private readonly resumen = inject(EquipoApi).resumenDe(this.idsDelAlcance);
   private readonly sedes = inject(SedeApi).variasPorId(
     computed(() => {
       const sede = this.orden.data()?.idSede;
@@ -61,17 +72,11 @@ export class DetalleOrden {
       return sede ? [sede] : [];
     }),
   );
-  private readonly areas = inject(AreaApi).variasPorId(
-    computed(() => [
-      ...new Set(
-        (this.orden.data()?.equipos ?? [])
-          .map((equipo) => equipo.idAreaServicio!)
-          .filter(Boolean),
-      ),
-    ]),
-  );
-  private readonly equipos = inject(EquipoApi).listarTodos();
   private readonly personas = inject(PersonaApi).listar();
+
+  /** Los encargados del sitio se ven con {@code engineer.read}, la autoridad que los protege. */
+  protected readonly puedeVerEncargados = computed(() => this.sesion.puede('engineer.read'));
+  private readonly encargados = inject(EncargadoApi).listar(this.puedeVerEncargados);
 
   private readonly reporteApi = inject(ReporteApi);
   private readonly reportes = this.reporteApi.porOrden(this.id);
@@ -110,9 +115,7 @@ export class DetalleOrden {
     );
   });
 
-  protected readonly sede = computed(
-    () => (this.sedes.data() ?? [])[0]?.nombre ?? 'No disponible',
-  );
+  protected readonly sede = computed(() => (this.sedes.data() ?? [])[0]?.nombre ?? 'No disponible');
 
   protected readonly estado = computed(() => {
     const estado = this.orden.data()?.estadoEjecucion;
@@ -162,34 +165,98 @@ export class DetalleOrden {
       .map((persona) => ({ id: persona.identificador!, etiqueta: nombreCompleto(persona) })),
   );
 
+  /** Los pasos del estado, en orden: la línea de la cabecera. */
+  protected readonly pasos = computed(() => {
+    const actual = this.orden.data()?.estadoEjecucion;
+    const indice = ESTADOS_DE_EJECUCION.indexOf(actual as EstadoDeEjecucion);
+
+    return ESTADOS_DE_EJECUCION.map((estado, i) => ({
+      etiqueta: `${i + 1} · ${ETIQUETA_DE_ESTADO[estado]}`,
+      hecho: i < indice,
+      actual: i === indice,
+    }));
+  });
+
+  protected readonly programada = computed(() => fechaCorta(this.orden.data()?.fechaMantenimiento));
+
   /**
-   * El alcance: qué equipos toca esta orden, con su serie, su área y su reporte.
+   * El alcance, agrupado por área: qué equipos toca esta orden, qué es cada uno y cómo va su reporte.
    *
    * <p>El reporte que cuenta es <b>el vivo</b>: la consulta trae también los retirados, porque el API
    * devuelve el historial completo de la orden, y un equipo cuyo reporte se retiró vuelve a estar sin
    * reporte. Quedarse con el primero de la lista mostraría el retirado y el botón de abrir
    * desaparecería para siempre.
    */
-  protected readonly alcance = computed(() => {
-    const equipos = new Map((this.equipos.data() ?? []).map((equipo) => [equipo.id, equipo.serie]));
-    const areas = new Map((this.areas.data() ?? []).map((area) => [area.id, area.nombre]));
+  protected readonly grupos = computed(() => {
+    const resumen = new Map((this.resumen.data()?.filas ?? []).map((fila) => [fila.id, fila]));
     const reportes = new Map(
       (this.reportes.data() ?? [])
         .filter((reporte) => reporte.estadoActivo)
         .map((reporte) => [reporte.idEquipoCliente, reporte]),
     );
+    const grupos = new Map<string, { area: string; equipos: EquipoDelAlcance[] }>();
 
-    return (this.orden.data()?.equipos ?? []).map((equipo) => {
+    for (const equipo of this.orden.data()?.equipos ?? []) {
+      const fila = resumen.get(equipo.idEquipoCliente!);
       const reporte = reportes.get(equipo.idEquipoCliente!);
-
-      return {
-        id: equipo.idEquipoCliente!,
-        serie: equipos.get(equipo.idEquipoCliente!) ?? 'Equipo no disponible',
-        area: areas.get(equipo.idAreaServicio!) ?? 'Área no disponible',
-        idReporte: reporte?.id,
-        estadoDelReporte: reporte?.estado ? ETIQUETA_DE_ESTADO_DE_REPORTE[reporte.estado] : '',
+      const clave = equipo.idAreaServicio ?? '';
+      const grupo = grupos.get(clave) ?? {
+        area: fila?.areaServicio ?? 'Área no disponible',
+        equipos: [],
       };
-    });
+
+      grupo.equipos.push({
+        id: equipo.idEquipoCliente!,
+        ...describir(fila),
+        idReporte: reporte?.id,
+        ...estadoDelReporte(reporte?.estado, reporte?.resultado),
+      });
+      grupos.set(clave, grupo);
+    }
+
+    return [...grupos.values()].sort((a, b) => a.area.localeCompare(b.area, 'es'));
+  });
+
+  protected readonly totalDeEquipos = computed(() => this.orden.data()?.equipos?.length ?? 0);
+  protected readonly cerrados = computed(
+    () =>
+      this.grupos()
+        .flatMap((grupo) => grupo.equipos)
+        .filter((equipo) => equipo.cerrado).length,
+  );
+  protected readonly avance = computed(() =>
+    this.totalDeEquipos() ? Math.round((this.cerrados() / this.totalDeEquipos()) * 100) : 0,
+  );
+
+  /**
+   * Los encargados del sitio: los de la sede y los de las áreas que la orden toca. El API no filtra
+   * por sede, así que se recorta aquí, igual que en la ficha de la sede.
+   */
+  protected readonly encargadosDelSitio = computed(() => {
+    const datos = this.orden.data();
+    const nombresDeArea = new Map(
+      (this.resumen.data()?.filas ?? []).map((fila) => [fila.idAreaServicio, fila.areaServicio]),
+    );
+    const idsDeArea = new Set((datos?.equipos ?? []).map((equipo) => equipo.idAreaServicio));
+    const porPersona = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
+
+    return (this.encargados.data() ?? [])
+      .filter(
+        (encargado) =>
+          encargado.estadoActivo &&
+          (encargado.idSede === datos?.idSede ||
+            (!!encargado.idAreaServicio && idsDeArea.has(encargado.idAreaServicio))),
+      )
+      .map((encargado) => ({
+        id: encargado.idPersona!,
+        nombre: porPersona.has(encargado.idPersona!)
+          ? nombreCompleto(porPersona.get(encargado.idPersona!)!)
+          : 'Nombre no disponible',
+        aCargoDe:
+          encargado.tipo === 'SERVICE_AREA'
+            ? (nombresDeArea.get(encargado.idAreaServicio) ?? 'Un área de la orden')
+            : 'Toda la sede',
+      }));
   });
 
   protected readonly hayError = computed(
@@ -255,4 +322,54 @@ export class DetalleOrden {
       { onSuccess: () => this.asignando.set(false) },
     );
   }
+}
+
+interface EquipoDelAlcance {
+  readonly id: string;
+  readonly nombre: string;
+  readonly detalle: string;
+  readonly idReporte?: string;
+  readonly reporte: string;
+  readonly peso: string;
+  readonly cuadro: string;
+  readonly cerrado: boolean;
+  readonly deBaja: boolean;
+}
+
+/** «Balanza Kern PCB 3500-2» y «HV-CDN-0001 · Serie WB1240337». */
+function describir(fila: FilaDeResumenDeEquipos | undefined) {
+  if (!fila) {
+    return { nombre: 'Equipo no disponible', detalle: '', deBaja: false };
+  }
+
+  return {
+    nombre: [fila.tipoEquipo, fila.marca, fila.modelo].filter(Boolean).join(' '),
+    detalle: [fila.numeroHojaVida, fila.serie ? `Serie ${fila.serie}` : '']
+      .filter(Boolean)
+      .join(' · '),
+    deBaja: !fila.estadoActivo,
+  };
+}
+
+/**
+ * Cómo va el reporte de un equipo, con el peso y el cuadro del manual: lo pendiente pesa más que lo
+ * cerrado, porque es lo que hay que mirar.
+ */
+function estadoDelReporte(
+  estado: string | undefined,
+  resultado: keyof typeof ETIQUETA_DE_RESULTADO | undefined,
+) {
+  if (estado === 'FINALIZADO') {
+    return {
+      reporte: resultado ? `Cerrado · ${ETIQUETA_DE_RESULTADO[resultado]}` : 'Cerrado',
+      peso: 'font-normal',
+      cuadro: 'bg-neutral-500',
+      cerrado: true,
+    };
+  }
+  if (estado === 'BORRADOR') {
+    return { reporte: 'Borrador', peso: 'font-extrabold', cuadro: 'bg-ink', cerrado: false };
+  }
+
+  return { reporte: 'Sin reporte', peso: 'font-medium', cuadro: 'bg-transparent', cerrado: false };
 }

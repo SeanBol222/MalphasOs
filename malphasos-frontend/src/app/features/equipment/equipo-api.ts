@@ -158,6 +158,28 @@ export class EquipoApi {
     });
   }
 
+  /**
+   * Estos equipos y ningun otro, con todo lo que el listado sabe de cada uno: lo pide la ficha de una
+   * orden para su alcance. El servidor no filtra por baja cuando se piden por identificador —un equipo
+   * dado de baja sigue en la orden en la que entro—. Cabe hasta {@code 100}, el maximo de una pagina.
+   */
+  resumenDe(ids: Signal<readonly string[]>) {
+    return injectQuery(() => {
+      const ordenados = [...ids()].sort();
+
+      return {
+        queryKey: [...EquipoApi.CLAVE_RESUMEN, { ids: ordenados }],
+        queryFn: () =>
+          firstValueFrom(
+            this.http.get<ResumenDeEquipos>(`${this.api}/client-equipments/overview`, {
+              params: { ids: ordenados.join(','), tamano: 100 },
+            }),
+          ),
+        enabled: ordenados.length > 0,
+      };
+    });
+  }
+
   /** Da de baja el equipo. Como todo aqui, queda inactivo con su historia intacta. */
   darDeBaja() {
     return injectMutation(() => ({

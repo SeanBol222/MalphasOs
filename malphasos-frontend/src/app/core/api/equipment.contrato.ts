@@ -1438,6 +1438,8 @@ export interface operations {
                 resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
                 /** @description true para listar los dados de baja */
                 dadosDeBaja?: boolean;
+                /** @description Solo estos equipos, separados por comas; con ellos no se filtra por baja */
+                ids?: string[];
                 pagina?: number;
                 tamano?: number;
             };
