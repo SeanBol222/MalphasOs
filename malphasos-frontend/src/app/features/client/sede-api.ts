@@ -47,7 +47,7 @@ export class SedeApi {
    * Las sedes con sus areas, de todos los clientes o de uno (2026-10-11): lo que los listados del
    * rediseño cuentan. Cuelga de {@link CLAVE}, asi que abrir o cerrar una sede o un area lo recarga.
    */
-  resumen(idCliente?: Signal<string>) {
+  resumen(idCliente?: Signal<string>, habilitada?: Signal<boolean>) {
     return injectQuery(() => {
       const id = idCliente?.() ?? '';
 
@@ -59,6 +59,7 @@ export class SedeApi {
               params: id ? { idCliente: id } : {},
             }),
           ),
+        enabled: habilitada ? habilitada() : true,
       };
     });
   }
