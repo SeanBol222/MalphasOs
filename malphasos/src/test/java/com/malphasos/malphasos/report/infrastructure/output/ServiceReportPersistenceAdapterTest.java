@@ -517,8 +517,9 @@ class ServiceReportPersistenceAdapterTest {
             adapter.save(leido);
 
             assertThat(jdbcTemplate.queryForObject(
-                            "SELECT count(*) FROM paso_reporte WHERE k_id_reporte_servicio = ?", Integer.class,
-                            reporte.getId()))
+                            "SELECT count(*) FROM paso_reporte WHERE k_id_reporte_servicio = ? AND b_estado_activo",
+                            Integer.class, reporte.getId()))
+                    .describedAs("una fila, y vigente: desde V23 la tabla tiene borrado logico como todas")
                     .isEqualTo(1);
             assertThat(adapter.findById(reporte.getId()).orElseThrow().getPasos().getFirst())
                     .extracting(ReportStep::estado, ReportStep::nota)

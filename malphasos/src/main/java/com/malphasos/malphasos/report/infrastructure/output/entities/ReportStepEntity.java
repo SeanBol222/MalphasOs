@@ -54,4 +54,11 @@ public class ReportStepEntity {
 
     @Column(name = "t_nota")
     private String nota;
+
+    /**
+     * Borrado lógico, desde V23, porque el esquema lo tiene en todas sus tablas. Ningún paso se retira
+     * hoy —solo cambia de estado—, así que siempre es verdadero y el dominio no lo ve.
+     */
+    @Column(name = "b_estado_activo", nullable = false)
+    private boolean estadoActivo = true;
 }
