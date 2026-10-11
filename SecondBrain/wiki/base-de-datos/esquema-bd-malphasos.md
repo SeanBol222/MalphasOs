@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 29 tablas, 40 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 30 tablas, 42 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -80,13 +80,26 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **21** (`V1`…`V21`) |
-| Tablas de dominio | **29** |
-| Llaves foráneas | **40**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **43** |
+| Migraciones aplicadas | **22** (`V1`…`V22`) |
+| Tablas de dominio | **30** |
+| Llaves foráneas | **42**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **47** |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **7** |
-| Tablas con borrado lógico | **29 de 29** — universal, sin excepción |
+| Tablas con borrado lógico | **29 de 30** — ⚠️ `paso_reporte` no lo tiene, y es un descuido |
+
+> ⚠️ **`paso_reporte` rompe la convención del borrado lógico universal**, y no por decisión: se escribió
+> así en `V22` y lo destapó este recuento, al ir a escribir «30 de 30». Un paso nunca se retira —solo
+> cambia de estado, y vive y muere con su reporte, que sí tiene `b_estado_activo`—, así que la columna
+> no tendría hoy ningún uso; pero la convención dice «universal» y esta nota lo celebraba. Queda
+> **pendiente de decidir** entre añadirla con una `V23` o escribir la excepción con su porqué. Mientras
+> tanto, esta fila dice la verdad.
+
+> **Recontado el 2026-10-10, más tarde, sobre la base con `V22`.** Entra `paso_reporte` —los pasos del
+> protocolo copiados en cada reporte—, con **dos foráneas**, **cuatro `CHECK`** y un `UNIQUE` de
+> restricción —no parcial: no hay borrado lógico—. Y `V22` **rehace** `CHK_reporte_servicio_cierre`, que
+> deja de exigir procedimientos: con pasos son opcionales, y esa condición mira otra tabla. Antes: 29
+> tablas, 40 foráneas, 43 `CHECK`.
 
 > **Recontado el 2026-10-10, sobre la base con `V21`**, leyendo `pg_constraint` y `pg_index`. `V21` trae
 > los protocolos de mantenimiento: **dos tablas**, **dos foráneas** —las de la tabla de unión—, **cinco
@@ -488,12 +501,24 @@ erDiagram
 **`orden_trabajo_equipo` se identifica por el par**, sin identificador propio: un equipo está en una
 orden o no está, y no hay nada que decir dos veces sobre eso.
 
-## `report` — 2 tablas
+## `report` — 3 tablas
 
 ```mermaid
 erDiagram
     orden_trabajo_equipo ||--o{ reporte_servicio : "se reporta en"
     reporte_servicio ||--o{ dato_verificacion : "registra"
+    reporte_servicio ||--o{ paso_reporte : "lleva, desde V22"
+    paso_reporte {
+        uuid k_id_paso_reporte PK
+        uuid k_id_reporte_servicio FK
+        integer i_orden "UK con el reporte"
+        uuid k_id_protocolo FK "de cual salio"
+        varchar n_nombre "copia"
+        varchar t_descripcion "copia"
+        varchar t_indicacion "copia, anulable"
+        varchar t_estado_paso "PENDIENTE, HECHO, NO_APLICA"
+        varchar t_nota "obligatoria con NO_APLICA"
+    }
     reporte_servicio {
         uuid k_id_reporte_servicio PK
         uuid k_id_orden_trabajo FK "el par va junto a"
@@ -522,6 +547,11 @@ erDiagram
 
 **La unidad de una lectura es una copia, no una foránea**, y es deliberado: reconfigurar un tipo no
 debe cambiar un reporte ya firmado. Ver [[congelar-una-referencia-historica]].
+
+**Los pasos del protocolo también son una copia**, por lo mismo: nombre, descripción e indicación son
+los del día en que se abrió el reporte. Pero aquí **sí** hay foránea al protocolo, y no contradice lo
+anterior: un protocolo nunca se borra, solo se retira, así que la foránea dice de cuál salió el paso sin
+congelar nada. Ver [[dominio-reporte-servicio]].
 
 ## Las 4 foráneas compuestas, que son reglas y no adornos
 

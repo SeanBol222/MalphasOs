@@ -1,10 +1,10 @@
 ---
 name: estado-de-implementacion
-description: La cifra agregada de implementacion de MalphasOS -19 de 31 RF, 1 de 23 RNF- con como se verifico, cuando caduco y donde esta el detalle
+description: La cifra agregada de implementacion de MalphasOS -21 de 31 RF, 1 de 23 RNF- con como se verifico, cuando caduco y donde esta el detalle
 tags: [requisitos, estado, trazabilidad]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2; Documentation/TraceabilityMatrix/MatrizDeTrazabilidad.tex"
 estado: vigente
-updated: 2026-10-04
+updated: 2026-10-10
 ---
 
 # Estado de implementación agregado
@@ -17,7 +17,7 @@ updated: 2026-10-04
 
 | Tipo de requisito | Total | Implementado | Previsto | Fuente de la evaluación |
 |---|---|---|---|---|
-| Funcionales (RF) | 31 | **19** | 11 + 1 desviación | ERS, apartado 3.2, recontado el 2026-10-04 contra el código |
+| Funcionales (RF) | 31 | **21** | 9 + 1 desviación | ERS, apartado 3.2, recontado el 2026-10-10 contra el código |
 | No funcionales (RNF) | 23 | **1** (RNF-23, JWT) | 22 | Matriz de trazabilidad (primera evaluación; la ERS no marca RNF) |
 | De dominio (RD) | 6 | 2 inferidos (RD-03, RD-04) | 4 no verificables | Matriz de trazabilidad, con salvedad — ver [[requisitos-de-dominio]] |
 
@@ -33,6 +33,8 @@ updated: 2026-10-04
 | RF-07 | Órdenes de Trabajo | Selección múltiple de equipos (2026-09-27) |
 | RF-09 | Reportes de Mantenimiento | Reporte individual por equipo de la orden (2026-09-27) |
 | RF-11 | Reportes de Mantenimiento | Autocompletado del reporte desde la orden (2026-09-28) |
+| RF-13 | Reportes de Mantenimiento | Asignación automática de protocolo: se copia solo al abrir el reporte de un preventivo (2026-10-10) |
+| RF-14 | Reportes de Mantenimiento | Configuración de protocolos: catálogo y asignación a tipos de equipo con prioridad (2026-10-10) |
 | RF-15 | Reportes de Mantenimiento | Registro de información técnica: los cinco campos (2026-09-27) |
 | RF-08 | Gestión de Clientes | Crear cliente |
 | RF-22 | Hojas de Vida | Crear hoja de vida |
@@ -55,14 +57,31 @@ Tres categorías fundacionales concentraron todo lo construido al principio: ges
 |---|---|---|---|---|
 | 3.2.1 Órdenes de Trabajo | RF-01 a RF-07 | 7 | **6** + 1 desviación (RF-04) | [[rf-ordenes-trabajo]] |
 | 3.2.2 Clientes | RF-08 | 1 | 1 | [[rf-clientes]] |
-| 3.2.3 Reportes de Mantenimiento | RF-09 a RF-17 | 6 | **3** | [[rf-reportes-mantenimiento]] |
+| 3.2.3 Reportes de Mantenimiento | RF-09 a RF-17 | 6 | **5** | [[rf-reportes-mantenimiento]] |
 | 3.2.4 Firma Digital | RF-18, RF-21 | 2 | 0 | [[rf-firma-digital]] |
 | 3.2.5 Hojas de Vida | RF-22 a RF-27 | 4 | **4** | [[rf-hojas-vida]] |
 | 3.2.6 Inventario | RF-36, RF-37 | 2 | 0 | [[rf-inventario]] |
 | 3.2.7 Alertas y calibración | RF-40, RF-41 | 2 | 0 | [[rf-alertas-calibracion]] |
 | 3.2.8 Módulo Comercial | RF-45, RF-47 | 2 | 0 | [[rf-modulo-comercial]] |
 | 3.2.9 Usuarios y seguridad | RF-49 a RF-53 | 5 | 5 | [[rf-usuarios-seguridad]] |
-| **Total** | | **31** | **19** | |
+| **Total** | | **31** | **21** | |
+
+## Octava verificación, 10 de octubre de 2026: 21, con los protocolos
+
+**Reportes de mantenimiento pasa de 3 a 5 de 6**: entran **RF-14** —el catálogo de protocolos y su
+asignación a los tipos de equipo, `V21`— y **RF-13** —al abrir el reporte de un preventivo se copian
+solos los protocolos del tipo del equipo, `V22`—. Queda RF-17, que espera la firma.
+
+**RF-13 cumple sus tres criterios tal cual**: se carga al generar el reporte, corresponde al tipo de
+equipo y al de servicio, y nadie lo elige. **RF-14 cuenta con una interpretación que conviene decir**:
+pide protocolos «asociados a cada tipo de equipo y tipo de servicio», y el usuario decidió el 2026-10-10
+que **solo el preventivo lleva protocolo** —un correctivo es una reparación distinta cada vez—. El tipo
+de servicio no es entonces una dimensión que se elija por protocolo, sino una sola: preventivo. Se
+cuenta porque es una decisión del dueño del producto sobre el alcance, no una carencia; si se quisiera
+discutir, es el mismo caso que RF-04. Y su «módulo para crear y editar» se cuenta con la API, como
+RF-51 a RF-53 contaron antes de tener pantallas; las pantallas son la tanda siguiente.
+
+**Tocadas**: [[rf-reportes-mantenimiento]].
 
 ## Séptima verificación, 4 de octubre de 2026 por la tarde: 19, y la duda de la mañana resuelta
 

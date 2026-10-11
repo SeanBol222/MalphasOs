@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-04
+updated: 2026-10-10
 ---
 
 # Reportes de servicio — el módulo completo
@@ -42,6 +42,29 @@ En `fill(...)`, **un nulo deja el campo como está y un texto en blanco lo borra
 ### ⚠️ El vocabulario de `t_resultado` no sale de la ERS
 
 `OPERATIVO`, `OPERATIVO_CON_RESTRICCIONES`, `FUERA_DE_SERVICIO`. La ERS dice «resultado» y **no enumera valores**, a diferencia de las periodicidades y los tipos de servicio de `V6`, que sí estaban escritos en el documento. Los tres son una **propuesta**, y va como catálogo cerrado y no como texto libre porque de ese dato cuelgan el historial de la hoja de vida (RF-26) y las alertas (RF-40): un texto libre no se agrupa ni dispara nada. **Mientras no haya datos, cambiar la lista es una línea**; después es una migración. Está registrado en [[deuda-tecnica-y-riesgos]].
+
+## Los pasos del protocolo (desde el 2026-10-10, `V22`)
+
+**Al abrir el reporte de una orden preventiva** se copian como pasos, solos y en su orden, los
+protocolos que el tipo del equipo tiene asignados —RF-13—. En el reporte se marca cada uno **hecho** o
+**no aplica**, de uno en uno —`PATCH /v1/api/reports/{id}/steps/{orden}`—, porque en pantalla cada
+casilla se guarda al pulsarla. Un correctivo no lleva pasos: es una reparación distinta cada vez.
+
+Cuatro decisiones del usuario, todas del mismo día:
+
+- **Se copian, no se leen del catálogo.** Nombre, descripción e indicación son los del día en que se
+  abrió el reporte: editar un protocolo después no cambia lo que dice un reporte viejo. Se copian al
+  **abrir** y no al cerrar, porque lo que el ingeniero marca mientras trabaja tiene que ser lo que había.
+- **«No aplica» exige nota**, en el agregado y en la base: saltarse un paso queda justificado.
+- **La regla de cierre se parte en dos.** Con pasos, se exigen **todos marcados** y el texto
+  —`t_procedimientos`, que la pantalla llamará «trabajo adicional»— es opcional. Sin pasos, el texto
+  sigue siendo obligatorio. Como mira otra tabla, `V22` **la sacó del `CHECK` de `V9`** y vive en
+  `ServiceReport.finish`; la base sigue exigiendo resultado y fecha.
+- **La línea de la hoja de vida** son los pasos hechos y detrás el trabajo adicional: «Limpieza;
+  Eléctrico. Además: Cambio de fusible». Los que no aplicaron no salen. Con pasos, el texto a secas
+  podía quedar vacío. Ver [[hoja-de-vida]].
+
+Los borradores abiertos antes de `V22` no tienen pasos y se cierran como siempre.
 
 ## La verificación: el catálogo configura, el reporte registra
 
@@ -192,7 +215,7 @@ El backend distingue el nulo —«no lo cambies»— del blanco —«bórralo»�
 
 > **Corregido el 2026-09-28.** Esta nota decía que RF-11 **no** se cerraba, y era cierto el día que se escribió: el backend garantizaba que esos datos no se pudieran teclear y que no discreparan, pero el requisito dice que el reporte los «muestra» y no había pantalla. Ahora la ficha trae un bloque de **datos del servicio** con cliente, sede, servicio, fecha, ingeniero y encargado de la sede, **leídos de la orden y no copiados**, y **sin un solo control que editar** — que es además lo que RNF-07 pide de lo autocompletado. Hay una prueba que cuenta los controles del formulario y falla si alguno de esos datos aparece como campo.
 
-**Siguen fuera RF-13 y RF-14** —los protocolos, que no existen ni en el esquema ni en el código— y **RF-17**, el PDF, que depende de la firma digital. Ya hay qué exportar, que es lo que faltaba.
+**Desde el 2026-10-10 cierra también RF-13 y RF-14**, con los protocolos —ver arriba y [[hoja-de-ruta-producto]]—. (Este párrafo decía que seguían fuera porque los protocolos no existían: cierto hasta ese día.) **Sigue fuera RF-17**, el PDF, que depende de la firma digital.
 
 **Y el historial de un equipo no es RF-26.** Esa pantalla responde «qué se le ha hecho a este aparato», que es la consulta sobre la que se construirá la hoja de vida; RF-26 y RF-27 piden el historial **dentro de** una hoja de vida que todavía no existe como entidad.
 

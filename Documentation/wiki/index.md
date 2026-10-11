@@ -17,7 +17,7 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 - [[priorizacion-moscow]] — Las cuatro listas del apartado 3.5 de la ERS, con sus 18 códigos inexistentes y 10 requisitos reales sin clasificar.
 - [[rf-ordenes-trabajo]] — RF-01 a RF-07 (3.2.1). **Seis implementados** entre el 2026-09-13 y el 2026-09-27, y **RF-04 como desviación consciente**. (Decía «previstos en su totalidad»: cierto hasta el 2026-09-13.)
 - [[rf-clientes]] — RF-08 (3.2.2). El único de su categoría; implementado.
-- [[rf-reportes-mantenimiento]] — RF-09 a RF-17 (3.2.3). **RF-09, RF-11 y RF-15 implementados** entre el 27 y el 28 de septiembre de 2026; RF-13 espera los protocolos de RF-14 y RF-17 la firma. (Decía «previstos en su totalidad»: cierto hasta el 2026-09-27.)
+- [[rf-reportes-mantenimiento]] — RF-09 a RF-17 (3.2.3). **RF-09, RF-11 y RF-15 implementados** entre el 27 y el 28 de septiembre de 2026, y **RF-13 y RF-14** el 10 de octubre con los protocolos; queda RF-17, que espera la firma. (Decía «previstos en su totalidad»: cierto hasta el 2026-09-27.)
 - [[rf-firma-digital]] — RF-18, RF-21 (3.2.4). Previstos.
 - [[rf-hojas-vida]] — RF-22 a RF-27 (3.2.5). Dos implementados, dos previstos.
 - [[rf-inventario]] — RF-36, RF-37 (3.2.6). Previstos, Won't Have.
