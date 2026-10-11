@@ -4,7 +4,7 @@ description: Todo lo que hace falta para producir en la aplicación la hoja de v
 tags: [malphasos, hoja-de-vida, frontend, impresion, diseno, "describe:malphasos"]
 source: el lienzo de diseño «Hoja de vida de equipos — propuestas», propuesta C2; malphasos/.../equipment/application/services/lifeSheet/LifeSheetService.java
 estado: incompleto
-updated: 2026-10-05
+updated: 2026-10-11
 ---
 
 # La hoja de vida impresa: qué hace falta para producirla
@@ -14,7 +14,8 @@ aprobó el **2026-10-05**. Es un plan y no una descripción: **están construida
 pantalla con el diseño y su impresión, mergeada por `ac9c2592`; los datos sin migración, por
 `9516327e`; los campos nuevos del catálogo, por `86b39bbc`; el historial completo, por
 `26e64149`; y la numeración, por `d2793614`, todas el mismo día—. **Lo que queda es lo que espera
-a otra cosa**: la foto, a que se decida dónde guardar archivos, y el protocolo, a RF-14 y lo demás sigue pendiente,
+a otra cosa**: la foto, a que se decida dónde guardar archivos —el protocolo esperaba a RF-14 y
+**se construyó el 2026-10-11**, por `83eec61a`; ver [[hoja-de-vida]]— y lo demás sigue pendiente,
 salvo lo que la tabla de campos marca como «ya sale». (Decía «nada de lo que sigue está construido»:
 cierto hasta esa tarde.) La hoja de vida que existe hoy —el
 compilado de solo lectura, su historial y el oyente que lo escribe— está en [[hoja-de-vida]].
@@ -121,7 +122,7 @@ definición técnica, recomendaciones de cuidado, y del historial la fecha, el t
 | Número de hoja de vida («HV-0001») | **Unidad**, con una secuencia | **Decisión abierta**: consecutivo global o por cliente. Una secuencia de PostgreSQL da el global sin carreras; por cliente exige un contador por cliente con bloqueo |
 | Fecha de actualización | — | **Decisión abierta**. Ninguna tabla guarda cuándo cambió por última vez: no hay columnas de auditoría en todo el esquema. Las opciones son la fecha de **generación** —la de impresión, que no exige nada—, la del **último servicio**, o añadir auditoría, que es un cambio transversal |
 | Foto del equipo | **Modelo** | Una foto por modelo sirve a todas sus unidades. ⚠️ **El backend no guarda archivos**: no hay subida, ni almacenamiento, ni columnas binarias. Es una decisión de infraestructura por sí sola —en la base, en disco o en un almacén de objetos— |
-| Protocolo preventivo | Los **protocolos** de RF-14 | **No se inventa una tabla aquí**: RF-14 es justo esto, está en la hoja de ruta y detrás espera RF-13. Mientras no exista, la sección sale vacía o no sale |
+| Protocolo preventivo | Los **protocolos** de RF-14, por el **tipo** | **Ya sale desde el 2026-10-11** (`83eec61a`): lista numerada por prioridad, con la indicación del tipo. Un tipo sin protocolos sigue diciendo «Sin protocolo registrado». (Decía «no se inventa una tabla aquí… mientras no exista, la sección sale vacía»: cierto hasta ese día; la tabla la trajo `V21`) |
 
 ### Voltaje y amperaje dejan el tipo (decidido el 2026-10-05)
 
@@ -227,7 +228,8 @@ Cada tanda deja la batería en verde y algo usable.
    decisión del usuario, con «—» en lo que falta. Ver «La pantalla, construida» abajo.
 7. **Lo que espera una decisión de infraestructura**: la foto (almacenamiento de archivos), el QR
    público (enlace firmado) y el PDF del servidor (junto con RF-17).
-8. **Lo que espera otro requisito**: el protocolo preventivo, con RF-14.
+8. ~~**Lo que espera otro requisito**: el protocolo preventivo, con RF-14.~~ **Construido el
+   2026-10-11** con los protocolos, por `83eec61a`.
 
 ## La pantalla, construida (2026-10-05)
 

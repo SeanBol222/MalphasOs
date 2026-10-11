@@ -1796,3 +1796,19 @@ protocolo avisa de los parecidos en las dos pantallas donde se puede. Faltaban e
 códigos de error del catálogo metrológico desde el 3 de octubre. 510 pruebas del frontend.
 
 **Tocadas**: [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]].
+
+## [2026-10-11] ingest | la lista de verificación del reporte y el protocolo en la hoja de vida
+
+Cuarta y última tanda de RF-13 y RF-14, y con ella la quinta del rediseño. En el reporte (`c94b0f77`)
+cada paso del protocolo se marca hecho o no aplica —con nota obligatoria en el segundo— y se guarda al
+pulsarlo, con la respuesta puesta en la caché en vez de recargar; «Procedimientos» pasa a «Trabajo
+adicional» cuando hay pasos, y el porcentaje del panel cuenta lo marcado: con dos de tres pasos decía
+0 %. En la hoja de vida (`83eec61a`) la sección «Protocolo preventivo», que decía «Sin protocolo
+registrado» para todos, lleva los protocolos del tipo numerados por prioridad. Backend **1116** y
+frontend **520**, medidos sobre `6c67b16d`.
+
+**Corregido**: [[hoja-de-vida-formato-impreso]] daba el protocolo por pendiente de RF-14, y el
+`CONVENCIONES.md` de la raíz también, en dos sitios; la hoja de ruta tenía la tanda 5 «en curso».
+
+**Tocadas**: [[dominio-reporte-servicio]], [[hoja-de-vida]], [[hoja-de-vida-formato-impreso]],
+[[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]].

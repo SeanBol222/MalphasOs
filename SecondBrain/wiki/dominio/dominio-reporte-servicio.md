@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # Reportes de servicio — el módulo completo
@@ -65,6 +65,24 @@ Cuatro decisiones del usuario, todas del mismo día:
   podía quedar vacío. Ver [[hoja-de-vida]].
 
 Los borradores abiertos antes de `V22` no tienen pasos y se cierran como siempre.
+
+### La lista de verificación en pantalla (2026-10-11, `c94b0f77`)
+
+Es la de la maqueta A del rediseño, dentro del bloque «Lo que se hizo» de la ficha:
+
+- **Cada casilla se guarda al pulsarla**, porque se marca con el equipo delante. La respuesta del
+  `PATCH` ya es el reporte entero, así que `ReporteApi.marcarPaso` la pone en la caché con
+  `setQueryData` y **no invalida**: recargar en cada clic haría parpadear la ficha con el formulario a
+  medio escribir.
+- **«No aplica» abre la nota en el mismo paso** y no se confirma sin ella: la regla del agregado y del
+  `CHECK`, reflejada en vez de descubierta con un 400.
+- **«Procedimientos» se llama «Trabajo adicional»** cuando hay pasos, y es opcional; sin pasos sigue
+  siendo el campo obligatorio de siempre. El panel de cierre y `sePuedeCerrar` siguen la misma regla
+  que `finish`.
+- **El porcentaje del panel cuenta lo marcado**: con pasos es la media entre la fracción de pasos
+  marcados y el resultado. Con la fórmula de antes —un requisito incompleto cuenta cero— dos de tres
+  pasos daban **0 %**. Y la primera prueba que se escribió para eso **no distinguía las dos fórmulas**,
+  porque con cero pasos marcados dan lo mismo: la que quedó usa dos de tres y espera 75 %.
 
 ## La verificación: el catálogo configura, el reporte registra
 
