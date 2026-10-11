@@ -1,0 +1,210 @@
+<!--
+  Va dentro del formulario del tipo y se guarda con su boton. Por eso Enter en sus campos no hace nada:
+  enviaria el tipo a medio llenar.
+-->
+<fieldset class="superficie mb-3">
+  <legend class="titulo-seccion px-1">Protocolos del preventivo</legend>
+  <p class="text-sm text-neutral-700">
+    Lo que se hace en cada mantenimiento preventivo de este tipo, en orden: el primero es la
+    prioridad 1. Al abrir un reporte preventivo se copian solos. Ordénelos arrastrando o con las
+    flechas.
+  </p>
+
+  <p class="sr-only" aria-live="polite">{{ anuncio() }}</p>
+
+  @if (elegidos().length) {
+    <ol
+      class="mt-2 list-none border border-neutral-300"
+      cdkDropList
+      [cdkDropListData]="elegidos()"
+      (cdkDropListDropped)="soltar($event)"
+      aria-label="Protocolos elegidos, en orden de prioridad"
+    >
+      @for (
+        elegido of elegidos();
+        track elegido.id;
+        let i = $index;
+        let primero = $first;
+        let ultimo = $last
+      ) {
+        <li
+          class="flex flex-wrap items-start gap-1.5 border-b border-neutral-200 bg-white p-1.5 last:border-b-0"
+          cdkDrag
+          [attr.data-protocolo]="elegido.id"
+        >
+          <span
+            class="flex min-h-tactil min-w-tactil cursor-grab items-center justify-center text-neutral-600"
+            cdkDragHandle
+            aria-hidden="true"
+            title="Arrastrar para cambiar la prioridad"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="9" cy="6" r="1.6" />
+              <circle cx="15" cy="6" r="1.6" />
+              <circle cx="9" cy="12" r="1.6" />
+              <circle cx="15" cy="12" r="1.6" />
+              <circle cx="9" cy="18" r="1.6" />
+              <circle cx="15" cy="18" r="1.6" />
+            </svg>
+          </span>
+          <span class="flex min-h-tactil w-[2rem] items-center font-extrabold tabular-nums">{{
+            i + 1
+          }}</span>
+
+          <div class="min-w-0 flex-[1_1_16rem]">
+            <p class="font-bold">{{ elegido.nombre }}</p>
+            <p class="text-sm text-neutral-700">{{ elegido.descripcion }}</p>
+            <label class="mt-1 block text-sm font-semibold" [for]="'indicacion-' + elegido.id">
+              Indicación para este tipo
+            </label>
+            <input
+              class="campo mt-0.5 min-h-tactil w-full"
+              [id]="'indicacion-' + elegido.id"
+              type="text"
+              maxlength="300"
+              placeholder="Opcional, por ejemplo: alcohol isopropílico, no al 70 %"
+              [value]="elegido.indicacion"
+              (input)="indicar(i, $any($event.target).value)"
+              (keydown.enter)="$event.preventDefault()"
+            />
+          </div>
+
+          <div class="flex gap-1">
+            <button
+              class="boton-secundario min-h-tactil min-w-tactil px-0"
+              type="button"
+              [disabled]="primero"
+              [attr.aria-label]="'Subir ' + elegido.nombre"
+              (click)="mover(i, i - 1)"
+            >
+              ↑
+            </button>
+            <button
+              class="boton-secundario min-h-tactil min-w-tactil px-0"
+              type="button"
+              [disabled]="ultimo"
+              [attr.aria-label]="'Bajar ' + elegido.nombre"
+              (click)="mover(i, i + 1)"
+            >
+              ↓
+            </button>
+            <button
+              class="boton-secundario min-h-tactil"
+              type="button"
+              [attr.aria-label]="'Quitar ' + elegido.nombre"
+              (click)="quitar(i)"
+            >
+              Quitar
+            </button>
+          </div>
+        </li>
+      }
+    </ol>
+  } @else {
+    <p class="mt-2 border border-dashed border-neutral-400 p-2 text-neutral-700">
+      Sin protocolos: los reportes preventivos de este tipo se llenarán con texto libre.
+    </p>
+  }
+
+  <div class="mt-2 flex flex-wrap items-end gap-2">
+    <div class="min-w-0 flex-[1_1_18rem]">
+      <app-buscador
+        [formControl]="eleccion"
+        campo="agregarProtocolo"
+        etiqueta="Agregar un protocolo que ya existe"
+        historial="protocolo"
+        [opcional]="true"
+        [opciones]="opciones()"
+        [avisoSinCatalogo]="avisoSinOpciones()"
+      />
+    </div>
+    @if (!creando()) {
+      <button class="boton-secundario min-h-tactil" type="button" (click)="abrirPanel()">
+        Crear un protocolo nuevo
+      </button>
+    }
+  </div>
+
+  @if (creando()) {
+    <!--
+      Un panel aparte y no un campo mas: crear un protocolo es crear algo que comparten todos los tipos, y
+      el usuario pidio que no fuera facil repetirlos. Por eso avisa de los parecidos mientras se escribe.
+    -->
+    <section class="mt-2 border-2 border-ink bg-neutral-100 p-2" aria-labelledby="nuevo-protocolo">
+      <h3 id="nuevo-protocolo" class="font-extrabold">Protocolo nuevo</h3>
+      <p class="text-sm text-neutral-700">Queda en el catálogo para cualquier tipo de equipo.</p>
+
+      <label class="mt-1.5 block font-semibold" for="nombre-protocolo">
+        Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+      </label>
+      <input
+        class="campo mt-0.5 min-h-tactil w-full"
+        id="nombre-protocolo"
+        type="text"
+        maxlength="120"
+        aria-required="true"
+        [formControl]="nuevo.controls.nombre"
+        (keydown.enter)="$event.preventDefault()"
+      />
+
+      @if (parecidos().length) {
+        <div class="mt-1.5 border-l-2 border-ink bg-white p-1.5" role="status">
+          <p class="font-semibold">
+            @if (mismoNombre()) {
+              Ya existe un protocolo con este nombre. Úselo en lugar de crear otro:
+            } @else {
+              Ya existen protocolos parecidos. ¿Es alguno de estos?
+            }
+          </p>
+          <ul class="mt-1 list-none">
+            @for (protocolo of parecidos(); track protocolo.id) {
+              <li class="flex flex-wrap items-center gap-1.5 py-0.5">
+                <span class="min-w-0 flex-1">
+                  <span class="font-bold">{{ protocolo.nombre }}</span>
+                  <span class="block text-sm text-neutral-700">{{ protocolo.descripcion }}</span>
+                </span>
+                <button
+                  class="boton-secundario min-h-tactil"
+                  type="button"
+                  (click)="usar(protocolo)"
+                >
+                  Usar este
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <label class="mt-1.5 block font-semibold" for="descripcion-protocolo">
+        Qué hay que hacer <span class="text-accent-700" aria-hidden="true">*</span>
+      </label>
+      <textarea
+        class="campo mt-0.5 min-h-tactil w-full p-1"
+        id="descripcion-protocolo"
+        rows="2"
+        maxlength="500"
+        aria-required="true"
+        [formControl]="nuevo.controls.descripcion"
+      ></textarea>
+
+      @if (errorDelAlta()) {
+        <p class="mt-1 font-semibold text-accent-700" role="alert">{{ errorDelAlta() }}</p>
+      }
+
+      <div class="mt-1.5 flex flex-wrap gap-1.5">
+        <button
+          class="boton-primario min-h-tactil"
+          type="button"
+          [disabled]="alta.isPending() || !!mismoNombre()"
+          (click)="crear()"
+        >
+          {{ alta.isPending() ? 'Creando…' : 'Crear y agregar' }}
+        </button>
+        <button class="boton-secundario min-h-tactil" type="button" (click)="cerrarPanel()">
+          Cancelar
+        </button>
+      </div>
+    </section>
+  }
+</fieldset>

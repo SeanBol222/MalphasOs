@@ -1,0 +1,212 @@
+<section>
+  <h2 class="titulo-seccion">Protocolos</h2>
+  <p class="text-neutral-700">
+    Las actividades del mantenimiento preventivo. Cada una se escribe una vez y se asigna, con su
+    prioridad, a los tipos de equipo que la necesitan desde la edición del tipo. Editar una no
+    cambia los reportes que ya la copiaron.
+  </p>
+
+  @if (hayError()) {
+    <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  <div class="mt-2 max-w-[480px]">
+    <label class="block font-semibold" for="filtroProtocolos">Buscar</label>
+    <input
+      id="filtroProtocolos"
+      class="campo mt-1 min-h-tactil w-full"
+      type="search"
+      placeholder="Nombre o descripción"
+      [formControl]="filtro"
+    />
+  </div>
+
+  @if (protocolos.isPending()) {
+    <p class="mt-2 text-neutral-700" role="status">Cargando protocolos…</p>
+  } @else if (!protocolos.data()?.length) {
+    <p class="mt-2 text-neutral-700">
+      Todavía no hay protocolos. Cree el primero aquí abajo o desde la edición de un tipo de equipo.
+    </p>
+  } @else if (!visibles().length) {
+    <p class="mt-2 text-neutral-700">Ningún protocolo coincide con «{{ filtro.value }}».</p>
+  } @else {
+    <table class="tabla mt-2">
+      <caption class="sr-only">
+        Protocolos de mantenimiento preventivo
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Protocolo</th>
+          <th scope="col">Qué hay que hacer</th>
+          <th scope="col">Estado</th>
+          @if (puedeEscribir()) {
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (protocolo of visibles(); track protocolo.id) {
+          <tr [attr.data-protocolo]="protocolo.id">
+            @if (editando() === protocolo.id) {
+              <td colspan="4">
+                <div class="grid gap-1.5 md:grid-cols-2">
+                  <div>
+                    <label class="block font-semibold" [for]="'nombre-' + protocolo.id"
+                      >Nombre</label
+                    >
+                    <input
+                      class="campo mt-0.5 min-h-tactil w-full"
+                      [id]="'nombre-' + protocolo.id"
+                      maxlength="120"
+                      [formControl]="edicion.controls.nombre"
+                    />
+                  </div>
+                  <div>
+                    <label class="block font-semibold" [for]="'descripcion-' + protocolo.id">
+                      Qué hay que hacer
+                    </label>
+                    <textarea
+                      class="campo mt-0.5 min-h-tactil w-full p-1"
+                      [id]="'descripcion-' + protocolo.id"
+                      rows="2"
+                      maxlength="500"
+                      [formControl]="edicion.controls.descripcion"
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="mt-1.5 flex flex-wrap gap-1.5">
+                  <button
+                    class="boton-primario min-h-tactil"
+                    type="button"
+                    [disabled]="cambio.isPending()"
+                    (click)="guardar(protocolo.id!)"
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    class="boton-secundario min-h-tactil"
+                    type="button"
+                    (click)="editando.set(null)"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </td>
+            } @else {
+              <td [class.font-semibold]="protocolo.estadoActivo">{{ protocolo.nombre }}</td>
+              <td class="text-neutral-800">{{ protocolo.descripcion }}</td>
+              <td [class.font-semibold]="protocolo.estadoActivo">
+                {{ protocolo.estadoActivo ? 'Vigente' : 'Retirado' }}
+              </td>
+              @if (puedeEscribir()) {
+                <td class="whitespace-nowrap">
+                  @if (protocolo.estadoActivo) {
+                    @if (confirmandoRetiro() === protocolo.id) {
+                      <button
+                        class="boton-primario min-h-tactil"
+                        type="button"
+                        [disabled]="baja.isPending()"
+                        (click)="retirar(protocolo.id!)"
+                      >
+                        Confirmar retiro
+                      </button>
+                      <button
+                        class="min-h-tactil px-1 font-semibold underline"
+                        type="button"
+                        (click)="confirmandoRetiro.set(null)"
+                      >
+                        Cancelar
+                      </button>
+                    } @else {
+                      <button
+                        class="min-h-tactil px-1 font-semibold underline"
+                        type="button"
+                        (click)="
+                          empezarAEditar(protocolo.id!, protocolo.nombre, protocolo.descripcion)
+                        "
+                      >
+                        Editar
+                      </button>
+                      <button
+                        class="min-h-tactil px-1 font-semibold underline"
+                        type="button"
+                        (click)="confirmandoRetiro.set(protocolo.id!)"
+                      >
+                        Retirar
+                      </button>
+                    }
+                  }
+                </td>
+              }
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @if (puedeEscribir()) {
+    <section class="superficie mt-3 max-w-[720px]" aria-labelledby="protocolo-nuevo">
+      <h3 id="protocolo-nuevo" class="titulo-seccion">Protocolo nuevo</h3>
+
+      <label class="mt-1.5 block font-semibold" for="protocoloNombre">
+        Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+      </label>
+      <input
+        id="protocoloNombre"
+        class="campo mt-1 min-h-tactil w-full"
+        maxlength="120"
+        aria-required="true"
+        [formControl]="nuevo.controls.nombre"
+      />
+
+      @if (parecidos().length) {
+        <div class="mt-1.5 border-l-2 border-ink bg-neutral-100 p-1.5" role="status">
+          <p class="font-semibold">
+            @if (mismoNombre()) {
+              Ya existe «{{ mismoNombre()!.nombre }}». No hace falta crearlo otra vez.
+            } @else {
+              Ya existen protocolos parecidos:
+            }
+          </p>
+          <ul class="mt-0.5 list-disc pl-3">
+            @for (protocolo of parecidos(); track protocolo.id) {
+              <li>
+                <span class="font-bold">{{ protocolo.nombre }}</span> — {{ protocolo.descripcion }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <label class="mt-1.5 block font-semibold" for="protocoloDescripcion">
+        Qué hay que hacer <span class="text-accent-700" aria-hidden="true">*</span>
+      </label>
+      <textarea
+        id="protocoloDescripcion"
+        class="campo mt-1 min-h-tactil w-full p-1"
+        rows="3"
+        maxlength="500"
+        aria-required="true"
+        [formControl]="nuevo.controls.descripcion"
+      ></textarea>
+
+      @if (nuevo.invalid && nuevo.touched) {
+        <p class="mt-1 font-semibold text-accent-700">
+          El nombre y lo que hay que hacer son obligatorios.
+        </p>
+      }
+
+      <button
+        class="boton-primario mt-2 min-h-tactil"
+        type="button"
+        [disabled]="alta.isPending() || !!mismoNombre()"
+        (click)="crear()"
+      >
+        {{ alta.isPending() ? 'Creando…' : 'Crear protocolo' }}
+      </button>
+    </section>
+  }
+</section>

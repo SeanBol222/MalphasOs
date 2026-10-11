@@ -5,7 +5,13 @@ import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { asentar, responderA } from '../../../../testing/pantalla';
 import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
-import { ID_TIPO, TIPOS, URL_TIPOS } from '../../../../testing/catalogo';
+import {
+  ID_TIPO,
+  TIPOS,
+  URL_PROTOCOLOS,
+  URL_PROTOCOLOS_DE_TIPO,
+  URL_TIPOS,
+} from '../../../../testing/catalogo';
 import { EditarTipo } from './editar-tipo';
 
 const URL = `${URL_TIPOS}/${ID_TIPO}`;
@@ -39,6 +45,9 @@ describe('Edicion de un tipo de equipo', () => {
     await responderA(fixture, http, URL, TIPOS[0]);
     // Y la lista de tipos, de la que salen las sugerencias de tecnología.
     await responderA(fixture, http, URL_TIPOS, TIPOS);
+    // Desde el 2026-10-10: los protocolos que el tipo tiene, y el catalogo para agregar otros.
+    await responderA(fixture, http, URL_PROTOCOLOS_DE_TIPO(ID_TIPO), []);
+    await responderA(fixture, http, URL_PROTOCOLOS, []);
   }
 
   it('llega con la ficha tecnica ya puesta', async () => {
@@ -84,7 +93,18 @@ describe('Edicion de un tipo de equipo', () => {
     expect(cambio.request.body).not.toHaveProperty('voltaje');
     cambio.flush(TIPOS[0]);
     await asentar(fixture);
-    http.match(() => true).forEach((p) => p.flush([]));
+
+    // Y despues, con el mismo boton, los protocolos: se mandan aunque nadie los tocara, porque
+    // reordenar sin cambiar nada mas tambien es una edicion. Aqui el tipo no tiene ninguno.
+    const protocolos = http.expectOne({ method: 'PATCH', url: URL_PROTOCOLOS_DE_TIPO(ID_TIPO) });
+    expect(protocolos.request.body).toEqual({ protocolos: [] });
+    protocolos.flush([]);
+
+    // Dos rondas: cada escritura invalida el catalogo y su recarga sale un tic despues.
+    for (let ronda = 0; ronda < 2; ronda += 1) {
+      await asentar(fixture);
+      http.match(() => true).forEach((p) => p.flush([]));
+    }
     await asentar(fixture);
 
     expect(TestBed.inject(Router).url).toBe('/catalogo');

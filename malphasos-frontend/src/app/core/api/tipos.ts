@@ -65,6 +65,16 @@ export type Marca = equipos['schemas']['BrandResponse'];
 export type NuevoNombre = equipos['schemas']['NamedRequest'];
 
 export type TipoDeEquipo = equipos['schemas']['EquipmentTypeResponse'];
+
+/**
+ * Los protocolos de mantenimiento preventivo, del 2026-10-10: una actividad reutilizable que se asigna
+ * a los tipos de equipo con una prioridad. La asignacion se manda entera y en orden; la prioridad la
+ * deriva el servidor de la posicion.
+ */
+export type Protocolo = equipos['schemas']['ProtocolResponse'];
+export type NuevoProtocolo = equipos['schemas']['ProtocolRequest'];
+export type ProtocoloAsignado = equipos['schemas']['AssignedProtocolResponse'];
+export type AsignacionDeProtocolos = equipos['schemas']['AssignProtocolsRequest'];
 export type NuevoTipoDeEquipo = equipos['schemas']['EquipmentTypeCreateRequest'];
 export type CambioDeTipoDeEquipo = equipos['schemas']['EquipmentTypeUpdateRequest'];
 

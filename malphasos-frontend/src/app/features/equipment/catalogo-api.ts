@@ -8,6 +8,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  AsignacionDeProtocolos,
   CambioDeTipoDeEquipo,
   EquipoDeCatalogo,
   Fabricante,
@@ -20,7 +21,10 @@ import {
   NuevoFabricante,
   NuevoModelo,
   NuevoNombre,
+  NuevoProtocolo,
   NuevoTipoDeEquipo,
+  Protocolo,
+  ProtocoloAsignado,
   TipoDeEquipo,
   UnidadDeMedida,
 } from '../../core/api/tipos';
@@ -251,6 +255,53 @@ export class CatalogoApi {
     return injectMutation(() => ({
       mutationFn: ({ id, invima }: { id: string; invima: string }) =>
         firstValueFrom(this.http.patch<Modelo>(`${this.api}/models/${id}/invima`, { invima })),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  // --- Protocolos de mantenimiento ------------------------------------------
+
+  listarProtocolos() {
+    return this.listar<Protocolo>('protocolos', 'protocols');
+  }
+
+  crearProtocolo() {
+    return this.crear<Protocolo, NuevoProtocolo>('protocols');
+  }
+
+  editarProtocolo() {
+    return this.editar<Protocolo, NuevoProtocolo>('protocols');
+  }
+
+  retirarProtocolo() {
+    return this.retirar('protocols');
+  }
+
+  /** Los protocolos de un tipo, en orden de prioridad. Vacio sin identificador: el alta aun no lo tiene. */
+  protocolosDeTipo(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...CatalogoApi.clave('tipos'), id(), 'protocolos'],
+      queryFn: () =>
+        firstValueFrom(
+          this.http.get<ProtocoloAsignado[]>(`${this.api}/equipment-types/${id()}/protocols`),
+        ),
+      enabled: !!id(),
+    }));
+  }
+
+  /**
+   * Fija los protocolos de un tipo: la lista entera, en el orden de su prioridad. No se manda ninguna
+   * prioridad; el servidor la deriva de la posicion, para que no pueda llegar un hueco ni una repetida.
+   */
+  asignarProtocolos() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, asignacion }: { id: string; asignacion: AsignacionDeProtocolos }) =>
+        firstValueFrom(
+          this.http.patch<ProtocoloAsignado[]>(
+            `${this.api}/equipment-types/${id}/protocols`,
+            asignacion,
+          ),
+        ),
       onSuccess: () => this.invalidar(),
     }));
   }

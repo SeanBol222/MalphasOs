@@ -108,6 +108,9 @@ export const NAVEGACION: readonly EntradaDeNavegacion[] = [
       { ruta: 'fabricantes', etiqueta: 'Fabricantes' },
       { ruta: 'equipos', etiqueta: 'Equipos del catálogo' },
       { ruta: 'modelos', etiqueta: 'Modelos' },
+      // Los protocolos de mantenimiento, del 2026-10-10: el catalogo. Su asignacion a cada tipo, con su
+      // prioridad, se hace en la edicion del tipo.
+      { ruta: 'protocolos', etiqueta: 'Protocolos' },
     ],
   },
 ] as const;
@@ -178,6 +181,8 @@ function cargarPagina(camino: string): Promise<Type<unknown>> {
       return import('../features/equipment/catalogo/equipos').then((m) => m.EquiposDeCatalogo);
     case 'catalogo/modelos':
       return import('../features/equipment/catalogo/modelos').then((m) => m.Modelos);
+    case 'catalogo/protocolos':
+      return import('../features/equipment/catalogo/protocolos').then((m) => m.Protocolos);
     default:
       throw new Error(`El destino de navegacion "${camino}" no tiene pagina asociada`);
   }

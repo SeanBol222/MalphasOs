@@ -64,7 +64,7 @@ describe('Catálogo de equipos', () => {
     expect(texto(raiz)).not.toContain('Crear modelo');
   });
 
-  it('la subnavegación ofrece las cinco, y marca la actual con aria-current', async () => {
+  it('la subnavegación ofrece las seis, y marca la actual con aria-current', async () => {
     const raiz = await abrir('/catalogo/modelos');
     const enlaces = [...raiz.querySelectorAll('nav[aria-label="Piezas del catálogo"] a')];
 
@@ -74,6 +74,8 @@ describe('Catálogo de equipos', () => {
       'Fabricantes',
       'Equipos del catálogo',
       'Modelos',
+      // Los protocolos, del 2026-10-10: la sexta pieza.
+      'Protocolos',
     ]);
     // El subrayado en acento no le dice nada a quien no ve la pantalla.
     expect(raiz.querySelector('nav a[aria-current="page"]')?.textContent?.trim()).toBe('Modelos');
