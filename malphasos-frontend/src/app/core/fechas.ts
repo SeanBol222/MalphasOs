@@ -42,3 +42,18 @@ export function lunesDe(fecha: Date): Date {
   // getDay() da 0 para el domingo: se lleva al final de la semana y no al principio.
   return sumarDias(fecha, -((fecha.getDay() + 6) % 7));
 }
+
+/** «12 mar 2026»: el dia, sin la hora, y con el mes en letras para que no se confunda dia y mes. */
+export function fechaCorta(fecha: string | null | undefined): string {
+  if (!fecha) {
+    return '—';
+  }
+
+  // Solo la parte de la fecha: con hora y zona, un servicio cerrado de noche saldria al dia siguiente.
+  const [anio, mes, dia] = fecha.slice(0, 10).split('-').map(Number);
+
+  return new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+    .format(new Date(anio, mes - 1, dia))
+    .replace('.', '')
+    .replace(/ de /g, ' ');
+}

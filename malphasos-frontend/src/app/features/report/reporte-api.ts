@@ -180,5 +180,7 @@ export class ReporteApi {
     // y aqui hay que enterarse. Se invalida el prefijo entero porque esta clase no sabe de que equipo
     // es cada reporte sin consultarlo, y una hoja de vida de mas recargada no cuesta nada.
     void this.queryClient.invalidateQueries({ queryKey: ['hoja-de-vida'] });
+    // Y cambia el ultimo servicio del equipo, que el listado de equipos ensena desde el 2026-10-11.
+    void this.queryClient.invalidateQueries({ queryKey: ['equipos-de-cliente', 'resumen'] });
   }
 }

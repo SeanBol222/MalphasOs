@@ -4,14 +4,17 @@ import {
   injectMutation,
   injectQuery,
   injectQueryClient,
+  keepPreviousData,
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   CambioDeEquipoDeCliente,
+  ConsultaDeEquipos,
   EquipoDeCliente,
   HojaDeVida,
   NuevoEquipoDeCliente,
+  ResumenDeEquipos,
 } from '../../core/api/tipos';
 import { SedeApi } from '../client/sede-api';
 
@@ -45,6 +48,13 @@ export class EquipoApi {
    * y no tendria por que conocer las claves de los equipos.
    */
   static readonly CLAVE_HOJA_DE_VIDA = ['hoja-de-vida'] as const;
+
+  /**
+   * El listado del rediseño cuelga de {@link CLAVE}, de modo que dar de alta o de baja un equipo lo
+   * recarga. Cerrar un reporte cambia su ultimo servicio, y por eso {@code ReporteApi} lo invalida
+   * tambien, igual que la hoja de vida.
+   */
+  static readonly CLAVE_RESUMEN = [...EquipoApi.CLAVE, 'resumen'] as const;
 
   static claveDeArea(idArea: string) {
     return [...EquipoApi.CLAVE, idArea] as const;
@@ -96,10 +106,7 @@ export class EquipoApi {
     return injectMutation(() => ({
       mutationFn: ({ idArea, equipo }: { idArea: string; equipo: NuevoEquipoDeCliente }) =>
         firstValueFrom(
-          this.http.post<EquipoDeCliente>(
-            `${this.api}/service-areas/${idArea}/equipments`,
-            equipo,
-          ),
+          this.http.post<EquipoDeCliente>(`${this.api}/service-areas/${idArea}/equipments`, equipo),
         ),
       onSuccess: () => this.invalidar(),
     }));
@@ -120,6 +127,35 @@ export class EquipoApi {
         ),
       onSuccess: () => this.invalidar(),
     }));
+  }
+
+  /**
+   * Una pagina del listado de equipos, filtrada y paginada en el servidor (2026-10-11).
+   *
+   * <p>Mientras llega la pagina nueva se queda la anterior a la vista: cambiar de pagina o escribir en
+   * el buscador no debe vaciar la tabla en cada tecla.
+   */
+  resumen(consulta: Signal<ConsultaDeEquipos>) {
+    return injectQuery(() => {
+      const { q, idCliente, idTipoEquipo, resultado, dadosDeBaja, pagina, tamano } = consulta();
+      const parametros: Record<string, string | number | boolean> = { pagina, tamano };
+      if (q) parametros['q'] = q;
+      if (idCliente) parametros['idCliente'] = idCliente;
+      if (idTipoEquipo) parametros['idTipoEquipo'] = idTipoEquipo;
+      if (resultado) parametros['resultado'] = resultado;
+      if (dadosDeBaja) parametros['dadosDeBaja'] = true;
+
+      return {
+        queryKey: [...EquipoApi.CLAVE_RESUMEN, parametros],
+        queryFn: () =>
+          firstValueFrom(
+            this.http.get<ResumenDeEquipos>(`${this.api}/client-equipments/overview`, {
+              params: parametros,
+            }),
+          ),
+        placeholderData: keepPreviousData,
+      };
+    });
   }
 
   /** Da de baja el equipo. Como todo aqui, queda inactivo con su historia intacta. */
