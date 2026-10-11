@@ -69,6 +69,19 @@ describe('Programar una orden de trabajo', () => {
     await asentar(fixture);
   }
 
+  it('llega con el cliente y la sede de la ruta ya puestos, y la sede no se borra', async () => {
+    // «Nueva orden aquí», desde la ficha de una sede (2026-10-11). El efecto que limpia la sede al
+    // cambiar de cliente la borraba en la primera versión: veía el cliente puesto como un cambio.
+    fixture.componentRef.setInput('cliente', ID_CLIENTE);
+    fixture.componentRef.setInput('sede', ID_SEDE);
+    await abrir();
+    await responderA(fixture, http, URL_SEDES_DEL_CLIENTE, [SEDE]);
+    await asentar(fixture);
+
+    expect(raiz().querySelector<HTMLSelectElement>('#idSede')?.value).toBe(ID_SEDE);
+    expect(raiz().querySelector<HTMLInputElement>('#idCliente')?.value).toBe('Hospital Central');
+  });
+
   it('dice que los equipos se añaden después, en la ficha', async () => {
     // Es lo que el API ofrece y lo que ocurre de verdad: se acuerda la visita y luego se decide sobre
     // qué se trabaja. Sin decirlo, alguien los busca en este formulario.
@@ -156,10 +169,12 @@ describe('Programar una orden de trabajo', () => {
     await elegirClienteYSede();
     escribir('fechaMantenimiento', '2026-11-20');
     await enviar();
-    http.expectOne({ method: 'POST', url: URL_ORDENES }).flush(
-      { code: 'ERR_WORK_ORDER_005', message: 'Headquarter not found', details: [] },
-      { status: 404, statusText: 'Not Found' },
-    );
+    http
+      .expectOne({ method: 'POST', url: URL_ORDENES })
+      .flush(
+        { code: 'ERR_WORK_ORDER_005', message: 'Headquarter not found', details: [] },
+        { status: 404, statusText: 'Not Found' },
+      );
     await asentar(fixture);
 
     expect(raiz().querySelector('[role="alert"]')?.textContent).toContain('Esa sede no existe');

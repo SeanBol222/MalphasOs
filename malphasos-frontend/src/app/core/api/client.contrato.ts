@@ -180,6 +180,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/headquarters/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen de sedes con sus areas, de todos los clientes o de uno
+         * @description Para los listados: cuenta sedes, areas y ciudades sin pedir cada ficha. Incluye lo cerrado, con su estado.
+         */
+        get: operations["getSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/headquarters/{idSede}/service-areas": {
         parameters: {
             query?: never;
@@ -481,6 +501,26 @@ export interface components {
             idCliente?: string;
             nombre?: string;
             numero?: string;
+        };
+        HeadquarterSummaryArea: {
+            abierta?: boolean;
+            /** Format: uuid */
+            id?: string;
+            nombre?: string;
+        };
+        /** @description Una sede con sus areas, para los listados */
+        HeadquarterSummaryResponse: {
+            /** @description Si la sede esta abierta */
+            abierta?: boolean;
+            /** @description Todas sus areas, abiertas y cerradas, por nombre */
+            areas?: components["schemas"]["HeadquarterSummaryArea"][];
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            idCiudad?: string;
+            /** Format: uuid */
+            idCliente?: string;
+            nombre?: string;
         };
         HeadquarterUpdateRequest: {
             calle?: string;
@@ -1352,6 +1392,64 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ClientResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getSummary: {
+        parameters: {
+            query?: {
+                idCliente?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HeadquarterSummaryResponse"][];
                 };
             };
             /** @description Bad Request */

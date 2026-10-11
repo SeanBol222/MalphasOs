@@ -3,12 +3,52 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
+import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { DetalleCliente } from './detalle-cliente';
 
 const ID = '11111111-1111-1111-1111-111111111111';
 const URL = `http://localhost:8081/v1/api/clients/${ID}`;
 const URL_PAISES = 'http://localhost:8081/v1/api/countries';
 const URL_SEDES = `${URL}/headquarters`;
+const API = 'http://localhost:8081/v1/api';
+const URL_RESUMEN_SEDES = `${API}/headquarters/summary`;
+const URL_CONTEOS = `${API}/client-equipments/summary`;
+const URL_PERSONAS = `${API}/persons`;
+const URL_CIUDADES = `${API}/cities`;
+
+/** Lo que dice el resumen de sedes: la cerrada no cuenta en las cifras. */
+const RESUMEN_SEDES = [
+  {
+    id: 's1',
+    nombre: 'Sede Norte',
+    idCliente: ID,
+    idCiudad: 'ci1',
+    abierta: true,
+    areas: [
+      { id: 'a1', nombre: 'Urgencias', abierta: true },
+      { id: 'a2', nombre: 'Laboratorio', abierta: true },
+      { id: 'a3', nombre: 'Bodega', abierta: false },
+    ],
+  },
+  {
+    id: 's2',
+    nombre: 'Sede Vieja',
+    idCliente: ID,
+    abierta: false,
+    areas: [{ id: 'a4', nombre: 'Vieja', abierta: true }],
+  },
+];
+const CONTEOS = [
+  {
+    idArea: 'a1',
+    idSede: 's1',
+    idCliente: ID,
+    equipos: 5,
+    fueraDeServicio: 1,
+    ultimoServicio: '2026-10-06T21:30:00',
+  },
+  { idArea: 'a2', idSede: 's1', idCliente: ID, equipos: 3, fueraDeServicio: 0 },
+];
 
 /** Un identificador de verdad, no un alias corto: es lo que el usuario NO debe ver en pantalla. */
 const ID_PAIS = '22222222-2222-2222-2222-222222222222';
@@ -27,9 +67,27 @@ const CLIENTE = {
 
 const PAISES = [{ id: ID_PAIS, nombre: 'Colombia', codigoIso: 'CO', estadoActivo: true }];
 
+// La cerrada primero: la ficha pone las abiertas delante, y con el orden ya bueno no se notaría.
 const SEDES = [
-  { id: 's1', nombre: 'Sede Norte', idCliente: ID, estadoActivo: true },
-  { id: 's2', nombre: 'Sede Vieja', idCliente: ID, estadoActivo: false },
+  {
+    id: 's2',
+    nombre: 'Sede Vieja',
+    idCliente: ID,
+    calle: '1',
+    carrera: '2',
+    numero: '3',
+    estadoActivo: false,
+  },
+  {
+    id: 's1',
+    nombre: 'Sede Norte',
+    idCliente: ID,
+    idCiudad: 'ci1',
+    calle: '10',
+    carrera: '20',
+    numero: '30',
+    estadoActivo: true,
+  },
 ];
 
 @Component({ selector: 'app-listado-falso', template: '' })
@@ -39,17 +97,29 @@ describe('Ficha de un cliente', () => {
   let fixture: ComponentFixture<DetalleCliente>;
   let http: HttpTestingController;
 
-  beforeEach(() => {
+  /** Solo client.*: lo que piden las autoridades de más se prueba aparte, en «Las cifras». */
+  function montar(autoridades: readonly string[] = ['client.read', 'client.write']): void {
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
+        ...proveerSesionFalsa({ autoridades }),
         provideRouter([{ path: 'clientes', component: ListadoFalso }]),
       ],
     });
     fixture = TestBed.createComponent(DetalleCliente);
     http = TestBed.inject(HttpTestingController);
     fixture.componentRef.setInput('id', ID);
-  });
+  }
+
+  beforeEach(() => montar());
+
+  /** Responde lo que la invalidacion de una escritura vuelve a pedir: la ficha, sus sedes y el resumen. */
+  async function atenderRecargas(): Promise<void> {
+    http.match(URL).forEach((p) => p.flush(CLIENTE));
+    http.match(URL_SEDES).forEach((p) => p.flush(SEDES));
+    http.match((r) => r.url === URL_RESUMEN_SEDES).forEach((p) => p.flush(RESUMEN_SEDES));
+    await asentar();
+  }
 
   const raiz = () => fixture.nativeElement as HTMLElement;
   const texto = () => raiz().textContent ?? '';
@@ -79,6 +149,8 @@ describe('Ficha de un cliente', () => {
     await responder(URL, cliente, opciones);
     await responder(URL_PAISES, PAISES);
     await responder(URL_SEDES, SEDES);
+    http.match((r) => r.url === URL_RESUMEN_SEDES).forEach((p) => p.flush(RESUMEN_SEDES));
+    await asentar();
   }
 
   async function responder(
@@ -123,6 +195,7 @@ describe('Ficha de un cliente', () => {
     http.expectOne(URL);
     http.match(URL_PAISES).forEach((p) => p.flush(PAISES));
     http.match(URL_SEDES).forEach((p) => p.flush(SEDES));
+    http.match((r) => r.url === URL_RESUMEN_SEDES).forEach((p) => p.flush(RESUMEN_SEDES));
 
     expect(raiz().querySelector('[role="status"]')).toBeTruthy();
   });
@@ -150,8 +223,13 @@ describe('Ficha de un cliente', () => {
     // «sin especificar» seria afirmar algo falso sobre el cliente.
     fixture.detectChanges();
     await responder(URL, CLIENTE);
-    await responder(URL_PAISES, { code: 'ERR_LOCATION_001' }, { status: 403, statusText: 'Forbidden' });
+    await responder(
+      URL_PAISES,
+      { code: 'ERR_LOCATION_001' },
+      { status: 403, statusText: 'Forbidden' },
+    );
     await responder(URL_SEDES, SEDES);
+    await atenderRecargas();
 
     expect(texto()).toContain('No disponible');
     expect(texto()).not.toContain('Sin especificar');
@@ -185,8 +263,7 @@ describe('Ficha de un cliente', () => {
     http.expectOne({ method: 'GET', url: URL }).flush(CLIENTE);
     await asentar();
     // La invalidacion alcanza tambien a las sedes, porque su clave cuelga de la del cliente.
-    http.match(URL_SEDES).forEach((p) => p.flush(SEDES));
-    await asentar();
+    await atenderRecargas();
   });
 
   it('un correo mal escrito no llega al servidor', async () => {
@@ -216,8 +293,7 @@ describe('Ficha de un cliente', () => {
     http.expectOne({ method: 'DELETE', url: `${URL}/phones/t1` }).flush(null);
     await asentar();
     http.expectOne({ method: 'GET', url: URL }).flush(CLIENTE);
-    http.match(URL_SEDES).forEach((p) => p.flush(SEDES));
-    await asentar();
+    await atenderRecargas();
   });
 
   describe('Retirar no es un clic', () => {
@@ -238,9 +314,7 @@ describe('Ficha de un cliente', () => {
 
       http.expectOne({ method: 'DELETE', url: URL }).flush(null);
       await asentar();
-      http.match(URL).forEach((p) => p.flush(CLIENTE));
-      http.match(URL_SEDES).forEach((p) => p.flush(SEDES));
-      await asentar();
+      await atenderRecargas();
 
       expect(TestBed.inject(Router).url).toBe('/clientes');
     });
@@ -248,9 +322,9 @@ describe('Ficha de un cliente', () => {
     it('un cliente ya retirado no ofrece retirarse otra vez', async () => {
       await abrir({ ...CLIENTE, estadoActivo: false });
 
-      expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).not.toContain(
-        'Retirar',
-      );
+      expect(
+        [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
+      ).not.toContain('Retirar');
     });
   });
 
@@ -267,13 +341,23 @@ describe('Ficha de un cliente', () => {
     it('el estado de una sede tambien se distingue por peso, no por color', async () => {
       await abrir();
 
-      const estados = [...raiz().querySelectorAll('section ul li span')];
-      const abierta = estados.find((e) => (e.textContent ?? '').includes('Abierta'))!;
-      const cerrada = estados.find((e) => (e.textContent ?? '').includes('Cerrada'))!;
+      const estados = [...raiz().querySelectorAll('[data-sede] span')];
+      const abierta = estados.find((e) => e.textContent?.trim() === 'Abierta')!;
+      const cerrada = estados.find((e) => e.textContent?.trim() === 'Cerrada')!;
 
-      expect(abierta.className).toContain('font-semibold');
-      expect(cerrada.className).not.toContain('font-semibold');
+      // Desde el rediseño pesa lo que hay que mirar: la cerrada, que es la excepción.
+      expect(cerrada.className).toContain('font-bold');
+      expect(abierta.className).not.toContain('font-bold');
       expect(cerrada.className).not.toContain('text-accent');
+    });
+
+    it('cada tarjeta dice la dirección y cuántas áreas abiertas tiene, y van primero las abiertas', async () => {
+      await abrir();
+
+      const tarjetas = [...raiz().querySelectorAll('[data-sede]')];
+      expect(tarjetas.map((t) => t.getAttribute('data-sede'))).toEqual(['s1', 's2']);
+      expect(tarjetas[0].textContent).toContain('Calle 10 · Carrera 20 · N.º 30');
+      expect(tarjetas[0].textContent?.replace(/\s+/g, ' ')).toContain('2 áreas');
     });
 
     it('sin sedes dice por donde empezar y para que sirven', async () => {
@@ -281,6 +365,7 @@ describe('Ficha de un cliente', () => {
       await responder(URL, CLIENTE);
       await responder(URL_PAISES, PAISES);
       await responder(URL_SEDES, []);
+      await atenderRecargas();
 
       expect(texto()).toContain('Abra la primera');
     });
@@ -315,15 +400,78 @@ describe('Ficha de un cliente', () => {
       }
     });
 
-    it('el estado se distingue por peso tipografico y no por un color nuevo', async () => {
+    it('el estado se dice en palabras, con el mismo color para activo y retirado', async () => {
       await abrir({ ...CLIENTE, estadoActivo: false });
+      const retirado = raiz().querySelector('header p')!;
 
-      const estado = [...raiz().querySelectorAll('p')].find((p) =>
-        (p.textContent ?? '').includes('Retirado'),
-      )!;
+      expect(retirado.textContent).toContain('Cliente retirado');
+      // La línea de arriba va en el rojo de la marca en los dos estados: el color no distingue.
+      const clases = retirado.className;
+      TestBed.resetTestingModule();
+      montar();
+      await abrir();
+      expect(raiz().querySelector('header p')!.className).toBe(clases);
+    });
+  });
 
-      expect(estado.className).not.toContain('font-semibold');
-      expect(estado.className).not.toContain('text-accent');
+  describe('Las cifras, con las autoridades que las abren', () => {
+    const TODAS = [
+      'client.read',
+      'client.write',
+      'equipment.read',
+      'person.read',
+      'person.write',
+      'location.read',
+    ];
+
+    async function abrirConTodo(): Promise<void> {
+      TestBed.resetTestingModule();
+      montar(TODAS);
+      await abrir();
+      await asentar();
+      const conteos = http.match((r) => r.url === URL_CONTEOS);
+      expect(conteos.map((r) => r.request.params.get('idCliente'))).toEqual([ID]);
+      conteos.forEach((p) => p.flush(CONTEOS));
+      http
+        .match(URL_PERSONAS)
+        .forEach((p) =>
+          p.flush([{ identificador: 'p1', primerNombre: 'Carolina', primerApellido: 'Vélez' }]),
+        );
+      http.match(URL_CIUDADES).forEach((p) => p.flush([{ id: 'ci1', nombre: 'Bogotá' }]));
+      await asentar();
+    }
+
+    const cifra = (etiqueta: string) =>
+      [...raiz().querySelectorAll('dt')]
+        .find((dt) => dt.textContent?.trim() === etiqueta)
+        ?.nextElementSibling?.textContent?.trim();
+
+    it('cuenta sedes y áreas abiertas, equipos y fuera de servicio, sin la sede cerrada', async () => {
+      await abrirConTodo();
+
+      expect(cifra('Sedes abiertas')).toBe('1');
+      expect(cifra('Áreas de servicio')).toBe('2');
+      expect(cifra('Equipos instalados')).toBe('8');
+      expect(cifra('Fuera de servicio')).toBe('1');
+      expect(raiz().querySelector('[data-sede="s1"]')?.textContent).toContain('Bogotá');
+    });
+
+    it('pide los conteos de este cliente y nombra a los representantes que encuentra', async () => {
+      await abrirConTodo();
+
+      expect(texto()).toContain('Carolina Vélez');
+      // El otro representante no está en la lista de personas: no se inventa su nombre.
+      expect(texto()).toContain('Representante');
+      expect(raiz().querySelector('a[href="/personas/nueva/representante"]')).not.toBeNull();
+    });
+
+    it('sin equipment.read ni person.read no pide ni pinta lo que no puede leer', async () => {
+      await abrir();
+
+      expect(cifra('Equipos instalados')).toBeUndefined();
+      expect(http.match((r) => r.url === URL_CONTEOS)).toHaveLength(0);
+      expect(http.match(URL_PERSONAS)).toHaveLength(0);
+      expect(raiz().querySelector('a[href="/personas/nueva/representante"]')).toBeNull();
     });
   });
 

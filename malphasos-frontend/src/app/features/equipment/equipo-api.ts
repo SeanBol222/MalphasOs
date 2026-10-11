@@ -12,6 +12,7 @@ import {
   CambioDeEquipoDeCliente,
   ConsultaDeEquipos,
   EquipoDeCliente,
+  EquiposDeArea,
   HojaDeVida,
   NuevoEquipoDeCliente,
   ResumenDeEquipos,
@@ -176,6 +177,30 @@ export class EquipoApi {
             }),
           ),
         enabled: ordenados.length > 0,
+      };
+    });
+  }
+
+  /**
+   * Los equipos en servicio contados por area, de todo el alcance o de un cliente (2026-10-11). Cuelga
+   * de {@link CLAVE_RESUMEN}: dar de alta un equipo o cerrar un reporte lo recarga.
+   *
+   * <p>Admite una senal que la apaga: lo piden pantallas de clientes, y quien lee clientes no siempre
+   * puede leer equipos.
+   */
+  conteoPorArea(idCliente?: Signal<string>, habilitada?: Signal<boolean>) {
+    return injectQuery(() => {
+      const id = idCliente?.() ?? '';
+
+      return {
+        queryKey: [...EquipoApi.CLAVE_RESUMEN, 'por-area', id || 'todos'],
+        queryFn: () =>
+          firstValueFrom(
+            this.http.get<EquiposDeArea[]>(`${this.api}/client-equipments/summary`, {
+              params: id ? { idCliente: id } : {},
+            }),
+          ),
+        enabled: habilitada ? habilitada() : true,
       };
     });
   }

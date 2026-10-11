@@ -2,6 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AreaApi } from '../area-api';
+import { ClienteApi } from '../cliente-api';
+import { EquipoApi } from '../../equipment/equipo-api';
+import { OrdenApi } from '../../workOrder/orden-api';
+import { fechaCorta } from '../../../core/fechas';
 import { EncargadoApi } from '../encargado-api';
 import { SedeApi } from '../sede-api';
 import { nombreCompleto, PersonaApi } from '../../person/persona-api';
@@ -23,6 +27,10 @@ import { traducirError } from '../../../core/errores/traducir';
  * <p>Y <b>sus encargados</b>, los de la sede y los de cada area. La seccion se oculta a quien no tenga
  * {@code engineer.read} —el grupo {@code clients} no la tiene—, que es ocultar y no autorizar: el
  * permiso lo sigue comprobando el servidor en cada llamada.
+ *
+ * <p><b>Rehecha el 2026-10-11 con el rediseño</b> —la maqueta «A-Sede»—: las áreas son una tabla con
+ * sus equipos y su encargado —el propio, o el de la sede si no tiene—, y a un lado los encargados y las
+ * órdenes abiertas en la sede. «Nueva orden aquí» lleva al alta con el cliente y la sede ya puestos.
  */
 @Component({
   selector: 'app-detalle-sede',
@@ -34,10 +42,27 @@ export class DetalleSede {
   readonly id = input.required<string>();
 
   private readonly api = inject(SedeApi);
+  private readonly sesion = inject(Sesion);
   private readonly router = inject(Router);
 
   protected readonly sede = this.api.detalle(this.id);
-  private readonly ciudades = inject(UbicacionApi).listarCiudades();
+  private readonly ciudades = inject(UbicacionApi).listarCiudades(
+    computed(() => this.sesion.puede('location.read')),
+  );
+
+  private readonly idCliente = computed(() => this.sede.data()?.idCliente ?? '');
+  private readonly cliente = inject(ClienteApi).detalle(this.idCliente);
+  protected readonly nombreDelCliente = computed(() => this.cliente.data()?.razonSocial ?? '');
+
+  protected readonly veEquipos = computed(() => this.sesion.puede('equipment.read'));
+  protected readonly registraEquipos = computed(() => this.sesion.puede('equipment.assign'));
+  protected readonly veOrdenes = computed(() => this.sesion.puede('work-order.read'));
+  protected readonly programaOrdenes = computed(() => this.sesion.puede('work-order.write'));
+  private readonly conteos = inject(EquipoApi).conteoPorArea(
+    this.idCliente,
+    computed(() => this.veEquipos() && !!this.idCliente()),
+  );
+  private readonly ordenes = inject(OrdenApi).listar(this.veOrdenes);
 
   protected readonly cierre = this.api.cerrar();
 
@@ -48,7 +73,6 @@ export class DetalleSede {
   protected readonly cierreDeArea = this.areaApi.cerrar();
 
   private readonly encargadoApi = inject(EncargadoApi);
-  private readonly sesion = inject(Sesion);
 
   /** Quien no puede leer encargados no ve la seccion; quien no puede asignar, no ve el boton. */
   // Senales y no booleanos: las autoridades se releen en cada evento de Keycloak -renovacion de
@@ -56,8 +80,10 @@ export class DetalleSede {
   protected readonly puedeVerEncargados = computed(() => this.sesion.puede('engineer.read'));
   protected readonly puedeAsignar = computed(() => this.sesion.puede('engineer.assign'));
 
-  private readonly encargados = this.encargadoApi.listar();
-  private readonly personas = inject(PersonaApi).listar();
+  private readonly encargados = this.encargadoApi.listar(this.puedeVerEncargados);
+  private readonly personas = inject(PersonaApi).listar(
+    computed(() => this.sesion.puede('person.read')),
+  );
   protected readonly bajaDeEncargado = this.encargadoApi.retirar();
 
   private readonly formBuilder = inject(FormBuilder);
@@ -134,6 +160,7 @@ export class DetalleSede {
       )
       .map((encargado) => ({
         idPersona: encargado.idPersona!,
+        idArea: encargado.tipo === 'SERVICE_AREA' ? encargado.idAreaServicio : undefined,
         estadoActivo: encargado.estadoActivo,
         // Se dice de que tipo es la asignacion y no solo su nombre: «Urgencias» a secas no
         // distingue un area de una sede que se llamara igual.
@@ -147,6 +174,55 @@ export class DetalleSede {
           : '',
       }));
   });
+
+  /**
+   * Las áreas como filas de la tabla: cuántos equipos tienen en servicio y quién responde por ellas.
+   * Un área sin encargado propio responde con los de la sede —la regla de la hoja de vida, decidida el
+   * 2026-10-05—, y se dice así para que no parezca que tiene uno.
+   */
+  protected readonly filasDeAreas = computed(() => {
+    const equipos = new Map((this.conteos.data() ?? []).map((c) => [c.idArea, c.equipos ?? 0]));
+    const encargados = this.encargadosDeLaSede().filter((e) => e.estadoActivo);
+    const deLaSede = encargados
+      .filter((e) => !e.idArea)
+      .map((e) => e.nombre)
+      .filter(Boolean);
+
+    return (this.areas.data() ?? []).map((area) => {
+      const propios = encargados
+        .filter((e) => e.idArea === area.id)
+        .map((e) => e.nombre)
+        .filter(Boolean);
+
+      return {
+        id: area.id!,
+        nombre: area.nombre ?? '',
+        abierta: !!area.estadoActivo,
+        equipos: equipos.get(area.id) ?? 0,
+        encargado: propios.length
+          ? propios.join(' · ')
+          : deLaSede.length
+            ? `De la sede: ${deLaSede.join(' · ')}`
+            : '—',
+        heredado: !propios.length,
+      };
+    });
+  });
+
+  /** Las órdenes de esta sede que siguen abiertas: ni ejecutadas ni anuladas. */
+  protected readonly ordenesAbiertas = computed(() =>
+    (this.ordenes.data() ?? [])
+      .filter(
+        (orden) =>
+          orden.idSede === this.id() && orden.estadoActivo && orden.estadoEjecucion !== 'EJECUTADA',
+      )
+      .sort((a, b) => (a.fechaMantenimiento ?? '').localeCompare(b.fechaMantenimiento ?? ''))
+      .map((orden) => ({
+        id: orden.id!,
+        fecha: fechaCorta(orden.fechaMantenimiento),
+        enEjecucion: orden.estadoEjecucion === 'EN_EJECUCION',
+      })),
+  );
 
   /** Si alguien no tiene nombre, es porque la consulta de personas no pudo hacerse. */
   protected readonly faltanNombres = computed(() =>

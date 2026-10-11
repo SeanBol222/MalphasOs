@@ -26,6 +26,7 @@ export type Contacto = components['schemas']['ContactResponse'];
 export type NuevoContacto = components['schemas']['ContactRequest'];
 
 export type Sede = components['schemas']['HeadquarterResponse'];
+export type ResumenDeSede = components['schemas']['HeadquarterSummaryResponse'];
 export type NuevaSede = components['schemas']['HeadquarterCreateRequest'];
 export type CambioDeSede = components['schemas']['HeadquarterUpdateRequest'];
 
@@ -183,6 +184,7 @@ export type CambioDeEquipoDeCliente = equipos['schemas']['ClientEquipmentUpdateR
  */
 export type HojaDeVida = equipos['schemas']['LifeSheetResponse'];
 export type ResumenDeEquipos = equipos['schemas']['EquipmentOverviewResponse'];
+export type EquiposDeArea = equipos['schemas']['EquipmentAreaSummaryResponse'];
 export type FilaDeResumenDeEquipos = equipos['schemas']['EquipmentOverviewRow'];
 
 /** Lo que se le pide al listado de equipos. Los campos ausentes no filtran. */

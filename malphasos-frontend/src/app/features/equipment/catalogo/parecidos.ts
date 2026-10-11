@@ -1,9 +1,7 @@
 import { Protocolo } from '../../../core/api/tipos';
+import { normalizar } from '../../../core/texto';
 
-/** Sin tildes, sin mayusculas y con los espacios colapsados: lo mismo que la clave del servidor. */
-export function normalizar(texto: string): string {
-  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
-}
+export { normalizar };
 
 /**
  * Los protocolos vigentes que se parecen a un nombre que se esta escribiendo: el mismo sin tildes ni

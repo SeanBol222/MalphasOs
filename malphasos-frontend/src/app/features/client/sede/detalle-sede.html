@@ -8,230 +8,332 @@
   }
 
   @if (sede.data(); as datos) {
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <div>
-        <h1 class="titulo-pagina">{{ datos.nombre }}</h1>
-        <p class="text-neutral-700" [class.font-semibold]="datos.estadoActivo">
-          {{ datos.estadoActivo ? 'Abierta' : 'Cerrada' }}
-        </p>
-      </div>
+    <header class="superficie">
+      <div class="flex flex-wrap items-start gap-2">
+        <div class="min-w-0 flex-[1_1_22rem]">
+          <!-- El estado por peso tipografico y en palabras, no por color. -->
+          <p class="text-sm font-bold tracking-[0.14em] text-accent-700 uppercase">
+            Sede {{ datos.estadoActivo ? 'abierta' : 'cerrada' }}
+            @if (nombreDelCliente()) {
+              ·
+              <a class="underline" [routerLink]="['/clientes', datos.idCliente]">{{
+                nombreDelCliente()
+              }}</a>
+            }
+          </p>
+          <h1 class="titulo-pagina mt-1">{{ datos.nombre }}</h1>
+          <p class="mt-1 text-neutral-800">{{ direccion() }} · {{ ciudad() }}</p>
+        </div>
 
-      <div class="flex flex-wrap gap-2">
-        <a
-          class="boton-secundario flex min-h-tactil items-center"
-          [routerLink]="['/sedes', id(), 'editar']"
-        >
-          Editar
-        </a>
+        <div class="flex flex-wrap gap-1">
+          <a
+            class="boton-secundario flex min-h-tactil items-center"
+            [routerLink]="['/sedes', id(), 'editar']"
+          >
+            Editar
+          </a>
 
-        @if (datos.estadoActivo) {
-          @if (confirmandoCierre()) {
-            <button
-              class="boton-primario min-h-tactil"
-              type="button"
-              [disabled]="cierre.isPending()"
-              (click)="cerrar()"
-            >
-              {{ cierre.isPending() ? 'Cerrando…' : 'Confirmar cierre' }}
-            </button>
-            <button
-              class="boton-secundario min-h-tactil"
-              type="button"
-              (click)="confirmandoCierre.set(false)"
-            >
-              Cancelar
-            </button>
-          } @else {
-            <button
-              class="boton-secundario min-h-tactil"
-              type="button"
-              (click)="confirmandoCierre.set(true)"
-            >
-              Cerrar sede
-            </button>
+          @if (datos.estadoActivo) {
+            @if (confirmandoCierre()) {
+              <button
+                class="boton-primario min-h-tactil"
+                type="button"
+                [disabled]="cierre.isPending()"
+                (click)="cerrar()"
+              >
+                {{ cierre.isPending() ? 'Cerrando…' : 'Confirmar cierre' }}
+              </button>
+              <button
+                class="boton-secundario min-h-tactil"
+                type="button"
+                (click)="confirmandoCierre.set(false)"
+              >
+                Cancelar
+              </button>
+            } @else {
+              <button
+                class="boton-secundario min-h-tactil"
+                type="button"
+                (click)="confirmandoCierre.set(true)"
+              >
+                Cerrar sede
+              </button>
+            }
+            @if (programaOrdenes()) {
+              <!-- El alta de la orden con el cliente y la sede ya puestos: se pueden cambiar. -->
+              <a
+                class="boton-primario flex min-h-tactil items-center"
+                routerLink="/ordenes/nueva"
+                [queryParams]="{ cliente: datos.idCliente, sede: datos.id }"
+              >
+                Nueva orden aquí
+              </a>
+            }
           }
-        }
+        </div>
       </div>
-    </div>
 
-    @if (confirmandoCierre()) {
-      <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
-        La sede queda cerrada con su historia intacta. Mientras esté cerrada no se pueden abrir áreas
-        de servicio en ella.
-      </p>
-    }
+      @if (confirmandoCierre()) {
+        <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2">
+          La sede queda cerrada con su historia intacta. Mientras esté cerrada no se pueden abrir
+          áreas de servicio en ella.
+        </p>
+      }
+    </header>
 
-    <dl class="superficie mt-3 grid max-w-[720px] grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-      <dt class="font-semibold">Ciudad</dt>
-      <dd>{{ ciudad() }}</dd>
+    <div class="mt-3 flex flex-wrap items-start gap-3">
+      <section class="flex min-w-0 flex-[2_1_34rem] flex-col gap-2" aria-labelledby="areas">
+        <div class="flex flex-wrap items-baseline gap-2">
+          <h2 id="areas" class="titulo-seccion">Áreas de servicio</h2>
+          <span class="text-sm text-neutral-800"
+            >Los equipos se registran en un área, no en la sede</span
+          >
+        </div>
 
-      <dt class="font-semibold">Dirección</dt>
-      <dd>{{ direccion() }}</dd>
-    </dl>
+        @if (areas.isPending()) {
+          <p class="text-neutral-700" role="status">Cargando las áreas…</p>
+        } @else {
+          <div class="border border-neutral-300 bg-white">
+            @if (!filasDeAreas().length) {
+              <p class="p-2 text-neutral-800">Esta sede no tiene áreas de servicio todavía.</p>
+            } @else {
+              <table class="tabla border-0">
+                <caption class="sr-only">
+                  Áreas de servicio de la sede
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Área</th>
+                    @if (veEquipos()) {
+                      <th scope="col" class="text-right">Equipos</th>
+                    }
+                    @if (puedeVerEncargados()) {
+                      <th scope="col">Encargado</th>
+                    }
+                    <th scope="col"><span class="sr-only">Acciones</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (area of filasDeAreas(); track area.id) {
+                    <tr [attr.data-area]="area.id">
+                      @if (renombrando() === area.id) {
+                        <td
+                          [attr.colspan]="
+                            2 + (veEquipos() ? 1 : 0) + (puedeVerEncargados() ? 1 : 0)
+                          "
+                        >
+                          <span class="flex flex-wrap items-center gap-1">
+                            <label class="sr-only" [attr.for]="'area-' + area.id"
+                              >Nuevo nombre del área</label
+                            >
+                            <input
+                              class="campo min-h-tactil min-w-0 flex-1"
+                              [id]="'area-' + area.id"
+                              [formControl]="nombreEditado"
+                              maxlength="50"
+                            />
+                            <button
+                              class="boton-primario min-h-tactil"
+                              type="button"
+                              [disabled]="cambioDeArea.isPending()"
+                              (click)="renombrar(area.id)"
+                            >
+                              Guardar
+                            </button>
+                            <button
+                              class="boton-secundario min-h-tactil"
+                              type="button"
+                              (click)="renombrando.set(null)"
+                            >
+                              Cancelar
+                            </button>
+                          </span>
+                        </td>
+                      } @else {
+                        <td>
+                          <!-- El area enlaza a sus equipos: es lo que se viene a hacer con ella. -->
+                          <a class="font-bold underline" [routerLink]="['/areas', area.id]">{{
+                            area.nombre
+                          }}</a
+                          >&ngsp;
+                          @if (!area.abierta) {
+                            <span class="block text-sm font-bold text-neutral-800">Cerrada</span>
+                          }
+                        </td>
+                        @if (veEquipos()) {
+                          <td class="text-right font-bold tabular-nums">{{ area.equipos }}</td>
+                        }
+                        @if (puedeVerEncargados()) {
+                          <td [class.text-neutral-700]="area.heredado">{{ area.encargado }}</td>
+                        }
+                        <td class="whitespace-nowrap text-right">
+                          @if (registraEquipos() && area.abierta) {
+                            <a
+                              class="inline-flex min-h-tactil items-center px-1 font-bold underline"
+                              [routerLink]="['/areas', area.id, 'equipos', 'nuevo']"
+                            >
+                              Registrar equipo
+                            </a>
+                          }
+                          <button
+                            class="min-h-tactil px-1 underline"
+                            type="button"
+                            [attr.aria-label]="'Renombrar ' + area.nombre"
+                            (click)="empezarARenombrar(area.id, area.nombre)"
+                          >
+                            Renombrar
+                          </button>
+                          @if (area.abierta) {
+                            <button
+                              class="min-h-tactil px-1 underline"
+                              type="button"
+                              [attr.aria-label]="'Cerrar ' + area.nombre"
+                              [disabled]="cierreDeArea.isPending()"
+                              (click)="cerrarArea(area.id)"
+                            >
+                              Cerrar
+                            </button>
+                          }
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
 
-    <section class="superficie mt-3">
-      <h2 class="titulo-seccion">Áreas de servicio</h2>
-      <p class="text-neutral-700">
-        Los equipos se registran en un área, no en la sede. Una orden de trabajo solo puede tocar
-        equipos de áreas de su propia sede.
-      </p>
-
-      @if (areas.isPending()) {
-        <p class="text-neutral-700" role="status">Cargando las áreas…</p>
-      } @else if (!areas.data()?.length) {
-        <p class="mt-1 text-neutral-700">Esta sede no tiene áreas de servicio todavía.</p>
-      } @else {
-        <ul class="mt-1">
-          @for (area of areas.data(); track area.id) {
-            <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
-              @if (renombrando() === area.id) {
-                <label class="sr-only" [attr.for]="'area-' + area.id">Nuevo nombre del área</label>
+            @if (datos.estadoActivo) {
+              <div
+                class="flex flex-wrap gap-1 border-t border-neutral-300 bg-neutral-100 px-2 py-1.5"
+              >
+                <label class="sr-only" for="areaNueva">Nombre del área nueva</label>
                 <input
-                  class="campo min-h-tactil grow"
-                  [id]="'area-' + area.id"
-                  [formControl]="nombreEditado"
+                  id="areaNueva"
+                  class="campo min-h-tactil min-w-0 flex-[1_1_15rem]"
+                  placeholder="Nombre del área nueva, por ejemplo: Rayos X"
+                  [formControl]="areaNueva"
                   maxlength="50"
+                  [attr.aria-invalid]="areaNueva.invalid && areaNueva.touched ? 'true' : null"
+                  [attr.aria-describedby]="
+                    areaNueva.invalid && areaNueva.touched ? 'areaNueva-error' : null
+                  "
+                  aria-required="true"
                 />
-                <button
-                  class="boton-primario min-h-tactil"
-                  type="button"
-                  [disabled]="cambioDeArea.isPending()"
-                  (click)="renombrar(area.id!)"
-                >
-                  Guardar
-                </button>
                 <button
                   class="boton-secundario min-h-tactil"
                   type="button"
-                  (click)="renombrando.set(null)"
+                  [disabled]="altaDeArea.isPending()"
+                  (click)="agregarArea()"
                 >
-                  Cancelar
+                  Añadir área
                 </button>
-              } @else {
-                <!-- El area enlaza a sus equipos: es lo que se viene a hacer con ella. -->
-                <a class="grow font-semibold underline" [routerLink]="['/areas', area.id]">
-                  {{ area.nombre }}
-                </a>
-                <span class="text-neutral-700">{{ area.estadoActivo ? 'Abierta' : 'Cerrada' }}</span>
-                <button
-                  class="min-h-tactil px-1 font-semibold underline"
-                  type="button"
-                  (click)="empezarARenombrar(area.id!, area.nombre)"
-                >
-                  Renombrar
-                </button>
-                @if (area.estadoActivo) {
-                  <button
-                    class="min-h-tactil px-1 font-semibold underline"
-                    type="button"
-                    [disabled]="cierreDeArea.isPending()"
-                    (click)="cerrarArea(area.id!)"
-                  >
-                    Cerrar
-                  </button>
-                }
+              </div>
+              @if (areaNueva.invalid && areaNueva.touched) {
+                <p class="px-2 pb-1.5 text-sm font-semibold text-accent-700" id="areaNueva-error">
+                  El nombre del área es obligatorio y no pasa de 50 caracteres.
+                </p>
               }
-            </li>
-          }
-        </ul>
-      }
-
-      @if (datos.estadoActivo) {
-        <div class="mt-2 flex flex-wrap items-end gap-2">
-          <div class="grow">
-            <label class="block font-semibold" for="areaNueva">Añadir un área <span class="text-accent-700" aria-hidden="true">*</span></label>
-            <input
-              id="areaNueva"
-              class="campo mt-1 min-h-tactil w-full"
-              [formControl]="areaNueva"
-              maxlength="50"
-              [attr.aria-invalid]="areaNueva.invalid && areaNueva.touched ? 'true' : null"
-              [attr.aria-describedby]="
-                areaNueva.invalid && areaNueva.touched ? 'areaNueva-error' : null
-              "
-      aria-required="true"
-            />
-          </div>
-          <button
-            class="boton-primario min-h-tactil"
-            type="button"
-            [disabled]="altaDeArea.isPending()"
-            (click)="agregarArea()"
-          >
-            Añadir
-          </button>
-        </div>
-        @if (areaNueva.invalid && areaNueva.touched) {
-          <p class="mt-1 font-semibold text-accent-700" id="areaNueva-error">
-            El nombre del área es obligatorio y no pasa de 50 caracteres.
-          </p>
-        }
-      } @else {
-        <!-- No es una limitacion de la pantalla: el backend rechaza abrir un area en una sede
-             cerrada. Ofrecer el formulario prometeria algo que el servidor niega. -->
-        <p class="mt-2 text-neutral-700">
-          La sede está cerrada: no se pueden abrir áreas nuevas mientras lo esté.
-        </p>
-      }
-    </section>
-
-    @if (puedeVerEncargados()) {
-      <section class="superficie mt-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="titulo-seccion">Encargados</h2>
-          @if (puedeAsignar() && datos.estadoActivo) {
-            <a
-              class="boton-primario flex min-h-tactil items-center"
-              [routerLink]="['/sedes', id(), 'encargado']"
-            >
-              Registrar encargado
-            </a>
-          }
-        </div>
-
-        @if (!encargadosDeLaSede().length) {
-          <p class="text-neutral-700">
-            Nadie figura como responsable de esta sede ni de sus áreas.
-          </p>
-        } @else {
-          <ul>
-            @for (encargado of encargadosDeLaSede(); track encargado.idPersona) {
-              <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
-                <span class="grow">
-                  <span [class.font-semibold]="encargado.estadoActivo">
-                    {{ encargado.nombre || 'Encargado' }}
-                  </span>
-                  <span class="text-neutral-700">· {{ encargado.aCargoDe }}</span>
-                </span>
-                @if (puedeAsignar() && encargado.estadoActivo) {
-                  <button
-                    class="min-h-tactil px-1 font-semibold underline"
-                    type="button"
-                    [disabled]="bajaDeEncargado.isPending()"
-                    (click)="quitarEncargado(encargado.idPersona)"
-                  >
-                    Quitar
-                  </button>
-                }
-              </li>
+            } @else {
+              <!-- No es una limitacion de la pantalla: el backend rechaza abrir un area en una sede
+                   cerrada. Ofrecer el formulario prometeria algo que el servidor niega. -->
+              <p class="border-t border-neutral-300 px-2 py-1.5 text-neutral-800">
+                La sede está cerrada: no se pueden abrir áreas nuevas mientras lo esté.
+              </p>
             }
-          </ul>
-
-          @if (faltanNombres()) {
-            <!-- Decirlo es mejor que ensenar una fila que solo dice "Encargado": quien lo lea sabra
-                 que el dato existe y que lo que falta es el permiso para consultarlo. -->
-            <p class="mt-1 text-neutral-700">
-              Algún nombre no se pudo consultar: hace falta el permiso de lectura de personas.
-            </p>
-          }
+          </div>
         }
       </section>
-    }
 
-    <p class="mt-3">
-      <a class="font-semibold underline" [routerLink]="['/clientes', datos.idCliente]">
-        Volver al cliente
-      </a>
-    </p>
+      <aside class="flex min-w-0 flex-[1_1_18rem] flex-col gap-3">
+        @if (puedeVerEncargados()) {
+          <section class="superficie" aria-labelledby="encargados">
+            <div class="flex flex-wrap items-center gap-1">
+              <h2 id="encargados" class="titulo-seccion">Encargados</h2>
+              @if (puedeAsignar() && datos.estadoActivo) {
+                <a
+                  class="ml-auto text-sm font-bold underline"
+                  [routerLink]="['/sedes', id(), 'encargado']"
+                >
+                  Registrar encargado
+                </a>
+              }
+            </div>
+            <p class="mt-1 text-sm text-neutral-800">
+              Responden por el área en la hoja de vida. Un área sin encargado toma los de la sede.
+            </p>
+
+            @if (!encargadosDeLaSede().length) {
+              <p class="mt-1.5 text-sm text-neutral-800">
+                Nadie figura como responsable de esta sede ni de sus áreas.
+              </p>
+            } @else {
+              <ul class="mt-1">
+                @for (
+                  encargado of encargadosDeLaSede();
+                  track encargado.idPersona + encargado.aCargoDe
+                ) {
+                  <li
+                    class="flex flex-wrap items-center gap-1 border-t border-neutral-200 py-1 text-sm"
+                  >
+                    <span class="min-w-0 grow">
+                      <span class="block" [class.font-bold]="encargado.estadoActivo">
+                        {{ encargado.nombre || 'Encargado' }}
+                      </span>
+                      <span class="block text-neutral-700">{{ encargado.aCargoDe }}</span>
+                    </span>
+                    @if (puedeAsignar() && encargado.estadoActivo) {
+                      <button
+                        class="min-h-tactil px-1 font-semibold underline"
+                        type="button"
+                        [attr.aria-label]="'Quitar a ' + (encargado.nombre || 'este encargado')"
+                        [disabled]="bajaDeEncargado.isPending()"
+                        (click)="quitarEncargado(encargado.idPersona)"
+                      >
+                        Quitar
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+
+              @if (faltanNombres()) {
+                <!-- Decirlo es mejor que ensenar una fila que solo dice "Encargado": quien lo lea sabra
+                     que el dato existe y que lo que falta es el permiso para consultarlo. -->
+                <p class="mt-1 text-sm text-neutral-800">
+                  Algún nombre no se pudo consultar: hace falta el permiso de lectura de personas.
+                </p>
+              }
+            }
+          </section>
+        }
+
+        @if (veOrdenes()) {
+          <!-- El bloque oscuro de la maqueta: lo que está abierto en esta sede ahora mismo. -->
+          <section class="bg-ink p-3 text-paper" aria-labelledby="ordenes-sede">
+            <h2
+              id="ordenes-sede"
+              class="text-xs font-bold tracking-[0.14em] text-accent-400 uppercase"
+            >
+              Órdenes abiertas en esta sede
+            </h2>
+            <p class="mt-1 text-5xl font-extrabold tabular-nums">{{ ordenesAbiertas().length }}</p>
+            @for (orden of ordenesAbiertas(); track orden.id) {
+              <a
+                class="mt-1 flex min-h-tactil items-center font-bold text-white underline"
+                [routerLink]="['/ordenes', orden.id]"
+              >
+                {{ orden.enEjecucion ? 'En ejecución' : 'Programada' }} · {{ orden.fecha }} →
+              </a>
+            } @empty {
+              <p class="mt-1 text-sm text-neutral-300">Ninguna por ahora.</p>
+            }
+          </section>
+        }
+
+        <a class="font-semibold underline" [routerLink]="['/clientes', datos.idCliente]">
+          Volver al cliente
+        </a>
+      </aside>
+    </div>
   }
 }
