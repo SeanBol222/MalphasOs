@@ -1,72 +1,211 @@
-<div class="flex flex-wrap items-center justify-between gap-2">
-  <h1 class="titulo-pagina">Equipos</h1>
+<div class="flex flex-wrap items-end gap-2">
+  <div>
+    <h1 class="titulo-pagina">Equipos</h1>
+    <p class="mt-1 text-neutral-800" aria-live="polite">
+      @if (resumen.data()) {
+        {{ recuento() }}
+      }
+    </p>
+  </div>
 
   @if (puedeRegistrar()) {
-    <a
-      class="boton-primario flex min-h-tactil items-center"
-      routerLink="/equipos/nuevo"
-    >
+    <a class="boton-primario ml-auto flex min-h-tactil items-center" routerLink="/equipos/nuevo">
       Registrar equipo
     </a>
   }
 </div>
 
-@if (equipos.isPending()) {
+<!--
+  Los filtros, como en la maqueta: buscador, cliente, tipo y dos conmutadores. Todo filtra en el
+  servidor; cambiar cualquiera vuelve a la primera pagina.
+-->
+<div
+  class="superficie mt-3 flex flex-wrap items-center gap-1 p-1.5"
+  role="search"
+  aria-label="Filtrar equipos"
+>
+  <label class="campo flex min-h-tactil min-w-0 flex-[1_1_18rem] items-center gap-1">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+      class="text-neutral-700"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" />
+    </svg>
+    <span class="sr-only">Buscar equipos</span>
+    <input
+      id="buscarEquipos"
+      class="min-w-0 flex-1 bg-transparent outline-none"
+      type="search"
+      placeholder="Serie, hoja de vida o modelo"
+      [formControl]="buscador"
+    />
+  </label>
+
+  @if (puedeFiltrarPorCliente()) {
+    <label class="flex min-w-0 flex-[1_1_12rem]">
+      <span class="sr-only">Cliente</span>
+      <select id="filtroCliente" class="campo min-h-tactil w-full" [formControl]="cliente">
+        <option value="">Cliente: todos</option>
+        @for (opcion of clientes.data() ?? []; track opcion.id) {
+          <option [value]="opcion.id">{{ opcion.razonSocial }}</option>
+        }
+      </select>
+    </label>
+  }
+
+  <label class="flex min-w-0 flex-[1_1_12rem]">
+    <span class="sr-only">Tipo de equipo</span>
+    <select id="filtroTipo" class="campo min-h-tactil w-full" [formControl]="tipo">
+      <option value="">Tipo: todos</option>
+      @for (opcion of tipos.data() ?? []; track opcion.id) {
+        <option [value]="opcion.id">{{ opcion.nombre }}</option>
+      }
+    </select>
+  </label>
+
+  <button
+    type="button"
+    class="min-h-tactil border px-1.5 text-sm"
+    [class]="
+      soloFueraDeServicio()
+        ? 'border-ink bg-ink font-bold text-white'
+        : 'border-neutral-500 bg-white'
+    "
+    [attr.aria-pressed]="soloFueraDeServicio()"
+    (click)="alternarFueraDeServicio()"
+  >
+    Fuera de servicio
+  </button>
+  <button
+    type="button"
+    class="min-h-tactil border px-1.5 text-sm"
+    [class]="
+      dadosDeBaja() ? 'border-ink bg-ink font-bold text-white' : 'border-neutral-500 bg-white'
+    "
+    [attr.aria-pressed]="dadosDeBaja()"
+    (click)="alternarDadosDeBaja()"
+  >
+    Dados de baja
+  </button>
+</div>
+
+@if (resumen.isPending()) {
   <p class="mt-3 text-neutral-700" role="status">Cargando equipos…</p>
 } @else if (hayError()) {
   <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
     <p class="font-semibold">{{ mensajeDeError() }}</p>
   </div>
 } @else if (!filas().length) {
-  <p class="mt-3 text-neutral-700">
-    Todavía no hay equipos registrados. Cada equipo se registra en un área de servicio, sobre un modelo
-    del catálogo.
-  </p>
+  @if (filtrando()) {
+    <div class="superficie mt-3">
+      <p>Ningún equipo cumple estos filtros.</p>
+      <button type="button" class="boton-secundario mt-1.5 min-h-tactil" (click)="limpiar()">
+        Quitar los filtros
+      </button>
+    </div>
+  } @else {
+    <p class="superficie mt-3 text-neutral-800">
+      Todavía no hay equipos registrados. Cada equipo se registra en un área de servicio, sobre un
+      modelo del catálogo.
+    </p>
+  }
 } @else {
-  <table class="tabla mt-3">
-    <caption class="sr-only">Equipos de cliente registrados</caption>
-    <thead>
-      <tr>
-        <th scope="col" class="font-semibold">Serie</th>
-        <th scope="col" class="font-semibold">Modelo</th>
-        <th scope="col" class="font-semibold">Inventario</th>
-        <th scope="col" class="font-semibold">Área</th>
-        <th scope="col" class="font-semibold">Estado</th>
-        <th scope="col" class="font-semibold">Historial</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (fila of filas(); track fila.id) {
+  <div class="mt-3" [class.opacity-60]="resumen.isPlaceholderData()">
+    <table class="tabla">
+      <caption class="sr-only">
+        Equipos instalados
+      </caption>
+      <thead>
         <tr>
-          <td class="font-semibold">{{ fila.serie }}</td>
-          <td>{{ fila.modelo }}</td>
-          <td>{{ fila.numeroInventario || '—' }}</td>
-          <td>
-            <!-- El area enlaza a su ficha, que es donde se da de baja un equipo o se registra otro. -->
-            <a class="font-semibold underline" [routerLink]="['/areas', fila.idArea]">
-              {{ fila.area }}
-            </a>
-          </td>
-          <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
-          <td [class.font-semibold]="fila.estadoActivo">
-            {{ fila.estadoActivo ? 'En servicio' : 'De baja' }}
-          </td>
-          <td>
-            <!--
-              El historial se enlaza desde aqui y no desde una ficha del equipo, porque el equipo no
-              tiene ficha: lo que hay es este listado. Se ve tambien de un equipo de baja, que es
-              justo cuando mas interesa saber que se le hizo.
-            -->
-            <a class="font-semibold underline" [routerLink]="['/equipos', fila.id, 'hoja-de-vida']">
-              Hoja de vida
-            </a>
-            ·
-            <a class="font-semibold underline" [routerLink]="['/equipos', fila.id, 'historial']">
-              Reportes
-            </a>
-          </td>
+          <th scope="col">Hoja de vida</th>
+          <th scope="col">Equipo</th>
+          <th scope="col">Serie</th>
+          <th scope="col">Ubicación</th>
+          <th scope="col">Último servicio</th>
+          <th scope="col">Resultado</th>
         </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @for (fila of filas(); track fila.id) {
+          <tr [attr.data-equipo]="fila.id">
+            <td class="whitespace-nowrap font-bold tabular-nums">
+              <a class="underline" [routerLink]="['/equipos', fila.id, 'hoja-de-vida']">
+                {{ fila.numeroHojaVida }}
+              </a>
+            </td>
+            <td>
+              <!-- &ngsp; es un espacio que Angular no quita: sin el, se leeria «BalanzaKern». -->
+              <span class="block font-bold">{{ fila.tipo }}</span
+              >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.modelo }}</span>
+            </td>
+            <td class="tabular-nums">{{ fila.serie }}</td>
+            <td>
+              <span class="block">{{ fila.cliente }}</span>
+              <!-- El area enlaza a su ficha: ahi se da de baja un equipo o se registra otro. -->
+              <a
+                class="block text-sm text-neutral-700 underline"
+                [routerLink]="['/areas', fila.idArea]"
+              >
+                {{ fila.lugar }}
+              </a>
+            </td>
+            <td class="whitespace-nowrap tabular-nums">
+              <!--
+                El historial de reportes —borradores y retirados incluidos— se entra desde la fecha:
+                es lo que hay detras del ultimo servicio.
+              -->
+              <a class="underline" [routerLink]="['/equipos', fila.id, 'historial']">
+                {{ fila.ultimoServicio }}
+              </a>
+            </td>
+            <td>
+              <span class="inline-flex items-center gap-1" [class]="fila.peso">
+                <span
+                  class="size-1 shrink-0 border border-ink"
+                  [class]="fila.cuadro"
+                  aria-hidden="true"
+                ></span>
+                {{ fila.resultado }}
+              </span>
+              @if (fila.deBaja) {
+                <span class="block text-sm text-neutral-700">Dado de baja</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <nav
+      class="flex flex-wrap items-center gap-2 border border-t-0 border-neutral-300 bg-white px-2 py-1.5 text-sm"
+      aria-label="Páginas del listado"
+    >
+      <span class="tabular-nums text-neutral-800">{{ rango() }}</span>
+      <div class="ml-auto flex gap-1">
+        <button
+          type="button"
+          class="boton-secundario min-h-tactil"
+          [disabled]="!hayAnterior()"
+          (click)="anterior()"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="boton-secundario min-h-tactil"
+          [disabled]="!haySiguiente()"
+          (click)="siguiente()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </nav>
+  </div>
 }

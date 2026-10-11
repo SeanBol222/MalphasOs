@@ -10,6 +10,7 @@ import {
   TipoDeServicio,
 } from '../../../core/api/tipos';
 import { traducirError } from '../../../core/errores/traducir';
+import { fechaCorta } from '../../../core/fechas';
 import { EquipoApi } from '../equipo-api';
 
 /** Lo que dice la hoja cuando un dato no esta registrado, o todavia no existe en el sistema. */
@@ -203,19 +204,4 @@ function hoy(): string {
   const dos = (n: number) => String(n).padStart(2, '0');
 
   return `${ahora.getFullYear()}-${dos(ahora.getMonth() + 1)}-${dos(ahora.getDate())}`;
-}
-
-/** «12 mar 2026»: el dia, sin la hora, y con el mes en letras para que no se confunda dia y mes. */
-function fechaCorta(fecha: string | undefined): string {
-  if (!fecha) {
-    return SIN_DATO;
-  }
-
-  // Solo la parte de la fecha: con hora y zona, un servicio cerrado de noche saldria al dia siguiente.
-  const [anio, mes, dia] = fecha.slice(0, 10).split('-').map(Number);
-
-  return new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
-    .format(new Date(anio, mes - 1, dia))
-    .replace('.', '')
-    .replace(/ de /g, ' ');
 }

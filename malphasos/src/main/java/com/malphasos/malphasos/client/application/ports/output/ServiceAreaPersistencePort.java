@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.client.application.ports.output;
 
+import com.malphasos.malphasos.client.application.model.ServiceAreaLocation;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import java.util.List;
 import java.util.Collection;
@@ -23,6 +24,9 @@ public interface ServiceAreaPersistencePort {
      * necesita saber cuáles entran, no qué tienen dentro.
      */
     Set<UUID> findIdsByClients(Collection<UUID> idsClientes);
+
+    /** Área, sede y cliente de cada área pedida, en una sola consulta. */
+    List<ServiceAreaLocation> locate(Collection<UUID> idsAreas);
 
     ServiceArea save(ServiceArea serviceArea);
 }

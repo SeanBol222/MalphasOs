@@ -502,7 +502,7 @@ describe('Ficha de un reporte de servicio', () => {
     await atenderTodo(reporteCerrable());
   });
 
-  it('cerrar un reporte deja caducada la hoja de vida, porque el servidor le anota una línea', async () => {
+  it('cerrar un reporte deja caducados la hoja de vida y el listado de equipos, porque el servidor les anota el servicio', async () => {
     // El servidor escribe la intervención solo al cerrar; la pantalla tiene que enterarse. Sin esto, la
     // hoja de vida que ya estuviera en caché seguiría diciendo «sin intervenciones» hasta recargar.
     const cache = TestBed.inject(QueryClient);
@@ -511,6 +511,10 @@ describe('Ficha de un reporte de servicio', () => {
     // pruebas, no por el código. La primera versión cayó justo ahí.
     cache.setQueryDefaults(['hoja-de-vida'], { gcTime: Infinity });
     cache.setQueryData(['hoja-de-vida', 'cualquier-equipo'], { servicioTecnico: [] });
+    // Y el listado de equipos, que desde el 2026-10-11 enseña el último servicio de cada uno.
+    const RESUMEN = ['equipos-de-cliente', 'resumen', { pagina: 0, tamano: 25 }];
+    cache.setQueryDefaults(['equipos-de-cliente'], { gcTime: Infinity });
+    cache.setQueryData(RESUMEN, { filas: [], total: 0 });
     await abrir(reporteCerrable());
 
     pulsar('Cerrar reporte');
@@ -524,6 +528,7 @@ describe('Ficha de un reporte de servicio', () => {
     await atenderTodo(reporteCerrable());
 
     expect(cache.getQueryState(['hoja-de-vida', 'cualquier-equipo'])?.isInvalidated).toBe(true);
+    expect(cache.getQueryState(RESUMEN)?.isInvalidated).toBe(true);
   });
 
   it('un reporte cerrado se lee pero no se escribe, y dice cómo corregirlo', async () => {

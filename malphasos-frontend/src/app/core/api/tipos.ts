@@ -182,6 +182,19 @@ export type CambioDeEquipoDeCliente = equipos['schemas']['ClientEquipmentUpdateR
  * corrige donde vive, no aqui.
  */
 export type HojaDeVida = equipos['schemas']['LifeSheetResponse'];
+export type ResumenDeEquipos = equipos['schemas']['EquipmentOverviewResponse'];
+export type FilaDeResumenDeEquipos = equipos['schemas']['EquipmentOverviewRow'];
+
+/** Lo que se le pide al listado de equipos. Los campos ausentes no filtran. */
+export interface ConsultaDeEquipos {
+  readonly q?: string;
+  readonly idCliente?: string;
+  readonly idTipoEquipo?: string;
+  readonly resultado?: ResultadoDeServicio;
+  readonly dadosDeBaja?: boolean;
+  readonly pagina: number;
+  readonly tamano: number;
+}
 
 /** Una linea del historial: la cuarta seccion de la hoja de vida, que se escribe sola al cerrar un reporte. */
 export type Intervencion = equipos['schemas']['InterventionResponse'];

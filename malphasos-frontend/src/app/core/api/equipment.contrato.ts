@@ -61,6 +61,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/client-equipments/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los equipos instalados, con su ubicacion y su ultimo servicio
+         * @description Busca en serie, numero de hoja de vida, modelo, tipo y marca sin distinguir mayusculas ni tildes. Los filtros ausentes no filtran.
+         */
+        get: operations["list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/client-equipments/{id}": {
         parameters: {
             query?: never;
@@ -609,6 +629,53 @@ export interface components {
             message?: string;
             /** Format: date-time */
             timestamp?: string;
+        };
+        /** @description Una pagina del listado de equipos instalados */
+        EquipmentOverviewResponse: {
+            filas?: components["schemas"]["EquipmentOverviewRow"][];
+            /**
+             * Format: int32
+             * @description La pagina, empezando en cero
+             */
+            pagina?: number;
+            /** Format: int32 */
+            tamano?: number;
+            /**
+             * Format: int64
+             * @description Cuantos equipos cumplen los filtros, no cuantos trae esta pagina
+             */
+            total?: number;
+        };
+        EquipmentOverviewRow: {
+            areaServicio?: string;
+            cliente?: string;
+            estadoActivo?: boolean;
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            idAreaServicio?: string;
+            /** Format: uuid */
+            idCliente?: string;
+            /** Format: uuid */
+            idSede?: string;
+            /** Format: uuid */
+            idTipoEquipo?: string;
+            marca?: string;
+            modelo?: string;
+            numeroHojaVida?: string;
+            /**
+             * @description Como quedo el equipo en ese servicio
+             * @enum {string}
+             */
+            resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
+            sede?: string;
+            serie?: string;
+            tipoEquipo?: string;
+            /**
+             * Format: date-time
+             * @description Fecha del ultimo servicio cerrado; nula si nunca tuvo uno
+             */
+            ultimoServicio?: string;
         };
         EquipmentResponse: {
             estadoActivo?: boolean;
@@ -1338,6 +1405,55 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: {
+                /** @description Texto a buscar */
+                q?: string;
+                idCliente?: string;
+                idTipoEquipo?: string;
+                /** @description Resultado del ultimo servicio */
+                resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
+                /** @description true para listar los dados de baja */
+                dadosDeBaja?: boolean;
+                pagina?: number;
+                tamano?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentOverviewResponse"];
                 };
             };
             /** @description Conflict */

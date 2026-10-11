@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.client.infrastructure.output;
 
+import com.malphasos.malphasos.client.application.model.ServiceAreaLocation;
 import com.malphasos.malphasos.client.application.ports.output.ServiceAreaPersistencePort;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.client.infrastructure.output.mapper.ServiceAreaPersistenceMapper;
@@ -38,6 +39,11 @@ public class ServiceAreaPersistenceAdapter implements ServiceAreaPersistencePort
     @Override
     public Set<UUID> findIdsByClients(Collection<UUID> idsClientes) {
         return serviceAreaRepository.findIdsByClients(idsClientes);
+    }
+
+    @Override
+    public List<ServiceAreaLocation> locate(Collection<UUID> idsAreas) {
+        return serviceAreaRepository.locate(idsAreas);
     }
 
     @Override

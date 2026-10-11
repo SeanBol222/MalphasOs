@@ -230,6 +230,94 @@
         },
         "type" : "object"
       },
+      "EquipmentOverviewResponse" : {
+        "description" : "Una pagina del listado de equipos instalados",
+        "properties" : {
+          "filas" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EquipmentOverviewRow"
+            },
+            "type" : "array"
+          },
+          "pagina" : {
+            "description" : "La pagina, empezando en cero",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "tamano" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "description" : "Cuantos equipos cumplen los filtros, no cuantos trae esta pagina",
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "EquipmentOverviewRow" : {
+        "properties" : {
+          "areaServicio" : {
+            "type" : "string"
+          },
+          "cliente" : {
+            "type" : "string"
+          },
+          "estadoActivo" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idAreaServicio" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idCliente" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idSede" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idTipoEquipo" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "marca" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "numeroHojaVida" : {
+            "type" : "string"
+          },
+          "resultado" : {
+            "description" : "Como quedo el equipo en ese servicio",
+            "enum" : [ "OPERATIVO", "OPERATIVO_CON_RESTRICCIONES", "FUERA_DE_SERVICIO" ],
+            "type" : "string"
+          },
+          "sede" : {
+            "type" : "string"
+          },
+          "serie" : {
+            "type" : "string"
+          },
+          "tipoEquipo" : {
+            "type" : "string"
+          },
+          "ultimoServicio" : {
+            "description" : "Fecha del ultimo servicio cerrado; nula si nunca tuvo uno",
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "EquipmentResponse" : {
         "properties" : {
           "estadoActivo" : {
@@ -1463,6 +1551,107 @@
         },
         "summary" : "Listar todas las unidades",
         "tags" : [ "ClientEquipment" ]
+      }
+    },
+    "/v1/api/client-equipments/overview" : {
+      "get" : {
+        "description" : "Busca en serie, numero de hoja de vida, modelo, tipo y marca sin distinguir mayusculas ni tildes. Los filtros ausentes no filtran.",
+        "operationId" : "list",
+        "parameters" : [ {
+          "description" : "Texto a buscar",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "idCliente",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "idTipoEquipo",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Resultado del ultimo servicio",
+          "in" : "query",
+          "name" : "resultado",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "OPERATIVO", "OPERATIVO_CON_RESTRICCIONES", "FUERA_DE_SERVICIO" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "true para listar los dados de baja",
+          "in" : "query",
+          "name" : "dadosDeBaja",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "pagina",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "tamano",
+          "required" : false,
+          "schema" : {
+            "default" : 25,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentOverviewResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Listar los equipos instalados, con su ubicacion y su ultimo servicio",
+        "tags" : [ "EquipmentOverview" ]
       }
     },
     "/v1/api/client-equipments/{id}" : {
@@ -4165,6 +4354,9 @@
   }, {
     "description" : "Gestion de fabricantes de equipos",
     "name" : "Manufacturer"
+  }, {
+    "description" : "Listado de equipos instalados",
+    "name" : "EquipmentOverview"
   }, {
     "description" : "Inventario de equipos de los clientes",
     "name" : "ClientEquipment"
