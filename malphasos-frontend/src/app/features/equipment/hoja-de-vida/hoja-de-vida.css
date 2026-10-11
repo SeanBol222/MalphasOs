@@ -344,6 +344,16 @@ p {
   line-height: 1.4;
 }
 
+/* El protocolo va numerado: el numero es su prioridad. */
+ol.hv-lista {
+  list-style: decimal;
+}
+
+.hv-indicacion {
+  display: block;
+  color: var(--hv-gris-texto);
+}
+
 .hv-pie {
   display: flex;
   justify-content: space-between;

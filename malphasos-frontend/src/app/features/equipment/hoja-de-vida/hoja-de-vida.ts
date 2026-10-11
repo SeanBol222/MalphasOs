@@ -125,6 +125,9 @@ export class HojaDeVida {
     () => this.ultimaIntervencion()?.etiquetaDelResultado ?? 'Sin servicios',
   );
 
+  /** El protocolo preventivo del tipo, ya ordenado por prioridad en el servidor. */
+  protected readonly protocolo = computed(() => this.tecnica()?.protocoloPreventivo ?? []);
+
   /** Las recomendaciones son un solo texto en el tipo; cada linea es un consejo. */
   protected readonly recomendaciones = computed(() =>
     (this.tecnica()?.recomendacionesCuidado ?? '')

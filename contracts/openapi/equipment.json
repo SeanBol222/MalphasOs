@@ -578,6 +578,25 @@
         },
         "type" : "object"
       },
+      "LifeSheetPasoDelProtocolo" : {
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "indicacion" : {
+            "description" : "Lo propio de este tipo de equipo. Nula si no hay",
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "prioridad" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "LifeSheetResponse" : {
         "description" : "Hoja de vida de un equipo instalado",
         "properties" : {
@@ -625,6 +644,13 @@
           },
           "modelo" : {
             "type" : "string"
+          },
+          "protocoloPreventivo" : {
+            "description" : "Los protocolos del preventivo del tipo, en orden de prioridad. Vacia si no tiene",
+            "items" : {
+              "$ref" : "#/components/schemas/LifeSheetPasoDelProtocolo"
+            },
+            "type" : "array"
           },
           "recomendacionesCuidado" : {
             "type" : "string"

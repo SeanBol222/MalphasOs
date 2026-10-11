@@ -93,7 +93,11 @@ public class LifeSheetRestAdapter {
                         hoja.tecnica().marca(),
                         hoja.tecnica().modelo(),
                         hoja.tecnica().registroInvima(),
-                        restMapper.toResponse(hoja.tecnica().fichaTecnica())),
+                        restMapper.toResponse(hoja.tecnica().fichaTecnica()),
+                        hoja.tecnica().protocoloPreventivo().stream()
+                                .map(paso -> new LifeSheetResponse.PasoDelProtocolo(
+                                        paso.prioridad(), paso.nombre(), paso.descripcion(), paso.indicacion()))
+                                .toList()),
                 new LifeSheetResponse.Fabricante(
                         hoja.fabricante().nombre(), hoja.fabricante().pais()),
                 hoja.servicioTecnico().stream().map(LifeSheetRestAdapter::toResponse).toList(),

@@ -53,6 +53,21 @@ function hoja(
       marca: 'Mindray',
       modelo: 'iMEC 10',
       registroInvima: null,
+      protocoloPreventivo: cambios.sinOpcionales
+        ? []
+        : [
+            {
+              prioridad: 1,
+              nombre: 'Limpieza y desinfección',
+              descripcion: 'Paño y desinfectante en carcasa y cables.',
+              indicacion: 'Alcohol isopropílico, no al 70 %',
+            },
+            {
+              prioridad: 2,
+              nombre: 'Verificación eléctrica',
+              descripcion: 'Corriente de fuga con analizador.',
+            },
+          ],
       fichaTecnica: cambios.sinOpcionales
         ? {}
         : {
@@ -253,6 +268,28 @@ describe('Hoja de vida de un equipo', () => {
       'Limpiar la pantalla con un paño seco',
       'Cada día: Paño con alcohol al 70 %',
     ]);
+  });
+
+  it('el protocolo preventivo del tipo sale en orden, con la indicación para este equipo', async () => {
+    // La sección esperaba a RF-14 diciendo «Sin protocolo registrado» para todos. Desde el
+    // 2026-10-11 lleva los pasos del tipo, en el orden de su prioridad.
+    await abrir(hoja());
+
+    const pasos = [...(seccion('protocolo')?.querySelectorAll('ol > li') ?? [])].map((li) =>
+      li.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    expect(pasos).toEqual([
+      'Limpieza y desinfección. Paño y desinfectante en carcasa y cables. Para este equipo: Alcohol isopropílico, no al 70 %',
+      'Verificación eléctrica. Corriente de fuga con analizador.',
+    ]);
+    expect(seccion('protocolo')?.textContent).not.toContain('Sin protocolo');
+  });
+
+  it('un tipo sin protocolo lo dice, sin inventar una lista', async () => {
+    await abrir(hoja([], { sinOpcionales: true }));
+
+    expect(seccion('protocolo')?.querySelector('ol')).toBeNull();
+    expect(seccion('protocolo')?.textContent).toContain('Sin protocolo registrado.');
   });
 
   it('la fila de estado sale del historial: la intervención más reciente es el estado actual', async () => {

@@ -758,6 +758,14 @@ export interface components {
             /** Format: int64 */
             valorCompra?: number;
         };
+        LifeSheetPasoDelProtocolo: {
+            descripcion?: string;
+            /** @description Lo propio de este tipo de equipo. Nula si no hay */
+            indicacion?: string;
+            nombre?: string;
+            /** Format: int32 */
+            prioridad?: number;
+        };
         /** @description Hoja de vida de un equipo instalado */
         LifeSheetResponse: {
             /** @description La empresa que presta el servicio: el membrete del documento */
@@ -779,6 +787,8 @@ export interface components {
             limpiezaCotidiana?: string;
             marca?: string;
             modelo?: string;
+            /** @description Los protocolos del preventivo del tipo, en orden de prioridad. Vacia si no tiene */
+            protocoloPreventivo?: components["schemas"]["LifeSheetPasoDelProtocolo"][];
             recomendacionesCuidado?: string;
             /** @description Registro INVIMA del modelo, opcional */
             registroInvima?: string;
