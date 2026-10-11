@@ -62,7 +62,17 @@ public record LifeSheet(
             String marca,
             String modelo,
             String registroInvima,
-            TechnicalSheet fichaTecnica) {
+            TechnicalSheet fichaTecnica,
+            List<PasoDelProtocolo> protocoloPreventivo) {
+    }
+
+    /**
+     * Un protocolo del preventivo de este tipo de equipo, del 2026-10-11 (RF-14): lo que se hace en cada
+     * mantenimiento, en el orden de su prioridad. Va en la sección técnica porque es del tipo y no de la
+     * unidad, igual que el uso y la limpieza cotidiana. Es el de hoy: lo que se hizo en cada servicio lo
+     * guarda el reporte, que copió los pasos ese día.
+     */
+    public record PasoDelProtocolo(int prioridad, String nombre, String descripcion, String indicacion) {
     }
 
     /** Quién lo fabricó y dónde. */

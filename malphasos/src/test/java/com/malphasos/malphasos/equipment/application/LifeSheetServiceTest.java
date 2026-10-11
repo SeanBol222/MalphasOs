@@ -16,6 +16,7 @@ import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeSe
 import com.malphasos.malphasos.equipment.application.ports.input.InterventionServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ManufacturerServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
 import com.malphasos.malphasos.equipment.application.services.lifeSheet.LifeSheetService;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.location.application.ports.input.CityServicePort;
@@ -63,6 +64,7 @@ class LifeSheetServiceTest {
     @Mock private CityServicePort cityServicePort;
     @Mock private CountryServicePort countryServicePort;
     @Mock private ServiceAreaResponsiblePort serviceAreaResponsiblePort;
+    @Mock private ProtocolServicePort protocolServicePort;
 
     @InjectMocks private LifeSheetService service;
 
@@ -76,7 +78,8 @@ class LifeSheetServiceTest {
         assertThatThrownBy(() -> service.findByEquipment(EQUIPO, deOtro))
                 .isInstanceOf(ClientEquipmentNotFoundException.class);
 
-        // Ninguno de los doce saltos siguientes se da —eran once hasta que entro el responsable—. Si la guarda se moviera al final, la
+        // Ninguno de los trece saltos siguientes se da —eran once hasta que entro el responsable, y
+        // doce hasta el protocolo preventivo—. Si la guarda se moviera al final, la
         // respuesta seria la misma y esto fallaria, que es exactamente lo que hay que notar.
         verifyNoInteractions(
                 modelServicePort,
@@ -90,7 +93,8 @@ class LifeSheetServiceTest {
                 clientServicePort,
                 cityServicePort,
                 countryServicePort,
-                serviceAreaResponsiblePort);
+                serviceAreaResponsiblePort,
+                protocolServicePort);
     }
 
     @Test

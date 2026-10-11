@@ -19,6 +19,7 @@ import com.malphasos.malphasos.equipment.application.ports.input.InterventionSer
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ManufacturerServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
@@ -67,6 +68,7 @@ public class LifeSheetService implements LifeSheetServicePort {
     private final CityServicePort cityServicePort;
     private final CountryServicePort countryServicePort;
     private final ServiceAreaResponsiblePort serviceAreaResponsiblePort;
+    private final ProtocolServicePort protocolServicePort;
 
     @Override
     @Transactional(readOnly = true)
@@ -119,7 +121,16 @@ public class LifeSheetService implements LifeSheetServicePort {
                         modelo.getNombre(),
                         modelo.getInvima(),
                         // Voltaje y amperaje salen de aqui desde V15, y ya no del tipo.
-                        modelo.getFichaTecnica()),
+                        modelo.getFichaTecnica(),
+                        // El protocolo del preventivo del tipo, desde el 2026-10-11: la seccion que
+                        // hasta entonces decia «Sin protocolo registrado».
+                        protocolServicePort.protocolsOf(tipo.getId()).stream()
+                                .map(asignado -> new LifeSheet.PasoDelProtocolo(
+                                        asignado.prioridad(),
+                                        asignado.protocolo().getNombre(),
+                                        asignado.protocolo().getDescripcion(),
+                                        asignado.indicacion()))
+                                .toList()),
                 new LifeSheet.Fabricante(
                         fabricante.getNombre(), paisDe(fabricante)),
                 // La cuarta seccion, y la unica que sale de los reportes. Se pide con el alcance

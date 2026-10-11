@@ -219,8 +219,24 @@
         <div class="hv-dos">
           <section aria-labelledby="protocolo">
             <h2 id="protocolo">Protocolo preventivo</h2>
-            <!-- Los protocolos son RF-14 y no existen todavia: no se inventa una lista aqui. -->
-            <p class="hv-nota">Sin protocolo registrado.</p>
+            <!--
+              El del tipo, en el orden de su prioridad, que es el que llega (RF-14, desde el 2026-10-11).
+              Es lo que se hace en cada preventivo, no lo que se hizo: eso esta en el historial.
+            -->
+            @if (protocolo().length) {
+              <ol class="hv-lista">
+                @for (paso of protocolo(); track paso.prioridad) {
+                  <li>
+                    <strong>{{ paso.nombre }}.</strong> {{ paso.descripcion }}
+                    @if (paso.indicacion) {
+                      <span class="hv-indicacion">Para este equipo: {{ paso.indicacion }}</span>
+                    }
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="hv-nota">Sin protocolo registrado.</p>
+            }
           </section>
           <section aria-labelledby="cuidado">
             <h2 id="cuidado">Cuidado y limpieza</h2>

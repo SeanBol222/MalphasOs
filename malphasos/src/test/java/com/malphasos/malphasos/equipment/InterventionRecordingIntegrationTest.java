@@ -58,6 +58,8 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM equipo",
             "DELETE FROM fabricante",
             "DELETE FROM marca",
+            "DELETE FROM protocolo_tipo_equipo WHERE k_id_protocolo IN (SELECT k_id_protocolo FROM protocolo WHERE n_clave LIKE 'hv prueba %')",
+            "DELETE FROM protocolo WHERE n_clave LIKE 'hv prueba %'",
             "DELETE FROM tipo_equipo",
             "DELETE FROM encargado",
             "DELETE FROM area_servicio",
@@ -323,6 +325,63 @@ class InterventionRecordingIntegrationTest {
         assertThat(hoja.fabricante().nombre()).isNotBlank();
 
         assertThat(hoja.servicioTecnico()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("la hoja de vida trae el protocolo preventivo del tipo, en su prioridad y con su indicacion")
+    void elProtocoloPreventivo() {
+        // La seccion «Protocolo preventivo» del formato impreso esperaba a RF-14. Se insertan fuera de
+        // orden a proposito: si la hoja ordenara por llegada y no por prioridad, esta prueba lo veria.
+        Contexto contexto = unBorrador("PREVENTIVO");
+        UUID limpieza = UUID.randomUUID();
+        UUID electrico = UUID.randomUUID();
+        UUID retirado = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO protocolo (k_id_protocolo, n_nombre, n_clave, t_descripcion, b_estado_activo) VALUES
+                    (?, 'HV prueba limpieza', 'hv prueba limpieza', 'Pano y desinfectante.', true),
+                    (?, 'HV prueba electrico', 'hv prueba electrico', 'Multimetro.', true),
+                    (?, 'HV prueba retirado', 'hv prueba retirado', 'Ya no se hace.', true)
+                """,
+                limpieza, electrico, retirado);
+        String tipo =
+                """
+                (SELECT m.k_id_tipo_equipo FROM equipo_cliente u
+                 JOIN modelo mo ON mo.k_id_modelo = u.k_id_modelo
+                 JOIN equipo m ON m.k_id_equipo = mo.k_id_equipo
+                 WHERE u.k_id_equipo_cliente = ?)
+                """;
+        jdbcTemplate.update(
+                "INSERT INTO protocolo_tipo_equipo (k_id_tipo_equipo, k_id_protocolo, i_prioridad, t_indicacion, b_estado_activo)"
+                        + " SELECT " + tipo + ", ?, 2, NULL, true",
+                contexto.equipo(), electrico);
+        jdbcTemplate.update(
+                "INSERT INTO protocolo_tipo_equipo (k_id_tipo_equipo, k_id_protocolo, i_prioridad, t_indicacion, b_estado_activo)"
+                        + " SELECT " + tipo + ", ?, 1, 'Alcohol isopropilico', true",
+                contexto.equipo(), limpieza);
+        // Una asignacion retirada no es parte del protocolo de hoy.
+        jdbcTemplate.update(
+                "INSERT INTO protocolo_tipo_equipo (k_id_tipo_equipo, k_id_protocolo, i_prioridad, t_indicacion, b_estado_activo)"
+                        + " SELECT " + tipo + ", ?, 1, NULL, false",
+                contexto.equipo(), retirado);
+
+        LifeSheet hoja = lifeSheetServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted());
+
+        assertThat(hoja.tecnica().protocoloPreventivo())
+                .containsExactly(
+                        new LifeSheet.PasoDelProtocolo(
+                                1, "HV prueba limpieza", "Pano y desinfectante.", "Alcohol isopropilico"),
+                        new LifeSheet.PasoDelProtocolo(2, "HV prueba electrico", "Multimetro.", null));
+    }
+
+    @Test
+    @DisplayName("un tipo sin protocolos deja la seccion vacia, no nula")
+    void sinProtocolo() {
+        Contexto contexto = unBorrador("PREVENTIVO");
+
+        LifeSheet hoja = lifeSheetServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted());
+
+        assertThat(hoja.tecnica().protocoloPreventivo()).isNotNull().isEmpty();
     }
 
     @Test

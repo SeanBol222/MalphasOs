@@ -57,7 +57,17 @@ public record LifeSheetResponse(
             String modelo,
             @Schema(description = "Registro INVIMA del modelo, opcional") String registroInvima,
             @Schema(description = "Del modelo: riesgo, caracteristicas y datos electricos")
-            TechnicalSheetResponse fichaTecnica) {
+            TechnicalSheetResponse fichaTecnica,
+            @Schema(description = "Los protocolos del preventivo del tipo, en orden de prioridad. Vacia si no tiene")
+            List<PasoDelProtocolo> protocoloPreventivo) {
+    }
+
+    @Schema(name = "LifeSheetPasoDelProtocolo")
+    public record PasoDelProtocolo(
+            int prioridad,
+            String nombre,
+            String descripcion,
+            @Schema(description = "Lo propio de este tipo de equipo. Nula si no hay") String indicacion) {
     }
 
     @Schema(name = "LifeSheetEmpresa", description = "Viene de la configuracion, no de la base")
