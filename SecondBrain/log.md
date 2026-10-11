@@ -1812,3 +1812,21 @@ frontend **520**, medidos sobre `6c67b16d`.
 
 **Tocadas**: [[dominio-reporte-servicio]], [[hoja-de-vida]], [[hoja-de-vida-formato-impreso]],
 [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]].
+
+## [2026-10-11] ingest | el listado de equipos del rediseño, y la segunda fase
+
+Empieza la segunda fase del rediseño: las pantallas que no tenían la forma de su maqueta. El usuario
+decidió dibujar primero las que no tenían maqueta —cinco nuevas en el lienzo: clientes, ficha de
+cliente, sede, personas y catálogo, a la espera de revisión— y ampliar el backend para Equipos.
+
+`b253345f` añade `GET /client-equipments/overview`: una página de equipos con hoja de vida, ubicación y
+último servicio, filtrada en el servidor. La consulta solo toca tablas de `equipment`; cliente, sede y
+área los da un puerto nuevo de `client`, `ServiceAreaLocationPort`. `6394cf4b` rehace la pantalla
+sobre él. Backend **1129** sobre `b253345f`, frontend **531** sobre `6394cf4b`.
+
+**Corregido**: el índice decía que a [[dominio-equipo-mantenimiento]] le faltaban «verificaciones
+técnicas y datos metrológicos», caducado desde el 2026-10-03.
+
+**Tocadas**: [[dominio-equipo-mantenimiento]], [[arquitectura-frontend-malphasos]],
+[[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]] —la fila de las áreas sin consulta por lote
+sigue abierta: el listado ya no la sufre, la ficha de una orden sí—.

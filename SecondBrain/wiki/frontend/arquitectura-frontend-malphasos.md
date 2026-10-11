@@ -165,6 +165,22 @@ este frontend que no recarga, y lo justifica la frecuencia, una petición por ca
 la sección «Protocolo preventivo» pinta la lista del tipo, y necesitó `list-style: decimal` propio,
 porque los estilos base de Tailwind quitan los marcadores y el número ahí es la prioridad. Ver
 [[dominio-reporte-servicio]] y [[hoja-de-vida]].
+
+### El listado de equipos filtra en el servidor (2026-10-11)
+
+Primera pantalla de la segunda fase del rediseño. Hasta ese día cruzaba la lista entera de unidades con
+cuatro listas del catálogo y una petición por área; ahora es **una petición por página**, con
+`placeholderData: keepPreviousData` para que la tabla no se vacíe al cambiar de página o al escribir.
+Tres detalles:
+
+- **El buscador espera 300 ms** —`ESPERA_DEL_BUSCADOR_MS`— antes de preguntar, y la prueba comprueba
+  que antes de ese plazo no sale nada.
+- **Cambiar cualquier filtro vuelve a la primera página**: la tercera de otra búsqueda no significa nada.
+- **Angular quita el blanco entre dos elementos**, así que «Balanza» y «Kern» en dos `span` se leían
+  «BalanzaKern». Va un `&ngsp;`, que es un espacio que Angular conserva.
+
+`fechaCorta` salió de la hoja de vida a `core/fechas.ts`, con su cuidado de no pasar por `Date` en UTC.
+Ver [[dominio-equipo-mantenimiento]].
 ## Autenticación y autorización
 
 El patrón del original se conserva aunque su código no: instancia única, inicio de sesión al arrancar, refresco del token antes de que expire, cierre de sesión si el refresco falla. Flujo de código de autorización con **PKCE**, que es el correcto para un cliente público.
