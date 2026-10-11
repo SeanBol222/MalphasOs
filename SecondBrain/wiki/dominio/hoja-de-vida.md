@@ -4,7 +4,7 @@ description: Que es la hoja de vida de un equipo en MalphasOS -un compilado de s
 tags: [dominio, equipos, reportes, hoja-de-vida, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/equipment/application/services/lifeSheet/LifeSheetService.java
 estado: estable
-updated: 2026-10-05
+updated: 2026-10-11
 ---
 
 # La hoja de vida de un equipo
@@ -182,6 +182,18 @@ la arma ahora `ServiceReport.descripcionDelServicio()`: **los pasos hechos, en s
 trabajo adicional** —decidido por el usuario—. Los que no aplicaron no salen. Sin pasos es el texto a
 secas, como antes. Si no cabe en los 500 caracteres de la columna se recorta con «…»; el reporte guarda
 el detalle entero. Ver [[dominio-reporte-servicio]].
+
+## La sección «Protocolo preventivo» (2026-10-11)
+
+Decía «Sin protocolo registrado» para todos los equipos, a la espera de RF-14. Desde `83eec61a` el
+compilado trae en `tecnica.protocoloPreventivo` los protocolos **del tipo del equipo**, en el orden de su
+prioridad, con nombre, descripción e indicación propia del tipo. `LifeSheetService` los pide a
+`ProtocolServicePort.protocolsOf`, que deja fuera las asignaciones retiradas; en pantalla es una lista
+numerada, y el número es la prioridad.
+
+**Es el protocolo de hoy y no el de cada servicio**, y conviene no confundirlos: lo que se hizo en un
+mantenimiento lo copió su reporte al abrirse y llega a la hoja por el historial, con la línea de arriba.
+Si el protocolo del tipo cambia, esta sección cambia y el historial no.
 
 ## Notas relacionadas
 

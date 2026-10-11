@@ -4,7 +4,7 @@ description: Como se construye el frontend de MalphasOS -Angular, por modulo de 
 tags: [frontend, arquitectura, angular, "describe:malphasos"]
 source: Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex
 estado: estable
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # Arquitectura del frontend de MalphasOS
@@ -156,6 +156,15 @@ Lo que **no** se invalida también es una decisión: renombrar un área no toca 
 
 Esa regla no es estética: **es lo que acota el riesgo de TanStack Query**, cuyo adaptador de Angular se distribuye con el sufijo `experimental` en el nombre del paquete. Si su API cambia entre versiones, lo que se toca son los servicios de módulo y no cada pantalla.
 
+
+### La lista de verificación del reporte y la hoja de vida (2026-10-11)
+
+Cierran la tanda 5 del rediseño. En el reporte, **cada paso se guarda al pulsarlo** y la respuesta —el
+reporte entero— entra en la caché con `setQueryData` en lugar de invalidar: es la primera escritura de
+este frontend que no recarga, y lo justifica la frecuencia, una petición por casilla. En la hoja de vida
+la sección «Protocolo preventivo» pinta la lista del tipo, y necesitó `list-style: decimal` propio,
+porque los estilos base de Tailwind quitan los marcadores y el número ahí es la prioridad. Ver
+[[dominio-reporte-servicio]] y [[hoja-de-vida]].
 ## Autenticación y autorización
 
 El patrón del original se conserva aunque su código no: instancia única, inicio de sesión al arrancar, refresco del token antes de que expire, cierre de sesión si el refresco falla. Flujo de código de autorización con **PKCE**, que es el correcto para un cliente público.

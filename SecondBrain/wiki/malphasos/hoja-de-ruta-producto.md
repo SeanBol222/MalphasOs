@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # Hoja de ruta del producto
@@ -243,7 +243,8 @@ que se reunió, para no tener que buscarlo otra vez:
   mantenimiento preventivo de una balanza es **una lista ordenada de pasos** —«Limpieza y desinfección
   inicial», «Verificación del estado físico y operativo», «Verificación, ajuste y limpieza del sistema
   electrónico»…—. Es el contenido que la sección «Protocolo preventivo» de la hoja de vida impresa
-  espera, y que hoy dice «Sin protocolo registrado».
+  espera, y que decía «Sin protocolo registrado» hasta el **2026-10-11**: desde `83eec61a` lleva los
+  protocolos del tipo, en su prioridad.
 
 **Las preguntas que hay que hacerle al usuario antes de construir**, porque cambian el esquema:
 
@@ -301,8 +302,12 @@ orden, y esa lista es la que se carga sola.
    copian al abrir un reporte de una orden **preventiva**; la regla de cierre cambia como dice la tabla.
 3. **Hecha el 2026-10-11**, `71d2277e`. **Pantallas del catálogo**: Catálogo › Protocolos, y en el alta y la edición del tipo de equipo la
    lista que se arrastra, con el panel que crea y avisa de parecidos.
-4. **La lista de verificación del reporte** —la de la maqueta— y **la hoja de vida** llenando su sección
-   «Protocolo preventivo», que hoy dice «Sin protocolo registrado».
+4. **Hecha el 2026-10-11**, `c94b0f77` y `83eec61a`. **La lista de verificación del reporte** —la de la
+   maqueta—: cada paso se marca hecho o no aplica, con nota obligatoria en el segundo, y el panel de cierre
+   cuenta los pasos. Y **la hoja de vida** llenando su sección «Protocolo preventivo» —decía «Sin protocolo
+   registrado» para todos— con los protocolos del tipo, numerados por su prioridad y con su indicación.
+   **Es el protocolo de hoy**, no el de cada servicio: lo que se hizo lo copió el reporte y llega por el
+   historial.
 
 > **Sigue siendo cierto el 2026-09-27, y ahora es lo único que le falta a la categoría.** El módulo de reportes se construyó sin protocolos a propósito: un protocolo es *qué hay que revisar*, y el reporte funciona sin él —se escriben los procedimientos a mano—. Con RF-14 construido, RF-13 sería cargarlos solos al abrir el reporte. Su otra mitad, **el tipo de servicio, sí existe ya** desde `V6`: la nota de requisitos que decía que no estaba modelado caducó el 2026-09-12.
 
@@ -327,7 +332,7 @@ El lienzo es un artefacto privado de claude.ai, `MalphasOS — rediseño visual`
 | 2 | **Estilo común**: encabezados de página, tablas, botones y superficies blancas, aplicado a listados y fichas | No | **Hecha el 2026-10-10**, `1227feaf` |
 | 3 | **Inicio con agenda**, por semana y por mes, con «solo mis órdenes» | Sí: la consulta por periodo, `2abeebfa` | **Hecha el 2026-10-10**, `4cee773b` |
 | 4 | **El llenado del reporte** con secciones numeradas y el panel de lo que falta para cerrar | No | **Hecha el 2026-10-10**, `62b3663b` |
-| 5 | **Protocolos (RF-14) y la lista de verificación del reporte (RF-13)** | Sí: `V21`, `V22` y `V23`, ya construidos | **En curso**: catálogo, copia en el reporte y pantallas del catálogo hechos (`371d0908`, `ef2e121c`, `71d2277e`); falta la lista de verificación en el reporte y la sección de la hoja de vida |
+| 5 | **Protocolos (RF-14) y la lista de verificación del reporte (RF-13)** | Sí: `V21`, `V22` y `V23`, ya construidos | **Hecha el 2026-10-11**: catálogo, copia en el reporte, pantallas del catálogo, lista de verificación y sección de la hoja de vida (`371d0908`, `ef2e121c`, `71d2277e`, `c94b0f77`, `83eec61a`). **El rediseño queda completo en sus cinco tandas** |
 
 **Una desviación de la maqueta, consciente**: en un teléfono la A dibujaba una barra de pestañas abajo, y
 se construyó un **menú plegable** —la misma barra lateral abierta a pantalla completa—. Así hay una sola
