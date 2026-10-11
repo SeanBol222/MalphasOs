@@ -1600,6 +1600,18 @@
             "type" : "boolean"
           }
         }, {
+          "description" : "Solo estos equipos, separados por comas; con ellos no se filtra por baja",
+          "in" : "query",
+          "name" : "ids",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        }, {
           "in" : "query",
           "name" : "pagina",
           "required" : false,

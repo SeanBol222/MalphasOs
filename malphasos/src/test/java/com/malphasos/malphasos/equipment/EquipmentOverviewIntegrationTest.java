@@ -298,6 +298,29 @@ class EquipmentOverviewIntegrationTest {
     }
 
     @Test
+    @DisplayName("por identificador trae esos equipos esten como esten, y el alcance sigue mandando")
+    void porIdentificador() {
+        // Es lo que pide la ficha de una orden: sus equipos, incluido el que se dio de baja despues
+        // de entrar en ella. Filtrar por baja ahi lo haria desaparecer de la orden.
+        Lugar propio = unLugar("Clinica de la orden");
+        Lugar ajeno = unLugar("Otra clinica");
+        Catalogo catalogo = unModelo("Balanza", "Kern");
+        UUID enServicio = unEquipo(propio, catalogo, "EN-SERVICIO");
+        UUID deBaja = unEquipo(propio, catalogo, "DE-BAJA");
+        unEquipo(propio, catalogo, "NO-PEDIDO");
+        UUID deOtro = unEquipo(ajeno, catalogo, "DE-OTRO");
+        jdbcTemplate.update("UPDATE equipo_cliente SET b_estado_activo = false WHERE k_id_equipo_cliente = ?", deBaja);
+
+        EquipmentOverview pagina = listar(
+                new EquipmentOverviewQuery(null, null, null, null, false, Set.of(enServicio, deBaja, deOtro), 0, 25),
+                propio);
+
+        assertThat(series(pagina)).containsExactlyInAnyOrder("EN-SERVICIO", "DE-BAJA");
+        assertThat(pagina.filas()).filteredOn(f -> f.serie().equals("DE-BAJA"))
+                .singleElement().satisfies(f -> assertThat(f.estadoActivo()).isFalse());
+    }
+
+    @Test
     @DisplayName("el alcance limita a los clientes visibles, y filtrar por uno ajeno da una lista vacia")
     void alcance() {
         Lugar propio = unLugar("Cliente propio");

@@ -82,8 +82,13 @@ public class EquipmentOverviewPersistenceAdapter implements EquipmentOverviewPer
     private static String donde(EquipmentOverviewQuery consulta, Set<UUID> areas, MapSqlParameterSource parametros) {
         List<String> condiciones = new ArrayList<>();
 
-        condiciones.add("u.b_estado_activo = :activos");
-        parametros.addValue("activos", !consulta.dadosDeBaja());
+        if (consulta.ids() != null) {
+            condiciones.add("u.k_id_equipo_cliente IN (:ids)");
+            parametros.addValue("ids", consulta.ids());
+        } else {
+            condiciones.add("u.b_estado_activo = :activos");
+            parametros.addValue("activos", !consulta.dadosDeBaja());
+        }
 
         if (areas != null) {
             condiciones.add("u.k_id_area_servicio IN (:areas)");
