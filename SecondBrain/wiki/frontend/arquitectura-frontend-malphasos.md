@@ -181,6 +181,19 @@ Tres detalles:
 
 `fechaCorta` salió de la hoja de vida a `core/fechas.ts`, con su cuidado de no pasar por `Date` en UTC.
 Ver [[dominio-equipo-mantenimiento]].
+
+### La ficha de la orden, sobre el mismo listado (2026-10-11)
+
+Segunda pantalla de la segunda fase. Su alcance sale del listado de equipos **pedido por
+identificadores** —`EquipoApi.resumenDe`—, que trae tipo, modelo, hoja de vida y área en una petición;
+antes cruzaba la lista entera de equipos con una petición por área. Con eso `AreaApi.variasPorId` se
+quedó sin consumidores y **se retiró**. Los encargados del sitio solo se piden con `engineer.read`:
+`EncargadoApi.listar` admite ahora la misma señal de habilitado que `ClienteApi.listar`.
+
+**Una prueba que no veía nada**: «sin `engineer.read` no se piden los encargados» pasaba con la guarda
+quitada, porque el ayudante `abrir()` respondía a esa petición antes del `expectNone`. Un
+`expectNone` después de un ayudante que consume peticiones no comprueba nada; hay que mirar antes de
+responder.
 ## Autenticación y autorización
 
 El patrón del original se conserva aunque su código no: instancia única, inicio de sesión al arrancar, refresco del token antes de que expire, cierre de sesión si el refresco falla. Flujo de código de autorización con **PKCE**, que es el correcto para un cliente público.

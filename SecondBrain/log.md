@@ -1830,3 +1830,16 @@ técnicas y datos metrológicos», caducado desde el 2026-10-03.
 **Tocadas**: [[dominio-equipo-mantenimiento]], [[arquitectura-frontend-malphasos]],
 [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]] —la fila de las áreas sin consulta por lote
 sigue abierta: el listado ya no la sufre, la ficha de una orden sí—.
+
+## [2026-10-11] ingest | la ficha de la orden del rediseño
+
+Segunda pantalla de la segunda fase. `a53540ea` deja pedir el listado de equipos por identificadores,
+sin filtrar por baja; `3fecdcab` rehace la ficha de la orden sobre él, con cabecera, línea de estado,
+equipos agrupados por área con su avance y los encargados del sitio. `AreaApi.variasPorId` se quedó
+sin consumidores y se retiró. Backend **1131** sobre `a53540ea`, frontend **539** sobre `3fecdcab`.
+
+**Cerrada**: la deuda de las áreas sin consulta por lote, no construyendo la consulta sino dejando de
+necesitarla. Deuda propia: **83 filas, 47 abiertas**.
+
+**Tocadas**: [[hoja-de-ruta-producto]], [[dominio-equipo-mantenimiento]],
+[[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]].

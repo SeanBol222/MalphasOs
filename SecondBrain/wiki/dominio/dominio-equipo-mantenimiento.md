@@ -328,6 +328,10 @@ Tres decisiones que conviene no deshacer sin pensarlo:
 - **El último servicio es la intervención vigente más reciente.** Las reemplazadas por `V14` no
   cuentan: corregir un reporte no deja a la vista el resultado viejo.
 
+**Desde `a53540ea` admite `ids`**: solo esos equipos y, con ellos, **sin filtrar por baja**, porque
+quien los pide —la ficha de una orden— necesita también el que se dio de baja después de entrar en
+ella. El alcance sigue mandando.
+
 Al escribir el servicio se quitó una guarda: rechazar un cliente fuera del alcance hacía lo mismo que la
 intersección de áreas que viene detrás, y con las dos **ninguna mutación sobre cualquiera de ellas
 podía fallar**. Es el caso de las guardas gemelas que el `CONVENCIONES.md` de la raíz cuenta en «Mutar para saber si una prueba ejerce algo», evitado al nacer.
