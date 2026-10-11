@@ -1779,3 +1779,11 @@ Esquema: 30 tablas, 42 foráneas, 47 `CHECK`; el guion de columnas pasa con 162.
 
 **Tocadas**: [[dominio-reporte-servicio]], [[hoja-de-vida]], [[esquema-bd-malphasos]],
 [[deuda-tecnica-y-riesgos]], [[hoja-de-ruta-producto]].
+
+## [2026-10-10] ingest | paso_reporte recibe su borrado lógico
+
+`V23` (`2b3eae42`) añade `b_estado_activo` a `paso_reporte`, elegido por el usuario antes que escribir
+una excepción. La deuda se abrió y se cerró el mismo día; el esquema vuelve a «30 de 30», comprobado
+con una consulta que busca tablas sin la columna. Deuda propia: 83 filas, 48 abiertas.
+
+**Tocadas**: [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]].

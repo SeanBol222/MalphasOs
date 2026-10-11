@@ -80,20 +80,19 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **22** (`V1`…`V22`) |
+| Migraciones aplicadas | **23** (`V1`…`V23`) |
 | Tablas de dominio | **30** |
 | Llaves foráneas | **42**, de las cuales **4 compuestas** |
 | Restricciones `CHECK` propias | **47** |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **7** |
-| Tablas con borrado lógico | **29 de 30** — ⚠️ `paso_reporte` no lo tiene, y es un descuido |
+| Tablas con borrado lógico | **30 de 30** — universal, sin excepción, otra vez desde `V23` |
 
-> ⚠️ **`paso_reporte` rompe la convención del borrado lógico universal**, y no por decisión: se escribió
-> así en `V22` y lo destapó este recuento, al ir a escribir «30 de 30». Un paso nunca se retira —solo
-> cambia de estado, y vive y muere con su reporte, que sí tiene `b_estado_activo`—, así que la columna
-> no tendría hoy ningún uso; pero la convención dice «universal» y esta nota lo celebraba. Queda
-> **pendiente de decidir** entre añadirla con una `V23` o escribir la excepción con su porqué. Mientras
-> tanto, esta fila dice la verdad.
+> **`paso_reporte` rompió la convención del borrado lógico universal durante unas horas**, y no por
+> decisión: se escribió así en `V22` y lo destapó este recuento, al ir a escribir «30 de 30». Un paso
+> nunca se retira —solo cambia de estado—, así que la columna no tiene hoy ningún uso; pero el usuario
+> eligió **añadirla con `V23`** (`2b3eae42`) antes que escribir una excepción. Comprobado sobre la base
+> con una consulta que busca tablas sin `b_estado_activo`: devuelve cero.
 
 > **Recontado el 2026-10-10, más tarde, sobre la base con `V22`.** Entra `paso_reporte` —los pasos del
 > protocolo copiados en cada reporte—, con **dos foráneas**, **cuatro `CHECK`** y un `UNIQUE` de
@@ -518,6 +517,7 @@ erDiagram
         varchar t_indicacion "copia, anulable"
         varchar t_estado_paso "PENDIENTE, HECHO, NO_APLICA"
         varchar t_nota "obligatoria con NO_APLICA"
+        boolean b_estado_activo "desde V23"
     }
     reporte_servicio {
         uuid k_id_reporte_servicio PK
