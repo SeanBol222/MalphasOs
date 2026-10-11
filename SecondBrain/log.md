@@ -1787,3 +1787,12 @@ una excepción. La deuda se abrió y se cerró el mismo día; el esquema vuelve 
 con una consulta que busca tablas sin la columna. Deuda propia: 83 filas, 48 abiertas.
 
 **Tocadas**: [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]].
+
+## [2026-10-11] ingest | las pantallas de protocolos
+
+Tercera tanda de RF-14 (`71d2277e`): Catálogo › Protocolos y la lista de protocolos de cada tipo, que
+se ordena arrastrando o con flechas y se guarda con el botón del tipo. Entra `@angular/cdk`. Crear un
+protocolo avisa de los parecidos en las dos pantallas donde se puede. Faltaban en el frontend tres
+códigos de error del catálogo metrológico desde el 3 de octubre. 510 pruebas del frontend.
+
+**Tocadas**: [[arquitectura-frontend-malphasos]], [[hoja-de-ruta-producto]].
