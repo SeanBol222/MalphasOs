@@ -209,20 +209,75 @@ describe('Ficha de una orden de trabajo', () => {
       await asentar(fixture);
     });
 
+    describe('ejecutar exige todos los reportes cerrados (2026-10-14)', () => {
+      const DOS = [
+        { idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA },
+        { idEquipoCliente: 'ec2', idAreaServicio: 'a3' },
+      ];
+      const boton = () =>
+        [...raiz().querySelectorAll('button')].find(
+          (b) => b.textContent?.trim() === 'Marcar como ejecutada',
+        ) as HTMLButtonElement;
+
+      it('con un reporte en borrador el botón se desactiva y dice cuántos faltan', async () => {
+        await abrir(orden({ estadoEjecucion: 'EN_EJECUCION', equipos: DOS }), [
+          reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO', resultado: 'OPERATIVO' }),
+          reporte({ id: 'r2', idEquipoCliente: 'ec2', estado: 'BORRADOR' }),
+        ]);
+
+        expect(boton().disabled).toBe(true);
+        expect(boton().getAttribute('aria-describedby')).toBe('por-que-no-se-ejecuta');
+        expect(raiz().querySelector('#por-que-no-se-ejecuta')?.textContent).toContain(
+          'falta cerrar el reporte de 1 equipo',
+        );
+      });
+
+      it('con todos cerrados se puede ejecutar y no hay aviso', async () => {
+        await abrir(orden({ estadoEjecucion: 'EN_EJECUCION', equipos: DOS }), [
+          reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO', resultado: 'OPERATIVO' }),
+          reporte({
+            id: 'r2',
+            idEquipoCliente: 'ec2',
+            estado: 'FINALIZADO',
+            resultado: 'OPERATIVO',
+          }),
+        ]);
+
+        expect(boton().disabled).toBe(false);
+        expect(raiz().querySelector('#por-que-no-se-ejecuta')).toBeNull();
+      });
+
+      it('si el servidor responde que faltan reportes, se lee traducido', async () => {
+        await abrir(orden({ estadoEjecucion: 'EN_EJECUCION' }));
+        pulsar('Marcar como ejecutada');
+        await asentar(fixture);
+
+        http
+          .expectOne({ method: 'PATCH', url: `${URL}/execute` })
+          .flush(
+            { code: 'ERR_WORK_ORDER_009', message: 'x', details: [] },
+            { status: 409, statusText: 'Conflict' },
+          );
+        await asentar(fixture);
+
+        expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+          'Cierre el reporte de cada equipo',
+        );
+      });
+    });
+
     it('si el backend dice que el estado no lo permite, se lee traducido', async () => {
       await abrir();
       pulsar('Iniciar trabajo');
       await asentar(fixture);
-      http
-        .expectOne({ method: 'PATCH', url: `${URL}/start` })
-        .flush(
-          {
-            code: 'ERR_WORK_ORDER_003',
-            message: 'Work order state does not allow it',
-            details: [],
-          },
-          { status: 409, statusText: 'Conflict' },
-        );
+      http.expectOne({ method: 'PATCH', url: `${URL}/start` }).flush(
+        {
+          code: 'ERR_WORK_ORDER_003',
+          message: 'Work order state does not allow it',
+          details: [],
+        },
+        { status: 409, statusText: 'Conflict' },
+      );
       await asentar(fixture);
 
       expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
