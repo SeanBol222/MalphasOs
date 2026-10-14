@@ -67,8 +67,10 @@ export const CATALOGO_EQUIPMENT: Readonly<Record<string, string>> = {
   ERR_EQUIPMENT_013: 'Esa unidad no es de la magnitud elegida.',
   // Los protocolos de mantenimiento, del 2026-10-10.
   ERR_EQUIPMENT_014: 'Ese protocolo no existe o fue retirado.',
-  ERR_EQUIPMENT_015: 'Ya hay un protocolo con ese nombre. Use el que existe en lugar de crear otro.',
-  ERR_EQUIPMENT_016: 'Ese protocolo está asignado a tipos de equipo. Quítelo de ellos antes de retirarlo.',
+  ERR_EQUIPMENT_015:
+    'Ya hay un protocolo con ese nombre. Use el que existe en lugar de crear otro.',
+  ERR_EQUIPMENT_016:
+    'Ese protocolo está asignado a tipos de equipo. Quítelo de ellos antes de retirarlo.',
 };
 
 /**
@@ -88,6 +90,8 @@ export const CATALOGO_WORK_ORDER: Readonly<Record<string, string>> = {
   ERR_WORK_ORDER_006: 'Esa área de servicio no existe o fue cerrada.',
   ERR_WORK_ORDER_007: 'Ese equipo no existe o fue dado de baja.',
   ERR_WORK_ORDER_008: 'Esa persona no existe o fue retirada.',
+  ERR_WORK_ORDER_009:
+    'La orden todavía tiene equipos sin reporte cerrado. Cierre el reporte de cada equipo antes de darla por ejecutada.',
 };
 
 /**
@@ -110,7 +114,8 @@ export const CATALOGO_SERVICE_REPORT: Readonly<Record<string, string>> = {
   ERR_SERVICE_REPORT_005: 'Ese equipo no existe o fue dado de baja.',
   ERR_SERVICE_REPORT_006: 'El modelo de ese equipo no existe o fue retirado.',
   ERR_SERVICE_REPORT_007: 'El equipo del catálogo al que pertenece no existe o fue retirado.',
-  ERR_SERVICE_REPORT_008: 'El tipo de equipo no existe o fue retirado: sin él no se sabe cómo verificarlo.',
+  ERR_SERVICE_REPORT_008:
+    'El tipo de equipo no existe o fue retirado: sin él no se sabe cómo verificarlo.',
 };
 
 /**

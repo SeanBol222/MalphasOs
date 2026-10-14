@@ -23,7 +23,10 @@ public enum WorkOrderErrorCatalog {
     HEADQUARTER_NOT_FOUND("ERR_WORK_ORDER_005", "Headquarter not found"),
     SERVICE_AREA_NOT_FOUND("ERR_WORK_ORDER_006", "Service area not found"),
     CLIENT_EQUIPMENT_NOT_FOUND("ERR_WORK_ORDER_007", "Client equipment not found"),
-    PERSON_NOT_FOUND("ERR_WORK_ORDER_008", "Person not found");
+    PERSON_NOT_FOUND("ERR_WORK_ORDER_008", "Person not found"),
+    // 409 y código propio: los datos están bien y el estado también; lo que falta es trabajo, y la
+    // pantalla tiene que poder decir cuánto. Del 2026-10-14.
+    WORK_ORDER_HAS_OPEN_REPORTS("ERR_WORK_ORDER_009", "Work order has equipment without a finished report");
 
     private final String code;
     private final String message;

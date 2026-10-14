@@ -15,6 +15,7 @@ import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPo
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderPersistencePort;
+import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AssignWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.CancelWorkOrderCommand;
@@ -22,10 +23,14 @@ import com.malphasos.malphasos.workorder.application.services.workOrder.commands
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.ScheduleWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.StartWorkOrderCommand;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReportsException;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
+import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
+import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -58,6 +63,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     private final ClientEquipmentServicePort clientEquipmentServicePort;
     private final PersonCommunicationPort personCommunicationPort;
     private final EventDispatcherPort eventDispatcherPort;
+    private final WorkOrderReportsPort workOrderReportsPort;
 
     // ---------------------------------------------------------------------------
     // Consultas
@@ -256,12 +262,37 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Transactional
     public WorkOrder execute(ExecuteWorkOrderCommand command) {
         WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
+        exigirReportesCerrados(orden);
         orden.execute();
 
         return persistAndPublish(orden);
     }
 
     // ---------------------------------------------------------------------------
+
+    /**
+     * Una orden no se da por ejecutada con equipos sin reporte cerrado (decidido por el usuario el
+     * 2026-10-14): ejecutada quiere decir que cada equipo tiene el suyo.
+     *
+     * <p>Solo se pregunta cuando ejecutar sería posible. Si la orden aún no empezó, o ya se ejecutó, el
+     * agregado responde con su propio conflicto de estado, que es el motivo de verdad; contar reportes
+     * de una orden sin empezar daría un mensaje que manda a hacer algo que tampoco se puede.
+     */
+    private void exigirReportesCerrados(WorkOrder orden) {
+        if (orden.getEstadoEjecucion() != ExecutionState.EN_EJECUCION || !orden.isEstadoActivo()) {
+            return;
+        }
+
+        Set<UUID> cerrados = workOrderReportsPort.equipmentWithFinishedReport(orden.getId());
+        long pendientes = orden.getEquipos().stream()
+                .map(SelectedEquipment::getIdEquipoCliente)
+                .filter(equipo -> !cerrados.contains(equipo))
+                .count();
+
+        if (pendientes > 0) {
+            throw new WorkOrderHasOpenReportsException(orden.getId(), (int) pendientes);
+        }
+    }
 
     /**
      * Persiste y publica lo que el agregado decidió que ocurrió.

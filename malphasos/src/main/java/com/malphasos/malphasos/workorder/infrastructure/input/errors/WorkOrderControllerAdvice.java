@@ -5,6 +5,7 @@ import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundExcept
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReportsException;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
 import com.malphasos.malphasos.workorder.infrastructure.input.rest.WorkOrderRestAdapter;
 import java.util.List;
@@ -73,6 +74,14 @@ public class WorkOrderControllerAdvice {
      * una orden ya ejecutada, o tocar el alcance de una cancelada. Compartir el código de "datos
      * inválidos" impediría al llamante distinguir "lo has escrito mal" de "ahora no se puede".
      */
+    /** Quedan equipos sin reporte cerrado: 409, con cuántos en los detalles. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(WorkOrderHasOpenReportsException.class)
+    public WorkOrderErrorResponse handleOpenReports(WorkOrderHasOpenReportsException ex) {
+        return WorkOrderErrorResponse.of(
+                WorkOrderErrorCatalog.WORK_ORDER_HAS_OPEN_REPORTS, List.of(ex.getMessage()));
+    }
+
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(IllegalStateException.class)
     public WorkOrderErrorResponse handleState(IllegalStateException ex) {

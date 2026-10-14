@@ -2,7 +2,9 @@ package com.malphasos.malphasos.workorder.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,18 +22,22 @@ import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.person.domain.person.PersonType;
+import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderPersistencePort;
+import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
 import com.malphasos.malphasos.workorder.application.services.workOrder.WorkOrderService;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AssignWorkOrderCommand;
+import com.malphasos.malphasos.workorder.application.services.workOrder.commands.ExecuteWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.ScheduleWorkOrderCommand;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReportsException;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
+import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
-import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -71,6 +77,7 @@ class WorkOrderServiceTest {
     @Mock private ClientEquipmentServicePort clientEquipmentServicePort;
     @Mock private PersonCommunicationPort personCommunicationPort;
     @Mock private EventDispatcherPort eventDispatcherPort;
+    @Mock private WorkOrderReportsPort workOrderReportsPort;
 
     @InjectMocks private WorkOrderService service;
 
@@ -393,6 +400,78 @@ class WorkOrderServiceTest {
                             .RemoveEquipmentFromWorkOrderCommand(orden.getId(), UUID.randomUUID()));
 
             verify(eventDispatcherPort, never()).dispatch(any());
+        }
+    }
+
+    /**
+     * Ejecutar exige todos los reportes cerrados (2026-10-14). La regla vive en el servicio porque los
+     * reportes son de otro módulo, y se pregunta por un puerto que ese módulo implementa.
+     */
+    @Nested
+    @DisplayName("Al ejecutar")
+    class AlEjecutar {
+
+        private static final UUID OTRO_EQUIPO = UUID.randomUUID();
+
+        private WorkOrder enEjecucionCon(UUID... equipos) {
+            Set<SelectedEquipment> alcance = new java.util.HashSet<>();
+            for (UUID equipo : equipos) {
+                alcance.add(SelectedEquipment.of(equipo, AREA));
+            }
+            WorkOrder enEjecucion = WorkOrder.rehydrate(UUID.randomUUID(), CLIENTE, SEDE, MANANA,
+                    Periodicity.ANUAL, ServiceType.PREVENTIVO, ExecutionState.EN_EJECUCION, INGENIERO,
+                    alcance, true);
+            when(workOrderPersistencePort.findById(enEjecucion.getId())).thenReturn(Optional.of(enEjecucion));
+            return enEjecucion;
+        }
+
+        @Test
+        @DisplayName("con todos los reportes cerrados se ejecuta")
+        void todosCerrados() {
+            WorkOrder enEjecucion = enEjecucionCon(EQUIPO, OTRO_EQUIPO);
+            when(workOrderReportsPort.equipmentWithFinishedReport(enEjecucion.getId()))
+                    .thenReturn(Set.of(EQUIPO, OTRO_EQUIPO));
+            elAlmacenGuardaYDevuelve();
+
+            assertThat(service.execute(new ExecuteWorkOrderCommand(enEjecucion.getId())).getEstadoEjecucion())
+                    .isEqualTo(ExecutionState.EJECUTADA);
+        }
+
+        @Test
+        @DisplayName("con un equipo sin reporte cerrado no se ejecuta, y dice cuántos faltan")
+        void faltaUno() {
+            WorkOrder enEjecucion = enEjecucionCon(EQUIPO, OTRO_EQUIPO);
+            when(workOrderReportsPort.equipmentWithFinishedReport(enEjecucion.getId())).thenReturn(Set.of(EQUIPO));
+
+            assertThatThrownBy(() -> service.execute(new ExecuteWorkOrderCommand(enEjecucion.getId())))
+                    .isInstanceOf(WorkOrderHasOpenReportsException.class)
+                    .hasMessageContaining("1 equipo sin reporte cerrado")
+                    .satisfies(e -> assertThat(((WorkOrderHasOpenReportsException) e).getPendientes()).isEqualTo(1));
+            verify(workOrderPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("un reporte cerrado de un equipo que ya no está en la orden no cuenta por otro")
+        void cerradoAjeno() {
+            WorkOrder enEjecucion = enEjecucionCon(EQUIPO);
+            when(workOrderReportsPort.equipmentWithFinishedReport(enEjecucion.getId()))
+                    .thenReturn(Set.of(OTRO_EQUIPO));
+
+            assertThatThrownBy(() -> service.execute(new ExecuteWorkOrderCommand(enEjecucion.getId())))
+                    .isInstanceOf(WorkOrderHasOpenReportsException.class);
+        }
+
+        @Test
+        @DisplayName("una orden sin empezar responde con su estado, sin preguntar por los reportes")
+        void sinEmpezar() {
+            laOrdenExiste();
+            // Si los reportes se miraran primero, esto diría «faltan reportes» de una orden que ni
+            // siquiera puede tenerlos todavía. Se estubaría el camino equivocado sin el lenient.
+            lenient().when(workOrderReportsPort.equipmentWithFinishedReport(any())).thenReturn(Set.of());
+
+            assertThatThrownBy(() -> service.execute(new ExecuteWorkOrderCommand(orden.getId())))
+                    .isInstanceOf(IllegalStateException.class);
+            verify(workOrderReportsPort, never()).equipmentWithFinishedReport(any());
         }
     }
 

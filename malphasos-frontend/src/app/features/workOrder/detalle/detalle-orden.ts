@@ -139,6 +139,12 @@ export class DetalleOrden {
     () => this.orden.data()?.estadoEjecucion === 'EN_EJECUCION',
   );
 
+  /**
+   * Cuántos equipos no tienen aún su reporte cerrado. El servidor no deja ejecutar la orden mientras
+   * queden (2026-10-14), así que el botón se desactiva y lo dice, en vez de ofrecer un 409.
+   */
+  protected readonly reportesPendientes = computed(() => this.totalDeEquipos() - this.cerrados());
+
   /** El ingeniero asignado, con nombre. Sin él, la orden está programada y no repartida. */
   protected readonly ingeniero = computed(() => {
     const id = this.orden.data()?.idIngeniero;
