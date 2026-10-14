@@ -1,0 +1,191 @@
+<section>
+  <h2 class="titulo-seccion">Equipos patrón</h2>
+  <p class="text-neutral-700">
+    Los aparatos de referencia contra los que se toman las lecturas de una verificación. Un reporte
+    con un patrón cuyo certificado ya venció no se puede cerrar. Renovar un certificado no cambia los
+    reportes que ya lo usaron.
+  </p>
+
+  @if (hayError()) {
+    <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  @if (patrones.isPending()) {
+    <p class="mt-2 text-neutral-700" role="status">Cargando patrones…</p>
+  } @else if (!filas().length) {
+    <p class="superficie mt-2 text-neutral-800">
+      Todavía no hay equipos patrón. Registre el primero aquí abajo.
+    </p>
+  } @else {
+    <table class="tabla mt-2">
+      <caption class="sr-only">Equipos patrón de la empresa</caption>
+      <thead>
+        <tr>
+          <th scope="col">Patrón</th>
+          <th scope="col">Serie</th>
+          <th scope="col">Certificado</th>
+          <th scope="col">Vence</th>
+          @if (puedeEscribir()) {
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (fila of filas(); track fila.patron.id) {
+          <tr [attr.data-patron]="fila.patron.id">
+            <td>
+              <span class="block" [class.font-bold]="fila.patron.estadoActivo">{{
+                fila.patron.nombre
+              }}</span>&ngsp;<span class="block text-sm text-neutral-700">{{
+                fila.patron.marca || 'Sin marca'
+              }}{{ fila.patron.estadoActivo ? '' : ' · Retirado' }}</span>
+            </td>
+            <td class="tabular-nums">{{ fila.patron.serie }}</td>
+            <td class="tabular-nums">{{ fila.patron.certificado }}</td>
+            <td class="whitespace-nowrap tabular-nums">
+              <span class="block">{{ fila.vence }}</span>&ngsp;<span
+                class="block text-sm"
+                [class]="fila.peso"
+                >{{ fila.estadoDelCertificado }}</span
+              >
+            </td>
+            @if (puedeEscribir()) {
+              <td class="whitespace-nowrap text-right">
+                @if (fila.patron.estadoActivo) {
+                  @if (confirmandoRetiro() === fila.patron.id) {
+                    <button
+                      class="boton-primario min-h-tactil"
+                      type="button"
+                      [disabled]="baja.isPending()"
+                      (click)="retirar(fila.patron.id!)"
+                    >
+                      Confirmar retiro
+                    </button>
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      (click)="confirmandoRetiro.set(null)"
+                    >
+                      Cancelar
+                    </button>
+                  } @else {
+                    <button
+                      class="min-h-tactil px-1 font-bold underline"
+                      type="button"
+                      [attr.aria-label]="'Editar ' + fila.patron.nombre"
+                      (click)="empezarAEditar(fila.patron)"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      [attr.aria-label]="'Retirar ' + fila.patron.nombre"
+                      (click)="confirmandoRetiro.set(fila.patron.id!)"
+                    >
+                      Retirar
+                    </button>
+                  }
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @if (puedeEscribir()) {
+    <!-- Un solo formulario para el alta y para corregir: los cinco campos van siempre. -->
+    <section class="superficie mt-3 max-w-[720px]" aria-labelledby="patron-formulario">
+      <h3 id="patron-formulario" class="titulo-seccion">
+        {{ editando() ? 'Corregir el patrón o renovar su certificado' : 'Patrón nuevo' }}
+      </h3>
+
+      <div class="mt-1.5 grid gap-1.5 md:grid-cols-2">
+        <div>
+          <label class="block font-semibold" for="patronNombre">
+            Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="patronNombre"
+            class="campo mt-1 min-h-tactil w-full"
+            maxlength="120"
+            aria-required="true"
+            placeholder="Por ejemplo: juego de pesas clase F1"
+            [formControl]="formulario.controls.nombre"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold" for="patronMarca">Marca</label>
+          <input
+            id="patronMarca"
+            class="campo mt-1 min-h-tactil w-full"
+            maxlength="80"
+            [formControl]="formulario.controls.marca"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold" for="patronSerie">
+            Serie <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="patronSerie"
+            class="campo mt-1 min-h-tactil w-full"
+            maxlength="60"
+            aria-required="true"
+            [formControl]="formulario.controls.serie"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold" for="patronCertificado">
+            Certificado de calibración <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="patronCertificado"
+            class="campo mt-1 min-h-tactil w-full"
+            maxlength="80"
+            aria-required="true"
+            [formControl]="formulario.controls.certificado"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold" for="patronVence">
+            Vence el <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="patronVence"
+            class="campo mt-1 min-h-tactil w-full"
+            type="date"
+            aria-required="true"
+            [formControl]="formulario.controls.vencimientoCertificado"
+          />
+        </div>
+      </div>
+
+      @if (formulario.invalid && formulario.touched) {
+        <p class="mt-1 font-semibold text-accent-700">
+          El nombre, la serie, el certificado y su vencimiento son obligatorios.
+        </p>
+      }
+
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        <button
+          class="boton-primario min-h-tactil"
+          type="button"
+          [disabled]="alta.isPending() || cambio.isPending()"
+          (click)="guardar()"
+        >
+          {{ editando() ? 'Guardar cambios' : 'Registrar patrón' }}
+        </button>
+        @if (editando()) {
+          <button class="boton-secundario min-h-tactil" type="button" (click)="cancelar()">
+            Cancelar
+          </button>
+        }
+      </div>
+    </section>
+  }
+</section>

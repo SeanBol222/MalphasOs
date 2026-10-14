@@ -43,6 +43,7 @@ export class Catalogo {
     equipos: this.api.listarEquipos(),
     modelos: this.api.listarModelos(),
     protocolos: this.api.listarProtocolos(),
+    patrones: this.api.listarPatrones(),
   } as const;
 
   /** Cuántas vigentes hay de cada pieza, por su ruta. Vacío mientras la lista no ha llegado. */

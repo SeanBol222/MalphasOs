@@ -446,6 +446,7 @@ class SecurityIntegrationTest {
             "GET, /v1/api/client-equipments/summary",
             "GET, /v1/api/headquarters/summary",
             "GET, /v1/api/protocols/by-type",
+            "GET, /v1/api/reference-standards",
             "GET, /v1/api/service-areas/" + ID,
             "DELETE, /v1/api/countries/" + ID,
             "DELETE, /v1/api/cities/" + ID,
@@ -585,7 +586,8 @@ class SecurityIntegrationTest {
             "/v1/api/equipment-types/" + ID + ", equipment.read",
             "/v1/api/equipments/" + ID + ", equipment.read",
             "/v1/api/client-equipments/" + ID + ", equipment.read",
-            "/v1/api/protocols/" + ID + ", equipment.read"
+            "/v1/api/protocols/" + ID + ", equipment.read",
+            "/v1/api/reference-standards/" + ID + ", equipment.read"
         })
         @DisplayName("un DELETE con solo la autoridad de lectura de su propio recurso responde 403")
         void elDeleteConSoloLecturaResponde403(String ruta, String autoridadDeLectura) throws Exception {

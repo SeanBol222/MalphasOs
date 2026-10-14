@@ -5,6 +5,8 @@ import com.malphasos.malphasos.equipment.domain.exception.BrandNotFoundException
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolInUseException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolNameTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardSerialTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentNotFoundException;
@@ -17,6 +19,7 @@ import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeEx
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.BrandRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ProtocolRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.ReferenceStandardRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ClientEquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeRestAdapter;
@@ -48,7 +51,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             ClientEquipmentRestAdapter.class,
             MetrologyCatalogRestAdapter.class,
             ProtocolRestAdapter.class,
-            EquipmentTypeProtocolRestAdapter.class
+            EquipmentTypeProtocolRestAdapter.class,
+            ReferenceStandardRestAdapter.class
         })
 public class EquipmentControllerAdvice {
 
@@ -176,6 +180,21 @@ public class EquipmentControllerAdvice {
     public EquipmentErrorResponse handleProtocolInUse(ProtocolInUseException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.PROTOCOL_IN_USE, List.of(ex.getMessage()));
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(ReferenceStandardNotFoundException.class)
+    public EquipmentErrorResponse handleReferenceStandard(ReferenceStandardNotFoundException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.REFERENCE_STANDARD_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** Otro equipo patrón vigente ya tiene esa serie. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ReferenceStandardSerialTakenException.class)
+    public EquipmentErrorResponse handleReferenceStandardSerialTaken(ReferenceStandardSerialTakenException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.REFERENCE_STANDARD_SERIAL_TAKEN, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */
