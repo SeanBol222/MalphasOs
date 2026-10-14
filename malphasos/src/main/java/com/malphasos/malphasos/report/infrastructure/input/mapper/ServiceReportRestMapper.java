@@ -37,6 +37,8 @@ public class ServiceReportRestMapper {
                 .diagnostico(reporte.getDiagnostico())
                 .procedimientos(reporte.getProcedimientos())
                 .observaciones(reporte.getObservaciones())
+                .causa(reporte.getCausa())
+                .repuestos(reporte.getRepuestos())
                 .resultado(reporte.getResultado())
                 .finalizado(reporte.getFinalizado())
                 .lecturas(lecturas)

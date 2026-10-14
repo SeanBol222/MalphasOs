@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
@@ -596,6 +597,64 @@ class ServiceReportServiceTest {
     @Nested
     @DisplayName("Al cerrar")
     class AlCerrar {
+
+        /**
+         * El cierre consulta la orden para saber si es un correctivo (2026-10-14). Por defecto es un
+         * preventivo; lenient porque varias pruebas fallan antes, en la verificación.
+         */
+        @org.junit.jupiter.api.BeforeEach
+        void laOrdenEsPreventiva() {
+            lenient().when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+                    .thenReturn(unaOrdenEnEjecucion());
+        }
+
+        private ServiceReport unReporteSinVerificacion() {
+            EquipmentType tipo = unTipo(null, null, List.of());
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Cambio de fusible", null, ServiceResult.OPERATIVO);
+            reporte.pullEvents();
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+            return reporte;
+        }
+
+        @Test
+        @DisplayName("un correctivo sin falla ni diagnostico no se cierra, aunque tenga lo demas")
+        void correctivoIncompleto() {
+            ServiceReport reporte = unReporteSinVerificacion();
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+                    .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EN_EJECUCION, true, EQUIPO));
+
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))
+                    .withMessageContaining("falla reportada");
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
+        }
+
+        @Test
+        @DisplayName("un preventivo sin falla ni diagnostico se cierra: eso es de un correctivo")
+        void preventivoSinFalla() {
+            ServiceReport reporte = unReporteSinVerificacion();
+            estubarGuardado();
+
+            service.finish(new FinishServiceReportCommand(reporte.getId()));
+
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
+        }
+
+        @Test
+        @DisplayName("un correctivo con falla y diagnostico se cierra")
+        void correctivoCompleto() {
+            ServiceReport reporte = unReporteSinVerificacion();
+            reporte.fill("No enciende", "Fusible abierto", null, null, null);
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+                    .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EN_EJECUCION, true, EQUIPO));
+            estubarGuardado();
+
+            service.finish(new FinishServiceReportCommand(reporte.getId()));
+
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
+        }
 
         @Test
         @DisplayName("cierra cuando estan todas las lecturas de todos los puntos")

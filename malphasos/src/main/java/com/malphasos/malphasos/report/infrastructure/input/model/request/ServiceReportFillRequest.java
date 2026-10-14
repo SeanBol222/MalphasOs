@@ -27,6 +27,14 @@ public record ServiceReportFillRequest(
         @Size(max = 500, message = "Las observaciones no pueden pasar de 500 caracteres")
         String observaciones,
 
+        @Schema(description = "Por que fallo el equipo. De un correctivo; opcional")
+        @Size(max = 500, message = "La causa no puede pasar de 500 caracteres")
+        String causa,
+
+        @Schema(description = "Repuestos cambiados, en texto libre. Opcional")
+        @Size(max = 500, message = "Los repuestos no pueden pasar de 500 caracteres")
+        String repuestos,
+
         @Schema(description = "Como queda el equipo. Obligatorio para poder cerrar el reporte")
         ServiceResult resultado) {
 }

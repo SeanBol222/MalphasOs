@@ -174,12 +174,16 @@ export interface components {
             timestamp?: string;
         };
         ServiceReportFillRequest: {
+            /** @description Por que fallo el equipo. De un correctivo; opcional */
+            causa?: string;
             diagnostico?: string;
             /** @description Que reporto el cliente. Nulo deja el valor, blanco lo borra */
             fallaReportada?: string;
             observaciones?: string;
             /** @description Que se hizo. Obligatorio para poder cerrar el reporte */
             procedimientos?: string;
+            /** @description Repuestos cambiados, en texto libre. Opcional */
+            repuestos?: string;
             /**
              * @description Como queda el equipo. Obligatorio para poder cerrar el reporte
              * @enum {string}
@@ -191,6 +195,8 @@ export interface components {
             idEquipoCliente: string;
         };
         ServiceReportResponse: {
+            /** @description Por que fallo el equipo. De un correctivo; desde V24 */
+            causa?: string;
             diagnostico?: string;
             /** @enum {string} */
             estado?: "BORRADOR" | "FINALIZADO";
@@ -212,6 +218,8 @@ export interface components {
             /** @description Los pasos del protocolo preventivo, en su orden. Vacia en un correctivo */
             pasos?: components["schemas"]["ReportStepResponse"][];
             procedimientos?: string;
+            /** @description Repuestos cambiados, en texto libre; desde V24 */
+            repuestos?: string;
             /** @enum {string} */
             resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
         };

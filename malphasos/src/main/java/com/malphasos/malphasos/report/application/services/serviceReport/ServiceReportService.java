@@ -183,6 +183,8 @@ public class ServiceReportService implements ServiceReportServicePort {
                 command.diagnostico(),
                 command.procedimientos(),
                 command.observaciones(),
+                command.causa(),
+                command.repuestos(),
                 command.resultado());
 
         return persistAndPublish(reporte);
@@ -236,7 +238,15 @@ public class ServiceReportService implements ServiceReportServicePort {
         ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
 
         requireCompleteVerification(reporte);
-        reporte.finish();
+
+        // Un correctivo exige además la falla y el diagnóstico (2026-10-14). El tipo de servicio lo
+        // dice la orden, no el reporte, así que el cierre que aplica lo elige el servicio.
+        WorkOrder orden = workOrderServicePort.findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted());
+        if (orden.getTipoServicio() == ServiceType.CORRECTIVO) {
+            reporte.finishCorrective();
+        } else {
+            reporte.finish();
+        }
 
         return persistAndPublish(reporte);
     }

@@ -421,8 +421,16 @@ export const ETIQUETA_DE_RESULTADO: Readonly<Record<ResultadoDeServicio, string>
  * cubre la verificacion metrologica</b>, que el servidor comprueba contra el tipo del equipo y la
  * pantalla no puede saber sin consultarlo.
  */
-export function sePuedeCerrar(reporte: ReporteDeServicio | undefined): boolean {
+export function sePuedeCerrar(
+  reporte: ReporteDeServicio | undefined,
+  esCorrectivo = false,
+): boolean {
   if (!reporte || reporte.estado !== 'BORRADOR' || !reporte.estadoActivo || !reporte.resultado) {
+    return false;
+  }
+
+  // Desde el 2026-10-14, como en el servidor: un correctivo exige además la falla y el diagnóstico.
+  if (esCorrectivo && (!reporte.fallaReportada?.trim() || !reporte.diagnostico?.trim())) {
     return false;
   }
 

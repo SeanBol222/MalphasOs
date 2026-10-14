@@ -60,6 +60,12 @@ public class ServiceReportEntity {
     @Column(name = "t_observaciones")
     private String observaciones;
 
+    @Column(name = "t_causa")
+    private String causa;
+
+    @Column(name = "t_repuestos")
+    private String repuestos;
+
     @Column(name = "t_resultado")
     private String resultado;
 

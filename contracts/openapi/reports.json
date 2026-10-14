@@ -106,6 +106,12 @@
       },
       "ServiceReportFillRequest" : {
         "properties" : {
+          "causa" : {
+            "description" : "Por que fallo el equipo. De un correctivo; opcional",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
           "diagnostico" : {
             "maxLength" : 500,
             "minLength" : 0,
@@ -124,6 +130,12 @@
           },
           "procedimientos" : {
             "description" : "Que se hizo. Obligatorio para poder cerrar el reporte",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "repuestos" : {
+            "description" : "Repuestos cambiados, en texto libre. Opcional",
             "maxLength" : 500,
             "minLength" : 0,
             "type" : "string"
@@ -148,6 +160,10 @@
       },
       "ServiceReportResponse" : {
         "properties" : {
+          "causa" : {
+            "description" : "Por que fallo el equipo. De un correctivo; desde V24",
+            "type" : "string"
+          },
           "diagnostico" : {
             "type" : "string"
           },
@@ -195,6 +211,10 @@
             "type" : "array"
           },
           "procedimientos" : {
+            "type" : "string"
+          },
+          "repuestos" : {
+            "description" : "Repuestos cambiados, en texto libre; desde V24",
             "type" : "string"
           },
           "resultado" : {

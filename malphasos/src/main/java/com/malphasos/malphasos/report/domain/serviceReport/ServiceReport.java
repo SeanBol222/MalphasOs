@@ -64,6 +64,12 @@ public class ServiceReport extends AggregateRoot {
 
     private String observaciones;
 
+    /** Por qué falló, según el ingeniero. Sobre todo de un correctivo; desde V24. */
+    private String causa;
+
+    /** Repuestos cambiados, en texto libre. Desde V24. */
+    private String repuestos;
+
     private ServiceResult resultado;
 
     /** Cuándo se cerró, que es cuándo se prestó el servicio de verdad. Nulo en borrador. */
@@ -198,11 +204,38 @@ public class ServiceReport extends AggregateRoot {
             Collection<ReportStep> pasos,
             boolean estadoActivo) {
 
+        return rehydrate(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada, diagnostico,
+                procedimientos, observaciones, null, null, resultado, finalizado, lecturas, pasos,
+                estadoActivo);
+    }
+
+    /** La rehidratación completa, con la causa y los repuestos de V24. */
+    public static ServiceReport rehydrate(
+            UUID id,
+            UUID idOrdenTrabajo,
+            UUID idEquipoCliente,
+            ReportState estado,
+            String fallaReportada,
+            String diagnostico,
+            String procedimientos,
+            String observaciones,
+            String causa,
+            String repuestos,
+            ServiceResult resultado,
+            LocalDateTime finalizado,
+            Collection<VerificationReading> lecturas,
+            Collection<ReportStep> pasos,
+            boolean estadoActivo) {
+
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
-        return new ServiceReport(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada,
+        ServiceReport reporte = new ServiceReport(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada,
                 diagnostico, procedimientos, observaciones, resultado, finalizado, lecturas, pasos,
                 estadoActivo);
+        reporte.causa = causa;
+        reporte.repuestos = repuestos;
+
+        return reporte;
     }
 
     // ---------------------------------------------------------------------------
@@ -227,6 +260,22 @@ public class ServiceReport extends AggregateRoot {
             String observaciones,
             ServiceResult resultado) {
 
+        fill(fallaReportada, diagnostico, procedimientos, observaciones, null, null, resultado);
+    }
+
+    /**
+     * Lo mismo, con la causa y los repuestos de un correctivo (V24, 2026-10-14). Mismas reglas: un nulo
+     * no cambia nada y un blanco borra.
+     */
+    public void fill(
+            String fallaReportada,
+            String diagnostico,
+            String procedimientos,
+            String observaciones,
+            String causa,
+            String repuestos,
+            ServiceResult resultado) {
+
         exigirModificable("llenar el reporte");
 
         boolean cambio = false;
@@ -245,6 +294,14 @@ public class ServiceReport extends AggregateRoot {
         }
         if (observaciones != null && !Objects.equals(normalizar(observaciones), this.observaciones)) {
             this.observaciones = normalizar(observaciones);
+            cambio = true;
+        }
+        if (causa != null && !Objects.equals(normalizar(causa), this.causa)) {
+            this.causa = normalizar(causa);
+            cambio = true;
+        }
+        if (repuestos != null && !Objects.equals(normalizar(repuestos), this.repuestos)) {
+            this.repuestos = normalizar(repuestos);
             cambio = true;
         }
         if (resultado != null && resultado != this.resultado) {
@@ -368,6 +425,12 @@ public class ServiceReport extends AggregateRoot {
                     + (procedimientos == null ? "" : " Además: " + procedimientos);
         }
 
+        // Los repuestos cambiados se dicen en la hoja de vida: es lo que alguien busca cuando vuelve a
+        // fallar la misma pieza. Desde V24.
+        if (repuestos != null) {
+            descripcion = (descripcion == null ? "" : descripcion + " ") + "Repuestos: " + repuestos + ".";
+        }
+
         if (descripcion == null || descripcion.length() <= LARGO_DESCRIPCION_DEL_SERVICIO) {
             return descripcion;
         }
@@ -415,6 +478,30 @@ public class ServiceReport extends AggregateRoot {
         this.finalizado = LocalDateTime.now();
         registerEvent(new ServiceReportFinishedEvent(
                 metadataFor(ServiceReportFinishedEvent.TYPE), payload()));
+    }
+
+    /**
+     * Cierra el reporte de un correctivo: además de lo de todo reporte, exige la falla reportada y el
+     * diagnóstico (decidido el 2026-10-14). Un correctivo que no dice qué falló ni qué se encontró no
+     * cuenta qué se corrigió. Causa y repuestos no se exigen: no siempre se sabe la causa, y no
+     * siempre se cambia algo.
+     *
+     * <p>Es un método aparte y no un parámetro de {@link #finish()} porque el reporte no sabe de qué tipo
+     * de servicio es —lo dice la orden—: quien lo cierra elige cuál de los dos cierres aplica.
+     */
+    public void finishCorrective() {
+        exigirModificable("cerrar el reporte");
+
+        if (fallaReportada == null) {
+            throw new IllegalStateException(
+                    "No se puede cerrar un correctivo sin la falla reportada: es lo que se vino a corregir");
+        }
+        if (diagnostico == null) {
+            throw new IllegalStateException(
+                    "No se puede cerrar un correctivo sin diagnostico: es lo que se encontro");
+        }
+
+        finish();
     }
 
     /**

@@ -62,6 +62,8 @@ public class ServiceReportPersistenceMapper {
                 entity.getDiagnostico(),
                 entity.getProcedimientos(),
                 entity.getObservaciones(),
+                entity.getCausa(),
+                entity.getRepuestos(),
                 entity.getResultado() == null ? null : ServiceResult.valueOf(entity.getResultado()),
                 entity.getFinalizado(),
                 lecturas,
@@ -102,6 +104,8 @@ public class ServiceReportPersistenceMapper {
         entity.setDiagnostico(reporte.getDiagnostico());
         entity.setProcedimientos(reporte.getProcedimientos());
         entity.setObservaciones(reporte.getObservaciones());
+        entity.setCausa(reporte.getCausa());
+        entity.setRepuestos(reporte.getRepuestos());
         entity.setResultado(reporte.getResultado() == null ? null : reporte.getResultado().name());
         entity.setFinalizado(reporte.getFinalizado());
         entity.setEstadoActivo(reporte.isEstadoActivo());

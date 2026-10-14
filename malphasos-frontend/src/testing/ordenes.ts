@@ -25,11 +25,14 @@ export const ID_AREA = 'a1';
 export const ID_EQUIPO = 'ec1';
 export const ID_INGENIERO = 'p1';
 
-export const CLIENTES = [
-  { id: ID_CLIENTE, razonSocial: 'Hospital Central', estadoActivo: true },
-];
+export const CLIENTES = [{ id: ID_CLIENTE, razonSocial: 'Hospital Central', estadoActivo: true }];
 
-export const SEDE = { id: ID_SEDE, nombre: 'Sede Norte', idCliente: ID_CLIENTE, estadoActivo: true };
+export const SEDE = {
+  id: ID_SEDE,
+  nombre: 'Sede Norte',
+  idCliente: ID_CLIENTE,
+  estadoActivo: true,
+};
 
 export const AREAS = [
   { id: ID_AREA, nombre: 'Urgencias', idSede: ID_SEDE, estadoActivo: true },
@@ -81,6 +84,7 @@ export function orden(
     fechaMantenimiento: string;
     estadoEjecucion: string;
     estadoActivo: boolean;
+    tipoServicio: string;
     idIngeniero: string | undefined;
     equipos: { idEquipoCliente: string; idAreaServicio: string }[];
   }> = {},

@@ -135,28 +135,69 @@
               Lo que se encontró
             </h2>
             <div class="grid gap-2 p-3 md:grid-cols-2">
+              <!--
+                En un correctivo la falla y el diagnóstico son obligatorios para cerrar (2026-10-14): un
+                correctivo que no dice qué falló ni qué se encontró no cuenta qué se corrigió.
+              -->
               <div>
-                <label class="block font-bold" for="fallaReportada">Falla reportada</label>
-                <p class="text-sm text-neutral-700">Lo que dijo el cliente, si dijo algo</p>
+                <label class="block font-bold" for="fallaReportada">
+                  Falla reportada
+                  @if (esCorrectivo()) {
+                    <span class="text-accent-700" aria-hidden="true">*</span>
+                  }
+                </label>
+                <p class="text-sm text-neutral-700">
+                  {{
+                    esCorrectivo()
+                      ? 'Lo que el cliente dice que falla'
+                      : 'Lo que dijo el cliente, si dijo algo'
+                  }}
+                </p>
                 <textarea
                   class="campo mt-1 min-h-tactil w-full p-1"
                   id="fallaReportada"
                   rows="3"
                   maxlength="500"
+                  [attr.aria-required]="esCorrectivo() ? 'true' : null"
                   formControlName="fallaReportada"
                 ></textarea>
               </div>
               <div>
-                <label class="block font-bold" for="diagnostico">Diagnóstico</label>
-                <p class="text-sm text-neutral-700">El estado en que se encontró el equipo</p>
+                <label class="block font-bold" for="diagnostico">
+                  Diagnóstico
+                  @if (esCorrectivo()) {
+                    <span class="text-accent-700" aria-hidden="true">*</span>
+                  }
+                </label>
+                <p class="text-sm text-neutral-700">
+                  {{
+                    esCorrectivo()
+                      ? 'Lo que encontró el ingeniero'
+                      : 'El estado en que se encontró el equipo'
+                  }}
+                </p>
                 <textarea
                   class="campo mt-1 min-h-tactil w-full p-1"
                   id="diagnostico"
                   rows="3"
                   maxlength="500"
+                  [attr.aria-required]="esCorrectivo() ? 'true' : null"
                   formControlName="diagnostico"
                 ></textarea>
               </div>
+              @if (esCorrectivo()) {
+                <div class="md:col-span-2">
+                  <label class="block font-bold" for="causa">Causa</label>
+                  <p class="text-sm text-neutral-700">Por qué falló, si se sabe</p>
+                  <textarea
+                    class="campo mt-1 min-h-tactil w-full p-1"
+                    id="causa"
+                    rows="2"
+                    maxlength="500"
+                    formControlName="causa"
+                  ></textarea>
+                </div>
+              }
             </div>
           </section>
 
@@ -323,7 +364,8 @@
                 </p>
               } @else {
                 <label class="block font-bold" for="procedimientos">
-                  Procedimientos <span class="text-accent-700" aria-hidden="true">*</span>
+                  {{ esCorrectivo() ? 'Trabajo realizado' : 'Procedimientos' }}
+                  <span class="text-accent-700" aria-hidden="true">*</span>
                 </label>
               }
               <textarea
@@ -333,6 +375,19 @@
                 maxlength="500"
                 [attr.aria-required]="pasos().length ? null : 'true'"
                 formControlName="procedimientos"
+              ></textarea>
+
+              <!-- En cualquier servicio: un preventivo también cambia a veces una pieza gastada. -->
+              <label class="mt-2 block font-bold" for="repuestos">Repuestos cambiados</label>
+              <p class="text-sm text-neutral-700">
+                Qué se cambió, si se cambió algo. Sale en la hoja de vida del equipo.
+              </p>
+              <textarea
+                class="campo mt-1 min-h-tactil w-full p-1"
+                id="repuestos"
+                rows="2"
+                maxlength="500"
+                formControlName="repuestos"
               ></textarea>
             </div>
           </section>
@@ -480,6 +535,10 @@
               Para cerrarlo hacen falta todos los pasos del protocolo marcados y el resultado,
               guardados. Si el equipo se verifica, el servidor exige además la verificación
               completa.
+            } @else if (esCorrectivo()) {
+              Para cerrarlo hacen falta la falla reportada, el diagnóstico, el trabajo realizado y
+              el resultado, guardados. Si el equipo se verifica, el servidor exige además la
+              verificación completa.
             } @else {
               Para cerrarlo hacen falta los procedimientos y el resultado, guardados. Si el equipo
               se verifica, el servidor exige además la verificación completa.

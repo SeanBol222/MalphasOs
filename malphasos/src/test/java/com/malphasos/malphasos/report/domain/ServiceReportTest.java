@@ -434,6 +434,72 @@ class ServiceReportTest {
         }
 
         @Test
+        @DisplayName("un correctivo sin falla reportada no se cierra")
+        void correctivoSinFalla() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.fill(null, "Sensor descalibrado", null, null, null);
+
+            assertThatIllegalStateException().isThrownBy(reporte::finishCorrective)
+                    .withMessageContaining("falla reportada");
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
+        }
+
+        @Test
+        @DisplayName("un correctivo sin diagnostico no se cierra")
+        void correctivoSinDiagnostico() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.fill("No enciende", null, null, null, null);
+
+            assertThatIllegalStateException().isThrownBy(reporte::finishCorrective)
+                    .withMessageContaining("diagnostico");
+        }
+
+        @Test
+        @DisplayName("un correctivo con falla y diagnostico se cierra sin causa ni repuestos")
+        void correctivoCompleto() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.fill("No enciende", "Fusible abierto", null, null, null);
+
+            reporte.finishCorrective();
+
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
+        }
+
+        @Test
+        @DisplayName("un correctivo sigue exigiendo lo de todo reporte: sin resultado no se cierra")
+        void correctivoSinResultado() {
+            ServiceReport reporte = unReporte();
+            reporte.fill("No enciende", "Fusible abierto", "Cambio de fusible", null, null);
+
+            assertThatIllegalStateException().isThrownBy(reporte::finishCorrective)
+                    .withMessageContaining("resultado");
+        }
+
+        @Test
+        @DisplayName("la causa y los repuestos se guardan, y un blanco los borra")
+        void causaYRepuestos() {
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, null, null, " Sobretension ", "Fusible 2 A", null);
+
+            assertThat(reporte.getCausa()).isEqualTo("Sobretension");
+            assertThat(reporte.getRepuestos()).isEqualTo("Fusible 2 A");
+            assertThat(tiposDe(reporte)).containsExactly(ServiceReportFilledEvent.TYPE);
+
+            reporte.fill(null, null, null, null, "  ", null, null);
+            assertThat(reporte.getCausa()).isNull();
+            assertThat(reporte.getRepuestos()).isEqualTo("Fusible 2 A");
+        }
+
+        @Test
+        @DisplayName("los repuestos salen en la linea de la hoja de vida, detras de lo que se hizo")
+        void repuestosEnLaHojaDeVida() {
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Cambio de fusible", null, null, "Fusible 2 A", null);
+
+            assertThat(reporte.descripcionDelServicio()).isEqualTo("Cambio de fusible Repuestos: Fusible 2 A.");
+        }
+
+        @Test
         @DisplayName("no existe ninguna operacion para reabrir un reporte, y es a proposito")
         void noHayOperacionParaReabrirlo() {
             // Un reporte cerrado es lo que se entrego al cliente, y de el cuelgan la hoja de vida y las
