@@ -1154,6 +1154,11 @@
             },
             "type" : "array"
           },
+          "tolerancia" : {
+            "description" : "Error admitido, en la unidad de la verificacion. Opcional: sin ella no se dice si una lectura es conforme",
+            "example" : "0.5",
+            "type" : "number"
+          },
           "unidadId" : {
             "description" : "En que unidad. Tiene que ser una unidad de esa magnitud",
             "format" : "uuid",
@@ -1192,6 +1197,11 @@
               "$ref" : "#/components/schemas/VerificationPointResponse"
             },
             "type" : "array"
+          },
+          "tolerancia" : {
+            "description" : "Error admitido, en la unidad. Nulo si no se declaro",
+            "example" : "0.5",
+            "type" : "number"
           },
           "unidad" : {
             "description" : "Lo que se imprime junto al numero",

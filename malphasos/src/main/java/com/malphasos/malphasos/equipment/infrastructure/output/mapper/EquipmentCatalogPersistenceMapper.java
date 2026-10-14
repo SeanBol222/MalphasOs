@@ -91,7 +91,8 @@ public class EquipmentCatalogPersistenceMapper {
                         .map(punto -> VerificationPoint.rehydrate(
                                 punto.getId(), punto.getValor(), punto.isEstadoActivo()))
                         .toList(),
-                entity.isEstadoActivo());
+                entity.isEstadoActivo(),
+                entity.getTolerancia());
     }
 
     public List<EquipmentType> toEquipmentTypeList(List<EquipmentTypeEntity> entities) {
@@ -151,6 +152,7 @@ public class EquipmentCatalogPersistenceMapper {
             // nada impide que un dia se corrijan en sitio.
             fila.setModalidad(verificacion.modalidad().valorEnEsquema());
             fila.setCantidadDatos(verificacion.cantidadDatos());
+            fila.setTolerancia(verificacion.tolerancia());
             fila.setEstadoActivo(verificacion.estadoActivo());
 
             volcarPuntos(verificacion, fila);
@@ -200,7 +202,8 @@ public class EquipmentCatalogPersistenceMapper {
                 verificacion.modalidad().valorEnEsquema(),
                 verificacion.cantidadDatos(),
                 new java.util.ArrayList<>(),
-                verificacion.estadoActivo());
+                verificacion.estadoActivo(),
+                verificacion.tolerancia());
 
         for (VerificationPoint punto : verificacion.puntos()) {
             entity.getPuntos().add(new VerificationPointEntity(

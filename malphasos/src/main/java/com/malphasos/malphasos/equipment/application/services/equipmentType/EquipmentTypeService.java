@@ -116,7 +116,8 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
                 unidad,
                 comando.modalidad(),
                 comando.cantidadDatos(),
-                puntosDe(comando.puntos()));
+                puntosDe(comando.puntos()),
+                comando.tolerancia());
     }
 
     /**

@@ -119,7 +119,8 @@ public class EquipmentTypeRestAdapter {
                                 peticion.unidadId(),
                                 peticion.modalidad(),
                                 peticion.cantidadDatos(),
-                                puntosDe(peticion.puntos())))
+                                puntosDe(peticion.puntos()),
+                                peticion.tolerancia()))
                         .toList();
     }
 

@@ -159,6 +159,20 @@ class EquipmentTypeServiceTest {
     }
 
     @Test
+    @DisplayName("la tolerancia del comando llega a la verificacion guardada")
+    void altaConTolerancia() {
+        when(catalogPort.findMagnitudeById(ID_PRESION)).thenReturn(Optional.of(PRESION));
+        when(catalogPort.findUnitById(MMHG.id())).thenReturn(Optional.of(MMHG));
+        when(typePort.save(any(EquipmentType.class))).thenAnswer(i -> i.getArgument(0));
+
+        EquipmentType guardado = service().create(alta(new TypeVerificationCommand(
+                ID_PRESION, MMHG.id(), VerificationMode.PATRON_CONSTANTE, 3,
+                List.of(new VerificationPointCommand(new BigDecimal("100"))), new BigDecimal("2"))));
+
+        assertThat(guardado.verificacionesActivas().getFirst().tolerancia()).isEqualByComparingTo("2");
+    }
+
+    @Test
     @DisplayName("declarar verificaciones comprueba las referencias de TODAS, no solo de la primera")
     void declararComprobandoCadaUna() {
         // Un recorrido que valide solo el primer elemento pasaria la prueba de arriba y dejaria entrar

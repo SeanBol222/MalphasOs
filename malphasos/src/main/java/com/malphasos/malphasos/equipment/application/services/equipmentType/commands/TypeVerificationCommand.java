@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.application.services.equipmentType.commands;
 
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,5 +21,16 @@ public record TypeVerificationCommand(
         UUID unidadId,
         VerificationMode modalidad,
         Integer cantidadDatos,
-        List<VerificationPointCommand> puntos) {
+        List<VerificationPointCommand> puntos,
+        BigDecimal tolerancia) {
+
+    /** Sin tolerancia: la forma de antes de V26. */
+    public TypeVerificationCommand(
+            UUID magnitudId,
+            UUID unidadId,
+            VerificationMode modalidad,
+            Integer cantidadDatos,
+            List<VerificationPointCommand> puntos) {
+        this(magnitudId, unidadId, modalidad, cantidadDatos, puntos, null);
+    }
 }

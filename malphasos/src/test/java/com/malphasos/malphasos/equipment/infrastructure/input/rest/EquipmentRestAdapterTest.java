@@ -209,6 +209,57 @@ class EquipmentRestAdapterTest {
     }
 
     @Test
+    @DisplayName("la tolerancia viaja hasta el servicio y vuelve en la respuesta")
+    void declararConTolerancia() throws Exception {
+        ArgumentCaptor<DeclareVerificationsCommand> comando =
+                ArgumentCaptor.forClass(DeclareVerificationsCommand.class);
+        when(equipmentTypeServicePort.declareVerifications(any())).thenReturn(tipoCon(List.of(
+                TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.PATRON_CONSTANTE, 3,
+                        List.of(VerificationPoint.of(new BigDecimal("100"))), new BigDecimal("0.5")))));
+
+        mockMvc.perform(patch("/v1/api/equipment-types/" + UUID.randomUUID() + "/verifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(new DeclareVerificationsRequest(
+                                List.of(new TypeVerificationRequest(
+                                        ID_TEMPERATURA,
+                                        ID_GRADOS,
+                                        VerificationMode.PATRON_CONSTANTE,
+                                        3,
+                                        List.of(new VerificationPointRequest(new BigDecimal("100"))),
+                                        new BigDecimal("0.5")))))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verificaciones[0].tolerancia").value(0.5));
+
+        verify(equipmentTypeServicePort).declareVerifications(comando.capture());
+        assertThat(comando.getValue().verificaciones().getFirst().tolerancia())
+                .isEqualByComparingTo("0.5");
+    }
+
+    @Test
+    @DisplayName("una tolerancia cero o con cinco decimales se rechaza sin llegar al servicio")
+    void toleranciaInvalida() {
+        for (String tolerancia : new String[] {"0", "-1", "0.00001"}) {
+            assertThatCode(() -> mockMvc.perform(patch("/v1/api/equipment-types/" + UUID.randomUUID()
+                                    + "/verifications")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(jsonMapper.writeValueAsString(new DeclareVerificationsRequest(
+                                            List.of(new TypeVerificationRequest(
+                                                    ID_TEMPERATURA,
+                                                    ID_GRADOS,
+                                                    VerificationMode.PATRON_CONSTANTE,
+                                                    3,
+                                                    List.of(new VerificationPointRequest(
+                                                            new BigDecimal("100"))),
+                                                    new BigDecimal(tolerancia)))))))
+                            .andExpect(status().isBadRequest()))
+                    .describedAs("tolerancia " + tolerancia)
+                    .doesNotThrowAnyException();
+        }
+
+        verify(equipmentTypeServicePort, never()).declareVerifications(any());
+    }
+
+    @Test
     @DisplayName("una verificacion sin magnitud no llega al servicio")
     void verificacionSinMagnitudSeRechaza() {
         // La validacion del cuerpo corre antes que el servicio, de modo que esto ni se intenta: es lo

@@ -89,7 +89,8 @@ public class EquipmentRestMapper {
                 verificacion.cantidadDatos(),
                 verificacion.puntosActivos().stream()
                         .map(punto -> new VerificationPointResponse(punto.id(), punto.valor()))
-                        .toList());
+                        .toList(),
+                verificacion.tolerancia());
     }
 
     public MagnitudeResponse toResponse(Magnitude magnitud) {

@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.infrastructure.input.model.response;
 
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,5 +30,7 @@ public record TypeVerificationResponse(
         VerificationMode modalidad,
         @Schema(description = "Lecturas por punto. Solo con modalidad constante", example = "3")
         Integer cantidadDatos,
-        List<VerificationPointResponse> puntos) {
+        List<VerificationPointResponse> puntos,
+        @Schema(description = "Error admitido, en la unidad. Nulo si no se declaro", example = "0.5")
+        BigDecimal tolerancia) {
 }

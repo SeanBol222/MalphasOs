@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.domain.equipmentType;
 
 import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
 import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -34,6 +35,9 @@ import java.util.UUID;
  * @param magnitud qué se mide
  * @param unidad   en qué unidad. El esquema garantiza que es una unidad <i>de esa</i> magnitud
  * @param puntos   los valores constantes, <b>retirados incluidos</b>: con ellos se firmaron reportes
+ * @param tolerancia el error admitido, en la unidad de la verificación (V26, 2026-10-14). Nula si no se
+ *                   declaró: los tipos anteriores no la tienen, y la conformidad dice entonces «sin
+ *                   tolerancia» en lugar de inventarse una
  */
 public record TypeVerification(
         UUID id,
@@ -42,10 +46,26 @@ public record TypeVerification(
         VerificationMode modalidad,
         Integer cantidadDatos,
         List<VerificationPoint> puntos,
-        boolean estadoActivo) {
+        boolean estadoActivo,
+        BigDecimal tolerancia) {
 
     /** El tope que el esquema declara. Aquí para que el mensaje lo pueda citar. */
     public static final int MAXIMO_DATOS = 100;
+
+    /** Los decimales que la columna guarda, los mismos que los puntos y las lecturas. */
+    public static final int DECIMALES_TOLERANCIA = 4;
+
+    /** Sin tolerancia: la forma de antes de V26, que siguen usando quienes no la declaran. */
+    public TypeVerification(
+            UUID id,
+            Magnitude magnitud,
+            MeasurementUnit unidad,
+            VerificationMode modalidad,
+            Integer cantidadDatos,
+            List<VerificationPoint> puntos,
+            boolean estadoActivo) {
+        this(id, magnitud, unidad, modalidad, cantidadDatos, puntos, estadoActivo, null);
+    }
 
     /**
      * Solo lo que no puede faltar nunca, ni leyendo de la base.
@@ -81,6 +101,19 @@ public record TypeVerification(
         puntos = puntos == null ? List.of() : List.copyOf(puntos);
     }
 
+    /**
+     * Si una lectura está dentro de la tolerancia: {@code |equipo − patrón| ≤ tolerancia}. El borde
+     * cuenta como conforme —«±0,5» admite 0,5—. Nulo si no hay tolerancia declarada: no se sabe, y no
+     * se inventa.
+     */
+    public Boolean conforme(BigDecimal valorPatron, BigDecimal valorEquipo) {
+        if (tolerancia == null) {
+            return null;
+        }
+
+        return valorEquipo.subtract(valorPatron).abs().compareTo(tolerancia) <= 0;
+    }
+
     /** Una verificación nueva, activa, con sus reglas comprobadas. */
     public static TypeVerification of(
             Magnitude magnitud,
@@ -89,10 +122,22 @@ public record TypeVerification(
             Integer cantidadDatos,
             List<VerificationPoint> puntos) {
 
+        return of(magnitud, unidad, modalidad, cantidadDatos, puntos, null);
+    }
+
+    /** Lo mismo, con la tolerancia de V26. */
+    public static TypeVerification of(
+            Magnitude magnitud,
+            MeasurementUnit unidad,
+            VerificationMode modalidad,
+            Integer cantidadDatos,
+            List<VerificationPoint> puntos,
+            BigDecimal tolerancia) {
+
         List<VerificationPoint> pedidos = validar(modalidad, cantidadDatos, puntos);
 
-        return new TypeVerification(
-                UUID.randomUUID(), magnitud, unidad, modalidad, cantidadDatos, pedidos, true);
+        return new TypeVerification(UUID.randomUUID(), magnitud, unidad, modalidad, cantidadDatos, pedidos,
+                true, validarTolerancia(tolerancia));
     }
 
     /** Una verificación que vuelve de la base, con su estado tal como está guardado y sin validar. */
@@ -105,8 +150,22 @@ public record TypeVerification(
             List<VerificationPoint> puntos,
             boolean estadoActivo) {
 
+        return rehydrate(id, magnitud, unidad, modalidad, cantidadDatos, puntos, estadoActivo, null);
+    }
+
+    /** Lo mismo, con la tolerancia de V26. */
+    public static TypeVerification rehydrate(
+            UUID id,
+            Magnitude magnitud,
+            MeasurementUnit unidad,
+            VerificationMode modalidad,
+            Integer cantidadDatos,
+            List<VerificationPoint> puntos,
+            boolean estadoActivo,
+            BigDecimal tolerancia) {
+
         return new TypeVerification(
-                id, magnitud, unidad, modalidad, cantidadDatos, puntos, estadoActivo);
+                id, magnitud, unidad, modalidad, cantidadDatos, puntos, estadoActivo, tolerancia);
     }
 
     /**
@@ -123,7 +182,8 @@ public record TypeVerification(
                 modalidad,
                 cantidadDatos,
                 puntos.stream().map(punto -> punto.estadoActivo() ? punto.deactivated() : punto).toList(),
-                false);
+                false,
+                tolerancia);
     }
 
     /** Los puntos en los que se verifica hoy, ordenados por valor, que es como se recorren. */
@@ -149,7 +209,8 @@ public record TypeVerification(
         if (!magnitud.id().equals(otra.magnitud.id())
                 || !unidad.id().equals(otra.unidad.id())
                 || modalidad != otra.modalidad
-                || !Objects.equals(cantidadDatos, otra.cantidadDatos)) {
+                || !Objects.equals(cantidadDatos, otra.cantidadDatos)
+                || !mismaTolerancia(tolerancia, otra.tolerancia)) {
 
             return false;
         }
@@ -159,6 +220,29 @@ public record TypeVerification(
 
         return mios.size() == suyos.size()
                 && suyos.stream().allMatch(suyo -> mios.stream().anyMatch(suyo::mideLoMismoQue));
+    }
+
+    /** 0,5 y 0,50 son la misma tolerancia: se comparan por valor, no por escala. */
+    private static boolean mismaTolerancia(BigDecimal una, BigDecimal otra) {
+        return una == null ? otra == null : otra != null && una.compareTo(otra) == 0;
+    }
+
+    /** Positiva y con los decimales que la columna guarda, o nula. */
+    private static BigDecimal validarTolerancia(BigDecimal tolerancia) {
+        if (tolerancia == null) {
+            return null;
+        }
+        if (tolerancia.signum() <= 0) {
+            throw new IllegalArgumentException(
+                    "La tolerancia tiene que ser mayor que cero: una tolerancia cero exige una igualdad que"
+                            + " ningun instrumento da");
+        }
+        if (tolerancia.stripTrailingZeros().scale() > DECIMALES_TOLERANCIA) {
+            throw new IllegalArgumentException(
+                    "La tolerancia admite como mucho " + DECIMALES_TOLERANCIA + " decimales");
+        }
+
+        return tolerancia;
     }
 
     /**

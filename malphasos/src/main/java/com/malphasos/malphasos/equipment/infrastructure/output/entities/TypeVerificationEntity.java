@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -69,4 +70,8 @@ public class TypeVerificationEntity {
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
+
+    /** El error admitido, en la unidad de la verificación. Nulo si no se declaró. Desde V26. */
+    @Column(name = "d_tolerancia", precision = 12, scale = 4)
+    private BigDecimal tolerancia;
 }
