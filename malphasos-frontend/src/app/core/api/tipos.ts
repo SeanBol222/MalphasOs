@@ -74,6 +74,8 @@ export type TipoDeEquipo = equipos['schemas']['EquipmentTypeResponse'];
  */
 export type Protocolo = equipos['schemas']['ProtocolResponse'];
 export type NuevoProtocolo = equipos['schemas']['ProtocolRequest'];
+export type Patron = equipos['schemas']['ReferenceStandardResponse'];
+export type NuevoPatron = equipos['schemas']['ReferenceStandardRequest'];
 export type ProtocoloAsignado = equipos['schemas']['AssignedProtocolResponse'];
 export type AsignacionDeProtocolos = equipos['schemas']['AssignProtocolsRequest'];
 export type NuevoTipoDeEquipo = equipos['schemas']['EquipmentTypeCreateRequest'];

@@ -64,7 +64,7 @@ describe('Catálogo de equipos', () => {
     expect(texto(raiz)).not.toContain('Crear modelo');
   });
 
-  it('la subnavegación ofrece las seis, y marca la actual con aria-current', async () => {
+  it('la subnavegación ofrece las siete, y marca la actual con aria-current', async () => {
     const raiz = await abrir('/catalogo/modelos');
     const enlaces = [...raiz.querySelectorAll('nav[aria-label="Piezas del catálogo"] a')];
 
@@ -77,6 +77,8 @@ describe('Catálogo de equipos', () => {
       'Modelos',
       // Los protocolos, del 2026-10-10: la sexta pieza.
       'Protocolos',
+      // Los equipos patrón, del 2026-10-14: la séptima.
+      'Patrones',
     ]);
     // El subrayado en acento no le dice nada a quien no ve la pantalla.
     expect(
@@ -113,7 +115,7 @@ describe('Catálogo de equipos', () => {
       a.querySelector('span')?.textContent?.trim(),
     );
 
-    expect(cifras).toEqual(['0', '2', '0', '0', '0', '0']);
+    expect(cifras).toEqual(['0', '2', '0', '0', '0', '0', '0']);
   });
 
   it('desde una pieza se salta a otra sin volver al menú', async () => {

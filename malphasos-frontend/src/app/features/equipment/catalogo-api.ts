@@ -21,7 +21,9 @@ import {
   NuevoFabricante,
   NuevoModelo,
   NuevoNombre,
+  NuevoPatron,
   NuevoProtocolo,
+  Patron,
   NuevoTipoDeEquipo,
   Protocolo,
   ProtocoloAsignado,
@@ -276,6 +278,24 @@ export class CatalogoApi {
 
   retirarProtocolo() {
     return this.retirar('protocols');
+  }
+
+  /** Los equipos patrón de la empresa (2026-10-14), vigentes y retirados, por nombre. */
+  listarPatrones() {
+    return this.listar<Patron>('patrones', 'reference-standards');
+  }
+
+  crearPatron() {
+    return this.crear<Patron, NuevoPatron>('reference-standards');
+  }
+
+  /** Corregir o renovar el certificado: van los cinco campos. */
+  editarPatron() {
+    return this.editar<Patron, NuevoPatron>('reference-standards');
+  }
+
+  retirarPatron() {
+    return this.retirar('reference-standards');
   }
 
   /** Los protocolos de un tipo, en orden de prioridad. Vacio sin identificador: el alta aun no lo tiene. */
