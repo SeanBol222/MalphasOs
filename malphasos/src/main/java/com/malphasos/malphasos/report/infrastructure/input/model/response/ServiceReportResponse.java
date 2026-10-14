@@ -29,6 +29,8 @@ public record ServiceReportResponse(
         String diagnostico,
         String procedimientos,
         String observaciones,
+        @Schema(description = "Por que fallo el equipo. De un correctivo; desde V24") String causa,
+        @Schema(description = "Repuestos cambiados, en texto libre; desde V24") String repuestos,
         ServiceResult resultado,
         @Schema(description = "Cuando se cerro el reporte. Nulo mientras es borrador")
         LocalDateTime finalizado,

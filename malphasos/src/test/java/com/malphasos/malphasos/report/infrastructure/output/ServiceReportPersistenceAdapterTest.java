@@ -244,12 +244,12 @@ class ServiceReportPersistenceAdapterTest {
     class IdaYVuelta {
 
         @Test
-        @DisplayName("el reporte vuelve con los cinco campos, el estado y la fecha de cierre")
+        @DisplayName("el reporte vuelve con sus siete campos, el estado y la fecha de cierre")
         void idaYVuelta() {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.fill("No enciende", "Fuente quemada", "Cambio de fuente", "Queda en prueba",
-                    ServiceResult.OPERATIVO_CON_RESTRICCIONES);
+                    "Sobretension", "Fuente 12 V", ServiceResult.OPERATIVO_CON_RESTRICCIONES);
             reporte.finish();
             adapter.save(reporte);
 
@@ -262,6 +262,9 @@ class ServiceReportPersistenceAdapterTest {
             assertThat(recuperado.getDiagnostico()).isEqualTo("Fuente quemada");
             assertThat(recuperado.getProcedimientos()).isEqualTo("Cambio de fuente");
             assertThat(recuperado.getObservaciones()).isEqualTo("Queda en prueba");
+            // La causa y los repuestos del correctivo, de V24.
+            assertThat(recuperado.getCausa()).isEqualTo("Sobretension");
+            assertThat(recuperado.getRepuestos()).isEqualTo("Fuente 12 V");
             assertThat(recuperado.getResultado())
                     .isEqualTo(ServiceResult.OPERATIVO_CON_RESTRICCIONES);
             assertThat(recuperado.getFinalizado()).isNotNull();

@@ -115,22 +115,28 @@ class ServiceReportRestAdapterTest {
     void llenar() throws Exception {
         ServiceReport reporte = unReporte();
         reporte.fill("No enciende", "Fuente quemada", "Cambio de fuente", "En prueba",
-                ServiceResult.OPERATIVO_CON_RESTRICCIONES);
+                "Sobretension", "Fuente 12 V", ServiceResult.OPERATIVO_CON_RESTRICCIONES);
         when(serviceReportServicePort.fill(any())).thenReturn(reporte);
 
         mockMvc.perform(patch("/v1/api/reports/" + reporte.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new ServiceReportFillRequest(
                                 "No enciende", "Fuente quemada", "Cambio de fuente", "En prueba",
+                                "Sobretension", "Fuente 12 V",
                                 ServiceResult.OPERATIVO_CON_RESTRICCIONES))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fallaReportada").value("No enciende"))
+                .andExpect(jsonPath("$.causa").value("Sobretension"))
+                .andExpect(jsonPath("$.repuestos").value("Fuente 12 V"))
                 .andExpect(jsonPath("$.resultado").value("OPERATIVO_CON_RESTRICCIONES"));
 
         ArgumentCaptor<FillServiceReportCommand> comando =
                 ArgumentCaptor.forClass(FillServiceReportCommand.class);
         verify(serviceReportServicePort).fill(comando.capture());
         assertThat(comando.getValue().procedimientos()).isEqualTo("Cambio de fuente");
+        // La causa y los repuestos del correctivo, de V24: llegan al comando con su nombre.
+        assertThat(comando.getValue().causa()).isEqualTo("Sobretension");
+        assertThat(comando.getValue().repuestos()).isEqualTo("Fuente 12 V");
     }
 
     @Test
@@ -254,8 +260,10 @@ class ServiceReportRestAdapterTest {
     void elEstadoNoSeEscribe() {
         assertThat(ServiceReportFillRequest.class.getRecordComponents())
                 .extracting(java.lang.reflect.RecordComponent::getName)
+                // Causa y repuestos entraron el 2026-10-14 con el correctivo (V24): la lista crece por
+                // decisión, que es para lo que existe esta prueba.
                 .containsExactly("fallaReportada", "diagnostico", "procedimientos", "observaciones",
-                        "resultado");
+                        "causa", "repuestos", "resultado");
     }
 
     @Test

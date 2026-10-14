@@ -133,6 +133,8 @@ public class ServiceReportRestAdapter {
                 request.diagnostico(),
                 request.procedimientos(),
                 request.observaciones(),
+                request.causa(),
+                request.repuestos(),
                 request.resultado())));
     }
 
