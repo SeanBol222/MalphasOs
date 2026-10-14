@@ -79,6 +79,7 @@ describe('Qué se verifica en un tipo de equipo', () => {
     modalidad: 'PATRON_CONSTANTE',
     cantidadDatos: 3,
     puntos: [100],
+    tolerancia: null,
     valida: true,
   };
 
@@ -131,7 +132,9 @@ describe('Qué se verifica en un tipo de equipo', () => {
     // que ofrecer °C para una verificacion de presion seria ofrecer un 409.
     await abrirCon([presion]);
 
-    const unidades = [...raiz().querySelectorAll('#unidad-1 option')].map((o) => o.textContent?.trim());
+    const unidades = [...raiz().querySelectorAll('#unidad-1 option')].map((o) =>
+      o.textContent?.trim(),
+    );
 
     expect(unidades.join(' ')).toContain('mmHg');
     expect(unidades.join(' ')).toContain('kPa');
@@ -188,6 +191,7 @@ describe('Qué se verifica en un tipo de equipo', () => {
         modalidad: 'PATRON_EQUIPO_VARIABLE',
         cantidadDatos: null,
         puntos: [],
+        tolerancia: null,
         valida: true,
       },
     ]);
@@ -211,6 +215,7 @@ describe('Qué se verifica en un tipo de equipo', () => {
         modalidad: 'PATRON_EQUIPO_VARIABLE',
         cantidadDatos: 7,
         puntos: [100],
+        tolerancia: null,
         valida: true,
       },
     ]);
@@ -257,12 +262,82 @@ describe('Qué se verifica en un tipo de equipo', () => {
         modalidad: 'EQUIPO_CONSTANTE',
         cantidadDatos: 1,
         puntos: [100],
+        tolerancia: null,
         valida: true,
       },
     ]);
 
     expect(texto()).not.toContain('declarado dos veces');
     expect(ultima()?.valida).toBe(true);
+  });
+
+  describe('La tolerancia (2026-10-14)', () => {
+    it('se escribe en la unidad elegida, y lo dice', async () => {
+      await abrirCon([presion]);
+
+      expect(raiz().querySelector('label[for="tolerancia-1"]')!.textContent).toContain('en mmHg');
+    });
+
+    it('es opcional: en blanco el panel vale y no viaja', async () => {
+      await abrirCon([presion]);
+
+      expect(ultima()?.valida).toBe(true);
+      expect(ultima()?.verificaciones[0].tolerancia).toBeUndefined();
+    });
+
+    it('escrita, viaja como número', async () => {
+      await abrirCon([presion]);
+      escribir('#tolerancia-1', '0.5');
+      await asentar(fixture);
+
+      expect(ultima()?.verificaciones[0].tolerancia).toBe(0.5);
+      expect(ultima()?.valida).toBe(true);
+    });
+
+    it('la guardada se ve puesta al abrir y se conserva', async () => {
+      // Reconfigurar otra cosa no puede quitarla en silencio.
+      await abrirCon([{ ...presion, tolerancia: 2 }]);
+
+      expect(raiz().querySelector<HTMLInputElement>('#tolerancia-1')!.value).toBe('2');
+      expect(ultima()?.verificaciones[0].tolerancia).toBe(2);
+    });
+
+    it('cero, negativa o con cinco decimales no vale, y se dice', async () => {
+      await abrirCon([presion]);
+
+      for (const valor of ['0', '-1', '0.00001']) {
+        escribir('#tolerancia-1', valor);
+        await asentar(fixture);
+
+        expect(ultima()?.valida, valor).toBe(false);
+        expect(texto(), valor).toContain('mayor que cero y llevar como mucho 4 decimales');
+      }
+    });
+
+    it('los ceros de la derecha no cuentan como decimales, igual que en el servidor', async () => {
+      await abrirCon([presion]);
+      escribir('#tolerancia-1', '0.50000');
+      await asentar(fixture);
+
+      expect(ultima()?.valida).toBe(true);
+      expect(ultima()?.verificaciones[0].tolerancia).toBe(0.5);
+    });
+
+    it('vale también con patrón y equipo variables, porque también hay un patrón', async () => {
+      await abrirCon([
+        {
+          magnitudId: ID_TEMPERATURA,
+          unidadId: ID_CELSIUS,
+          modalidad: 'PATRON_EQUIPO_VARIABLE',
+          cantidadDatos: null,
+          puntos: [],
+          tolerancia: 0.3,
+          valida: true,
+        },
+      ]);
+
+      expect(ultima()?.verificaciones[0].tolerancia).toBe(0.3);
+    });
   });
 
   describe('Lo que WCAG exige y no se ve', () => {
@@ -277,6 +352,7 @@ describe('Qué se verifica en un tipo de equipo', () => {
         'cantidad-1',
         'cuantos-1',
         'valor-1-0',
+        'tolerancia-1',
       ]) {
         expect(raiz().querySelector(`label[for="${id}"]`)).toBeTruthy();
       }

@@ -1170,6 +1170,11 @@ export interface components {
             /** @description Valores constantes en los que se verifica. Solo con modalidad constante */
             puntos?: components["schemas"]["VerificationPointRequest"][];
             /**
+             * @description Error admitido, en la unidad de la verificacion. Opcional: sin ella no se dice si una lectura es conforme
+             * @example 0.5
+             */
+            tolerancia?: number;
+            /**
              * Format: uuid
              * @description En que unidad. Tiene que ser una unidad de esa magnitud
              */
@@ -1191,6 +1196,11 @@ export interface components {
             /** @enum {string} */
             modalidad?: "PATRON_CONSTANTE" | "EQUIPO_CONSTANTE" | "PATRON_EQUIPO_VARIABLE";
             puntos?: components["schemas"]["VerificationPointResponse"][];
+            /**
+             * @description Error admitido, en la unidad. Nulo si no se declaro
+             * @example 0.5
+             */
+            tolerancia?: number;
             /**
              * @description Lo que se imprime junto al numero
              * @example °C

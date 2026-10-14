@@ -116,6 +116,7 @@ export class Verificacion {
           modalidad: estado.modalidad!,
           cantidadDatos: estado.cantidadDatos ?? undefined,
           puntos: estado.puntos.map((valor) => ({ valor })),
+          tolerancia: estado.tolerancia ?? undefined,
         })),
       // Ninguna verificación es válido: significa que al tipo no se le verifica nada.
       valida: estados.every((estado) => !!estado?.valida),
