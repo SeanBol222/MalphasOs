@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NAVEGACION } from '../../../core/navegacion';
+import { CatalogoApi } from '../catalogo-api';
 
 /**
  * El sitio donde viven las cinco piezas del catalogo, con una a la vista cada vez.
@@ -15,8 +16,13 @@ import { NAVEGACION } from '../../../core/navegacion';
  * rutas: escribirla aparte seria una segunda lista que se desincroniza, y este proyecto ya tiene
  * precedentes anotados de eso.
  *
- * <p>Esta pantalla no consulta nada: cada pieza se trae lo suyo. Entrar en {@code /catalogo} redirige a
- * la primera, porque una pagina que solo tiene un menu no es una pagina.
+ * <p>Entrar en {@code /catalogo} redirige a la primera, porque una pagina que solo tiene un menu no es
+ * una pagina.
+ *
+ * <p><b>Desde el rediseño del 2026-10-11 cada pestaña dice cuántos hay</b> —la maqueta «A-Catalogo»—,
+ * y para eso esta pantalla pide las seis listas. No es una consulta de más: son las mismas claves que
+ * cada pieza pide al abrirse, de modo que la pieza encuentra su lista ya en caché. Se cuentan solo las
+ * vigentes: lo retirado no está en el catálogo de hoy.
  */
 @Component({
   selector: 'app-catalogo',
@@ -28,4 +34,26 @@ export class Catalogo {
   /** Las cinco piezas, tal como las declara la navegacion. */
   protected readonly piezas =
     NAVEGACION.find((entrada) => entrada.ruta === 'catalogo')?.hijos ?? [];
+
+  private readonly api = inject(CatalogoApi);
+  private readonly listas = {
+    tipos: this.api.listarTipos(),
+    marcas: this.api.listarMarcas(),
+    fabricantes: this.api.listarFabricantes(),
+    equipos: this.api.listarEquipos(),
+    modelos: this.api.listarModelos(),
+    protocolos: this.api.listarProtocolos(),
+  } as const;
+
+  /** Cuántas vigentes hay de cada pieza, por su ruta. Vacío mientras la lista no ha llegado. */
+  protected readonly cuantos = computed(
+    () =>
+      Object.fromEntries(
+        Object.entries(this.listas).map(([ruta, consulta]) => {
+          const datos = consulta.data() as readonly { estadoActivo?: boolean }[] | undefined;
+
+          return [ruta, datos ? String(datos.filter((d) => d.estadoActivo).length) : ''];
+        }),
+      ) as Record<string, string>,
+  );
 }

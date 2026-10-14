@@ -9,7 +9,11 @@ import {
 import { RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
 import { Sesion } from '../../../core/auth/sesion';
-import { ETIQUETA_DE_MODALIDAD, ModalidadDeVerificacion, TipoDeEquipo } from '../../../core/api/tipos';
+import {
+  ETIQUETA_DE_MODALIDAD,
+  ModalidadDeVerificacion,
+  TipoDeEquipo,
+} from '../../../core/api/tipos';
 import { ConfiguracionDeVerificacion, Verificacion } from './verificacion';
 import { VerificacionEnCurso } from './panel-de-verificacion';
 import { traducirError } from '../../../core/errores/traducir';
@@ -41,6 +45,45 @@ export class TiposDeEquipo {
   private readonly sesion = inject(Sesion);
 
   protected readonly tipos = this.api.listarTipos();
+  private readonly modelos = this.api.listarModelos();
+  private readonly equiposDelCatalogo = this.api.listarEquipos();
+  private readonly protocolos = this.api.protocolosPorTipo();
+
+  /**
+   * Lo que la tabla del rediseño (2026-10-11) dice de cada tipo además de su nombre: cuántos modelos
+   * vigentes tiene —el modelo cuelga de un equipo del catálogo, que es de un tipo— y su protocolo
+   * preventivo, cuántos pasos y cuál va primero. Sin protocolo, el reporte preventivo se llena a mano.
+   */
+  protected readonly detalles = computed(() => {
+    const tipoDeEquipo = new Map(
+      (this.equiposDelCatalogo.data() ?? []).map((equipo) => [equipo.id, equipo.idTipoEquipo]),
+    );
+    const modelos = new Map<string, number>();
+    for (const modelo of this.modelos.data() ?? []) {
+      const tipo = tipoDeEquipo.get(modelo.idEquipo);
+      if (modelo.estadoActivo && tipo) {
+        modelos.set(tipo, (modelos.get(tipo) ?? 0) + 1);
+      }
+    }
+    const protocolos = new Map(
+      (this.protocolos.data() ?? []).map((tipo) => [tipo.idTipoEquipo, tipo.protocolos ?? []]),
+    );
+
+    return new Map(
+      (this.tipos.data() ?? []).map((tipo) => {
+        const pasos = protocolos.get(tipo.id) ?? [];
+
+        return [
+          tipo.id,
+          {
+            modelos: modelos.get(tipo.id!) ?? 0,
+            pasos: pasos.length,
+            primero: pasos.length ? `1. ${pasos[0].nombre}` : '',
+          },
+        ] as const;
+      }),
+    );
+  });
   protected readonly baja = this.api.retirarTipo();
   protected readonly cambioDeVerificaciones = this.api.declararVerificaciones();
 
