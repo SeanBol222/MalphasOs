@@ -972,6 +972,22 @@
         },
         "type" : "object"
       },
+      "ProtocolsOfTypeResponse" : {
+        "description" : "Los protocolos de un tipo de equipo, en orden de prioridad",
+        "properties" : {
+          "idTipoEquipo" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "protocolos" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AssignedProtocolResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
       "TechnicalSheetRequest" : {
         "properties" : {
           "alimentacion" : {
@@ -4068,6 +4084,69 @@
           }
         },
         "summary" : "Registrar un protocolo",
+        "tags" : [ "Protocol" ]
+      }
+    },
+    "/v1/api/protocols/by-type" : {
+      "get" : {
+        "description" : "Para el listado de tipos: en una peticion, los de todos los tipos que tienen alguno, en orden de prioridad. Un tipo sin protocolos no aparece.",
+        "operationId" : "getByType",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProtocolsOfTypeResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Los protocolos de cada tipo de equipo",
         "tags" : [ "Protocol" ]
       }
     },

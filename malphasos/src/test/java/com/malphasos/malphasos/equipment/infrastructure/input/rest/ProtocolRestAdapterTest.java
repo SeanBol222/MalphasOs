@@ -23,6 +23,7 @@ import com.malphasos.malphasos.equipment.domain.exception.ProtocolNotFoundExcept
 import com.malphasos.malphasos.equipment.domain.protocol.Protocol;
 import com.malphasos.malphasos.equipment.domain.protocol.ProtocolAssignment;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -158,5 +159,20 @@ class ProtocolRestAdapterTest {
                 .andExpect(jsonPath("$[0].nombre").value("Limpieza"))
                 .andExpect(jsonPath("$[0].descripcion").value("Paño."))
                 .andExpect(jsonPath("$[0].prioridad").value(1));
+    }
+
+    @Test
+    @DisplayName("los protocolos por tipo salen agrupados por el tipo, cada uno con su prioridad")
+    void porTipo() throws Exception {
+        UUID tipo = UUID.randomUUID();
+        when(protocolServicePort.protocolsByType()).thenReturn(Map.of(tipo, List.of(
+                new AssignedProtocolDetail(Protocol.create("Limpieza", "Paño."), 1, "Con guantes"))));
+
+        mockMvc.perform(get("/v1/api/protocols/by-type"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].idTipoEquipo").value(tipo.toString()))
+                .andExpect(jsonPath("$[0].protocolos[0].nombre").value("Limpieza"))
+                .andExpect(jsonPath("$[0].protocolos[0].prioridad").value(1))
+                .andExpect(jsonPath("$[0].protocolos[0].indicacion").value("Con guantes"));
     }
 }

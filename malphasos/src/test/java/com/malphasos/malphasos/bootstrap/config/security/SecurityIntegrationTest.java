@@ -445,6 +445,7 @@ class SecurityIntegrationTest {
             "GET, /v1/api/client-equipments/overview",
             "GET, /v1/api/client-equipments/summary",
             "GET, /v1/api/headquarters/summary",
+            "GET, /v1/api/protocols/by-type",
             "GET, /v1/api/service-areas/" + ID,
             "DELETE, /v1/api/countries/" + ID,
             "DELETE, /v1/api/cities/" + ID,

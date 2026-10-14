@@ -7,6 +7,7 @@ import com.malphasos.malphasos.equipment.application.services.protocol.commands.
 import com.malphasos.malphasos.equipment.application.services.protocol.commands.UpdateProtocolCommand;
 import com.malphasos.malphasos.equipment.domain.protocol.Protocol;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,4 +31,10 @@ public interface ProtocolServicePort {
 
     /** Fija los protocolos de un tipo en el orden en que llegan. Devuelve cómo quedaron. */
     List<AssignedProtocolDetail> assign(AssignProtocolsCommand command);
+
+    /**
+     * Los protocolos de cada tipo que tiene alguno, en orden de prioridad (2026-10-11): lo que el
+     * listado de tipos del catálogo resume. Un tipo sin protocolos no aparece.
+     */
+    Map<UUID, List<AssignedProtocolDetail>> protocolsByType();
 }

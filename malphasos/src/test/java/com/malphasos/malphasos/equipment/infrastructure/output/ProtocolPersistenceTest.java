@@ -147,6 +147,34 @@ class ProtocolPersistenceTest {
         }
 
         @Test
+        @DisplayName("las vigentes de todos los tipos salen juntas, cada tipo en su orden y sin las quitadas")
+        void todasLasVigentes() {
+            UUID conDos = unTipo();
+            UUID conUnaQuitada = unTipo();
+            UUID sinNada = unTipo();
+            Protocol a = unProtocolo("A");
+            Protocol b = unProtocolo("B");
+
+            ProtocolAssignment dos = ProtocolAssignment.empty(conDos);
+            dos.assign(List.of(new Requested(b.getId(), "Con guantes"), new Requested(a.getId(), null)));
+            asignaciones.save(dos);
+            ProtocolAssignment unaQuitada = ProtocolAssignment.empty(conUnaQuitada);
+            unaQuitada.assign(List.of(new Requested(a.getId(), null)));
+            asignaciones.save(unaQuitada);
+            ProtocolAssignment vacia = asignaciones.findByType(conUnaQuitada);
+            vacia.assign(List.of());
+            asignaciones.save(vacia);
+
+            List<ProtocolAssignment> todas = asignaciones.findAllActive();
+
+            // El tipo al que se le quitó todo y el que nunca tuvo no aparecen.
+            assertThat(todas).extracting(ProtocolAssignment::getIdTipoEquipo).containsExactly(conDos);
+            assertThat(todas.getFirst().getProtocolos()).containsExactly(
+                    new AssignedProtocol(b.getId(), 1, "Con guantes"), new AssignedProtocol(a.getId(), 2, null));
+            assertThat(sinNada).isNotNull();
+        }
+
+        @Test
         @DisplayName("invertir el orden no choca con el índice único de prioridad")
         void reordenarSinChocar() {
             // Es el caso que obliga a guardar en dos pasos: fila a fila, mover la 2 a la 1 mientras la 1

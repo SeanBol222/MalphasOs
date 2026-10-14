@@ -3,6 +3,10 @@ package com.malphasos.malphasos.equipment.infrastructure.output;
 import com.malphasos.malphasos.equipment.application.ports.output.ProtocolAssignmentPersistencePort;
 import com.malphasos.malphasos.equipment.domain.protocol.AssignedProtocol;
 import com.malphasos.malphasos.equipment.domain.protocol.ProtocolAssignment;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -42,6 +46,30 @@ public class ProtocolAssignmentPersistenceAdapter implements ProtocolAssignmentP
                                 fila.getInt("i_prioridad"),
                                 fila.getString("t_indicacion")),
                         idTipoEquipo));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProtocolAssignment> findAllActive() {
+        Map<UUID, List<AssignedProtocol>> porTipo = new LinkedHashMap<>();
+        jdbcTemplate.query(
+                """
+                SELECT k_id_tipo_equipo, k_id_protocolo, i_prioridad, t_indicacion
+                FROM protocolo_tipo_equipo
+                WHERE b_estado_activo
+                ORDER BY k_id_tipo_equipo, i_prioridad
+                """,
+                fila -> {
+                    porTipo.computeIfAbsent(fila.getObject("k_id_tipo_equipo", UUID.class), tipo -> new ArrayList<>())
+                            .add(new AssignedProtocol(
+                                    fila.getObject("k_id_protocolo", UUID.class),
+                                    fila.getInt("i_prioridad"),
+                                    fila.getString("t_indicacion")));
+                });
+
+        return porTipo.entrySet().stream()
+                .map(entrada -> ProtocolAssignment.rehydrate(entrada.getKey(), entrada.getValue()))
+                .toList();
     }
 
     @Override
