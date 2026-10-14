@@ -68,7 +68,8 @@ describe('Catálogo de equipos', () => {
     const raiz = await abrir('/catalogo/modelos');
     const enlaces = [...raiz.querySelectorAll('nav[aria-label="Piezas del catálogo"] a')];
 
-    expect(enlaces.map((a) => a.textContent?.trim())).toEqual([
+    // La etiqueta es el segundo renglón: el primero, desde el rediseño, es cuántos hay.
+    expect(enlaces.map((a) => a.querySelector('span:last-child')?.textContent?.trim())).toEqual([
       'Tipos de equipo',
       'Marcas',
       'Fabricantes',
@@ -78,7 +79,41 @@ describe('Catálogo de equipos', () => {
       'Protocolos',
     ]);
     // El subrayado en acento no le dice nada a quien no ve la pantalla.
-    expect(raiz.querySelector('nav a[aria-current="page"]')?.textContent?.trim()).toBe('Modelos');
+    expect(
+      raiz.querySelector('nav a[aria-current="page"] span:last-child')?.textContent?.trim(),
+    ).toBe('Modelos');
+  });
+
+  it('cada pestaña dice cuántas vigentes hay de su pieza, sin las retiradas', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        ...proveerApiSimulado(),
+        ...proveerSesionFalsa({ autoridades: ['equipment.read'] }),
+        provideRouter(rutasDeNavegacion),
+      ],
+    });
+    harness = await RouterTestingHarness.create();
+    http = TestBed.inject(HttpTestingController);
+    await harness.navigateByUrl('/catalogo/marcas');
+    harness.detectChanges();
+    await asentar(harness.fixture);
+    http
+      .match((r) => r.url.endsWith('/brands'))
+      .forEach((p) =>
+        p.flush([
+          { id: 'm1', estadoActivo: true },
+          { id: 'm2', estadoActivo: true },
+          { id: 'm3', estadoActivo: false },
+        ]),
+      );
+    http.match(() => true).forEach((peticion) => peticion.flush([]));
+    await asentar(harness.fixture);
+    const raiz = harness.fixture.nativeElement as HTMLElement;
+    const cifras = [...raiz.querySelectorAll('nav[aria-label="Piezas del catálogo"] a')].map((a) =>
+      a.querySelector('span')?.textContent?.trim(),
+    );
+
+    expect(cifras).toEqual(['0', '2', '0', '0', '0', '0']);
   });
 
   it('desde una pieza se salta a otra sin volver al menú', async () => {

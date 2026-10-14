@@ -185,6 +185,7 @@ export type CambioDeEquipoDeCliente = equipos['schemas']['ClientEquipmentUpdateR
 export type HojaDeVida = equipos['schemas']['LifeSheetResponse'];
 export type ResumenDeEquipos = equipos['schemas']['EquipmentOverviewResponse'];
 export type EquiposDeArea = equipos['schemas']['EquipmentAreaSummaryResponse'];
+export type ProtocolosDeTipo = equipos['schemas']['ProtocolsOfTypeResponse'];
 export type FilaDeResumenDeEquipos = equipos['schemas']['EquipmentOverviewRow'];
 
 /** Lo que se le pide al listado de equipos. Los campos ausentes no filtran. */

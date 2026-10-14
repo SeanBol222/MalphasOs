@@ -495,7 +495,8 @@ class EquipmentRestAdapterTest {
                 // El listado del rediseño, del 2026-10-11: cabe en el patron de las unidades, y
                 // por eso mismo hay que nombrarlo, para que deje de caber sin que nadie se entere.
                 .contains("/v1/api/client-equipments/overview")
-                .contains("/v1/api/client-equipments/summary");
+                .contains("/v1/api/client-equipments/summary")
+                .contains("/v1/api/protocols/by-type");
     }
 
     @Test

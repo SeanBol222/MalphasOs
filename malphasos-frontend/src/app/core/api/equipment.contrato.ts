@@ -508,6 +508,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/protocols/by-type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Los protocolos de cada tipo de equipo
+         * @description Para el listado de tipos: en una peticion, los de todos los tipos que tienen alguno, en orden de prioridad. Un tipo sin protocolos no aparece.
+         */
+        get: operations["getByType"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/protocols/{id}": {
         parameters: {
             query?: never;
@@ -990,6 +1010,12 @@ export interface components {
             /** Format: uuid */
             id?: string;
             nombre?: string;
+        };
+        /** @description Los protocolos de un tipo de equipo, en orden de prioridad */
+        ProtocolsOfTypeResponse: {
+            /** Format: uuid */
+            idTipoEquipo?: string;
+            protocolos?: components["schemas"]["AssignedProtocolResponse"][];
         };
         TechnicalSheetRequest: {
             /**
@@ -3484,6 +3510,62 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ProtocolResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getByType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProtocolsOfTypeResponse"][];
                 };
             };
             /** @description Bad Request */

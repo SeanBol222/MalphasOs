@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.lenient;
@@ -23,9 +24,10 @@ import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundE
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolInUseException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolNameTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolNotFoundException;
+import com.malphasos.malphasos.equipment.domain.protocol.AssignedProtocol;
 import com.malphasos.malphasos.equipment.domain.protocol.Protocol;
-import com.malphasos.malphasos.equipment.domain.protocol.ProtocolAssignment;
 import com.malphasos.malphasos.equipment.domain.protocol.ProtocolAssignment.Requested;
+import com.malphasos.malphasos.equipment.domain.protocol.ProtocolAssignment;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
 import java.util.Optional;
@@ -262,5 +264,29 @@ class ProtocolServiceTest {
 
             assertThatThrownBy(() -> service.protocolsOf(idTipo)).isInstanceOf(EquipmentTypeNotFoundException.class);
         }
+    }
+
+    @Test
+    @DisplayName("los protocolos por tipo salen con nombre, en su prioridad, con dos consultas en total")
+    void porTipo() {
+        Protocol limpieza = Protocol.create("Limpieza", "Paño.");
+        Protocol electrico = Protocol.create("Eléctrico", "Multímetro.");
+        UUID idTipo = UUID.randomUUID();
+        UUID otroTipo = UUID.randomUUID();
+        when(protocolPersistencePort.findAll()).thenReturn(List.of(limpieza, electrico));
+        when(protocolAssignmentPersistencePort.findAllActive()).thenReturn(List.of(
+                ProtocolAssignment.rehydrate(idTipo, List.of(
+                        new AssignedProtocol(electrico.getId(), 1, "Con guantes"),
+                        new AssignedProtocol(limpieza.getId(), 2, null))),
+                ProtocolAssignment.rehydrate(otroTipo, List.of(new AssignedProtocol(limpieza.getId(), 1, null)))));
+
+        var porTipo = service.protocolsByType();
+
+        assertThat(porTipo).containsOnlyKeys(idTipo, otroTipo);
+        assertThat(porTipo.get(idTipo)).extracting(d -> d.protocolo().getNombre(), AssignedProtocolDetail::prioridad, AssignedProtocolDetail::indicacion)
+                .containsExactly(tuple("Eléctrico", 1, "Con guantes"), tuple("Limpieza", 2, null));
+        // Una consulta de protocolos para todos los tipos, no una por tipo.
+        verify(protocolPersistencePort).findAll();
+        verify(protocolPersistencePort, never()).findAllById(any());
     }
 }

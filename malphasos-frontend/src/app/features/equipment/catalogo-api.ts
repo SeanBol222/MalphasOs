@@ -25,6 +25,7 @@ import {
   NuevoTipoDeEquipo,
   Protocolo,
   ProtocoloAsignado,
+  ProtocolosDeTipo,
   TipoDeEquipo,
   UnidadDeMedida,
 } from '../../core/api/tipos';
@@ -278,6 +279,18 @@ export class CatalogoApi {
   }
 
   /** Los protocolos de un tipo, en orden de prioridad. Vacio sin identificador: el alta aun no lo tiene. */
+  /**
+   * Los protocolos de todos los tipos a la vez, para el listado de tipos (2026-10-11): una petición en
+   * lugar de una por tipo. Cuelga del catálogo, así que asignar o retirar protocolos lo recarga.
+   */
+  protocolosPorTipo() {
+    return injectQuery(() => ({
+      queryKey: [...CatalogoApi.clave('protocolos'), 'por-tipo'],
+      queryFn: () =>
+        firstValueFrom(this.http.get<ProtocolosDeTipo[]>(`${this.api}/protocols/by-type`)),
+    }));
+  }
+
   protocolosDeTipo(id: Signal<string>) {
     return injectQuery(() => ({
       queryKey: [...CatalogoApi.clave('tipos'), id(), 'protocolos'],
@@ -317,7 +330,8 @@ export class CatalogoApi {
 
   private crear<T, C>(recurso: string) {
     return injectMutation(() => ({
-      mutationFn: (cuerpo: C) => firstValueFrom(this.http.post<T>(`${this.api}/${recurso}`, cuerpo)),
+      mutationFn: (cuerpo: C) =>
+        firstValueFrom(this.http.post<T>(`${this.api}/${recurso}`, cuerpo)),
       onSuccess: () => this.invalidar(),
     }));
   }

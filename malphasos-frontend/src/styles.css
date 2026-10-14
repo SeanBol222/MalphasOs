@@ -232,6 +232,12 @@
     @media (width < 48rem) {
       display: block;
       overflow-x: auto;
+      /*
+       * Y posicionada, para que lo absoluto de dentro —el texto oculto de una cabecera, «Acciones»— se
+       * coloque respecto a la caja que se desplaza y no respecto a la pagina. Sin esto, el 2026-10-11
+       * el catalogo de tipos media 483 px a 390 de ancho por un span que nadie ve.
+       */
+      position: relative;
     }
 
     & caption + thead tr,

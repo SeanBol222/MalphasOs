@@ -164,6 +164,21 @@ public class ProtocolService implements ProtocolServicePort {
                 });
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, List<AssignedProtocolDetail>> protocolsByType() {
+        // Dos consultas sea cual sea el número de tipos: las asignaciones vigentes y los protocolos.
+        Map<UUID, Protocol> protocolos = porId(protocolPersistencePort.findAll());
+
+        return protocolAssignmentPersistencePort.findAllActive().stream()
+                .collect(Collectors.toMap(
+                        ProtocolAssignment::getIdTipoEquipo,
+                        asignacion -> asignacion.getProtocolos().stream()
+                                .map(asignado -> new AssignedProtocolDetail(
+                                        protocolos.get(asignado.idProtocolo()), asignado.prioridad(), asignado.indicacion()))
+                                .toList()));
+    }
+
     private List<AssignedProtocolDetail> detallar(ProtocolAssignment asignacion) {
         List<AssignedProtocol> asignados = asignacion.getProtocolos();
         Map<UUID, Protocol> protocolos = porId(protocolPersistencePort.findAllById(

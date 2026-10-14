@@ -7,11 +7,17 @@ import { asentar, atenderRefresco, responderA } from '../../../../testing/pantal
 import {
   ID_MMHG,
   ID_PRESION,
+  ID_EQUIPO,
   ID_TIPO,
+  EQUIPOS,
   MAGNITUDES,
+  MODELOS,
   TIPOS,
   UNIDADES,
+  URL_EQUIPOS,
   URL_MAGNITUDES,
+  URL_MODELOS,
+  URL_PROTOCOLOS,
   URL_TIPOS,
   URL_UNIDADES_DE,
 } from '../../../../testing/catalogo';
@@ -36,10 +42,39 @@ describe('Tipos de equipo', () => {
   const raiz = () => fixture.nativeElement as HTMLElement;
   const texto = () => raiz().textContent ?? '';
 
-  async function abrir(datos: { tipos?: object } = {}): Promise<void> {
+  /** Los protocolos de cada tipo, como los da el servidor: el tipo de prueba tiene dos. */
+  const POR_TIPO = [
+    {
+      idTipoEquipo: ID_TIPO,
+      protocolos: [
+        { idProtocolo: 'pr1', nombre: 'Limpieza y desinfección', prioridad: 1 },
+        { idProtocolo: 'pr2', nombre: 'Verificación eléctrica', prioridad: 2 },
+      ],
+    },
+  ];
+
+  async function abrir(
+    datos: { tipos?: object; modelos?: object; porTipo?: object } = {},
+  ): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, URL_TIPOS, datos.tipos ?? TIPOS);
+    await responderA(fixture, http, URL_MODELOS, datos.modelos ?? MODELOS);
+    await responderA(fixture, http, URL_EQUIPOS, EQUIPOS);
+    await responderA(fixture, http, `${URL_PROTOCOLOS}/by-type`, datos.porTipo ?? POR_TIPO);
   }
+
+  /** Lo que una escritura del catálogo vuelve a pedir: todo cuelga de la misma clave. */
+  async function atenderRecargas(): Promise<void> {
+    await atenderRefresco(fixture, http, URL_TIPOS, TIPOS);
+    await atenderRefresco(fixture, http, URL_MODELOS, MODELOS);
+    await atenderRefresco(fixture, http, URL_EQUIPOS, EQUIPOS);
+    await atenderRefresco(fixture, http, `${URL_PROTOCOLOS}/by-type`, POR_TIPO);
+  }
+
+  const celdas = () =>
+    [...raiz().querySelectorAll(`[data-tipo="${ID_TIPO}"] td`)].map((td) =>
+      td.textContent?.replace(/\s+/g, ' ').trim(),
+    );
 
   function pulsar(etiqueta: string): void {
     const boton = [...raiz().querySelectorAll('button')].find(
@@ -107,7 +142,28 @@ describe('Tipos de equipo', () => {
     });
     cambio.flush({ id: ID_TIPO });
     await asentar(fixture);
-    await atenderRefresco(fixture, http, URL_TIPOS, TIPOS);
+    await atenderRecargas();
+  });
+
+  it('dice cuántos pasos tiene su protocolo y cuál va primero, y cuántos modelos vigentes tiene', async () => {
+    await abrir({
+      modelos: [
+        ...MODELOS,
+        { id: 'mo2', nombre: 'Otro', idEquipo: ID_EQUIPO, estadoActivo: true },
+        // Retirado: no cuenta.
+        { id: 'mo3', nombre: 'Viejo', idEquipo: ID_EQUIPO, estadoActivo: false },
+        // De un equipo que no es de este tipo: tampoco.
+        { id: 'mo4', nombre: 'Ajeno', idEquipo: 'otro-equipo', estadoActivo: true },
+      ],
+    });
+
+    expect(celdas().slice(2, 4)).toEqual(['2 pasos 1. Limpieza y desinfección', '2']);
+  });
+
+  it('un tipo sin protocolo lo dice, y dice qué pasa entonces', async () => {
+    await abrir({ porTipo: [] });
+
+    expect(celdas()[2]).toBe('Sin protocolo Los preventivos se llenan con texto libre');
   });
 
   it('un tipo sin verificaciones lo dice, en vez de dejar el hueco en blanco', async () => {

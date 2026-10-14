@@ -5,7 +5,9 @@ import com.malphasos.malphasos.equipment.application.services.protocol.commands.
 import com.malphasos.malphasos.equipment.application.services.protocol.commands.DeactivateProtocolCommand;
 import com.malphasos.malphasos.equipment.application.services.protocol.commands.UpdateProtocolCommand;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.ProtocolRequest;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.AssignedProtocolResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ProtocolResponse;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ProtocolsOfTypeResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -44,6 +46,18 @@ public class ProtocolRestAdapter {
     @GetMapping
     public List<ProtocolResponse> getAll() {
         return ProtocolResponse.fromList(protocolServicePort.findAll());
+    }
+
+    @Operation(summary = "Los protocolos de cada tipo de equipo",
+            description = "Para el listado de tipos: en una peticion, los de todos los tipos que tienen "
+                    + "alguno, en orden de prioridad. Un tipo sin protocolos no aparece.")
+    @PreAuthorize("hasAuthority('equipment.read')")
+    @GetMapping("/by-type")
+    public List<ProtocolsOfTypeResponse> getByType() {
+        return protocolServicePort.protocolsByType().entrySet().stream()
+                .map(entrada -> new ProtocolsOfTypeResponse(
+                        entrada.getKey(), AssignedProtocolResponse.fromList(entrada.getValue())))
+                .toList();
     }
 
     @Operation(summary = "Obtener un protocolo por su identificador")
