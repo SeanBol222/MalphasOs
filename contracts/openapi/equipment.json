@@ -988,6 +988,70 @@
         },
         "type" : "object"
       },
+      "ReferenceStandardRequest" : {
+        "properties" : {
+          "certificado" : {
+            "description" : "Numero del certificado de calibracion",
+            "example" : "CAL-2026-0412",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "marca" : {
+            "description" : "Opcional",
+            "example" : "Kern",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "nombre" : {
+            "example" : "Juego de pesas clase F1",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "serie" : {
+            "maxLength" : 60,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "vencimientoCertificado" : {
+            "description" : "Hasta cuando vale el certificado",
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "required" : [ "certificado", "nombre", "serie", "vencimientoCertificado" ],
+        "type" : "object"
+      },
+      "ReferenceStandardResponse" : {
+        "properties" : {
+          "certificado" : {
+            "type" : "string"
+          },
+          "estadoActivo" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "marca" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "serie" : {
+            "type" : "string"
+          },
+          "vencimientoCertificado" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "TechnicalSheetRequest" : {
         "properties" : {
           "alimentacion" : {
@@ -1208,7 +1272,7 @@
   "paths" : {
     "/v1/api/brands" : {
       "get" : {
-        "operationId" : "getAll_5",
+        "operationId" : "getAll_6",
         "responses" : {
           "200" : {
             "content" : {
@@ -1268,7 +1332,7 @@
         "tags" : [ "Brand" ]
       },
       "post" : {
-        "operationId" : "create_5",
+        "operationId" : "create_6",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1338,7 +1402,7 @@
     "/v1/api/brands/{id}" : {
       "delete" : {
         "description" : "No la borra: la deja inactiva.",
-        "operationId" : "deactivate_4",
+        "operationId" : "deactivate_5",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1397,7 +1461,7 @@
         "tags" : [ "Brand" ]
       },
       "get" : {
-        "operationId" : "getById_5",
+        "operationId" : "getById_6",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1541,7 +1605,7 @@
     },
     "/v1/api/client-equipments" : {
       "get" : {
-        "operationId" : "getAll_8",
+        "operationId" : "getAll_9",
         "responses" : {
           "200" : {
             "content" : {
@@ -1828,7 +1892,7 @@
         "tags" : [ "ClientEquipment" ]
       },
       "get" : {
-        "operationId" : "getById_4",
+        "operationId" : "getById_5",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1895,7 +1959,7 @@
       },
       "patch" : {
         "description" : "Los campos ausentes conservan su valor.",
-        "operationId" : "update_3",
+        "operationId" : "update_4",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2153,7 +2217,7 @@
     },
     "/v1/api/equipment-types" : {
       "get" : {
-        "operationId" : "getAll_4",
+        "operationId" : "getAll_5",
         "responses" : {
           "200" : {
             "content" : {
@@ -2214,7 +2278,7 @@
       },
       "post" : {
         "description" : "Si se indica alguna verificacion, el tipo queda como verificable.",
-        "operationId" : "create_4",
+        "operationId" : "create_5",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2284,7 +2348,7 @@
     "/v1/api/equipment-types/{id}" : {
       "delete" : {
         "description" : "No lo borra: lo deja inactivo.",
-        "operationId" : "deactivate_3",
+        "operationId" : "deactivate_4",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2343,7 +2407,7 @@
         "tags" : [ "EquipmentType" ]
       },
       "get" : {
-        "operationId" : "getById_3",
+        "operationId" : "getById_4",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2410,7 +2474,7 @@
       },
       "patch" : {
         "description" : "Los campos ausentes conservan su valor. Las verificaciones tienen ruta propia.",
-        "operationId" : "update_2",
+        "operationId" : "update_3",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2488,7 +2552,7 @@
     },
     "/v1/api/equipment-types/{id}/protocols" : {
       "get" : {
-        "operationId" : "getAll_6",
+        "operationId" : "getAll_7",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2719,7 +2783,7 @@
     "/v1/api/equipments" : {
       "get" : {
         "description" : "Con el parametro idMarca, solo las de esa marca.",
-        "operationId" : "getAll_3",
+        "operationId" : "getAll_4",
         "parameters" : [ {
           "description" : "Filtra por marca",
           "in" : "query",
@@ -2789,7 +2853,7 @@
         "tags" : [ "Equipment" ]
       },
       "post" : {
-        "operationId" : "create_3",
+        "operationId" : "create_4",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2859,7 +2923,7 @@
     "/v1/api/equipments/{id}" : {
       "delete" : {
         "description" : "No la borra: la deja inactiva.",
-        "operationId" : "deactivate_5",
+        "operationId" : "deactivate_6",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2918,7 +2982,7 @@
         "tags" : [ "Equipment" ]
       },
       "get" : {
-        "operationId" : "getById_6",
+        "operationId" : "getById_7",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2986,7 +3050,7 @@
     },
     "/v1/api/magnitudes" : {
       "get" : {
-        "operationId" : "getAll_7",
+        "operationId" : "getAll_8",
         "responses" : {
           "200" : {
             "content" : {
@@ -3120,7 +3184,7 @@
     },
     "/v1/api/manufacturers" : {
       "get" : {
-        "operationId" : "getAll_2",
+        "operationId" : "getAll_3",
         "responses" : {
           "200" : {
             "content" : {
@@ -3180,7 +3244,7 @@
         "tags" : [ "Manufacturer" ]
       },
       "post" : {
-        "operationId" : "create_2",
+        "operationId" : "create_3",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -3250,7 +3314,7 @@
     "/v1/api/manufacturers/{id}" : {
       "delete" : {
         "description" : "No lo borra: lo deja inactivo.",
-        "operationId" : "deactivate_2",
+        "operationId" : "deactivate_3",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -3309,7 +3373,7 @@
         "tags" : [ "Manufacturer" ]
       },
       "get" : {
-        "operationId" : "getById_2",
+        "operationId" : "getById_3",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -3376,7 +3440,7 @@
       },
       "patch" : {
         "description" : "Los campos ausentes conservan su valor.",
-        "operationId" : "update_1",
+        "operationId" : "update_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -3455,7 +3519,7 @@
     "/v1/api/models" : {
       "get" : {
         "description" : "Con el parametro idEquipo, solo los de esa asociacion marca-tipo.",
-        "operationId" : "getAll_1",
+        "operationId" : "getAll_2",
         "parameters" : [ {
           "description" : "Filtra por asociacion marca-tipo",
           "in" : "query",
@@ -3526,7 +3590,7 @@
       },
       "post" : {
         "description" : "La asociacion marca-tipo debe estar activa.",
-        "operationId" : "create_1",
+        "operationId" : "create_2",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -3596,7 +3660,7 @@
     "/v1/api/models/{id}" : {
       "delete" : {
         "description" : "No lo borra: lo deja inactivo.",
-        "operationId" : "deactivate_1",
+        "operationId" : "deactivate_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -3655,7 +3719,7 @@
         "tags" : [ "Model" ]
       },
       "get" : {
-        "operationId" : "getById_1",
+        "operationId" : "getById_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -3959,7 +4023,7 @@
     "/v1/api/protocols" : {
       "get" : {
         "description" : "Vigentes y retirados, por nombre.",
-        "operationId" : "getAll",
+        "operationId" : "getAll_1",
         "responses" : {
           "200" : {
             "content" : {
@@ -4020,7 +4084,7 @@
       },
       "post" : {
         "description" : "El nombre no puede repetir el de otro vigente sin contar mayusculas ni tildes: 409.",
-        "operationId" : "create",
+        "operationId" : "create_1",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -4153,7 +4217,7 @@
     "/v1/api/protocols/{id}" : {
       "delete" : {
         "description" : "No lo borra. Si esta asignado a algun tipo de equipo vigente responde 409.",
-        "operationId" : "deactivate",
+        "operationId" : "deactivate_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -4212,7 +4276,7 @@
         "tags" : [ "Protocol" ]
       },
       "get" : {
-        "operationId" : "getById",
+        "operationId" : "getById_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -4279,7 +4343,7 @@
       },
       "patch" : {
         "description" : "Los reportes que ya lo copiaron no cambian.",
-        "operationId" : "update",
+        "operationId" : "update_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -4353,6 +4417,342 @@
         },
         "summary" : "Cambiar el nombre y la descripcion de un protocolo",
         "tags" : [ "Protocol" ]
+      }
+    },
+    "/v1/api/reference-standards" : {
+      "get" : {
+        "description" : "Vigentes y retirados, por nombre.",
+        "operationId" : "getAll",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReferenceStandardResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Listar los equipos patron",
+        "tags" : [ "ReferenceStandard" ]
+      },
+      "post" : {
+        "description" : "La serie no puede repetir la de otro vigente: 409.",
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReferenceStandardRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReferenceStandardResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Registrar un equipo patron",
+        "tags" : [ "ReferenceStandard" ]
+      }
+    },
+    "/v1/api/reference-standards/{id}" : {
+      "delete" : {
+        "description" : "No lo borra: deja de poder elegirse.",
+        "operationId" : "deactivate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Retirar un equipo patron",
+        "tags" : [ "ReferenceStandard" ]
+      },
+      "get" : {
+        "operationId" : "getById",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReferenceStandardResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Obtener un equipo patron por su identificador",
+        "tags" : [ "ReferenceStandard" ]
+      },
+      "patch" : {
+        "description" : "Los reportes que ya lo usaron no cambian: copiaron lo que tenia ese dia.",
+        "operationId" : "update",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReferenceStandardRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReferenceStandardResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Corregir un equipo patron o renovar su certificado",
+        "tags" : [ "ReferenceStandard" ]
       }
     },
     "/v1/api/service-areas/{idAreaServicio}/equipments" : {
@@ -4547,5 +4947,8 @@
   }, {
     "description" : "Catalogo de protocolos de mantenimiento preventivo",
     "name" : "Protocol"
+  }, {
+    "description" : "Catalogo de equipos patron",
+    "name" : "ReferenceStandard"
   } ]
 }

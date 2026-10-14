@@ -496,7 +496,8 @@ class EquipmentRestAdapterTest {
                 // por eso mismo hay que nombrarlo, para que deje de caber sin que nadie se entere.
                 .contains("/v1/api/client-equipments/overview")
                 .contains("/v1/api/client-equipments/summary")
-                .contains("/v1/api/protocols/by-type");
+                .contains("/v1/api/protocols/by-type")
+                .contains("/v1/api/reference-standards");
     }
 
     @Test

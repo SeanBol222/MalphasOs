@@ -112,7 +112,9 @@ public class OpenApiConfig {
                         API + "/magnitudes/**",
                         // Los protocolos de mantenimiento, del 2026-10-10. Su asignacion cuelga de
                         // /equipment-types/**, que ya estaba.
-                        API + "/protocols/**")
+                        API + "/protocols/**",
+                        // Los equipos patrón, del 2026-10-14.
+                        API + "/reference-standards/**")
                 .build();
     }
 
