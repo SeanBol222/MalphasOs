@@ -16,6 +16,7 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReportsException;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
@@ -180,6 +181,20 @@ class WorkOrderRestAdapterTest {
         mockMvc.perform(patch("/v1/api/work-orders/" + id + "/start"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_003"));
+    }
+
+    @Test
+    @DisplayName("ejecutar con reportes abiertos responde 409 con su propio código y cuántos faltan")
+    void reportesAbiertos() throws Exception {
+        // Código propio y no el 003: la pantalla tiene que decir «faltan reportes», no «el estado no
+        // lo permite», que no dice qué hacer.
+        UUID id = UUID.randomUUID();
+        when(workOrderServicePort.execute(any())).thenThrow(new WorkOrderHasOpenReportsException(id, 2));
+
+        mockMvc.perform(patch("/v1/api/work-orders/" + id + "/execute"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_009"))
+                .andExpect(jsonPath("$.details[0]").value(org.hamcrest.Matchers.containsString("2 equipos")));
     }
 
     @Test
