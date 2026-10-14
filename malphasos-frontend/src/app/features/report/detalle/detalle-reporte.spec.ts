@@ -107,7 +107,7 @@ describe('Ficha de un reporte de servicio', () => {
    * son cuatro eslabones del catálogo: unidad → modelo → equipo del catálogo → tipo. El backend camina
    * la misma cadena por la misma razón — ninguna tabla intermedia guarda un atajo hacia el tipo.
    */
-  async function abrir(datos: object = reporte()): Promise<void> {
+  async function abrir(datos: object = reporte(), laOrden: object = orden()): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, urlReporte(ID_REPORTE), datos);
     http.match(URL_EQUIPOS_DE_CLIENTE).forEach((peticion) => peticion.flush(EQUIPOS));
@@ -115,7 +115,7 @@ describe('Ficha de un reporte de servicio', () => {
     http.match(URL_EQUIPOS_DE_CATALOGO).forEach((peticion) => peticion.flush(EQUIPOS_DE_CATALOGO));
     http.match(URL_TIPOS).forEach((peticion) => peticion.flush(TIPOS));
     // Y lo que RF-11 autocompleta: la orden, su cliente, su sede, las personas y los encargados.
-    http.match(`${URL_ORDENES}/${ID_ORDEN}`).forEach((peticion) => peticion.flush(orden()));
+    http.match(`${URL_ORDENES}/${ID_ORDEN}`).forEach((peticion) => peticion.flush(laOrden));
     http.match(URL_CLIENTES).forEach((peticion) => peticion.flush(CLIENTES));
     http.match(URL_PERSONAS).forEach((peticion) => peticion.flush(PERSONAS));
     http.match(URL_ENCARGADOS).forEach((peticion) => peticion.flush(ENCARGADOS));
@@ -210,7 +210,15 @@ describe('Ficha de un reporte de servicio', () => {
     // los radios desde el 2026-10-10; antes era un desplegable— y ni uno mas. Si algun dato de la orden llegara como campo editable, aqui
     // saldria un control de sobra. Los numericos de la verificacion no cuentan: son lecturas, no datos
     // autocompletados.
-    expect(raiz().querySelectorAll('textarea')).toHaveLength(4);
+    // Desde el 2026-10-14 se dicen por su nombre y no se cuentan: el correctivo trajo campos nuevos, y
+    // con un número cualquier campo de sobra que cuadrara la cuenta pasaría.
+    expect([...raiz().querySelectorAll('textarea')].map((t) => t.id)).toEqual([
+      'fallaReportada',
+      'diagnostico',
+      'procedimientos',
+      'repuestos',
+      'observaciones',
+    ]);
     expect(raiz().querySelectorAll('select')).toHaveLength(0);
     expect(opcionesDeResultado()).toHaveLength(3);
     expect(
@@ -256,6 +264,64 @@ describe('Ficha de un reporte de servicio', () => {
     expect(peticion.request.body.procedimientos).toBe('Cambio de fuente');
     peticion.flush(reporte({ fallaReportada: 'No enciende', procedimientos: 'Cambio de fuente' }));
     await atenderTodo();
+  });
+
+  describe('El correctivo (2026-10-14)', () => {
+    const CORRECTIVO = orden({ estadoEjecucion: 'EN_EJECUCION', tipoServicio: 'CORRECTIVO' });
+    const botonCerrar = () =>
+      [...raiz().querySelectorAll('button')].find(
+        (b) => b.textContent?.trim() === 'Cerrar reporte',
+      ) as HTMLButtonElement;
+
+    it('pide la falla y el diagnóstico como obligatorios, y ofrece la causa', async () => {
+      await abrir(reporte(), CORRECTIVO);
+
+      expect(campo('fallaReportada').getAttribute('aria-required')).toBe('true');
+      expect(campo('diagnostico').getAttribute('aria-required')).toBe('true');
+      expect(raiz().querySelector('#causa')).not.toBeNull();
+      expect(raiz().querySelector('label[for="procedimientos"]')?.textContent).toContain(
+        'Trabajo realizado',
+      );
+    });
+
+    it('un preventivo no los exige ni ofrece la causa', async () => {
+      await abrir();
+
+      expect(campo('fallaReportada').getAttribute('aria-required')).toBeNull();
+      expect(raiz().querySelector('#causa')).toBeNull();
+    });
+
+    it('sin falla ni diagnóstico no se puede cerrar, aunque tenga trabajo y resultado', async () => {
+      await abrir(reporteCerrable(), CORRECTIVO);
+
+      expect(botonCerrar().disabled).toBe(true);
+      expect(texto()).toContain('Falla reportada');
+      expect(texto()).toContain('hacen falta la falla reportada, el diagnóstico');
+    });
+
+    it('con falla y diagnóstico guardados se puede cerrar', async () => {
+      await abrir(
+        reporteCerrable({ fallaReportada: 'No enciende', diagnostico: 'Fusible abierto' }),
+        CORRECTIVO,
+      );
+
+      expect(botonCerrar().disabled).toBe(false);
+    });
+
+    it('guardar manda la causa y los repuestos', async () => {
+      await abrir(reporte(), CORRECTIVO);
+      escribir('causa', 'Sobretensión');
+      escribir('repuestos', 'Fusible 2 A');
+
+      pulsar('Guardar');
+      await asentar(fixture);
+
+      const peticion = http.expectOne(urlReporte(ID_REPORTE));
+      expect(peticion.request.body.causa).toBe('Sobretensión');
+      expect(peticion.request.body.repuestos).toBe('Fusible 2 A');
+      peticion.flush(reporte({ causa: 'Sobretensión', repuestos: 'Fusible 2 A' }));
+      await atenderTodo();
+    });
   });
 
   it('un campo que se vacía se manda vacío, porque vaciarlo es borrarlo', async () => {

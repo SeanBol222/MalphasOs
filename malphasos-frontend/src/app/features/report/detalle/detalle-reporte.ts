@@ -109,7 +109,12 @@ export class DetalleReporte {
     this.marcar(enCurso.orden, 'NO_APLICA', enCurso.texto.trim(), () => this.notaEnCurso.set(null));
   }
 
-  private marcar(orden: number, estado: EstadoDePaso, nota?: string, alTerminar?: () => void): void {
+  private marcar(
+    orden: number,
+    estado: EstadoDePaso,
+    nota?: string,
+    alTerminar?: () => void,
+  ): void {
     this.marca.mutate(
       { id: this.id(), orden, marca: { estado, ...(nota ? { nota } : {}) } },
       { onSuccess: () => alTerminar?.() },
@@ -147,6 +152,8 @@ export class DetalleReporte {
     diagnostico: '',
     procedimientos: '',
     observaciones: '',
+    causa: '',
+    repuestos: '',
     resultado: '',
   });
 
@@ -163,7 +170,17 @@ export class DetalleReporte {
       !!this.reporte.data()?.estadoActivo,
   );
 
-  protected readonly cerrable = computed(() => sePuedeCerrar(this.reporte.data()));
+  /**
+   * Si es un correctivo, que lo dice la orden y no el reporte (2026-10-14). Cambia qué se pide: la falla
+   * y el diagnóstico pasan a ser obligatorios para cerrar, y aparece la causa.
+   */
+  protected readonly esCorrectivo = computed(
+    () => this.orden.data()?.tipoServicio === 'CORRECTIVO',
+  );
+
+  protected readonly cerrable = computed(() =>
+    sePuedeCerrar(this.reporte.data(), this.esCorrectivo()),
+  );
 
   /**
    * Lo que el servidor exige para cerrar, con lo que ya esta guardado: es lo que pinta el panel de la
@@ -184,7 +201,19 @@ export class DetalleReporte {
       const marcados = pasos.filter((paso) => paso.estado !== 'PENDIENTE').length;
 
       return [
-        { texto: `Protocolo: ${marcados} de ${pasos.length} pasos`, hecho: marcados === pasos.length },
+        {
+          texto: `Protocolo: ${marcados} de ${pasos.length} pasos`,
+          hecho: marcados === pasos.length,
+        },
+        { texto: 'Resultado', hecho: !!datos?.resultado },
+      ];
+    }
+
+    if (this.esCorrectivo()) {
+      return [
+        { texto: 'Falla reportada', hecho: !!datos?.fallaReportada?.trim() },
+        { texto: 'Diagnóstico', hecho: !!datos?.diagnostico?.trim() },
+        { texto: 'Trabajo realizado', hecho: !!datos?.procedimientos?.trim() },
         { texto: 'Resultado', hecho: !!datos?.resultado },
       ];
     }
@@ -239,7 +268,8 @@ export class DetalleReporte {
     const id = this.reporte.data()?.idEquipoCliente;
 
     return (
-      (this.equipos.data() ?? []).find((equipo) => equipo.id === id)?.serie ?? 'Equipo no disponible'
+      (this.equipos.data() ?? []).find((equipo) => equipo.id === id)?.serie ??
+      'Equipo no disponible'
     );
   });
 
@@ -259,9 +289,7 @@ export class DetalleReporte {
     );
   });
 
-  protected readonly sede = computed(
-    () => (this.sedes.data() ?? [])[0]?.nombre ?? 'No disponible',
-  );
+  protected readonly sede = computed(() => (this.sedes.data() ?? [])[0]?.nombre ?? 'No disponible');
 
   protected readonly servicio = computed(() => {
     const datos = this.orden.data();
@@ -271,9 +299,7 @@ export class DetalleReporte {
     return cada ? `${tipo} · ${cada}` : tipo;
   });
 
-  protected readonly fechaProgramada = computed(
-    () => this.orden.data()?.fechaMantenimiento ?? '',
-  );
+  protected readonly fechaProgramada = computed(() => this.orden.data()?.fechaMantenimiento ?? '');
 
   /** El ingeniero que ejecuta. Sin él la orden está programada y no repartida, y el reporte lo dice. */
   protected readonly ingeniero = computed(() => {
@@ -357,6 +383,8 @@ export class DetalleReporte {
           diagnostico: datos.diagnostico ?? '',
           procedimientos: datos.procedimientos ?? '',
           observaciones: datos.observaciones ?? '',
+          causa: datos.causa ?? '',
+          repuestos: datos.repuestos ?? '',
           resultado: datos.resultado ?? '',
         },
         { emitEvent: false },
@@ -385,6 +413,8 @@ export class DetalleReporte {
           diagnostico: valores.diagnostico,
           procedimientos: valores.procedimientos,
           observaciones: valores.observaciones,
+          causa: valores.causa,
+          repuestos: valores.repuestos,
           // Sin resultado se manda ausente, no vacio: la cadena vacia no es un valor del catalogo y el
           // servidor la rechazaria. Un resultado puesto por error se sustituye, no se quita.
           resultado: valores.resultado
