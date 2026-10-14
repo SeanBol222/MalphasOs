@@ -194,6 +194,31 @@ quedó sin consumidores y **se retiró**. Los encargados del sitio solo se piden
 quitada, porque el ayudante `abrir()` respondía a esa petición antes del `expectNone`. Un
 `expectNone` después de un ayudante que consume peticiones no comprueba nada; hay que mirar antes de
 responder.
+
+### Clientes, sedes, personas y catálogo: contar sin cruzar el borde (2026-10-11)
+
+Las últimas cuatro pantallas de la segunda fase cuentan cosas de dos módulos: sedes y áreas son de
+`client`, equipos y servicios de `equipment`, y **`client` no conoce a `equipment`**. Cada módulo publica
+su resumen —`GET /headquarters/summary` y `GET /client-equipments/summary`— y la suma se hace aquí, en
+`features/client/conteos.ts`, por cliente o por sede. Un único endpoint con todo habría obligado a uno
+de los dos a cruzar el borde.
+
+Tres cosas que salieron de construirlas y valen para lo que venga:
+
+- **Cada consulta sale solo con su autoridad.** `ClienteApi.listar`, `SedeApi.resumen`,
+  `EquipoApi.conteoPorArea`, `EncargadoApi.listar`, `PersonaApi.listar`, `OrdenApi.listar` y
+  `UbicacionApi.listarCiudades` admiten una señal que las apaga. El grupo `clients` no lee equipos,
+  ciudades ni personas, y pedirlos era un 403 por pantalla. **Y la prueba de que no se piden tiene que
+  mirar antes de responder**: tres veces un ayudante que respondía todo lo pendiente hizo pasar una
+  prueba con la guarda quitada.
+- **Angular quita el blanco entre dos elementos.** Salió cinco veces en estas pantallas —«BalanzaKern»,
+  «900123456NIT jurídico»—, siempre en la prueba y nunca a la vista. Va un `&ngsp;`.
+- **Una tabla que se desplaza en un teléfono tiene que estar posicionada.** El texto oculto de una
+  cabecera es `position: absolute` y, sin un ancestro posicionado, se coloca respecto a la página: estiró
+  el catálogo a 483 px de ancho. Lo arregla `position: relative` en `.tabla`, una vez para todas.
+
+Y una de un dato ya existente: `ClienteApi.detalle` pedía `/clients/` a secas mientras su identificador
+no había llegado. Lo destapó la ficha de la sede, que pide el cliente cuando llega la sede.
 ## Autenticación y autorización
 
 El patrón del original se conserva aunque su código no: instancia única, inicio de sesión al arrancar, refresco del token antes de que expire, cierre de sesión si el refresco falla. Flujo de código de autorización con **PKCE**, que es el correcto para un cliente público.

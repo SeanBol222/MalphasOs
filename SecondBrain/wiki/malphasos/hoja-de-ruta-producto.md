@@ -349,7 +349,51 @@ amplía el backend** en vez de filtrar en el navegador.
 |---|---|---|---|
 | **Equipos** | `A-Equipos`, aprobada el 2026-10-06 | Sí: `GET /client-equipments/overview`, `b253345f` | **Hecha el 2026-10-11**, `6394cf4b` |
 | **Orden de trabajo** | `A-Orden`, aprobada el 2026-10-06 | Sí, poco: el listado de equipos admite `ids`, `a53540ea` | **Hecha el 2026-10-11**, `3fecdcab`. Sin las fechas de cada paso del estado, que la maqueta dibujaba y no se guardan en ninguna parte |
-| **Clientes, ficha de cliente, sede, personas y catálogo** | `A-Clientes`, `A-Cliente`, `A-Sede`, `A-Personas` y `A-Catalogo`, dibujadas el 2026-10-11 | Sí, si se aprueban: los conteos de sedes, áreas y equipos, el último servicio por cliente, y los modelos y pasos por tipo no los calcula nadie | **Esperan la revisión del usuario** |
+| **Clientes, ficha de cliente y sede** | `A-Clientes`, `A-Cliente` y `A-Sede`, dibujadas y aprobadas el 2026-10-11 | Sí: `GET /headquarters/summary` en `client` y `GET /client-equipments/summary` en `equipment`, `45ccb1a8`. Se suman en el frontend, porque `client` no conoce a `equipment` | **Hechas el 2026-10-11**, `6ead9ccc`. «Ciudad principal» pasó a «Ciudades», porque ningún dato dice cuál es la principal; sin el rango de hojas de vida ni el teléfono de los encargados |
+| **Personas** | `A-Personas`, aprobada el 2026-10-11 | No: el cliente de cada encargado sale del resumen de sedes | **Hecha el 2026-10-11**, `62da8e9c`. La gente de la casa dice «De la casa» y no el nombre de la empresa, que no se escribe a mano en el frontend |
+| **Catálogo** | `A-Catalogo`, aprobada el 2026-10-11 | Sí: `GET /protocols/by-type`, `c4247c8a` | **Hecha el 2026-10-11**, `811225b1`. **Con ella la segunda fase está completa** |
+
+
+## La primera versión funcional: órdenes y reportes por tipo de servicio (decidida el 2026-10-14)
+
+Con el rediseño completo, el usuario pidió cerrar el ciclo de la orden y **distinguir los reportes por
+tipo de servicio**, para sacar la primera versión funcional. Hasta ahora el reporte era el mismo
+formulario para los tres tipos: el preventivo añadía los pasos del protocolo y nada distinguía un
+correctivo de una calibración. **Ni la ERS ni el original describen esos formatos**, así que todo lo que
+sigue son decisiones del usuario del 2026-10-14.
+
+**Decisiones del usuario:**
+
+| Pregunta | Decisión |
+|---|---|
+| Qué registra un **correctivo** | Falla reportada, diagnóstico, causa, trabajo realizado y repuestos cambiados (texto) |
+| Qué registra una **calibración** | El **equipo patrón** usado, cada lectura con su **error** contra el patrón y una **tolerancia** por verificación; el sistema dice conforme o no conforme |
+| Cómo se registra el patrón | **Un catálogo de patrones** de la empresa —nombre, marca, serie, certificado y vencimiento—; el reporte elige uno y **copia lo que tenía ese día** |
+| Cómo se expresa la tolerancia | **En la unidad** de la verificación: ±0,5 °C. Conforme si `|equipo − patrón| ≤ tolerancia` |
+| A qué reportes aplica el patrón | **A todo reporte con lecturas**, no solo a la calibración: la ERS habla de «preventivo con calibración» |
+| Patrón con el certificado vencido el día del servicio | **No deja cerrar** el reporte |
+| Ciclo de la orden | **Ejecutar exige todos los reportes cerrados**, y **el listado de órdenes se rehace** |
+| Fuera de esta versión | Reprogramar o corregir una orden, y la firma con su PDF (RF-18, RF-21, RF-17) |
+
+**Decisiones de la sesión, para que el usuario pueda discutirlas:**
+
+- En un correctivo, **la falla y el diagnóstico son obligatorios para cerrar**; causa y repuestos no.
+- La tolerancia es **opcional en el catálogo**: sin ella la lectura se registra igual y la conformidad
+  dice «sin tolerancia», porque los tipos ya creados no la tienen.
+- La conformidad **no decide el resultado del servicio**: lo sigue eligiendo el ingeniero, y la pantalla
+  avisa si marca «Operativo» con lecturas no conformes.
+- Que la orden no se ejecute sin reportes cerrados la impone `work-order`, que **no puede depender de
+  `report`** —es al revés—: el módulo de órdenes declara un puerto y `report` lo implementa.
+
+**Las tandas:**
+
+1. **Ejecutar exige reportes cerrados** — backend y botón de la ficha.
+2. **El correctivo** — columnas nuevas en el reporte, su regla de cierre y su bloque en la pantalla.
+3. **El catálogo de patrones** — tabla, API y Catálogo › Patrones.
+4. **La tolerancia** — en cada verificación del tipo, y en su panel.
+5. **Patrón, error y conformidad en el reporte** — elegir el patrón, copiarlo, calcular el error, y no
+   cerrar con un patrón vencido.
+6. **El listado de órdenes rediseñado**.
 
 ## El orden propuesto
 

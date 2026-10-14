@@ -332,6 +332,12 @@ Tres decisiones que conviene no deshacer sin pensarlo:
 quien los pide —la ficha de una orden— necesita también el que se dio de baja después de entrar en
 ella. El alcance sigue mandando.
 
+**Desde `45ccb1a8` publica también los equipos contados por área** —`GET /client-equipments/summary`:
+en servicio, fuera de servicio en su último servicio, y la fecha más reciente—, para las fichas de cliente
+y de sede. Y **desde `c4247c8a`, los protocolos de todos los tipos a la vez**, `GET /protocols/by-type`,
+con dos consultas fijas. Su `ORDER BY` es redundante —`ProtocolAssignment.rehydrate` ya ordena por
+prioridad—, y por eso invertirlo es una mutación equivalente y no un hueco.
+
 Al escribir el servicio se quitó una guarda: rechazar un cliente fuera del alcance hacía lo mismo que la
 intersección de áreas que viene detrás, y con las dos **ninguna mutación sobre cualquiera de ellas
 podía fallar**. Es el caso de las guardas gemelas que el `CONVENCIONES.md` de la raíz cuenta en «Mutar para saber si una prueba ejerce algo», evitado al nacer.
