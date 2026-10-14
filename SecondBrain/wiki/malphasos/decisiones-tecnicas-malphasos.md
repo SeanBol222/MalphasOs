@@ -398,3 +398,19 @@ que hace un `CHECK` nuevo sobre filas viejas, usado aquí a propósito.
 - **Once consultas por documento antes que una unión de nueve tablas**, seis de ellas ajenas.
 - **`V13` rellena el pasado** en lugar de corregir `V12`, que ya estaba aplicada en desarrollo.
 
+
+## Los listados del rediseño cuentan sin cruzar el borde entre módulos (2026-10-11)
+
+- **Los conteos de dos módulos se suman en el frontend.** Sedes y áreas son de `client`; equipos y
+  último servicio, de `equipment`, que depende de `client` y no al revés. Cada uno publica su resumen
+  —`GET /headquarters/summary`, `GET /client-equipments/summary`— y la pantalla los junta. Un endpoint
+  único habría obligado a uno de los dos a leer tablas del otro. Ver [[arquitectura-frontend-malphasos]].
+- **El listado de equipos sí se compila en el servidor**, con paginación y filtros, porque son cientos.
+  Su consulta toca solo tablas de `equipment`, y cliente, sede y área los pone `ServiceAreaLocationPort`
+  en una consulta por página. Ver [[dominio-equipo-mantenimiento]].
+- **Los clientes se filtran en el navegador**, porque son decenas y se piden enteros de todas formas.
+- **Pedido por identificadores, el listado de equipos no filtra por baja**: un equipo dado de baja
+  después de entrar en una orden sigue siendo parte de ella.
+- **Lo que una maqueta dibuja y no se guarda, no se inventa**: las fechas de cada paso de una orden, la
+  «ciudad principal» de un cliente, el teléfono de los encargados y el nombre de la empresa escrito en el
+  frontend se quedaron fuera, y cada pantalla dice lo que muestra en su lugar.

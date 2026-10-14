@@ -1843,3 +1843,19 @@ necesitarla. Deuda propia: **83 filas, 47 abiertas**.
 
 **Tocadas**: [[hoja-de-ruta-producto]], [[dominio-equipo-mantenimiento]],
 [[arquitectura-frontend-malphasos]], [[deuda-tecnica-y-riesgos]].
+
+## [2026-10-11] ingest | clientes, sedes, personas y catálogo: la segunda fase, completa
+
+Las cinco maquetas nuevas, aprobadas por el usuario el mismo día, construidas en tres tandas:
+
+- **Clientes, ficha de cliente y sede** (`45ccb1a8`, `6ead9ccc`): dos resúmenes nuevos, uno por módulo,
+  sumados en el frontend. «Nueva orden aquí» lleva al alta con cliente y sede puestos.
+- **Personas** (`62da8e9c`): un solo «Registrar persona», filtros con conteos y una columna de cliente.
+  No tenía prueba propia; ahora la tiene.
+- **Catálogo** (`c4247c8a`, `811225b1`): pestañas con conteos y los tipos como tabla, con su protocolo
+  y sus modelos. De paso, `.tabla` posicionada: ninguna tabla desborda ya en un teléfono.
+
+Backend **1140** sobre `c4247c8a`, 82 clases; frontend **572** sobre `811225b1`, 50 archivos.
+
+**Tocadas**: [[hoja-de-ruta-producto]], [[arquitectura-frontend-malphasos]],
+[[dominio-equipo-mantenimiento]], [[decisiones-tecnicas-malphasos]].
