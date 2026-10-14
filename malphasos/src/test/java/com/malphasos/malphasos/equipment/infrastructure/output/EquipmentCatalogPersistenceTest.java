@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.infrastructure.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -174,6 +176,48 @@ class EquipmentCatalogPersistenceTest {
         assertThat(deTemperatura.puntosActivos().getFirst().valor()).isEqualByComparingTo("-20.5");
         // 2 puntos x 3 lecturas + 1 punto x 1 lectura.
         assertThat(recuperado.lecturasEsperadas()).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("la tolerancia va y vuelve, y una verificacion sin ella vuelve sin ella")
+    void toleranciaPersiste() {
+        EquipmentType tipo = equipmentTypeAdapter.save(unTipo(List.of(
+                TypeVerification.of(temperatura, grados, VerificationMode.PATRON_CONSTANTE, 3,
+                        List.of(VerificationPoint.of(new BigDecimal("37"))), new BigDecimal("0.25")),
+                TypeVerification.of(humedad, porciento, VerificationMode.EQUIPO_CONSTANTE, 1,
+                        List.of(VerificationPoint.of(new BigDecimal("40")))))));
+
+        EquipmentType recuperado = equipmentTypeAdapter.findById(tipo.getId()).orElseThrow();
+
+        assertThat(recuperado.verificacionesActivas().stream()
+                        .filter(v -> v.magnitud().codigo().equals("temperatura"))
+                        .findFirst()
+                        .orElseThrow()
+                        .tolerancia())
+                .isEqualByComparingTo("0.25");
+        // Sin tolerancia es nula, no cero: cero diria que solo vale la igualdad exacta.
+        assertThat(recuperado.verificacionesActivas().stream()
+                        .filter(v -> v.magnitud().codigo().equals("humedad_relativa"))
+                        .findFirst()
+                        .orElseThrow()
+                        .tolerancia())
+                .isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM verificacion_tipo_equipo"
+                                + " WHERE k_id_tipo_equipo = ? AND d_tolerancia IS NULL",
+                        Integer.class, tipo.getId()))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("el esquema rechaza una tolerancia cero aunque el dominio no deje construirla")
+    void toleranciaCeroEnElEsquema() {
+        EquipmentType tipo = equipmentTypeAdapter.save(unTipo(List.of(enTemperatura(3, "100"))));
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "UPDATE verificacion_tipo_equipo SET d_tolerancia = 0 WHERE k_id_tipo_equipo = ?",
+                        tipo.getId()))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

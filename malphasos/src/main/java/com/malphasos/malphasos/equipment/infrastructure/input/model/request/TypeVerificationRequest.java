@@ -3,9 +3,12 @@ package com.malphasos.malphasos.equipment.infrastructure.input.model.request;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,5 +44,21 @@ public record TypeVerificationRequest(
 
         @Valid
         @Schema(description = "Valores constantes en los que se verifica. Solo con modalidad constante")
-        List<VerificationPointRequest> puntos) {
+        List<VerificationPointRequest> puntos,
+
+        @Positive(message = "La tolerancia tiene que ser mayor que cero")
+        @Digits(integer = 8, fraction = 4, message = "La tolerancia admite como mucho 4 decimales")
+        @Schema(description = "Error admitido, en la unidad de la verificacion. Opcional: sin ella no se"
+                + " dice si una lectura es conforme", example = "0.5")
+        BigDecimal tolerancia) {
+
+    /** Sin tolerancia: la forma de antes de V26. */
+    public TypeVerificationRequest(
+            UUID magnitudId,
+            UUID unidadId,
+            VerificationMode modalidad,
+            Integer cantidadDatos,
+            List<VerificationPointRequest> puntos) {
+        this(magnitudId, unidadId, modalidad, cantidadDatos, puntos, null);
+    }
 }

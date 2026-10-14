@@ -116,10 +116,17 @@ export class TiposDeEquipo {
     return modalidad ? ETIQUETA_DE_MODALIDAD[modalidad] : 'Sin definir';
   }
 
-  /** Lo que se verifica, resumido en una linea: «Temperatura (°C) · Humedad relativa (%HR)». */
+  /**
+   * Lo que se verifica, resumido en una linea: «Temperatura (°C, ±0,5) · Humedad relativa (%HR)». La
+   * tolerancia solo aparece si se declaro.
+   */
   protected resumenDeVerificaciones(tipo: TipoDeEquipo): string {
     return (tipo.verificaciones ?? [])
-      .map((verificacion) => `${verificacion.magnitud} (${verificacion.unidad})`)
+      .map((verificacion) =>
+        verificacion.tolerancia === undefined || verificacion.tolerancia === null
+          ? `${verificacion.magnitud} (${verificacion.unidad})`
+          : `${verificacion.magnitud} (${verificacion.unidad}, ±${verificacion.tolerancia.toLocaleString('es-CO')})`,
+      )
       .join(' · ');
   }
 
@@ -140,6 +147,7 @@ export class TiposDeEquipo {
           puntos: (verificacion.puntos ?? [])
             .filter((punto) => punto.valor !== undefined)
             .map((punto) => punto.valor!),
+          tolerancia: verificacion.tolerancia ?? null,
           valida: true,
         })),
     );

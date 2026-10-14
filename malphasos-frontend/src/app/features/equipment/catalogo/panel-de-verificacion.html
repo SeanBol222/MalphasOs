@@ -75,11 +75,47 @@
     >
       <option value="" [selected]="modalidad() === ''">Elija una modalidad</option>
       @for (opcion of modalidades; track opcion) {
-        <option [value]="opcion" [selected]="modalidad() === opcion">{{ etiquetas[opcion] }}</option>
+        <option [value]="opcion" [selected]="modalidad() === opcion">
+          {{ etiquetas[opcion] }}
+        </option>
       }
     </select>
     @if (intentado() && faltaModalidad()) {
       <p class="mt-1 font-semibold text-accent-700">Indique cómo se verifica esta magnitud.</p>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="block font-semibold" [attr.for]="'tolerancia-' + posicion()">
+      Tolerancia
+      @if (simbolo()) {
+        <span class="font-normal text-neutral-700">(±, en {{ simbolo() }})</span>
+      }
+    </label>
+    <!--
+      Opcional, y en la unidad de arriba: con ella el reporte dice si cada lectura es conforme
+      —|equipo − patron| ≤ tolerancia—. Sin ella no lo dice, en vez de inventarse un criterio.
+    -->
+    <input
+      [id]="'tolerancia-' + posicion()"
+      class="campo mt-1 min-h-tactil w-full max-w-[10rem]"
+      type="number"
+      inputmode="decimal"
+      min="0.0001"
+      step="0.0001"
+      [attr.aria-describedby]="'ayuda-tolerancia-' + posicion()"
+      [value]="tolerancia()"
+      (input)="escribirTolerancia($any($event.target).value)"
+      [attr.aria-invalid]="toleranciaInvalida() ? 'true' : null"
+    />
+    <p class="mt-1 text-neutral-700" [id]="'ayuda-tolerancia-' + posicion()">
+      El error admitido. Una lectura es conforme si se aparta del patrón como mucho esto. Déjela en
+      blanco si el tipo no la tiene.
+    </p>
+    @if (toleranciaInvalida()) {
+      <p class="mt-1 font-semibold text-accent-700">
+        La tolerancia tiene que ser mayor que cero y llevar como mucho 4 decimales.
+      </p>
     }
   </div>
 
@@ -138,9 +174,7 @@
       <div class="mt-2 border border-neutral-300 p-2">
         <p class="font-semibold">Valores en los que se verifica</p>
         <!-- Admiten negativos: un congelador se verifica a -20 grados. -->
-        <p class="text-neutral-700">
-          Admiten negativos: un congelador se verifica a −20 °C.
-        </p>
+        <p class="text-neutral-700">Admiten negativos: un congelador se verifica a −20 °C.</p>
 
         <div class="mt-2 flex flex-wrap gap-2">
           @for (valor of valores(); track $index) {

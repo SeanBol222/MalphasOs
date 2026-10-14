@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { CatalogoApi } from '../catalogo-api';
 import { inject } from '@angular/core';
 import {
@@ -17,6 +25,8 @@ export interface VerificacionEnCurso {
   readonly modalidad: ModalidadDeVerificacion | null;
   readonly cantidadDatos: number | null;
   readonly puntos: readonly number[];
+  /** El error admitido, en la unidad. Nulo si no se declara: es opcional (2026-10-14). */
+  readonly tolerancia: number | null;
   readonly valida: boolean;
 }
 
@@ -40,6 +50,10 @@ export interface VerificacionEnCurso {
  * <p><b>Cuántos puntos es un contador, no una lista con botones.</b> Se escribe «3» y aparecen tres
  * casillas de valor. Bajar el número quita las últimas, y se avisa en pantalla: nada se ha guardado
  * todavía, así que el coste de equivocarse es volver a teclear.
+ *
+ * <p><b>La tolerancia, desde el 2026-10-14</b>, se escribe en la unidad del panel y es opcional: con
+ * ella el reporte dice si cada lectura es conforme —|equipo − patrón| ≤ tolerancia—, y sin ella no lo
+ * dice. Vale para las tres modalidades, porque en las tres hay un patrón contra el que comparar.
  */
 @Component({
   selector: 'app-panel-de-verificacion',
@@ -73,6 +87,7 @@ export class PanelDeVerificacion {
   protected readonly modalidad = signal<ModalidadDeVerificacion | ''>('');
   protected readonly cantidad = signal<number | null>(null);
   protected readonly valores = signal<string[]>([]);
+  protected readonly tolerancia = signal<string>('');
 
   /** Se marca cuando el padre intenta guardar: antes de eso no se pinta ningún error. */
   protected readonly intentado = signal(false);
@@ -92,6 +107,7 @@ export class PanelDeVerificacion {
         this.modalidad.set(inicial.modalidad ?? '');
         this.cantidad.set(inicial.cantidadDatos);
         this.valores.set(inicial.puntos.map((valor) => String(valor)));
+        this.tolerancia.set(inicial.tolerancia === null ? '' : String(inicial.tolerancia));
       }
     });
 
@@ -122,6 +138,28 @@ export class PanelDeVerificacion {
     });
   });
 
+  /** El símbolo de la unidad elegida, para que la tolerancia diga en qué se escribe. */
+  protected readonly simbolo = computed(
+    () =>
+      (this.unidades.data() ?? []).find((unidad) => unidad.id === this.unidadId())?.simbolo ?? '',
+  );
+
+  /**
+   * Vacía vale —no se declara—; escrita, mayor que cero y con los cuatro decimales que el servidor
+   * guarda como mucho. Los ceros de la derecha no cuentan, igual que allí: 0,50000 es 0,5.
+   */
+  protected readonly toleranciaInvalida = computed(() => {
+    const escrita = this.tolerancia().trim();
+
+    if (escrita === '') {
+      return false;
+    }
+
+    const decimales = (escrita.split('.')[1] ?? '').replace(/0+$/, '');
+
+    return !(Number(escrita) > 0) || decimales.length > 4;
+  });
+
   protected readonly faltaMagnitud = computed(() => this.magnitudId() === '');
   protected readonly faltaUnidad = computed(() => this.unidadId() === '');
   protected readonly faltaModalidad = computed(() => this.modalidad() === '');
@@ -146,7 +184,12 @@ export class PanelDeVerificacion {
       // Fuera de las modalidades constantes los dos campos viajan vacíos: el servidor los rechaza.
       cantidadDatos: constante ? this.cantidad() : null,
       puntos: constante ? this.valoresLimpios() : [],
+      tolerancia:
+        this.tolerancia().trim() === '' || this.toleranciaInvalida()
+          ? null
+          : Number(this.tolerancia()),
       valida:
+        !this.toleranciaInvalida() &&
         !this.faltaMagnitud() &&
         !this.faltaUnidad() &&
         !this.faltaModalidad() &&
@@ -185,6 +228,10 @@ export class PanelDeVerificacion {
     }
   }
 
+  protected escribirTolerancia(valor: string): void {
+    this.tolerancia.set(valor);
+  }
+
   protected escribirCantidad(valor: string): void {
     this.cantidad.set(valor === '' ? null : Number(valor));
   }
@@ -219,6 +266,7 @@ export class PanelDeVerificacion {
       modalidad: estado.modalidad!,
       cantidadDatos: estado.cantidadDatos ?? undefined,
       puntos: estado.puntos.map((valor) => ({ valor })),
+      tolerancia: estado.tolerancia ?? undefined,
     };
   }
 }

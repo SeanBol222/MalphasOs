@@ -145,6 +145,44 @@ describe('Tipos de equipo', () => {
     await atenderRecargas();
   });
 
+  it('la tolerancia se ve en el resumen y sobrevive a reconfigurar otra cosa', async () => {
+    // 2026-10-14. Si el panel no la recogiera de lo guardado, cambiar las lecturas por punto la
+    // borraria sin que nadie lo pidiera.
+    const conTolerancia = [
+      { ...TIPOS[0], verificaciones: [{ ...TIPOS[0].verificaciones[0], tolerancia: 0.5 }] },
+    ];
+    await abrir({ tipos: conTolerancia });
+
+    expect(texto()).toContain('Presión (mmHg, ±0,5)');
+
+    pulsar('Verificación');
+    await asentar(fixture);
+    await responderA(fixture, http, URL_MAGNITUDES, MAGNITUDES);
+    for (const magnitud of Object.keys(UNIDADES)) {
+      for (const peticion of http.match(URL_UNIDADES_DE(magnitud))) {
+        peticion.flush(UNIDADES[magnitud]);
+      }
+    }
+    await asentar(fixture);
+
+    const cantidad = raiz().querySelector<HTMLInputElement>('#cantidad-1')!;
+    cantidad.value = '5';
+    cantidad.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    pulsar('Guardar');
+    await asentar(fixture);
+
+    const cambio = http.expectOne({
+      method: 'PATCH',
+      url: `${URL_TIPOS}/${ID_TIPO}/verifications`,
+    });
+
+    expect(cambio.request.body.verificaciones[0].tolerancia).toBe(0.5);
+    cambio.flush({ id: ID_TIPO });
+    await asentar(fixture);
+    await atenderRecargas();
+  });
+
   it('dice cuántos pasos tiene su protocolo y cuál va primero, y cuántos modelos vigentes tiene', async () => {
     await abrir({
       modelos: [

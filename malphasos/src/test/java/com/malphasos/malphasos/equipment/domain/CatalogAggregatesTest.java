@@ -479,6 +479,87 @@ class CatalogAggregatesTest {
                                 tipo.verificacionesActivas().getFirst().puntos().clear())
                         .isInstanceOf(UnsupportedOperationException.class);
             }
+
+            private TypeVerification conTolerancia(String tolerancia) {
+                return TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.PATRON_CONSTANTE, 3,
+                        List.of(punto("100")), tolerancia == null ? null : new BigDecimal(tolerancia));
+            }
+
+            @Test
+            @DisplayName("la tolerancia es opcional, y sin ella no se dice si una lectura es conforme")
+            void sinTolerancia() {
+                // Los tipos anteriores a V26 no la tienen: inventar una diria conforme o no conforme
+                // sobre un criterio que nadie declaro.
+                assertThat(conTolerancia(null).conforme(new BigDecimal("100"), new BigDecimal("140")))
+                        .isNull();
+            }
+
+            @Test
+            @DisplayName("una tolerancia cero o negativa se rechaza")
+            void toleranciaPositiva() {
+                for (String tolerancia : new String[] {"0", "-0.5"}) {
+                    assertThatThrownBy(() -> conTolerancia(tolerancia))
+                            .describedAs("tolerancia " + tolerancia)
+                            .isInstanceOf(IllegalArgumentException.class)
+                            .hasMessageContaining("mayor que cero");
+                }
+            }
+
+            @Test
+            @DisplayName("la tolerancia admite cuatro decimales, como la columna, y no cinco")
+            void decimalesDeLaTolerancia() {
+                assertThat(conTolerancia("0.0001").tolerancia()).isEqualByComparingTo("0.0001");
+                // Los ceros de la derecha no cuentan: 0,50000 es 0,5.
+                assertThat(conTolerancia("0.50000").tolerancia()).isEqualByComparingTo("0.5");
+
+                assertThatThrownBy(() -> conTolerancia("0.00001"))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("4 decimales");
+            }
+
+            @Test
+            @DisplayName("el borde de la tolerancia es conforme, por los dos lados, y un poco mas alla no")
+            void bordeDeLaTolerancia() {
+                // «±0,5» admite 0,5. Es el sentido en el que se lee una tolerancia en un certificado.
+                TypeVerification verificacion = conTolerancia("0.5");
+                BigDecimal patron = new BigDecimal("100");
+
+                assertThat(verificacion.conforme(patron, new BigDecimal("100.5"))).isTrue();
+                assertThat(verificacion.conforme(patron, new BigDecimal("99.5"))).isTrue();
+                assertThat(verificacion.conforme(patron, new BigDecimal("100.5001"))).isFalse();
+                assertThat(verificacion.conforme(patron, new BigDecimal("99.4999"))).isFalse();
+                assertThat(verificacion.conforme(patron, patron)).isTrue();
+            }
+
+            @Test
+            @DisplayName("la misma tolerancia escrita distinto no emite evento, y otra si")
+            void cambiarLaTolerancia() {
+                EquipmentType tipo = conVerificaciones(List.of(conTolerancia("0.5")));
+                tipo.pullEvents();
+
+                tipo.declareVerifications(List.of(conTolerancia("0.50")));
+                assertThat(tipo.pullEvents()).isEmpty();
+
+                // Ni los puntos ni la cantidad cambian, pero cambia que lectura es conforme.
+                tipo.declareVerifications(List.of(conTolerancia("0.2")));
+                assertThat(tipo.pullEvents()).hasSize(1);
+                assertThat(tipo.verificacionesActivas().getFirst().tolerancia()).isEqualByComparingTo("0.2");
+
+                // Y quitarla tambien es un cambio.
+                tipo.declareVerifications(List.of(conTolerancia(null)));
+                assertThat(tipo.pullEvents()).hasSize(1);
+            }
+
+            @Test
+            @DisplayName("retirar una verificacion conserva su tolerancia")
+            void retirarConservaLaTolerancia() {
+                // Con ella se dijo si las lecturas de los reportes viejos eran conformes.
+                EquipmentType tipo = conVerificaciones(List.of(conTolerancia("0.5")));
+
+                tipo.declareVerifications(List.of());
+
+                assertThat(tipo.getVerificaciones().getFirst().tolerancia()).isEqualByComparingTo("0.5");
+            }
         }
     }
 
