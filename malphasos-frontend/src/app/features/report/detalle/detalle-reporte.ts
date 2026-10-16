@@ -25,7 +25,8 @@ import {
   ETIQUETA_DE_RESULTADO,
   ETIQUETA_DE_TIPO_DE_SERVICIO,
   PasoDeReporte,
-  patronVencido,
+  algunPatronVencido,
+  verificacionesSinPatron,
   RESULTADOS_DE_SERVICIO,
   sePuedeCerrar,
 } from '../../../core/api/tipos';
@@ -193,8 +194,9 @@ export class DetalleReporte {
   );
 
   /**
-   * El requisito del patrón, solo si hay lecturas guardadas: sin ellas no hay nada que comparar contra
-   * él, y el servidor tampoco lo pide (2026-10-14).
+   * El requisito de los patrones, solo si hay lecturas guardadas: sin ellas no hay nada que comparar
+   * contra ellos, y el servidor tampoco lo pide (2026-10-14). Desde V30, uno por verificación medida y
+   * ninguno vencido.
    */
   private readonly requisitoDelPatron = computed(() => {
     const datos = this.reporte.data();
@@ -205,8 +207,8 @@ export class DetalleReporte {
 
     return [
       {
-        texto: 'Patrón vigente',
-        hecho: !!datos.patron && !patronVencido(datos.patron, this.hoy),
+        texto: 'Patrón vigente en cada verificación medida',
+        hecho: !verificacionesSinPatron(datos).length && !algunPatronVencido(datos, this.hoy),
       },
     ];
   });

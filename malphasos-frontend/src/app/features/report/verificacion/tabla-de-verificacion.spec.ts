@@ -312,16 +312,41 @@ describe('Tabla de verificación de un reporte', () => {
     expect(http.match(URL_MODELOS)).toHaveLength(0);
   });
 
-  describe('El patrón, el error y la conformidad (2026-10-14)', () => {
+  describe('Los patrones de cada verificación (V30), el error y la conformidad (2026-10-14)', () => {
     /** El tipo de ejemplo con tolerancia: ±0,5 mmHg. */
     const conTolerancia = (tolerancia: number | undefined) => [
       { ...TIPOS[0], verificaciones: [{ ...TIPOS[0].verificaciones[0], tolerancia }] },
     ];
 
-    const opciones = () =>
-      [...raiz().querySelectorAll<HTMLOptionElement>('#patronUsado option')].map((o) =>
+    /** Un patrón puesto en una verificación, como lo copió el reporte. */
+    const usado = (idVerificacion: string, extra: object = {}) => ({
+      idVerificacion,
+      id: ID_PATRON,
+      nombre: 'Juego de pesas clase F1',
+      marca: 'Kern',
+      serie: 'KF1-2024-118',
+      certificado: 'CAL-2026-0412',
+      vencimiento: '2099-04-30',
+      ...extra,
+    });
+    const VENCIDO = {
+      id: 'pat2',
+      nombre: 'Termómetro vencido',
+      marca: undefined,
+      serie: 'T-9',
+      certificado: 'CAL-2010-1',
+      vencimiento: '2000-01-31',
+    };
+    const RUTA_PATRONES = `${URL_REPORTES}/${ID_REPORTE}/verifications/${ID_VERIFICACION}/reference-standards`;
+
+    const desplegable = (idVerificacion = ID_VERIFICACION) =>
+      raiz().querySelector<HTMLSelectElement>(`#patron-nuevo-${idVerificacion}`);
+    const opciones = (idVerificacion = ID_VERIFICACION) =>
+      [...(desplegable(idVerificacion)?.querySelectorAll('option') ?? [])].map((o) =>
         (o.textContent ?? '').trim(),
       );
+    const bloque = (idVerificacion = ID_VERIFICACION) =>
+      (raiz().querySelector(`[data-patrones="${idVerificacion}"]`)?.textContent ?? '').replace(/\s+/g, ' ');
     const celda = (atributo: string, fila: number) =>
       (filas()[fila].querySelector(`[${atributo}]`)?.textContent ?? '').trim();
 
@@ -334,68 +359,100 @@ describe('Tabla de verificación de un reporte', () => {
       ]);
     });
 
-    it('elegir uno lo guarda al momento por su ruta', async () => {
+    it('elegir uno lo pone en su verificación al momento, y el desplegable vuelve a empezar', async () => {
       await abrir();
 
-      const selector = raiz().querySelector<HTMLSelectElement>('#patronUsado')!;
-      selector.value = ID_PATRON;
-      selector.dispatchEvent(new Event('change'));
+      desplegable()!.value = ID_PATRON;
+      desplegable()!.dispatchEvent(new Event('change'));
       await asentar(fixture);
 
-      const peticion = http.expectOne(`${URL_REPORTES}/${ID_REPORTE}/reference-standard`);
-      expect(peticion.request.method).toBe('PATCH');
+      const peticion = http.expectOne(RUTA_PATRONES);
+      expect(peticion.request.method).toBe('POST');
       expect(peticion.request.body).toEqual({ idEquipoPatron: ID_PATRON });
-      peticion.flush({ id: ID_REPORTE, lecturas: [] });
+      expect(desplegable()!.value).toBe('');
+      peticion.flush({ id: ID_REPORTE, lecturas: [], patrones: [usado(ID_VERIFICACION)] });
       await asentar(fixture);
     });
 
-    it('elegir el que ya está no manda nada', async () => {
-      fixture.componentRef.setInput('patron', {
-        id: ID_PATRON,
-        nombre: 'Juego de pesas clase F1',
-        serie: 'KF1-2024-118',
-        certificado: 'CAL-2026-0412',
-        vencimiento: '2099-04-30',
-      });
+    it('el que ya está en la verificación no se ofrece otra vez', async () => {
+      fixture.componentRef.setInput('patrones', [usado(ID_VERIFICACION)]);
       await abrir();
 
-      const selector = raiz().querySelector<HTMLSelectElement>('#patronUsado')!;
-      selector.value = ID_PATRON;
-      selector.dispatchEvent(new Event('change'));
-      await asentar(fixture);
-
-      expect(http.match(`${URL_REPORTES}/${ID_REPORTE}/reference-standard`)).toHaveLength(0);
+      expect(opciones()).toEqual(['No quedan patrones vigentes por añadir']);
     });
 
-    it('el elegido se ve con su certificado y su vencimiento', async () => {
-      fixture.componentRef.setInput('patron', {
-        id: ID_PATRON,
-        nombre: 'Juego de pesas clase F1',
-        marca: 'Kern',
-        serie: 'KF1-2024-118',
-        certificado: 'CAL-2026-0412',
-        vencimiento: '2099-04-30',
-      });
+    it('el puesto se ve con su certificado y su vencimiento, y quitarlo va por su ruta', async () => {
+      fixture.componentRef.setInput('patrones', [usado(ID_VERIFICACION)]);
       await abrir();
 
-      const usado = raiz().querySelector('[data-patron-usado]')!.textContent ?? '';
-      expect(usado).toContain('CAL-2026-0412');
-      expect(usado).toContain('vence el');
-      expect(texto()).not.toContain('Con el certificado vencido');
+      expect(bloque()).toContain('Juego de pesas clase F1 · Kern · serie KF1-2024-118');
+      expect(bloque()).toContain('certificado CAL-2026-0412 · vence el 30 abr 2099');
+      expect(texto()).not.toContain('vencido el reporte no se puede cerrar');
+
+      [...raiz().querySelectorAll('button')]
+        .find((b) => b.getAttribute('aria-label') === 'Quitar Juego de pesas clase F1 de Presión')!
+        .click();
+      await asentar(fixture);
+
+      const peticion = http.expectOne(`${RUTA_PATRONES}/${ID_PATRON}`);
+      expect(peticion.request.method).toBe('DELETE');
+      peticion.flush(null, { status: 204, statusText: 'No Content' });
+      await asentar(fixture);
     });
 
     it('uno vencido se ve vencido, y avisa de que así no se cierra', async () => {
-      fixture.componentRef.setInput('patron', {
-        id: 'pat2',
-        nombre: 'Termómetro vencido',
-        serie: 'T-9',
-        certificado: 'CAL-2010-1',
-        vencimiento: '2000-01-31',
-      });
+      fixture.componentRef.setInput('patrones', [usado(ID_VERIFICACION, VENCIDO)]);
       await abrir();
 
-      expect(raiz().querySelector('[data-patron-usado]')!.textContent).toContain('venció el');
-      expect(texto()).toContain('Con el certificado vencido el reporte no se puede cerrar');
+      expect(bloque()).toContain('venció el');
+      expect(texto()).toContain(
+        'Con el certificado de Termómetro vencido vencido el reporte no se puede cerrar',
+      );
+    });
+
+    it('con lecturas guardadas y sin patrón avisa de que hace falta uno; sin lecturas, no', async () => {
+      const lecturas = [
+        {
+          id: 'd1',
+          idVerificacion: ID_VERIFICACION,
+          idPuntoVerificacion: ID_PUNTO,
+          secuencia: 1,
+          valorPatron: 100,
+          valorEquipo: 100.3,
+          unidad: 'mmHg',
+        },
+      ];
+      await abrir(lecturas);
+      expect(bloque()).toContain('necesitan al menos un patrón');
+
+      fixture.componentRef.setInput('lecturas', []);
+      await asentar(fixture);
+      expect(bloque()).not.toContain('necesitan al menos un patrón');
+    });
+
+    it('cada verificación tiene sus propios patrones', async () => {
+      const verificacion = TIPOS[0].verificaciones[0];
+      const conDos = [
+        {
+          ...TIPOS[0],
+          verificaciones: [
+            verificacion,
+            { ...verificacion, id: 'ver2', magnitud: 'Temperatura', unidad: '°C' },
+          ],
+        },
+      ];
+      fixture.componentRef.setInput('patrones', [usado('ver2')]);
+      await abrir([], conDos);
+
+      // Lo puesto, no lo ofrecido: el desplegable de la primera sí lo ofrece, porque ella no lo tiene.
+      const puestosEn = (id: string) =>
+        raiz().querySelectorAll(`[data-patrones="${id}"] [data-patron-usado]`).length;
+      expect(puestosEn(ID_VERIFICACION)).toBe(0);
+      expect(puestosEn('ver2')).toBe(1);
+      expect(opciones()).toContain('Juego de pesas clase F1 · serie KF1-2024-118');
+      expect(bloque('ver2')).toContain('Patrones de Temperatura');
+      expect(bloque('ver2')).toContain('Juego de pesas clase F1');
+      expect(opciones('ver2')).toEqual(['No quedan patrones vigentes por añadir']);
     });
 
     it('dice el error y si es conforme mientras se escribe, con el borde dentro', async () => {
@@ -450,7 +507,8 @@ describe('Tabla de verificación de un reporte', () => {
       );
 
       expect(celda('data-conforme', 0)).toBe('No');
-      expect(raiz().querySelector('#patronUsado')).toBeNull();
+      expect(desplegable()).toBeNull();
+      expect(raiz().querySelector('[aria-label^="Quitar"]')).toBeNull();
       expect(texto()).toContain('No se registró contra qué patrón se midió');
     });
   });
