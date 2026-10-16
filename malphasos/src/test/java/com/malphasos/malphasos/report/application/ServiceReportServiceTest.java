@@ -37,6 +37,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
+import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandardSheet;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
@@ -1004,7 +1005,8 @@ class ServiceReportServiceTest {
         void eligeElPatron() {
             ServiceReport reporte = unReporte();
             ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Juego de pesas",
-                    "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30), true);
+                    "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30), ReferenceStandardSheet.VACIA,
+                    true);
             estubarReporte(reporte);
             estubarGuardado();
             when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
@@ -1021,7 +1023,7 @@ class ServiceReportServiceTest {
         void patronRetirado() {
             ServiceReport reporte = unReporte();
             ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Termometro", null,
-                    "T-9", "CAL-9", LocalDate.now().plusYears(1), false);
+                    "T-9", "CAL-9", LocalDate.now().plusYears(1), ReferenceStandardSheet.VACIA, false);
             estubarReporte(reporte);
             when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
 
@@ -1039,7 +1041,7 @@ class ServiceReportServiceTest {
             // Decision tomada a proposito: la vigencia se juzga el dia del cierre, que es el del servicio.
             ServiceReport reporte = unReporte();
             ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Termometro", null,
-                    "T-9", "CAL-9", LocalDate.now().minusDays(1), true);
+                    "T-9", "CAL-9", LocalDate.now().minusDays(1), ReferenceStandardSheet.VACIA, true);
             estubarReporte(reporte);
             estubarGuardado();
             when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);

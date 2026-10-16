@@ -1073,12 +1073,42 @@ export interface components {
              */
             certificado: string;
             /**
+             * @description Opcional: el codigo del inventario de la empresa
+             * @example BB-PAT-003
+             */
+            codigoInterno?: string;
+            /**
+             * @description Opcional
+             * @example Metrologia Andina S.A.S.
+             */
+            empresaCalibradora?: string;
+            /**
+             * Format: date
+             * @description Opcional: no posterior al vencimiento del certificado
+             */
+            fechaCalibracion?: string;
+            /**
              * @description Opcional
              * @example Kern
              */
             marca?: string;
+            /**
+             * @description Opcional
+             * @example MS-200
+             */
+            modelo?: string;
             /** @example Juego de pesas clase F1 */
             nombre: string;
+            /**
+             * @description Opcional, como se imprime
+             * @example 1 g a 2 kg
+             */
+            rango?: string;
+            /**
+             * @description Opcional, como se imprime
+             * @example 0,1 mg
+             */
+            resolucion?: string;
             serie: string;
             /**
              * Format: date
@@ -1088,11 +1118,18 @@ export interface components {
         };
         ReferenceStandardResponse: {
             certificado?: string;
+            codigoInterno?: string;
+            empresaCalibradora?: string;
             estadoActivo?: boolean;
+            /** Format: date */
+            fechaCalibracion?: string;
             /** Format: uuid */
             id?: string;
             marca?: string;
+            modelo?: string;
             nombre?: string;
+            rango?: string;
+            resolucion?: string;
             serie?: string;
             /** Format: date */
             vencimientoCertificado?: string;

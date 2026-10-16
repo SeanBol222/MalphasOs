@@ -39,11 +39,21 @@
               <span class="block" [class.font-bold]="fila.patron.estadoActivo">{{
                 fila.patron.nombre
               }}</span>&ngsp;<span class="block text-sm text-neutral-700">{{
-                fila.patron.marca || 'Sin marca'
+                fila.marcaYModelo
               }}{{ fila.patron.estadoActivo ? '' : ' · Retirado' }}</span>
             </td>
-            <td class="tabular-nums">{{ fila.patron.serie }}</td>
-            <td class="tabular-nums">{{ fila.patron.certificado }}</td>
+            <td class="tabular-nums">
+              <span class="block">{{ fila.patron.serie }}</span>
+              @if (fila.patron.codigoInterno) {
+                &ngsp;<span class="block text-sm text-neutral-700">Cód. {{ fila.patron.codigoInterno }}</span>
+              }
+            </td>
+            <td class="tabular-nums">
+              <span class="block">{{ fila.patron.certificado }}</span>
+              @if (fila.patron.empresaCalibradora) {
+                &ngsp;<span class="block text-sm text-neutral-700">{{ fila.patron.empresaCalibradora }}</span>
+              }
+            </td>
             <td class="whitespace-nowrap tabular-nums">
               <span class="block">{{ fila.vence }}</span>&ngsp;<span
                 class="block text-sm"
@@ -98,74 +108,144 @@
   }
 
   @if (puedeEscribir()) {
-    <!-- Un solo formulario para el alta y para corregir: los cinco campos van siempre. -->
+    <!-- Un solo formulario para el alta y para corregir: todos los campos van siempre. -->
     <section class="superficie mt-3 max-w-[720px]" aria-labelledby="patron-formulario">
       <h3 id="patron-formulario" class="titulo-seccion">
         {{ editando() ? 'Corregir el patrón o renovar su certificado' : 'Patrón nuevo' }}
       </h3>
 
-      <div class="mt-1.5 grid gap-1.5 md:grid-cols-2">
-        <div>
-          <label class="block font-semibold" for="patronNombre">
-            Nombre <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="patronNombre"
-            class="campo mt-1 min-h-tactil w-full"
-            maxlength="120"
-            aria-required="true"
-            placeholder="Por ejemplo: juego de pesas clase F1"
-            [formControl]="formulario.controls.nombre"
-          />
+      <fieldset class="mt-1.5">
+        <legend class="font-bold">El aparato</legend>
+        <div class="mt-1 grid gap-1.5 md:grid-cols-2">
+          <div>
+            <label class="block font-semibold" for="patronNombre">
+              Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="patronNombre"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="120"
+              aria-required="true"
+              placeholder="Por ejemplo: juego de pesas clase F1"
+              [formControl]="formulario.controls.nombre"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronMarca">Marca</label>
+            <input
+              id="patronMarca"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="80"
+              [formControl]="formulario.controls.marca"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronModelo">Modelo</label>
+            <input
+              id="patronModelo"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="80"
+              [formControl]="formulario.controls.modelo"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronSerie">
+              Serie <span class="text-accent-700" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="patronSerie"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="60"
+              aria-required="true"
+              [formControl]="formulario.controls.serie"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronCodigo">Código interno</label>
+            <input
+              id="patronCodigo"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="40"
+              [formControl]="formulario.controls.codigoInterno"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronRango">Rango</label>
+            <input
+              id="patronRango"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="120"
+              placeholder="Por ejemplo: 0 a 50 °C; 10 a 90 %HR"
+              [formControl]="formulario.controls.rango"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronResolucion">Resolución</label>
+            <input
+              id="patronResolucion"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="80"
+              placeholder="Por ejemplo: 0,1 °C; 0,1 %HR"
+              [formControl]="formulario.controls.resolucion"
+            />
+          </div>
         </div>
-        <div>
-          <label class="block font-semibold" for="patronMarca">Marca</label>
-          <input
-            id="patronMarca"
-            class="campo mt-1 min-h-tactil w-full"
-            maxlength="80"
-            [formControl]="formulario.controls.marca"
-          />
-        </div>
-        <div>
-          <label class="block font-semibold" for="patronSerie">
-            Serie <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="patronSerie"
-            class="campo mt-1 min-h-tactil w-full"
-            maxlength="60"
-            aria-required="true"
-            [formControl]="formulario.controls.serie"
-          />
-        </div>
-        <div>
-          <label class="block font-semibold" for="patronCertificado">
-            Certificado de calibración <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="patronCertificado"
-            class="campo mt-1 min-h-tactil w-full"
-            maxlength="80"
-            aria-required="true"
-            [formControl]="formulario.controls.certificado"
-          />
-        </div>
-        <div>
-          <label class="block font-semibold" for="patronVence">
-            Vence el <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="patronVence"
-            class="campo mt-1 min-h-tactil w-full"
-            type="date"
-            aria-required="true"
-            [formControl]="formulario.controls.vencimientoCertificado"
-          />
-        </div>
-      </div>
+      </fieldset>
 
-      @if (formulario.invalid && formulario.touched) {
+      <fieldset class="mt-2">
+        <legend class="font-bold">Su calibración</legend>
+        <div class="mt-1 grid gap-1.5 md:grid-cols-2">
+          <div>
+            <label class="block font-semibold" for="patronCertificado">
+              Certificado de calibración <span class="text-accent-700" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="patronCertificado"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="80"
+              aria-required="true"
+              [formControl]="formulario.controls.certificado"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronEmpresa">Empresa calibradora</label>
+            <input
+              id="patronEmpresa"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="120"
+              [formControl]="formulario.controls.empresaCalibradora"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronCalibrado">Calibrado el</label>
+            <input
+              id="patronCalibrado"
+              class="campo mt-1 min-h-tactil w-full"
+              type="date"
+              [formControl]="formulario.controls.fechaCalibracion"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="patronVence">
+              Vence el <span class="text-accent-700" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="patronVence"
+              class="campo mt-1 min-h-tactil w-full"
+              type="date"
+              aria-required="true"
+              [formControl]="formulario.controls.vencimientoCertificado"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      @if (formulario.touched && formulario.hasError('calibracionPosterior')) {
+        <p class="mt-1 font-semibold text-accent-700">
+          La calibración no puede ser posterior al vencimiento de su certificado.
+        </p>
+      }
+      @if (faltaAlgoObligatorio()) {
         <p class="mt-1 font-semibold text-accent-700">
           El nombre, la serie, el certificado y su vencimiento son obligatorios.
         </p>

@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.infrastructure.output;
 
 import com.malphasos.malphasos.equipment.application.ports.output.ReferenceStandardPersistencePort;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
+import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandardSheet;
 import com.malphasos.malphasos.equipment.infrastructure.output.entities.ReferenceStandardEntity;
 import com.malphasos.malphasos.equipment.infrastructure.output.repository.ReferenceStandardRepository;
 import java.util.Comparator;
@@ -40,13 +41,19 @@ public class ReferenceStandardPersistenceAdapter implements ReferenceStandardPer
 
     @Override
     public ReferenceStandard save(ReferenceStandard patron) {
+        ReferenceStandardSheet ficha = patron.getFicha();
         return toDomain(referenceStandardRepository.save(new ReferenceStandardEntity(
                 patron.getId(), patron.getNombre(), patron.getMarca(), patron.getSerie(),
-                patron.getCertificado(), patron.getVencimientoCertificado(), patron.isEstadoActivo())));
+                patron.getCertificado(), patron.getVencimientoCertificado(), ficha.modelo(), ficha.codigoInterno(),
+                ficha.rango(), ficha.resolucion(), ficha.fechaCalibracion(), ficha.empresaCalibradora(),
+                patron.isEstadoActivo())));
     }
 
     private static ReferenceStandard toDomain(ReferenceStandardEntity entity) {
         return ReferenceStandard.rehydrate(entity.getId(), entity.getNombre(), entity.getMarca(), entity.getSerie(),
-                entity.getCertificado(), entity.getVencimientoCertificado(), entity.isEstadoActivo());
+                entity.getCertificado(), entity.getVencimientoCertificado(),
+                new ReferenceStandardSheet(entity.getModelo(), entity.getCodigoInterno(), entity.getRango(),
+                        entity.getResolucion(), entity.getFechaCalibracion(), entity.getEmpresaCalibradora()),
+                entity.isEstadoActivo());
     }
 }

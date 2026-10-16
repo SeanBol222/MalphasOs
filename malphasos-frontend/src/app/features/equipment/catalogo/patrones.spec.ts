@@ -4,12 +4,27 @@ import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar, responderA } from '../../../../testing/pantalla';
 import { HOY } from '../../../core/fechas';
-import { Patrones } from './patrones';
+import { calibracionAntesDelVencimiento, Patrones } from './patrones';
+import { FormControl, FormGroup } from '@angular/forms';
 
 const URL = 'http://localhost:8081/v1/api/reference-standards';
 
 const PATRONES = [
-  { id: 'p1', nombre: 'Termómetro patrón', marca: 'Fluke', serie: 'T-1', certificado: 'C-1', vencimientoCertificado: '2027-01-31', estadoActivo: true },
+  {
+    id: 'p1',
+    nombre: 'Termómetro patrón',
+    marca: 'Fluke',
+    modelo: '1524',
+    serie: 'T-1',
+    codigoInterno: 'BB-PAT-003',
+    rango: '-50 a 150 °C',
+    resolucion: '0,01 °C',
+    certificado: 'C-1',
+    empresaCalibradora: 'Metrología Andina',
+    fechaCalibracion: '2026-01-31',
+    vencimientoCertificado: '2027-01-31',
+    estadoActivo: true,
+  },
   { id: 'p2', nombre: 'Juego de pesas F1', serie: 'P-1', certificado: 'C-2', vencimientoCertificado: '2026-10-10', estadoActivo: true },
   { id: 'p3', nombre: 'Manómetro', marca: 'Wika', serie: 'M-1', certificado: 'C-3', vencimientoCertificado: '2026-11-01', estadoActivo: true },
   { id: 'p4', nombre: 'Barómetro viejo', serie: 'B-1', certificado: 'C-4', vencimientoCertificado: '2025-01-01', estadoActivo: false },
@@ -91,6 +106,83 @@ describe('Equipos patrón', () => {
     expect(celdas('p4')[0]).toBe('Barómetro viejo Sin marca · Retirado');
   });
 
+  it('la fila dice marca y modelo, el código interno y quién lo calibró, cuando los tiene', async () => {
+    montar();
+    await abrir();
+
+    expect(celdas('p1').slice(0, 3)).toEqual([
+      'Termómetro patrón Fluke 1524',
+      'T-1 Cód. BB-PAT-003',
+      'C-1 Metrología Andina',
+    ]);
+    expect(celdas('p2').slice(1, 3)).toEqual(['P-1', 'C-2']);
+  });
+
+  it('registrar manda la ficha recortada, y lo que quedó en blanco no viaja', async () => {
+    montar();
+    await abrir();
+    escribir('patronNombre', 'Higrómetro');
+    escribir('patronModelo', ' HM-40 ');
+    escribir('patronSerie', 'H-1');
+    escribir('patronCodigo', '  ');
+    escribir('patronRango', ' 10 a 90 %HR ');
+    escribir('patronResolucion', '0,1 %HR');
+    escribir('patronCertificado', 'C-9');
+    escribir('patronEmpresa', ' Metrología Andina ');
+    escribir('patronCalibrado', '2026-06-30');
+    escribir('patronVence', '2027-06-30');
+    await asentar(fixture);
+    boton('Registrar patrón').click();
+    await asentar(fixture);
+
+    const alta = http.expectOne({ method: 'POST', url: URL });
+    expect(alta.request.body).toEqual({
+      nombre: 'Higrómetro',
+      modelo: 'HM-40',
+      serie: 'H-1',
+      rango: '10 a 90 %HR',
+      resolucion: '0,1 %HR',
+      certificado: 'C-9',
+      empresaCalibradora: 'Metrología Andina',
+      fechaCalibracion: '2026-06-30',
+      vencimientoCertificado: '2027-06-30',
+    });
+    expect('codigoInterno' in alta.request.body && alta.request.body.codigoInterno).toBe(undefined);
+    alta.flush({ ...PATRONES[0], id: 'p9' });
+    await asentar(fixture);
+    http.match(URL).forEach((p) => p.flush(PATRONES));
+  });
+
+  it('una calibración posterior al vencimiento no llega al servidor, y lo dice aparte', async () => {
+    montar();
+    await abrir();
+    escribir('patronNombre', 'Higrómetro');
+    escribir('patronSerie', 'H-1');
+    escribir('patronCertificado', 'C-9');
+    escribir('patronCalibrado', '2027-07-01');
+    escribir('patronVence', '2027-06-30');
+    boton('Registrar patrón').click();
+    await asentar(fixture);
+
+    http.expectNone({ method: 'POST', url: URL });
+    expect(raiz().textContent).toContain('no puede ser posterior al vencimiento');
+    expect(raiz().textContent).not.toContain('son obligatorios');
+  });
+
+  it('calibrar el mismo día que vence vale, y sin fecha de calibración no hay nada que comparar', () => {
+    const grupo = (fechaCalibracion: string, vencimientoCertificado: string) =>
+      new FormGroup({
+        fechaCalibracion: new FormControl(fechaCalibracion),
+        vencimientoCertificado: new FormControl(vencimientoCertificado),
+      });
+
+    expect(calibracionAntesDelVencimiento(grupo('2027-06-30', '2027-06-30'))).toBeNull();
+    expect(calibracionAntesDelVencimiento(grupo('', '2027-06-30'))).toBeNull();
+    expect(calibracionAntesDelVencimiento(grupo('2027-07-01', '2027-06-30'))).toEqual({
+      calibracionPosterior: true,
+    });
+  });
+
   it('registrar manda los cinco campos, sin marca si quedó en blanco', async () => {
     montar();
     await abrir();
@@ -135,6 +227,8 @@ describe('Equipos patrón', () => {
     await asentar(fixture);
 
     expect(raiz().querySelector<HTMLInputElement>('#patronSerie')!.value).toBe('P-1');
+    // Sin ficha, sus campos quedan en blanco, no con lo del patrón anterior.
+    expect(raiz().querySelector<HTMLInputElement>('#patronCodigo')!.value).toBe('');
     escribir('patronCertificado', 'C-2b');
     escribir('patronVence', '2027-10-10');
     boton('Guardar cambios').click();
@@ -146,6 +240,18 @@ describe('Equipos patrón', () => {
     cambio.flush({ ...PATRONES[1], certificado: 'C-2b' });
     await asentar(fixture);
     http.match(URL).forEach((p) => p.flush(PATRONES));
+  });
+
+  it('editar uno con ficha la carga entera', async () => {
+    montar();
+    await abrir();
+    boton('Editar Termómetro patrón').click();
+    await asentar(fixture);
+
+    const valor = (id: string) => raiz().querySelector<HTMLInputElement>(`#${id}`)!.value;
+    expect(
+      ['patronModelo', 'patronCodigo', 'patronRango', 'patronResolucion', 'patronEmpresa', 'patronCalibrado'].map(valor),
+    ).toEqual(['1524', 'BB-PAT-003', '-50 a 150 °C', '0,01 °C', 'Metrología Andina', '2026-01-31']);
   });
 
   it('sin equipment.write se ve y no se toca', async () => {
