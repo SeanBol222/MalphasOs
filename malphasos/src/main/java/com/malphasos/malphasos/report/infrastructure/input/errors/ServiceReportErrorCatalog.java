@@ -28,7 +28,8 @@ public enum ServiceReportErrorCatalog {
     CLIENT_EQUIPMENT_NOT_FOUND("ERR_SERVICE_REPORT_005", "Client equipment not found"),
     MODEL_NOT_FOUND("ERR_SERVICE_REPORT_006", "Model not found"),
     EQUIPMENT_NOT_FOUND("ERR_SERVICE_REPORT_007", "Equipment not found"),
-    EQUIPMENT_TYPE_NOT_FOUND("ERR_SERVICE_REPORT_008", "Equipment type not found");
+    EQUIPMENT_TYPE_NOT_FOUND("ERR_SERVICE_REPORT_008", "Equipment type not found"),
+    REFERENCE_STANDARD_NOT_FOUND("ERR_SERVICE_REPORT_009", "Reference standard not found");
 
     private final String code;
     private final String message;

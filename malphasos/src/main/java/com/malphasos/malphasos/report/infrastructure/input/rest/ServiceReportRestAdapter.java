@@ -9,12 +9,14 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.infrastructure.input.mapper.ServiceReportRestMapper;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.MarkReportStepRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordVerificationRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
+import com.malphasos.malphasos.report.infrastructure.input.model.request.UseReferenceStandardRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ServiceReportResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -164,6 +166,19 @@ public class ServiceReportRestAdapter {
     @Operation(summary = "Marcar un paso del protocolo",
             description = "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del "
                     + "paso dentro del reporte. Solo en un borrador.")
+    /**
+     * Elige el patrón contra el que se toman las lecturas (V27). El reporte copia lo que el catálogo
+     * dice de él hoy; si su certificado está vencido el día del cierre, el reporte no se cierra.
+     */
+    @PreAuthorize("hasAuthority('report.write')")
+    @PatchMapping("/{id}/reference-standard")
+    public ServiceReportResponse useReferenceStandard(
+            @PathVariable UUID id, @Valid @RequestBody UseReferenceStandardRequest request) {
+
+        return mapper.toResponse(serviceReportServicePort.useReferenceStandard(
+                new UseReferenceStandardCommand(id, request.idEquipoPatron())));
+    }
+
     @PreAuthorize("hasAuthority('report.write')")
     @PatchMapping("/{id}/steps/{orden}")
     public ServiceReportResponse markStep(

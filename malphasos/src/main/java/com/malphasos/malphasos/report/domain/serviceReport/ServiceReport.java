@@ -5,6 +5,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportF
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportOpenedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportPayload;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardChosenEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStepMarkedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportVerifiedEvent;
 import com.malphasos.malphasos.shared.domain.events.AggregateRoot;
@@ -69,6 +70,12 @@ public class ServiceReport extends AggregateRoot {
 
     /** Repuestos cambiados, en texto libre. Desde V24. */
     private String repuestos;
+
+    /**
+     * Contra qué patrón se tomaron las lecturas, copiado como estaba ese día. Nulo mientras no se elija,
+     * en los reportes sin lecturas y en los anteriores a V27.
+     */
+    private UsedReferenceStandard patron;
 
     private ServiceResult resultado;
 
@@ -209,7 +216,7 @@ public class ServiceReport extends AggregateRoot {
                 estadoActivo);
     }
 
-    /** La rehidratación completa, con la causa y los repuestos de V24. */
+    /** Con la causa y los repuestos de V24, sin el patrón de V27. */
     public static ServiceReport rehydrate(
             UUID id,
             UUID idOrdenTrabajo,
@@ -227,6 +234,30 @@ public class ServiceReport extends AggregateRoot {
             Collection<ReportStep> pasos,
             boolean estadoActivo) {
 
+        return rehydrate(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada, diagnostico,
+                procedimientos, observaciones, causa, repuestos, null, resultado, finalizado, lecturas, pasos,
+                estadoActivo);
+    }
+
+    /** La rehidratación completa, con la causa y los repuestos de V24 y el patrón de V27. */
+    public static ServiceReport rehydrate(
+            UUID id,
+            UUID idOrdenTrabajo,
+            UUID idEquipoCliente,
+            ReportState estado,
+            String fallaReportada,
+            String diagnostico,
+            String procedimientos,
+            String observaciones,
+            String causa,
+            String repuestos,
+            UsedReferenceStandard patron,
+            ServiceResult resultado,
+            LocalDateTime finalizado,
+            Collection<VerificationReading> lecturas,
+            Collection<ReportStep> pasos,
+            boolean estadoActivo) {
+
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
         ServiceReport reporte = new ServiceReport(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada,
@@ -234,6 +265,7 @@ public class ServiceReport extends AggregateRoot {
                 estadoActivo);
         reporte.causa = causa;
         reporte.repuestos = repuestos;
+        reporte.patron = patron;
 
         return reporte;
     }
@@ -346,6 +378,29 @@ public class ServiceReport extends AggregateRoot {
 
         registerEvent(new ServiceReportVerifiedEvent(
                 metadataFor(ServiceReportVerifiedEvent.TYPE), payload()));
+    }
+
+    /**
+     * Elige el patrón contra el que se toman las lecturas, o lo cambia. Elegir el mismo, con lo mismo
+     * copiado, no emite evento.
+     *
+     * <p>Aquí no se comprueba que esté vigente, a propósito: se comprueba al cerrar, contra el día del
+     * cierre, que es el día del servicio. Un patrón vigente al elegirlo puede vencer antes de que el
+     * reporte se cierre, y al revés no importa.
+     */
+    public void useReferenceStandard(UsedReferenceStandard patron) {
+        exigirModificable("elegir el patron");
+
+        if (patron == null) {
+            throw new IllegalArgumentException("Hay que decir que patron se uso");
+        }
+        if (patron.equals(this.patron)) {
+            return;
+        }
+
+        this.patron = patron;
+        registerEvent(new ServiceReportStandardChosenEvent(
+                metadataFor(ServiceReportStandardChosenEvent.TYPE), payload()));
     }
 
     /** Todas las lecturas, retiradas incluidas, como copia inmutable. */
@@ -474,8 +529,20 @@ public class ServiceReport extends AggregateRoot {
                             + " cuelgan la hoja de vida y las alertas");
         }
 
+        // El patron (V27, 2026-10-14): unas lecturas sin patron no dicen contra que se compararon, y
+        // un patron con el certificado vencido el dia del servicio no certifica nada.
+        LocalDateTime ahora = LocalDateTime.now();
+        if (!lecturasActivas().isEmpty() && patron == null) {
+            throw new IllegalStateException(
+                    "No se puede cerrar un reporte con lecturas sin decir contra que patron se tomaron");
+        }
+        if (patron != null && !patron.vigenteEl(ahora.toLocalDate())) {
+            throw new IllegalStateException("No se puede cerrar el reporte: el certificado del patron "
+                    + patron.nombre() + " (" + patron.certificado() + ") vencio el " + patron.vencimiento());
+        }
+
         this.estado = ReportState.FINALIZADO;
-        this.finalizado = LocalDateTime.now();
+        this.finalizado = ahora;
         registerEvent(new ServiceReportFinishedEvent(
                 metadataFor(ServiceReportFinishedEvent.TYPE), payload()));
     }

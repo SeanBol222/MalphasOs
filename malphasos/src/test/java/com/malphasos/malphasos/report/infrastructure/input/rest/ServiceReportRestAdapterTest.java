@@ -28,9 +28,14 @@ import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordVerificationRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
+import com.malphasos.malphasos.report.infrastructure.input.model.request.UseReferenceStandardRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.VerificationReadingRequest;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
+import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -179,6 +184,76 @@ class ServiceReportRestAdapterTest {
         assertThat(comando.getValue().lecturas()).singleElement()
                 .extracting(lectura -> lectura.idPuntoVerificacion())
                 .isEqualTo(punto);
+    }
+
+    @Test
+    @DisplayName("elegir el patron llega al servicio, y la respuesta trae lo copiado")
+    void elegirPatron() throws Exception {
+        UUID patron = UUID.randomUUID();
+        ServiceReport reporte = unReporte();
+        reporte.useReferenceStandard(new UsedReferenceStandard(patron, "Juego de pesas", null, "KF1-1",
+                "CAL-2026-0412", LocalDate.of(2027, 4, 30)));
+        when(serviceReportServicePort.useReferenceStandard(any())).thenReturn(reporte);
+
+        mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/reference-standard")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(new UseReferenceStandardRequest(patron))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.patron.id").value(patron.toString()))
+                .andExpect(jsonPath("$.patron.certificado").value("CAL-2026-0412"))
+                .andExpect(jsonPath("$.patron.vencimiento").value("2027-04-30"));
+
+        ArgumentCaptor<UseReferenceStandardCommand> comando =
+                ArgumentCaptor.forClass(UseReferenceStandardCommand.class);
+        verify(serviceReportServicePort).useReferenceStandard(comando.capture());
+        assertThat(comando.getValue().id()).isEqualTo(reporte.getId());
+        assertThat(comando.getValue().idEquipoPatron()).isEqualTo(patron);
+    }
+
+    @Test
+    @DisplayName("elegir sin decir cual responde 400 sin llegar al servicio")
+    void elegirPatronSinPatron() throws Exception {
+        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/reference-standard")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        verify(serviceReportServicePort, never()).useReferenceStandard(any());
+    }
+
+    @Test
+    @DisplayName("un patron que no existe da 404 con codigo propio, no un 500")
+    void patronQueNoExiste() throws Exception {
+        UUID patron = UUID.randomUUID();
+        when(serviceReportServicePort.useReferenceStandard(any()))
+                .thenThrow(new ReferenceStandardNotFoundException(patron));
+
+        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/reference-standard")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(new UseReferenceStandardRequest(patron))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_009"));
+    }
+
+    @Test
+    @DisplayName("cada lectura sale con su tolerancia, su error y si es conforme")
+    void conformidadEnLaRespuesta() throws Exception {
+        ServiceReport reporte = unReporte();
+        reporte.recordVerification(List.of(
+                VerificationReading.of(UUID.randomUUID(), UUID.randomUUID(), 1, new BigDecimal("50"),
+                        new BigDecimal("50.7"), "mmHg", new BigDecimal("0.5")),
+                VerificationReading.of(UUID.randomUUID(), null, 1, new BigDecimal("37"),
+                        new BigDecimal("36.9"), "°C")));
+        when(serviceReportServicePort.findById(any(), any())).thenReturn(reporte);
+
+        mockMvc.perform(get("/v1/api/reports/" + reporte.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lecturas[0].tolerancia").value(0.5))
+                .andExpect(jsonPath("$.lecturas[0].error").value(0.7))
+                .andExpect(jsonPath("$.lecturas[0].conforme").value(false))
+                // Sin tolerancia no se dice: ni true ni false.
+                .andExpect(jsonPath("$.lecturas[1].error").value(-0.1))
+                .andExpect(jsonPath("$.lecturas[1].conforme").doesNotExist());
     }
 
     @Test
@@ -369,6 +444,7 @@ class ServiceReportRestAdapterTest {
         assertThat(docs).contains("/v1/api/reports");
         assertThat(docs).contains("/v1/api/reports/{id}/verification");
         assertThat(docs).contains("/v1/api/reports/{id}/finish");
+        assertThat(docs).contains("/v1/api/reports/{id}/reference-standard");
         assertThat(docs).contains("/v1/api/reports/work-orders/{idOrdenTrabajo}");
     }
 

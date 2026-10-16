@@ -3,6 +3,7 @@ package com.malphasos.malphasos.report.infrastructure.input.mapper;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ReportStepResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ServiceReportResponse;
+import com.malphasos.malphasos.report.infrastructure.input.model.response.UsedReferenceStandardResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.VerificationReadingResponse;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,10 @@ public class ServiceReportRestMapper {
                         lectura.secuencia(),
                         lectura.valorPatron(),
                         lectura.valorEquipo(),
-                        lectura.unidad()))
+                        lectura.unidad(),
+                        lectura.tolerancia(),
+                        lectura.error(),
+                        lectura.conforme()))
                 .toList();
 
         return ServiceReportResponse.builder()
@@ -39,6 +43,15 @@ public class ServiceReportRestMapper {
                 .observaciones(reporte.getObservaciones())
                 .causa(reporte.getCausa())
                 .repuestos(reporte.getRepuestos())
+                .patron(reporte.getPatron() == null
+                        ? null
+                        : new UsedReferenceStandardResponse(
+                                reporte.getPatron().id(),
+                                reporte.getPatron().nombre(),
+                                reporte.getPatron().marca(),
+                                reporte.getPatron().serie(),
+                                reporte.getPatron().certificado(),
+                                reporte.getPatron().vencimiento()))
                 .resultado(reporte.getResultado())
                 .finalizado(reporte.getFinalizado())
                 .lecturas(lecturas)

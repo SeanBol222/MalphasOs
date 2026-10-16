@@ -31,6 +31,9 @@ public record ServiceReportResponse(
         String observaciones,
         @Schema(description = "Por que fallo el equipo. De un correctivo; desde V24") String causa,
         @Schema(description = "Repuestos cambiados, en texto libre; desde V24") String repuestos,
+        @Schema(description = "El patron contra el que se tomaron las lecturas, como estaba ese dia. Nulo"
+                + " mientras no se elija")
+        UsedReferenceStandardResponse patron,
         ServiceResult resultado,
         @Schema(description = "Cuando se cerro el reporte. Nulo mientras es borrador")
         LocalDateTime finalizado,

@@ -6,6 +6,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.List;
@@ -46,6 +47,9 @@ public interface ServiceReportServicePort {
     ServiceReport fill(FillServiceReportCommand command);
 
     ServiceReport recordVerification(RecordVerificationCommand command);
+
+    /** Elige el patrón contra el que se toman las lecturas, copiando lo que dice hoy el catálogo. */
+    ServiceReport useReferenceStandard(UseReferenceStandardCommand command);
 
     /** Marca un paso del protocolo: hecho, no aplica o pendiente otra vez. */
     ServiceReport markStep(MarkReportStepCommand command);

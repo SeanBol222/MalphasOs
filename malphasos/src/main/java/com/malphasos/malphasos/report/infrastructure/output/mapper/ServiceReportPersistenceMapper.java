@@ -3,6 +3,7 @@ package com.malphasos.malphasos.report.infrastructure.output.mapper;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
+import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
@@ -50,7 +51,8 @@ public class ServiceReportPersistenceMapper {
                         fila.getValorPatron(),
                         fila.getValorEquipo(),
                         fila.getUnidad(),
-                        fila.isEstadoActivo()))
+                        fila.isEstadoActivo(),
+                        fila.getTolerancia()))
                 .toList();
 
         return ServiceReport.rehydrate(
@@ -64,6 +66,15 @@ public class ServiceReportPersistenceMapper {
                 entity.getObservaciones(),
                 entity.getCausa(),
                 entity.getRepuestos(),
+                entity.getIdEquipoPatron() == null
+                        ? null
+                        : new UsedReferenceStandard(
+                                entity.getIdEquipoPatron(),
+                                entity.getPatronNombre(),
+                                entity.getPatronMarca(),
+                                entity.getPatronSerie(),
+                                entity.getPatronCertificado(),
+                                entity.getPatronVencimiento()),
                 entity.getResultado() == null ? null : ServiceResult.valueOf(entity.getResultado()),
                 entity.getFinalizado(),
                 lecturas,
@@ -106,6 +117,13 @@ public class ServiceReportPersistenceMapper {
         entity.setObservaciones(reporte.getObservaciones());
         entity.setCausa(reporte.getCausa());
         entity.setRepuestos(reporte.getRepuestos());
+        UsedReferenceStandard patron = reporte.getPatron();
+        entity.setIdEquipoPatron(patron == null ? null : patron.id());
+        entity.setPatronNombre(patron == null ? null : patron.nombre());
+        entity.setPatronMarca(patron == null ? null : patron.marca());
+        entity.setPatronSerie(patron == null ? null : patron.serie());
+        entity.setPatronCertificado(patron == null ? null : patron.certificado());
+        entity.setPatronVencimiento(patron == null ? null : patron.vencimiento());
         entity.setResultado(reporte.getResultado() == null ? null : reporte.getResultado().name());
         entity.setFinalizado(reporte.getFinalizado());
         entity.setEstadoActivo(reporte.isEstadoActivo());
@@ -205,5 +223,6 @@ public class ServiceReportPersistenceMapper {
         fila.setValorEquipo(lectura.valorEquipo());
         fila.setUnidad(lectura.unidad());
         fila.setEstadoActivo(lectura.estadoActivo());
+        fila.setTolerancia(lectura.tolerancia());
     }
 }
