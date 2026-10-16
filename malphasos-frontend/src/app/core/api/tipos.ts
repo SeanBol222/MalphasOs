@@ -385,8 +385,9 @@ export type LecturaDeVerificacion = reportes['schemas']['VerificationReadingResp
 export type NuevaLectura = reportes['schemas']['VerificationReadingRequest'];
 
 /**
- * El patrón contra el que se tomaron las lecturas, copiado como estaba el día que se eligió (V27,
- * 2026-10-14): renovar su certificado en el catálogo no cambia lo que el reporte dice.
+ * Un patrón contra el que se tomaron las lecturas de una verificación, copiado como estaba el día que
+ * se eligió (V27, 2026-10-14): renovar su certificado en el catálogo no cambia lo que el reporte dice.
+ * Desde V30 (2026-10-16) son varios por verificación y llevan su ficha.
  */
 export type PatronUsado = reportes['schemas']['UsedReferenceStandardResponse'];
 
@@ -399,6 +400,22 @@ export type AvanceDeReportes = reportes['schemas']['WorkOrderReportProgressRespo
  */
 export function patronVencido(patron: PatronUsado | null | undefined, hoy: string): boolean {
   return !!patron?.vencimiento && patron.vencimiento < hoy;
+}
+
+/**
+ * Las verificaciones de las que el reporte tiene lecturas y ningún patrón: sin él, esas lecturas no
+ * dicen contra qué se compararon y el servidor no deja cerrar (V30).
+ */
+export function verificacionesSinPatron(reporte: ReporteDeServicio | undefined): string[] {
+  const conPatron = new Set((reporte?.patrones ?? []).map((usado) => usado.idVerificacion));
+  const medidas = new Set((reporte?.lecturas ?? []).map((lectura) => lectura.idVerificacion!));
+
+  return [...medidas].filter((verificacion) => !conPatron.has(verificacion));
+}
+
+/** Si algún patrón del reporte tiene el certificado vencido ese día: el informe los imprime todos. */
+export function algunPatronVencido(reporte: ReporteDeServicio | undefined, hoy: string): boolean {
+  return (reporte?.patrones ?? []).some((usado) => patronVencido(usado, hoy));
 }
 
 export type EstadoDeReporte = NonNullable<ReporteDeServicio['estado']>;
@@ -454,12 +471,10 @@ export function sePuedeCerrar(
     return false;
   }
 
-  // Desde el 2026-10-14, como en el servidor: unas lecturas exigen un patron, y vigente el dia del
-  // cierre. Sin `hoy` no se juzga la vigencia: quien llama sin fecha no puede saberla.
-  if (
-    reporte.lecturas?.length &&
-    (!reporte.patron || (hoy && patronVencido(reporte.patron, hoy)))
-  ) {
+  // Desde el 2026-10-14, como en el servidor: cada verificacion con lecturas exige un patron -por
+  // verificacion desde V30-, y ninguno vencido el dia del cierre. Sin `hoy` no se juzga la vigencia:
+  // quien llama sin fecha no puede saberla.
+  if (verificacionesSinPatron(reporte).length || (hoy && algunPatronVencido(reporte, hoy))) {
     return false;
   }
 

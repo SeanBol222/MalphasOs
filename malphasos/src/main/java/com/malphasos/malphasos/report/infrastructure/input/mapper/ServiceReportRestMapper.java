@@ -44,15 +44,22 @@ public class ServiceReportRestMapper {
                 .observaciones(reporte.getObservaciones())
                 .causa(reporte.getCausa())
                 .repuestos(reporte.getRepuestos())
-                .patron(reporte.getPatron() == null
-                        ? null
-                        : new UsedReferenceStandardResponse(
-                                reporte.getPatron().id(),
-                                reporte.getPatron().nombre(),
-                                reporte.getPatron().marca(),
-                                reporte.getPatron().serie(),
-                                reporte.getPatron().certificado(),
-                                reporte.getPatron().vencimiento()))
+                .patrones(reporte.patronesActivos().stream()
+                        .map(usado -> new UsedReferenceStandardResponse(
+                                usado.idVerificacion(),
+                                usado.patron().id(),
+                                usado.patron().nombre(),
+                                usado.patron().marca(),
+                                usado.patron().serie(),
+                                usado.patron().certificado(),
+                                usado.patron().vencimiento(),
+                                usado.patron().modelo(),
+                                usado.patron().codigoInterno(),
+                                usado.patron().rango(),
+                                usado.patron().resolucion(),
+                                usado.patron().fechaCalibracion(),
+                                usado.patron().empresaCalibradora()))
+                        .toList())
                 .resultado(reporte.getResultado())
                 .finalizado(reporte.getFinalizado())
                 .lecturas(lecturas)

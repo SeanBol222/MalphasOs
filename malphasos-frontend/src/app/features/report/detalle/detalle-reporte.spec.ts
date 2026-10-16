@@ -224,8 +224,9 @@ describe('Ficha de un reporte de servicio', () => {
       'repuestos',
       'observaciones',
     ]);
-    // El unico desplegable es el patron (2026-10-14), y no es un dato de la orden: lo elige quien mide.
-    expect([...raiz().querySelectorAll('select')].map((s) => s.id)).toEqual(['patronUsado']);
+    // Los unicos desplegables son los de los patrones, uno por verificacion (V30), y no son un dato de
+    // la orden: los elige quien mide.
+    expect([...raiz().querySelectorAll('select')].map((s) => s.id)).toEqual(['patron-nuevo-ver1']);
     expect(opcionesDeResultado()).toHaveLength(3);
     expect(
       [...raiz().querySelectorAll('input')].filter((i) => i.type === 'text').length,
@@ -575,6 +576,7 @@ describe('Ficha de un reporte de servicio', () => {
     });
 
     const vigente = {
+      idVerificacion: 'ver1',
       id: ID_PATRON,
       nombre: 'Juego de pesas clase F1',
       serie: 'KF1-2024-118',
@@ -598,11 +600,11 @@ describe('Ficha de un reporte de servicio', () => {
       expect(botonDeCierre().disabled).toBe(true);
     });
 
-    it('con un patrón vencido tampoco', async () => {
+    it('con un patrón vencido tampoco, aunque haya otro vigente en la misma verificación', async () => {
       await abrir(
         reporteCerrable({
           lecturas: [lectura(true)],
-          patron: { ...vigente, vencimiento: '2000-01-31' },
+          patrones: [vigente, { ...vigente, id: 'pat2', vencimiento: '2000-01-31' }],
         }),
       );
 
@@ -610,8 +612,18 @@ describe('Ficha de un reporte de servicio', () => {
       expect(botonDeCierre().disabled).toBe(true);
     });
 
+    it('un patrón puesto en otra verificación no cuenta para la que se midió', async () => {
+      await abrir(
+        reporteCerrable({ lecturas: [lectura(true)], patrones: [{ ...vigente, idVerificacion: 'ver2' }] }),
+      );
+
+      expect(panel()).toContain('Patrón vigente en cada verificación medida');
+      expect(panel()).toContain('(falta)');
+      expect(botonDeCierre().disabled).toBe(true);
+    });
+
     it('con un patrón vigente sí', async () => {
-      await abrir(reporteCerrable({ lecturas: [lectura(true)], patron: vigente }));
+      await abrir(reporteCerrable({ lecturas: [lectura(true)], patrones: [vigente] }));
 
       expect(panel()).toContain('100 %');
       expect(panel()).not.toContain('(falta)');
@@ -635,7 +647,7 @@ describe('Ficha de un reporte de servicio', () => {
     });
 
     it('operativo con una lectura fuera de tolerancia lo advierte, sin impedirlo', async () => {
-      await abrir(reporteCerrable({ lecturas: [lectura(true), lectura(false)], patron: vigente }));
+      await abrir(reporteCerrable({ lecturas: [lectura(true), lectura(false)], patrones: [vigente] }));
 
       const aviso = raiz().querySelector('[data-aviso-conformidad]')!;
       expect(aviso.textContent).toContain('Una lectura quedó fuera de tolerancia');
@@ -646,7 +658,7 @@ describe('Ficha de un reporte de servicio', () => {
       await abrir(
         reporteCerrable({
           lecturas: [lectura(false)],
-          patron: vigente,
+          patrones: [vigente],
           resultado: 'OPERATIVO_CON_RESTRICCIONES',
         }),
       );
@@ -657,7 +669,7 @@ describe('Ficha de un reporte de servicio', () => {
       await abrir(
         reporteCerrable({
           lecturas: [{ ...lectura(true), tolerancia: undefined, conforme: undefined }],
-          patron: vigente,
+          patrones: [vigente],
         }),
       );
 
@@ -665,7 +677,7 @@ describe('Ficha de un reporte de servicio', () => {
     });
 
     it('todo conforme y operativo tampoco avisa', async () => {
-      await abrir(reporteCerrable({ lecturas: [lectura(true)], patron: vigente }));
+      await abrir(reporteCerrable({ lecturas: [lectura(true)], patrones: [vigente] }));
 
       expect(raiz().querySelector('[data-aviso-conformidad]')).toBeNull();
     });

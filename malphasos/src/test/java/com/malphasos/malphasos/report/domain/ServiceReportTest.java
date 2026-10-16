@@ -16,6 +16,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportF
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportOpenedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardChosenEvent;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardRemovedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportVerifiedEvent;
 import com.malphasos.malphasos.shared.domain.events.DomainEvent;
 import java.math.BigDecimal;
@@ -435,49 +436,143 @@ class ServiceReportTest {
     }
 
     @Nested
-    @DisplayName("El patron (V27)")
-    class ElPatron {
+    @DisplayName("Los patrones de cada verificacion (V27; por verificacion desde V30)")
+    class LosPatrones {
+
+        /** Otra verificacion del mismo tipo: un termohigrometro mide temperatura y humedad. */
+        private static final UUID OTRA = UUID.randomUUID();
+
+        private static List<UUID> idsEn(ServiceReport reporte, UUID verificacion) {
+            return reporte.patronesActivos().stream()
+                    .filter(usado -> usado.idVerificacion().equals(verificacion))
+                    .map(usado -> usado.patron().id())
+                    .toList();
+        }
 
         @Test
-        @DisplayName("elegirlo emite su evento, y elegir el mismo otra vez no")
-        void elegirlo() {
+        @DisplayName("ponerlo emite su evento, y ponerlo otra vez con lo mismo copiado no")
+        void ponerlo() {
             ServiceReport reporte = unReporte();
             UsedReferenceStandard patron = unPatronQueVence(LocalDate.now().plusYears(1));
 
-            reporte.useReferenceStandard(patron);
+            reporte.useReferenceStandard(VERIFICACION, patron);
             assertThat(tiposDe(reporte)).containsExactly(ServiceReportStandardChosenEvent.TYPE);
-            assertThat(reporte.getPatron()).isEqualTo(patron);
+            assertThat(reporte.patronesActivos()).singleElement()
+                    .satisfies(usado -> assertThat(usado.patron()).isEqualTo(patron))
+                    .satisfies(usado -> assertThat(usado.idVerificacion()).isEqualTo(VERIFICACION));
 
-            reporte.useReferenceStandard(new UsedReferenceStandard(patron.id(), patron.nombre(), patron.marca(),
-                    patron.serie(), patron.certificado(), patron.vencimiento()));
+            reporte.useReferenceStandard(VERIFICACION, new UsedReferenceStandard(patron.id(), patron.nombre(),
+                    patron.marca(), patron.serie(), patron.certificado(), patron.vencimiento()));
             assertThat(tiposDe(reporte)).isEmpty();
         }
 
         @Test
-        @DisplayName("cambiarlo por otro si emite")
-        void cambiarlo() {
+        @DisplayName("una verificacion admite varios, y cada verificacion tiene los suyos")
+        void variosPorVerificacion() {
             ServiceReport reporte = unReporte();
-            reporte.useReferenceStandard(unPatronQueVence(LocalDate.now().plusYears(1)));
+            UsedReferenceStandard pesas1 = unPatronQueVence(LocalDate.now().plusYears(1));
+            UsedReferenceStandard pesas2 = unPatronQueVence(LocalDate.now().plusYears(1));
+
+            reporte.useReferenceStandard(VERIFICACION, pesas1);
+            reporte.useReferenceStandard(VERIFICACION, pesas2);
+            reporte.useReferenceStandard(OTRA, pesas1);
+
+            assertThat(idsEn(reporte, VERIFICACION)).containsExactly(pesas1.id(), pesas2.id());
+            assertThat(idsEn(reporte, OTRA)).containsExactly(pesas1.id());
+        }
+
+        @Test
+        @DisplayName("ponerlo con el certificado renovado refresca la copia en su sitio, sin duplicarlo")
+        void refrescar() {
+            ServiceReport reporte = unReporte();
+            UsedReferenceStandard viejo = unPatronQueVence(LocalDate.now().plusDays(3));
+            reporte.useReferenceStandard(VERIFICACION, viejo);
+            UUID fila = reporte.getPatrones().getFirst().id();
             reporte.pullEvents();
 
-            reporte.useReferenceStandard(unPatronQueVence(LocalDate.now().plusYears(2)));
+            UsedReferenceStandard renovado = new UsedReferenceStandard(viejo.id(), viejo.nombre(), viejo.marca(),
+                    viejo.serie(), "CAL-2", LocalDate.now().plusYears(1));
+            reporte.useReferenceStandard(VERIFICACION, renovado);
 
+            assertThat(reporte.getPatrones()).singleElement().satisfies(usado -> {
+                assertThat(usado.id()).isEqualTo(fila);
+                assertThat(usado.patron().certificado()).isEqualTo("CAL-2");
+            });
             assertThat(tiposDe(reporte)).containsExactly(ServiceReportStandardChosenEvent.TYPE);
         }
 
         @Test
-        @DisplayName("no se elige en un reporte cerrado, ni se elige ninguno")
-        void soloEnBorrador() {
-            assertThatIllegalStateException().isThrownBy(() -> unReporteCerrado()
-                    .useReferenceStandard(unPatronQueVence(LocalDate.now().plusYears(1))));
-            assertThatIllegalArgumentException().isThrownBy(() -> unReporte().useReferenceStandard(null));
+        @DisplayName("quitarlo lo retira sin borrarlo, quitarlo dos veces anuncia una, y ponerlo lo reactiva")
+        void quitarYVolver() {
+            ServiceReport reporte = unReporte();
+            UsedReferenceStandard patron = unPatronQueVence(LocalDate.now().plusYears(1));
+            reporte.useReferenceStandard(VERIFICACION, patron);
+            UUID fila = reporte.getPatrones().getFirst().id();
+            reporte.pullEvents();
+
+            reporte.removeReferenceStandard(VERIFICACION, patron.id());
+            reporte.removeReferenceStandard(VERIFICACION, patron.id());
+            assertThat(tiposDe(reporte)).containsExactly(ServiceReportStandardRemovedEvent.TYPE);
+            assertThat(reporte.patronesActivos()).isEmpty();
+            assertThat(reporte.getPatrones()).singleElement()
+                    .satisfies(usado -> assertThat(usado.estadoActivo()).isFalse());
+
+            // Volver a ponerlo, aun con lo mismo copiado, es un cambio: estaba quitado.
+            reporte.useReferenceStandard(VERIFICACION, patron);
+            assertThat(tiposDe(reporte)).containsExactly(ServiceReportStandardChosenEvent.TYPE);
+            assertThat(reporte.getPatrones()).singleElement().satisfies(usado -> {
+                assertThat(usado.id()).isEqualTo(fila);
+                assertThat(usado.estadoActivo()).isTrue();
+            });
         }
 
         @Test
-        @DisplayName("con lecturas y sin patron no se cierra")
+        @DisplayName("quitarlo de una verificacion no lo quita de la otra")
+        void quitarDeUna() {
+            ServiceReport reporte = unReporte();
+            UsedReferenceStandard patron = unPatronQueVence(LocalDate.now().plusYears(1));
+            reporte.useReferenceStandard(VERIFICACION, patron);
+            reporte.useReferenceStandard(OTRA, patron);
+
+            reporte.removeReferenceStandard(OTRA, patron.id());
+
+            assertThat(idsEn(reporte, VERIFICACION)).containsExactly(patron.id());
+            assertThat(idsEn(reporte, OTRA)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("quitar uno que nunca estuvo no hace nada")
+        void quitarElQueNoEsta() {
+            ServiceReport reporte = unReporte();
+
+            reporte.removeReferenceStandard(VERIFICACION, UUID.randomUUID());
+
+            assertThat(tiposDe(reporte)).isEmpty();
+            assertThat(reporte.getPatrones()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("ni se pone ni se quita en un reporte cerrado, ni se pone sin verificacion o sin patron")
+        void soloEnBorrador() {
+            UsedReferenceStandard patron = unPatronQueVence(LocalDate.now().plusYears(1));
+
+            assertThatIllegalStateException().isThrownBy(() -> unReporteCerrado()
+                    .useReferenceStandard(VERIFICACION, patron));
+            assertThatIllegalStateException().isThrownBy(() -> unReporteCerrado()
+                    .removeReferenceStandard(VERIFICACION, patron.id()));
+            assertThatIllegalArgumentException()
+                    .isThrownBy(() -> unReporte().useReferenceStandard(VERIFICACION, null));
+            assertThatIllegalArgumentException()
+                    .isThrownBy(() -> unReporte().useReferenceStandard(null, patron));
+        }
+
+        @Test
+        @DisplayName("con lecturas y sin patron en su verificacion no se cierra")
         void lecturasSinPatron() {
             ServiceReport reporte = unReporteCerrable();
             reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
+            // Un patron en otra verificacion no cuenta: no es contra el que se tomaron estas lecturas.
+            reporte.useReferenceStandard(OTRA, unPatronQueVence(LocalDate.now().plusYears(1)));
 
             assertThatIllegalStateException().isThrownBy(reporte::finish)
                     .withMessageContaining("patron");
@@ -485,11 +580,25 @@ class ServiceReportTest {
         }
 
         @Test
-        @DisplayName("con un patron vencido ayer no se cierra, aunque este todo lo demas")
+        @DisplayName("un patron quitado tampoco cuenta para cerrar")
+        void quitadoNoCuenta() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
+            UsedReferenceStandard patron = unPatronQueVence(LocalDate.now().plusYears(1));
+            reporte.useReferenceStandard(VERIFICACION, patron);
+            reporte.removeReferenceStandard(VERIFICACION, patron.id());
+
+            assertThatIllegalStateException().isThrownBy(reporte::finish);
+        }
+
+        @Test
+        @DisplayName("con un patron vencido ayer no se cierra, aunque su verificacion no tenga lecturas")
         void patronVencido() {
             ServiceReport reporte = unReporteCerrable();
             reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
-            reporte.useReferenceStandard(unPatronQueVence(LocalDate.now().minusDays(1)));
+            reporte.useReferenceStandard(VERIFICACION, unPatronQueVence(LocalDate.now().plusYears(1)));
+            // El informe los imprime todos: uno vencido no certifica nada, mida lo que mida.
+            reporte.useReferenceStandard(OTRA, unPatronQueVence(LocalDate.now().minusDays(1)));
 
             assertThatIllegalStateException().isThrownBy(reporte::finish)
                     .withMessageContaining("vencio");
@@ -497,11 +606,26 @@ class ServiceReportTest {
         }
 
         @Test
+        @DisplayName("uno vencido y quitado ya no impide cerrar")
+        void vencidoQuitado() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
+            reporte.useReferenceStandard(VERIFICACION, unPatronQueVence(LocalDate.now().plusYears(1)));
+            UsedReferenceStandard vencido = unPatronQueVence(LocalDate.now().minusDays(1));
+            reporte.useReferenceStandard(VERIFICACION, vencido);
+            reporte.removeReferenceStandard(VERIFICACION, vencido.id());
+
+            reporte.finish();
+
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
+        }
+
+        @Test
         @DisplayName("un patron que vence hoy todavia vale: vence al terminar el dia")
         void patronQueVenceHoy() {
             ServiceReport reporte = unReporteCerrable();
             reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
-            reporte.useReferenceStandard(unPatronQueVence(LocalDate.now()));
+            reporte.useReferenceStandard(VERIFICACION, unPatronQueVence(LocalDate.now()));
 
             reporte.finish();
 

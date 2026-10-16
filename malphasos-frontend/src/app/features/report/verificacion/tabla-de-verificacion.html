@@ -35,65 +35,6 @@
       </div>
     }
 
-    <!--
-      El patron, antes que las tablas: es contra lo que se mide, y sin el las lecturas no dicen nada.
-      Se guarda al elegirlo, como un paso del protocolo. Solo se ofrecen los vigentes hoy: uno vencido
-      no dejaria cerrar el reporte (2026-10-14).
-    -->
-    <div class="mt-2 border border-neutral-300 p-2" data-bloque="patron">
-      <label class="block font-bold" for="patronUsado">
-        Patrón usado
-        @if (editable()) {
-          <span class="text-accent-700" aria-hidden="true">*</span>
-        }
-      </label>
-      @if (editable()) {
-        <select
-          id="patronUsado"
-          class="campo mt-1 min-h-tactil w-full max-w-[32rem]"
-          aria-describedby="ayuda-patron"
-          [disabled]="eleccion.isPending()"
-          (change)="elegirPatron($any($event.target).value)"
-        >
-          <option value="" [selected]="!patron()">
-            {{ elegibles().length ? 'Elija un patrón vigente' : 'No hay patrones vigentes' }}
-          </option>
-          @for (opcion of elegibles(); track opcion.id) {
-            <option [value]="opcion.id" [selected]="opcion.id === patron()?.id">
-              {{ opcion.nombre }} · serie {{ opcion.serie }}
-            </option>
-          }
-        </select>
-        <p class="mt-1 text-sm text-neutral-700" id="ayuda-patron">
-          Se guarda al elegirlo. El reporte copia su certificado de hoy: renovarlo después en el
-          catálogo no cambia este reporte.
-        </p>
-      }
-      @if (patron(); as usado) {
-        <p class="mt-1" data-patron-usado>
-          <strong>{{ usado.nombre }}</strong>
-          @if (usado.marca) {
-            · {{ usado.marca }}
-          }
-          · serie {{ usado.serie }} · certificado {{ usado.certificado }} ·
-          <span [class.font-extrabold]="patronVencido()"
-            >{{ patronVencido() ? 'venció el' : 'vence el' }}
-            {{ fechaCorta(usado.vencimiento) }}</span
-          >
-        </p>
-        @if (patronVencido() && editable()) {
-          <p
-            class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-1.5 font-semibold"
-            role="alert"
-          >
-            Con el certificado vencido el reporte no se puede cerrar. Elija otro patrón.
-          </p>
-        }
-      } @else if (!editable()) {
-        <p class="mt-1 text-neutral-700">No se registró contra qué patrón se midió.</p>
-      }
-    </div>
-
     <form [formGroup]="formulario" (ngSubmit)="guardar()">
       <!--
         Una tabla por verificacion, con la unidad en su cabecera. La unidad va arriba y no en cada
@@ -116,6 +57,95 @@
               sin tolerancia: no se dice si cada lectura es conforme
             }
           </p>
+
+          <!--
+            Los patrones de esta verificacion, antes que su tabla: es contra lo que se mide, y sin
+            ellos las lecturas no dicen nada. Varios por verificacion desde V30: una balanza se verifica
+            con tres juegos de pesas. Se guardan al elegirlos, como un paso del protocolo, y solo se
+            ofrecen los vigentes hoy: uno vencido no dejaria cerrar el reporte.
+          -->
+          <div
+            class="mt-1 border border-neutral-300 p-2"
+            [attr.data-patrones]="grupo.idVerificacion"
+          >
+            <p class="font-bold">Patrones de {{ grupo.magnitud }}</p>
+            @for (usado of patronesDe(grupo.idVerificacion); track usado.id) {
+              <div class="mt-1 flex flex-wrap items-center gap-x-1.5" data-patron-usado>
+                <p>
+                  <strong>{{ usado.nombre }}</strong>
+                  @if (usado.marca) {
+                    · {{ usado.marca }}
+                  }
+                  · serie {{ usado.serie }} · certificado {{ usado.certificado }} ·
+                  <span [class.font-extrabold]="vencido(usado)"
+                    >{{ vencido(usado) ? 'venció el' : 'vence el' }}
+                    {{ fechaCorta(usado.vencimiento) }}</span
+                  >
+                </p>
+                @if (editable()) {
+                  <button
+                    class="min-h-tactil px-1 underline"
+                    type="button"
+                    [attr.aria-label]="'Quitar ' + usado.nombre + ' de ' + grupo.magnitud"
+                    [disabled]="retiro.isPending()"
+                    (click)="quitarPatron(grupo.idVerificacion, usado.id!)"
+                  >
+                    Quitar
+                  </button>
+                }
+              </div>
+              @if (vencido(usado) && editable()) {
+                <p
+                  class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-1.5 font-semibold"
+                  role="alert"
+                >
+                  Con el certificado de {{ usado.nombre }} vencido el reporte no se puede cerrar.
+                  Quítelo y elija otro.
+                </p>
+              }
+            } @empty {
+              @if (!editable()) {
+                <p class="mt-1 text-neutral-700">No se registró contra qué patrón se midió.</p>
+              } @else if (tieneLecturas(grupo.idVerificacion)) {
+                <p class="mt-1 font-semibold">
+                  Estas lecturas necesitan al menos un patrón para poder cerrar el reporte.
+                </p>
+              }
+            }
+            @if (editable()) {
+              <label class="mt-1.5 block" [for]="'patron-nuevo-' + grupo.idVerificacion">
+                Añadir un patrón
+              </label>
+              <select
+                #desplegable
+                class="campo mt-1 min-h-tactil w-full max-w-[32rem]"
+                [id]="'patron-nuevo-' + grupo.idVerificacion"
+                [attr.aria-describedby]="'ayuda-patron-' + grupo.idVerificacion"
+                [disabled]="eleccion.isPending()"
+                (change)="ponerPatron(grupo.idVerificacion, desplegable)"
+              >
+                <option value="">
+                  {{
+                    elegiblesPara(grupo.idVerificacion).length
+                      ? 'Elija un patrón vigente'
+                      : 'No quedan patrones vigentes por añadir'
+                  }}
+                </option>
+                @for (opcion of elegiblesPara(grupo.idVerificacion); track opcion.id) {
+                  <option [value]="opcion.id">
+                    {{ opcion.nombre }} · serie {{ opcion.serie }}
+                  </option>
+                }
+              </select>
+              <p
+                class="mt-1 text-sm text-neutral-700"
+                [id]="'ayuda-patron-' + grupo.idVerificacion"
+              >
+                Se guarda al elegirlo. El reporte copia su certificado de hoy: renovarlo después en
+                el catálogo no cambia este reporte.
+              </p>
+            }
+          </div>
 
           <table class="tabla mt-1 max-w-[720px]">
             <caption class="text-left text-neutral-700">

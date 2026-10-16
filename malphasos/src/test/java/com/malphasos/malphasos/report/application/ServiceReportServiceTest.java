@@ -31,6 +31,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
@@ -754,7 +755,7 @@ class ServiceReportServiceTest {
                             new BigDecimal("50"), new BigDecimal("50.2"), "mmHg"),
                     VerificationReading.of(verificacion, punto.id(), 2,
                             new BigDecimal("50"), new BigDecimal("49.9"), "mmHg")));
-            reporte.useReferenceStandard(PATRON_VIGENTE);
+            reporte.useReferenceStandard(verificacion, PATRON_VIGENTE);
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -890,7 +891,8 @@ class ServiceReportServiceTest {
                             new BigDecimal("1"), new BigDecimal("1.1"), "mmHg"),
                     VerificationReading.of(tipo.verificacionesActivas().get(1).id(), null, 1,
                             new BigDecimal("37"), new BigDecimal("36.8"), "°C")));
-            reporte.useReferenceStandard(PATRON_VIGENTE);
+            reporte.useReferenceStandard(tipo.verificacionesActivas().getFirst().id(), PATRON_VIGENTE);
+            reporte.useReferenceStandard(tipo.verificacionesActivas().get(1).id(), PATRON_VIGENTE);
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -944,7 +946,7 @@ class ServiceReportServiceTest {
             reporte.recordVerification(List.of(VerificationReading.of(
                     laVerificacionDe(tipo).id(), null, 1,
                     new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
-            reporte.useReferenceStandard(PATRON_VIGENTE);
+            reporte.useReferenceStandard(laVerificacionDe(tipo).id(), PATRON_VIGENTE);
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -1001,54 +1003,128 @@ class ServiceReportServiceTest {
         }
 
         @Test
-        @DisplayName("elegir un patron copia lo que el catalogo dice hoy de el")
-        void eligeElPatron() {
+        @DisplayName("poner un patron copia en su verificacion lo que el catalogo dice hoy de el, ficha incluida")
+        void poneElPatron() {
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
+            UUID verificacion = laVerificacionDe(tipo).id();
             ServiceReport reporte = unReporte();
+            ReferenceStandardSheet ficha = new ReferenceStandardSheet("MS-F1", "BB-PAT-003", "1 mg a 2 kg",
+                    "0,1 mg", LocalDate.of(2026, 4, 30), "Metrologia Andina");
             ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Juego de pesas",
-                    "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30), ReferenceStandardSheet.VACIA,
-                    true);
+                    "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30), ficha, true);
             estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
             when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
 
-            service.useReferenceStandard(new UseReferenceStandardCommand(reporte.getId(), patron.getId()));
+            service.useReferenceStandard(
+                    new UseReferenceStandardCommand(reporte.getId(), verificacion, patron.getId()));
 
-            assertThat(reporte.getPatron()).isEqualTo(new UsedReferenceStandard(patron.getId(),
-                    "Juego de pesas", "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30)));
+            assertThat(reporte.patronesActivos()).singleElement().satisfies(usado -> {
+                assertThat(usado.idVerificacion()).isEqualTo(verificacion);
+                assertThat(usado.patron()).isEqualTo(new UsedReferenceStandard(patron.getId(), "Juego de pesas",
+                        "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30), "MS-F1", "BB-PAT-003",
+                        "1 mg a 2 kg", "0,1 mg", LocalDate.of(2026, 4, 30), "Metrologia Andina"));
+            });
             verify(serviceReportPersistencePort).save(reporte);
         }
 
         @Test
-        @DisplayName("un patron retirado no se puede elegir, y no se guarda nada")
-        void patronRetirado() {
+        @DisplayName("en una verificacion que no es del tipo del equipo no se pone, y no se guarda nada")
+        void verificacionAjena() {
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
             ServiceReport reporte = unReporte();
             ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Termometro", null,
-                    "T-9", "CAL-9", LocalDate.now().plusYears(1), ReferenceStandardSheet.VACIA, false);
+                    "T-9", "CAL-9", LocalDate.now().plusYears(1), ReferenceStandardSheet.VACIA, true);
             estubarReporte(reporte);
-            when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+            estubarCadenaDelCatalogo(tipo);
+            // Si la guarda no estuviera, el patron se pondria: se deja disponible para que no sea eso.
+            lenient().when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
 
             assertThatThrownBy(() -> service.useReferenceStandard(
-                            new UseReferenceStandardCommand(reporte.getId(), patron.getId())))
+                            new UseReferenceStandardCommand(reporte.getId(), UUID.randomUUID(), patron.getId())))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("retirado");
-            assertThat(reporte.getPatron()).isNull();
+                    .hasMessageContaining("no es una verificacion activa");
+            assertThat(reporte.getPatrones()).isEmpty();
             verify(serviceReportPersistencePort, never()).save(any());
         }
 
         @Test
-        @DisplayName("uno vencido si se puede elegir: lo que no deja es cerrar")
-        void patronVencidoSeElige() {
+        @DisplayName("un patron retirado no se puede poner, y no se guarda nada")
+        void patronRetirado() {
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
+            ServiceReport reporte = unReporte();
+            ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Termometro", null,
+                    "T-9", "CAL-9", LocalDate.now().plusYears(1), ReferenceStandardSheet.VACIA, false);
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+            when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+
+            assertThatThrownBy(() -> service.useReferenceStandard(new UseReferenceStandardCommand(
+                            reporte.getId(), laVerificacionDe(tipo).id(), patron.getId())))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("retirado");
+            assertThat(reporte.getPatrones()).isEmpty();
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("uno vencido si se puede poner: lo que no deja es cerrar")
+        void patronVencidoSePone() {
             // Decision tomada a proposito: la vigencia se juzga el dia del cierre, que es el del servicio.
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
             ServiceReport reporte = unReporte();
             ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Termometro", null,
                     "T-9", "CAL-9", LocalDate.now().minusDays(1), ReferenceStandardSheet.VACIA, true);
             estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
             when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
 
-            service.useReferenceStandard(new UseReferenceStandardCommand(reporte.getId(), patron.getId()));
+            service.useReferenceStandard(new UseReferenceStandardCommand(
+                    reporte.getId(), laVerificacionDe(tipo).id(), patron.getId()));
 
-            assertThat(reporte.getPatron().id()).isEqualTo(patron.getId());
+            assertThat(reporte.patronesActivos()).singleElement()
+                    .satisfies(usado -> assertThat(usado.patron().id()).isEqualTo(patron.getId()));
+        }
+
+        @Test
+        @DisplayName("quitar un patron lo retira y guarda, sin consultar el catalogo")
+        void quitaElPatron() {
+            UUID verificacion = UUID.randomUUID();
+            ServiceReport reporte = unReporte();
+            reporte.useReferenceStandard(verificacion, PATRON_VIGENTE);
+            reporte.pullEvents();
+            estubarReporte(reporte);
+            estubarGuardado();
+
+            service.removeReferenceStandard(
+                    new RemoveReferenceStandardCommand(reporte.getId(), verificacion, PATRON_VIGENTE.id()));
+
+            assertThat(reporte.patronesActivos()).isEmpty();
+            verify(serviceReportPersistencePort).save(reporte);
+            verify(referenceStandardServicePort, never()).findById(any());
+        }
+
+        @Test
+        @DisplayName("al cerrar, una verificacion con lecturas y sin patron se nombra por su magnitud")
+        void cierreSinPatronDiceLaMagnitud() {
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Barrido", null, ServiceResult.OPERATIVO);
+            reporte.recordVerification(List.of(VerificationReading.of(laVerificacionDe(tipo).id(), null, 1,
+                    new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
+            reporte.pullEvents();
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+            lenient().when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+                    .thenReturn(unaOrdenEnEjecucion());
+
+            assertThatThrownBy(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("de Presión tiene lecturas");
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
+            verify(serviceReportPersistencePort, never()).save(any());
         }
 
         @Test

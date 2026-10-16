@@ -133,8 +133,8 @@ export class TablaDeVerificacion {
   readonly idEquipoCliente = input.required<string>();
   readonly lecturas = input<readonly LecturaDeVerificacion[]>([]);
   readonly editable = input(false);
-  /** El patrón ya elegido, como lo copió el reporte. Nulo mientras no se elija. */
-  readonly patron = input<PatronUsado | null>(null);
+  /** Los patrones ya puestos en cada verificación, como los copió el reporte (V30). */
+  readonly patrones = input<readonly PatronUsado[]>([]);
 
   private readonly fb = inject(FormBuilder);
   private readonly catalogo = inject(CatalogoApi);
@@ -142,31 +142,60 @@ export class TablaDeVerificacion {
   private readonly reportes = inject(ReporteApi);
   protected readonly registro = this.reportes.registrarVerificacion();
   protected readonly eleccion = this.reportes.usarPatron();
+  protected readonly retiro = this.reportes.quitarPatron();
 
-  // --- El patron (V27, 2026-10-14) ----------------------------------------------
+  // --- Los patrones de cada verificacion (V27; por verificacion desde V30) ---------
 
   private readonly hoy = fechaIso(inject(HOY)());
-  private readonly patrones = this.catalogo.listarPatrones();
+  private readonly catalogoDePatrones = this.catalogo.listarPatrones();
 
   /**
    * Los que se pueden elegir: vigentes hoy y sin retirar, por nombre. Uno vencido no se ofrece aunque
    * el servidor lo deje elegir: no dejaría cerrar, y ofrecerlo sería ofrecer un callejón.
    */
-  protected readonly elegibles = computed(() =>
-    (this.patrones.data() ?? [])
+  private readonly elegibles = computed(() =>
+    (this.catalogoDePatrones.data() ?? [])
       .filter((patron) => patron.estadoActivo && (patron.vencimientoCertificado ?? '') >= this.hoy)
       .sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? '', 'es')),
   );
 
-  protected readonly patronVencido = computed(() => patronVencido(this.patron(), this.hoy));
+  /** Los patrones puestos en una verificación, en el orden en que se pusieron. */
+  protected patronesDe(idVerificacion: string): readonly PatronUsado[] {
+    return this.patrones().filter((usado) => usado.idVerificacion === idVerificacion);
+  }
+
+  /** Los elegibles que esa verificación todavía no tiene: el mismo patrón dos veces no suma nada. */
+  protected elegiblesPara(idVerificacion: string) {
+    const puestos = new Set(this.patronesDe(idVerificacion).map((usado) => usado.id));
+
+    return this.elegibles().filter((patron) => !puestos.has(patron.id));
+  }
+
+  /** Si una verificación tiene lecturas guardadas: entonces le hace falta al menos un patrón. */
+  protected tieneLecturas(idVerificacion: string): boolean {
+    return this.lecturas().some((lectura) => lectura.idVerificacion === idVerificacion);
+  }
+
+  protected vencido(usado: PatronUsado): boolean {
+    return patronVencido(usado, this.hoy);
+  }
+
   protected readonly fechaCorta = fechaCorta;
 
-  protected elegirPatron(idEquipoPatron: string): void {
-    if (!idEquipoPatron || idEquipoPatron === this.patron()?.id) {
+  /** Se guarda al elegirlo, y el desplegable vuelve a su primera opción para poder elegir otro. */
+  protected ponerPatron(idVerificacion: string, desplegable: HTMLSelectElement): void {
+    const idEquipoPatron = desplegable.value;
+    desplegable.value = '';
+
+    if (!idEquipoPatron) {
       return;
     }
 
-    this.eleccion.mutate({ id: this.idReporte(), idEquipoPatron });
+    this.eleccion.mutate({ id: this.idReporte(), idVerificacion, idEquipoPatron });
+  }
+
+  protected quitarPatron(idVerificacion: string, idEquipoPatron: string): void {
+    this.retiro.mutate({ id: this.idReporte(), idVerificacion, idEquipoPatron });
   }
 
   // --- La cadena del catalogo, cuatro eslabones -------------------------------
@@ -238,9 +267,11 @@ export class TablaDeVerificacion {
     }));
   });
 
-  protected readonly hayError = computed(() => this.registro.isError() || this.eleccion.isError());
+  protected readonly hayError = computed(
+    () => this.registro.isError() || this.eleccion.isError() || this.retiro.isError(),
+  );
   protected readonly mensajeDeError = computed(() =>
-    traducirError(this.registro.error() ?? this.eleccion.error()),
+    traducirError(this.registro.error() ?? this.eleccion.error() ?? this.retiro.error()),
   );
 
   /** La tolerancia en la cabecera de cada tabla, con su unidad: «±0,5 °C». */

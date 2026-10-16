@@ -7,7 +7,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,25 +66,6 @@ public class ServiceReportEntity {
     @Column(name = "t_repuestos")
     private String repuestos;
 
-    /** El patrón usado y lo que decía ese día. Todas nulas o todas puestas, salvo la marca. Desde V27. */
-    @Column(name = "k_id_equipo_patron")
-    private UUID idEquipoPatron;
-
-    @Column(name = "n_patron_nombre")
-    private String patronNombre;
-
-    @Column(name = "n_patron_marca")
-    private String patronMarca;
-
-    @Column(name = "k_patron_serie")
-    private String patronSerie;
-
-    @Column(name = "n_patron_certificado")
-    private String patronCertificado;
-
-    @Column(name = "f_patron_vencimiento")
-    private LocalDate patronVencimiento;
-
     @Column(name = "t_resultado")
     private String resultado;
 
@@ -102,4 +82,8 @@ public class ServiceReportEntity {
     /** Los pasos del protocolo, desde V22. */
     @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ReportStepEntity> pasos = new ArrayList<>();
+
+    /** Los patrones de cada verificación, desde V30. */
+    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<VerificationStandardEntity> patrones = new ArrayList<>();
 }

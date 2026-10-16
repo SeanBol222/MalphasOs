@@ -15,6 +15,13 @@ import {
   ReporteDeServicio,
 } from '../../core/api/tipos';
 
+/** Qué patrón, en qué verificación de qué reporte (V30). */
+export interface PatronDeVerificacion {
+  readonly id: string;
+  readonly idVerificacion: string;
+  readonly idEquipoPatron: string;
+}
+
 /**
  * La unica puerta al servidor para los reportes de servicio.
  *
@@ -166,20 +173,38 @@ export class ReporteApi {
   }
 
   /**
-   * Elige el patrón contra el que se toman las lecturas (V27). El servidor copia lo que el catálogo
-   * dice hoy de él. Como un paso, se guarda al elegirlo y la respuesta ya es el reporte entero, así que
-   * se pone en la caché en vez de recargar.
+   * Pone un patrón en una verificación del reporte (V27; por verificación desde V30). El servidor
+   * copia lo que el catálogo dice hoy de él. Como un paso, se guarda al elegirlo y la respuesta ya es
+   * el reporte entero, así que se pone en la caché en vez de recargar.
    */
   usarPatron() {
     return injectMutation(() => ({
-      mutationFn: ({ id, idEquipoPatron }: { id: string; idEquipoPatron: string }) =>
+      mutationFn: ({ id, idVerificacion, idEquipoPatron }: PatronDeVerificacion) =>
         firstValueFrom(
-          this.http.patch<ReporteDeServicio>(`${this.url}/${id}/reference-standard`, {
-            idEquipoPatron,
-          }),
+          this.http.post<ReporteDeServicio>(
+            `${this.url}/${id}/verifications/${idVerificacion}/reference-standards`,
+            { idEquipoPatron },
+          ),
         ),
       onSuccess: (reporte: ReporteDeServicio) =>
         this.queryClient.setQueryData(ReporteApi.claveDetalle(reporte.id!), reporte),
+    }));
+  }
+
+  /**
+   * Quita un patrón de una verificación (V30). El servidor responde 204 sin cuerpo, así que aquí sí se
+   * recarga el reporte.
+   */
+  quitarPatron() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, idVerificacion, idEquipoPatron }: PatronDeVerificacion) =>
+        firstValueFrom(
+          this.http.delete<void>(
+            `${this.url}/${id}/verifications/${idVerificacion}/reference-standards/${idEquipoPatron}`,
+          ),
+        ),
+      onSuccess: (_: void, { id }: PatronDeVerificacion) =>
+        this.queryClient.invalidateQueries({ queryKey: ReporteApi.claveDetalle(id) }),
     }));
   }
 
