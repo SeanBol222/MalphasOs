@@ -390,6 +390,9 @@ export type NuevaLectura = reportes['schemas']['VerificationReadingRequest'];
  */
 export type PatronUsado = reportes['schemas']['UsedReferenceStandardResponse'];
 
+/** Cuántos equipos de una orden tienen su reporte cerrado y cuántos en borrador (2026-10-16). */
+export type AvanceDeReportes = reportes['schemas']['WorkOrderReportProgressResponse'];
+
 /**
  * Si el certificado del patrón ya no vale ese día. El último día todavía vale, como en el servidor:
  * vence al terminar. Las dos fechas son «2026-10-14», así que se comparan como texto.

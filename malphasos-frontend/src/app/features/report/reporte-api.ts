@@ -7,7 +7,13 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LlenarReporte, MarcaDePaso, NuevaLectura, ReporteDeServicio } from '../../core/api/tipos';
+import {
+  AvanceDeReportes,
+  LlenarReporte,
+  MarcaDePaso,
+  NuevaLectura,
+  ReporteDeServicio,
+} from '../../core/api/tipos';
 
 /**
  * La unica puerta al servidor para los reportes de servicio.
@@ -71,6 +77,21 @@ export class ReporteApi {
           }),
         ),
       enabled: !!idEquipoCliente(),
+    }));
+  }
+
+  /**
+   * El avance de los reportes de cada orden que tenga alguno vivo: lo que el listado de órdenes enseña
+   * en cada fila (2026-10-16). Una sola consulta para todas, contada en el servidor.
+   *
+   * <p>Cuelga de {@code ['reportes']}, así que abrir, cerrar o retirar un reporte la deja caducada sin
+   * que nadie lo pida.
+   */
+  avancePorOrden(habilitada?: Signal<boolean>) {
+    return injectQuery(() => ({
+      queryKey: [...ReporteApi.CLAVE, 'avance'] as const,
+      queryFn: () => firstValueFrom(this.http.get<AvanceDeReportes[]>(`${this.url}/progress`)),
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 

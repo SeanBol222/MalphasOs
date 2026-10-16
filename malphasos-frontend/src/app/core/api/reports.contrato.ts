@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/reports/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Avance de los reportes por orden
+         * @description Para cada orden con algun reporte vivo, cuantos equipos lo tienen cerrado y cuantos en borrador. Una orden sin reportes no aparece. Acotado al alcance de quien llama.
+         */
+        get: operations["progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/reports/work-orders/{idOrdenTrabajo}": {
         parameters: {
             query?: never;
@@ -300,6 +320,20 @@ export interface components {
             valorEquipo?: number;
             valorPatron?: number;
         };
+        WorkOrderReportProgressResponse: {
+            /**
+             * Format: int64
+             * @description Equipos con su reporte vivo en borrador
+             */
+            abiertos?: number;
+            /**
+             * Format: int64
+             * @description Equipos con su reporte vivo cerrado
+             */
+            cerrados?: number;
+            /** Format: uuid */
+            idOrdenTrabajo?: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -330,6 +364,62 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ServiceReportResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    progress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderReportProgressResponse"][];
                 };
             };
             /** @description Bad Request */

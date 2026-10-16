@@ -1,11 +1,13 @@
-<div class="flex flex-wrap items-center justify-between gap-2">
-  <h1 class="titulo-pagina">Órdenes de trabajo</h1>
+<div class="flex flex-wrap items-end gap-2">
+  <div>
+    <h1 class="titulo-pagina">Órdenes de trabajo</h1>
+    <p class="mt-1 text-neutral-800">
+      Lo que hay que hacer, lo que se está haciendo y lo que falta para darlo por hecho
+    </p>
+  </div>
 
   @if (puedeProgramar()) {
-    <a
-      class="boton-primario flex min-h-tactil items-center"
-      routerLink="/ordenes/nueva"
-    >
+    <a class="boton-primario ml-auto flex min-h-tactil items-center" routerLink="/ordenes/nueva">
       Programar orden
     </a>
   }
@@ -17,45 +19,136 @@
   <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
     <p class="font-semibold">{{ mensajeDeError() }}</p>
   </div>
-} @else if (!filas().length) {
-  <p class="mt-3 text-neutral-700">
+} @else if (!(ordenes.data() ?? []).length) {
+  <p class="superficie mt-3 text-neutral-800">
     Todavía no hay órdenes programadas. Una orden se programa para un cliente y una de sus sedes, y
     después se le añaden los equipos sobre los que se trabaja.
   </p>
 } @else {
-  <table class="tabla mt-3">
-    <caption class="sr-only">Órdenes de trabajo programadas</caption>
-    <thead>
-      <tr>
-        <th scope="col" class="font-semibold">Fecha</th>
-        <th scope="col" class="font-semibold">Cliente</th>
-        <th scope="col" class="font-semibold">Sede</th>
-        <th scope="col" class="font-semibold">Servicio</th>
-        <th scope="col" class="font-semibold">Equipos</th>
-        <th scope="col" class="font-semibold">Estado</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (fila of filas(); track fila.id) {
-        <tr>
-          <td>
-            <a class="font-semibold underline" [routerLink]="['/ordenes', fila.id]">
-              {{ fila.fecha }}
-            </a>
-          </td>
-          <td>{{ fila.cliente }}</td>
-          <td>{{ fila.sede }}</td>
-          <td>{{ fila.servicio }}</td>
-          <!-- Cero equipos es un aviso, no un dato: la orden esta programada y no dice sobre que. -->
-          <td [class.font-semibold]="fila.equipos === 0">
-            {{ fila.equipos === 0 ? 'Sin equipos' : fila.equipos }}
-          </td>
-          <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
-          <td [class.font-semibold]="fila.estadoActivo">
-            {{ fila.estadoActivo ? fila.estado : 'Anulada' }}
-          </td>
-        </tr>
+  <div
+    class="superficie mt-3 flex flex-wrap items-center gap-1 p-1.5"
+    role="search"
+    aria-label="Filtrar órdenes"
+  >
+    <label class="campo flex min-h-tactil min-w-0 flex-[1_1_15rem] items-center gap-1">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+        class="text-neutral-700"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="M20 20l-4-4" />
+      </svg>
+      <span class="sr-only">Buscar órdenes</span>
+      <input
+        id="buscarOrdenes"
+        class="min-w-0 flex-1 bg-transparent outline-none"
+        type="search"
+        placeholder="Cliente o sede"
+        [formControl]="buscador"
+      />
+    </label>
+    <div class="flex flex-wrap border border-ink" role="group" aria-label="Estado">
+      @for (opcion of FILTROS; track opcion.clave; let primero = $first) {
+        <button
+          type="button"
+          class="min-h-tactil px-1.5 text-sm"
+          [class.border-l]="!primero"
+          [class.border-ink]="!primero"
+          [class]="filtro() === opcion.clave ? 'bg-ink font-bold text-white' : 'bg-white'"
+          [attr.aria-pressed]="filtro() === opcion.clave"
+          (click)="filtro.set(opcion.clave)"
+        >
+          {{ opcion.etiqueta }} · {{ cuantas()[opcion.clave] }}
+        </button>
       }
-    </tbody>
-  </table>
+    </div>
+    <label class="flex items-center gap-1 text-sm">
+      <span class="text-neutral-700">Cliente</span>
+      <select id="filtroCliente" class="campo min-h-tactil" [formControl]="cliente">
+        <option value="">Todos</option>
+        @for (opcion of opcionesDeCliente(); track opcion.id) {
+          <option [value]="opcion.id">{{ opcion.nombre }}</option>
+        }
+      </select>
+    </label>
+    @if (veIngenieros()) {
+      <label class="flex items-center gap-1 text-sm">
+        <span class="text-neutral-700">Ingeniero</span>
+        <select id="filtroIngeniero" class="campo min-h-tactil" [formControl]="ingeniero">
+          <option value="">Todos</option>
+          <option [value]="SIN_ASIGNAR">Sin asignar</option>
+          @for (opcion of opcionesDeIngeniero(); track opcion.id) {
+            <option [value]="opcion.id">{{ opcion.nombre }}</option>
+          }
+        </select>
+      </label>
+    }
+  </div>
+
+  @if (!filas().length) {
+    <p class="superficie mt-3 text-neutral-800">No hay órdenes que coincidan con estos filtros.</p>
+  } @else {
+    <table class="tabla mt-3">
+      <caption class="sr-only">
+        Órdenes de trabajo
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Fecha</th>
+          <th scope="col">Cliente y sede</th>
+          <th scope="col">Servicio</th>
+          @if (veIngenieros()) {
+            <th scope="col">Ingeniero</th>
+          }
+          <th scope="col">Reportes</th>
+          <th scope="col">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (fila of filas(); track fila.id) {
+          <tr [attr.data-orden]="fila.id">
+            <td class="whitespace-nowrap">
+              <a
+                class="block font-bold tabular-nums underline"
+                [routerLink]="['/ordenes', fila.id]"
+                >{{ fila.fecha }}</a
+              >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.dia }}</span>
+            </td>
+            <td>
+              <span class="block font-bold">{{ fila.cliente }}</span
+              >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.sede }}</span>
+            </td>
+            <td>
+              <span class="block">{{ fila.servicio }}</span
+              >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.cada }}</span>
+            </td>
+            @if (veIngenieros()) {
+              <!-- Sin ingeniero la orden no tiene quien la haga: es un aviso, y pesa. -->
+              <td [class.font-bold]="fila.sinIngeniero" data-ingeniero>{{ fila.ingeniero }}</td>
+            }
+            <td class="min-w-[11rem]" data-reportes>
+              <span class="block tabular-nums" [class.font-bold]="fila.sinEquipos">{{
+                fila.reportes
+              }}</span>
+              @if (fila.conBarra) {
+                <span
+                  class="mt-0.5 block h-[0.375rem] w-[8.75rem] bg-neutral-200"
+                  aria-hidden="true"
+                  ><span class="block h-full bg-ink" [style.width.%]="fila.avance"></span
+                ></span>
+              }
+            </td>
+            <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
+            <td [class]="fila.peso" data-estado>{{ fila.estado }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
 }
