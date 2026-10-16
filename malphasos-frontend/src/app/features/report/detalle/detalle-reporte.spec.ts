@@ -232,6 +232,12 @@ describe('Ficha de un reporte de servicio', () => {
     ).toBe(0);
   });
 
+  it('enseña el número del reporte: los seis primeros caracteres de su id (2026-10-16)', async () => {
+    await abrir(reporte({ numero: '1DC6F5' }));
+
+    expect(raiz().querySelector('[data-numero]')!.textContent).toContain('N.º 1DC6F5');
+  });
+
   it('una orden sin ingeniero lo dice, en vez de dejar el hueco en blanco', async () => {
     await abrir();
 

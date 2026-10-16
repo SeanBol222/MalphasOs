@@ -24,7 +24,11 @@
     <div class="flex flex-wrap items-start justify-between gap-2">
       <div>
         <p class="text-xs font-bold tracking-[0.14em] text-accent-700 uppercase">
-          Reporte de servicio · {{ servicio() }}
+          Reporte de servicio
+          @if (datos.numero) {
+            <span class="tabular-nums" data-numero>N.º {{ datos.numero }}</span>
+          }
+          · {{ servicio() }}
         </p>
         <h1 class="titulo-pagina mt-0.5">Reporte de {{ equipo() }}</h1>
       </div>
