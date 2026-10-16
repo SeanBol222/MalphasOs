@@ -18,6 +18,7 @@ import com.malphasos.malphasos.report.application.ports.input.ServiceReportServi
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
@@ -189,34 +190,60 @@ class ServiceReportRestAdapterTest {
                 .isEqualTo(punto);
     }
 
+    private static String rutaDePatrones(UUID reporte, UUID verificacion) {
+        return "/v1/api/reports/" + reporte + "/verifications/" + verificacion + "/reference-standards";
+    }
+
     @Test
-    @DisplayName("elegir el patron llega al servicio, y la respuesta trae lo copiado")
-    void elegirPatron() throws Exception {
+    @DisplayName("poner un patron lleva reporte, verificacion y patron al servicio, y la respuesta trae lo copiado")
+    void ponerPatron() throws Exception {
         UUID patron = UUID.randomUUID();
+        UUID verificacion = UUID.randomUUID();
         ServiceReport reporte = unReporte();
-        reporte.useReferenceStandard(new UsedReferenceStandard(patron, "Juego de pesas", null, "KF1-1",
-                "CAL-2026-0412", LocalDate.of(2027, 4, 30)));
+        reporte.useReferenceStandard(verificacion, new UsedReferenceStandard(patron, "Juego de pesas", null,
+                "KF1-1", "CAL-2026-0412", LocalDate.of(2027, 4, 30), "MS-F1", "BB-PAT-003", "1 mg a 2 kg",
+                "0,1 mg", LocalDate.of(2026, 4, 30), "Metrologia Andina"));
         when(serviceReportServicePort.useReferenceStandard(any())).thenReturn(reporte);
 
-        mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/reference-standard")
+        mockMvc.perform(post(rutaDePatrones(reporte.getId(), verificacion))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new UseReferenceStandardRequest(patron))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.patron.id").value(patron.toString()))
-                .andExpect(jsonPath("$.patron.certificado").value("CAL-2026-0412"))
-                .andExpect(jsonPath("$.patron.vencimiento").value("2027-04-30"));
+                .andExpect(jsonPath("$.patrones[0].idVerificacion").value(verificacion.toString()))
+                .andExpect(jsonPath("$.patrones[0].id").value(patron.toString()))
+                .andExpect(jsonPath("$.patrones[0].certificado").value("CAL-2026-0412"))
+                .andExpect(jsonPath("$.patrones[0].vencimiento").value("2027-04-30"))
+                .andExpect(jsonPath("$.patrones[0].codigoInterno").value("BB-PAT-003"))
+                .andExpect(jsonPath("$.patrones[0].fechaCalibracion").value("2026-04-30"))
+                .andExpect(jsonPath("$.patrones[0].empresaCalibradora").value("Metrologia Andina"));
 
         ArgumentCaptor<UseReferenceStandardCommand> comando =
                 ArgumentCaptor.forClass(UseReferenceStandardCommand.class);
         verify(serviceReportServicePort).useReferenceStandard(comando.capture());
-        assertThat(comando.getValue().id()).isEqualTo(reporte.getId());
-        assertThat(comando.getValue().idEquipoPatron()).isEqualTo(patron);
+        assertThat(comando.getValue())
+                .isEqualTo(new UseReferenceStandardCommand(reporte.getId(), verificacion, patron));
     }
 
     @Test
-    @DisplayName("elegir sin decir cual responde 400 sin llegar al servicio")
-    void elegirPatronSinPatron() throws Exception {
-        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/reference-standard")
+    @DisplayName("la respuesta solo trae los patrones que siguen puestos")
+    void soloLosPuestos() throws Exception {
+        UUID verificacion = UUID.randomUUID();
+        UsedReferenceStandard quitado = new UsedReferenceStandard(UUID.randomUUID(), "Viejo", null, "V-1", "C",
+                LocalDate.of(2027, 1, 1));
+        ServiceReport reporte = unReporte();
+        reporte.useReferenceStandard(verificacion, quitado);
+        reporte.removeReferenceStandard(verificacion, quitado.id());
+        when(serviceReportServicePort.findById(any(), any())).thenReturn(reporte);
+
+        mockMvc.perform(get("/v1/api/reports/" + reporte.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.patrones").isEmpty());
+    }
+
+    @Test
+    @DisplayName("poner sin decir cual responde 400 sin llegar al servicio")
+    void ponerPatronSinPatron() throws Exception {
+        mockMvc.perform(post(rutaDePatrones(UUID.randomUUID(), UUID.randomUUID()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
@@ -231,11 +258,25 @@ class ServiceReportRestAdapterTest {
         when(serviceReportServicePort.useReferenceStandard(any()))
                 .thenThrow(new ReferenceStandardNotFoundException(patron));
 
-        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/reference-standard")
+        mockMvc.perform(post(rutaDePatrones(UUID.randomUUID(), UUID.randomUUID()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new UseReferenceStandardRequest(patron))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_009"));
+    }
+
+    @Test
+    @DisplayName("quitar un patron responde 204 y lleva los tres identificadores de la ruta")
+    void quitarPatron() throws Exception {
+        UUID reporte = UUID.randomUUID();
+        UUID verificacion = UUID.randomUUID();
+        UUID patron = UUID.randomUUID();
+
+        mockMvc.perform(delete(rutaDePatrones(reporte, verificacion) + "/" + patron))
+                .andExpect(status().isNoContent());
+
+        verify(serviceReportServicePort).removeReferenceStandard(
+                new RemoveReferenceStandardCommand(reporte, verificacion, patron));
     }
 
     @Test
@@ -461,7 +502,9 @@ class ServiceReportRestAdapterTest {
         assertThat(docs).contains("/v1/api/reports");
         assertThat(docs).contains("/v1/api/reports/{id}/verification");
         assertThat(docs).contains("/v1/api/reports/{id}/finish");
-        assertThat(docs).contains("/v1/api/reports/{id}/reference-standard");
+        assertThat(docs).contains("/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards");
+        assertThat(docs).contains(
+                "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards/{idEquipoPatron}");
         assertThat(docs).contains("/v1/api/reports/progress");
         assertThat(docs).contains("/v1/api/reports/work-orders/{idOrdenTrabajo}");
     }

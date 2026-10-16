@@ -12,6 +12,7 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
+import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandardSheet;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
@@ -21,6 +22,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
@@ -266,7 +268,9 @@ public class ServiceReportService implements ServiceReportServicePort {
     }
 
     /**
-     * Elige el patrón contra el que se toman las lecturas, copiando lo que el catálogo dice hoy de él.
+     * Pone un patrón en una verificación del reporte, copiando lo que el catálogo dice hoy de él, ficha
+     * incluida (V30). La verificación tiene que ser una activa del tipo de este equipo: es lo mismo que
+     * se exige a las lecturas, y por el mismo camino.
      *
      * <p>Uno retirado no se puede elegir: dejó de usarse. Uno vencido sí, a propósito —se rechaza al
      * cerrar, contra el día del cierre—, porque elegirlo no certifica nada todavía, y el ingeniero puede
@@ -276,6 +280,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Transactional
     public ServiceReport useReferenceStandard(UseReferenceStandardCommand command) {
         ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        requireActiveVerification(tipoDelEquipo(reporte.getIdEquipoCliente()), command.idVerificacion());
         ReferenceStandard patron = referenceStandardServicePort.findById(command.idEquipoPatron());
 
         if (!patron.isEstadoActivo()) {
@@ -283,13 +288,33 @@ public class ServiceReportService implements ServiceReportServicePort {
                     + ") esta retirado: no se pueden tomar lecturas con el");
         }
 
-        reporte.useReferenceStandard(new UsedReferenceStandard(
+        ReferenceStandardSheet ficha = patron.getFicha();
+        reporte.useReferenceStandard(command.idVerificacion(), new UsedReferenceStandard(
                 patron.getId(),
                 patron.getNombre(),
                 patron.getMarca(),
                 patron.getSerie(),
                 patron.getCertificado(),
-                patron.getVencimientoCertificado()));
+                patron.getVencimientoCertificado(),
+                ficha.modelo(),
+                ficha.codigoInterno(),
+                ficha.rango(),
+                ficha.resolucion(),
+                ficha.fechaCalibracion(),
+                ficha.empresaCalibradora()));
+
+        return persistAndPublish(reporte);
+    }
+
+    /**
+     * Quita un patrón de una verificación. No consulta el tipo ni el catálogo: quitar lo que no está no
+     * hace nada, y lo que está ya pasó por esas comprobaciones al ponerlo.
+     */
+    @Override
+    @Transactional
+    public ServiceReport removeReferenceStandard(RemoveReferenceStandardCommand command) {
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        reporte.removeReferenceStandard(command.idVerificacion(), command.idEquipoPatron());
 
         return persistAndPublish(reporte);
     }
@@ -320,6 +345,7 @@ public class ServiceReportService implements ServiceReportServicePort {
         ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
 
         requireCompleteVerification(reporte);
+        requireStandardsForReadings(reporte);
 
         // Un correctivo exige además la falla y el diagnóstico (2026-10-14). El tipo de servicio lo
         // dice la orden, no el reporte, así que el cierre que aplica lo elige el servicio.
@@ -555,6 +581,31 @@ public class ServiceReportService implements ServiceReportServicePort {
                             + verificacion.cantidadDatos() + " lecturas que el tipo "
                             + tipo.getNombre() + " declara");
                 }
+            }
+        }
+    }
+
+    /**
+     * Cada verificación con lecturas dice contra qué patrón se tomaron (V30). El agregado lo exige
+     * también al cerrar, pero solo conoce el identificador de la verificación; aquí se tiene el tipo
+     * delante y el mensaje puede decir «temperatura» en vez de un UUID.
+     */
+    private void requireStandardsForReadings(ServiceReport reporte) {
+        List<VerificationReading> tomadas = reporte.lecturasActivas();
+        if (tomadas.isEmpty()) {
+            return;
+        }
+
+        EquipmentType tipo = tipoDelEquipo(reporte.getIdEquipoCliente());
+        for (TypeVerification verificacion : tipo.getVerificaciones()) {
+            boolean medida = tomadas.stream().anyMatch(l -> l.idVerificacion().equals(verificacion.id()));
+            boolean conPatron = reporte.patronesActivos().stream()
+                    .anyMatch(usado -> usado.idVerificacion().equals(verificacion.id()));
+
+            if (medida && !conPatron) {
+                throw new IllegalStateException("No se puede cerrar el reporte: la verificacion de "
+                        + verificacion.magnitud().nombre() + " tiene lecturas y no dice contra que patron"
+                        + " se tomaron");
             }
         }
     }

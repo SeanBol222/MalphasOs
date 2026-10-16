@@ -7,9 +7,11 @@ import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
+import com.malphasos.malphasos.report.domain.serviceReport.VerificationStandard;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ReportStepEntity;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ServiceReportEntity;
 import com.malphasos.malphasos.report.infrastructure.output.entities.VerificationReadingEntity;
+import com.malphasos.malphasos.report.infrastructure.output.entities.VerificationStandardEntity;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,15 +68,25 @@ public class ServiceReportPersistenceMapper {
                 entity.getObservaciones(),
                 entity.getCausa(),
                 entity.getRepuestos(),
-                entity.getIdEquipoPatron() == null
-                        ? null
-                        : new UsedReferenceStandard(
-                                entity.getIdEquipoPatron(),
-                                entity.getPatronNombre(),
-                                entity.getPatronMarca(),
-                                entity.getPatronSerie(),
-                                entity.getPatronCertificado(),
-                                entity.getPatronVencimiento()),
+                entity.getPatrones().stream()
+                        .map(fila -> new VerificationStandard(
+                                fila.getId(),
+                                fila.getIdVerificacion(),
+                                new UsedReferenceStandard(
+                                        fila.getIdEquipoPatron(),
+                                        fila.getNombre(),
+                                        fila.getMarca(),
+                                        fila.getSerie(),
+                                        fila.getCertificado(),
+                                        fila.getVencimiento(),
+                                        fila.getModelo(),
+                                        fila.getCodigoInterno(),
+                                        fila.getRango(),
+                                        fila.getResolucion(),
+                                        fila.getFechaCalibracion(),
+                                        fila.getEmpresaCalibradora()),
+                                fila.isEstadoActivo()))
+                        .toList(),
                 entity.getResultado() == null ? null : ServiceResult.valueOf(entity.getResultado()),
                 entity.getFinalizado(),
                 lecturas,
@@ -117,21 +129,52 @@ public class ServiceReportPersistenceMapper {
         entity.setObservaciones(reporte.getObservaciones());
         entity.setCausa(reporte.getCausa());
         entity.setRepuestos(reporte.getRepuestos());
-        UsedReferenceStandard patron = reporte.getPatron();
-        entity.setIdEquipoPatron(patron == null ? null : patron.id());
-        entity.setPatronNombre(patron == null ? null : patron.nombre());
-        entity.setPatronMarca(patron == null ? null : patron.marca());
-        entity.setPatronSerie(patron == null ? null : patron.serie());
-        entity.setPatronCertificado(patron == null ? null : patron.certificado());
-        entity.setPatronVencimiento(patron == null ? null : patron.vencimiento());
         entity.setResultado(reporte.getResultado() == null ? null : reporte.getResultado().name());
         entity.setFinalizado(reporte.getFinalizado());
         entity.setEstadoActivo(reporte.isEstadoActivo());
 
         actualizarLecturasExistentes(reporte, entity);
         volcarPasos(reporte, entity);
+        volcarPatrones(reporte, entity);
 
         return entity;
+    }
+
+    /**
+     * Los patrones de cada verificación (V30), en una sola pasada como los pasos: quitar uno lo retira
+     * y volver a ponerlo reactiva la misma fila, así que nunca hay dos filas activas compitiendo por el
+     * índice único parcial y el orden de los {@code INSERT} y los {@code UPDATE} da igual.
+     */
+    private void volcarPatrones(ServiceReport reporte, ServiceReportEntity entity) {
+        Map<UUID, VerificationStandardEntity> porId = new LinkedHashMap<>();
+        entity.getPatrones().forEach(fila -> porId.put(fila.getId(), fila));
+
+        for (VerificationStandard usado : reporte.getPatrones()) {
+            VerificationStandardEntity fila = porId.get(usado.id());
+
+            if (fila == null) {
+                fila = new VerificationStandardEntity();
+                fila.setId(usado.id());
+                fila.setReporte(entity);
+                fila.setIdVerificacion(usado.idVerificacion());
+                entity.getPatrones().add(fila);
+            }
+
+            UsedReferenceStandard patron = usado.patron();
+            fila.setIdEquipoPatron(patron.id());
+            fila.setNombre(patron.nombre());
+            fila.setMarca(patron.marca());
+            fila.setSerie(patron.serie());
+            fila.setCertificado(patron.certificado());
+            fila.setVencimiento(patron.vencimiento());
+            fila.setModelo(patron.modelo());
+            fila.setCodigoInterno(patron.codigoInterno());
+            fila.setRango(patron.rango());
+            fila.setResolucion(patron.resolucion());
+            fila.setFechaCalibracion(patron.fechaCalibracion());
+            fila.setEmpresaCalibradora(patron.empresaCalibradora());
+            fila.setEstadoActivo(usado.estadoActivo());
+        }
     }
 
     /**

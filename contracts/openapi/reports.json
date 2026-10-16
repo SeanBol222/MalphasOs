@@ -215,9 +215,12 @@
             },
             "type" : "array"
           },
-          "patron" : {
-            "$ref" : "#/components/schemas/UsedReferenceStandardResponse",
-            "description" : "El patron contra el que se tomaron las lecturas, como estaba ese dia. Nulo mientras no se elija"
+          "patrones" : {
+            "description" : "Los patrones vigentes de cada verificacion, como estaban ese dia. Desde V30; con V27 era uno por reporte",
+            "items" : {
+              "$ref" : "#/components/schemas/UsedReferenceStandardResponse"
+            },
+            "type" : "array"
           },
           "procedimientos" : {
             "type" : "string"
@@ -249,7 +252,26 @@
           "certificado" : {
             "type" : "string"
           },
+          "codigoInterno" : {
+            "description" : "Nulo si el catalogo no lo tenia",
+            "type" : "string"
+          },
+          "empresaCalibradora" : {
+            "description" : "Nula si el catalogo no la tenia",
+            "type" : "string"
+          },
+          "fechaCalibracion" : {
+            "description" : "Nula si el catalogo no la tenia",
+            "format" : "date",
+            "type" : "string"
+          },
           "id" : {
+            "description" : "El patron del catalogo",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idVerificacion" : {
+            "description" : "La verificacion del tipo de equipo en la que se uso",
             "format" : "uuid",
             "type" : "string"
           },
@@ -257,7 +279,19 @@
             "description" : "Nula si el catalogo no la tenia",
             "type" : "string"
           },
+          "modelo" : {
+            "description" : "Nulo si el catalogo no lo tenia",
+            "type" : "string"
+          },
           "nombre" : {
+            "type" : "string"
+          },
+          "rango" : {
+            "description" : "Nulo si el catalogo no lo tenia",
+            "type" : "string"
+          },
+          "resolucion" : {
+            "description" : "Nula si el catalogo no la tenia",
             "type" : "string"
           },
           "serie" : {
@@ -895,87 +929,9 @@
         "tags" : [ "ServiceReport" ]
       }
     },
-    "/v1/api/reports/{id}/reference-standard" : {
-      "patch" : {
-        "description" : "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.",
-        "operationId" : "useReferenceStandard",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UseReferenceStandardRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ServiceReportResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          }
-        },
-        "summary" : "Marcar un paso del protocolo",
-        "tags" : [ "ServiceReport" ]
-      }
-    },
     "/v1/api/reports/{id}/steps/{orden}" : {
       "patch" : {
+        "description" : "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.",
         "operationId" : "markStep",
         "parameters" : [ {
           "in" : "path",
@@ -1056,6 +1012,7 @@
             "description" : "Internal Server Error"
           }
         },
+        "summary" : "Marcar un paso del protocolo",
         "tags" : [ "ServiceReport" ]
       }
     },
@@ -1135,6 +1092,171 @@
           }
         },
         "summary" : "Registrar la verificacion metrologica",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards" : {
+      "post" : {
+        "description" : "Copia lo que el catalogo dice hoy del patron, ficha incluida. Ponerlo otra vez refresca la copia. La verificacion tiene que ser una activa del tipo del equipo, y el patron no puede estar retirado. Solo en un borrador.",
+        "operationId" : "useReferenceStandard",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "idVerificacion",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UseReferenceStandardRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Poner un patron en una verificacion",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards/{idEquipoPatron}" : {
+      "delete" : {
+        "description" : "Lo retira, no lo borra. Quitar uno que no esta no hace nada. Solo en un borrador.",
+        "operationId" : "removeReferenceStandard",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "idVerificacion",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "idEquipoPatron",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Quitar un patron de una verificacion",
         "tags" : [ "ServiceReport" ]
       }
     }

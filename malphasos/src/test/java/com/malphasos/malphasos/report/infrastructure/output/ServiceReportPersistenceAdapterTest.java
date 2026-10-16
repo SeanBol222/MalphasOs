@@ -2,6 +2,7 @@ package com.malphasos.malphasos.report.infrastructure.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
@@ -27,6 +28,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
+import com.malphasos.malphasos.report.domain.serviceReport.VerificationStandard;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
@@ -66,6 +68,7 @@ import org.springframework.test.context.jdbc.Sql;
         statements = {
             "DELETE FROM dato_verificacion",
             "DELETE FROM paso_reporte",
+            "DELETE FROM patron_verificacion_reporte",
             "DELETE FROM protocolo",
             "DELETE FROM reporte_servicio",
             "DELETE FROM equipo_patron",
@@ -343,7 +346,7 @@ class ServiceReportPersistenceAdapterTest {
     }
 
     @Nested
-    @DisplayName("El patron y la tolerancia (V27)")
+    @DisplayName("Los patrones de cada verificacion (V30) y la tolerancia (V27)")
     class ElPatron {
 
         private UUID unPatronEnElCatalogo() {
@@ -357,42 +360,91 @@ class ServiceReportPersistenceAdapterTest {
             return patron;
         }
 
+        private long filasDePatron(UUID reporte, boolean activas) {
+            return jdbcTemplate.queryForObject("SELECT count(*) FROM patron_verificacion_reporte"
+                    + " WHERE k_id_reporte_servicio = ? AND b_estado_activo = ?", Long.class, reporte, activas);
+        }
+
         @Test
-        @DisplayName("el patron vuelve con lo que se copio, aunque el catalogo cambie despues")
-        void elPatronVuelveCopiado() {
+        @DisplayName("los patrones vuelven con lo que se copio, ficha incluida, aunque el catalogo cambie despues")
+        void vuelvenCopiados() {
             Alcance alcance = unAlcance();
-            UUID idPatron = unPatronEnElCatalogo();
+            UUID pesas = unPatronEnElCatalogo();
+            UUID termometro = unPatronEnElCatalogo();
+            UsedReferenceStandard conFicha = new UsedReferenceStandard(pesas, "Juego de pesas", "Kern", "KF1-1",
+                    "CAL-2026-0412", LocalDate.of(2027, 4, 30), "MS-F1", "BB-PAT-003", "1 mg a 2 kg", "0,1 mg",
+                    LocalDate.of(2026, 4, 30), "Metrologia Andina");
+            // Sin marca y sin ficha: lo de un patron hecho en casa, o copiado antes de V30.
+            UsedReferenceStandard sinFicha = new UsedReferenceStandard(termometro, "Termometro", null, "T-9",
+                    "CAL-9", LocalDate.of(2027, 1, 1));
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
-            reporte.useReferenceStandard(new UsedReferenceStandard(idPatron, "Juego de pesas", "Kern",
-                    "KF1-1", "CAL-2026-0412", LocalDate.of(2027, 4, 30)));
+            reporte.useReferenceStandard(alcance.verificacion(), conFicha);
+            reporte.useReferenceStandard(alcance.verificacion(), sinFicha);
             adapter.save(reporte);
 
             // Se renueva el certificado en el catalogo: el reporte no se entera, y no debe.
             jdbcTemplate.update("UPDATE equipo_patron SET n_certificado = 'CAL-2027-0001',"
-                    + " f_vencimiento_certificado = '2028-04-30' WHERE k_id_equipo_patron = ?", idPatron);
+                    + " f_vencimiento_certificado = '2028-04-30' WHERE k_id_equipo_patron = ?", pesas);
 
-            UsedReferenceStandard recuperado = adapter.findById(reporte.getId()).orElseThrow().getPatron();
-
-            assertThat(recuperado).isEqualTo(new UsedReferenceStandard(idPatron, "Juego de pesas", "Kern",
-                    "KF1-1", "CAL-2026-0412", LocalDate.of(2027, 4, 30)));
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().patronesActivos())
+                    .extracting(VerificationStandard::idVerificacion, VerificationStandard::patron)
+                    .containsExactlyInAnyOrder(
+                            tuple(alcance.verificacion(), conFicha), tuple(alcance.verificacion(), sinFicha));
         }
 
         @Test
-        @DisplayName("sin patron vuelve sin patron, y uno sin marca vuelve sin marca")
-        void sinPatronYSinMarca() {
+        @DisplayName("sin patrones vuelve sin patrones")
+        void sinPatrones() {
             Alcance alcance = unAlcance();
-            ServiceReport sinPatron = ServiceReport.open(alcance.orden(), alcance.equipo());
-            adapter.save(sinPatron);
-            assertThat(adapter.findById(sinPatron.getId()).orElseThrow().getPatron()).isNull();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            adapter.save(reporte);
 
-            sinPatron.deactivate();
-            adapter.save(sinPatron);
-            ServiceReport sinMarca = ServiceReport.open(alcance.orden(), alcance.equipo());
-            sinMarca.useReferenceStandard(new UsedReferenceStandard(unPatronEnElCatalogo(), "Termometro", null,
-                    "T-9", "CAL-9", LocalDate.of(2027, 1, 1)));
-            adapter.save(sinMarca);
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().getPatrones()).isEmpty();
+        }
 
-            assertThat(adapter.findById(sinMarca.getId()).orElseThrow().getPatron().marca()).isNull();
+        @Test
+        @DisplayName("quitar uno retira su fila sin borrarla, y volver a ponerlo reactiva la misma")
+        void quitarYVolver() {
+            Alcance alcance = unAlcance();
+            UsedReferenceStandard patron = new UsedReferenceStandard(unPatronEnElCatalogo(), "Juego de pesas",
+                    "Kern", "KF1-1", "CAL-1", LocalDate.of(2027, 4, 30));
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            reporte.useReferenceStandard(alcance.verificacion(), patron);
+            adapter.save(reporte);
+
+            ServiceReport leido = adapter.findById(reporte.getId()).orElseThrow();
+            leido.removeReferenceStandard(alcance.verificacion(), patron.id());
+            adapter.save(leido);
+            assertThat(filasDePatron(reporte.getId(), false)).isEqualTo(1);
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().patronesActivos()).isEmpty();
+
+            ServiceReport otraVez = adapter.findById(reporte.getId()).orElseThrow();
+            otraVez.useReferenceStandard(alcance.verificacion(), patron);
+            adapter.save(otraVez);
+            assertThat(filasDePatron(reporte.getId(), true)).isEqualTo(1);
+            assertThat(filasDePatron(reporte.getId(), false)).isZero();
+        }
+
+        @Test
+        @DisplayName("la base no deja el mismo patron activo dos veces en la misma verificacion")
+        void unoPorVerificacion() {
+            Alcance alcance = unAlcance();
+            UUID idPatron = unPatronEnElCatalogo();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            reporte.useReferenceStandard(alcance.verificacion(), new UsedReferenceStandard(idPatron, "Pesas",
+                    null, "S", "C", LocalDate.of(2027, 1, 1)));
+            adapter.save(reporte);
+            String otra = "INSERT INTO patron_verificacion_reporte (k_id_patron_verificacion_reporte,"
+                    + " k_id_reporte_servicio, k_id_verificacion, k_id_equipo_patron, n_nombre, k_serie,"
+                    + " n_certificado, f_vencimiento, b_estado_activo) VALUES (?, ?, ?, ?, 'Pesas', 'S', 'C',"
+                    + " '2027-01-01', ?)";
+
+            assertThatThrownBy(() -> jdbcTemplate.update(
+                            otra, UUID.randomUUID(), reporte.getId(), alcance.verificacion(), idPatron, true))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            // Retirada si cabe: el indice es parcial, y las retiradas son historia.
+            assertThat(jdbcTemplate.update(
+                    otra, UUID.randomUUID(), reporte.getId(), alcance.verificacion(), idPatron, false)).isEqualTo(1);
         }
 
         @Test
@@ -417,23 +469,6 @@ class ServiceReportPersistenceAdapterTest {
             assertThat(primera.tolerancia()).isEqualByComparingTo("0.5");
             assertThat(primera.conforme()).isFalse();
             assertThat(segunda.tolerancia()).isNull();
-        }
-
-        @Test
-        @DisplayName("la base no deja un patron a medias: con identificador y sin certificado, o al reves")
-        void patronAMedias() {
-            Alcance alcance = unAlcance();
-            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
-            adapter.save(reporte);
-            UUID idPatron = unPatronEnElCatalogo();
-
-            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET k_id_equipo_patron = ?,"
-                            + " n_patron_nombre = 'Pesas', k_patron_serie = 'S', f_patron_vencimiento = '2027-01-01'"
-                            + " WHERE k_id_reporte_servicio = ?", idPatron, reporte.getId()))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET n_patron_nombre = 'Pesas'"
-                            + " WHERE k_id_reporte_servicio = ?", reporte.getId()))
-                    .isInstanceOf(DataIntegrityViolationException.class);
         }
     }
 

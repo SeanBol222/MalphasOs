@@ -9,6 +9,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.infrastructure.input.mapper.ServiceReportRestMapper;
@@ -177,22 +178,41 @@ public class ServiceReportRestAdapter {
                 new RecordVerificationCommand(id, lecturas)));
     }
 
+    /**
+     * Pone un patrón en una verificación del reporte (V27; por verificación desde V30). El reporte copia
+     * lo que el catálogo dice de él hoy; si su certificado está vencido el día del cierre, el reporte no
+     * se cierra.
+     */
+    @Operation(summary = "Poner un patron en una verificacion",
+            description = "Copia lo que el catalogo dice hoy del patron, ficha incluida. Ponerlo otra vez "
+                    + "refresca la copia. La verificacion tiene que ser una activa del tipo del equipo, y el "
+                    + "patron no puede estar retirado. Solo en un borrador.")
+    @PreAuthorize("hasAuthority('report.write')")
+    @PostMapping("/{id}/verifications/{idVerificacion}/reference-standards")
+    public ServiceReportResponse useReferenceStandard(
+            @PathVariable UUID id,
+            @PathVariable UUID idVerificacion,
+            @Valid @RequestBody UseReferenceStandardRequest request) {
+
+        return mapper.toResponse(serviceReportServicePort.useReferenceStandard(
+                new UseReferenceStandardCommand(id, idVerificacion, request.idEquipoPatron())));
+    }
+
+    @Operation(summary = "Quitar un patron de una verificacion",
+            description = "Lo retira, no lo borra. Quitar uno que no esta no hace nada. Solo en un borrador.")
+    @PreAuthorize("hasAuthority('report.write')")
+    @DeleteMapping("/{id}/verifications/{idVerificacion}/reference-standards/{idEquipoPatron}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeReferenceStandard(
+            @PathVariable UUID id, @PathVariable UUID idVerificacion, @PathVariable UUID idEquipoPatron) {
+
+        serviceReportServicePort.removeReferenceStandard(
+                new RemoveReferenceStandardCommand(id, idVerificacion, idEquipoPatron));
+    }
+
     @Operation(summary = "Marcar un paso del protocolo",
             description = "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del "
                     + "paso dentro del reporte. Solo en un borrador.")
-    /**
-     * Elige el patrón contra el que se toman las lecturas (V27). El reporte copia lo que el catálogo
-     * dice de él hoy; si su certificado está vencido el día del cierre, el reporte no se cierra.
-     */
-    @PreAuthorize("hasAuthority('report.write')")
-    @PatchMapping("/{id}/reference-standard")
-    public ServiceReportResponse useReferenceStandard(
-            @PathVariable UUID id, @Valid @RequestBody UseReferenceStandardRequest request) {
-
-        return mapper.toResponse(serviceReportServicePort.useReferenceStandard(
-                new UseReferenceStandardCommand(id, request.idEquipoPatron())));
-    }
-
     @PreAuthorize("hasAuthority('report.write')")
     @PatchMapping("/{id}/steps/{orden}")
     public ServiceReportResponse markStep(

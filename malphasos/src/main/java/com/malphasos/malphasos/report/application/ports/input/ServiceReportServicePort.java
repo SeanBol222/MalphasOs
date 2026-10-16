@@ -7,6 +7,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -55,8 +56,11 @@ public interface ServiceReportServicePort {
 
     ServiceReport recordVerification(RecordVerificationCommand command);
 
-    /** Elige el patrón contra el que se toman las lecturas, copiando lo que dice hoy el catálogo. */
+    /** Pone un patrón en una verificación del reporte, copiando lo que dice hoy el catálogo. */
     ServiceReport useReferenceStandard(UseReferenceStandardCommand command);
+
+    /** Quita un patrón de una verificación del reporte: lo retira, no lo borra. */
+    ServiceReport removeReferenceStandard(RemoveReferenceStandardCommand command);
 
     /** Marca un paso del protocolo: hecho, no aplica o pendiente otra vez. */
     ServiceReport markStep(MarkReportStepCommand command);

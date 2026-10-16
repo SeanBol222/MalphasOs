@@ -6,15 +6,19 @@ import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportF
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportOpenedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportPayload;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardChosenEvent;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardRemovedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStepMarkedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportVerifiedEvent;
 import com.malphasos.malphasos.shared.domain.events.AggregateRoot;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -72,10 +76,10 @@ public class ServiceReport extends AggregateRoot {
     private String repuestos;
 
     /**
-     * Contra qué patrón se tomaron las lecturas, copiado como estaba ese día. Nulo mientras no se elija,
-     * en los reportes sin lecturas y en los anteriores a V27.
+     * Contra qué patrones se tomaron las lecturas de cada verificación, copiados como estaban ese día,
+     * retirados incluidos. Desde V30 (2026-10-16); con V27 era un solo patrón por reporte.
      */
-    private UsedReferenceStandard patron;
+    private final List<VerificationStandard> patrones = new ArrayList<>();
 
     private ServiceResult resultado;
 
@@ -255,7 +259,7 @@ public class ServiceReport extends AggregateRoot {
                 estadoActivo);
     }
 
-    /** La rehidratación completa, con la causa y los repuestos de V24 y el patrón de V27. */
+    /** La rehidratación completa, con la causa y los repuestos de V24 y los patrones de V30. */
     public static ServiceReport rehydrate(
             UUID id,
             UUID idOrdenTrabajo,
@@ -267,7 +271,7 @@ public class ServiceReport extends AggregateRoot {
             String observaciones,
             String causa,
             String repuestos,
-            UsedReferenceStandard patron,
+            Collection<VerificationStandard> patrones,
             ServiceResult resultado,
             LocalDateTime finalizado,
             Collection<VerificationReading> lecturas,
@@ -281,7 +285,9 @@ public class ServiceReport extends AggregateRoot {
                 estadoActivo);
         reporte.causa = causa;
         reporte.repuestos = repuestos;
-        reporte.patron = patron;
+        if (patrones != null) {
+            reporte.patrones.addAll(patrones);
+        }
 
         return reporte;
     }
@@ -397,26 +403,67 @@ public class ServiceReport extends AggregateRoot {
     }
 
     /**
-     * Elige el patrón contra el que se toman las lecturas, o lo cambia. Elegir el mismo, con lo mismo
-     * copiado, no emite evento.
+     * Pone un patrón en una verificación del reporte (V30). Si ya estaba, refresca la copia con lo que
+     * el catálogo dice hoy —renovar un certificado a mitad de servicio es justo el caso—; si estaba y se
+     * quitó, lo reactiva. Ponerlo otra vez con lo mismo copiado no emite evento.
      *
-     * <p>Aquí no se comprueba que esté vigente, a propósito: se comprueba al cerrar, contra el día del
-     * cierre, que es el día del servicio. Un patrón vigente al elegirlo puede vencer antes de que el
+     * <p>Que la verificación sea del tipo de este equipo lo comprueba el servicio, que es quien sabe el
+     * tipo. Y aquí no se comprueba que esté vigente, a propósito: se comprueba al cerrar, contra el día
+     * del cierre, que es el del servicio. Un patrón vigente al elegirlo puede vencer antes de que el
      * reporte se cierre, y al revés no importa.
      */
-    public void useReferenceStandard(UsedReferenceStandard patron) {
-        exigirModificable("elegir el patron");
+    public void useReferenceStandard(UUID idVerificacion, UsedReferenceStandard patron) {
+        exigirModificable("elegir un patron");
 
+        if (idVerificacion == null) {
+            throw new IllegalArgumentException("Hay que decir en que verificacion se uso el patron");
+        }
         if (patron == null) {
             throw new IllegalArgumentException("Hay que decir que patron se uso");
         }
-        if (patron.equals(this.patron)) {
+
+        int indice = indiceDe(idVerificacion, patron.id());
+
+        if (indice < 0) {
+            patrones.add(VerificationStandard.of(idVerificacion, patron));
+        } else {
+            VerificationStandard actual = patrones.get(indice);
+            if (actual.estadoActivo() && actual.patron().equals(patron)) {
+                return;
+            }
+            patrones.set(indice, actual.withPatron(patron));
+        }
+
+        registerEvent(new ServiceReportStandardChosenEvent(
+                metadataFor(ServiceReportStandardChosenEvent.TYPE), payload()));
+    }
+
+    /**
+     * Quita un patrón de una verificación: lo retira, no lo borra. Quitar uno que no está no hace nada,
+     * como retirar dos veces.
+     */
+    public void removeReferenceStandard(UUID idVerificacion, UUID idPatron) {
+        exigirModificable("quitar un patron");
+
+        int indice = indiceDe(idVerificacion, idPatron);
+
+        if (indice < 0 || !patrones.get(indice).estadoActivo()) {
             return;
         }
 
-        this.patron = patron;
-        registerEvent(new ServiceReportStandardChosenEvent(
-                metadataFor(ServiceReportStandardChosenEvent.TYPE), payload()));
+        patrones.set(indice, patrones.get(indice).deactivated());
+        registerEvent(new ServiceReportStandardRemovedEvent(
+                metadataFor(ServiceReportStandardRemovedEvent.TYPE), payload()));
+    }
+
+    /** Todos los patrones de todas las verificaciones, retirados incluidos, como copia inmutable. */
+    public List<VerificationStandard> getPatrones() {
+        return List.copyOf(patrones);
+    }
+
+    /** Los patrones que valen hoy, en el orden en que se pusieron. */
+    public List<VerificationStandard> patronesActivos() {
+        return patrones.stream().filter(VerificationStandard::estadoActivo).toList();
     }
 
     /** Todas las lecturas, retiradas incluidas, como copia inmutable. */
@@ -545,17 +592,8 @@ public class ServiceReport extends AggregateRoot {
                             + " cuelgan la hoja de vida y las alertas");
         }
 
-        // El patron (V27, 2026-10-14): unas lecturas sin patron no dicen contra que se compararon, y
-        // un patron con el certificado vencido el dia del servicio no certifica nada.
         LocalDateTime ahora = LocalDateTime.now();
-        if (!lecturasActivas().isEmpty() && patron == null) {
-            throw new IllegalStateException(
-                    "No se puede cerrar un reporte con lecturas sin decir contra que patron se tomaron");
-        }
-        if (patron != null && !patron.vigenteEl(ahora.toLocalDate())) {
-            throw new IllegalStateException("No se puede cerrar el reporte: el certificado del patron "
-                    + patron.nombre() + " (" + patron.certificado() + ") vencio el " + patron.vencimiento());
-        }
+        exigirPatrones(ahora.toLocalDate());
 
         this.estado = ReportState.FINALIZADO;
         this.finalizado = ahora;
@@ -619,6 +657,42 @@ public class ServiceReport extends AggregateRoot {
     private ServiceReportPayload payload() {
         return new ServiceReportPayload(
                 idOrdenTrabajo, idEquipoCliente, estado, resultado, finalizado);
+    }
+
+    /**
+     * Los patrones, al cerrar (V27; por verificación desde V30). Cada verificación con lecturas dice
+     * contra qué patrón se tomaron, porque unas lecturas sin patrón no dicen contra qué se compararon. Y
+     * ninguno puede tener el certificado vencido el día del servicio, tenga lecturas su verificación o
+     * no: el informe los imprime todos, y uno vencido no certifica nada.
+     */
+    private void exigirPatrones(LocalDate dia) {
+        List<VerificationStandard> activos = patronesActivos();
+        Set<UUID> medidas = new LinkedHashSet<>();
+        lecturasActivas().forEach(lectura -> medidas.add(lectura.idVerificacion()));
+
+        for (UUID verificacion : medidas) {
+            if (activos.stream().noneMatch(usado -> usado.idVerificacion().equals(verificacion))) {
+                throw new IllegalStateException("No se puede cerrar el reporte: la verificacion " + verificacion
+                        + " tiene lecturas y no dice contra que patron se tomaron");
+            }
+        }
+        for (VerificationStandard usado : activos) {
+            UsedReferenceStandard patron = usado.patron();
+            if (!patron.vigenteEl(dia)) {
+                throw new IllegalStateException("No se puede cerrar el reporte: el certificado del patron "
+                        + patron.nombre() + " (" + patron.certificado() + ") vencio el " + patron.vencimiento());
+            }
+        }
+    }
+
+    private int indiceDe(UUID idVerificacion, UUID idPatron) {
+        for (int i = 0; i < patrones.size(); i++) {
+            if (patrones.get(i).ocupa(idVerificacion, idPatron)) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     /** Si las lecturas que se piden son exactamente las que ya están activas. */

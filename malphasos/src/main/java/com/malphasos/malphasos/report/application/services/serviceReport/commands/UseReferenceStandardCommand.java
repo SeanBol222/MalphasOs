@@ -2,6 +2,6 @@ package com.malphasos.malphasos.report.application.services.serviceReport.comman
 
 import java.util.UUID;
 
-/** Elegir el patrón del catálogo contra el que se toman las lecturas de un reporte (V27). */
-public record UseReferenceStandardCommand(UUID id, UUID idEquipoPatron) {
+/** Poner un patrón del catálogo en una verificación de un reporte (V27; por verificación desde V30). */
+public record UseReferenceStandardCommand(UUID id, UUID idVerificacion, UUID idEquipoPatron) {
 }

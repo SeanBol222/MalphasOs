@@ -109,7 +109,7 @@ export interface paths {
         patch: operations["finish"];
         trace?: never;
     };
-    "/v1/api/reports/{id}/reference-standard": {
+    "/v1/api/reports/{id}/steps/{orden}": {
         parameters: {
             query?: never;
             header?: never;
@@ -126,22 +126,6 @@ export interface paths {
          * Marcar un paso del protocolo
          * @description HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.
          */
-        patch: operations["useReferenceStandard"];
-        trace?: never;
-    };
-    "/v1/api/reports/{id}/steps/{orden}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
         patch: operations["markStep"];
         trace?: never;
     };
@@ -163,6 +147,46 @@ export interface paths {
          * @description Sustituye la verificacion anterior entera; las lecturas corregidas quedan retiradas, no borradas. Cada lectura declara a que verificacion del tipo pertenece, y se comprueba contra los puntos y la cantidad de datos que esa verificacion declara.
          */
         patch: operations["recordVerification"];
+        trace?: never;
+    };
+    "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Poner un patron en una verificacion
+         * @description Copia lo que el catalogo dice hoy del patron, ficha incluida. Ponerlo otra vez refresca la copia. La verificacion tiene que ser una activa del tipo del equipo, y el patron no puede estar retirado. Solo en un borrador.
+         */
+        post: operations["useReferenceStandard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards/{idEquipoPatron}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Quitar un patron de una verificacion
+         * @description Lo retira, no lo borra. Quitar uno que no esta no hace nada. Solo en un borrador.
+         */
+        delete: operations["removeReferenceStandard"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -258,8 +282,8 @@ export interface components {
             observaciones?: string;
             /** @description Los pasos del protocolo preventivo, en su orden. Vacia en un correctivo */
             pasos?: components["schemas"]["ReportStepResponse"][];
-            /** @description El patron contra el que se tomaron las lecturas, como estaba ese dia. Nulo mientras no se elija */
-            patron?: components["schemas"]["UsedReferenceStandardResponse"];
+            /** @description Los patrones vigentes de cada verificacion, como estaban ese dia. Desde V30; con V27 era uno por reporte */
+            patrones?: components["schemas"]["UsedReferenceStandardResponse"][];
             procedimientos?: string;
             /** @description Repuestos cambiados, en texto libre; desde V24 */
             repuestos?: string;
@@ -275,11 +299,34 @@ export interface components {
         };
         UsedReferenceStandardResponse: {
             certificado?: string;
-            /** Format: uuid */
+            /** @description Nulo si el catalogo no lo tenia */
+            codigoInterno?: string;
+            /** @description Nula si el catalogo no la tenia */
+            empresaCalibradora?: string;
+            /**
+             * Format: date
+             * @description Nula si el catalogo no la tenia
+             */
+            fechaCalibracion?: string;
+            /**
+             * Format: uuid
+             * @description El patron del catalogo
+             */
             id?: string;
+            /**
+             * Format: uuid
+             * @description La verificacion del tipo de equipo en la que se uso
+             */
+            idVerificacion?: string;
             /** @description Nula si el catalogo no la tenia */
             marca?: string;
+            /** @description Nulo si el catalogo no lo tenia */
+            modelo?: string;
             nombre?: string;
+            /** @description Nulo si el catalogo no lo tenia */
+            rango?: string;
+            /** @description Nula si el catalogo no la tenia */
+            resolucion?: string;
             serie?: string;
             /** Format: date */
             vencimiento?: string;
@@ -761,68 +808,6 @@ export interface operations {
             };
         };
     };
-    useReferenceStandard: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UseReferenceStandardRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ServiceReportResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-        };
-    };
     markStep: {
         parameters: {
             query?: never;
@@ -909,6 +894,127 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["ServiceReportResponse"];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    useReferenceStandard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                idVerificacion: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UseReferenceStandardRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    removeReferenceStandard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                idVerificacion: string;
+                idEquipoPatron: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {
