@@ -29,6 +29,9 @@ import {
   TIPOS,
   URL_EQUIPOS as URL_EQUIPOS_DE_CATALOGO,
   URL_MODELOS,
+  URL_PATRONES,
+  PATRONES,
+  ID_PATRON,
   URL_TIPOS,
 } from '../../../../testing/catalogo';
 import {
@@ -114,6 +117,7 @@ describe('Ficha de un reporte de servicio', () => {
     http.match(URL_MODELOS).forEach((peticion) => peticion.flush(MODELOS));
     http.match(URL_EQUIPOS_DE_CATALOGO).forEach((peticion) => peticion.flush(EQUIPOS_DE_CATALOGO));
     http.match(URL_TIPOS).forEach((peticion) => peticion.flush(TIPOS));
+    http.match(URL_PATRONES).forEach((peticion) => peticion.flush(PATRONES));
     // Y lo que RF-11 autocompleta: la orden, su cliente, su sede, las personas y los encargados.
     http.match(`${URL_ORDENES}/${ID_ORDEN}`).forEach((peticion) => peticion.flush(laOrden));
     http.match(URL_CLIENTES).forEach((peticion) => peticion.flush(CLIENTES));
@@ -139,6 +143,7 @@ describe('Ficha de un reporte de servicio', () => {
       [URL_MODELOS, MODELOS],
       [URL_EQUIPOS_DE_CATALOGO, EQUIPOS_DE_CATALOGO],
       [URL_TIPOS, TIPOS],
+      [URL_PATRONES, PATRONES],
       [`${URL_ORDENES}/${ID_ORDEN}`, orden()],
       [URL_CLIENTES, CLIENTES],
       [URL_PERSONAS, PERSONAS],
@@ -219,7 +224,8 @@ describe('Ficha de un reporte de servicio', () => {
       'repuestos',
       'observaciones',
     ]);
-    expect(raiz().querySelectorAll('select')).toHaveLength(0);
+    // El unico desplegable es el patron (2026-10-14), y no es un dato de la orden: lo elige quien mide.
+    expect([...raiz().querySelectorAll('select')].map((s) => s.id)).toEqual(['patronUsado']);
     expect(opcionesDeResultado()).toHaveLength(3);
     expect(
       [...raiz().querySelectorAll('input')].filter((i) => i.type === 'text').length,
@@ -538,6 +544,124 @@ describe('Ficha de un reporte de servicio', () => {
 
       expect(panel()).toContain('Reporte cerrado');
       expect(panel()).not.toContain('%');
+    });
+  });
+
+  describe('El patrón y la conformidad (2026-10-14)', () => {
+    const panel = () => raiz().querySelector('aside')!.textContent ?? '';
+    const botonDeCierre = () =>
+      [...raiz().querySelectorAll('button')].find((b) =>
+        (b.textContent ?? '').includes('Cerrar reporte'),
+      )!;
+
+    /** Una lectura guardada, conforme o no, con su tolerancia de ±0,5. */
+    const lectura = (conforme: boolean) => ({
+      id: conforme ? 'l1' : 'l2',
+      idVerificacion: 'ver1',
+      idPuntoVerificacion: 'pv1',
+      secuencia: conforme ? 1 : 2,
+      valorPatron: 100,
+      valorEquipo: conforme ? 100.2 : 100.7,
+      unidad: 'mmHg',
+      tolerancia: 0.5,
+      error: conforme ? 0.2 : 0.7,
+      conforme,
+    });
+
+    const vigente = {
+      id: ID_PATRON,
+      nombre: 'Juego de pesas clase F1',
+      serie: 'KF1-2024-118',
+      certificado: 'CAL-2026-0412',
+      vencimiento: '2099-04-30',
+    };
+
+    it('sin lecturas no pide patrón: no hay nada que comparar contra él', async () => {
+      await abrir(reporteCerrable());
+
+      expect(panel()).not.toContain('Patrón vigente');
+      expect(botonDeCierre().disabled).toBe(false);
+    });
+
+    it('con lecturas y sin patrón no deja cerrar, y lo cuenta como lo que falta', async () => {
+      await abrir(reporteCerrable({ lecturas: [lectura(true)] }));
+
+      expect(panel()).toContain('Patrón vigente');
+      expect(panel()).toContain('(falta)');
+      expect(panel()).not.toContain('100 %');
+      expect(botonDeCierre().disabled).toBe(true);
+    });
+
+    it('con un patrón vencido tampoco', async () => {
+      await abrir(
+        reporteCerrable({
+          lecturas: [lectura(true)],
+          patron: { ...vigente, vencimiento: '2000-01-31' },
+        }),
+      );
+
+      expect(panel()).toContain('(falta)');
+      expect(botonDeCierre().disabled).toBe(true);
+    });
+
+    it('con un patrón vigente sí', async () => {
+      await abrir(reporteCerrable({ lecturas: [lectura(true)], patron: vigente }));
+
+      expect(panel()).toContain('100 %');
+      expect(panel()).not.toContain('(falta)');
+      expect(botonDeCierre().disabled).toBe(false);
+    });
+
+    it('con pasos del protocolo, el patrón también cuenta en el avance', async () => {
+      const pasos = [
+        {
+          orden: 1,
+          idProtocolo: 'p1',
+          nombre: 'Limpieza',
+          descripcion: 'D',
+          estado: 'HECHO' as const,
+        },
+      ];
+      await abrir(reporte({ pasos, resultado: 'OPERATIVO', lecturas: [lectura(true)] }));
+
+      // Pasos y resultado listos, el patrón no: dos de tres partes.
+      expect(panel()).toContain('67 %');
+    });
+
+    it('operativo con una lectura fuera de tolerancia lo advierte, sin impedirlo', async () => {
+      await abrir(reporteCerrable({ lecturas: [lectura(true), lectura(false)], patron: vigente }));
+
+      const aviso = raiz().querySelector('[data-aviso-conformidad]')!;
+      expect(aviso.textContent).toContain('Una lectura quedó fuera de tolerancia');
+      expect(botonDeCierre().disabled).toBe(false);
+    });
+
+    it('con restricciones, o con todo conforme, no hay aviso', async () => {
+      await abrir(
+        reporteCerrable({
+          lecturas: [lectura(false)],
+          patron: vigente,
+          resultado: 'OPERATIVO_CON_RESTRICCIONES',
+        }),
+      );
+      expect(raiz().querySelector('[data-aviso-conformidad]')).toBeNull();
+    });
+
+    it('una lectura sin tolerancia no cuenta como fuera de ella: no se sabe', async () => {
+      await abrir(
+        reporteCerrable({
+          lecturas: [{ ...lectura(true), tolerancia: undefined, conforme: undefined }],
+          patron: vigente,
+        }),
+      );
+
+      expect(raiz().querySelector('[data-aviso-conformidad]')).toBeNull();
+    });
+
+    it('todo conforme y operativo tampoco avisa', async () => {
+      await abrir(reporteCerrable({ lecturas: [lectura(true)], patron: vigente }));
+
+      expect(raiz().querySelector('[data-aviso-conformidad]')).toBeNull();
     });
   });
 

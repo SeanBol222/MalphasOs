@@ -398,6 +398,7 @@
           [idReporte]="id()"
           [idEquipoCliente]="datos.idEquipoCliente ?? ''"
           [lecturas]="datos.lecturas ?? []"
+          [patron]="datos.patron ?? null"
           [editable]="editable()"
         />
 
@@ -449,6 +450,25 @@
                   }
                 </div>
               </fieldset>
+
+              <!--
+                Decidido el 2026-10-14: la conformidad no decide el resultado —un equipo puede quedar
+                operativo con una lectura justo fuera y una salvedad—, pero la pantalla lo advierte.
+                Cuenta lo guardado, que es lo que se va a cerrar.
+              -->
+              @if (formulario.value.resultado === 'OPERATIVO' && noConformes() > 0) {
+                <p
+                  class="mt-2 border-l-2 border-accent-700 bg-accent-100 p-1.5 font-semibold"
+                  role="status"
+                  data-aviso-conformidad
+                >
+                  {{
+                    noConformes() === 1 ? 'Una lectura quedó' : noConformes() + ' lecturas quedaron'
+                  }}
+                  fuera de tolerancia. Si el equipo queda operativo igualmente, explique por qué en
+                  observaciones, o elija «Operativo con restricciones».
+                </p>
+              }
 
               <label class="mt-2 block font-bold" for="observaciones">Observaciones</label>
               <textarea
@@ -533,15 +553,15 @@
           <p class="mt-2 text-sm text-neutral-300">
             @if (pasos().length) {
               Para cerrarlo hacen falta todos los pasos del protocolo marcados y el resultado,
-              guardados. Si el equipo se verifica, el servidor exige además la verificación
-              completa.
+              guardados. Si el equipo se verifica, el servidor exige además la verificación completa
+              y un patrón vigente.
             } @else if (esCorrectivo()) {
               Para cerrarlo hacen falta la falla reportada, el diagnóstico, el trabajo realizado y
               el resultado, guardados. Si el equipo se verifica, el servidor exige además la
-              verificación completa.
+              verificación completa y un patrón vigente.
             } @else {
               Para cerrarlo hacen falta los procedimientos y el resultado, guardados. Si el equipo
-              se verifica, el servidor exige además la verificación completa.
+              se verifica, el servidor exige además la verificación completa y un patrón vigente.
             }
           </p>
         }

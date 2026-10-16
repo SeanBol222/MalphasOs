@@ -35,6 +35,65 @@
       </div>
     }
 
+    <!--
+      El patron, antes que las tablas: es contra lo que se mide, y sin el las lecturas no dicen nada.
+      Se guarda al elegirlo, como un paso del protocolo. Solo se ofrecen los vigentes hoy: uno vencido
+      no dejaria cerrar el reporte (2026-10-14).
+    -->
+    <div class="mt-2 border border-neutral-300 p-2" data-bloque="patron">
+      <label class="block font-bold" for="patronUsado">
+        Patrón usado
+        @if (editable()) {
+          <span class="text-accent-700" aria-hidden="true">*</span>
+        }
+      </label>
+      @if (editable()) {
+        <select
+          id="patronUsado"
+          class="campo mt-1 min-h-tactil w-full max-w-[32rem]"
+          aria-describedby="ayuda-patron"
+          [disabled]="eleccion.isPending()"
+          (change)="elegirPatron($any($event.target).value)"
+        >
+          <option value="" [selected]="!patron()">
+            {{ elegibles().length ? 'Elija un patrón vigente' : 'No hay patrones vigentes' }}
+          </option>
+          @for (opcion of elegibles(); track opcion.id) {
+            <option [value]="opcion.id" [selected]="opcion.id === patron()?.id">
+              {{ opcion.nombre }} · serie {{ opcion.serie }}
+            </option>
+          }
+        </select>
+        <p class="mt-1 text-sm text-neutral-700" id="ayuda-patron">
+          Se guarda al elegirlo. El reporte copia su certificado de hoy: renovarlo después en el
+          catálogo no cambia este reporte.
+        </p>
+      }
+      @if (patron(); as usado) {
+        <p class="mt-1" data-patron-usado>
+          <strong>{{ usado.nombre }}</strong>
+          @if (usado.marca) {
+            · {{ usado.marca }}
+          }
+          · serie {{ usado.serie }} · certificado {{ usado.certificado }} ·
+          <span [class.font-extrabold]="patronVencido()"
+            >{{ patronVencido() ? 'venció el' : 'vence el' }}
+            {{ fechaCorta(usado.vencimiento) }}</span
+          >
+        </p>
+        @if (patronVencido() && editable()) {
+          <p
+            class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-1.5 font-semibold"
+            role="alert"
+          >
+            Con el certificado vencido el reporte no se puede cerrar. Elija otro patrón.
+          </p>
+        }
+      } @else if (!editable()) {
+        <p class="mt-1 text-neutral-700">No se registró contra qué patrón se midió.</p>
+      }
+    </div>
+
     <form [formGroup]="formulario" (ngSubmit)="guardar()">
       <!--
         Una tabla por verificacion, con la unidad en su cabecera. La unidad va arriba y no en cada
@@ -50,9 +109,15 @@
               <!-- Por punto, no en total: con 3 lecturas y 2 puntos el bloque lleva 6 datos. -->
               · {{ grupo.cantidadDatos }} lecturas por punto
             }
+            ·
+            @if (grupo.tolerancia !== null) {
+              tolerancia {{ textoDeTolerancia(grupo) }}
+            } @else {
+              sin tolerancia: no se dice si cada lectura es conforme
+            }
           </p>
 
-          <table class="tabla mt-1 max-w-[560px]">
+          <table class="tabla mt-1 max-w-[720px]">
             <caption class="text-left text-neutral-700">
               Los valores se expresan en
               {{
@@ -65,6 +130,8 @@
                 <th scope="col">Nº</th>
                 <th scope="col">Patrón</th>
                 <th scope="col">Equipo</th>
+                <th scope="col">Error</th>
+                <th scope="col">Conforme</th>
               </tr>
             </thead>
             <tbody formArrayName="casillas">
@@ -78,7 +145,7 @@
                       {{ par.fila.secuencia }}
                     </label>
                     <input
-                      class="campo min-h-tactil w-full"
+                      class="campo min-h-tactil w-full min-w-[6rem]"
                       [id]="'patron-' + par.indice"
                       type="number"
                       step="any"
@@ -92,13 +159,22 @@
                       {{ par.fila.secuencia }}
                     </label>
                     <input
-                      class="campo min-h-tactil w-full"
+                      class="campo min-h-tactil w-full min-w-[6rem]"
                       [id]="'equipo-' + par.indice"
                       type="number"
                       step="any"
                       inputmode="decimal"
                       formControlName="valorEquipo"
                     />
+                  </td>
+                  <!--
+                    Se calcula mientras se escribe, con la misma regla que el servidor. «No» va en
+                    negrita: el manual distingue los estados por peso, no por un color nuevo.
+                  -->
+                  @let comparada = comparacion(grupo, par.indice);
+                  <td class="tabular-nums" data-error>{{ comparada.error }}</td>
+                  <td data-conforme [class.font-extrabold]="comparada.conforme === false">
+                    {{ comparada.conforme === null ? '—' : comparada.conforme ? 'Sí' : 'No' }}
                   </td>
                 </tr>
               }

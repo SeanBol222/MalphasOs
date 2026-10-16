@@ -19,6 +19,7 @@ export const URL_EQUIPOS = `${API}/equipments`;
 export const URL_MODELOS = `${API}/models`;
 export const URL_MAGNITUDES = `${API}/magnitudes`;
 export const URL_PROTOCOLOS = `${API}/protocols`;
+export const URL_PATRONES = `${API}/reference-standards`;
 export const URL_PROTOCOLOS_DE_TIPO = (tipoId: string) => `${API}/equipment-types/${tipoId}/protocols`;
 
 /** El catalogo de protocolos: dos vigentes y uno retirado, que no se ofrece. */
@@ -168,3 +169,36 @@ export async function responderAlCatalogo(
 
   await asentar(fixture);
 }
+
+/**
+ * Los equipos patrón del catálogo (2026-10-14): uno vigente, uno vencido y uno retirado. Las fechas
+ * están lejos a propósito, para que la prueba no dependa del día en que corre.
+ */
+export const ID_PATRON = 'pat1';
+export const PATRONES = [
+  {
+    id: ID_PATRON,
+    nombre: 'Juego de pesas clase F1',
+    marca: 'Kern',
+    serie: 'KF1-2024-118',
+    certificado: 'CAL-2026-0412',
+    vencimientoCertificado: '2099-04-30',
+    estadoActivo: true,
+  },
+  {
+    id: 'pat2',
+    nombre: 'Termómetro vencido',
+    serie: 'T-9',
+    certificado: 'CAL-2010-1',
+    vencimientoCertificado: '2000-01-31',
+    estadoActivo: true,
+  },
+  {
+    id: 'pat3',
+    nombre: 'Barómetro retirado',
+    serie: 'B-1',
+    certificado: 'CAL-2026-7',
+    vencimientoCertificado: '2099-01-31',
+    estadoActivo: false,
+  },
+];

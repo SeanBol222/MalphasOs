@@ -89,7 +89,7 @@ export interface paths {
         patch: operations["finish"];
         trace?: never;
     };
-    "/v1/api/reports/{id}/steps/{orden}": {
+    "/v1/api/reports/{id}/reference-standard": {
         parameters: {
             query?: never;
             header?: never;
@@ -106,6 +106,22 @@ export interface paths {
          * Marcar un paso del protocolo
          * @description HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.
          */
+        patch: operations["useReferenceStandard"];
+        trace?: never;
+    };
+    "/v1/api/reports/{id}/steps/{orden}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
         patch: operations["markStep"];
         trace?: never;
     };
@@ -217,11 +233,31 @@ export interface components {
             observaciones?: string;
             /** @description Los pasos del protocolo preventivo, en su orden. Vacia en un correctivo */
             pasos?: components["schemas"]["ReportStepResponse"][];
+            /** @description El patron contra el que se tomaron las lecturas, como estaba ese dia. Nulo mientras no se elija */
+            patron?: components["schemas"]["UsedReferenceStandardResponse"];
             procedimientos?: string;
             /** @description Repuestos cambiados, en texto libre; desde V24 */
             repuestos?: string;
             /** @enum {string} */
             resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
+        };
+        UseReferenceStandardRequest: {
+            /**
+             * Format: uuid
+             * @description Un patron vigente del catalogo de equipos patron
+             */
+            idEquipoPatron: string;
+        };
+        UsedReferenceStandardResponse: {
+            certificado?: string;
+            /** Format: uuid */
+            id?: string;
+            /** @description Nula si el catalogo no la tenia */
+            marca?: string;
+            nombre?: string;
+            serie?: string;
+            /** Format: date */
+            vencimiento?: string;
         };
         VerificationReadingRequest: {
             /**
@@ -243,6 +279,10 @@ export interface components {
             valorPatron: number;
         };
         VerificationReadingResponse: {
+            /** @description Si |error| <= tolerancia. Nulo sin tolerancia: no se sabe */
+            conforme?: boolean;
+            /** @description Equipo menos patron, con su signo */
+            error?: number;
             /** Format: uuid */
             id?: string;
             /**
@@ -254,6 +294,8 @@ export interface components {
             idVerificacion?: string;
             /** Format: int32 */
             secuencia?: number;
+            /** @description La tolerancia de la verificacion cuando se tomo la lectura. Nula si no tenia */
+            tolerancia?: number;
             unidad?: string;
             valorEquipo?: number;
             valorPatron?: number;
@@ -576,6 +618,68 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    useReferenceStandard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UseReferenceStandardRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {

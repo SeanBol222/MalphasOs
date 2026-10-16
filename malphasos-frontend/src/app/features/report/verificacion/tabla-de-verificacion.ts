@@ -17,8 +17,52 @@ import {
   LecturaDeVerificacion,
   mantieneAlgoConstante,
   NuevaLectura,
+  PatronUsado,
+  patronVencido,
 } from '../../../core/api/tipos';
 import { traducirError } from '../../../core/errores/traducir';
+import { fechaCorta, fechaIso, HOY } from '../../../core/fechas';
+
+/** Lo que una fila dice de sí misma al compararla: el error, y si cabe en la tolerancia. */
+export interface Comparacion {
+  /** «+0,3», «−0,4» o «—» si falta alguno de los dos valores. */
+  readonly error: string;
+  /** Nulo si no hay tolerancia o falta un valor: no se sabe, y no se inventa. */
+  readonly conforme: boolean | null;
+}
+
+/** Diezmilésimas: los decimales que guarda el servidor, y la escala a la que se compara aquí. */
+const ESCALA = 10_000;
+
+const FORMATO_DE_ERROR = new Intl.NumberFormat('es-CO', {
+  maximumFractionDigits: 4,
+  signDisplay: 'exceptZero',
+});
+
+/**
+ * El error y la conformidad de una lectura, con la misma regla que el servidor:
+ * {@code |equipo − patrón| ≤ tolerancia}, con el borde dentro.
+ *
+ * <p><b>En enteros de diezmilésimas, no en coma flotante.</b> 50,7 − 50,2 da 0,5000000000000071 en
+ * JavaScript, y con una tolerancia de 0,5 la pantalla diría «no conforme» a una lectura que el servidor
+ * —que cuenta en decimal— da por conforme.
+ */
+export function comparar(
+  patron: number | null,
+  equipo: number | null,
+  tolerancia: number | null,
+): Comparacion {
+  if (patron === null || equipo === null || Number.isNaN(patron) || Number.isNaN(equipo)) {
+    return { error: '—', conforme: null };
+  }
+
+  const error = Math.round(equipo * ESCALA) - Math.round(patron * ESCALA);
+
+  return {
+    error: FORMATO_DE_ERROR.format(error / ESCALA),
+    conforme: tolerancia === null ? null : Math.abs(error) <= Math.round(tolerancia * ESCALA),
+  };
+}
 
 /**
  * Una casilla de la tabla: qué se mide, dónde, y cuál de las N lecturas de ese punto es.
@@ -43,6 +87,8 @@ interface GrupoDeFilas {
   readonly unidad: string;
   readonly modalidad: string;
   readonly cantidadDatos: number | null;
+  /** La tolerancia que el tipo declara hoy, que es la que se copiará al guardar. */
+  readonly tolerancia: number | null;
   /** Si esta verificación se hace con patrón y equipo variables: entonces las filas las pone quien mide. */
   readonly aMano: boolean;
   readonly filas: readonly { readonly fila: Fila; readonly indice: number }[];
@@ -87,11 +133,41 @@ export class TablaDeVerificacion {
   readonly idEquipoCliente = input.required<string>();
   readonly lecturas = input<readonly LecturaDeVerificacion[]>([]);
   readonly editable = input(false);
+  /** El patrón ya elegido, como lo copió el reporte. Nulo mientras no se elija. */
+  readonly patron = input<PatronUsado | null>(null);
 
   private readonly fb = inject(FormBuilder);
   private readonly catalogo = inject(CatalogoApi);
 
-  protected readonly registro = inject(ReporteApi).registrarVerificacion();
+  private readonly reportes = inject(ReporteApi);
+  protected readonly registro = this.reportes.registrarVerificacion();
+  protected readonly eleccion = this.reportes.usarPatron();
+
+  // --- El patron (V27, 2026-10-14) ----------------------------------------------
+
+  private readonly hoy = fechaIso(inject(HOY)());
+  private readonly patrones = this.catalogo.listarPatrones();
+
+  /**
+   * Los que se pueden elegir: vigentes hoy y sin retirar, por nombre. Uno vencido no se ofrece aunque
+   * el servidor lo deje elegir: no dejaría cerrar, y ofrecerlo sería ofrecer un callejón.
+   */
+  protected readonly elegibles = computed(() =>
+    (this.patrones.data() ?? [])
+      .filter((patron) => patron.estadoActivo && (patron.vencimientoCertificado ?? '') >= this.hoy)
+      .sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? '', 'es')),
+  );
+
+  protected readonly patronVencido = computed(() => patronVencido(this.patron(), this.hoy));
+  protected readonly fechaCorta = fechaCorta;
+
+  protected elegirPatron(idEquipoPatron: string): void {
+    if (!idEquipoPatron || idEquipoPatron === this.patron()?.id) {
+      return;
+    }
+
+    this.eleccion.mutate({ id: this.idReporte(), idEquipoPatron });
+  }
 
   // --- La cadena del catalogo, cuatro eslabones -------------------------------
 
@@ -154,6 +230,7 @@ export class TablaDeVerificacion {
       unidad: verificacion.unidad ?? '',
       modalidad: verificacion.modalidad ? ETIQUETA_DE_MODALIDAD[verificacion.modalidad] : '',
       cantidadDatos: verificacion.cantidadDatos ?? null,
+      tolerancia: verificacion.tolerancia ?? null,
       aMano: !mantieneAlgoConstante(verificacion.modalidad),
       filas: filas
         .map((fila, indice) => ({ fila, indice }))
@@ -161,8 +238,46 @@ export class TablaDeVerificacion {
     }));
   });
 
-  protected readonly hayError = computed(() => this.registro.isError());
-  protected readonly mensajeDeError = computed(() => traducirError(this.registro.error()));
+  protected readonly hayError = computed(() => this.registro.isError() || this.eleccion.isError());
+  protected readonly mensajeDeError = computed(() =>
+    traducirError(this.registro.error() ?? this.eleccion.error()),
+  );
+
+  /** La tolerancia en la cabecera de cada tabla, con su unidad: «±0,5 °C». */
+  protected textoDeTolerancia(grupo: GrupoDeFilas): string {
+    return grupo.tolerancia === null
+      ? ''
+      : `±${grupo.tolerancia.toLocaleString('es-CO')} ${grupo.unidad}`;
+  }
+
+  /**
+   * El error y la conformidad de una fila, mientras se escribe.
+   *
+   * <p>En un borrador se juzga con la tolerancia que el tipo declara hoy, que es la que se copiará al
+   * guardar. En un reporte cerrado, con la que se guardó en la lectura: si el tipo cambió su
+   * tolerancia después, el reporte firmado no puede cambiar de veredicto.
+   */
+  protected comparacion(grupo: GrupoDeFilas, indice: number): Comparacion {
+    this.escrito();
+
+    const casilla = this.casillas.at(indice);
+    const fila = this.filas()[indice];
+    const numero = (valor: unknown) => (valor === '' || valor == null ? null : Number(valor));
+    const tolerancia = this.editable()
+      ? grupo.tolerancia
+      : (this.lecturas().find(
+          (lectura) =>
+            lectura.idVerificacion === fila?.idVerificacion &&
+            (lectura.idPuntoVerificacion ?? null) === fila?.idPuntoVerificacion &&
+            lectura.secuencia === fila?.secuencia,
+        )?.tolerancia ?? null);
+
+    return comparar(
+      numero(casilla?.get('valorPatron')?.value),
+      numero(casilla?.get('valorEquipo')?.value),
+      tolerancia,
+    );
+  }
 
   /**
    * Lo escrito en la tabla, como senal.

@@ -25,9 +25,11 @@ import {
   ETIQUETA_DE_RESULTADO,
   ETIQUETA_DE_TIPO_DE_SERVICIO,
   PasoDeReporte,
+  patronVencido,
   RESULTADOS_DE_SERVICIO,
   sePuedeCerrar,
 } from '../../../core/api/tipos';
+import { fechaIso, HOY } from '../../../core/fechas';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
 
 /**
@@ -178,9 +180,36 @@ export class DetalleReporte {
     () => this.orden.data()?.tipoServicio === 'CORRECTIVO',
   );
 
+  private readonly hoy = fechaIso(inject(HOY)());
+
   protected readonly cerrable = computed(() =>
-    sePuedeCerrar(this.reporte.data(), this.esCorrectivo()),
+    sePuedeCerrar(this.reporte.data(), this.esCorrectivo(), this.hoy),
   );
+
+  /** Las lecturas guardadas que se salen de su tolerancia. Las que no tienen tolerancia no cuentan. */
+  protected readonly noConformes = computed(
+    () =>
+      (this.reporte.data()?.lecturas ?? []).filter((lectura) => lectura.conforme === false).length,
+  );
+
+  /**
+   * El requisito del patrón, solo si hay lecturas guardadas: sin ellas no hay nada que comparar contra
+   * él, y el servidor tampoco lo pide (2026-10-14).
+   */
+  private readonly requisitoDelPatron = computed(() => {
+    const datos = this.reporte.data();
+
+    if (!datos?.lecturas?.length) {
+      return [];
+    }
+
+    return [
+      {
+        texto: 'Patrón vigente',
+        hecho: !!datos.patron && !patronVencido(datos.patron, this.hoy),
+      },
+    ];
+  });
 
   /**
    * Lo que el servidor exige para cerrar, con lo que ya esta guardado: es lo que pinta el panel de la
@@ -206,6 +235,7 @@ export class DetalleReporte {
           hecho: marcados === pasos.length,
         },
         { texto: 'Resultado', hecho: !!datos?.resultado },
+        ...this.requisitoDelPatron(),
       ];
     }
 
@@ -215,12 +245,14 @@ export class DetalleReporte {
         { texto: 'Diagnóstico', hecho: !!datos?.diagnostico?.trim() },
         { texto: 'Trabajo realizado', hecho: !!datos?.procedimientos?.trim() },
         { texto: 'Resultado', hecho: !!datos?.resultado },
+        ...this.requisitoDelPatron(),
       ];
     }
 
     return [
       { texto: 'Procedimientos', hecho: !!datos?.procedimientos?.trim() },
       { texto: 'Resultado', hecho: !!datos?.resultado },
+      ...this.requisitoDelPatron(),
     ];
   });
 
@@ -234,8 +266,15 @@ export class DetalleReporte {
 
     if (pasos.length) {
       const marcados = pasos.filter((paso) => paso.estado !== 'PENDIENTE').length;
+      // El patron, si hace falta, cuenta como una parte mas: sin el, el panel diria 100 % de algo
+      // que el servidor no deja cerrar.
+      const partes = [
+        marcados / pasos.length,
+        resultado,
+        ...this.requisitoDelPatron().map((requisito) => (requisito.hecho ? 1 : 0)),
+      ];
 
-      return Math.round(((marcados / pasos.length + resultado) / 2) * 100);
+      return Math.round((partes.reduce((suma, parte) => suma + parte, 0) / partes.length) * 100);
     }
 
     const requisitos = this.requisitos();
