@@ -476,6 +476,44 @@ class ServiceReportPersistenceAdapterTest {
     }
 
     @Nested
+    @DisplayName("El numero (V28)")
+    class ElNumero {
+
+        @Test
+        @DisplayName("un numero ocupado se reconoce, en mayusculas o no, y uno libre no")
+        void numeroOcupado() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            adapter.save(reporte);
+
+            assertThat(adapter.numberTaken(reporte.numero())).isTrue();
+            assertThat(adapter.numberTaken(reporte.numero().toLowerCase())).isTrue();
+            String otro = reporte.numero().startsWith("0") ? "1" + reporte.numero().substring(1)
+                    : "0" + reporte.numero().substring(1);
+            assertThat(adapter.numberTaken(otro)).isFalse();
+        }
+
+        @Test
+        @DisplayName("la base no deja dos reportes con el mismo numero, ni aunque uno este retirado")
+        void numeroUnico() {
+            Alcance alcance = unAlcance();
+            ServiceReport primero = ServiceReport.open(alcance.orden(), alcance.equipo());
+            primero.deactivate();
+            adapter.save(primero);
+            // Mismo prefijo de seis caracteres, resto distinto.
+            String mismoPrefijo = primero.getId().toString().substring(0, 6)
+                    + (primero.getId().toString().charAt(6) == '0' ? "1" : "0")
+                    + primero.getId().toString().substring(7);
+
+            assertThatThrownBy(() -> jdbcTemplate.update(
+                            "INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo,"
+                                    + " k_id_equipo_cliente, t_estado_reporte) VALUES (?, ?, ?, 'BORRADOR')",
+                            UUID.fromString(mismoPrefijo), alcance.orden(), alcance.equipo()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("Al guardar dos veces")
     class AlGuardarDosVeces {
 

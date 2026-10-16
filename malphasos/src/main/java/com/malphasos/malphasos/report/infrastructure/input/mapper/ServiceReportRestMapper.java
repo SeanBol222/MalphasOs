@@ -34,6 +34,7 @@ public class ServiceReportRestMapper {
 
         return ServiceReportResponse.builder()
                 .id(reporte.getId())
+                .numero(reporte.numero())
                 .idOrdenTrabajo(reporte.getIdOrdenTrabajo())
                 .idEquipoCliente(reporte.getIdEquipoCliente())
                 .estado(reporte.getEstado())

@@ -167,10 +167,33 @@ public class ServiceReportService implements ServiceReportServicePort {
         requireEquipmentInScopeOf(orden, command.idEquipoCliente());
         requireNoOpenReport(command.idOrdenTrabajo(), command.idEquipoCliente());
 
-        return persistAndPublish(ServiceReport.open(
-                command.idOrdenTrabajo(),
-                command.idEquipoCliente(),
-                pasosDelProtocolo(orden, command.idEquipoCliente())));
+        List<ReportStep> pasos = pasosDelProtocolo(orden, command.idEquipoCliente());
+
+        return persistAndPublish(conNumeroLibre(
+                () -> ServiceReport.open(command.idOrdenTrabajo(), command.idEquipoCliente(), pasos)));
+    }
+
+    /** Cuántas veces se intenta un identificador nuevo antes de rendirse. Con 16,7 millones, sobra. */
+    static final int INTENTOS_DE_NUMERO = 10;
+
+    /**
+     * Un reporte cuyo número —los seis primeros caracteres del id— no tenga ya otro (V28).
+     *
+     * <p>Git alarga el prefijo cuando dos commits lo comparten; aquí no se puede, porque el número va
+     * impreso en un documento firmado y no puede cambiar después. Así que se elige otro identificador.
+     * Los reportes descartados no emiten nada: sus eventos no se publican, porque no se guardan.
+     */
+    private ServiceReport conNumeroLibre(java.util.function.Supplier<ServiceReport> nuevo) {
+        for (int intento = 0; intento < INTENTOS_DE_NUMERO; intento++) {
+            ServiceReport reporte = nuevo.get();
+
+            if (!serviceReportPersistencePort.numberTaken(reporte.numero())) {
+                return reporte;
+            }
+        }
+
+        throw new IllegalStateException("No se encontro un numero de reporte libre en "
+                + INTENTOS_DE_NUMERO + " intentos");
     }
 
     /**

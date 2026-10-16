@@ -83,6 +83,12 @@ public class ServiceReportPersistenceAdapter implements ServiceReportPersistence
 
     @Override
     @Transactional(readOnly = true)
+    public boolean numberTaken(String numero) {
+        return serviceReportRepository.existsByNumero(numero);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ServiceReport> findByEquipment(UUID idEquipoCliente) {
         return mapper.toDomainList(serviceReportRepository.findByIdEquipoCliente(idEquipoCliente));
     }

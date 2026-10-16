@@ -250,6 +250,11 @@ export interface components {
             /** Format: uuid */
             idOrdenTrabajo?: string;
             lecturas?: components["schemas"]["VerificationReadingResponse"][];
+            /**
+             * @description Los seis primeros caracteres del id, en mayusculas: con lo que se cita
+             * @example 1DC6F5
+             */
+            numero?: string;
             observaciones?: string;
             /** @description Los pasos del protocolo preventivo, en su orden. Vacia en un correctivo */
             pasos?: components["schemas"]["ReportStepResponse"][];

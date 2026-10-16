@@ -200,6 +200,11 @@
             },
             "type" : "array"
           },
+          "numero" : {
+            "description" : "Los seis primeros caracteres del id, en mayusculas: con lo que se cita",
+            "example" : "1DC6F5",
+            "type" : "string"
+          },
           "observaciones" : {
             "type" : "string"
           },

@@ -22,6 +22,8 @@ import lombok.Builder;
 @Schema(name = "ServiceReportResponse")
 public record ServiceReportResponse(
         UUID id,
+        @Schema(description = "Los seis primeros caracteres del id, en mayusculas: con lo que se cita", example = "1DC6F5")
+        String numero,
         UUID idOrdenTrabajo,
         UUID idEquipoCliente,
         ReportState estado,
