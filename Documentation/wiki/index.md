@@ -21,7 +21,7 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 - [[rf-firma-digital]] — RF-18, RF-21 (3.2.4). Previstos.
 - [[rf-hojas-vida]] — RF-22 a RF-27 (3.2.5). Dos implementados, dos previstos.
 - [[rf-inventario]] — RF-36, RF-37 (3.2.6). Previstos, Won't Have.
-- [[rf-alertas-calibracion]] — RF-40, RF-41 (3.2.7). Previstos, Won't Have.
+- [[rf-alertas-calibracion]] — RF-40, RF-41 (3.2.7). Previstos, Won't Have. Los equipos patrón y su vencimiento existen desde el 2026-10-14; RF-40 cumple uno de sus tres criterios.
 - [[rf-modulo-comercial]] — RF-45, RF-47 (3.2.8). Previstos.
 - [[rf-usuarios-seguridad]] — RF-49 a RF-53 (3.2.9). Los cinco implementados, ninguno con objetivo que lo justifique.
 - [[requisitos-no-funcionales]] ⭐ — Los 23 RNF de 3.3 y 3.8. Solo uno implementado (RNF-23, JWT).

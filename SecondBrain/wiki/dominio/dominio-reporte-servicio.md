@@ -1,10 +1,10 @@
 ---
 name: dominio-reporte-servicio
-description: El modulo de reportes de servicio de MalphasOS, backend completo el 2026-09-27 y frontend el 2026-09-28; uno por equipo de la orden, con sus seis reglas cruzadas, el choque de orden entre Hibernate y un indice unico parcial, y las cuatro pantallas que cierran RF-11
+description: El modulo de reportes de servicio de MalphasOS, backend completo el 2026-09-27 y frontend el 2026-09-28; uno por equipo de la orden, distinto por tipo de servicio desde el 2026-10-14 (correctivo, patron y conformidad), con sus seis reglas cruzadas, el choque de orden entre Hibernate y un indice unico parcial, y las cuatro pantallas que cierran RF-11
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-11
+updated: 2026-10-16
 ---
 
 # Reportes de servicio — el módulo completo
@@ -34,6 +34,9 @@ orden_trabajo_equipo ──> reporte_servicio ──> dato_verificacion ──> 
 **El reporte no copia cliente, sede, tipo de servicio ni ingeniero**, y eso *es* RF-11. El requisito pide autocompletar esos datos «a partir de la información registrada en la orden de trabajo»; consultarlos por el identificador de la orden es autocompletarlos, y la orden ya los congeló al crearse —por eso `V6` los guarda de forma redundante—. Una tercera copia habría que mantenerla de acuerdo con las otras dos. **El original sí copiaba `k_id_cliente` aquí, y tenía el vínculo con la orden roto**: `k_id_orden_trabajo varchar(10)` contra un `uuid`.
 
 ## Los cinco campos de RF-15 y los dos que hacen falta para cerrar
+
+> **Desde el 2026-10-14 depende del tipo de servicio**: un correctivo exige además falla y diagnóstico, y
+> todo reporte con lecturas, un patrón vigente. Ver «Los reportes por tipo de servicio», más abajo.
 
 `t_falla_reportada`, `t_diagnostico`, `t_procedimientos`, `t_observaciones` y `t_resultado`. **Los cinco son nulos en `BORRADOR`**: el reporte se abre vacío al llegar al equipo y se llena allí. Al cerrarlo se exigen **dos** —procedimientos y resultado, que son qué se hizo y cómo quedó—; falla y diagnóstico se quedan opcionales incluso al cerrar, porque un preventivo que sale bien no tiene ninguna de las dos.
 
@@ -147,6 +150,99 @@ verificaciones variables con lecturas de una sola. La lección vale más que el 
 caso correcto por el camino equivocado se lee igual que una buena**, y lo único que distingue las dos es
 ver fallar la mutación.
 
+## Los reportes por tipo de servicio (2026-10-14 a 2026-10-16)
+
+Hasta el 2026-10-14 el reporte era **el mismo formulario para los tres tipos de servicio**: el
+preventivo añadía los pasos del protocolo y nada distinguía un correctivo de una calibración. **Ni la
+ERS ni el original describen esos formatos**, así que lo de esta sección son decisiones del usuario de
+ese día, con el plan en [[hoja-de-ruta-producto]].
+
+| Tanda | Commits | Qué trae |
+|---|---|---|
+| El correctivo | `bab66abe` · `becf1011` | `V24`: causa y repuestos; falla y diagnóstico obligatorios para cerrar un correctivo |
+| El patrón en el reporte | `b9bc6517` · `ed3c8c9d` | `V27`: el patrón copiado, la tolerancia copiada en cada lectura, error y conformidad |
+| El avance por orden | `c005aca7` · `da7d7ded` | `GET /reports/progress`, para el listado de órdenes |
+
+### El correctivo: qué falló y qué se cambió
+
+`V24` añade `t_causa` y `t_repuestos`, los dos opcionales y de texto libre —no hay inventario que
+descuente repuestos: RF-36 es *Won't Have*—. **Cerrar un correctivo exige además la falla reportada y el
+diagnóstico**: uno que no dice qué falló ni qué se encontró no cuenta qué se corrigió. Causa y repuestos
+no se exigen: no siempre se sabe la causa, y no siempre se cambia algo. Es **una decisión de la sesión**,
+anotada para que el usuario la discuta.
+
+**El reporte no sabe de qué tipo de servicio es** —lo dice la orden—, así que el agregado tiene dos
+cierres, `finish()` y `finishCorrective()`, y el servicio elige cuál consultando la orden. Hacerlo un
+parámetro de `finish` habría puesto en el agregado un dato que no es suyo.
+
+**Los repuestos salen en la hoja de vida**: `descripcionDelServicio()` los añade al final —«Repuestos:
+fuente 12 V.»—, porque es lo que alguien busca cuando vuelve a fallar la misma pieza.
+
+### El patrón, la tolerancia y la conformidad
+
+Decidido por el usuario: **todo reporte con lecturas** dice contra qué equipo patrón se midió, el patrón
+sale del catálogo de [[dominio-equipo-mantenimiento]], cada verificación del tipo declara una
+**tolerancia en su unidad**, y una lectura es **conforme si `|equipo − patrón| ≤ tolerancia`**, con el
+borde dentro —«±0,5» admite 0,5—.
+
+**El reporte copia el patrón como estaba ese día** —nombre, marca, serie, certificado y vencimiento—,
+además de guardar su identificador. Renovar el certificado en el catálogo cambia la fila del patrón, y
+un reporte firmado tiene que seguir diciendo contra qué certificado se midió. Es
+[[congelar-una-referencia-historica]] otra vez, y la prueba de persistencia lo comprueba renovando el
+certificado por SQL después de guardar el reporte.
+
+**La lectura copia la tolerancia**, igual que ya copiaba la unidad, y **por eso la regla de conformidad
+vive en `VerificationReading` y no en el tipo de equipo**. Si el tipo cambiara su tolerancia mañana, un
+reporte cerrado no puede pasar de conforme a no conforme. La tanda de la tolerancia había puesto la regla
+en `TypeVerification.conforme`; la tanda siguiente **la retiró** al descubrir que se calculaba con un
+dato que no estaba congelado. Una regla en dos sitios es una regla que un día dice dos cosas.
+
+Y una consecuencia que conviene saber: **registrar las mismas lecturas con otra tolerancia es un
+cambio**. Si el tipo cambió su tolerancia y el ingeniero vuelve a guardar la tabla, el reporte se queda
+con la de hoy; si no, seguiría diciendo conforme con un criterio que ya no es el del tipo.
+
+**Al cerrar**, el agregado exige dos cosas más, y las dos se deciden con lo que tiene delante:
+
+- **Con lecturas, un patrón.** Unas lecturas sin patrón no dicen contra qué se compararon. Sin lecturas
+  —un tipo que no se verifica, o un equipo fuera de servicio— no se pide.
+- **Un patrón vigente el día del cierre**, que es el día del servicio. El último día todavía vale: vence
+  al terminar.
+
+**Elegir un patrón vencido sí se deja**, y es a propósito: se juzga al cerrar, no al elegir, por si el
+certificado se renovó en papel y aún no está cargado. Uno **retirado** no se puede elegir: dejó de
+usarse. La pantalla, en cambio, **solo ofrece los vigentes**: ofrecer uno vencido sería ofrecer un
+callejón.
+
+**La conformidad no decide el resultado del servicio.** Un equipo puede quedar operativo con una lectura
+justo fuera y una salvedad; el resultado lo sigue eligiendo el ingeniero, y la pantalla **advierte** si
+marca «Operativo» con lecturas fuera de tolerancia. Decisión de la sesión, para discutir.
+
+**En pantalla, el error se calcula en diezmilésimas enteras.** 50,7 − 50,2 da 0,5000000000000071 en
+coma flotante, y con una tolerancia de 0,5 la pantalla habría dicho «No» donde el servidor —que cuenta
+en decimal— dice «Sí». Una prueba escribe exactamente ese caso.
+
+### El avance de los reportes por orden
+
+`GET /v1/api/reports/progress` devuelve, para cada orden con algún reporte vivo, **cuántos equipos lo
+tienen cerrado y cuántos en borrador**, contado en la base con un `GROUP BY` y sin cargar ningún reporte.
+Es lo que el listado de órdenes enseña en cada fila —«3 de 5 cerrados»—, y vive aquí porque los
+reportes son de aquí y `work-order` no puede depender de este módulo.
+
+**No lleva parámetros, a propósito**: con los identificadores de las órdenes en la URL, un listado largo
+superaría el límite de su longitud —36 caracteres por orden—. Con alcance de cliente se filtra por las
+órdenes que ese cliente ve, **preguntándoselo al módulo de órdenes**, que es el dueño de ese dato.
+
+**Una mutación sobrevive y es equivalente**: quitar el `DISTINCT` del conteo. El índice único parcial ya
+garantiza un reporte vivo por equipo y orden, así que contar reportes y contar equipos da lo mismo; se
+cuentan equipos para no depender de eso, y el javadoc lo dice.
+
+### Lo que la orden pregunta a este módulo
+
+Desde el 2026-10-14 **una orden no se ejecuta con reportes abiertos**, y quien lo impone es
+`work-order`, que **no puede depender de `report`** —es al revés—. El módulo de órdenes declara
+`WorkOrderReportsPort` y este lo implementa con `WorkOrderReportsAdapter`: inversión de dependencias,
+igual que la hoja de vida. Ver [[dominio-orden-trabajo]].
+
 ## Las seis reglas que viven en el servicio
 
 El esquema sostiene una sola de las cruzadas, y ni esa entera: la foránea compuesta ve que la fila del puente **existe**, no que siga **activa**. Las seis están en `ServiceReportService`:
@@ -195,7 +291,7 @@ Es el mismo tipo de choque que el proyecto ya conocía por otro lado —«un ada
 - **No hay `findAll`.** Un reporte vive dentro de su orden o dentro del historial de su equipo; «todos los reportes del sistema» no responde a ninguna pregunta del dominio. El listado del API **exige** uno de los dos filtros.
 - **No hay operación para reabrir un reporte cerrado**, y hay dos pruebas que lo vigilan —una por reflexión sobre el agregado y otra sobre la ruta—. Un reporte cerrado es lo que se entregó al cliente; corregirlo es retirarlo y abrir otro, que es justo lo que permite el índice único parcial.
 - **No hay una tercera autoridad para cerrar.** Quien llena el reporte es quien lo firma en campo: separarlas describiría un reparto de trabajo que en esta empresa no existe. La firma digital (RF-21) traerá la suya. Ver [[modelo-de-permisos]].
-- **No hay protocolos** (RF-13, RF-14). Siguen sin existir y son la pieza que falta para que el reporte se cargue solo con lo que hay que revisar.
+- ~~**No hay protocolos** (RF-13, RF-14).~~ **Falso desde el 2026-10-10**: existen, se copian en cada reporte preventivo y se marcan uno a uno —ver «Los pasos del protocolo», arriba—. Esta línea sobrevivió seis días a su propia sección.
 
 ## Las cuatro pantallas (2026-09-28)
 

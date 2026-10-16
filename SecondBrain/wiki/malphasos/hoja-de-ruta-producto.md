@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-11
+updated: 2026-10-16
 ---
 
 # Hoja de ruta del producto
@@ -19,7 +19,12 @@ updated: 2026-10-11
 |---|---|---|---|
 | Requisitos funcionales | 31 | **21** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
-| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio y personas**, todo de extremo a extremo, con **409** pruebas | Medido el 2026-10-03 sobre el árbol del repositorio |
+| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio por tipo de servicio y personas**, todo de extremo a extremo, con **630** pruebas | Medido el 2026-10-16 sobre `da7d7ded` |
+
+> **Corregido el 2026-10-16.** Esta fila decía **409** pruebas «medidas el 2026-10-03»: llevaba trece
+> días caducada mientras `CONVENCIONES.md` subía de 409 a 572. Es la misma lección de siempre —un conteo
+> se recalcula al citarlo— y la misma forma de fallar: el número vivía en dos sitios y solo se cuidaba
+> uno.
 
 > **Corregido el 2026-09-26, dos veces el mismo día.** Esta fila decía «**Nada.** No existe el directorio»: cierto hasta el 2026-09-13. Hoy existen el armazón, el sistema de diseño con su prueba de contraste, la autenticación contra Keycloak, **nueve pantallas** de clientes —ficha, edición, retiro, contactos, sedes, áreas de servicio y encargados— y **seis más** del catálogo de equipos con el registro de un equipo en un área, con **262** pruebas. **Con eso existe ya todo lo que una orden de trabajo necesita tocar**: sedes, áreas y equipos por área. Lo que sigue faltando son las pantallas de órdenes de trabajo, que es lo que cierra los cuatro RF de formulario.
 
@@ -385,15 +390,35 @@ sigue son decisiones del usuario del 2026-10-14.
 - Que la orden no se ejecute sin reportes cerrados la impone `work-order`, que **no puede depender de
   `report`** —es al revés—: el módulo de órdenes declara un puerto y `report` lo implementa.
 
-**Las tandas:**
+**Las tandas — las seis construidas entre el 2026-10-14 y el 2026-10-16:**
 
-1. **Ejecutar exige reportes cerrados** — backend y botón de la ficha.
-2. **El correctivo** — columnas nuevas en el reporte, su regla de cierre y su bloque en la pantalla.
-3. **El catálogo de patrones** — tabla, API y Catálogo › Patrones.
-4. **La tolerancia** — en cada verificación del tipo, y en su panel.
-5. **Patrón, error y conformidad en el reporte** — elegir el patrón, copiarlo, calcular el error, y no
-   cerrar con un patrón vencido.
-6. **El listado de órdenes rediseñado**.
+| # | Tanda | Commits | Merge |
+|---|---|---|---|
+| 1 | **Ejecutar exige reportes cerrados** — backend y botón de la ficha | `dff120af` · `32673020` | `31fada11` |
+| 2 | **El correctivo** — `V24`, su regla de cierre y su bloque en la pantalla | `bab66abe` · `becf1011` | `ab42378d` |
+| 3 | **El catálogo de patrones** — `V25`, API y Catálogo › Patrones | `a15d7811` · `060d840c` | `b8ae22e3` |
+| 4 | **La tolerancia** — `V26`, en cada verificación del tipo y en su panel | `608fdcb7` · `1446250d` | `f73563e7` |
+| 5 | **Patrón, error y conformidad en el reporte** — `V27` | `b9bc6517` · `ed3c8c9d` | `d2d69f95` |
+| 6 | **El listado de órdenes rediseñado** — sobre una maqueta aprobada el 2026-10-16 | `c005aca7` · `da7d7ded` | `a29beeea` |
+
+**Con esto la primera versión funcional está construida.** Lo que cada tanda decidió está en
+[[dominio-orden-trabajo]], [[dominio-reporte-servicio]] y [[dominio-equipo-mantenimiento]]; el esquema,
+en [[esquema-bd-malphasos]].
+
+**Lo que salió por el camino y cambia planes**:
+
+- **La regla de conformidad se movió de sitio** entre la tanda 4 y la 5: el tipo de equipo la tenía, y
+  el reporte la necesitaba con la tolerancia **congelada** en cada lectura. Se retiró del tipo.
+- **El vencimiento de calibración ya tiene columna**, y esta nota decía en la tabla de abajo que era
+  «lo único que sigue sin tener dónde guardarse». RF-40 y RF-41 hablan de los **equipos patrón**, y
+  `equipo_patron.f_vencimiento_certificado` es esa fecha. **RF-40 no pasa a implementado**: de sus
+  tres criterios de aceptación se cumple entero uno —el indicador en el listado—, el aviso al asociar un
+  patrón al reporte se cumple a medias —el vencido no se ofrece y bloquea el cierre, el próximo a vencer
+  no avisa— y la comparación diaria no existe, porque el backend no tiene tareas programadas.
+- **El marcador no se mueve: siguen siendo 21.** Ningún RF describe el correctivo, el patrón ni la
+  conformidad —la ERS habla de «preventivo con calibración» y no dice qué se registra—, y ejecutar con
+  reportes cerrados tampoco está escrito como requisito. Es trabajo que la especificación no reclama,
+  igual que el filtrado por dueño.
 
 ## El orden propuesto
 
@@ -402,7 +427,7 @@ sigue son decisiones del usuario del 2026-10-14.
 | ~~0~~ | ~~**Mergear las dos ramas pendientes**~~ | Todo lo demás | **Hecho el 2026-09-09**: `e6dda32` y `258cd81`, con `main` en `01c3277` y la batería remedida en **496**. **Actualizado el 2026-09-12**: `main` está hoy en **`55e0a5d`**, con `feat/relocation-same-client` también dentro (`1ef55cf`) y **509** pruebas |
 | 1 | **Órdenes de trabajo** (RF-01…07) | Reportes, firma, comercial, inventario | Todas cumplidas. **Empezado el 2026-09-12**: tanda 1 de 4 —el esquema, `V6`— en `feat/work-order-schema`, sin mergear. Faltan dominio, aplicación y REST, y **los siete requisitos siguen contando como no implementados**: un esquema no cumple ninguno |
 | 2 | **Reportes de mantenimiento** (RF-09, 11, 13, 15) | Historial de hojas de vida, PDF, alertas | **Completo de extremo a extremo**: backend el 2026-09-27 —`V9`, agregado con cinco eventos, seis reglas cruzadas con su persistencia probada y seis operaciones REST— y **frontend el 2026-09-28**, en cuatro tandas. Cierra **RF-09, RF-11 y RF-15**. Queda **RF-13, que espera los protocolos de RF-14**, y RF-17, que espera la firma. Ver [[dominio-reporte-servicio]] |
-| 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | **Partida en dos el 2026-09-27, y media hecha.** El *con qué* se verifica entró con `V8`; el **resultado** de verificar entró con `V9` y **vive con el reporte**, no aquí. Queda solo el **vencimiento de calibración**, que es lo que las alertas necesitan y lo único que sigue sin tener dónde guardarse |
+| 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | **Completa desde el 2026-10-14.** El *con qué* se verifica entró con `V8`; el **resultado** de verificar entró con `V9` y **vive con el reporte**; y el **vencimiento**, que era lo que faltaba, entró con `V25` en el catálogo de equipos patrón. (Decía «queda solo el vencimiento de calibración… lo único que sigue sin tener dónde guardarse»: cierto hasta el **2026-10-14**.) Lo que las alertas necesitan ahora es **quién vigile la fecha** |
 | 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | **Desbloqueado el 2026-09-27** y **con pantalla desde el 2026-09-28**: `/equipos/:id/historial` lista los reportes de un equipo, con su fecha, su resultado y sus lecturas. **No cuenta como RF-26**: estos dos requisitos piden el historial **dentro de** la hoja de vida, que no existe como entidad. Lo que falta es exactamente eso, no la consulta |
 | 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora.** Clientes cerrado el 2026-09-26, equipos y catálogo ese mismo día, y **las órdenes de trabajo el 2026-09-27**: con eso el primer bloque está completo y el marcador de requisitos sube por primera vez gracias al frontend |
 | 6 | **Firma digital** (RF-18, RF-21) → **PDF** (RF-17) | Cierra reportes | Requiere los bloques 2 y 5 |

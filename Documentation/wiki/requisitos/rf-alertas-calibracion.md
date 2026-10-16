@@ -1,10 +1,10 @@
 ---
 name: rf-alertas-calibracion
-description: RF-40 y RF-41, Alertas y calibracion (ERS 3.2.7). Won't Have, previstos. El umbral de 30 dias no esta implementado
+description: RF-40 y RF-41, Alertas y calibracion (ERS 3.2.7). Won't Have, previstos. Los equipos patron y su vencimiento existen desde el 2026-10-14; RF-40 cumple uno de sus tres criterios
 tags: [requisitos, rf, calibracion, metrologia]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2.7"
 estado: vigente
-updated: 2026-10-03
+updated: 2026-10-16
 ---
 
 # 3.2.7. Alertas y calibración (RF-40, RF-41)
@@ -32,11 +32,24 @@ lecturas por punto** y **en qué valores**: desde el 3 de octubre de 2026 eso vi
 **Nada de eso es un registro de calibración.** No lleva fechas, no vence y no dispara nada: dice cómo se
 verifica un equipo y qué salió al verificarlo, no cuándo caduca su calibración.
 
-Lo que falta para RF-40 y RF-41 es exactamente **una columna de vencimiento** y quien la vigile. Está
-registrado como lo único pendiente de la segunda tanda de `equipment` en
-`SecondBrain/wiki/malphasos/hoja-de-ruta-producto.md`.
+> **Corregido el 16 de octubre de 2026.** Aquí decía que faltaba «exactamente una columna de
+> vencimiento» y que ni los equipos patrón ni el certificado estaban modelados. **Las dos cosas existen
+> desde el 14 de octubre**: el catálogo de equipos patrón —migración `V25`— guarda de cada patrón su
+> serie, su **certificado** y la **fecha de vencimiento** de ese certificado, y cada reporte con lecturas
+> **copia** el patrón que se usó tal como estaba ese día —migración `V27`—. Lo que sigue sin existir es
+> **quien vigile la fecha**.
 
-Ni los equipos patrón, ni las fechas de última calibración o de frecuencia, ni el estado "Alerta de Calibración", ni el certificado que reiniciaría el umbral: nada de eso está modelado. Tampoco hay tareas programadas en el backend (`@EnableScheduling` no aparece en el código) que pudieran comparar fechas diariamente, aunque las fechas existieran.
+## Cómo queda cada criterio de aceptación de RF-40
+
+| Criterio | Estado |
+|---|---|
+| Comparar a diario la fecha contra hoy | **No existe.** El backend no tiene tareas programadas (`@EnableScheduling` no aparece en el código). Además, la ERS habla de «fecha de última calibración» y «frecuencia»; el sistema guarda directamente la **fecha de vencimiento** del certificado, que es lo que esas dos dan |
+| Indicador visual en el listado | **Cumplido.** Catálogo › Patrones marca cada patrón «Vencido», «Por vencer» —30 días o menos— o «Vigente», distinguidos por peso tipográfico, y los ordena por lo que vence antes |
+| Advertir al asociar un patrón próximo a vencer, o vencido, a un reporte | **A medias.** Uno vencido no se ofrece al elegir y **no deja cerrar** el reporte; uno próximo a vencer no avisa |
+
+**RF-40 sigue previsto**: el criterio de este proyecto cuenta lo que se satisface por completo. **RF-41
+también**: no hay alerta, ni estado «Alerta de Calibración», ni nada que reinicie el umbral al renovar
+el certificado —renovarlo es editar el patrón—.
 
 ## Notas relacionadas
 
