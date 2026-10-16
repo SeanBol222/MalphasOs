@@ -414,3 +414,28 @@ que hace un `CHECK` nuevo sobre filas viejas, usado aquí a propósito.
 - **Lo que una maqueta dibuja y no se guarda, no se inventa**: las fechas de cada paso de una orden, la
   «ciudad principal» de un cliente, el teléfono de los encargados y el nombre de la empresa escrito en el
   frontend se quedaron fuera, y cada pantalla dice lo que muestra en su lugar.
+
+## La primera versión funcional: reportes por tipo de servicio (2026-10-14 a 2026-10-16)
+
+Decisiones **del usuario** —en [[hoja-de-ruta-producto]], con la tabla completa— y, aparte, las que tomó
+la sesión y quedan para discutir.
+
+- **Ejecutar una orden exige todos sus reportes vivos cerrados.** La regla vive en `work-order` y el
+  dato en `report`, que depende de `work-order`: la orden declara `WorkOrderReportsPort` y `report` lo
+  implementa. Inversión de dependencias, no un ciclo. Ver [[dominio-orden-trabajo]].
+- **El correctivo cierra con falla y diagnóstico** *(de la sesión)*; causa y repuestos son opcionales.
+  El agregado tiene dos cierres y **el servicio elige** según la orden, porque el reporte no sabe de qué
+  tipo de servicio es.
+- **Los equipos patrón son un agregado propio, no un `equipo_cliente`**: no se instalan en ningún
+  cliente ni tienen hoja de vida.
+- **La tolerancia es opcional** *(de la sesión)* y se expresa en la unidad de su verificación.
+- **El reporte copia el patrón como estaba ese día, y cada lectura copia su tolerancia.** Por eso la
+  regla de conformidad vive en `VerificationReading` y **se retiró de `TypeVerification`**, donde se
+  había escrito una tanda antes. Ver [[congelar-una-referencia-historica]].
+- **Con lecturas, cerrar exige un patrón vigente el día del cierre.** Elegir uno vencido se permite
+  *(de la sesión)* —se juzga al cerrar—; la pantalla solo ofrece los vigentes.
+- **La conformidad no decide el resultado** *(de la sesión)*: la pantalla advierte y no impide.
+- **El avance de los reportes por orden lo compila `report`, sin parámetros**: los identificadores en la
+  URL no caben con un listado largo, y el alcance se filtra preguntando a `work-order`.
+- **Los filtros del listado de órdenes son del frontend**, sobre la lista entera; la combinación en el
+  servidor sigue sin existir y hará falta con la paginación.

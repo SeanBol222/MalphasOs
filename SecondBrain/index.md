@@ -36,7 +36,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[traduccion-de-fallos-de-adaptadores]] — Un adaptador de salida falla de dos maneras; traducir solo una deja escapar 500 fuera del contrato.
 - [[openapi-swagger]] — Un grupo por módulo, y el fallo silencioso de un `pathsToMatch` que no casa con ninguna ruta.
 - [[antipatron-open-in-view]] — Por qué está apagado y qué hacer en su lugar.
-- [[esquema-bd-malphasos]] ⭐ — **El esquema de hoy, con diagramas**: 27 tablas por módulo hasta `V14`, las 4 foráneas compuestas que son reglas, los 5 índices únicos parciales (esta línea decía 26 y **4**: el cuarto índice dejó de ser cierto con `V11`, y nadie volvió aquí) y lo que el esquema deliberadamente no dice. Generado leyendo la base en marcha, con las consultas para rehacerlo.
+- [[esquema-bd-malphasos]] ⭐ — **El esquema de hoy, con diagramas**: **31** tablas por módulo hasta `V27`, las 4 foráneas compuestas que son reglas, los **8** índices únicos parciales (esta línea decía 27 tablas «hasta `V14`» y 5 índices, recontado el 2026-10-16; antes decía 26 y **4**: el cuarto índice dejó de ser cierto con `V11`, y nadie volvió aquí) y lo que el esquema deliberadamente no dice. Generado leyendo la base en marcha, con las consultas para rehacerlo.
 
 ### Los módulos de dominio
 
@@ -47,7 +47,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 - [[regla-traslado-mismo-cliente]] — Una unidad solo se traslada a áreas de su propio cliente. Construida el 2026-09-09 y **verificada el 2026-09-10** con 13 pruebas; esta línea la marcaba con ⚠️ como «sin verificar» hasta el **2026-09-12**. Leer antes de tocar `ClientEquipmentService`: recoge además por qué una prueba pasaba en vacío sin que Mockito estricto lo delatara.
 - [[relacion-manager-persona]] — Un encargado ES una persona por clave primaria compartida.
 - [[dominio-orden-trabajo]] — **El quinto módulo, completo en sus cuatro tandas** entre el 2026-09-12 y el 2026-09-13, **todo mergeado**. El núcleo del negocio de mantenimiento, del que cuelgan reportes, firma e historial. Trae el estado **verificado** de las siete reglas que el esquema dejó al servicio —**las siete construidas**— y el porqué de que un módulo terminado cerrara al principio solo tres de sus siete requisitos. (Esta línea decía «el REST, en rama sin mergear» y «seis hechas y una no»: las dos afirmaciones eran ciertas el 2026-09-12 y **caducaron el 2026-09-13**; corregidas el **2026-09-27**.)
-- [[dominio-reporte-servicio]] ⭐ — **El sexto módulo, de extremo a extremo**: backend el 2026-09-27 en cuatro tandas, **frontend el 2026-09-28** en otras cuatro. Lo que se hizo sobre cada equipo de una orden: uno por equipo, con los cinco campos de RF-15, la verificación metrológica que `V8` había dejado configurada, y sus **seis reglas cruzadas**. Trae tres cosas que valen fuera de él: por qué **el resultado de verificar vive con el reporte y no con el equipo**, el choque entre el orden de escritura de Hibernate y un índice único parcial, y **qué significa de verdad «autocompletar»** — leer de la única fuente, no copiar.
+- [[dominio-reporte-servicio]] ⭐ — **El sexto módulo, de extremo a extremo**: backend el 2026-09-27 en cuatro tandas, **frontend el 2026-09-28** en otras cuatro. Lo que se hizo sobre cada equipo de una orden: uno por equipo, con los cinco campos de RF-15, la verificación metrológica que `V8` había dejado configurada, y sus **seis reglas cruzadas**. **Desde el 2026-10-14 distingue el tipo de servicio**: el correctivo, y en todo reporte con lecturas el **equipo patrón** copiado y la **conformidad** de cada lectura, con la tolerancia congelada. Trae tres cosas que valen fuera de él: por qué **el resultado de verificar vive con el reporte y no con el equipo**, el choque entre el orden de escritura de Hibernate y un índice único parcial, y **qué significa de verdad «autocompletar»** — leer de la única fuente, no copiar.
 
 ### Datos y esquema
 
@@ -113,4 +113,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**57 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-05, con [[hoja-de-vida-formato-impreso]] · ver [[log.md]] para el historial.
+**57 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-16, con la primera versión funcional · ver [[log.md]] para el historial.

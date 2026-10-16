@@ -3,7 +3,7 @@ name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
 tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
-updated: 2026-10-11
+updated: 2026-10-16
 ---
 
 # Dominio Equipo y Mantenimiento Preventivo (`equipment_hexagon`)
@@ -221,8 +221,11 @@ escrita para perseguirlo falló a la primera. Segundo módulo que paga esta tram
 
 ### Lo que queda de la segunda tanda
 
-**Solo el vencimiento de calibración** —cuándo caduca, que es lo que las alertas de RF-40 necesitan— y
-no hay dónde guardarlo. Está registrado en [[deuda-tecnica-y-riesgos]].
+~~**Solo el vencimiento de calibración** —cuándo caduca, que es lo que las alertas de RF-40 necesitan— y
+no hay dónde guardarlo.~~ **Corregido el 2026-10-16**: RF-40 y RF-41 hablan del vencimiento de los
+**equipos patrón**, y desde `V25` tiene columna —ver «Los equipos patrón y la tolerancia», más abajo—.
+Con eso **la segunda tanda está completa**. Lo que falta para las alertas ya no es un dato sino **quién
+lo vigile**: el backend no tiene tareas programadas.
 
 Dos cosas de este módulo se ejercen desde fuera y conviene saberlo antes de tocarlas:
 
@@ -341,6 +344,54 @@ prioridad—, y por eso invertirlo es una mutación equivalente y no un hueco.
 Al escribir el servicio se quitó una guarda: rechazar un cliente fuera del alcance hacía lo mismo que la
 intersección de áreas que viene detrás, y con las dos **ninguna mutación sobre cualquiera de ellas
 podía fallar**. Es el caso de las guardas gemelas que el `CONVENCIONES.md` de la raíz cuenta en «Mutar para saber si una prueba ejerce algo», evitado al nacer.
+
+## Los equipos patrón y la tolerancia (2026-10-14)
+
+Dos tandas de la primera versión funcional —ver [[hoja-de-ruta-producto]]— entran en este módulo, y
+las dos sirven a lo mismo: que un reporte diga **contra qué se midió** y **si lo medido es conforme**.
+
+| Tanda | Commits | Qué trae |
+|---|---|---|
+| El catálogo de patrones | `a15d7811` · `060d840c` | `V25`, el agregado `ReferenceStandard`, cinco operaciones y Catálogo › Patrones |
+| La tolerancia | `608fdcb7` · `1446250d` | `V26`, la tolerancia de cada verificación y su campo en el panel |
+
+### Un equipo patrón no es un equipo del cliente
+
+`ReferenceStandard` es **un agregado nuevo: el noveno de este módulo y el decimoséptimo del sistema**,
+contados como clases que extienden `AggregateRoot`: nombre, marca —la única
+opcional—, serie, certificado y vencimiento del certificado. Son los aparatos de referencia **de la
+empresa**. Habría cabido como un `equipo_cliente` más, y habría sido un error: no se instala en el área
+de ningún cliente, no tiene hoja de vida ni número `HV-`, y lo que importa de él —el certificado y su
+vencimiento— no existe en un equipo instalado. `AggregateIdentityContractTest` lo cubrió sin
+tocar la prueba: recorre el código fuente buscando `extends AggregateRoot`, así que un agregado nuevo
+entra solo.
+
+- **La serie no se repite entre los vigentes** —índice parcial, y un 409 propio, `ERR_EQUIPMENT_018`,
+  que dice de qué patrón es—. Uno retirado la libera, por si vuelve.
+- **Renovar el certificado es editarlo**, con los cinco campos. Los reportes que ya lo usaron **no
+  cambian**: copiaron lo que decía ese día. Ver [[dominio-reporte-servicio]].
+- **`vigenteEl(dia)`**: el último día todavía vale, vence al terminar. La misma regla, escrita igual, en
+  la copia que guarda el reporte.
+
+En pantalla, Catálogo › Patrones los ordena **por lo que vence antes** y marca cada uno **Vencido**,
+**Por vencer** —30 días o menos, el umbral de RF-41— o **Vigente**, por peso tipográfico. Es uno de los
+tres criterios de aceptación de RF-40, y **el único que se cumple entero**: ver la nota de los requisitos
+de alertas en la wiki de la documentación.
+
+### La tolerancia, en cada verificación y en su unidad
+
+`V26` añade `d_tolerancia` a `verificacion_tipo_equipo`: **±0,5 °C** se escribe 0,5 en una verificación
+de temperatura en °C. **Opcional**: los tipos anteriores no la tienen, y sin ella la conformidad dice
+«sin tolerancia» en lugar de inventarse una. Positiva y con cuatro decimales como mucho, en el dominio,
+en el cuerpo de la petición y en el esquema.
+
+**0,5 y 0,50 son la misma tolerancia** y declararla otra vez no emite evento; cambiarla sí, aunque los
+puntos y la cantidad sigan igual, porque cambia qué lecturas son conformes. Y retirar una verificación
+**conserva** su tolerancia.
+
+**La regla de conformidad no vive aquí.** Se escribió en `TypeVerification.conforme` y **se retiró una
+tanda después**: el reporte copia la tolerancia en cada lectura al tomarla, y la conformidad tiene que
+calcularse con esa copia, no con la que el tipo declare hoy. Ver [[dominio-reporte-servicio]].
 
 ## Reutilizable en MalphasOS
 

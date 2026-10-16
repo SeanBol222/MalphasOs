@@ -1859,3 +1859,37 @@ Backend **1140** sobre `c4247c8a`, 82 clases; frontend **572** sobre `811225b1`,
 
 **Tocadas**: [[hoja-de-ruta-producto]], [[arquitectura-frontend-malphasos]],
 [[dominio-equipo-mantenimiento]], [[decisiones-tecnicas-malphasos]].
+
+## [2026-10-16] ingest | la primera versión funcional: órdenes y reportes por tipo de servicio
+
+Las seis tandas del plan del 2026-10-14, construidas entre ese día y el 16, todas en `main`:
+ejecutar exige reportes cerrados (`31fada11`), el correctivo (`ab42378d`, `V24`), el catálogo de
+equipos patrón (`b8ae22e3`, `V25`), la tolerancia (`f73563e7`, `V26`), el patrón y la conformidad en el
+reporte (`d2d69f95`, `V27`) y el listado de órdenes sobre una maqueta aprobada el 16 (`a29beeea`).
+
+**Lo que cambió de sitio**: la regla de conformidad se escribió en el tipo de equipo y se retiró una
+tanda después, porque el reporte copia la tolerancia en cada lectura y tiene que calcular con la copia.
+
+**Afirmaciones que resultaron falsas y se corrigieron**:
+
+- «El vencimiento de calibración no tiene columna» —en [[esquema-bd-malphasos]],
+  [[dominio-equipo-mantenimiento]], [[hoja-de-ruta-producto]] y el `CONVENCIONES.md` de la raíz—: falso
+  desde `V25`, porque RF-40 y RF-41 hablan de los equipos patrón. **La segunda tanda de `equipment` está
+  completa**; lo que falta para las alertas es quién vigile la fecha.
+- «MalphasOS tiene 26 tablas», en la cabecera del esquema: falso desde `V12` y sobrevivió seis recuentos.
+- «27 tablas y cinco índices parciales», en el `CONVENCIONES.md` y en el índice: caducado desde `V21`.
+- «No hay protocolos», en [[dominio-reporte-servicio]]: falso desde el 2026-10-10.
+- La fila del frontend de [[hoja-de-ruta-producto]] decía 409 pruebas «medidas el 2026-10-03».
+
+**Encontrado al recontar el esquema**: las dos columnas de `V24` no llevan el `CHECK` de «no en blanco»
+de sus cuatro hermanas. Anotado como deuda.
+
+**Cifras**, recalculadas: esquema en `V27` con **31** tablas, 43 foráneas, 54 `CHECK` y 8 índices
+parciales; el guion de columnas da 180 dibujadas, todas existentes. Backend **1219** sobre `c005aca7`,
+87 clases; frontend **630** sobre `da7d7ded`. Deuda propia **87 filas, 51 abiertas**: cuatro nuevas,
+ninguna cerrada. **El marcador de requisitos no se mueve**: 21, porque ningún RF describe estos
+formatos; RF-40 cumple uno de sus tres criterios y sigue previsto.
+
+**Tocadas**: [[esquema-bd-malphasos]], [[dominio-reporte-servicio]], [[dominio-orden-trabajo]],
+[[dominio-equipo-mantenimiento]], [[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]],
+[[deuda-tecnica-y-riesgos]], el índice y el `CONVENCIONES.md` de la raíz.

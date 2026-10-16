@@ -1,10 +1,10 @@
 ---
 name: dominio-orden-trabajo
-description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatro tandas -esquema, dominio, aplicacion y REST- y con sus siete reglas de servicio construidas, incluida la que falto hasta el 2026-09-13
+description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatro tandas -esquema, dominio, aplicacion y REST- y con sus siete reglas de servicio construidas, incluida la que falto hasta el 2026-09-13, y desde el 2026-10-14 una octava: no se ejecuta con reportes abiertos
 tags: [dominio, work-order, esquema, mantenimiento, "describe:ambos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/workorder/ y malphasos/src/main/resources/db/migration/V6__work_order.sql
 estado: estable
-updated: 2026-10-10
+updated: 2026-10-16
 ---
 
 # Órdenes de trabajo — el módulo completo
@@ -393,6 +393,54 @@ Lo que aportan no es el ida y vuelta —eso lo garantizaría casi cualquier mape
 #### Lo que sigue sin cubrir en el proyecto
 
 `equipment` **tampoco tiene** pruebas de su persistencia salvo `ClientEquipmentRelocationPersistenceTest`. La ausencia que este módulo acaba de cerrar sigue viva en el vecino. Anotado en [[deuda-tecnica-y-riesgos]].
+
+## La primera versión funcional (2026-10-14 a 2026-10-16)
+
+Dos tandas del plan de [[hoja-de-ruta-producto]] tocan este módulo:
+
+| Tanda | Commits | Qué trae |
+|---|---|---|
+| Ejecutar exige reportes cerrados | `dff120af` · `32673020` | La regla, su puerto y el botón que dice qué falta |
+| El listado rediseñado | `c005aca7` · `da7d7ded` | Filtros, recuentos y el avance de los reportes de cada orden |
+
+### Una orden no se ejecuta con reportes abiertos
+
+Decidido por el usuario el 2026-10-14. «Ejecutada» quería decir que alguien pulsó un botón; ahora
+quiere decir que **cada equipo del alcance tiene su reporte vivo cerrado**. Un borrador, un equipo sin
+reporte o un cerrado que después se retiró cuentan como pendientes, y el 409 —`ERR_WORK_ORDER_009`— dice
+cuántos.
+
+**La regla vive aquí y el dato allí**, y eso obligó a invertir una dependencia. `report` depende de
+`work-order` desde el principio —un reporte cuelga de una orden—, así que este módulo **no puede**
+preguntarle nada a `report` sin cerrar un ciclo. Declara `WorkOrderReportsPort` —«qué equipos de esta
+orden tienen su reporte cerrado»— y `report` lo implementa con `WorkOrderReportsAdapter`. Es la misma
+forma que la hoja de vida usa al revés. La prueba del servicio usa un doble del puerto; la que dice que
+el adaptador cuenta bien es `WorkOrderExecutionIntegrationTest`, contra la base real.
+
+**Solo se comprueba al pasar de `EN_EJECUCION` a `EJECUTADA` en una orden activa**: en cualquier otro
+caso el agregado ya rechaza el paso, y preguntar antes por los reportes daría un mensaje equivocado.
+
+En la ficha, **el botón se desactiva** mientras falte algún reporte y dice cuántos, con
+`aria-describedby`: ofrecerlo y responder 409 sería ofrecer algo que no existe.
+
+### El listado, rehecho
+
+Sobre la maqueta «A-Órdenes», aprobada el 2026-10-16. **Abre en «Por hacer»** —creadas y en
+ejecución—, de la más próxima a la más lejana, que es la pregunta con la que se llega; lo hecho va de
+lo más reciente hacia atrás. Cada fila dice **cuánto falta para ejecutarla** —«3 de 5 cerrados»—, que es
+la misma cuenta que la regla de arriba, y **quién la hace**, con «Sin asignar» en negrita.
+
+**El avance no lo calcula este módulo**: lo compila `report` en una consulta para todas las órdenes,
+`GET /reports/progress`. Pedir los reportes orden por orden eran N consultas para pintar una tabla. Ver
+[[dominio-reporte-servicio]].
+
+**Los filtros son del frontend, y no contradicen la regla del API de más abajo** —«los cuatro filtros
+del listado son mutuamente excluyentes»—: la pantalla pide la lista entera una vez y combina cliente,
+ingeniero, estado y búsqueda sobre ella. La combinación en servidor sigue sin existir, y hará falta el
+día que la lista no quepa en una página.
+
+**Dos ingenieros con el mismo nombre llevan la cédula en el filtro.** Lo enseñó la base de desarrollo,
+que tiene dos «Alan Turing» —uno retirado— y ofrecía dos opciones idénticas.
 
 ## Lo que falta
 

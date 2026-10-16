@@ -1,10 +1,10 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 30 tablas, 42 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 31 tablas, 43 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-10-10
+updated: 2026-10-16
 ---
 
 # El esquema de MalphasOS, hoy
@@ -15,8 +15,10 @@ original**, generado con Enterprise Architect, y la primera se anuncia como «el
 **actual**»: era cierto cuando se escribió y dejó de serlo al construirse MalphasOS. Quien preguntaba
 «cómo tenemos la base de datos» aterrizaba ahí y leía las 27 tablas del sistema viejo.
 
-**Coincidencia que conviene no confundir**: el original tenía **27** tablas y MalphasOS tiene **26**.
-No son las mismas menos una; es otro modelo con un número parecido.
+**Coincidencia que conviene no confundir**: el original tenía **27** tablas y MalphasOS tenía **26** el
+día que se escribió esta nota. No eran las mismas menos una; es otro modelo con un número parecido.
+(Esta frase decía «tiene **26**» en presente: **falso desde `V12`**, el 2026-10-04, y nadie la tocó en
+seis recuentos. Hoy son **31**; la cifra viva está en «Las cifras», más abajo.)
 
 ## Cómo se hizo esta nota, y cómo se vuelve a hacer
 
@@ -76,17 +78,37 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-10
+## Las cifras, medidas el 2026-10-16
 
 | | |
 |---|---|
-| Migraciones aplicadas | **23** (`V1`…`V23`) |
-| Tablas de dominio | **30** |
-| Llaves foráneas | **42**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **47** |
+| Migraciones aplicadas | **27** (`V1`…`V27`) |
+| Tablas de dominio | **31** |
+| Llaves foráneas | **43**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **54** |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
-| Índices únicos **parciales** | **7** |
-| Tablas con borrado lógico | **30 de 30** — universal, sin excepción, otra vez desde `V23` |
+| Índices únicos **parciales** | **8** |
+| Tablas con borrado lógico | **31 de 31** — universal, sin excepción, otra vez desde `V23` |
+
+> **Recontado el 2026-10-16, sobre la base con `V27`**, leyendo `pg_constraint` y `pg_index`. Las cuatro
+> migraciones de la primera versión funcional —ver [[hoja-de-ruta-producto]]— traen:
+>
+> - `V24`, la causa y los repuestos del **correctivo**: dos columnas de texto en `reporte_servicio`, **sin
+>   ningún `CHECK`**. Es una incoherencia que este recuento destapó: sus cuatro hermanas de texto
+>   —falla, diagnóstico, procedimientos y observaciones— llevan `CHECK (… IS NULL OR btrim(…) <> '')` y
+>   estas dos no. El dominio normaliza el blanco a nulo, así que por la API no entra; por SQL sí.
+>   Anotada en [[deuda-tecnica-y-riesgos]].
+> - `V25`, el **catálogo de equipos patrón**: una tabla, `equipo_patron`, con **cuatro `CHECK`** y el
+>   índice parcial `UQ_equipo_patron_serie_activo` —la serie no se repite entre los vigentes—.
+> - `V26`, la **tolerancia** de cada verificación: una columna anulable y un `CHECK` de positiva.
+> - `V27`, el **patrón en el reporte**: una foránea simple de `reporte_servicio` a `equipo_patron`, cinco
+>   columnas que copian lo que el patrón decía ese día, un `CHECK` de todo o nada **escrito con `CASE`**
+>   —la trampa de V9: un `CHECK` se satisface con `NULL`—, y la tolerancia copiada en cada lectura con
+>   su `CHECK`.
+>
+> Antes: 23 migraciones, 30 tablas, 42 foráneas, 47 `CHECK`, 7 parciales. El guion de abajo daba **163
+> columnas dibujadas, todas existentes**, antes de esta pasada, y da **180** con las diecisiete que
+> añade: todas existen.
 
 > **`paso_reporte` rompió la convención del borrado lógico universal durante unas horas**, y no por
 > decisión: se escribió así en `V22` y lo destapó este recuento, al ir a escribir «30 de 30». Un paso
@@ -308,10 +330,10 @@ erDiagram
 **Un encargado lo es de una sede o de un área, nunca de las dos ni de ninguna**, y eso lo impone un
 `CHECK` y no una convención.
 
-## `equipment` — 13 tablas
+## `equipment` — 14 tablas
 
-**Desde `V21` son cuatro cosas**: lo de abajo, más los **protocolos de mantenimiento** de su propia
-sección. Son tres cosas en un módulo: la **cadena del catálogo** (seis tablas), el **catálogo metrológico con lo
+**Desde `V21` son cuatro cosas, y desde `V25` cinco**: lo de abajo, los **protocolos de mantenimiento**
+de su propia sección y el **catálogo de equipos patrón**, al final. Son tres cosas en un módulo: la **cadena del catálogo** (seis tablas), el **catálogo metrológico con lo
 que se verifica** (cuatro, de `V8` y `V10`) y, desde `V12`, el **historial de intervenciones** de cada
 equipo instalado, que es la única sección de su hoja de vida con tabla propia.
 
@@ -418,6 +440,7 @@ erDiagram
         uuid k_id_unidad_medida FK "a unidad_medida"
         varchar n_modalidad_verificacion
         integer i_cantidad_datos "nulo si la modalidad es variable"
+        numeric d_tolerancia "en la unidad, anulable - V26"
         boolean b_estado_activo
     }
     punto_verificacion {
@@ -432,6 +455,34 @@ erDiagram
 mide temperatura **y** humedad relativa, con unidades, puntos y modalidades distintas. Con el modelo
 anterior había que registrarlo como dos tipos de equipo. Las 20 magnitudes y 46 unidades las siembra
 `V10` y **no hay pantalla que las administre**, igual que los países. Ver
+[[dominio-equipo-mantenimiento]].
+
+**Cada verificación lleva su tolerancia desde `V26`** (2026-10-14), en su unidad —±0,5 °C—, y
+**anulable**: los tipos anteriores no la tienen, y sin ella la conformidad de una lectura dice «sin
+tolerancia» en lugar de inventarse una. Pero la regla de conformidad **no vive aquí**: la lectura del
+reporte copia la tolerancia al tomarse, por la misma razón que copia la unidad. Ver el apartado de
+`report`.
+
+### Los equipos patrón — 1 tabla, desde `V25`
+
+```mermaid
+erDiagram
+    equipo_patron ||--o{ reporte_servicio : "se usa en, desde V27"
+    equipo_patron {
+        uuid k_id_equipo_patron PK
+        varchar n_nombre
+        varchar n_marca "anulable"
+        varchar k_serie "UK entre los vigentes"
+        varchar n_certificado
+        date f_vencimiento_certificado
+        boolean b_estado_activo
+    }
+```
+
+Los aparatos de referencia **de la empresa**, contra los que se toman las lecturas. **No son
+`equipo_cliente`**: no se instalan en un área de ningún cliente ni tienen hoja de vida, y mezclarlos
+habría hecho de cada patrón una máquina de un cliente ficticio. El vencimiento del certificado es la
+fecha que RF-40 y RF-41 necesitan; **quién la vigila sigue sin existir**. Ver
 [[dominio-equipo-mantenimiento]].
 
 ### Los protocolos de mantenimiento — 2 tablas, desde `V21`
@@ -528,6 +579,14 @@ erDiagram
         varchar t_diagnostico
         varchar t_procedimientos
         varchar t_observaciones
+        varchar t_causa "V24, del correctivo"
+        varchar t_repuestos "V24"
+        uuid k_id_equipo_patron FK "V27, anulable"
+        varchar n_patron_nombre "copia - V27"
+        varchar n_patron_marca "copia"
+        varchar k_patron_serie "copia"
+        varchar n_patron_certificado "copia"
+        date f_patron_vencimiento "copia"
         varchar t_resultado
         timestamp t_finalizado
         boolean b_estado_activo
@@ -541,12 +600,19 @@ erDiagram
         numeric d_valor_patron
         numeric d_valor_equipo
         varchar n_unidad "copia congelada"
+        numeric d_tolerancia "copia congelada - V27"
         boolean b_estado_activo
     }
 ```
 
 **La unidad de una lectura es una copia, no una foránea**, y es deliberado: reconfigurar un tipo no
 debe cambiar un reporte ya firmado. Ver [[congelar-una-referencia-historica]].
+
+**El patrón y la tolerancia también son copias, desde `V27`**, y por la misma razón: renovar el
+certificado de un patrón en el catálogo no puede reescribir un reporte firmado, y que el tipo cambie su
+tolerancia no puede volver no conforme una lectura de ayer. El patrón guarda además su identificador
+con una foránea **simple** —un patrón nunca se borra—, y un `CHECK` de **todo o nada**: sin
+identificador no hay copia, y con él están todas salvo la marca.
 
 **Los pasos del protocolo también son una copia**, por lo mismo: nombre, descripción e indicación son
 los del día en que se abrió el reporte. Pero aquí **sí** hay foránea al protocolo, y no contradice lo
@@ -569,12 +635,13 @@ cuatro y cada una tapa un estado que de otro modo se podría escribir:
 nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
 lectura sin punto pasa y la que trae punto queda atada.
 
-## Los 7 índices únicos parciales, y por qué son parciales
+## Los 8 índices únicos parciales, y por qué son parciales
 
 `UQ_reporte_servicio_activo`, `UQ_verificacion_magnitud_activa_por_tipo`,
 `UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo`, desde `V11`
-`UQ_modelo_nombre_activo_por_equipo` y, desde `V21`, `UQ_protocolo_clave_activo` y
-`UQ_protocolo_tipo_equipo_prioridad_activa`. (Decía **cinco**: cierto hasta el **2026-10-10**.) Los siete llevan `WHERE b_estado_activo`, y la razón es la misma
+`UQ_modelo_nombre_activo_por_equipo`, desde `V21` `UQ_protocolo_clave_activo` y
+`UQ_protocolo_tipo_equipo_prioridad_activa`, y desde `V25` `UQ_equipo_patron_serie_activo`. (Decía
+**cinco**: cierto hasta el **2026-10-10**; y **siete** hasta el **2026-10-14**.) Los ocho llevan `WHERE b_estado_activo`, y la razón es la misma
 en todos: **aquí nada se borra**. Una restricción normal impediría volver a dar de alta algo que se
 retiró, de modo que reconfigurar hacia atrás sería imposible.
 
@@ -596,8 +663,10 @@ restricción que el esquema **podría** expresar y que **no debe**, porque conge
 
 ## Lo que falta
 
-- **El vencimiento de calibración** no tiene columna, y es lo que las alertas necesitan. Es lo único
-  que queda de la segunda tanda de `equipment`.
+- ~~**El vencimiento de calibración** no tiene columna~~. **Falso desde `V25`** (2026-10-14): RF-40 y
+  RF-41 hablan del vencimiento de los **equipos patrón**, y `equipo_patron.f_vencimiento_certificado` es
+  esa fecha. Lo que falta ya no es una columna sino **quién la vigile**: no hay tareas programadas en el
+  backend, y la única que la lee es la pantalla del catálogo de patrones y el cierre de un reporte.
 - **El filtrado por dueño no necesitó ninguna columna nueva**, y esta línea decía lo contrario. Decía
   que «no existe: ninguna tabla lleva columna de pertenencia que el API use para recortar lo que un
   usuario ve». **Construido el 2026-10-04 sin migración**: la pertenencia ya estaba, repartida entre
