@@ -423,6 +423,17 @@ class ServiceReportTest {
         }
     }
 
+    @Test
+    @DisplayName("el numero son los seis primeros caracteres del id, en mayusculas")
+    void numero() {
+        ServiceReport reporte = unReporte();
+
+        assertThat(reporte.numero()).hasSize(6)
+                .isEqualTo(reporte.getId().toString().substring(0, 6).toUpperCase());
+        assertThat(ServiceReport.numeroDe(UUID.fromString("1dc6f5c8-2821-4484-bd95-db78fa514929")))
+                .isEqualTo("1DC6F5");
+    }
+
     @Nested
     @DisplayName("El patron (V27)")
     class ElPatron {

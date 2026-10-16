@@ -138,6 +138,22 @@ public class ServiceReport extends AggregateRoot {
         }
     }
 
+    /** Cuántos caracteres del identificador forman el número del reporte (V28). */
+    public static final int LARGO_NUMERO = 6;
+
+    /**
+     * El número con que se cita el reporte: los seis primeros caracteres de su identificador, en
+     * mayúsculas, como un commit de git (decidido por el usuario el 2026-10-16). Único: lo garantiza el
+     * índice de V28 y quien abre el reporte elige otro identificador si el prefijo está tomado.
+     */
+    public String numero() {
+        return numeroDe(id);
+    }
+
+    public static String numeroDe(UUID id) {
+        return id.toString().substring(0, LARGO_NUMERO).toUpperCase(java.util.Locale.ROOT);
+    }
+
     /** Abre el reporte de un equipo de una orden, sin pasos de protocolo: un correctivo. */
     public static ServiceReport open(UUID idOrdenTrabajo, UUID idEquipoCliente) {
         return open(idOrdenTrabajo, idEquipoCliente, List.of());

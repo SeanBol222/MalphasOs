@@ -22,6 +22,9 @@ public interface ServiceReportPersistencePort {
 
     List<ServiceReport> findByEquipment(UUID idEquipoCliente);
 
+    /** Si algún reporte, retirado o no, tiene ya ese número: los seis primeros caracteres del id (V28). */
+    boolean numberTaken(String numero);
+
     /** Cuántos equipos con reporte cerrado y en borrador tiene cada orden que tenga alguno vivo. */
     List<WorkOrderReportProgress> progressByWorkOrder();
 

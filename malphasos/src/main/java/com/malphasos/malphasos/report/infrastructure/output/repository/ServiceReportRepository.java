@@ -13,6 +13,11 @@ public interface ServiceReportRepository extends JpaRepository<ServiceReportEnti
 
     List<ServiceReportEntity> findByIdEquipoCliente(UUID idEquipoCliente);
 
+    /** Si el prefijo ya lo tiene algún reporte. Nativa: es la misma expresión que el índice de V28. */
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM reporte_servicio"
+            + " WHERE left(k_id_reporte_servicio::text, 6) = lower(:numero))", nativeQuery = true)
+    boolean existsByNumero(@org.springframework.data.repository.query.Param("numero") String numero);
+
     /**
      * Por orden: cuántos equipos tienen su reporte vivo cerrado y cuántos en borrador. Una fila por
      * orden, contada en la base y sin cargar ningún reporte; el índice único parcial garantiza un

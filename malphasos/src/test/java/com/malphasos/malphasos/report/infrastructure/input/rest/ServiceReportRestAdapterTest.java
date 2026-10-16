@@ -72,13 +72,15 @@ class ServiceReportRestAdapterTest {
     @Test
     @DisplayName("POST abre el reporte y responde 201 con el borrador vacio")
     void abrir() throws Exception {
-        when(serviceReportServicePort.open(any())).thenReturn(unReporte());
+        ServiceReport abierto = unReporte();
+        when(serviceReportServicePort.open(any())).thenReturn(abierto);
 
         mockMvc.perform(post("/v1/api/reports/work-orders/" + ORDEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(
                                 new ServiceReportOpenRequest(EQUIPO))))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.numero").value(abierto.numero()))
                 .andExpect(jsonPath("$.estado").value("BORRADOR"))
                 .andExpect(jsonPath("$.resultado").isEmpty())
                 .andExpect(jsonPath("$.finalizado").isEmpty())

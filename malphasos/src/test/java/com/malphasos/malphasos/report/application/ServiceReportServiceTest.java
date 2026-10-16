@@ -210,6 +210,44 @@ class ServiceReportServiceTest {
     class AlAbrir {
 
         @Test
+        @DisplayName("si el numero ya lo tiene otro reporte, elige otro identificador y no publica el descartado")
+        void numeroTomado() {
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
+            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
+                    .thenReturn(Optional.empty());
+            estubarProtocolos();
+            estubarGuardado();
+            java.util.List<String> consultados = new java.util.ArrayList<>();
+            when(serviceReportPersistencePort.numberTaken(any())).thenAnswer(llamada -> {
+                consultados.add(llamada.getArgument(0));
+                return consultados.size() == 1;
+            });
+
+            ServiceReport reporte = service.open(new OpenServiceReportCommand(ORDEN, EQUIPO));
+
+            assertThat(consultados).hasSize(2);
+            assertThat(reporte.numero()).isEqualTo(consultados.get(1)).isNotEqualTo(consultados.get(0));
+            // Un solo evento: el del reporte guardado. El descartado no ocurrio.
+            verify(eventDispatcherPort).dispatch(any());
+        }
+
+        @Test
+        @DisplayName("si nunca encuentra un numero libre, se rinde sin guardar nada")
+        void sinNumeroLibre() {
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
+            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
+                    .thenReturn(Optional.empty());
+            estubarProtocolos();
+            when(serviceReportPersistencePort.numberTaken(any())).thenReturn(true);
+
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> service.open(new OpenServiceReportCommand(ORDEN, EQUIPO)))
+                    .withMessageContaining("numero de reporte libre");
+            verify(serviceReportPersistencePort, org.mockito.Mockito.times(10)).numberTaken(any());
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
         @DisplayName("lo abre si la orden esta en ejecucion y el equipo esta en su alcance")
         void abreElReporte() {
             when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
