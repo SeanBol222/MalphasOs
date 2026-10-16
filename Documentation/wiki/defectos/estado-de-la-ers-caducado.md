@@ -1,10 +1,10 @@
 ---
 name: estado-de-la-ers-caducado
-description: Las anotaciones «Estado en la implementacion actual» de la ERS afirman seis cosas que el codigo ya desmiente, y dos requisitos se cuentan como implementados contra su propio texto
+description: Las anotaciones «Estado en la implementacion actual» de la ERS afirman ocho cosas que el codigo ya desmiente, y dos requisitos se cuentan como implementados contra su propio texto
 tags: [defectos, requisitos, trazabilidad]
 fuente: Documentation/IEEE830/IEEE830.tex
 estado: defecto-conocido
-updated: 2026-10-04
+updated: 2026-10-16
 ---
 
 # El estado que la ERS declara de sí misma está caducado
@@ -56,6 +56,20 @@ esperando algo que no podía llegar.
 Y la anotación de **RF-27** —«no hay tabla de historial, ni columnas de fecha de servicio, tipo de
 servicio o resultado»— era **falsa en la mitad** desde el 2026-09-27: las tres columnas existían, en
 `reporte_servicio` y `orden_trabajo`. Lo que faltaba era la tabla, y existe desde `V12`.
+
+## Y una más que cambia el sentido, desde el 2026-10-16
+
+| Línea | Requisito | Dice | Es |
+|---|---|---|---|
+| 1256 | RF-40 | «**Ni los equipos patrón ni las fechas de calibración están modelados**» | los equipos patrón son un catálogo con **certificado y vencimiento** desde la migración `V25`, el **2026-10-14**, y cada reporte con lecturas copia el que se usó (`V27`) |
+| 1280 | RF-41 | «no existe […] **el certificado de calibración** que lo reiniciaría» | el certificado existe como dato de cada patrón; lo que sigue sin existir es el **umbral que reinicia** y la alerta |
+
+Las dos tienen la forma de RF-26: **un lector concluiría que falta una pieza que ya está**. Y no pasan a
+implementados por eso: de los tres criterios de aceptación de RF-40 se cumple entero **uno** —el
+indicador visual en el listado: el catálogo de patrones marca «Vencido», «Por vencer» a 30 días o
+«Vigente»—, el tercero **a medias** —un patrón vencido no se ofrece y no deja cerrar el reporte, pero
+uno próximo a vencer no avisa— y el primero **no**, porque el backend no tiene tareas programadas que
+comparen fechas a diario. Ver [[rf-alertas-calibracion]].
 
 ## Y dos requisitos contados como implementados contra el texto de la propia ERS
 

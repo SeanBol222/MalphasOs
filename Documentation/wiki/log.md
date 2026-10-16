@@ -218,3 +218,13 @@ usuario—. El marcador pasa de 19 a 21. **El `.tex` de la ERS no se tocó**: su
 diciendo «Previsto», y es otra de las afirmaciones que [[estado-de-la-ers-caducado]] recoge.
 
 **Tocadas**: [[estado-de-implementacion]], [[rf-reportes-mantenimiento]].
+
+## [2026-10-16] ingest | los equipos patrón existen: RF-40 y RF-41, corregidos
+
+La primera versión funcional construyó en `malphasos/` un catálogo de equipos patrón con certificado y
+vencimiento (`V25`), y el reporte copia el que se usó (`V27`). [[rf-alertas-calibracion]] decía que
+nada de eso estaba modelado: corregido, con el estado de cada criterio de aceptación de RF-40 —uno
+cumplido, uno a medias, uno no—. **El marcador no se mueve: 21 de 31.** Y la ERS suma dos afirmaciones
+caducadas más, en RF-40 y RF-41, que [[estado-de-la-ers-caducado]] recoge: el `.tex` no se tocó.
+
+**Tocadas**: [[rf-alertas-calibracion]], [[estado-de-la-ers-caducado]].
