@@ -144,6 +144,24 @@ export class ReporteApi {
     }));
   }
 
+  /**
+   * Elige el patrón contra el que se toman las lecturas (V27). El servidor copia lo que el catálogo
+   * dice hoy de él. Como un paso, se guarda al elegirlo y la respuesta ya es el reporte entero, así que
+   * se pone en la caché en vez de recargar.
+   */
+  usarPatron() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, idEquipoPatron }: { id: string; idEquipoPatron: string }) =>
+        firstValueFrom(
+          this.http.patch<ReporteDeServicio>(`${this.url}/${id}/reference-standard`, {
+            idEquipoPatron,
+          }),
+        ),
+      onSuccess: (reporte: ReporteDeServicio) =>
+        this.queryClient.setQueryData(ReporteApi.claveDetalle(reporte.id!), reporte),
+    }));
+  }
+
   cerrar() {
     return injectMutation(() => ({
       mutationFn: (id: string) =>

@@ -486,12 +486,11 @@ class CatalogAggregatesTest {
             }
 
             @Test
-            @DisplayName("la tolerancia es opcional, y sin ella no se dice si una lectura es conforme")
+            @DisplayName("la tolerancia es opcional")
             void sinTolerancia() {
                 // Los tipos anteriores a V26 no la tienen: inventar una diria conforme o no conforme
-                // sobre un criterio que nadie declaro.
-                assertThat(conTolerancia(null).conforme(new BigDecimal("100"), new BigDecimal("140")))
-                        .isNull();
+                // sobre un criterio que nadie declaro. La conformidad la calcula la lectura del reporte.
+                assertThat(conTolerancia(null).tolerancia()).isNull();
             }
 
             @Test
@@ -515,20 +514,6 @@ class CatalogAggregatesTest {
                 assertThatThrownBy(() -> conTolerancia("0.00001"))
                         .isInstanceOf(IllegalArgumentException.class)
                         .hasMessageContaining("4 decimales");
-            }
-
-            @Test
-            @DisplayName("el borde de la tolerancia es conforme, por los dos lados, y un poco mas alla no")
-            void bordeDeLaTolerancia() {
-                // «±0,5» admite 0,5. Es el sentido en el que se lee una tolerancia en un certificado.
-                TypeVerification verificacion = conTolerancia("0.5");
-                BigDecimal patron = new BigDecimal("100");
-
-                assertThat(verificacion.conforme(patron, new BigDecimal("100.5"))).isTrue();
-                assertThat(verificacion.conforme(patron, new BigDecimal("99.5"))).isTrue();
-                assertThat(verificacion.conforme(patron, new BigDecimal("100.5001"))).isFalse();
-                assertThat(verificacion.conforme(patron, new BigDecimal("99.4999"))).isFalse();
-                assertThat(verificacion.conforme(patron, patron)).isTrue();
             }
 
             @Test

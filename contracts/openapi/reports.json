@@ -210,6 +210,10 @@
             },
             "type" : "array"
           },
+          "patron" : {
+            "$ref" : "#/components/schemas/UsedReferenceStandardResponse",
+            "description" : "El patron contra el que se tomaron las lecturas, como estaba ese dia. Nulo mientras no se elija"
+          },
           "procedimientos" : {
             "type" : "string"
           },
@@ -219,6 +223,43 @@
           },
           "resultado" : {
             "enum" : [ "OPERATIVO", "OPERATIVO_CON_RESTRICCIONES", "FUERA_DE_SERVICIO" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "UseReferenceStandardRequest" : {
+        "properties" : {
+          "idEquipoPatron" : {
+            "description" : "Un patron vigente del catalogo de equipos patron",
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "idEquipoPatron" ],
+        "type" : "object"
+      },
+      "UsedReferenceStandardResponse" : {
+        "properties" : {
+          "certificado" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "marca" : {
+            "description" : "Nula si el catalogo no la tenia",
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "serie" : {
+            "type" : "string"
+          },
+          "vencimiento" : {
+            "format" : "date",
             "type" : "string"
           }
         },
@@ -255,6 +296,14 @@
       },
       "VerificationReadingResponse" : {
         "properties" : {
+          "conforme" : {
+            "description" : "Si |error| <= tolerancia. Nulo sin tolerancia: no se sabe",
+            "type" : "boolean"
+          },
+          "error" : {
+            "description" : "Equipo menos patron, con su signo",
+            "type" : "number"
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -271,6 +320,10 @@
           "secuencia" : {
             "format" : "int32",
             "type" : "integer"
+          },
+          "tolerancia" : {
+            "description" : "La tolerancia de la verificacion cuando se tomo la lectura. Nula si no tenia",
+            "type" : "number"
           },
           "unidad" : {
             "type" : "string"
@@ -755,9 +808,87 @@
         "tags" : [ "ServiceReport" ]
       }
     },
-    "/v1/api/reports/{id}/steps/{orden}" : {
+    "/v1/api/reports/{id}/reference-standard" : {
       "patch" : {
         "description" : "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.",
+        "operationId" : "useReferenceStandard",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UseReferenceStandardRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Marcar un paso del protocolo",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/steps/{orden}" : {
+      "patch" : {
         "operationId" : "markStep",
         "parameters" : [ {
           "in" : "path",
@@ -838,7 +969,6 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Marcar un paso del protocolo",
         "tags" : [ "ServiceReport" ]
       }
     },

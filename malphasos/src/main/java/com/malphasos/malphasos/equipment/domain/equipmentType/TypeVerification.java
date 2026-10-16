@@ -37,7 +37,8 @@ import java.util.UUID;
  * @param puntos   los valores constantes, <b>retirados incluidos</b>: con ellos se firmaron reportes
  * @param tolerancia el error admitido, en la unidad de la verificación (V26, 2026-10-14). Nula si no se
  *                   declaró: los tipos anteriores no la tienen, y la conformidad dice entonces «sin
- *                   tolerancia» en lugar de inventarse una
+ *                   tolerancia» en lugar de inventarse una. La regla de conformidad no vive aquí sino
+ *                   en la lectura del reporte, que copia la tolerancia al tomarse (V27)
  */
 public record TypeVerification(
         UUID id,
@@ -99,19 +100,6 @@ public record TypeVerification(
         }
 
         puntos = puntos == null ? List.of() : List.copyOf(puntos);
-    }
-
-    /**
-     * Si una lectura está dentro de la tolerancia: {@code |equipo − patrón| ≤ tolerancia}. El borde
-     * cuenta como conforme —«±0,5» admite 0,5—. Nulo si no hay tolerancia declarada: no se sabe, y no
-     * se inventa.
-     */
-    public Boolean conforme(BigDecimal valorPatron, BigDecimal valorEquipo) {
-        if (tolerancia == null) {
-            return null;
-        }
-
-        return valorEquipo.subtract(valorPatron).abs().compareTo(tolerancia) <= 0;
     }
 
     /** Una verificación nueva, activa, con sus reglas comprobadas. */

@@ -24,6 +24,7 @@ import com.malphasos.malphasos.equipment.infrastructure.output.ModelPersistenceA
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
+import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
@@ -66,6 +67,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM paso_reporte",
             "DELETE FROM protocolo",
             "DELETE FROM reporte_servicio",
+            "DELETE FROM equipo_patron",
             "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
@@ -336,6 +338,101 @@ class ServiceReportPersistenceAdapterTest {
             assertThat(adapter.findById(reporte.getId()).orElseThrow()
                             .lecturasActivas().getFirst().idPuntoVerificacion())
                     .isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("El patron y la tolerancia (V27)")
+    class ElPatron {
+
+        private UUID unPatronEnElCatalogo() {
+            UUID patron = UUID.randomUUID();
+            jdbcTemplate.update(
+                    "INSERT INTO equipo_patron (k_id_equipo_patron, n_nombre, n_marca, k_serie, n_certificado,"
+                            + " f_vencimiento_certificado)"
+                            + " VALUES (?, 'Juego de pesas', 'Kern', ?, 'CAL-2026-0412', '2027-04-30')",
+                    patron, "KF1-" + unico());
+
+            return patron;
+        }
+
+        @Test
+        @DisplayName("el patron vuelve con lo que se copio, aunque el catalogo cambie despues")
+        void elPatronVuelveCopiado() {
+            Alcance alcance = unAlcance();
+            UUID idPatron = unPatronEnElCatalogo();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            reporte.useReferenceStandard(new UsedReferenceStandard(idPatron, "Juego de pesas", "Kern",
+                    "KF1-1", "CAL-2026-0412", LocalDate.of(2027, 4, 30)));
+            adapter.save(reporte);
+
+            // Se renueva el certificado en el catalogo: el reporte no se entera, y no debe.
+            jdbcTemplate.update("UPDATE equipo_patron SET n_certificado = 'CAL-2027-0001',"
+                    + " f_vencimiento_certificado = '2028-04-30' WHERE k_id_equipo_patron = ?", idPatron);
+
+            UsedReferenceStandard recuperado = adapter.findById(reporte.getId()).orElseThrow().getPatron();
+
+            assertThat(recuperado).isEqualTo(new UsedReferenceStandard(idPatron, "Juego de pesas", "Kern",
+                    "KF1-1", "CAL-2026-0412", LocalDate.of(2027, 4, 30)));
+        }
+
+        @Test
+        @DisplayName("sin patron vuelve sin patron, y uno sin marca vuelve sin marca")
+        void sinPatronYSinMarca() {
+            Alcance alcance = unAlcance();
+            ServiceReport sinPatron = ServiceReport.open(alcance.orden(), alcance.equipo());
+            adapter.save(sinPatron);
+            assertThat(adapter.findById(sinPatron.getId()).orElseThrow().getPatron()).isNull();
+
+            sinPatron.deactivate();
+            adapter.save(sinPatron);
+            ServiceReport sinMarca = ServiceReport.open(alcance.orden(), alcance.equipo());
+            sinMarca.useReferenceStandard(new UsedReferenceStandard(unPatronEnElCatalogo(), "Termometro", null,
+                    "T-9", "CAL-9", LocalDate.of(2027, 1, 1)));
+            adapter.save(sinMarca);
+
+            assertThat(adapter.findById(sinMarca.getId()).orElseThrow().getPatron().marca()).isNull();
+        }
+
+        @Test
+        @DisplayName("la tolerancia de cada lectura va y vuelve, y sin ella vuelve nula")
+        void laToleranciaVuelve() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            reporte.recordVerification(List.of(
+                    VerificationReading.of(alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"),
+                            new BigDecimal("50.7"), "mmHg", new BigDecimal("0.5")),
+                    VerificationReading.of(alcance.verificacion(), alcance.punto(), 2, new BigDecimal("50"),
+                            new BigDecimal("50.1"), "mmHg")));
+            adapter.save(reporte);
+
+            List<VerificationReading> recuperadas = adapter.findById(reporte.getId()).orElseThrow()
+                    .lecturasActivas();
+
+            VerificationReading primera = recuperadas.stream().filter(l -> l.secuencia() == 1).findFirst()
+                    .orElseThrow();
+            VerificationReading segunda = recuperadas.stream().filter(l -> l.secuencia() == 2).findFirst()
+                    .orElseThrow();
+            assertThat(primera.tolerancia()).isEqualByComparingTo("0.5");
+            assertThat(primera.conforme()).isFalse();
+            assertThat(segunda.tolerancia()).isNull();
+        }
+
+        @Test
+        @DisplayName("la base no deja un patron a medias: con identificador y sin certificado, o al reves")
+        void patronAMedias() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            adapter.save(reporte);
+            UUID idPatron = unPatronEnElCatalogo();
+
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET k_id_equipo_patron = ?,"
+                            + " n_patron_nombre = 'Pesas', k_patron_serie = 'S', f_patron_vencimiento = '2027-01-01'"
+                            + " WHERE k_id_reporte_servicio = ?", idPatron, reporte.getId()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET n_patron_nombre = 'Pesas'"
+                            + " WHERE k_id_reporte_servicio = ?", reporte.getId()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
         }
     }
 

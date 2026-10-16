@@ -35,6 +35,10 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
+import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
+import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.equipment.application.model.AssignedProtocolDetail;
 import com.malphasos.malphasos.equipment.domain.protocol.Protocol;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
@@ -91,6 +95,7 @@ class ServiceReportServiceTest {
     @Mock private EquipmentTypeServicePort equipmentTypeServicePort;
     @Mock private EventDispatcherPort eventDispatcherPort;
     @Mock private ProtocolServicePort protocolServicePort;
+    @Mock private ReferenceStandardServicePort referenceStandardServicePort;
 
     @InjectMocks private ServiceReportService service;
 
@@ -151,6 +156,10 @@ class ServiceReportServiceTest {
     private static TypeVerification laVerificacionDe(EquipmentType tipo) {
         return tipo.verificacionesActivas().getFirst();
     }
+
+    /** Un patrón con el certificado vigente un año más: el que se usa cuando el patrón no es lo que se prueba. */
+    private static final UsedReferenceStandard PATRON_VIGENTE = new UsedReferenceStandard(UUID.randomUUID(),
+            "Juego de pesas", "Kern", "KF1-1", "CAL-1", LocalDate.now().plusYears(1));
 
     private static VerificationPoint unPunto(String valor) {
         return VerificationPoint.of(new BigDecimal(valor));
@@ -333,6 +342,42 @@ class ServiceReportServiceTest {
     class AlVerificar {
 
         private static final UUID PUNTO_AJENO = UUID.randomUUID();
+
+        @Test
+        @DisplayName("cada lectura copia la tolerancia de su verificacion, en las dos modalidades")
+        void copiaLaTolerancia() {
+            // V27: la conformidad de un reporte cerrado no puede cambiar porque el tipo cambie su
+            // tolerancia despues, asi que la lectura se queda con la de hoy. Las dos ramas -con punto y
+            // sin punto- construyen la lectura por separado, y por eso van las dos.
+            ServiceReport reporte = unReporte();
+            VerificationPoint punto = unPunto("50");
+            EquipmentType tipo = tipoCon(List.of(
+                    TypeVerification.of(PRESION, MMHG, VerificationMode.PATRON_CONSTANTE, 1,
+                            List.of(punto), new BigDecimal("0.5")),
+                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.PATRON_EQUIPO_VARIABLE,
+                            null, List.of(), new BigDecimal("0.3"))));
+            UUID dePresion = tipo.verificacionesActivas().getFirst().id();
+            UUID deTemperatura = tipo.verificacionesActivas().get(1).id();
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+            estubarGuardado();
+
+            service.recordVerification(new RecordVerificationCommand(reporte.getId(), List.of(
+                    new VerificationReadingCommand(
+                            dePresion, punto.id(), 1, new BigDecimal("50"), new BigDecimal("50.7")),
+                    new VerificationReadingCommand(
+                            deTemperatura, null, 1, new BigDecimal("37"), new BigDecimal("37.1")))));
+
+            VerificationReading dePresionLeida = reporte.lecturasActivas().stream()
+                    .filter(lectura -> lectura.idVerificacion().equals(dePresion)).findFirst().orElseThrow();
+            VerificationReading deTemperaturaLeida = reporte.lecturasActivas().stream()
+                    .filter(lectura -> lectura.idVerificacion().equals(deTemperatura)).findFirst().orElseThrow();
+
+            assertThat(dePresionLeida.tolerancia()).isEqualByComparingTo("0.5");
+            assertThat(dePresionLeida.conforme()).isFalse();
+            assertThat(deTemperaturaLeida.tolerancia()).isEqualByComparingTo("0.3");
+            assertThat(deTemperaturaLeida.conforme()).isTrue();
+        }
 
         @Test
         @DisplayName("acepta las lecturas de un punto y les pone la unidad de la verificacion")
@@ -669,6 +714,7 @@ class ServiceReportServiceTest {
                             new BigDecimal("50"), new BigDecimal("50.2"), "mmHg"),
                     VerificationReading.of(verificacion, punto.id(), 2,
                             new BigDecimal("50"), new BigDecimal("49.9"), "mmHg")));
+            reporte.useReferenceStandard(PATRON_VIGENTE);
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -804,6 +850,7 @@ class ServiceReportServiceTest {
                             new BigDecimal("1"), new BigDecimal("1.1"), "mmHg"),
                     VerificationReading.of(tipo.verificacionesActivas().get(1).id(), null, 1,
                             new BigDecimal("37"), new BigDecimal("36.8"), "°C")));
+            reporte.useReferenceStandard(PATRON_VIGENTE);
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -857,6 +904,7 @@ class ServiceReportServiceTest {
             reporte.recordVerification(List.of(VerificationReading.of(
                     laVerificacionDe(tipo).id(), null, 1,
                     new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
+            reporte.useReferenceStandard(PATRON_VIGENTE);
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -885,6 +933,56 @@ class ServiceReportServiceTest {
     @Nested
     @DisplayName("Al llenarlo y al retirarlo")
     class LoDemas {
+
+        @Test
+        @DisplayName("elegir un patron copia lo que el catalogo dice hoy de el")
+        void eligeElPatron() {
+            ServiceReport reporte = unReporte();
+            ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Juego de pesas",
+                    "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30), true);
+            estubarReporte(reporte);
+            estubarGuardado();
+            when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+
+            service.useReferenceStandard(new UseReferenceStandardCommand(reporte.getId(), patron.getId()));
+
+            assertThat(reporte.getPatron()).isEqualTo(new UsedReferenceStandard(patron.getId(),
+                    "Juego de pesas", "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30)));
+            verify(serviceReportPersistencePort).save(reporte);
+        }
+
+        @Test
+        @DisplayName("un patron retirado no se puede elegir, y no se guarda nada")
+        void patronRetirado() {
+            ServiceReport reporte = unReporte();
+            ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Termometro", null,
+                    "T-9", "CAL-9", LocalDate.now().plusYears(1), false);
+            estubarReporte(reporte);
+            when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+
+            assertThatThrownBy(() -> service.useReferenceStandard(
+                            new UseReferenceStandardCommand(reporte.getId(), patron.getId())))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("retirado");
+            assertThat(reporte.getPatron()).isNull();
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("uno vencido si se puede elegir: lo que no deja es cerrar")
+        void patronVencidoSeElige() {
+            // Decision tomada a proposito: la vigencia se juzga el dia del cierre, que es el del servicio.
+            ServiceReport reporte = unReporte();
+            ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Termometro", null,
+                    "T-9", "CAL-9", LocalDate.now().minusDays(1), true);
+            estubarReporte(reporte);
+            estubarGuardado();
+            when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+
+            service.useReferenceStandard(new UseReferenceStandardCommand(reporte.getId(), patron.getId()));
+
+            assertThat(reporte.getPatron().id()).isEqualTo(patron.getId());
+        }
 
         @Test
         @DisplayName("llenar no consulta el catalogo: son datos del propio reporte")

@@ -9,14 +9,17 @@ import {
   ID_CELSIUS,
   ID_TEMPERATURA,
   ID_TIPO,
+  ID_PATRON,
   ID_VERIFICACION,
   MODELOS,
   TIPOS,
   URL_EQUIPOS as URL_EQUIPOS_DE_CATALOGO,
   URL_MODELOS,
+  URL_PATRONES,
+  PATRONES,
   URL_TIPOS,
 } from '../../../../testing/catalogo';
-import { ID_REPORTE, urlVerificacion } from '../../../../testing/reportes';
+import { ID_REPORTE, URL_REPORTES, urlVerificacion } from '../../../../testing/reportes';
 import { LecturaDeVerificacion } from '../../../core/api/tipos';
 import { TablaDeVerificacion } from './tabla-de-verificacion';
 
@@ -92,6 +95,7 @@ describe('Tabla de verificación de un reporte', () => {
     http.match(URL_MODELOS).forEach((p) => p.flush(MODELOS));
     http.match(URL_EQUIPOS_DE_CATALOGO).forEach((p) => p.flush(EQUIPOS_DE_CATALOGO));
     http.match(URL_TIPOS).forEach((p) => p.flush(tipos));
+    http.match(URL_PATRONES).forEach((p) => p.flush(PATRONES));
     await asentar(fixture);
   }
 
@@ -306,5 +310,148 @@ describe('Tabla de verificación de un reporte', () => {
     // encontraria peticiones pendientes y el verify() del final fallaria.
     expect(http.match(URL_TIPOS)).toHaveLength(0);
     expect(http.match(URL_MODELOS)).toHaveLength(0);
+  });
+
+  describe('El patrón, el error y la conformidad (2026-10-14)', () => {
+    /** El tipo de ejemplo con tolerancia: ±0,5 mmHg. */
+    const conTolerancia = (tolerancia: number | undefined) => [
+      { ...TIPOS[0], verificaciones: [{ ...TIPOS[0].verificaciones[0], tolerancia }] },
+    ];
+
+    const opciones = () =>
+      [...raiz().querySelectorAll<HTMLOptionElement>('#patronUsado option')].map((o) =>
+        (o.textContent ?? '').trim(),
+      );
+    const celda = (atributo: string, fila: number) =>
+      (filas()[fila].querySelector(`[${atributo}]`)?.textContent ?? '').trim();
+
+    it('ofrece solo los patrones vigentes y sin retirar', async () => {
+      await abrir();
+
+      expect(opciones()).toEqual([
+        'Elija un patrón vigente',
+        'Juego de pesas clase F1 · serie KF1-2024-118',
+      ]);
+    });
+
+    it('elegir uno lo guarda al momento por su ruta', async () => {
+      await abrir();
+
+      const selector = raiz().querySelector<HTMLSelectElement>('#patronUsado')!;
+      selector.value = ID_PATRON;
+      selector.dispatchEvent(new Event('change'));
+      await asentar(fixture);
+
+      const peticion = http.expectOne(`${URL_REPORTES}/${ID_REPORTE}/reference-standard`);
+      expect(peticion.request.method).toBe('PATCH');
+      expect(peticion.request.body).toEqual({ idEquipoPatron: ID_PATRON });
+      peticion.flush({ id: ID_REPORTE, lecturas: [] });
+      await asentar(fixture);
+    });
+
+    it('elegir el que ya está no manda nada', async () => {
+      fixture.componentRef.setInput('patron', {
+        id: ID_PATRON,
+        nombre: 'Juego de pesas clase F1',
+        serie: 'KF1-2024-118',
+        certificado: 'CAL-2026-0412',
+        vencimiento: '2099-04-30',
+      });
+      await abrir();
+
+      const selector = raiz().querySelector<HTMLSelectElement>('#patronUsado')!;
+      selector.value = ID_PATRON;
+      selector.dispatchEvent(new Event('change'));
+      await asentar(fixture);
+
+      expect(http.match(`${URL_REPORTES}/${ID_REPORTE}/reference-standard`)).toHaveLength(0);
+    });
+
+    it('el elegido se ve con su certificado y su vencimiento', async () => {
+      fixture.componentRef.setInput('patron', {
+        id: ID_PATRON,
+        nombre: 'Juego de pesas clase F1',
+        marca: 'Kern',
+        serie: 'KF1-2024-118',
+        certificado: 'CAL-2026-0412',
+        vencimiento: '2099-04-30',
+      });
+      await abrir();
+
+      const usado = raiz().querySelector('[data-patron-usado]')!.textContent ?? '';
+      expect(usado).toContain('CAL-2026-0412');
+      expect(usado).toContain('vence el');
+      expect(texto()).not.toContain('Con el certificado vencido');
+    });
+
+    it('uno vencido se ve vencido, y avisa de que así no se cierra', async () => {
+      fixture.componentRef.setInput('patron', {
+        id: 'pat2',
+        nombre: 'Termómetro vencido',
+        serie: 'T-9',
+        certificado: 'CAL-2010-1',
+        vencimiento: '2000-01-31',
+      });
+      await abrir();
+
+      expect(raiz().querySelector('[data-patron-usado]')!.textContent).toContain('venció el');
+      expect(texto()).toContain('Con el certificado vencido el reporte no se puede cerrar');
+    });
+
+    it('dice el error y si es conforme mientras se escribe, con el borde dentro', async () => {
+      // 50,7 − 50,2 en coma flotante es 0,5000000000000071: con una comparacion ingenua el borde
+      // saldria «No». El servidor cuenta en decimal y diria «Sí».
+      await abrir([], conTolerancia(0.5));
+      expect(texto()).toContain('tolerancia ±0,5 mmHg');
+
+      escribir(patron(0), '50.2');
+      escribir(equipo(0), '50.7');
+      expect(celda('data-error', 0)).toBe('+0,5');
+      expect(celda('data-conforme', 0)).toBe('Sí');
+
+      escribir(equipo(0), '50.7001');
+      expect(celda('data-conforme', 0)).toBe('No');
+
+      escribir(equipo(0), '49.6');
+      expect(celda('data-error', 0)).toBe('-0,6');
+      expect(celda('data-conforme', 0)).toBe('No');
+    });
+
+    it('sin los dos valores no hay error, y sin tolerancia no se dice si es conforme', async () => {
+      await abrir([], conTolerancia(undefined));
+      expect(texto()).toContain('sin tolerancia');
+
+      escribir(patron(0), '100');
+      expect(celda('data-error', 0)).toBe('—');
+
+      escribir(equipo(0), '140');
+      expect(celda('data-error', 0)).toBe('+40');
+      expect(celda('data-conforme', 0)).toBe('—');
+    });
+
+    it('un reporte cerrado se juzga con la tolerancia guardada en la lectura, no con la de hoy', async () => {
+      // El tipo dice ±0,5 hoy, pero la lectura se tomo con ±0,2: con 0,3 de error fue no conforme y lo
+      // sigue siendo.
+      fixture.componentRef.setInput('editable', false);
+      await abrir(
+        [
+          {
+            id: 'd1',
+            idVerificacion: ID_VERIFICACION,
+            idPuntoVerificacion: ID_PUNTO,
+            secuencia: 1,
+            valorPatron: 100,
+            valorEquipo: 100.3,
+            unidad: 'mmHg',
+            tolerancia: 0.2,
+          },
+        ],
+        conTolerancia(0.5),
+      );
+
+      expect(celda('data-conforme', 0)).toBe('No');
+      expect(raiz().querySelector('#patronUsado')).toBeNull();
+      expect(texto()).toContain('No se registró contra qué patrón se midió');
+    });
   });
 });

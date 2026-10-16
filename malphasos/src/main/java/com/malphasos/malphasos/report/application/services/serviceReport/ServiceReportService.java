@@ -5,11 +5,13 @@ import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServic
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
+import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
@@ -18,11 +20,13 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
+import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -65,6 +69,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final EquipmentServicePort equipmentServicePort;
     private final EquipmentTypeServicePort equipmentTypeServicePort;
     private final ProtocolServicePort protocolServicePort;
+    private final ReferenceStandardServicePort referenceStandardServicePort;
     private final EventDispatcherPort eventDispatcherPort;
 
     // ---------------------------------------------------------------------------
@@ -208,6 +213,35 @@ public class ServiceReportService implements ServiceReportServicePort {
         EquipmentType tipo = tipoDelEquipo(reporte.getIdEquipoCliente());
 
         reporte.recordVerification(traducirLecturas(tipo, command.lecturas()));
+
+        return persistAndPublish(reporte);
+    }
+
+    /**
+     * Elige el patrón contra el que se toman las lecturas, copiando lo que el catálogo dice hoy de él.
+     *
+     * <p>Uno retirado no se puede elegir: dejó de usarse. Uno vencido sí, a propósito —se rechaza al
+     * cerrar, contra el día del cierre—, porque elegirlo no certifica nada todavía, y el ingeniero puede
+     * tenerlo delante con el certificado renovado en papel y aún sin cargar.
+     */
+    @Override
+    @Transactional
+    public ServiceReport useReferenceStandard(UseReferenceStandardCommand command) {
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ReferenceStandard patron = referenceStandardServicePort.findById(command.idEquipoPatron());
+
+        if (!patron.isEstadoActivo()) {
+            throw new IllegalArgumentException("El patron " + patron.getNombre() + " (" + patron.getSerie()
+                    + ") esta retirado: no se pueden tomar lecturas con el");
+        }
+
+        reporte.useReferenceStandard(new UsedReferenceStandard(
+                patron.getId(),
+                patron.getNombre(),
+                patron.getMarca(),
+                patron.getSerie(),
+                patron.getCertificado(),
+                patron.getVencimientoCertificado()));
 
         return persistAndPublish(reporte);
     }
@@ -387,7 +421,8 @@ public class ServiceReportService implements ServiceReportServicePort {
         }
 
         return VerificationReading.of(verificacion.id(), null, lectura.secuencia(),
-                lectura.valorPatron(), lectura.valorEquipo(), verificacion.unidad().simbolo());
+                lectura.valorPatron(), lectura.valorEquipo(), verificacion.unidad().simbolo(),
+                verificacion.tolerancia());
     }
 
     /** Con una modalidad constante toda lectura se toma en un punto declarado de esa verificación. */
@@ -418,7 +453,8 @@ public class ServiceReportService implements ServiceReportServicePort {
 
         // La unidad sale de la verificacion, no del comando: asi no puede contradecirla.
         return VerificationReading.of(verificacion.id(), punto.id(), lectura.secuencia(),
-                lectura.valorPatron(), lectura.valorEquipo(), verificacion.unidad().simbolo());
+                lectura.valorPatron(), lectura.valorEquipo(), verificacion.unidad().simbolo(),
+                verificacion.tolerancia());
     }
 
     /**

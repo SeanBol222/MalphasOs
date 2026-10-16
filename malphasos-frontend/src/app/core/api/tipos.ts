@@ -384,6 +384,20 @@ export type LlenarReporte = reportes['schemas']['ServiceReportFillRequest'];
 export type LecturaDeVerificacion = reportes['schemas']['VerificationReadingResponse'];
 export type NuevaLectura = reportes['schemas']['VerificationReadingRequest'];
 
+/**
+ * El patrón contra el que se tomaron las lecturas, copiado como estaba el día que se eligió (V27,
+ * 2026-10-14): renovar su certificado en el catálogo no cambia lo que el reporte dice.
+ */
+export type PatronUsado = reportes['schemas']['UsedReferenceStandardResponse'];
+
+/**
+ * Si el certificado del patrón ya no vale ese día. El último día todavía vale, como en el servidor:
+ * vence al terminar. Las dos fechas son «2026-10-14», así que se comparan como texto.
+ */
+export function patronVencido(patron: PatronUsado | null | undefined, hoy: string): boolean {
+  return !!patron?.vencimiento && patron.vencimiento < hoy;
+}
+
 export type EstadoDeReporte = NonNullable<ReporteDeServicio['estado']>;
 
 /**
@@ -426,6 +440,7 @@ export const ETIQUETA_DE_RESULTADO: Readonly<Record<ResultadoDeServicio, string>
 export function sePuedeCerrar(
   reporte: ReporteDeServicio | undefined,
   esCorrectivo = false,
+  hoy?: string,
 ): boolean {
   if (!reporte || reporte.estado !== 'BORRADOR' || !reporte.estadoActivo || !reporte.resultado) {
     return false;
@@ -433,6 +448,15 @@ export function sePuedeCerrar(
 
   // Desde el 2026-10-14, como en el servidor: un correctivo exige además la falla y el diagnóstico.
   if (esCorrectivo && (!reporte.fallaReportada?.trim() || !reporte.diagnostico?.trim())) {
+    return false;
+  }
+
+  // Desde el 2026-10-14, como en el servidor: unas lecturas exigen un patron, y vigente el dia del
+  // cierre. Sin `hoy` no se juzga la vigencia: quien llama sin fecha no puede saberla.
+  if (
+    reporte.lecturas?.length &&
+    (!reporte.patron || (hoy && patronVencido(reporte.patron, hoy)))
+  ) {
     return false;
   }
 

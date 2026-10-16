@@ -9,14 +9,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
+import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportDeactivatedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFilledEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportOpenedEvent;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardChosenEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportVerifiedEvent;
 import com.malphasos.malphasos.shared.domain.events.DomainEvent;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -66,6 +69,16 @@ class ServiceReportTest {
         return VerificationReading.of(
                 VERIFICACION, PUNTO, secuencia, new BigDecimal(patron), new BigDecimal(equipo),
                 "mmHg");
+    }
+
+    private static VerificationReading conTolerancia(String patron, String equipo, String tolerancia) {
+        return VerificationReading.of(VERIFICACION, PUNTO, 1, new BigDecimal(patron), new BigDecimal(equipo),
+                "mmHg", tolerancia == null ? null : new BigDecimal(tolerancia));
+    }
+
+    private static UsedReferenceStandard unPatronQueVence(LocalDate vencimiento) {
+        return new UsedReferenceStandard(UUID.randomUUID(), "Juego de pesas", "Kern", "KF1-1", "CAL-1",
+                vencimiento);
     }
 
     private static List<String> tiposDe(ServiceReport reporte) {
@@ -372,11 +385,160 @@ class ServiceReportTest {
         }
 
         @Test
+        @DisplayName("el error es equipo menos patron, con su signo")
+        void error() {
+            assertThat(conTolerancia("100", "100.3", null).error()).isEqualByComparingTo("0.3");
+            assertThat(conTolerancia("100", "99.6", null).error()).isEqualByComparingTo("-0.4");
+        }
+
+        @Test
+        @DisplayName("el borde de la tolerancia es conforme, por los dos lados, y un poco mas alla no")
+        void bordeDeLaTolerancia() {
+            // «±0,5» admite 0,5. Es el sentido en que se lee una tolerancia en un certificado.
+            assertThat(conTolerancia("100", "100.5", "0.5").conforme()).isTrue();
+            assertThat(conTolerancia("100", "99.5", "0.5").conforme()).isTrue();
+            assertThat(conTolerancia("100", "100.5001", "0.5").conforme()).isFalse();
+            assertThat(conTolerancia("100", "99.4999", "0.5").conforme()).isFalse();
+        }
+
+        @Test
+        @DisplayName("sin tolerancia no dice si es conforme: no se sabe, y no se inventa")
+        void sinTolerancia() {
+            assertThat(conTolerancia("100", "140", null).conforme()).isNull();
+        }
+
+        @Test
+        @DisplayName("una tolerancia cero o negativa no se acepta")
+        void toleranciaPositiva() {
+            assertThatIllegalArgumentException().isThrownBy(() -> conTolerancia("1", "1", "0"));
+            assertThatIllegalArgumentException().isThrownBy(() -> conTolerancia("1", "1", "-0.1"));
+        }
+
+        @Test
         @DisplayName("admite valores negativos: un congelador se verifica a -20 grados")
         void admiteNegativos() {
             assertThatCode(() -> VerificationReading.of(
                             VERIFICACION, PUNTO, 1, new BigDecimal("-20"), new BigDecimal("-19.4"), "C"))
                     .doesNotThrowAnyException();
+        }
+    }
+
+    @Nested
+    @DisplayName("El patron (V27)")
+    class ElPatron {
+
+        @Test
+        @DisplayName("elegirlo emite su evento, y elegir el mismo otra vez no")
+        void elegirlo() {
+            ServiceReport reporte = unReporte();
+            UsedReferenceStandard patron = unPatronQueVence(LocalDate.now().plusYears(1));
+
+            reporte.useReferenceStandard(patron);
+            assertThat(tiposDe(reporte)).containsExactly(ServiceReportStandardChosenEvent.TYPE);
+            assertThat(reporte.getPatron()).isEqualTo(patron);
+
+            reporte.useReferenceStandard(new UsedReferenceStandard(patron.id(), patron.nombre(), patron.marca(),
+                    patron.serie(), patron.certificado(), patron.vencimiento()));
+            assertThat(tiposDe(reporte)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("cambiarlo por otro si emite")
+        void cambiarlo() {
+            ServiceReport reporte = unReporte();
+            reporte.useReferenceStandard(unPatronQueVence(LocalDate.now().plusYears(1)));
+            reporte.pullEvents();
+
+            reporte.useReferenceStandard(unPatronQueVence(LocalDate.now().plusYears(2)));
+
+            assertThat(tiposDe(reporte)).containsExactly(ServiceReportStandardChosenEvent.TYPE);
+        }
+
+        @Test
+        @DisplayName("no se elige en un reporte cerrado, ni se elige ninguno")
+        void soloEnBorrador() {
+            assertThatIllegalStateException().isThrownBy(() -> unReporteCerrado()
+                    .useReferenceStandard(unPatronQueVence(LocalDate.now().plusYears(1))));
+            assertThatIllegalArgumentException().isThrownBy(() -> unReporte().useReferenceStandard(null));
+        }
+
+        @Test
+        @DisplayName("con lecturas y sin patron no se cierra")
+        void lecturasSinPatron() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
+
+            assertThatIllegalStateException().isThrownBy(reporte::finish)
+                    .withMessageContaining("patron");
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
+        }
+
+        @Test
+        @DisplayName("con un patron vencido ayer no se cierra, aunque este todo lo demas")
+        void patronVencido() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
+            reporte.useReferenceStandard(unPatronQueVence(LocalDate.now().minusDays(1)));
+
+            assertThatIllegalStateException().isThrownBy(reporte::finish)
+                    .withMessageContaining("vencio");
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
+        }
+
+        @Test
+        @DisplayName("un patron que vence hoy todavia vale: vence al terminar el dia")
+        void patronQueVenceHoy() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
+            reporte.useReferenceStandard(unPatronQueVence(LocalDate.now()));
+
+            reporte.finish();
+
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
+        }
+
+        @Test
+        @DisplayName("sin lecturas no hace falta patron")
+        void sinLecturasNoHaceFalta() {
+            ServiceReport reporte = unReporteCerrable();
+
+            reporte.finish();
+
+            assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
+        }
+
+        @Test
+        @DisplayName("la lectura corregida se retira con su tolerancia: con ella se dijo si era conforme")
+        void laRetiradaConservaLaTolerancia() {
+            ServiceReport reporte = unReporte();
+            reporte.recordVerification(List.of(conTolerancia("50", "50.4", "0.5")));
+
+            reporte.recordVerification(List.of(conTolerancia("50", "50.1", "0.5")));
+
+            VerificationReading retirada = reporte.getLecturas().stream()
+                    .filter(lectura -> !lectura.estadoActivo()).findFirst().orElseThrow();
+            assertThat(retirada.tolerancia()).isEqualByComparingTo("0.5");
+            assertThat(retirada.conforme()).isTrue();
+        }
+
+        @Test
+        @DisplayName("registrar las mismas lecturas con otra tolerancia si es un cambio")
+        void otraToleranciaEsUnCambio() {
+            // Si el tipo cambio su tolerancia y el ingeniero vuelve a guardar la tabla, el reporte tiene
+            // que quedarse con la de hoy, o diria conforme con un criterio que ya no es el del tipo.
+            ServiceReport reporte = unReporte();
+            reporte.recordVerification(List.of(conTolerancia("50", "50.4", "0.5")));
+            reporte.pullEvents();
+
+            reporte.recordVerification(List.of(conTolerancia("50", "50.4", "0.50")));
+            assertThat(tiposDe(reporte)).isEmpty();
+
+            reporte.recordVerification(List.of(conTolerancia("50", "50.4", "0.2")));
+            assertThat(tiposDe(reporte)).containsExactly(ServiceReportVerifiedEvent.TYPE);
+            assertThat(reporte.lecturasActivas().getFirst().conforme()).isFalse();
+
+            reporte.recordVerification(List.of(conTolerancia("50", "50.4", null)));
+            assertThat(tiposDe(reporte)).containsExactly(ServiceReportVerifiedEvent.TYPE);
         }
     }
 

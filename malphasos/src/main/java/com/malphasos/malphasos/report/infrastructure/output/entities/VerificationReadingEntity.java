@@ -68,4 +68,8 @@ public class VerificationReadingEntity {
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
+
+    /** La tolerancia de la verificación cuando se tomó. Desde V27. */
+    @Column(name = "d_tolerancia", precision = 12, scale = 4)
+    private BigDecimal tolerancia;
 }

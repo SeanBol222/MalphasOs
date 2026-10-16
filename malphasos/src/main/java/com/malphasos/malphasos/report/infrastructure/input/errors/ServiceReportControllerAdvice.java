@@ -4,6 +4,7 @@ import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoun
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.infrastructure.input.rest.ServiceReportRestAdapter;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
@@ -66,6 +67,13 @@ public class ServiceReportControllerAdvice {
     public ServiceReportErrorResponse handleEquipmentType(EquipmentTypeNotFoundException ex) {
         return ServiceReportErrorResponse.of(
                 ServiceReportErrorCatalog.EQUIPMENT_TYPE_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(ReferenceStandardNotFoundException.class)
+    public ServiceReportErrorResponse handleReferenceStandard(ReferenceStandardNotFoundException ex) {
+        return ServiceReportErrorResponse.of(
+                ServiceReportErrorCatalog.REFERENCE_STANDARD_NOT_FOUND, List.of(ex.getMessage()));
     }
 
     /**
