@@ -18,6 +18,7 @@ import com.malphasos.malphasos.report.infrastructure.input.model.request.Service
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.UseReferenceStandardRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ServiceReportResponse;
+import com.malphasos.malphasos.report.infrastructure.input.model.response.WorkOrderReportProgressResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -96,6 +97,19 @@ public class ServiceReportRestAdapter {
         return idOrdenTrabajo != null
                 ? mapper.toList(serviceReportServicePort.findByWorkOrder(idOrdenTrabajo, alcance))
                 : mapper.toList(serviceReportServicePort.findByEquipment(idEquipoCliente, alcance));
+    }
+
+    @Operation(summary = "Avance de los reportes por orden",
+            description = "Para cada orden con algun reporte vivo, cuantos equipos lo tienen cerrado y"
+                    + " cuantos en borrador. Una orden sin reportes no aparece. Acotado al alcance de"
+                    + " quien llama.")
+    @PreAuthorize("hasAuthority('report.read')")
+    @GetMapping("/progress")
+    public List<WorkOrderReportProgressResponse> progress(Authentication autenticacion) {
+        return serviceReportServicePort.progressByWorkOrder(readScopeResolver.scopeFor(autenticacion)).stream()
+                .map(fila -> new WorkOrderReportProgressResponse(
+                        fila.idOrdenTrabajo(), fila.cerrados(), fila.abiertos()))
+                .toList();
     }
 
     @Operation(summary = "Obtener un reporte por su identificador")

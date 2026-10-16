@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.application.ports.input;
 
+import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
@@ -41,6 +42,12 @@ public interface ServiceReportServicePort {
      *     existe o si queda fuera del alcance
      */
     ServiceReport findById(UUID id, ReadScope alcance);
+
+    /**
+     * El avance de los reportes de cada orden del alcance que tenga alguno vivo: lo que el listado de
+     * órdenes enseña en cada fila. Una orden sin reportes no aparece; para quien lee, son cero.
+     */
+    List<WorkOrderReportProgress> progressByWorkOrder(ReadScope alcance);
 
     ServiceReport open(OpenServiceReportCommand command);
 

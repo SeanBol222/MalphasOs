@@ -336,6 +336,25 @@
           }
         },
         "type" : "object"
+      },
+      "WorkOrderReportProgressResponse" : {
+        "properties" : {
+          "abiertos" : {
+            "description" : "Equipos con su reporte vivo en borrador",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "cerrados" : {
+            "description" : "Equipos con su reporte vivo cerrado",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "idOrdenTrabajo" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
       }
     },
     "securitySchemes" : {
@@ -452,6 +471,69 @@
           }
         },
         "summary" : "Listar reportes de una orden o de un equipo",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/progress" : {
+      "get" : {
+        "description" : "Para cada orden con algun reporte vivo, cuantos equipos lo tienen cerrado y cuantos en borrador. Una orden sin reportes no aparece. Acotado al alcance de quien llama.",
+        "operationId" : "progress",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/WorkOrderReportProgressResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Avance de los reportes por orden",
         "tags" : [ "ServiceReport" ]
       }
     },

@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.infrastructure.output;
 
+import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ServiceReportEntity;
@@ -69,6 +70,15 @@ public class ServiceReportPersistenceAdapter implements ServiceReportPersistence
     @Transactional(readOnly = true)
     public List<ServiceReport> findByWorkOrder(UUID idOrdenTrabajo) {
         return mapper.toDomainList(serviceReportRepository.findByIdOrdenTrabajo(idOrdenTrabajo));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrderReportProgress> progressByWorkOrder() {
+        return serviceReportRepository.progressByWorkOrder().stream()
+                .map(fila -> new WorkOrderReportProgress(
+                        fila.getIdOrdenTrabajo(), fila.getCerrados(), fila.getAbiertos()))
+                .toList();
     }
 
     @Override

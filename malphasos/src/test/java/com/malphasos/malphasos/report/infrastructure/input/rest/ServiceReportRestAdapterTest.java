@@ -32,6 +32,7 @@ import com.malphasos.malphasos.report.infrastructure.input.model.request.UseRefe
 import com.malphasos.malphasos.report.infrastructure.input.model.request.VerificationReadingRequest;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
+import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.math.BigDecimal;
@@ -257,6 +258,20 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
+    @DisplayName("el avance por orden sale con sus dos cuentas, y no se confunde con un reporte")
+    void avancePorOrden() throws Exception {
+        // «progress» no es un identificador: si la ruta de un reporte la capturara, esto daria 400.
+        when(serviceReportServicePort.progressByWorkOrder(any()))
+                .thenReturn(List.of(new WorkOrderReportProgress(ORDEN, 3, 2)));
+
+        mockMvc.perform(get("/v1/api/reports/progress"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].idOrdenTrabajo").value(ORDEN.toString()))
+                .andExpect(jsonPath("$[0].cerrados").value(3))
+                .andExpect(jsonPath("$[0].abiertos").value(2));
+    }
+
+    @Test
     @DisplayName("una verificacion sin lecturas se rechaza sin llegar al servicio")
     void verificacionVacia() throws Exception {
         mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/verification")
@@ -445,6 +460,7 @@ class ServiceReportRestAdapterTest {
         assertThat(docs).contains("/v1/api/reports/{id}/verification");
         assertThat(docs).contains("/v1/api/reports/{id}/finish");
         assertThat(docs).contains("/v1/api/reports/{id}/reference-standard");
+        assertThat(docs).contains("/v1/api/reports/progress");
         assertThat(docs).contains("/v1/api/reports/work-orders/{idOrdenTrabajo}");
     }
 

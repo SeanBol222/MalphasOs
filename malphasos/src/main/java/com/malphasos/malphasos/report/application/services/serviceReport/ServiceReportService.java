@@ -12,6 +12,7 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
+import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
@@ -38,6 +39,8 @@ import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,6 +94,28 @@ public class ServiceReportService implements ServiceReportServicePort {
         clientEquipmentServicePort.findById(idEquipoCliente, alcance);
 
         return serviceReportPersistencePort.findByEquipment(idEquipoCliente);
+    }
+
+    /**
+     * El avance de los reportes por orden, acotado al alcance.
+     *
+     * <p>Con alcance restringido se pregunta al módulo de órdenes cuáles se ven y se filtra aquí: el
+     * dueño del dato de a qué cliente pertenece una orden es ese módulo, no este.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrderReportProgress> progressByWorkOrder(ReadScope alcance) {
+        List<WorkOrderReportProgress> avance = serviceReportPersistencePort.progressByWorkOrder();
+
+        if (alcance.coversEverything()) {
+            return avance;
+        }
+
+        Set<UUID> visibles = workOrderServicePort.findAll(alcance).stream()
+                .map(WorkOrder::getId)
+                .collect(Collectors.toSet());
+
+        return avance.stream().filter(fila -> visibles.contains(fila.idOrdenTrabajo())).toList();
     }
 
     @Override
