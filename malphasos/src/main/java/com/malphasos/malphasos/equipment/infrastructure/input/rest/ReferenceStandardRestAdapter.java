@@ -3,6 +3,7 @@ package com.malphasos.malphasos.equipment.infrastructure.input.rest;
 import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
 import com.malphasos.malphasos.equipment.application.services.referenceStandard.commands.DeactivateReferenceStandardCommand;
 import com.malphasos.malphasos.equipment.application.services.referenceStandard.commands.SaveReferenceStandardCommand;
+import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandardSheet;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.ReferenceStandardRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.ReferenceStandardResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -77,6 +78,8 @@ public class ReferenceStandardRestAdapter {
 
     private static SaveReferenceStandardCommand comando(UUID id, ReferenceStandardRequest request) {
         return new SaveReferenceStandardCommand(id, request.nombre(), request.marca(), request.serie(),
-                request.certificado(), request.vencimientoCertificado());
+                request.certificado(), request.vencimientoCertificado(),
+                new ReferenceStandardSheet(request.modelo(), request.codigoInterno(), request.rango(),
+                        request.resolucion(), request.fechaCalibracion(), request.empresaCalibradora()));
     }
 }

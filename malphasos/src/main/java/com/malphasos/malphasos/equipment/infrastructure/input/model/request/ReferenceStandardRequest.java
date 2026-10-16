@@ -25,5 +25,22 @@ public record ReferenceStandardRequest(
         String certificado,
         @Schema(description = "Hasta cuando vale el certificado")
         @NotNull(message = "El vencimiento del certificado es obligatorio")
-        LocalDate vencimientoCertificado) {
+        LocalDate vencimientoCertificado,
+        @Schema(description = "Opcional", example = "MS-200")
+        @Size(max = 80, message = "El modelo no puede pasar de 80 caracteres")
+        String modelo,
+        @Schema(description = "Opcional: el codigo del inventario de la empresa", example = "BB-PAT-003")
+        @Size(max = 40, message = "El codigo interno no puede pasar de 40 caracteres")
+        String codigoInterno,
+        @Schema(description = "Opcional, como se imprime", example = "1 g a 2 kg")
+        @Size(max = 120, message = "El rango no puede pasar de 120 caracteres")
+        String rango,
+        @Schema(description = "Opcional, como se imprime", example = "0,1 mg")
+        @Size(max = 80, message = "La resolucion no puede pasar de 80 caracteres")
+        String resolucion,
+        @Schema(description = "Opcional: no posterior al vencimiento del certificado")
+        LocalDate fechaCalibracion,
+        @Schema(description = "Opcional", example = "Metrologia Andina S.A.S.")
+        @Size(max = 120, message = "La empresa calibradora no puede pasar de 120 caracteres")
+        String empresaCalibradora) {
 }

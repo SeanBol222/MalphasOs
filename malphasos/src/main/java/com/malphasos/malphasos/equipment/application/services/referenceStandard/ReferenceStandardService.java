@@ -47,7 +47,7 @@ public class ReferenceStandardService implements ReferenceStandardServicePort {
     @Transactional
     public ReferenceStandard create(SaveReferenceStandardCommand command) {
         ReferenceStandard patron = ReferenceStandard.create(command.nombre(), command.marca(), command.serie(),
-                command.certificado(), command.vencimientoCertificado());
+                command.certificado(), command.vencimientoCertificado(), command.ficha());
         exigirSerieLibre(patron);
 
         return persistAndPublish(patron);
@@ -58,7 +58,7 @@ public class ReferenceStandardService implements ReferenceStandardServicePort {
     public ReferenceStandard update(SaveReferenceStandardCommand command) {
         ReferenceStandard patron = findById(command.id());
         patron.update(command.nombre(), command.marca(), command.serie(), command.certificado(),
-                command.vencimientoCertificado());
+                command.vencimientoCertificado(), command.ficha());
         exigirSerieLibre(patron);
 
         return persistAndPublish(patron);

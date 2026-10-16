@@ -997,6 +997,25 @@
             "minLength" : 0,
             "type" : "string"
           },
+          "codigoInterno" : {
+            "description" : "Opcional: el codigo del inventario de la empresa",
+            "example" : "BB-PAT-003",
+            "maxLength" : 40,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "empresaCalibradora" : {
+            "description" : "Opcional",
+            "example" : "Metrologia Andina S.A.S.",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "fechaCalibracion" : {
+            "description" : "Opcional: no posterior al vencimiento del certificado",
+            "format" : "date",
+            "type" : "string"
+          },
           "marca" : {
             "description" : "Opcional",
             "example" : "Kern",
@@ -1004,9 +1023,30 @@
             "minLength" : 0,
             "type" : "string"
           },
+          "modelo" : {
+            "description" : "Opcional",
+            "example" : "MS-200",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
           "nombre" : {
             "example" : "Juego de pesas clase F1",
             "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "rango" : {
+            "description" : "Opcional, como se imprime",
+            "example" : "1 g a 2 kg",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "resolucion" : {
+            "description" : "Opcional, como se imprime",
+            "example" : "0,1 mg",
+            "maxLength" : 80,
             "minLength" : 0,
             "type" : "string"
           },
@@ -1029,8 +1069,18 @@
           "certificado" : {
             "type" : "string"
           },
+          "codigoInterno" : {
+            "type" : "string"
+          },
+          "empresaCalibradora" : {
+            "type" : "string"
+          },
           "estadoActivo" : {
             "type" : "boolean"
+          },
+          "fechaCalibracion" : {
+            "format" : "date",
+            "type" : "string"
           },
           "id" : {
             "format" : "uuid",
@@ -1039,7 +1089,16 @@
           "marca" : {
             "type" : "string"
           },
+          "modelo" : {
+            "type" : "string"
+          },
           "nombre" : {
+            "type" : "string"
+          },
+          "rango" : {
+            "type" : "string"
+          },
+          "resolucion" : {
             "type" : "string"
           },
           "serie" : {

@@ -39,6 +39,24 @@ public class ReferenceStandardEntity {
     @Column(name = "f_vencimiento_certificado", nullable = false)
     private LocalDate vencimientoCertificado;
 
+    @Column(name = "n_modelo")
+    private String modelo;
+
+    @Column(name = "k_codigo_interno")
+    private String codigoInterno;
+
+    @Column(name = "t_rango")
+    private String rango;
+
+    @Column(name = "t_resolucion")
+    private String resolucion;
+
+    @Column(name = "f_calibracion")
+    private LocalDate fechaCalibracion;
+
+    @Column(name = "n_empresa_calibradora")
+    private String empresaCalibradora;
+
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
 }
