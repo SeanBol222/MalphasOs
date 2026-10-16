@@ -38,6 +38,7 @@ import com.malphasos.malphasos.equipment.application.ports.input.ProtocolService
 import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.equipment.application.model.AssignedProtocolDetail;
 import com.malphasos.malphasos.equipment.domain.protocol.Protocol;
@@ -933,6 +934,32 @@ class ServiceReportServiceTest {
     @Nested
     @DisplayName("Al llenarlo y al retirarlo")
     class LoDemas {
+
+        @Test
+        @DisplayName("el avance por orden sin restriccion no pregunta a las ordenes")
+        void avanceSinRestriccion() {
+            List<WorkOrderReportProgress> avance = List.of(
+                    new WorkOrderReportProgress(ORDEN, 2, 1),
+                    new WorkOrderReportProgress(UUID.randomUUID(), 0, 1));
+            when(serviceReportPersistencePort.progressByWorkOrder()).thenReturn(avance);
+
+            assertThat(service.progressByWorkOrder(ReadScope.unrestricted())).isEqualTo(avance);
+            verify(workOrderServicePort, never()).findAll(any());
+        }
+
+        @Test
+        @DisplayName("con alcance de cliente, solo el avance de las ordenes que ese cliente ve")
+        void avanceAcotado() {
+            // Un usuario de cliente no puede saber cuantos reportes lleva la orden de otro: que una
+            // orden existe y en que va ya es un dato del otro cliente.
+            ReadScope alcance = ReadScope.ofClients(List.of(UUID.randomUUID()));
+            WorkOrderReportProgress suya = new WorkOrderReportProgress(ORDEN, 2, 1);
+            when(serviceReportPersistencePort.progressByWorkOrder()).thenReturn(List.of(
+                    suya, new WorkOrderReportProgress(UUID.randomUUID(), 3, 0)));
+            when(workOrderServicePort.findAll(alcance)).thenReturn(List.of(unaOrdenEnEjecucion()));
+
+            assertThat(service.progressByWorkOrder(alcance)).containsExactly(suya);
+        }
 
         @Test
         @DisplayName("elegir un patron copia lo que el catalogo dice hoy de el")

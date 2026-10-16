@@ -5,12 +5,38 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface ServiceReportRepository extends JpaRepository<ServiceReportEntity, UUID> {
 
     List<ServiceReportEntity> findByIdOrdenTrabajo(UUID idOrdenTrabajo);
 
     List<ServiceReportEntity> findByIdEquipoCliente(UUID idEquipoCliente);
+
+    /**
+     * Por orden: cuántos equipos tienen su reporte vivo cerrado y cuántos en borrador. Una fila por
+     * orden, contada en la base y sin cargar ningún reporte; el índice único parcial garantiza un
+     * reporte vivo por equipo, así que contar reportes y contar equipos da lo mismo, y se cuentan
+     * equipos para no depender de eso.
+     */
+    @Query("""
+            SELECT r.idOrdenTrabajo AS idOrdenTrabajo,
+                   COUNT(DISTINCT CASE WHEN r.estado = 'FINALIZADO' THEN r.idEquipoCliente END) AS cerrados,
+                   COUNT(DISTINCT CASE WHEN r.estado = 'BORRADOR' THEN r.idEquipoCliente END) AS abiertos
+            FROM ServiceReportEntity r
+            WHERE r.estadoActivo = true
+            GROUP BY r.idOrdenTrabajo
+            """)
+    List<ProgressRow> progressByWorkOrder();
+
+    /** Una fila de {@link #progressByWorkOrder()}. */
+    interface ProgressRow {
+        UUID getIdOrdenTrabajo();
+
+        long getCerrados();
+
+        long getAbiertos();
+    }
 
     /**
      * El reporte vivo de un equipo en una orden.

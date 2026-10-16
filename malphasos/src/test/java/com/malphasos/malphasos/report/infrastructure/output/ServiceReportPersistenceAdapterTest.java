@@ -21,6 +21,7 @@ import com.malphasos.malphasos.equipment.infrastructure.output.EquipmentTypePers
 import com.malphasos.malphasos.equipment.infrastructure.output.ManufacturerPersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.MetrologyCatalogPersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.ModelPersistenceAdapter;
+import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
@@ -433,6 +434,44 @@ class ServiceReportPersistenceAdapterTest {
             assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET n_patron_nombre = 'Pesas'"
                             + " WHERE k_id_reporte_servicio = ?", reporte.getId()))
                     .isInstanceOf(DataIntegrityViolationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("El avance por orden (2026-10-16)")
+    class ElAvance {
+
+        private ServiceReport cerrado(Alcance alcance) {
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+            reporte.finish();
+
+            return reporte;
+        }
+
+        @Test
+        @DisplayName("cuenta equipos con reporte vivo cerrado o en borrador, y no los retirados")
+        void cuentaLoVivo() {
+            // A: un cerrado que se retiro y su sustituto cerrado. Es un equipo, no dos.
+            Alcance a = unAlcance();
+            ServiceReport retirado = cerrado(a);
+            retirado.deactivate();
+            adapter.save(retirado);
+            adapter.save(cerrado(a));
+            // B: un borrador.
+            Alcance b = unAlcance();
+            adapter.save(ServiceReport.open(b.orden(), b.equipo()));
+            // C: solo un retirado: para quien lee, la orden no tiene reportes.
+            Alcance c = unAlcance();
+            ServiceReport soloRetirado = ServiceReport.open(c.orden(), c.equipo());
+            soloRetirado.deactivate();
+            adapter.save(soloRetirado);
+
+            List<WorkOrderReportProgress> avance = adapter.progressByWorkOrder();
+
+            assertThat(avance).containsExactlyInAnyOrder(
+                    new WorkOrderReportProgress(a.orden(), 1, 0),
+                    new WorkOrderReportProgress(b.orden(), 0, 1));
         }
     }
 

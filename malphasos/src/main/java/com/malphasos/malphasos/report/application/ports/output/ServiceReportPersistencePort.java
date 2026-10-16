@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.application.ports.output;
 
+import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +21,9 @@ public interface ServiceReportPersistencePort {
     List<ServiceReport> findByWorkOrder(UUID idOrdenTrabajo);
 
     List<ServiceReport> findByEquipment(UUID idEquipoCliente);
+
+    /** Cuántos equipos con reporte cerrado y en borrador tiene cada orden que tenga alguno vivo. */
+    List<WorkOrderReportProgress> progressByWorkOrder();
 
     /**
      * El reporte vivo de un equipo en una orden, si lo hay.
