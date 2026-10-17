@@ -13,6 +13,9 @@ public interface ServiceReportRepository extends JpaRepository<ServiceReportEnti
 
     List<ServiceReportEntity> findByIdEquipoCliente(UUID idEquipoCliente);
 
+    /** Los cerrados sin informe congelado: los que se cerraron antes de V37. */
+    List<ServiceReportEntity> findByEstadoAndDocumentoIsNull(String estado);
+
     /** Si el prefijo ya lo tiene algún reporte. Nativa: es la misma expresión que el índice de V28. */
     @Query(value = "SELECT EXISTS (SELECT 1 FROM reporte_servicio"
             + " WHERE left(k_id_reporte_servicio::text, 6) = lower(:numero))", nativeQuery = true)

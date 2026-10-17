@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
+import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
@@ -22,11 +23,13 @@ import com.malphasos.malphasos.equipment.infrastructure.output.EquipmentTypePers
 import com.malphasos.malphasos.equipment.infrastructure.output.ManufacturerPersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.MetrologyCatalogPersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.ModelPersistenceAdapter;
+import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
@@ -76,6 +79,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM accesorio_reporte",
             "DELETE FROM protocolo",
             "DELETE FROM reporte_servicio",
+            "DELETE FROM logo_documento",
             "DELETE FROM equipo_patron",
             "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
@@ -251,6 +255,115 @@ class ServiceReportPersistenceAdapterTest {
     // ---------------------------------------------------------------------------
 
     @Nested
+    @DisplayName("El informe congelado (V37)")
+    class ElInformeCongelado {
+
+        @Autowired private DocumentLogoStoreAdapter logos;
+
+        private static final UUID VERIFICACION = UUID.randomUUID();
+        private static final UUID PUNTO = UUID.randomUUID();
+
+        private ReportDocument completo() {
+            return new ReportDocument(ReportDocument.VERSION,
+                    new ReportDocument.Orden("4F2A9C", "CORRECTIVO", true, "TRIMESTRAL", LocalDate.of(2026, 10, 1)),
+                    new ReportDocument.Cliente("Clínica del Norte", "900.111.222-3", "Sede Norte", "Calle 1",
+                            "Ciudad", "Urgencias", List.of("Ana", "Luis"), List.of("601 1"), List.of()),
+                    new ReportDocument.Equipo("Báscula", "Kern", "MS-200", "SN-1", "HV-CDN-0001", null, "BAS-3",
+                            "Electrónica", "Pesar", "IIA", "AC", 110, 20, new BigDecimal("0.50"), 60),
+                    List.of(new ReportDocument.Verificacion(VERIFICACION, "Masa", "kg", 3,
+                            List.of(new ReportDocument.Punto(PUNTO, new BigDecimal("10.5000"))))),
+                    new ReportDocument.Empresa("Ejemplo S.A.S.", null, null, null, null, "Garantía", null, "FT-2",
+                            "a".repeat(64)),
+                    "Ana Pérez");
+        }
+
+        private ServiceReport cerrado(ReportDocument documento) {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+            reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
+                    new IntakeCheck(IntakeState.CONFORME, null), List.of());
+            reporte.finish(documento);
+            return reporte;
+        }
+
+        @Test
+        @DisplayName("el documento vuelve igual, con sus decimales, sus fechas y sus listas en orden")
+        void idaYVuelta() {
+            ServiceReport reporte = cerrado(completo());
+            adapter.save(reporte);
+
+            ServiceReport recuperado = adapter.findById(reporte.getId()).orElseThrow();
+
+            assertThat(recuperado.getDocumento()).isEqualTo(completo());
+            assertThat(recuperado.isDocumentoTardio()).isFalse();
+        }
+
+        @Test
+        @DisplayName("solo los cerrados sin documento quedan por congelar")
+        void porCongelar() {
+            ServiceReport conDocumento = cerrado(completo());
+            adapter.save(conDocumento);
+            ServiceReport viejo = cerrado(completo());
+            adapter.save(viejo);
+            jdbcTemplate.update("UPDATE reporte_servicio SET t_documento = NULL WHERE k_id_reporte_servicio = ?",
+                    viejo.getId());
+
+            assertThat(adapter.findFinishedWithoutDocument()).extracting(ServiceReport::getId)
+                    .containsExactly(viejo.getId());
+        }
+
+        @Test
+        @DisplayName("uno congelado tarde vuelve con su marca: que se sepa que no es la copia del día del servicio")
+        void tardio() {
+            ServiceReport viejo = cerrado(completo());
+            adapter.save(viejo);
+            jdbcTemplate.update("UPDATE reporte_servicio SET t_documento = NULL WHERE k_id_reporte_servicio = ?",
+                    viejo.getId());
+            ServiceReport porCongelar = adapter.findById(viejo.getId()).orElseThrow();
+
+            porCongelar.freezeLate(completo());
+            adapter.save(porCongelar);
+
+            ServiceReport recuperado = adapter.findById(viejo.getId()).orElseThrow();
+            assertThat(recuperado.isDocumentoTardio()).isTrue();
+            assertThat(recuperado.getDocumento()).isEqualTo(completo());
+        }
+
+        @Test
+        @DisplayName("la base impide un borrador con documento, o uno tardío sin él")
+        void laBaseLoImpide() {
+            Alcance alcance = unAlcance();
+            ServiceReport borrador = ServiceReport.open(alcance.orden(), alcance.equipo());
+            adapter.save(borrador);
+
+            assertThatThrownBy(() -> jdbcTemplate.update(
+                            "UPDATE reporte_servicio SET t_documento = '{}'::jsonb WHERE k_id_reporte_servicio = ?",
+                            borrador.getId()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            ServiceReport cerrado = cerrado(completo());
+            adapter.save(cerrado);
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET t_documento = NULL,"
+                            + " b_documento_tardio = true WHERE k_id_reporte_servicio = ?", cerrado.getId()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+
+        @Test
+        @DisplayName("cada versión del logo se guarda una vez, y se recupera por su huella")
+        void elLogo() {
+            CompanyLogo logo = CompanyLogo.of(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 9});
+
+            logos.store(logo);
+            logos.store(CompanyLogo.of(logo.contenido()));
+
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM logo_documento", Integer.class))
+                    .isEqualTo(1);
+            assertThat(logos.find(logo.huella())).contains(logo);
+            assertThat(logos.find("b".repeat(64))).isEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("Al guardar y recuperar")
     class IdaYVuelta {
 
@@ -263,7 +376,7 @@ class ServiceReportPersistenceAdapterTest {
                     "Sobretension", "Fuente 12 V", ServiceResult.OPERATIVO_CON_RESTRICCIONES);
             reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
                     new IntakeCheck(IntakeState.CONFORME, null), List.of());
-            reporte.finish();
+            reporte.finish(UnDocumento.CUALQUIERA);
             adapter.save(reporte);
 
             ServiceReport recuperado = adapter.findById(reporte.getId()).orElseThrow();
@@ -564,7 +677,7 @@ class ServiceReportPersistenceAdapterTest {
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
             reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
                     new IntakeCheck(IntakeState.CONFORME, null), List.of());
-            reporte.finish();
+            reporte.finish(UnDocumento.CUALQUIERA);
 
             return reporte;
         }
@@ -685,7 +798,7 @@ class ServiceReportPersistenceAdapterTest {
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
             reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
                     new IntakeCheck(IntakeState.CONFORME, null), List.of());
-            reporte.finish();
+            reporte.finish(UnDocumento.CUALQUIERA);
             adapter.save(reporte);
 
             Integer filas = jdbcTemplate.queryForObject(

@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AvanceDeReportes,
+  InformeDeReporte,
   LlenarReporte,
   MarcaDePaso,
   NuevaLectura,
@@ -108,6 +109,20 @@ export class ReporteApi {
     return injectQuery(() => ({
       queryKey: ReporteApi.claveDetalle(id()),
       queryFn: () => firstValueFrom(this.http.get<ReporteDeServicio>(`${this.url}/${id()}`)),
+      enabled: !!id(),
+    }));
+  }
+
+  /**
+   * Lo que el informe imprime de la orden, el cliente, el equipo y la empresa (2026-10-17): congelado si
+   * el reporte está cerrado, compuesto en vivo si es borrador. Cuelga de la clave del reporte, así que
+   * todo lo que lo caduca —llenarlo, cerrarlo— caduca también su informe.
+   */
+  informe(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...ReporteApi.claveDetalle(id()), 'informe'] as const,
+      queryFn: () =>
+        firstValueFrom(this.http.get<InformeDeReporte>(`${this.url}/${id()}/document`)),
       enabled: !!id(),
     }));
   }

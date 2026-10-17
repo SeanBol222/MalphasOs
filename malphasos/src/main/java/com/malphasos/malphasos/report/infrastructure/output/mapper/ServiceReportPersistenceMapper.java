@@ -5,6 +5,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
 import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Traduce entre el reporte y sus filas.
@@ -45,6 +47,12 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ServiceReportPersistenceMapper {
+
+    /**
+     * Para el informe congelado (V37). Propio y no el de Spring: lo que se guarda no puede cambiar de forma
+     * porque alguien configure la serialización del API, que es para otra cosa.
+     */
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     public ServiceReport toDomain(ServiceReportEntity entity) {
         // Todas las lecturas, retiradas incluidas: el agregado distingue unas de otras y una lectura
@@ -115,7 +123,9 @@ public class ServiceReportPersistenceMapper {
                                 StepState.valueOf(fila.getEstado()),
                                 fila.getNota()))
                         .toList(),
-                entity.isEstadoActivo());
+                entity.isEstadoActivo(),
+                entity.getDocumento() == null ? null : JSON.readValue(entity.getDocumento(), ReportDocument.class),
+                entity.isDocumentoTardio());
     }
 
     private static IntakeCheck ingreso(String estado, String observacion) {
@@ -160,6 +170,8 @@ public class ServiceReportPersistenceMapper {
         entity.setResultado(reporte.getResultado() == null ? null : reporte.getResultado().name());
         entity.setFinalizado(reporte.getFinalizado());
         entity.setEstadoActivo(reporte.isEstadoActivo());
+        entity.setDocumento(reporte.getDocumento() == null ? null : JSON.writeValueAsString(reporte.getDocumento()));
+        entity.setDocumentoTardio(reporte.isDocumentoTardio());
 
         actualizarLecturasExistentes(reporte, entity);
         volcarPasos(reporte, entity);

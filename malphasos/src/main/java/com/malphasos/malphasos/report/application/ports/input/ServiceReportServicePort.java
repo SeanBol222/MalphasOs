@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.report.application.ports.input;
 
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
+import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
@@ -74,6 +75,20 @@ public interface ServiceReportServicePort {
     ServiceReport markStep(MarkReportStepCommand command);
 
     ServiceReport finish(FinishServiceReportCommand command);
+
+    /**
+     * El informe de un reporte (2026-10-17): el congelado al cerrar, o compuesto en vivo si es borrador.
+     * Con el mismo alcance que el propio reporte.
+     */
+    ReportDocumentView document(UUID id, ReadScope alcance);
+
+    /**
+     * Congela, con los datos de hoy, los reportes cerrados antes de que el informe se congelara, y los
+     * marca como tardíos. Se llama al arrancar; con todos congelados no hace nada.
+     *
+     * @return cuántos congeló
+     */
+    int freezeClosedWithoutDocument();
 
     void discard(DiscardServiceReportCommand command);
 }

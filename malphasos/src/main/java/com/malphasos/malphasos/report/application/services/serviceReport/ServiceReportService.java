@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.application.services.serviceReport;
 
+import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
@@ -16,6 +17,8 @@ import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStand
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
+import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.ports.output.DocumentLogoStorePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
@@ -28,6 +31,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
@@ -83,6 +87,8 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final ProtocolServicePort protocolServicePort;
     private final ReferenceStandardServicePort referenceStandardServicePort;
     private final EventDispatcherPort eventDispatcherPort;
+    private final ReportDocumentComposer reportDocumentComposer;
+    private final DocumentLogoStorePort documentLogoStorePort;
 
     // ---------------------------------------------------------------------------
     // Consultas
@@ -392,13 +398,57 @@ public class ServiceReportService implements ServiceReportServicePort {
         // Un correctivo exige además la falla y el diagnóstico (2026-10-14). El tipo de servicio lo
         // dice la orden, no el reporte, así que el cierre que aplica lo elige el servicio.
         WorkOrder orden = workOrderServicePort.findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted());
+        ReportDocument documento = congelar(reporte);
         if (orden.getTipoServicio() == ServiceType.CORRECTIVO) {
-            reporte.finishCorrective();
+            reporte.finishCorrective(documento);
         } else {
-            reporte.finish();
+            reporte.finish(documento);
         }
 
         return persistAndPublish(reporte);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReportDocumentView document(UUID id, ReadScope alcance) {
+        ServiceReport reporte = findById(id, alcance);
+
+        if (reporte.getDocumento() != null) {
+            ReportDocument documento = reporte.getDocumento();
+            String huella = documento.empresa() == null ? null : documento.empresa().huellaDelLogo();
+            CompanyLogo logo = huella == null ? null : documentLogoStorePort.find(huella).orElse(null);
+
+            return new ReportDocumentView(reporte, documento, logo, true);
+        }
+
+        // Un borrador, o uno cerrado que aún no se congeló tarde: en vivo, sin guardar nada.
+        ReportDocumentComposer.Composed compuesto =
+                reportDocumentComposer.compose(reporte, tipoDelEquipo(reporte.getIdEquipoCliente()));
+
+        return new ReportDocumentView(reporte, compuesto.documento(), compuesto.logo(), false);
+    }
+
+    @Override
+    @Transactional
+    public int freezeClosedWithoutDocument() {
+        List<ServiceReport> pendientes = serviceReportPersistencePort.findFinishedWithoutDocument();
+        for (ServiceReport reporte : pendientes) {
+            reporte.freezeLate(congelar(reporte));
+            serviceReportPersistencePort.save(reporte);
+        }
+
+        return pendientes.size();
+    }
+
+    /** Compone el documento de ahora y guarda la versión del logo que lleva, si lleva. */
+    private ReportDocument congelar(ServiceReport reporte) {
+        ReportDocumentComposer.Composed compuesto =
+                reportDocumentComposer.compose(reporte, tipoDelEquipo(reporte.getIdEquipoCliente()));
+        if (compuesto.logo() != null) {
+            documentLogoStorePort.store(compuesto.logo());
+        }
+
+        return compuesto.documento();
     }
 
     @Override

@@ -16,6 +16,17 @@
       Este reporte está en borrador: el documento todavía puede cambiar, y no es el que se entrega.
     </p>
   }
+  @if (tardio()) {
+    <!--
+      Decidido por el usuario el 2026-10-17: un reporte cerrado antes de que el informe se congelara se
+      congeló después, con los datos de ese día, y el informe lo dice. Fuera de la hoja: es un aviso para
+      quien lo mira, no una parte del documento entregado.
+    -->
+    <p class="rs-aviso" role="status" data-tardio>
+      Este informe se congeló después de cerrarse el reporte: los datos del equipo, del cliente y de
+      la empresa son los del día en que se congeló, no necesariamente los del día del servicio.
+    </p>
+  }
 
   <article class="rs" aria-label="Informe de mantenimiento">
     <div class="rs-hoja">

@@ -116,6 +116,18 @@ public class ServiceReport extends AggregateRoot {
 
     private boolean estadoActivo;
 
+    /**
+     * Lo que el informe imprime y no es del reporte, congelado al cerrar (2026-10-17). Nulo en un
+     * borrador, que lo compone en vivo, y en un cerrado antes de que existiera, hasta congelarlo tarde.
+     */
+    private ReportDocument documento;
+
+    /**
+     * Si el documento se congeló después del cierre, con los datos del día en que se congeló y no los
+     * del servicio: los reportes cerrados antes del 2026-10-17. Decidido por el usuario: que se sepa.
+     */
+    private boolean documentoTardio;
+
     /** Lo que cabe en la descripción de una intervención de la hoja de vida: {@code varchar(500)}. */
     static final int LARGO_DESCRIPCION_DEL_SERVICIO = 500;
 
@@ -322,6 +334,35 @@ public class ServiceReport extends AggregateRoot {
             Collection<VerificationReading> lecturas,
             Collection<ReportStep> pasos,
             boolean estadoActivo) {
+        return rehydrate(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada, diagnostico, procedimientos,
+                observaciones, causa, repuestos, patrones, ingresoFisico, ingresoOperativo, accesorios, recibe,
+                resultado, finalizado, lecturas, pasos, estadoActivo, null, false);
+    }
+
+    /** La rehidratación completa desde V37: con el documento congelado al cerrar. */
+    public static ServiceReport rehydrate(
+            UUID id,
+            UUID idOrdenTrabajo,
+            UUID idEquipoCliente,
+            ReportState estado,
+            String fallaReportada,
+            String diagnostico,
+            String procedimientos,
+            String observaciones,
+            String causa,
+            String repuestos,
+            Collection<VerificationStandard> patrones,
+            IntakeCheck ingresoFisico,
+            IntakeCheck ingresoOperativo,
+            Collection<ReportAccessory> accesorios,
+            Handover recibe,
+            ServiceResult resultado,
+            LocalDateTime finalizado,
+            Collection<VerificationReading> lecturas,
+            Collection<ReportStep> pasos,
+            boolean estadoActivo,
+            ReportDocument documento,
+            boolean documentoTardio) {
 
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
@@ -339,6 +380,8 @@ public class ServiceReport extends AggregateRoot {
             reporte.accesorios.addAll(accesorios);
         }
         reporte.recibe = recibe;
+        reporte.documento = documento;
+        reporte.documentoTardio = documentoTardio;
 
         return reporte;
     }
@@ -686,7 +729,9 @@ public class ServiceReport extends AggregateRoot {
     // ---------------------------------------------------------------------------
 
     /**
-     * Cierra el reporte. Desde aquí ya no cambia.
+     * Cierra el reporte. Desde aquí ya no cambia, y el informe tampoco: el documento que recibe es lo que
+     * imprime de la orden, el cliente, el equipo y la empresa, compuesto por el servicio en ese momento
+     * (2026-10-17). Sin él no se cierra.
      *
      * <p>Exige procedimientos y resultado: qué se hizo y cómo quedó el equipo. Sin lo primero el
      * reporte no cuenta nada, y sin lo segundo no se puede anotar en la hoja de vida ni disparar una
@@ -702,8 +747,9 @@ public class ServiceReport extends AggregateRoot {
      * <p><b>Lo que no se comprueba aquí:</b> que un equipo verificable traiga sus lecturas. Saber si el
      * tipo de ese equipo se verifica exige consultar el módulo de equipos, y eso es del servicio.
      */
-    public void finish() {
+    public void finish(ReportDocument documento) {
         exigirModificable("cerrar el reporte");
+        Objects.requireNonNull(documento, "Cerrar congela el informe: hace falta su documento");
 
         // Con pasos, lo que se hizo lo dicen ellos y el texto es trabajo adicional, opcional. Sin pasos,
         // el texto es lo unico que cuenta que se hizo. Desde V22; antes se exigia siempre.
@@ -733,6 +779,7 @@ public class ServiceReport extends AggregateRoot {
 
         this.estado = ReportState.FINALIZADO;
         this.finalizado = ahora;
+        this.documento = documento;
         registerEvent(new ServiceReportFinishedEvent(
                 metadataFor(ServiceReportFinishedEvent.TYPE), payload()));
     }
@@ -746,7 +793,7 @@ public class ServiceReport extends AggregateRoot {
      * <p>Es un método aparte y no un parámetro de {@link #finish()} porque el reporte no sabe de qué tipo
      * de servicio es —lo dice la orden—: quien lo cierra elige cuál de los dos cierres aplica.
      */
-    public void finishCorrective() {
+    public void finishCorrective(ReportDocument documento) {
         exigirModificable("cerrar el reporte");
 
         if (fallaReportada == null) {
@@ -758,7 +805,25 @@ public class ServiceReport extends AggregateRoot {
                     "No se puede cerrar un correctivo sin diagnostico: es lo que se encontro");
         }
 
-        finish();
+        finish(documento);
+    }
+
+    /**
+     * Congela el documento de un reporte que se cerró antes de que el informe se congelara (V37,
+     * 2026-10-17), con los datos de hoy, y lo marca como tardío para que se sepa. Una sola vez: uno que
+     * ya tiene documento no se toca. No es un hecho del dominio —el reporte no cambia—, y no emite evento.
+     */
+    public void freezeLate(ReportDocument documento) {
+        Objects.requireNonNull(documento, "Congelar exige el documento");
+        if (estado != ReportState.FINALIZADO) {
+            throw new IllegalStateException("Solo se congela tarde un reporte cerrado: un borrador se congela al cerrar");
+        }
+        if (this.documento != null) {
+            throw new IllegalStateException("Este reporte ya tiene su informe congelado");
+        }
+
+        this.documento = documento;
+        this.documentoTardio = true;
     }
 
     /**

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
+import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
@@ -40,7 +41,7 @@ class ServiceReportIntakeTest {
     private static ServiceReport unReporteCerrado() {
         ServiceReport reporte = unReporteCerrable();
         reporte.recordIntake(CONFORME, CONFORME, List.of());
-        reporte.finish();
+        reporte.finish(UnDocumento.CUALQUIERA);
         return reporte;
     }
 
@@ -218,7 +219,7 @@ class ServiceReportIntakeTest {
             ServiceReport reporte = unReporteCerrable();
 
             assertThatIllegalStateException()
-                    .isThrownBy(reporte::finish)
+                    .isThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA))
                     .withMessageContaining("verificaciones al ingreso");
             assertThat(reporte.pullEvents()).isEmpty();
         }
@@ -230,7 +231,7 @@ class ServiceReportIntakeTest {
             reporte.fill("No enciende", "Fusible abierto", "Cambio de fusible", null, ServiceResult.OPERATIVO);
 
             assertThatIllegalStateException()
-                    .isThrownBy(reporte::finishCorrective)
+                    .isThrownBy(() -> reporte.finishCorrective(UnDocumento.CUALQUIERA))
                     .withMessageContaining("verificaciones al ingreso");
         }
 
@@ -240,7 +241,7 @@ class ServiceReportIntakeTest {
             ServiceReport reporte = unReporteCerrable();
             reporte.recordIntake(CONFORME, new IntakeCheck(IntakeState.NO_APLICA, null), List.of());
 
-            reporte.finish();
+            reporte.finish(UnDocumento.CUALQUIERA);
 
             assertThat(reporte.getRecibe()).isNull();
         }

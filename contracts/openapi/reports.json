@@ -179,6 +179,230 @@
         },
         "type" : "object"
       },
+      "ReportDocumentCliente" : {
+        "properties" : {
+          "area" : {
+            "type" : "string"
+          },
+          "ciudadSede" : {
+            "type" : "string"
+          },
+          "correos" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "direccionSede" : {
+            "type" : "string"
+          },
+          "documento" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "responsables" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "sede" : {
+            "type" : "string"
+          },
+          "telefonos" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportDocumentEmpresa" : {
+        "properties" : {
+          "aclaracion" : {
+            "type" : "string"
+          },
+          "ciudad" : {
+            "type" : "string"
+          },
+          "codigoInforme" : {
+            "type" : "string"
+          },
+          "direccion" : {
+            "type" : "string"
+          },
+          "garantia" : {
+            "type" : "string"
+          },
+          "logo" : {
+            "description" : "El logo como data: URI; nulo si no lleva",
+            "type" : "string"
+          },
+          "movil" : {
+            "type" : "string"
+          },
+          "nit" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportDocumentEquipo" : {
+        "properties" : {
+          "alimentacion" : {
+            "type" : "string"
+          },
+          "amperaje" : {
+            "type" : "number"
+          },
+          "codigoInterno" : {
+            "type" : "string"
+          },
+          "frecuencia" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "marca" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "numeroHojaVida" : {
+            "type" : "string"
+          },
+          "numeroInventario" : {
+            "type" : "string"
+          },
+          "potencia" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "riesgo" : {
+            "description" : "Clase de riesgo: I, IIA, IIB o III; nula si no se sabe",
+            "type" : "string"
+          },
+          "serie" : {
+            "type" : "string"
+          },
+          "tecnologia" : {
+            "type" : "string"
+          },
+          "tipo" : {
+            "type" : "string"
+          },
+          "uso" : {
+            "type" : "string"
+          },
+          "voltaje" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportDocumentOrden" : {
+        "properties" : {
+          "fechaProgramada" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "garantia" : {
+            "type" : "boolean"
+          },
+          "numero" : {
+            "type" : "string"
+          },
+          "periodicidad" : {
+            "type" : "string"
+          },
+          "tipoServicio" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportDocumentPunto" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "valor" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportDocumentResponse" : {
+        "properties" : {
+          "cliente" : {
+            "$ref" : "#/components/schemas/ReportDocumentCliente"
+          },
+          "congelado" : {
+            "description" : "Si es la copia hecha al cerrar; falso en un borrador, que se compone en vivo",
+            "type" : "boolean"
+          },
+          "empresa" : {
+            "$ref" : "#/components/schemas/ReportDocumentEmpresa",
+            "description" : "Nula si no habia empresa configurada"
+          },
+          "equipo" : {
+            "$ref" : "#/components/schemas/ReportDocumentEquipo"
+          },
+          "ingeniero" : {
+            "description" : "Nombre completo del ingeniero de la orden; nulo si no tenia",
+            "type" : "string"
+          },
+          "orden" : {
+            "$ref" : "#/components/schemas/ReportDocumentOrden"
+          },
+          "tardio" : {
+            "description" : "Si se congelo despues del cierre, con los datos de ese dia: reportes cerrados antes de que el informe se congelara",
+            "type" : "boolean"
+          },
+          "verificaciones" : {
+            "description" : "Las verificaciones del tipo del equipo, en su orden",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportDocumentVerificacion"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportDocumentVerificacion" : {
+        "properties" : {
+          "cantidadDatos" : {
+            "description" : "Lecturas por punto; nula si la modalidad no las fija",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "magnitud" : {
+            "type" : "string"
+          },
+          "puntos" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ReportDocumentPunto"
+            },
+            "type" : "array"
+          },
+          "unidad" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "ReportStepResponse" : {
         "properties" : {
           "descripcion" : {
@@ -1004,6 +1228,75 @@
           }
         },
         "summary" : "Registrar la informacion tecnica (RF-15)",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/document" : {
+      "get" : {
+        "description" : "Lo que imprime de la orden, el cliente, el equipo y la empresa: congelado al cerrar, compuesto en vivo si es borrador. Con el mismo alcance que el reporte.",
+        "operationId" : "getDocument",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportDocumentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "El informe de un reporte",
         "tags" : [ "ServiceReport" ]
       }
     },

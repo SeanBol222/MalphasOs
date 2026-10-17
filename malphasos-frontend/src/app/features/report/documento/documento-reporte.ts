@@ -3,11 +3,8 @@ import { DOCUMENT } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import QRCode from 'qrcode';
 import { ReporteApi } from '../reporte-api';
-import { EquipoApi } from '../../equipment/equipo-api';
-import { OrdenApi } from '../../workOrder/orden-api';
-import { nombreCompleto, PersonaApi } from '../../person/persona-api';
-import { tipoDelEquipo } from '../tipo-del-equipo';
 import {
+  ClaseDeRiesgo,
   ETIQUETA_DE_ESTADO_AL_INGRESO,
   ETIQUETA_DE_RIESGO,
   EstadoAlIngreso,
@@ -72,10 +69,15 @@ export function proximoServicio(fecha: string | undefined, periodicidad: Periodi
  * imprime en hojas carta; el PDF sale del navegador al imprimir —decidido: el PDF del servidor espera
  * a la firma digital—.
  *
- * <p><b>Es un documento, no un formulario</b>: no tiene un solo control. Lo compone el navegador con
- * lo que ya existe —el reporte, su orden y la hoja de vida del equipo—, sin un recurso nuevo en el
- * servidor. La hoja de vida trae ya compilados el cliente, el equipo, su ficha técnica, el responsable
- * del área y el membrete de la empresa.
+ * <p><b>Es un documento, no un formulario</b>: no tiene un solo control. Lo pinta con dos peticiones: el
+ * reporte y su informe, que trae lo que imprime de la orden, el cliente, el equipo, cómo se verifica,
+ * la empresa y el ingeniero.
+ *
+ * <p><b>Y se congela al cerrar</b> (V37, 2026-10-17), decidido por el usuario: el informe de un reporte
+ * cerrado es la copia que el servidor hizo ese día, y corregir después el equipo, el cliente o la empresa
+ * ya no lo cambia. Uno en borrador se compone en vivo. Hasta ese día esta pantalla juntaba en el navegador
+ * la orden, la hoja de vida, el tipo del equipo y la lista de personas, y un informe entregado cambiaba
+ * cada vez que cambiaba cualquiera de ellos.
  *
  * <p><b>Lo que no se guarda, se deriva</b>, decidido por el usuario: el supervisor responsable es el
  * encargado del área, como en la hoja de vida; el próximo servicio, la fecha más la periodicidad de la
@@ -101,34 +103,74 @@ export class DocumentoReporte {
   protected readonly sinDato = SIN_DATO;
 
   protected readonly reporte = inject(ReporteApi).detalle(this.id);
-  private readonly orden = inject(OrdenApi).detalle(
-    computed(() => this.reporte.data()?.idOrdenTrabajo ?? ''),
-  );
-  protected readonly hoja = inject(EquipoApi).hojaDeVida(
-    computed(() => this.reporte.data()?.idEquipoCliente ?? ''),
-  );
-  private readonly personas = inject(PersonaApi).listar();
-  private readonly tipo = tipoDelEquipo(() => this.reporte.data()?.idEquipoCliente).tipo;
+  protected readonly informe = inject(ReporteApi).informe(this.id);
 
   protected readonly titulo = 'Informe de mantenimiento';
 
   /** El número de la orden de la que salió, que el informe imprime junto al suyo (V34). */
-  protected readonly numeroDeLaOrden = computed(() => this.orden.data()?.numero);
+  protected readonly numeroDeLaOrden = computed(() => this.informe.data()?.orden?.numero);
 
   protected readonly cargando = computed(
-    () => this.reporte.isPending() || this.orden.isPending() || this.hoja.isPending(),
+    () => this.reporte.isPending() || this.informe.isPending(),
   );
-  protected readonly hayError = computed(
-    () => this.reporte.isError() || this.orden.isError() || this.hoja.isError(),
-  );
+  protected readonly hayError = computed(() => this.reporte.isError() || this.informe.isError());
   protected readonly mensajeDeError = computed(() =>
-    traducirError(this.reporte.error() ?? this.orden.error() ?? this.hoja.error()),
+    traducirError(this.reporte.error() ?? this.informe.error()),
   );
 
   protected readonly datos = computed(() => this.reporte.data());
-  protected readonly identificacion = computed(() => this.hoja.data()?.identificacion);
-  protected readonly tecnica = computed(() => this.hoja.data()?.tecnica);
-  protected readonly empresa = computed(() => this.hoja.data()?.empresa);
+
+  /** Si es la copia congelada después del cierre, con los datos de ese día: el informe lo dice. */
+  protected readonly tardio = computed(() => !!this.informe.data()?.tardio);
+
+  /** El cliente y la unidad, con los nombres que el documento usaba cuando los leía de la hoja de vida. */
+  protected readonly identificacion = computed(() => {
+    const informe = this.informe.data();
+    const cliente = informe?.cliente;
+    const equipo = informe?.equipo;
+
+    return informe
+      ? {
+          cliente: cliente?.nombre,
+          documentoCliente: cliente?.documento,
+          sede: cliente?.sede,
+          direccionSede: cliente?.direccionSede,
+          ciudadSede: cliente?.ciudadSede,
+          areaServicio: cliente?.area,
+          responsables: cliente?.responsables,
+          telefonosCliente: cliente?.telefonos,
+          correosCliente: cliente?.correos,
+          serie: equipo?.serie,
+          numeroHojaVida: equipo?.numeroHojaVida,
+          numeroInventario: equipo?.numeroInventario,
+          codigoInterno: equipo?.codigoInterno,
+        }
+      : undefined;
+  });
+  protected readonly tecnica = computed(() => {
+    const equipo = this.informe.data()?.equipo;
+
+    return equipo
+      ? {
+          tipoEquipo: equipo.tipo,
+          marca: equipo.marca,
+          modelo: equipo.modelo,
+          tecnologiaPredominante: equipo.tecnologia,
+          uso: equipo.uso,
+          fichaTecnica: {
+            riesgo: equipo.riesgo as ClaseDeRiesgo | undefined,
+            alimentacion: equipo.alimentacion,
+            voltaje: equipo.voltaje,
+            potencia: equipo.potencia,
+            amperaje: equipo.amperaje,
+            frecuencia: equipo.frecuencia,
+          },
+        }
+      : undefined;
+  });
+  protected readonly empresa = computed(() => this.informe.data()?.empresa);
+  /** Las verificaciones del tipo del equipo, en su orden: las del día del cierre si está cerrado. */
+  private readonly declaradas = computed(() => this.informe.data()?.verificaciones ?? []);
 
   protected readonly esBorrador = computed(() => this.datos()?.estado !== 'FINALIZADO');
 
@@ -136,7 +178,7 @@ export class DocumentoReporte {
   protected readonly paginas = computed(() => (this.datos()?.lecturas?.length ? 2 : 1));
 
   protected readonly tipoDeServicio = computed(
-    () => this.orden.data()?.tipoServicio as TipoDeServicio | undefined,
+    () => this.informe.data()?.orden?.tipoServicio as TipoDeServicio | undefined,
   );
   /**
    * Las cinco del informe: los tres tipos de orden, la verificación, que se marca sola, y la garantía,
@@ -150,7 +192,7 @@ export class DocumentoReporte {
       { texto: 'Correctivo', marcada: tipo === 'CORRECTIVO' },
       { texto: 'Calibración', marcada: tipo === 'CALIBRACION' },
       { texto: 'Verificación metrológica', marcada: !!this.datos()?.lecturas?.length },
-      { texto: 'Garantía', marcada: !!this.orden.data()?.garantia },
+      { texto: 'Garantía', marcada: !!this.informe.data()?.orden?.garantia },
     ];
   });
 
@@ -174,12 +216,12 @@ export class DocumentoReporte {
    * cierre todavía: lleva la fecha programada de la orden.
    */
   protected readonly fechaDelServicio = computed(
-    () => this.datos()?.finalizado?.slice(0, 10) ?? this.orden.data()?.fechaMantenimiento,
+    () => this.datos()?.finalizado?.slice(0, 10) ?? this.informe.data()?.orden?.fechaProgramada,
   );
   protected readonly proximo = computed(() =>
     proximoServicio(
       this.fechaDelServicio(),
-      this.orden.data()?.periodicidad as Periodicidad | undefined,
+      this.informe.data()?.orden?.periodicidad as Periodicidad | undefined,
     ),
   );
   protected readonly fechaCorta = fechaCorta;
@@ -286,23 +328,8 @@ export class DocumentoReporte {
     ].filter((parte) => !!parte.texto);
   });
 
-  /**
-   * El ingeniero de la orden. Un reporte cerrado lo tiene congelado en su línea de la hoja de vida;
-   * uno en borrador, no todavía, y se busca entre las personas.
-   */
-  protected readonly ingeniero = computed(() => {
-    const linea = (this.hoja.data()?.servicioTecnico ?? []).find(
-      (intervencion) => intervencion.idReporteServicio === this.id(),
-    );
-    if (linea?.responsable) {
-      return linea.responsable;
-    }
-
-    const id = this.orden.data()?.idIngeniero;
-    const persona = (this.personas.data() ?? []).find((p) => p.identificador === id);
-
-    return persona ? nombreCompleto(persona) : SIN_DATO;
-  });
+  /** El ingeniero de la orden, por su nombre: congelado al cerrar, como todo el informe. */
+  protected readonly ingeniero = computed(() => this.informe.data()?.ingeniero || SIN_DATO);
 
   protected readonly recibe = computed(() => {
     const recibe = this.datos()?.recibe;
@@ -359,7 +386,7 @@ export class DocumentoReporte {
    */
   protected readonly verificaciones = computed(() => {
     const lecturas = this.datos()?.lecturas ?? [];
-    const declaradas = this.tipo()?.verificaciones ?? [];
+    const declaradas = this.declaradas();
     const ids = [...new Set(lecturas.map((lectura) => lectura.idVerificacion!))].sort(
       (a, b) =>
         indiceOFinal(declaradas.findIndex((v) => v.id === a)) -
@@ -430,7 +457,7 @@ export class DocumentoReporte {
    * que se usó. Con la ficha que se copió al ponerlo en el reporte (V30), no la de hoy.
    */
   protected readonly trazabilidad = computed(() => {
-    const declaradas = this.tipo()?.verificaciones ?? [];
+    const declaradas = this.declaradas();
     const porPatron = new Map<string, { patron: PatronUsado; magnitudes: string[] }>();
 
     for (const usado of this.datos()?.patrones ?? []) {

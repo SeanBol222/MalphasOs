@@ -22,6 +22,7 @@ import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordV
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.UseReferenceStandardRequest;
+import com.malphasos.malphasos.report.infrastructure.input.model.response.ReportDocumentResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ServiceReportResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.WorkOrderReportProgressResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -123,6 +124,16 @@ public class ServiceReportRestAdapter {
     public ServiceReportResponse getById(@PathVariable UUID id, Authentication autenticacion) {
         return mapper.toResponse(
                 serviceReportServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
+    }
+
+    @Operation(summary = "El informe de un reporte",
+            description = "Lo que imprime de la orden, el cliente, el equipo y la empresa: congelado al cerrar,"
+                    + " compuesto en vivo si es borrador. Con el mismo alcance que el reporte.")
+    @PreAuthorize("hasAuthority('report.read')")
+    @GetMapping("/{id}/document")
+    public ReportDocumentResponse getDocument(@PathVariable UUID id, Authentication autenticacion) {
+        return ReportDocumentResponse.from(
+                serviceReportServicePort.document(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Abrir el reporte de un equipo de una orden",
