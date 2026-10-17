@@ -73,6 +73,17 @@ describe('Armazón', () => {
     expect(destinos).not.toContain('Órdenes de trabajo');
   });
 
+  it('«Mi firma» está en el pie para quien cierra reportes, y no para quien solo lee', async () => {
+    // V38, 2026-10-17: la firma la copian los informes que se cierran, así que es de quien los cierra.
+    expect(
+      (await pintar('/inicio', ['report.write'])).querySelector('[data-mi-firma]'),
+    ).not.toBeNull();
+  });
+
+  it('sin report.write no se ofrece «Mi firma»', async () => {
+    expect((await pintar('/inicio', ['report.read'])).querySelector('[data-mi-firma]')).toBeNull();
+  });
+
   describe('Los dos bloques del menú', () => {
     const rotulos = (raiz: HTMLElement) =>
       [...raiz.querySelectorAll('nav > p')].map((p) => (p.textContent ?? '').trim());

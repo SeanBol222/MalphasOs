@@ -367,6 +367,15 @@ img.rs-escudo {
   color: var(--rs-gris-texto);
 }
 
+/* La firma guardada, en el hueco de la línea: se apoya en ella como una firma a mano. */
+.rs-firmas__trazo {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
 .rs-firmas__linea {
   height: 46px;
   border-bottom: 1px solid var(--rs-tinta);

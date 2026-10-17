@@ -163,25 +163,36 @@
         {{ iniciales() }}
       </span>
       <span class="min-w-0 truncate text-sm font-bold">{{ sesion.nombre() }}</span>
-      <button
-        class="ml-auto flex h-tactil w-tactil flex-none items-center justify-center text-neutral-400 hover:text-white"
-        type="button"
-        aria-label="Cerrar sesión"
-        title="Cerrar sesión"
-        (click)="sesion.salir()"
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
+      <div class="ml-auto flex flex-none items-center gap-1">
+        @if (sesion.puede('report.write')) {
+          <!-- La firma que copian los informes que cierra (V38): junto al nombre, porque es suya. -->
+          <a
+            class="text-sm text-neutral-300 underline hover:text-white"
+            routerLink="/mi-firma"
+            data-mi-firma
+            >Mi firma</a
+          >
+        }
+        <button
+          class="flex h-tactil w-tactil flex-none items-center justify-center text-neutral-400 hover:text-white"
+          type="button"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          (click)="sesion.salir()"
         >
-          <path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11" />
-        </svg>
-      </button>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11" />
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 
