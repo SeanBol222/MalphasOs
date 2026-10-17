@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
-import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
 import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
@@ -26,6 +25,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
+import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
@@ -450,14 +450,17 @@ class ServiceReportRestAdapterTest {
     @DisplayName("el informe viaja con lo congelado, el logo como data: URI y si es copia del cierre o tardía")
     void elInforme() throws Exception {
         ServiceReport reporte = unReporte();
-        CompanyLogo logo = CompanyLogo.of(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 1});
+        DocumentImage logo =
+                new DocumentImage(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 1}, "image/png");
+        DocumentImage firma =
+                new DocumentImage(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 2}, "image/png");
         ReportDocument base = UnDocumento.CUALQUIERA;
         ReportDocument documento = new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(),
                 List.of(), new ReportDocument.Empresa("Ejemplo S.A.S.", null, null, null, null, "La garantía",
                         null, "FT-2", logo.huella()),
-                "Ana Pérez");
+                "Ana Pérez", firma.huella());
         when(serviceReportServicePort.document(eq(reporte.getId()), any()))
-                .thenReturn(new ReportDocumentView(reporte, documento, logo, true));
+                .thenReturn(new ReportDocumentView(reporte, documento, logo, firma, true));
 
         mockMvc.perform(get("/v1/api/reports/" + reporte.getId() + "/document"))
                 .andExpect(status().isOk())
@@ -469,7 +472,9 @@ class ServiceReportRestAdapterTest {
                 .andExpect(jsonPath("$.empresa.garantia").value("La garantía"))
                 .andExpect(jsonPath("$.empresa.logo").value(logo.dataUri()))
                 .andExpect(jsonPath("$.empresa.huellaDelLogo").doesNotExist())
-                .andExpect(jsonPath("$.ingeniero").value("Ana Pérez"));
+                .andExpect(jsonPath("$.ingeniero").value("Ana Pérez"))
+                .andExpect(jsonPath("$.firmaIngeniero").value(firma.dataUri()))
+                .andExpect(jsonPath("$.huellaFirmaIngeniero").doesNotExist());
     }
 
     @Test

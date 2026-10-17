@@ -1,6 +1,5 @@
 package com.malphasos.malphasos.report.application.services.serviceReport;
 
-import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
@@ -18,7 +17,7 @@ import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
-import com.malphasos.malphasos.report.application.ports.output.DocumentLogoStorePort;
+import com.malphasos.malphasos.report.application.ports.output.DocumentImageStorePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
@@ -31,6 +30,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
+import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
@@ -88,7 +88,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final ReferenceStandardServicePort referenceStandardServicePort;
     private final EventDispatcherPort eventDispatcherPort;
     private final ReportDocumentComposer reportDocumentComposer;
-    private final DocumentLogoStorePort documentLogoStorePort;
+    private final DocumentImageStorePort documentImageStorePort;
 
     // ---------------------------------------------------------------------------
     // Consultas
@@ -415,17 +415,18 @@ public class ServiceReportService implements ServiceReportServicePort {
 
         if (reporte.getDocumento() != null) {
             ReportDocument documento = reporte.getDocumento();
-            String huella = documento.empresa() == null ? null : documento.empresa().huellaDelLogo();
-            CompanyLogo logo = huella == null ? null : documentLogoStorePort.find(huella).orElse(null);
 
-            return new ReportDocumentView(reporte, documento, logo, true);
+            return new ReportDocumentView(reporte, documento,
+                    imagen(documento.empresa() == null ? null : documento.empresa().huellaDelLogo()),
+                    imagen(documento.huellaFirmaIngeniero()), true);
         }
 
         // Un borrador, o uno cerrado que aún no se congeló tarde: en vivo, sin guardar nada.
         ReportDocumentComposer.Composed compuesto =
                 reportDocumentComposer.compose(reporte, tipoDelEquipo(reporte.getIdEquipoCliente()));
 
-        return new ReportDocumentView(reporte, compuesto.documento(), compuesto.logo(), false);
+        return new ReportDocumentView(
+                reporte, compuesto.documento(), compuesto.logo(), compuesto.firmaIngeniero(), false);
     }
 
     @Override
@@ -440,15 +441,23 @@ public class ServiceReportService implements ServiceReportServicePort {
         return pendientes.size();
     }
 
-    /** Compone el documento de ahora y guarda la versión del logo que lleva, si lleva. */
+    /** Compone el documento de ahora y guarda las versiones del logo y de la firma que lleva, si lleva. */
     private ReportDocument congelar(ServiceReport reporte) {
         ReportDocumentComposer.Composed compuesto =
                 reportDocumentComposer.compose(reporte, tipoDelEquipo(reporte.getIdEquipoCliente()));
         if (compuesto.logo() != null) {
-            documentLogoStorePort.store(compuesto.logo());
+            documentImageStorePort.store(compuesto.logo());
+        }
+        if (compuesto.firmaIngeniero() != null) {
+            documentImageStorePort.store(compuesto.firmaIngeniero());
         }
 
         return compuesto.documento();
+    }
+
+    /** Una imagen congelada por su huella; nula sin huella. */
+    private DocumentImage imagen(String huella) {
+        return huella == null ? null : documentImageStorePort.find(huella).orElse(null);
     }
 
     @Override

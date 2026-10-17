@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
@@ -29,7 +28,7 @@ import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
-import com.malphasos.malphasos.report.application.ports.output.DocumentLogoStorePort;
+import com.malphasos.malphasos.report.application.ports.output.DocumentImageStorePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.ReportDocumentComposer;
 import com.malphasos.malphasos.report.application.services.serviceReport.ServiceReportService;
@@ -42,6 +41,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
+import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
@@ -113,7 +113,7 @@ class ServiceReportServiceTest {
     @Mock private ProtocolServicePort protocolServicePort;
     @Mock private ReferenceStandardServicePort referenceStandardServicePort;
     @Mock private ReportDocumentComposer reportDocumentComposer;
-    @Mock private DocumentLogoStorePort documentLogoStorePort;
+    @Mock private DocumentImageStorePort documentImageStorePort;
 
     @InjectMocks private ServiceReportService service;
 
@@ -712,7 +712,7 @@ class ServiceReportServiceTest {
                     .thenReturn(unaOrdenEnEjecucion());
             // Cerrar congela el informe (2026-10-17): lo que se congela lo prueba su propia sección.
             lenient().when(reportDocumentComposer.compose(any(), any()))
-                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null));
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null, null));
         }
 
         private ServiceReport unReporteSinVerificacion() {
@@ -1250,16 +1250,17 @@ class ServiceReportServiceTest {
         private ReportDocument conLogo(String huella) {
             ReportDocument base = UnDocumento.CUALQUIERA;
             return new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(), List.of(),
-                    new ReportDocument.Empresa("Ejemplo", null, null, null, null, null, null, null, huella), null);
+                    new ReportDocument.Empresa("Ejemplo", null, null, null, null, null, null, null, huella), null,
+                    null);
         }
 
         @Test
         @DisplayName("uno cerrado se sirve congelado, con el logo de su huella, sin componer nada")
         void cerradoSeSirveCongelado() {
-            CompanyLogo logo = CompanyLogo.of(PNG);
+            DocumentImage logo = new DocumentImage(PNG, "image/png");
             ServiceReport reporte = cerradoCon(conLogo(logo.huella()));
             estubarReporte(reporte);
-            when(documentLogoStorePort.find(logo.huella())).thenReturn(Optional.of(logo));
+            when(documentImageStorePort.find(logo.huella())).thenReturn(Optional.of(logo));
 
             ReportDocumentView vista = service.document(reporte.getId(), ReadScope.unrestricted());
 
@@ -1276,16 +1277,16 @@ class ServiceReportServiceTest {
             estubarReporte(reporte);
             EquipmentType tipo = unTipo(null, null, List.of());
             estubarCadenaDelCatalogo(tipo);
-            CompanyLogo logo = CompanyLogo.of(PNG);
+            DocumentImage logo = new DocumentImage(PNG, "image/png");
             when(reportDocumentComposer.compose(reporte, tipo))
-                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, logo));
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, logo, null));
 
             ReportDocumentView vista = service.document(reporte.getId(), ReadScope.unrestricted());
 
             assertThat(vista.congelado()).isFalse();
             assertThat(vista.documento()).isEqualTo(UnDocumento.CUALQUIERA);
             assertThat(vista.logo()).isEqualTo(logo);
-            verify(documentLogoStorePort, never()).store(any());
+            verify(documentImageStorePort, never()).store(any());
         }
 
         @Test
@@ -1298,14 +1299,40 @@ class ServiceReportServiceTest {
             estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
             when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
-            CompanyLogo logo = CompanyLogo.of(PNG);
+            DocumentImage logo = new DocumentImage(PNG, "image/png");
             when(reportDocumentComposer.compose(reporte, tipo))
-                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, logo));
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, logo, null));
 
             ServiceReport cerrado = service.finish(new FinishServiceReportCommand(reporte.getId()));
 
             assertThat(cerrado.getDocumento()).isEqualTo(UnDocumento.CUALQUIERA);
-            verify(documentLogoStorePort).store(logo);
+            verify(documentImageStorePort).store(logo);
+        }
+
+        @Test
+        @DisplayName("cerrar guarda también la versión de la firma del ingeniero, y el congelado la recupera por su huella")
+        void laFirmaDelIngeniero() {
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+            estubarReporte(reporte);
+            EquipmentType tipo = unTipo(null, null, List.of());
+            estubarCadenaDelCatalogo(tipo);
+            estubarGuardado();
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
+            DocumentImage firma = new DocumentImage(PNG, "image/png");
+            ReportDocument base = UnDocumento.CUALQUIERA;
+            ReportDocument conFirma = new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(),
+                    List.of(), null, "Ana Pérez", firma.huella());
+            when(reportDocumentComposer.compose(reporte, tipo))
+                    .thenReturn(new ReportDocumentComposer.Composed(conFirma, null, firma));
+
+            ServiceReport cerrado = service.finish(new FinishServiceReportCommand(reporte.getId()));
+            verify(documentImageStorePort).store(firma);
+
+            when(documentImageStorePort.find(firma.huella())).thenReturn(Optional.of(firma));
+            ReportDocumentView vista = service.document(cerrado.getId(), ReadScope.unrestricted());
+            assertThat(vista.firmaIngeniero()).isEqualTo(firma);
+            assertThat(vista.logo()).isNull();
         }
 
         @Test
@@ -1316,13 +1343,13 @@ class ServiceReportServiceTest {
             EquipmentType tipo = unTipo(null, null, List.of());
             estubarCadenaDelCatalogo(tipo);
             when(reportDocumentComposer.compose(viejo, tipo))
-                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null));
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null, null));
 
             assertThat(service.freezeClosedWithoutDocument()).isEqualTo(1);
 
             assertThat(viejo.isDocumentoTardio()).isTrue();
             verify(serviceReportPersistencePort).save(viejo);
-            verify(documentLogoStorePort, never()).store(any());
+            verify(documentImageStorePort, never()).store(any());
         }
     }
 }

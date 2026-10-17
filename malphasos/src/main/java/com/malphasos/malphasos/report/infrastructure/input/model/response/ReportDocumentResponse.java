@@ -1,6 +1,5 @@
 package com.malphasos.malphasos.report.infrastructure.input.model.response;
 
-import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,7 +24,9 @@ public record ReportDocumentResponse(
         Equipo equipo,
         @Schema(description = "Las verificaciones del tipo del equipo, en su orden") List<Verificacion> verificaciones,
         @Schema(description = "Nula si no habia empresa configurada") Empresa empresa,
-        @Schema(description = "Nombre completo del ingeniero de la orden; nulo si no tenia") String ingeniero) {
+        @Schema(description = "Nombre completo del ingeniero de la orden; nulo si no tenia") String ingeniero,
+        @Schema(description = "La firma guardada del ingeniero, PNG como data: URI; nula si no tenia")
+        String firmaIngeniero) {
 
     @Schema(name = "ReportDocumentOrden")
     public record Orden(
@@ -116,6 +117,7 @@ public record ReportDocumentResponse(
                 empresa == null ? null : new Empresa(empresa.nombre(), empresa.nit(), empresa.direccion(),
                         empresa.ciudad(), empresa.movil(), empresa.garantia(), empresa.aclaracion(),
                         empresa.codigoInforme(), vista.logo() == null ? null : vista.logo().dataUri()),
-                documento.ingeniero());
+                documento.ingeniero(),
+                vista.firmaIngeniero() == null ? null : vista.firmaIngeniero().dataUri());
     }
 }

@@ -2,7 +2,6 @@ package com.malphasos.malphasos.report.application.services.serviceReport;
 
 import com.malphasos.malphasos.company.application.ports.input.ServiceCompanyServicePort;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
-import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
@@ -10,6 +9,8 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
+import com.malphasos.malphasos.person.application.ports.input.PersonSignatureServicePort;
+import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Compone lo que el informe imprime y no es del reporte, leyéndolo de donde vive hoy: la orden, la hoja
- * de vida del equipo, su tipo, la empresa y el ingeniero (2026-10-17).
+ * de vida del equipo, su tipo, la empresa y el ingeniero con su firma (2026-10-17).
  *
  * <p>Lo usan los tres caminos del informe: el borrador, que lo compone en vivo cada vez; el cierre, que
  * lo congela; y los reportes cerrados antes de que existiera, que se congelan tarde. Que sea una sola
@@ -37,9 +38,13 @@ public class ReportDocumentComposer {
     private final LifeSheetServicePort lifeSheetServicePort;
     private final ServiceCompanyServicePort serviceCompanyServicePort;
     private final PersonCommunicationPort personCommunicationPort;
+    private final PersonSignatureServicePort personSignatureServicePort;
 
-    /** El documento y el logo de la empresa tal como están ahora. El logo, aparte: se guarda por su huella. */
-    public record Composed(ReportDocument documento, CompanyLogo logo) {
+    /**
+     * El documento, y aparte las dos imágenes que referencia por su huella —el logo de la empresa y la
+     * firma del ingeniero—, tal como están ahora. Nulas si no hay.
+     */
+    public record Composed(ReportDocument documento, DocumentImage logo, DocumentImage firmaIngeniero) {
     }
 
     /**
@@ -49,7 +54,14 @@ public class ReportDocumentComposer {
         WorkOrder orden = workOrderServicePort.findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted());
         LifeSheet hoja = lifeSheetServicePort.findByEquipment(reporte.getIdEquipoCliente(), ReadScope.unrestricted());
         Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
-        CompanyLogo logo = empresa.flatMap(ServiceCompany::logo).orElse(null);
+        DocumentImage logo = empresa.flatMap(ServiceCompany::logo)
+                .map(l -> new DocumentImage(l.contenido(), l.tipo()))
+                .orElse(null);
+        DocumentImage firma = orden.getIdIngeniero() == null
+                ? null
+                : personSignatureServicePort.find(orden.getIdIngeniero())
+                        .map(f -> new DocumentImage(f.imagen(), "image/png"))
+                        .orElse(null);
 
         return new Composed(new ReportDocument(
                 ReportDocument.VERSION,
@@ -60,8 +72,9 @@ public class ReportDocumentComposer {
                 empresa.map(e -> empresa(e.getDatos(), logo)).orElse(null),
                 orden.getIdIngeniero() == null
                         ? null
-                        : personCommunicationPort.findById(orden.getIdIngeniero()).nombreCompleto()),
-                logo);
+                        : personCommunicationPort.findById(orden.getIdIngeniero()).nombreCompleto(),
+                firma == null ? null : firma.huella()),
+                logo, firma);
     }
 
     private static ReportDocument.Orden orden(WorkOrder orden) {
@@ -95,7 +108,7 @@ public class ReportDocumentComposer {
                         .toList());
     }
 
-    private static ReportDocument.Empresa empresa(CompanyDetails datos, CompanyLogo logo) {
+    private static ReportDocument.Empresa empresa(CompanyDetails datos, DocumentImage logo) {
         return new ReportDocument.Empresa(datos.nombre(), datos.nit(), datos.direccion(), datos.ciudad(),
                 datos.movil(), datos.garantia(), datos.aclaracion(), datos.codigoInforme(),
                 logo == null ? null : logo.huella());

@@ -9,14 +9,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Una versión del logo que algún informe congeló (V37). */
+/** Una versión de una imagen que algún informe congeló: el logo (V37) o la firma del ingeniero (V38). */
 @Getter
 @Setter
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "logo_documento")
-public class DocumentLogoEntity {
+@Table(name = "imagen_documento")
+public class DocumentImageEntity {
 
     @Id
     @Column(name = "k_huella", nullable = false)

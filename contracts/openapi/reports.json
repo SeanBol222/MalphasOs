@@ -356,6 +356,10 @@
           "equipo" : {
             "$ref" : "#/components/schemas/ReportDocumentEquipo"
           },
+          "firmaIngeniero" : {
+            "description" : "La firma guardada del ingeniero, PNG como data: URI; nula si no tenia",
+            "type" : "string"
+          },
           "ingeniero" : {
             "description" : "Nombre completo del ingeniero de la orden; nulo si no tenia",
             "type" : "string"

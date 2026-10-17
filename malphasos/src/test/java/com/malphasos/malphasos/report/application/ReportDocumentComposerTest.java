@@ -21,7 +21,10 @@ import com.malphasos.malphasos.equipment.domain.model.RiskClass;
 import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
+import com.malphasos.malphasos.person.application.ports.input.PersonSignatureServicePort;
+import com.malphasos.malphasos.person.domain.person.PersonSignature;
 import com.malphasos.malphasos.report.application.services.serviceReport.ReportDocumentComposer;
+import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -32,6 +35,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,6 +60,7 @@ class ReportDocumentComposerTest {
     @Mock private LifeSheetServicePort lifeSheetServicePort;
     @Mock private ServiceCompanyServicePort serviceCompanyServicePort;
     @Mock private PersonCommunicationPort personCommunicationPort;
+    @Mock private PersonSignatureServicePort personSignatureServicePort;
 
     @InjectMocks private ReportDocumentComposer composer;
 
@@ -106,6 +111,7 @@ class ReportDocumentComposerTest {
     void todo() {
         when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(orden(INGENIERO));
         when(personCommunicationPort.findById(INGENIERO)).thenReturn(ingeniero());
+        when(personSignatureServicePort.find(INGENIERO)).thenReturn(Optional.empty());
         CompanyLogo logo = CompanyLogo.of(PNG);
         when(serviceCompanyServicePort.find()).thenReturn(Optional.of(ServiceCompany.rehydrate(UUID.randomUUID(),
                 new CompanyDetails("Ejemplo S.A.S.", "900", "Carrera 1", "Ciudad", List.of(), "300", null,
@@ -130,9 +136,29 @@ class ReportDocumentComposerTest {
                 declarada.id(), "Masa", "kg", 3,
                 List.of(new ReportDocument.Punto(declarada.puntos().getFirst().id(), new BigDecimal("10.5")))));
         assertThat(documento.empresa()).isEqualTo(new ReportDocument.Empresa("Ejemplo S.A.S.", "900", "Carrera 1",
-                "Ciudad", "300", "La garantía", "La aclaración", "FT-2", logo.huella()));
+                "Ciudad", "300", "La garantía", "La aclaración", "FT-2", new DocumentImage(PNG, "image/png").huella()));
         assertThat(documento.ingeniero()).isEqualTo("Ana Pérez Gómez");
-        assertThat(compuesto.logo()).isEqualTo(logo);
+        assertThat(compuesto.logo()).isEqualTo(new DocumentImage(PNG, "image/png"));
+        // Sin firma guardada, la línea del profesional se firma a mano.
+        assertThat(documento.huellaFirmaIngeniero()).isNull();
+        assertThat(compuesto.firmaIngeniero()).isNull();
+    }
+
+    @Test
+    @DisplayName("la firma guardada del ingeniero de la orden va por su huella, y aparte la imagen")
+    void conFirma() {
+        when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(orden(INGENIERO));
+        when(personCommunicationPort.findById(INGENIERO)).thenReturn(ingeniero());
+        when(serviceCompanyServicePort.find()).thenReturn(Optional.empty());
+        byte[] trazo = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 42};
+        when(personSignatureServicePort.find(INGENIERO))
+                .thenReturn(Optional.of(new PersonSignature(trazo, LocalDateTime.of(2026, 10, 17, 9, 0))));
+
+        ReportDocumentComposer.Composed compuesto = composer.compose(reporte, tipo());
+
+        DocumentImage firma = new DocumentImage(trazo, "image/png");
+        assertThat(compuesto.firmaIngeniero()).isEqualTo(firma);
+        assertThat(compuesto.documento().huellaFirmaIngeniero()).isEqualTo(firma.huella());
     }
 
     @Test
@@ -147,5 +173,6 @@ class ReportDocumentComposerTest {
         assertThat(compuesto.documento().ingeniero()).isNull();
         assertThat(compuesto.logo()).isNull();
         verify(personCommunicationPort, never()).findById(org.mockito.ArgumentMatchers.any());
+        verify(personSignatureServicePort, never()).find(org.mockito.ArgumentMatchers.any());
     }
 }
