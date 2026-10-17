@@ -10,7 +10,7 @@ import {
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CatalogoApi } from '../../equipment/catalogo-api';
-import { EquipoApi } from '../../equipment/equipo-api';
+import { tipoDelEquipo } from '../tipo-del-equipo';
 import { ReporteApi } from '../reporte-api';
 import {
   ETIQUETA_DE_MODALIDAD,
@@ -198,29 +198,14 @@ export class TablaDeVerificacion {
     this.retiro.mutate({ id: this.idReporte(), idVerificacion, idEquipoPatron });
   }
 
-  // --- La cadena del catalogo, cuatro eslabones -------------------------------
+  // --- La cadena del catalogo, cuatro eslabones: ver tipoDelEquipo ------------
 
-  private readonly equipos = inject(EquipoApi).listarTodos();
-  private readonly modelos = this.catalogo.listarModelos();
-  private readonly equiposDeCatalogo = this.catalogo.listarEquipos();
-  private readonly tipos = this.catalogo.listarTipos();
+  private readonly cadena = tipoDelEquipo(() => this.idEquipoCliente());
 
   /** El tipo del equipo reportado, o {@code undefined} mientras la cadena no esté completa. */
-  protected readonly tipo = computed(() => {
-    const unidad = (this.equipos.data() ?? []).find((equipo) => equipo.id === this.idEquipoCliente());
-    const modelo = (this.modelos.data() ?? []).find((m) => m.id === unidad?.idModelo);
-    const delCatalogo = (this.equiposDeCatalogo.data() ?? []).find((e) => e.id === modelo?.idEquipo);
+  protected readonly tipo = this.cadena.tipo;
 
-    return (this.tipos.data() ?? []).find((t) => t.id === delCatalogo?.idTipoEquipo);
-  });
-
-  protected readonly cargando = computed(
-    () =>
-      this.equipos.isPending() ||
-      this.modelos.isPending() ||
-      this.equiposDeCatalogo.isPending() ||
-      this.tipos.isPending(),
-  );
+  protected readonly cargando = this.cadena.cargando;
 
   /** Un tipo sin verificaciones no se verifica: no hay nada que medirle, y el API lo rechazaría. */
   protected readonly seVerifica = computed(() => !!this.tipo()?.verificaciones?.length);

@@ -90,6 +90,9 @@ export class EquipoApi {
         firstValueFrom(
           this.http.get<HojaDeVida>(`${this.api}/client-equipments/${id()}/life-sheet`),
         ),
+      // Sin identificador no se pide: el documento del reporte la pide con el equipo de un reporte que
+      // todavia no ha llegado, y salia un GET a «client-equipments//life-sheet» (2026-10-16).
+      enabled: !!id(),
     }));
   }
 

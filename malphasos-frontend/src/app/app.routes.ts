@@ -48,7 +48,8 @@ export const routes: Routes = [
       },
       {
         path: 'sedes/:id',
-        loadComponent: () => import('./features/client/sede/detalle-sede').then((m) => m.DetalleSede),
+        loadComponent: () =>
+          import('./features/client/sede/detalle-sede').then((m) => m.DetalleSede),
         canActivate: [requiereAutoridad('client.read')],
       },
       {
@@ -171,6 +172,15 @@ export const routes: Routes = [
         path: 'equipos/:id/historial',
         loadComponent: () =>
           import('./features/report/historial/historial-equipo').then((m) => m.HistorialEquipo),
+        canActivate: [requiereAutoridad('report.read')],
+      },
+      {
+        // El reporte como documento, para leerlo, imprimirlo o guardarlo en PDF desde el navegador
+        // (2026-10-16). Antes que 'reportes/:id' solo por legibilidad: el router casa segmentos
+        // completos y no los confunde. Exige report.read, como el reporte.
+        path: 'reportes/:id/documento',
+        loadComponent: () =>
+          import('./features/report/documento/documento-reporte').then((m) => m.DocumentoReporte),
         canActivate: [requiereAutoridad('report.read')],
       },
       {
