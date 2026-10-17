@@ -169,6 +169,26 @@ export interface paths {
         patch: operations["recordIntake"];
         trace?: never;
     };
+    "/v1/api/reports/{id}/receipt-signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Firmar el recibido
+         * @description Quien recibe el servicio firma en la pantalla (RF-18), antes o despues de cerrar: es lo unico que se anade a un reporte cerrado. Una vez firmado no cambia. Con aplicarALaOrden la misma firma va a los reportes activos de la orden que aun no tengan (RF-21). Devuelve los reportes firmados, el pedido primero.
+         */
+        patch: operations["signReceipt"];
+        trace?: never;
+    };
     "/v1/api/reports/{id}/steps/{orden}": {
         parameters: {
             query?: never;
@@ -390,6 +410,8 @@ export interface components {
             equipo?: components["schemas"]["ReportDocumentEquipo"];
             /** @description La firma guardada del ingeniero, PNG como data: URI; nula si no tenia */
             firmaIngeniero?: string;
+            /** @description La firma de quien recibe, PNG como data: URI; nula mientras no firme. Desde V39 */
+            firmaRecibe?: string;
             /** @description Nombre completo del ingeniero de la orden; nulo si no tenia */
             ingeniero?: string;
             orden?: components["schemas"]["ReportDocumentOrden"];
@@ -470,6 +492,11 @@ export interface components {
              * @description Cuando se cerro el reporte. Nulo mientras es borrador
              */
             finalizado?: string;
+            /**
+             * Format: date-time
+             * @description Cuando firmo quien recibe; nulo mientras no firme. La imagen viene en el informe; desde V39
+             */
+            firmadoRecibe?: string;
             /** Format: uuid */
             id?: string;
             /** Format: uuid */
@@ -498,6 +525,20 @@ export interface components {
             repuestos?: string;
             /** @enum {string} */
             resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
+        };
+        SignReceiptRequest: {
+            /** @description RF-21: la misma firma en los reportes de la orden que aun no tengan, abiertos o cerrados. Opcional; sin ella, solo este */
+            aplicarALaOrden?: boolean;
+            /** @example Jefe de enfermeria */
+            cargo?: string;
+            cedula?: string;
+            /**
+             * @description PNG de hasta 256 KB como data: URI
+             * @example data:image/png;base64,iVBORw0KGgo=
+             */
+            imagen: string;
+            /** @example Ana Perez */
+            nombre: string;
         };
         UseReferenceStandardRequest: {
             /**
@@ -1159,6 +1200,68 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ServiceReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    signReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignReceiptRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportResponse"][];
                 };
             };
             /** @description Bad Request */

@@ -402,6 +402,12 @@ export type InformeDeReporte = reportes['schemas']['ReportDocumentResponse'];
 export type RegistroDeIngreso = reportes['schemas']['RecordIntakeRequest'];
 export type AccesorioDelIngreso = reportes['schemas']['IntakeAccessoryRequest'];
 export type QuienRecibe = reportes['schemas']['RecordHandoverRequest'];
+
+/**
+ * Quien recibe firma el recibido (V39, 2026-10-17): quién es, la firma como PNG en data: URI y, con la
+ * casilla de RF-21, si vale también para los reportes de la orden que aún no tengan.
+ */
+export type FirmaDeRecibido = reportes['schemas']['SignReceiptRequest'];
 export type VerificacionAlIngreso = reportes['schemas']['IntakeCheckResponse'];
 export type AccesorioDeReporte = reportes['schemas']['ReportAccessoryResponse'];
 export type EstadoAlIngreso = NonNullable<RegistroDeIngreso['fisico']>;

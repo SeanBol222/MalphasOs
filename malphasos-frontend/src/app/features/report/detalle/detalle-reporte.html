@@ -526,6 +526,8 @@
           [idReporte]="id()"
           [recibe]="datos.recibe"
           [editable]="editable()"
+          [firmadoRecibe]="datos.firmadoRecibe"
+          [puedeFirmar]="datos.estadoActivo !== false && puedeEscribir()"
         />
 
         <p class="mt-3">
