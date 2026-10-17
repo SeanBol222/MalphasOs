@@ -101,4 +101,40 @@ class ReferenceStandardPersistenceTest {
         assertThat(almacen.findAll()).extracting(ReferenceStandard::getNombre)
                 .containsExactly("Barómetro", "Manómetro", "termómetro");
     }
+
+    private static ReferenceStandardSheet conCodigo(String codigo) {
+        return new ReferenceStandardSheet(null, codigo, null, null, null, null);
+    }
+
+    @Test
+    @DisplayName("la base impide dos vigentes con el mismo código interno, aunque el servicio se salte la comprobación (V35)")
+    void codigoInternoUnico() {
+        almacen.save(ReferenceStandard.create("Uno", null, "SN-1", "C", VENCE, conCodigo("PT-01")));
+
+        assertThatThrownBy(() -> almacen.save(
+                        ReferenceStandard.create("Otro", null, "SN-2", "C", VENCE, conCodigo("PT-01"))))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("muchos sin código interno conviven: el índice no cuenta los nulos")
+    void sinCodigoConviven() {
+        almacen.save(ReferenceStandard.create("Uno", null, "SN-1", "C", VENCE, SIN_FICHA));
+        almacen.save(ReferenceStandard.create("Otro", null, "SN-2", "C", VENCE, SIN_FICHA));
+
+        assertThat(almacen.findAll()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("uno retirado libera su código interno, y la búsqueda solo encuentra al vigente")
+    void retiradoLiberaElCodigo() {
+        ReferenceStandard viejo = ReferenceStandard.create("Viejo", null, "SN-1", "C", VENCE, conCodigo("PT-01"));
+        viejo.deactivate();
+        almacen.save(viejo);
+        ReferenceStandard nuevo =
+                almacen.save(ReferenceStandard.create("Nuevo", null, "SN-2", "C", VENCE, conCodigo("PT-01")));
+
+        assertThat(almacen.findActiveByCodigoInterno("PT-01")).get()
+                .extracting(ReferenceStandard::getId).isEqualTo(nuevo.getId());
+    }
 }

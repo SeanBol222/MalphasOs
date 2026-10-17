@@ -45,7 +45,9 @@ public enum EquipmentErrorCatalog {
     PROTOCOL_IN_USE("ERR_EQUIPMENT_016", "The protocol is assigned to active equipment types"),
     // El catálogo de equipos patrón, del 2026-10-14.
     REFERENCE_STANDARD_NOT_FOUND("ERR_EQUIPMENT_017", "Reference standard not found"),
-    REFERENCE_STANDARD_SERIAL_TAKEN("ERR_EQUIPMENT_018", "A reference standard with that serial already exists");
+    REFERENCE_STANDARD_SERIAL_TAKEN("ERR_EQUIPMENT_018", "A reference standard with that serial already exists"),
+    REFERENCE_STANDARD_INTERNAL_CODE_TAKEN("ERR_EQUIPMENT_019",
+            "A reference standard with that internal code already exists");
 
     private final String code;
     private final String message;

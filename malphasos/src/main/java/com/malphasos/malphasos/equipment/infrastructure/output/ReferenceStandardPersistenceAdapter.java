@@ -40,6 +40,12 @@ public class ReferenceStandardPersistenceAdapter implements ReferenceStandardPer
     }
 
     @Override
+    public Optional<ReferenceStandard> findActiveByCodigoInterno(String codigoInterno) {
+        return referenceStandardRepository.findByCodigoInternoAndEstadoActivoTrue(codigoInterno)
+                .map(ReferenceStandardPersistenceAdapter::toDomain);
+    }
+
+    @Override
     public ReferenceStandard save(ReferenceStandard patron) {
         ReferenceStandardSheet ficha = patron.getFicha();
         return toDomain(referenceStandardRepository.save(new ReferenceStandardEntity(

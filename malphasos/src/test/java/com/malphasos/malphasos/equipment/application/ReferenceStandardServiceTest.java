@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.malphasos.malphasos.equipment.application.ports.output.ReferenceStandardPersistencePort;
 import com.malphasos.malphasos.equipment.application.services.referenceStandard.ReferenceStandardService;
 import com.malphasos.malphasos.equipment.application.services.referenceStandard.commands.SaveReferenceStandardCommand;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardInternalCodeTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardSerialTakenException;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
@@ -26,7 +27,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/** El catálogo de equipos patrón: la serie no se repite entre los vigentes (2026-10-14). */
+/**
+ * El catálogo de equipos patrón: la serie no se repite entre los vigentes (2026-10-14), y el código
+ * interno tampoco (2026-10-17).
+ */
 @ExtendWith(MockitoExtension.class)
 class ReferenceStandardServiceTest {
 
@@ -98,5 +102,69 @@ class ReferenceStandardServiceTest {
         assertThatThrownBy(() -> servicio.update(
                         new SaveReferenceStandardCommand(id, "N", null, "S", "C", VENCE, SIN_FICHA)))
                 .isInstanceOf(ReferenceStandardNotFoundException.class);
+    }
+
+    private static ReferenceStandardSheet conCodigo(String codigo) {
+        return new ReferenceStandardSheet(null, codigo, null, null, null, null);
+    }
+
+    @Test
+    @DisplayName("con el código interno de otro vigente no se registra, y dice de cuál")
+    void codigoOcupado() {
+        ReferenceStandard otro = ReferenceStandard.rehydrate(
+                UUID.randomUUID(), "Termómetro patrón", null, "SN-9", "C", VENCE, conCodigo("PT-01"), true);
+        when(persistencia.findActiveBySerie("SN-1")).thenReturn(Optional.empty());
+        when(persistencia.findActiveByCodigoInterno("PT-01")).thenReturn(Optional.of(otro));
+
+        assertThatThrownBy(() -> servicio.create(new SaveReferenceStandardCommand(
+                        null, "Pesas", null, "SN-1", "C", VENCE, conCodigo("PT-01"))))
+                .isInstanceOf(ReferenceStandardInternalCodeTakenException.class)
+                .hasMessageContaining("PT-01")
+                .hasMessageContaining("Termómetro patrón");
+        verify(persistencia, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("corregir uno sin cambiarle el código interno no choca consigo mismo")
+    void corregirSinCambiarCodigo() {
+        ReferenceStandard existente = ReferenceStandard.rehydrate(
+                UUID.randomUUID(), "Termómetro patrón", null, "SN-1", "C", VENCE, conCodigo("PT-01"), true);
+        when(persistencia.findById(existente.getId())).thenReturn(Optional.of(existente));
+        when(persistencia.findActiveBySerie("SN-1")).thenReturn(Optional.of(existente));
+        when(persistencia.findActiveByCodigoInterno("PT-01")).thenReturn(Optional.of(existente));
+        when(persistencia.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        ReferenceStandard corregido = servicio.update(new SaveReferenceStandardCommand(
+                existente.getId(), "Termómetro patrón", null, "SN-1", "C-2", VENCE, conCodigo("PT-01")));
+
+        assertThat(corregido.getCertificado()).isEqualTo("C-2");
+    }
+
+    @Test
+    @DisplayName("corregir uno poniéndole el código interno de otro vigente tampoco")
+    void corregirAlCodigoDeOtro() {
+        ReferenceStandard existente = vigente("SN-1");
+        ReferenceStandard otro = ReferenceStandard.rehydrate(
+                UUID.randomUUID(), "Barómetro patrón", null, "SN-9", "C", VENCE, conCodigo("PT-01"), true);
+        when(persistencia.findById(existente.getId())).thenReturn(Optional.of(existente));
+        when(persistencia.findActiveBySerie("SN-1")).thenReturn(Optional.of(existente));
+        when(persistencia.findActiveByCodigoInterno("PT-01")).thenReturn(Optional.of(otro));
+
+        assertThatThrownBy(() -> servicio.update(new SaveReferenceStandardCommand(
+                        existente.getId(), "Termómetro patrón", null, "SN-1", "C", VENCE, conCodigo("PT-01"))))
+                .isInstanceOf(ReferenceStandardInternalCodeTakenException.class)
+                .hasMessageContaining("Barómetro patrón");
+        verify(persistencia, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("sin código interno no lo busca: el código es opcional, y muchos patrones no tienen")
+    void sinCodigo() {
+        when(persistencia.findActiveBySerie("SN-1")).thenReturn(Optional.empty());
+        when(persistencia.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        servicio.create(new SaveReferenceStandardCommand(null, "Pesas", null, "SN-1", "C", VENCE, SIN_FICHA));
+
+        verify(persistencia, never()).findActiveByCodigoInterno(any());
     }
 }

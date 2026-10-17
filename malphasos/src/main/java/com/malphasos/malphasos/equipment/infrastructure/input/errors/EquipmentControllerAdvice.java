@@ -6,6 +6,7 @@ import com.malphasos.malphasos.equipment.domain.exception.ProtocolInUseException
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolNameTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardInternalCodeTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardSerialTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
@@ -195,6 +196,15 @@ public class EquipmentControllerAdvice {
     public EquipmentErrorResponse handleReferenceStandardSerialTaken(ReferenceStandardSerialTakenException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.REFERENCE_STANDARD_SERIAL_TAKEN, List.of(ex.getMessage()));
+    }
+
+    /** Otro equipo patrón vigente ya tiene ese código interno. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ReferenceStandardInternalCodeTakenException.class)
+    public EquipmentErrorResponse handleReferenceStandardInternalCodeTaken(
+            ReferenceStandardInternalCodeTakenException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.REFERENCE_STANDARD_INTERNAL_CODE_TAKEN, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */
