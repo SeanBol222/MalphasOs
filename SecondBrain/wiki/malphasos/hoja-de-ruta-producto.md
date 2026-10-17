@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-16
+updated: 2026-10-17
 ---
 
 # Hoja de ruta del producto
@@ -479,7 +479,7 @@ empresa puede vivir en el código.
 | Para cerrar | **Exige además las dos verificaciones al ingreso**. Quién recibe, no |
 | Protocolo | **Con ✓ o N/A por paso**, y la nota del N/A |
 | Placa de inventario | **No se añade**: basta el código interno |
-| Firmas | **Tres líneas para firmar a mano**, con el nombre debajo, mientras no haya firma digital |
+| Firmas | **Tres líneas para firmar a mano**, con el nombre debajo, mientras no haya firma digital. **Superado el 2026-10-17**: la 1.0.0 trae la firma digital —ver la sección siguiente—, y a mano queda solo la del supervisor |
 | La orden | **Lleva número**, los seis primeros caracteres de su identificador como el reporte, y el informe lo imprime |
 | Al cerrar | **El informe se congela**: el reporte guarda copia de lo que imprime, incluidos los datos de la empresa *(esto último, de la sesión)* |
 | Código interno del patrón | **Único entre los vigentes**, como la serie |
@@ -507,9 +507,66 @@ empresa puede vivir en el código.
 | 6 | **El informe congelado al cerrar** | La más grande: antes de empezarla se enseña al usuario qué se copia |
 | 7 | **Pasada de wiki** | |
 
+**Hecho**, del 2026-10-16 al 17: las tandas 1 a 4 y la primera mitad de la 5 —cerrar exige el ingreso,
+sin `CHECK` porque impediría retirar los reportes cerrados antes de `V31`—. **Lo que queda** —el código
+interno único, el informe congelado y la pasada de wiki— **se absorbe en el plan de la 1.0.0**, abajo.
+
 > **Corrección de esta misma nota.** La sección anterior, y [[dominio-reporte-servicio]], decían que los
 > cuatro informes reales eran `MP0` y `MP2`. **La balanza es `MP1`**: se leyó mal el primer día. Ya no
 > cambia nada, porque los formatos se retiran, pero quedó escrito y se corrige.
+
+## La versión 1.0.0 (decidida el 2026-10-17)
+
+El usuario pidió **cerrar todo lo necesario para la 1.0.0 y empezar producción**, y decidió en dos
+rondas. Lo que salió de revisar el despliegue antes de preguntar: **el código funciona y el despliegue
+no está listo**. El frontend lleva `localhost` compilado en `environment.ts`, Keycloak corre en
+`start-dev` por HTTP con el realm de desarrollo —`dev.admin` y un secreto fijo—, no hay HTTPS, Postgres
+y Keycloak publican sus puertos, no hay respaldo, la versión es `0.0.1-SNAPSHOT` y **RabbitMQ no lo usa
+ninguna clase de producción**.
+
+**Despliegue:**
+
+| Pregunta | Decisión |
+|---|---|
+| Dónde corre | **Aún no se sabe**: se deja listo para cualquier servidor con Docker y el dominio va en el `.env` |
+| HTTPS | **Caddy dentro del compose**, con certificados automáticos; es lo único que publica puertos |
+| Respaldo | **`pg_dump` diario** de la base de la aplicación y la de Keycloak, con retención y una restauración probada |
+| Alcance | **Lo decidido más producción, y también la firma digital** (RF-17, RF-18 y RF-21) |
+
+**La firma.** La ERS no pide una firma criptográfica sino **una firma dibujada en la pantalla**:
+RF-18 un área de trazo con «Limpiar» que no acepta la firma vacía, RF-21 replicarla a los reportes de
+la misma orden tras confirmarlo, y RF-17 un botón que exporta el PDF —firmado—. **Contradice la decisión
+del día anterior** —«tres líneas a mano»—, y el usuario la cambió a sabiendas:
+
+| Pregunta | Decisión |
+|---|---|
+| Quién firma en pantalla | **Quien recibe el servicio**, el cliente o su encargado |
+| El ingeniero | **Su firma vive en su cuenta**: la dibuja una vez y no firma cada servicio. Solo la cambia su dueño *(de la sesión)* |
+| Cuándo firma quien recibe | **Antes o después de cerrar**: la firma es lo único que se añade a un informe cerrado, porque muchas veces se entrega después. Firmada, no se cambia *(de la sesión)* |
+| Replicar (RF-21) | **Como la ERS**: una casilla «aplicar a todos los reportes de esta orden», solo a los de esa orden que aún no tengan firma, abiertos o cerrados *(el alcance, de la sesión)* |
+| La firma del ingeniero en el informe | **Se copia al cerrar**, con el resto de lo congelado: cambiarla después no altera lo entregado. Cerrar no la exige; sin ella la línea sale para firmar a mano *(de la sesión)* |
+| El supervisor | **A mano**: es el encargado del área, del cliente y sin cuenta |
+| El PDF | **En el servidor** |
+
+**Cómo se genera el PDF** *(de la sesión)*: el backend compone el informe congelado en una plantilla
+HTML y lo convierte con **Gotenberg** —Chromium sin pantalla— en un contenedor interno sin puertos, y la
+pantalla del documento muestra ese PDF con su botón. **El diseño vive en un solo sitio**: con una copia
+en Angular y otra en el servidor las dos se desviarían, que es lo que ya pasó con las reglas de cierre
+antes de reflejarlas. El precio es dibujar la gráfica de error en SVG desde Java. La hoja de vida se
+queda en el frontend: RF-17 no la pide.
+
+**Las tandas:**
+
+| # | Tanda | |
+|---|---|---|
+| 1 | **Este registro** | |
+| 2 | **Código interno del patrón único** entre los vigentes | Lo que quedaba de la tanda 5 |
+| 3 | **El informe congelado al cerrar** | Antes de empezar se enseña al usuario qué se copia |
+| 4 | **La firma del ingeniero en su cuenta** | Tabla nueva y «Mi firma» |
+| 5 | **La firma de quien recibe y su réplica** | RF-18 y RF-21 |
+| 6 | **El PDF en el servidor** | RF-17 |
+| 7 | **Producción**: configuración del frontend al arrancar, compose de producción con Caddy, Keycloak en `start` con un realm sin usuarios ni secretos, fuera RabbitMQ, respaldo y guía de despliegue | |
+| 8 | **1.0.0**: versiones, `CHANGELOG`, pasada de los dos wikis y de la ERS, y el tag cuando el usuario lo diga | El marcador subiría a **24** |
 
 ## El orden propuesto
 
@@ -521,7 +578,7 @@ empresa puede vivir en el código.
 | 3 | **Segunda tanda de `equipment`** (verificaciones técnicas, datos metrológicos) | Alertas y calibración | **Completa desde el 2026-10-14.** El *con qué* se verifica entró con `V8`; el **resultado** de verificar entró con `V9` y **vive con el reporte**; y el **vencimiento**, que era lo que faltaba, entró con `V25` en el catálogo de equipos patrón. (Decía «queda solo el vencimiento de calibración… lo único que sigue sin tener dónde guardarse»: cierto hasta el **2026-10-14**.) Lo que las alertas necesitan ahora es **quién vigile la fecha** |
 | 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | **Desbloqueado el 2026-09-27** y **con pantalla desde el 2026-09-28**: `/equipos/:id/historial` lista los reportes de un equipo, con su fecha, su resultado y sus lecturas. **No cuenta como RF-26**: estos dos requisitos piden el historial **dentro de** la hoja de vida, que no existe como entidad. Lo que falta es exactamente eso, no la consulta |
 | 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora.** Clientes cerrado el 2026-09-26, equipos y catálogo ese mismo día, y **las órdenes de trabajo el 2026-09-27**: con eso el primer bloque está completo y el marcador de requisitos sube por primera vez gracias al frontend |
-| 6 | **Firma digital** (RF-18, RF-21) → **PDF** (RF-17) | Cierra reportes | Requiere los bloques 2 y 5 |
+| 6 | **Firma digital** (RF-18, RF-21) → **PDF** (RF-17) | Cierra reportes | Requiere los bloques 2 y 5. **Decidido el 2026-10-17** y en construcción para la 1.0.0: ver la sección anterior |
 | 7 | **Alertas y calibración** (RF-40, RF-41) | — | Requiere el bloque 3 + tareas programadas. **Won't Have** |
 | 8 | **Inventario y módulo comercial** | — | **Requisitos ausentes que hay que escribir primero.** Inventario es Won't Have |
 
