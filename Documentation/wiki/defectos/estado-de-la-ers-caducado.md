@@ -4,10 +4,24 @@ description: Las anotaciones «Estado en la implementacion actual» de la ERS af
 tags: [defectos, requisitos, trazabilidad]
 fuente: Documentation/IEEE830/IEEE830.tex
 estado: defecto-conocido
-updated: 2026-10-16
+updated: 2026-10-17
 ---
 
 # El estado que la ERS declara de sí misma está caducado
+
+> ✅ **Resuelto el 2026-10-17, con la versión 1.0.0.** El `.tex` se puso al día entero: las 24 marcas de
+> estado, sus 24 anotaciones con la evidencia y los criterios que quedan a medias, la tabla resumen, el
+> párrafo de la revisión —que decía «ocho implementados» y «las cinco migraciones»— y los párrafos de
+> cierre de cada categoría. Además de lo que esta nota recoge, había caducado más de lo que decía:
+> **dieciséis requisitos implementados seguían marcados como previstos**, RF-47 decía que la orden de
+> trabajo no existía, RF-53 que la baja no deshabilitaba la cuenta en Keycloak —lo hace desde el
+> 2026-09-09; lo que sigue cierto es que un token ya emitido vale hasta que caduca— y el cierre de
+> Usuarios y seguridad, que la API exigía la misma autoridad en todas sus operaciones. El PDF se
+> recompiló.
+>
+> Lo que esta nota cuenta abajo **se conserva como registro**: es lo que pasa cuando un documento
+> describe el sistema y nadie lo vuelve a contrastar. La causa no cambió —el estado vive en tres sitios,
+> el `.tex`, esta wiki y `SecondBrain`—, así que puede volver a caducar.
 
 La ERS no se limita a enunciar requisitos: **cada uno lleva un bloque «Estado en la implementación
 actual»**, treinta y tres en total, añadidos por este proyecto para que el documento diga qué hay

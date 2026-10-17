@@ -90,4 +90,21 @@ class GotenbergReportPdfAdapterTest {
         assertThatThrownBy(() -> caido.render(ReportSheetComposer.compose(new UnInforme().vista())))
                 .isInstanceOf(ReportPdfUnavailableException.class);
     }
+
+    @Test
+    @DisplayName("con muchas lecturas la verificación sigue en otra hoja: no se recorta ninguna")
+    void muchasLecturas() {
+        // La hoja tenía altura fija con overflow oculto: lo que no cabía desaparecía del PDF sin avisar.
+        UnInforme informe = new UnInforme().conLecturas();
+        for (int i = 3; i <= 60; i++) {
+            informe.lecturas.add(com.malphasos.malphasos.report.domain.serviceReport.VerificationReading.rehydrate(
+                    java.util.UUID.randomUUID(), UnInforme.VERIFICACION, UnInforme.PUNTO, i,
+                    new java.math.BigDecimal("100"), new java.math.BigDecimal("100.1"), "mmHg", true,
+                    new java.math.BigDecimal("0.5")));
+        }
+
+        byte[] pdf = adaptador.render(ReportSheetComposer.compose(informe.vista()));
+
+        assertThat(paginas(pdf)).isGreaterThan(2);
+    }
 }

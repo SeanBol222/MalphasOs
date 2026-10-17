@@ -1,10 +1,10 @@
 ---
 name: estado-de-implementacion
-description: La cifra agregada de implementacion de MalphasOS -21 de 31 RF, 1 de 23 RNF- con como se verifico, cuando caduco y donde esta el detalle
+description: La cifra agregada de implementacion de MalphasOS -24 de 31 RF con la version 1.0.0, 1 de 23 RNF- con como se verifico, cuando caduco y donde esta el detalle
 tags: [requisitos, estado, trazabilidad]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2; Documentation/TraceabilityMatrix/MatrizDeTrazabilidad.tex"
 estado: vigente
-updated: 2026-10-10
+updated: 2026-10-17
 ---
 
 # Estado de implementación agregado
@@ -17,11 +17,16 @@ updated: 2026-10-10
 
 | Tipo de requisito | Total | Implementado | Previsto | Fuente de la evaluación |
 |---|---|---|---|---|
-| Funcionales (RF) | 31 | **21** | 9 + 1 desviación | ERS, apartado 3.2, recontado el 2026-10-10 contra el código |
+| Funcionales (RF) | 31 | **24** | 6 + 1 desviación | ERS, apartado 3.2, recontado el 2026-10-17 contra el código, con la versión 1.0.0 |
 | No funcionales (RNF) | 23 | **1** (RNF-23, JWT) | 22 | Matriz de trazabilidad (primera evaluación; la ERS no marca RNF) |
 | De dominio (RD) | 6 | 2 inferidos (RD-03, RD-04) | 4 no verificables | Matriz de trazabilidad, con salvedad — ver [[requisitos-de-dominio]] |
 
-## Los 17 requisitos funcionales implementados
+## Los 24 requisitos funcionales implementados
+
+> **Corregido el 2026-10-17.** Este título decía «los 17» con diecinueve filas debajo y la cifra de
+> arriba en 21: el título no se tocó desde el 2026-09-27, y la lista perdió RF-26 y RF-27 cuando entraron
+> el 2026-10-04 —la tabla por categoría sí los contó—. Tercer contador de la misma nota que envejecía por
+> separado. Ahora la lista tiene las veinticuatro filas, recontadas contra la tabla por categoría.
 
 | Código | Categoría | Requisito |
 |---|---|---|
@@ -36,9 +41,14 @@ updated: 2026-10-10
 | RF-13 | Reportes de Mantenimiento | Asignación automática de protocolo: se copia solo al abrir el reporte de un preventivo (2026-10-10) |
 | RF-14 | Reportes de Mantenimiento | Configuración de protocolos: catálogo y asignación a tipos de equipo con prioridad (2026-10-10) |
 | RF-15 | Reportes de Mantenimiento | Registro de información técnica: los cinco campos (2026-09-27) |
+| RF-17 | Reportes de Mantenimiento | Exportar el reporte a PDF: lo genera el servidor (2026-10-17) |
+| RF-18 | Firma Digital | Captura de la firma de quien recibe, en la pantalla (2026-10-17) |
+| RF-21 | Firma Digital | Replicación de la firma a los reportes de la misma orden (2026-10-17) |
 | RF-08 | Gestión de Clientes | Crear cliente |
 | RF-22 | Hojas de Vida | Crear hoja de vida |
 | RF-24 | Hojas de Vida | Modificar/eliminar hoja de vida |
+| RF-26 | Hojas de Vida | Registro automático de intervenciones al cerrar un reporte (2026-10-04) |
+| RF-27 | Hojas de Vida | Historial de intervenciones ordenado (2026-10-04) |
 | RF-49 | Usuarios y seguridad | Login de usuario |
 | RF-50 | Usuarios y seguridad | Identificación de rol |
 | RF-51 | Usuarios y seguridad | Creación de usuarios |
@@ -57,14 +67,36 @@ Tres categorías fundacionales concentraron todo lo construido al principio: ges
 |---|---|---|---|---|
 | 3.2.1 Órdenes de Trabajo | RF-01 a RF-07 | 7 | **6** + 1 desviación (RF-04) | [[rf-ordenes-trabajo]] |
 | 3.2.2 Clientes | RF-08 | 1 | 1 | [[rf-clientes]] |
-| 3.2.3 Reportes de Mantenimiento | RF-09 a RF-17 | 6 | **5** | [[rf-reportes-mantenimiento]] |
-| 3.2.4 Firma Digital | RF-18, RF-21 | 2 | 0 | [[rf-firma-digital]] |
+| 3.2.3 Reportes de Mantenimiento | RF-09 a RF-17 | 6 | **6** | [[rf-reportes-mantenimiento]] |
+| 3.2.4 Firma Digital | RF-18, RF-21 | 2 | **2** | [[rf-firma-digital]] |
 | 3.2.5 Hojas de Vida | RF-22 a RF-27 | 4 | **4** | [[rf-hojas-vida]] |
 | 3.2.6 Inventario | RF-36, RF-37 | 2 | 0 | [[rf-inventario]] |
 | 3.2.7 Alertas y calibración | RF-40, RF-41 | 2 | 0 | [[rf-alertas-calibracion]] |
 | 3.2.8 Módulo Comercial | RF-45, RF-47 | 2 | 0 | [[rf-modulo-comercial]] |
 | 3.2.9 Usuarios y seguridad | RF-49 a RF-53 | 5 | 5 | [[rf-usuarios-seguridad]] |
-| **Total** | | **31** | **21** | |
+| **Total** | | **31** | **24** | |
+
+## Novena verificación, 17 de octubre de 2026: 24, la versión 1.0.0
+
+**Entran RF-17, RF-18 y RF-21**, construidos para la versión 1.0.0: la firma de quien recibe en la
+pantalla (`V39`), su réplica a los reportes de la orden y el PDF que genera el servidor. **Reportes de
+mantenimiento y Firma digital quedan completas**, y con ellas cinco de las nueve categorías.
+
+Se comprobó criterio por criterio contra el texto de la ERS, y se cuenta con tres matices que la ERS
+recoge en su anotación de estado:
+
+- **RF-18** describe un componente táctil «dentro del dispositivo móvil», y lo construido es una
+  aplicación web que funciona en el navegador del móvil. Su dependencia, RF-20, no existe.
+- **RF-21** pide replicar a «todos los reportes» de la orden, y no se replica a los que ya tienen firma
+  —una firma no cambia— ni a los retirados, por decisión del usuario.
+- **RF-17** pide «el formato y estructura estándar de BolivarBioingeniería». El PDF tiene el formato que
+  la empresa entrega, pero su membrete sale de la configuración y no del código: MalphasOS no lleva datos
+  de ninguna empresa desde el 2026-10-16.
+
+**Y la ERS se puso al día el mismo día**: marcaba implementados solo ocho requisitos, los de la primera
+revisión del 2 de septiembre. Ver [[estado-de-la-ers-caducado]].
+
+**Tocadas**: [[rf-firma-digital]], [[rf-reportes-mantenimiento]], [[estado-de-la-ers-caducado]].
 
 ## Octava verificación, 10 de octubre de 2026: 21, con los protocolos
 

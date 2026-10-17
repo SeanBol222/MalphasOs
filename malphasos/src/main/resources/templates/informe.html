@@ -59,7 +59,10 @@
         display: flex;
         flex-direction: column;
         width: 8.5in;
-        height: 11in;
+        /* Minima y no fija: con altura fija y overflow oculto, lo que no cabia se recortaba del PDF sin
+           avisar -sesenta lecturas daban dos hojas y la mitad desaparecia-. Asi la hoja crece y sigue en
+           la siguiente, como hacia el navegador. */
+        min-height: 11in;
         background: #ffffff;
         break-after: page;
       }

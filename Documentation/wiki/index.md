@@ -17,8 +17,8 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 - [[priorizacion-moscow]] — Las cuatro listas del apartado 3.5 de la ERS, con sus 18 códigos inexistentes y 10 requisitos reales sin clasificar.
 - [[rf-ordenes-trabajo]] — RF-01 a RF-07 (3.2.1). **Seis implementados** entre el 2026-09-13 y el 2026-09-27, y **RF-04 como desviación consciente**. (Decía «previstos en su totalidad»: cierto hasta el 2026-09-13.)
 - [[rf-clientes]] — RF-08 (3.2.2). El único de su categoría; implementado.
-- [[rf-reportes-mantenimiento]] — RF-09 a RF-17 (3.2.3). **RF-09, RF-11 y RF-15 implementados** entre el 27 y el 28 de septiembre de 2026, y **RF-13 y RF-14** el 10 de octubre con los protocolos; queda RF-17, que espera la firma: desde el 16 de octubre el reporte se imprime desde el navegador, sin firma, y no cuenta. (Decía «previstos en su totalidad»: cierto hasta el 2026-09-27.)
-- [[rf-firma-digital]] — RF-18, RF-21 (3.2.4). Previstos.
+- [[rf-reportes-mantenimiento]] — RF-09 a RF-17 (3.2.3). **RF-09, RF-11 y RF-15 implementados** entre el 27 y el 28 de septiembre de 2026, y **RF-13 y RF-14** el 10 de octubre con los protocolos; y **RF-17** el 17 de octubre con el PDF del servidor: **los seis implementados**. (Decía «previstos en su totalidad»: cierto hasta el 2026-09-27; y que RF-17 esperaba la firma: cierto hasta el 2026-10-17.)
+- [[rf-firma-digital]] — RF-18, RF-21 (3.2.4). **Implementados** el 17 de octubre de 2026, con la versión 1.0.0.
 - [[rf-hojas-vida]] — RF-22 a RF-27 (3.2.5). Dos implementados, dos previstos.
 - [[rf-inventario]] — RF-36, RF-37 (3.2.6). Previstos, Won't Have.
 - [[rf-alertas-calibracion]] — RF-40, RF-41 (3.2.7). Previstos, Won't Have. Los equipos patrón y su vencimiento existen desde el 2026-10-14; RF-40 cumple uno de sus tres criterios.
@@ -26,7 +26,7 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 - [[rf-usuarios-seguridad]] — RF-49 a RF-53 (3.2.9). Los cinco implementados, ninguno con objetivo que lo justifique.
 - [[requisitos-no-funcionales]] ⭐ — Los 23 RNF de 3.3 y 3.8. Solo uno implementado (RNF-23, JWT).
 - [[requisitos-de-dominio]] — RD-01 a RD-07 (sin RD-02). Los seis sin enunciado propio.
-- [[estado-de-implementacion]] ⭐ — La cifra agregada (**17**/31, 1/23) con su evidencia, cómo se verificó y **por qué estuvo tres semanas caducada en 8**.
+- [[estado-de-implementacion]] ⭐ — La cifra agregada (**24**/31 con la versión 1.0.0, 1/23) con su evidencia, cómo se verificó y **por qué estuvo tres semanas caducada en 8**.
 
 ## Glosario
 
@@ -53,7 +53,7 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 
 - [[defectos-conocidos-de-la-ers]] ⭐ — Referencias rotas, huecos de trazabilidad, incoherencias de prioridad y de rendimiento, RF-49 autodependiente, restos de maquetación.
 - [[diagramas-de-casos-de-uso]] — Los diez `.puml`, cuáles están en la ERS y cuáles dibujan módulos inexistentes.
-- [[estado-de-la-ers-caducado]] ⭐ — **Lo que la ERS afirma de sí misma y el código desmiente**: seis anotaciones de estado escritas cuando el esquema iba por `V5`, y dos requisitos contados como implementados contra el texto del propio `.tex`. Entró el 2026-10-04, y es la primera comparación de la ERS contra el código **en la dirección contraria**: no «se documenta algo que no existe» sino «se documenta como inexistente algo que ya está».
+- [[estado-de-la-ers-caducado]] ⭐ — **Lo que la ERS afirma de sí misma y el código desmiente**: seis anotaciones de estado escritas cuando el esquema iba por `V5`, y dos requisitos contados como implementados contra el texto del propio `.tex`. Entró el 2026-10-04, y es la primera comparación de la ERS contra el código **en la dirección contraria**: no «se documenta algo que no existe» sino «se documenta como inexistente algo que ya está». **Resuelto el 2026-10-17**: la ERS se puso al día con la versión 1.0.0.
 
 > **⚠️ Cuatro notas de este índice no existen todavía, y se citan 55 veces entre todas.**
 > `[[defectos-conocidos-de-la-ers]]` es la más citada de esta wiki —**28** veces— y no está escrita;

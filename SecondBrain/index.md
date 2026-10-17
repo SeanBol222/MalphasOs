@@ -113,4 +113,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**57 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-16, con el diseño único del informe · ver [[log.md]] para el historial.
+**57 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-17, con la versión 1.0.0 · ver [[log.md]] para el historial.
