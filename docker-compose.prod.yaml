@@ -185,6 +185,30 @@ services:
       - interna
     restart: unless-stopped
 
+  # Un respaldo al dia de las dos bases, con pg_dump (2026-10-17). Ver docker/respaldo/respaldo.sh.
+  respaldo:
+    image: postgres:17-alpine
+    command: ["respaldo.sh", "vigilar"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_DB_NAME: ${KC_DB_NAME}
+      RESPALDO_HORA: ${RESPALDO_HORA:-2}
+      RESPALDO_DIAS: ${RESPALDO_DIAS:-14}
+      # La hora del servidor es la que decide cuando toca.
+      TZ: ${TZ:-America/Bogota}
+    volumes:
+      - ./docker/respaldo/respaldo.sh:/usr/local/bin/respaldo.sh:ro
+      # Una carpeta del servidor y no un volumen de Docker: es lo que hay que copiar fuera de el.
+      - ${RESPALDO_DIR:-./respaldos}:/respaldos
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - interna
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   caddy-data:

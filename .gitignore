@@ -5,6 +5,8 @@
 .env.*.local
 # Las variables de produccion (2026-10-17): contrasenas y secretos de un servidor.
 .env.prod
+# Los respaldos de produccion, si se guardan en la carpeta por defecto: son los datos de los clientes.
+/respaldos/
 
 # Los datos de la empresa que usa MalphasOS y su logo: MalphasOS no lleva los de ninguna en su codigo
 # (decidido el 2026-10-16). Solo se versiona el ejemplo, con una empresa inventada.
