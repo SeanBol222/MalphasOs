@@ -239,3 +239,23 @@ verificación (`V30`), con su fecha de calibración (`V29`). **El marcador no se
 `.tex` de la ERS no se tocó.
 
 **Tocadas**: [[rf-reportes-mantenimiento]], [[rf-alertas-calibracion]].
+
+## [2026-10-17] ingest | la versión 1.0.0: 24 de 31, y la ERS al día
+
+`malphasos/` construyó la firma de quien recibe y su réplica —RF-18 y RF-21— y el PDF que genera el
+servidor —RF-17—. **El marcador sube de 21 a 24**, recontado criterio por criterio contra el `.tex`, con
+tres matices que la ERS recoge: RF-18 es una aplicación web y no nativa, RF-21 no replica a los reportes
+ya firmados ni a los retirados, y el membrete de RF-17 sale de la configuración y no del código.
+
+**Y la ERS se puso al día**, que es lo que [[estado-de-la-ers-caducado]] pedía desde el 2026-10-04: sus
+marcas decían ocho implementados, los de la primera revisión. Se cambiaron las dieciséis que faltaban,
+sus anotaciones de estado, la tabla resumen, el párrafo de la revisión y los cierres de categoría, y se
+corrigieron tres afirmaciones más que el código desmentía —RF-47, RF-53 y el cierre de Usuarios y
+seguridad—. Al escribir la de RF-40 dije que el catálogo de patrones no marcaba los próximos a vencer, y
+[[rf-alertas-calibracion]] me corrigió antes de commitear: los marca. El PDF se recompiló: 46 páginas.
+
+**Y la lista de [[estado-de-implementacion]] se titulaba «Los 17»** con diecinueve filas y la cifra en
+21. Ahora tiene las veinticuatro, cruzadas una a una con las marcas del `.tex`.
+
+**Tocadas**: [[estado-de-implementacion]], [[rf-firma-digital]], [[rf-reportes-mantenimiento]],
+[[estado-de-la-ers-caducado]], [[index]].
