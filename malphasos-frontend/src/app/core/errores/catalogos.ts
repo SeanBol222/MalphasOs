@@ -119,6 +119,9 @@ export const CATALOGO_SERVICE_REPORT: Readonly<Record<string, string>> = {
   ERR_SERVICE_REPORT_007: 'El equipo del catálogo al que pertenece no existe o fue retirado.',
   ERR_SERVICE_REPORT_008:
     'El tipo de equipo no existe o fue retirado: sin él no se sabe cómo verificarlo.',
+  // El PDF del informe (2026-10-17): el conversor no respondió. No es culpa de nadie y se reintenta.
+  ERR_SERVICE_REPORT_010:
+    'No se pudo generar el PDF del informe: el servicio que lo convierte no respondió. Vuelva a intentarlo en un momento.',
 };
 
 /**

@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, Signal } from '@angular/core';
 import {
   injectMutation,
@@ -18,6 +18,35 @@ import {
   RegistroDeIngreso,
   ReporteDeServicio,
 } from '../../core/api/tipos';
+
+/** El informe en PDF y el nombre con que se descarga, que dice el servidor (2026-10-17). */
+export interface InformeEnPdf {
+  readonly pdf: Blob;
+  readonly nombre: string;
+}
+
+/** El nombre de {@code inline; filename="informe-1DC6F5.pdf"}; nulo si no lo trae. */
+export function nombreDelArchivo(cabecera: string | null): string | null {
+  return cabecera?.match(/filename="?([^";]+)"?/)?.[1] ?? null;
+}
+
+/** Un error de una petición binaria con su cuerpo de error leído como JSON, si lo es. */
+async function conCuerpoLeido(fallo: unknown): Promise<unknown> {
+  if (!(fallo instanceof HttpErrorResponse) || !(fallo.error instanceof Blob)) {
+    return fallo;
+  }
+  try {
+    return new HttpErrorResponse({
+      error: JSON.parse(await fallo.error.text()),
+      headers: fallo.headers,
+      status: fallo.status,
+      statusText: fallo.statusText,
+      url: fallo.url ?? undefined,
+    });
+  } catch {
+    return fallo;
+  }
+}
 
 /** Qué patrón, en qué verificación de qué reporte (V30). */
 export interface PatronDeVerificacion {
@@ -124,6 +153,35 @@ export class ReporteApi {
       queryKey: [...ReporteApi.claveDetalle(id()), 'informe'] as const,
       queryFn: () =>
         firstValueFrom(this.http.get<InformeDeReporte>(`${this.url}/${id()}/document`)),
+      enabled: !!id(),
+    }));
+  }
+
+  /**
+   * El informe en PDF, compuesto y convertido en el servidor (2026-10-17, RF-17). Cuelga de la clave del
+   * reporte, como su informe: lo que caduca el reporte caduca su PDF.
+   *
+   * <p>Llega como binario, así que un error también: el cuerpo del 404 o del 503 es un {@code Blob} y no
+   * el JSON con su código. Se lee aquí y se vuelve a lanzar con el JSON, para que el mensaje sea el del
+   * catálogo y no el genérico.
+   */
+  pdf(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...ReporteApi.claveDetalle(id()), 'pdf'] as const,
+      queryFn: async (): Promise<InformeEnPdf> => {
+        try {
+          const respuesta = await firstValueFrom(
+            this.http.get(`${this.url}/${id()}/pdf`, { observe: 'response', responseType: 'blob' }),
+          );
+
+          return {
+            pdf: respuesta.body!,
+            nombre: nombreDelArchivo(respuesta.headers.get('Content-Disposition')) ?? 'informe.pdf',
+          };
+        } catch (fallo) {
+          throw await conCuerpoLeido(fallo);
+        }
+      },
       enabled: !!id(),
     }));
   }

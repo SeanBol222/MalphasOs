@@ -1,505 +1,130 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import QRCode from 'qrcode';
-import { ReporteApi } from '../reporte-api';
 import {
-  ClaseDeRiesgo,
-  ETIQUETA_DE_ESTADO_AL_INGRESO,
-  ETIQUETA_DE_RIESGO,
-  EstadoAlIngreso,
-  PatronUsado,
-  Periodicidad,
-  ResultadoDeServicio,
-  TipoDeServicio,
-  VerificacionAlIngreso,
-} from '../../../core/api/tipos';
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  OnDestroy,
+} from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { RouterLink } from '@angular/router';
+import { ReporteApi } from '../reporte-api';
 import { traducirError } from '../../../core/errores/traducir';
-import { fechaCorta } from '../../../core/fechas';
-import { conSigno, graficaDeError, LIENZO } from './grafica-de-error';
-
-const NUMERO = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 4 });
-
-/** Lo que dice el documento cuando un dato no está registrado. */
-const SIN_DATO = '—';
-
-/** Cuántos meses hay hasta el próximo servicio, según la periodicidad de la orden. */
-const MESES: Readonly<Record<Periodicidad, number>> = {
-  MENSUAL: 1,
-  TRIMESTRAL: 3,
-  SEMESTRAL: 6,
-  ANUAL: 12,
-};
 
 /**
- * El resultado como lo dice un informe entregado: apto o no apto para el servicio (2026-10-16). Se
- * guardan tres valores y se imprimen dos; la restricción de un equipo que queda operativo con ella va
- * en las observaciones, que es donde el reporte la pide.
- */
-const APTITUD: Readonly<Record<ResultadoDeServicio, string>> = {
-  OPERATIVO: 'Apto para el servicio',
-  OPERATIVO_CON_RESTRICCIONES: 'Apto para el servicio',
-  FUERA_DE_SERVICIO: 'No apto para el servicio',
-};
-
-/**
- * El día del próximo servicio: el del servicio más la periodicidad de la orden, en meses de calendario.
- * El 31 de agosto más seis meses es el último día de febrero, no el 3 de marzo: se recorta al fin de mes.
- * Se calcula con las tres cifras de la fecha y no con {@code Date} en UTC, por la trampa de la zona
- * horaria que ya mordió a la hoja de vida.
- */
-export function proximoServicio(fecha: string | undefined, periodicidad: Periodicidad | undefined) {
-  if (!fecha || !periodicidad) {
-    return undefined;
-  }
-
-  const [anio, mes, dia] = fecha.slice(0, 10).split('-').map(Number);
-  const total = anio * 12 + (mes - 1) + MESES[periodicidad];
-  const nuevoAnio = Math.floor(total / 12);
-  const nuevoMes = (total % 12) + 1;
-  const ultimoDia = new Date(nuevoAnio, nuevoMes, 0).getDate();
-  const dos = (n: number) => String(n).padStart(2, '0');
-
-  return `${nuevoAnio}-${dos(nuevoMes)}-${dos(Math.min(dia, ultimoDia))}`;
-}
-
-/**
- * El reporte de servicio como documento (2026-10-16): el formato «C · tablero con escudo» que el
- * usuario eligió, sobre lo que los informes reales de la empresa llevan. Se lee en pantalla y se
- * imprime en hojas carta; el PDF sale del navegador al imprimir —decidido: el PDF del servidor espera
- * a la firma digital—.
+ * El informe de un reporte (RF-17): el PDF que compone y convierte el servidor, a la vista y con su botón
+ * para exportarlo (2026-10-17).
  *
- * <p><b>Es un documento, no un formulario</b>: no tiene un solo control. Lo pinta con dos peticiones: el
- * reporte y su informe, que trae lo que imprime de la orden, el cliente, el equipo, cómo se verifica,
- * la empresa y el ingeniero.
- *
- * <p><b>Y se congela al cerrar</b> (V37, 2026-10-17), decidido por el usuario: el informe de un reporte
- * cerrado es la copia que el servidor hizo ese día, y corregir después el equipo, el cliente o la empresa
- * ya no lo cambia. Uno en borrador se compone en vivo. Hasta ese día esta pantalla juntaba en el navegador
- * la orden, la hoja de vida, el tipo del equipo y la lista de personas, y un informe entregado cambiaba
- * cada vez que cambiaba cualquiera de ellos.
- *
- * <p><b>Lo que no se guarda, se deriva</b>, decidido por el usuario: el supervisor responsable es el
- * encargado del área, como en la hoja de vida; el próximo servicio, la fecha más la periodicidad de la
- * orden; y la casilla de verificación metrológica se marca sola si el reporte tiene lecturas.
- *
- * <p><b>Es un solo informe</b>, decidido por el usuario el 2026-10-16: los formatos MP0, MP1 y MP2
- * eran del sistema antiguo. El título es siempre «Informe de mantenimiento», el tipo de servicio lo
- * dicen las casillas, y cada sección sale solo si tiene datos: la página 2 —la tabla de lecturas, su
- * gráfica de error y la trazabilidad de los patrones— existe si el reporte tiene lecturas.
+ * <p>Hasta ese día esta pantalla pintaba el documento entero —plantilla, hoja de estilos, QR y gráfica— y
+ * el PDF salía del navegador al imprimir. Con el PDF en el servidor el diseño vive en un solo sitio, la
+ * plantilla del backend; dos copias se habrían desviado, como ya pasó con las reglas de cierre antes de
+ * reflejarlas. Aquí quedan los avisos que no son parte del documento entregado.
  */
 @Component({
   selector: 'app-documento-reporte',
   imports: [RouterLink],
-  templateUrl: './documento-reporte.html',
-  styleUrl: './documento-reporte.css',
+  template: `
+    <div class="flex flex-wrap items-center gap-2">
+      <h2 class="titulo-seccion">Informe de mantenimiento</h2>
+      @if (pdf.data(); as informe) {
+        <a
+          class="boton-primario ml-auto flex min-h-tactil items-center"
+          data-exportar
+          [href]="direccion()"
+          [attr.download]="informe.nombre"
+          >Exportar PDF</a
+        >
+      }
+      <a class="font-semibold underline" [routerLink]="['/reportes', id()]">Volver al reporte</a>
+    </div>
+
+    @if (esBorrador()) {
+      <p class="mt-2 border-l-2 border-accent-700 bg-accent-100 p-2 font-semibold" role="status">
+        Este reporte está en borrador: el informe todavía puede cambiar, y no es el que se entrega.
+      </p>
+    }
+    @if (tardio()) {
+      <!--
+        Decidido por el usuario el 2026-10-17: un reporte cerrado antes de que el informe se congelara se
+        congeló después, con los datos de ese día, y se dice. Fuera del PDF: es un aviso para quien lo
+        mira, no una parte del documento entregado.
+      -->
+      <p
+        class="mt-2 border-l-2 border-accent-700 bg-accent-100 p-2 font-semibold"
+        role="status"
+        data-tardio
+      >
+        Este informe se congeló después de cerrarse el reporte: los datos del equipo, del cliente y
+        de la empresa son los del día en que se congeló, no necesariamente los del día del servicio.
+      </p>
+    }
+
+    @if (pdf.isPending()) {
+      <p class="mt-3 text-neutral-700" role="status">Preparando el PDF…</p>
+    } @else if (pdf.isError()) {
+      <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+        <p class="font-semibold">{{ mensajeDeError() }}</p>
+      </div>
+    } @else if (visor(); as visor) {
+      <iframe
+        class="mt-3 block h-[80vh] w-full border border-neutral-300 bg-white"
+        title="Informe de mantenimiento en PDF"
+        data-visor
+        [src]="visor"
+      ></iframe>
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DocumentoReporte {
+export class DocumentoReporte implements OnDestroy {
   readonly id = input.required<string>();
 
-  private readonly documento = inject(DOCUMENT);
+  private readonly api = inject(ReporteApi);
+  private readonly sanitizer = inject(DomSanitizer);
 
-  protected readonly sinDato = SIN_DATO;
+  protected readonly pdf = this.api.pdf(this.id);
+  private readonly reporte = this.api.detalle(this.id);
+  private readonly informe = this.api.informe(this.id);
 
-  protected readonly reporte = inject(ReporteApi).detalle(this.id);
-  protected readonly informe = inject(ReporteApi).informe(this.id);
-
-  protected readonly titulo = 'Informe de mantenimiento';
-
-  /** El número de la orden de la que salió, que el informe imprime junto al suyo (V34). */
-  protected readonly numeroDeLaOrden = computed(() => this.informe.data()?.orden?.numero);
-
-  protected readonly cargando = computed(
-    () => this.reporte.isPending() || this.informe.isPending(),
+  protected readonly esBorrador = computed(
+    () => !!this.reporte.data() && this.reporte.data()?.estado !== 'FINALIZADO',
   );
-  protected readonly hayError = computed(() => this.reporte.isError() || this.informe.isError());
-  protected readonly mensajeDeError = computed(() =>
-    traducirError(this.reporte.error() ?? this.informe.error()),
-  );
-
-  protected readonly datos = computed(() => this.reporte.data());
-
-  /** Si es la copia congelada después del cierre, con los datos de ese día: el informe lo dice. */
   protected readonly tardio = computed(() => !!this.informe.data()?.tardio);
+  protected readonly mensajeDeError = computed(() => traducirError(this.pdf.error()));
 
-  /** El cliente y la unidad, con los nombres que el documento usaba cuando los leía de la hoja de vida. */
-  protected readonly identificacion = computed(() => {
-    const informe = this.informe.data();
-    const cliente = informe?.cliente;
-    const equipo = informe?.equipo;
+  /** La dirección local del PDF descargado: la usan el visor y el botón de exportar. */
+  protected readonly direccion = computed(() => {
+    const informe = this.pdf.data();
 
-    return informe
-      ? {
-          cliente: cliente?.nombre,
-          documentoCliente: cliente?.documento,
-          sede: cliente?.sede,
-          direccionSede: cliente?.direccionSede,
-          ciudadSede: cliente?.ciudadSede,
-          areaServicio: cliente?.area,
-          responsables: cliente?.responsables,
-          telefonosCliente: cliente?.telefonos,
-          correosCliente: cliente?.correos,
-          serie: equipo?.serie,
-          numeroHojaVida: equipo?.numeroHojaVida,
-          numeroInventario: equipo?.numeroInventario,
-          codigoInterno: equipo?.codigoInterno,
-        }
-      : undefined;
+    return informe ? URL.createObjectURL(informe.pdf) : null;
   });
-  protected readonly tecnica = computed(() => {
-    const equipo = this.informe.data()?.equipo;
+  protected readonly visor = computed<SafeResourceUrl | null>(() => {
+    const direccion = this.direccion();
 
-    return equipo
-      ? {
-          tipoEquipo: equipo.tipo,
-          marca: equipo.marca,
-          modelo: equipo.modelo,
-          tecnologiaPredominante: equipo.tecnologia,
-          uso: equipo.uso,
-          fichaTecnica: {
-            riesgo: equipo.riesgo as ClaseDeRiesgo | undefined,
-            alimentacion: equipo.alimentacion,
-            voltaje: equipo.voltaje,
-            potencia: equipo.potencia,
-            amperaje: equipo.amperaje,
-            frecuencia: equipo.frecuencia,
-          },
-        }
-      : undefined;
-  });
-  protected readonly empresa = computed(() => this.informe.data()?.empresa);
-  /** Las verificaciones del tipo del equipo, en su orden: las del día del cierre si está cerrado. */
-  private readonly declaradas = computed(() => this.informe.data()?.verificaciones ?? []);
-
-  protected readonly esBorrador = computed(() => this.datos()?.estado !== 'FINALIZADO');
-
-  /** Sin lecturas no hay nada que verificar en la página 2, y el informe cabe en una hoja. */
-  protected readonly paginas = computed(() => (this.datos()?.lecturas?.length ? 2 : 1));
-
-  protected readonly tipoDeServicio = computed(
-    () => this.informe.data()?.orden?.tipoServicio as TipoDeServicio | undefined,
-  );
-  /**
-   * Las cinco del informe: los tres tipos de orden, la verificación, que se marca sola, y la garantía,
-   * que es una marca del correctivo en la orden (V34).
-   */
-  protected readonly casillas = computed(() => {
-    const tipo = this.tipoDeServicio();
-
-    return [
-      { texto: 'Preventivo', marcada: tipo === 'PREVENTIVO' },
-      { texto: 'Correctivo', marcada: tipo === 'CORRECTIVO' },
-      { texto: 'Calibración', marcada: tipo === 'CALIBRACION' },
-      { texto: 'Verificación metrológica', marcada: !!this.datos()?.lecturas?.length },
-      { texto: 'Garantía', marcada: !!this.informe.data()?.orden?.garantia },
-    ];
+    // Una dirección blob: creada aquí mismo, no un dato del servidor: es lo único que se marca seguro.
+    return direccion ? this.sanitizer.bypassSecurityTrustResourceUrl(direccion) : null;
   });
 
-  /** «Termohigrómetro · Genérico Digital · Serie T-9 · HV-CDN-0014». */
-  protected readonly lineaDelEquipo = computed(() => {
-    const tecnica = this.tecnica();
-    const identificacion = this.identificacion();
+  private anterior: string | null = null;
 
-    return [
-      tecnica?.tipoEquipo,
-      [tecnica?.marca, tecnica?.modelo].filter(Boolean).join(' '),
-      identificacion?.serie ? `Serie ${identificacion.serie}` : '',
-      identificacion?.numeroHojaVida,
-    ]
-      .filter(Boolean)
-      .join(' · ');
-  });
-
-  /**
-   * La fecha del servicio es la del cierre, que es cuando se prestó de verdad. Un borrador no tiene
-   * cierre todavía: lleva la fecha programada de la orden.
-   */
-  protected readonly fechaDelServicio = computed(
-    () => this.datos()?.finalizado?.slice(0, 10) ?? this.informe.data()?.orden?.fechaProgramada,
-  );
-  protected readonly proximo = computed(() =>
-    proximoServicio(
-      this.fechaDelServicio(),
-      this.informe.data()?.orden?.periodicidad as Periodicidad | undefined,
-    ),
-  );
-  protected readonly fechaCorta = fechaCorta;
-
-  protected readonly resultado = computed(() => {
-    const resultado = this.datos()?.resultado as ResultadoDeServicio | undefined;
-
-    return resultado ? APTITUD[resultado] : 'Sin registrar';
-  });
-
-  /**
-   * «4 de 5 conformes». Solo cuentan las lecturas con tolerancia: sin ella no se sabe, y no se
-   * inventa. Sin lecturas, la casilla dice que no hubo verificación.
-   */
-  protected readonly verificacion = computed(() => {
-    const lecturas = this.datos()?.lecturas ?? [];
-    const juzgadas = lecturas.filter((lectura) => lectura.conforme != null);
-
-    if (!lecturas.length) {
-      return 'Sin verificación';
-    }
-    if (!juzgadas.length) {
-      return `${lecturas.length} ${lecturas.length === 1 ? 'lectura' : 'lecturas'}`;
-    }
-
-    return `${juzgadas.filter((lectura) => lectura.conforme).length} de ${juzgadas.length} conformes`;
-  });
-
-  protected readonly supervisor = computed(() => unidos(this.identificacion()?.responsables));
-  protected readonly telefonosDelCliente = computed(() =>
-    unidos(this.identificacion()?.telefonosCliente),
-  );
-  protected readonly correosDelCliente = computed(() =>
-    unidos(this.identificacion()?.correosCliente),
-  );
-
-  protected readonly riesgo = computed(() => {
-    const clase = this.tecnica()?.fichaTecnica?.riesgo;
-
-    return clase ? ETIQUETA_DE_RIESGO[clase] : SIN_DATO;
-  });
-
-  /** «AC · 110 V · 60 Hz»: lo que la ficha técnica del modelo diga, en ese orden. */
-  protected readonly alimentacion = computed(() => {
-    const ficha = this.tecnica()?.fichaTecnica;
-    const partes = [
-      ficha?.alimentacion,
-      ficha?.voltaje != null ? `${ficha.voltaje} V` : '',
-      ficha?.potencia != null ? `${ficha.potencia} W` : '',
-      ficha?.amperaje != null ? `${ficha.amperaje.toLocaleString('es-CO')} A` : '',
-      ficha?.frecuencia != null ? `${ficha.frecuencia} Hz` : '',
-    ].filter(Boolean);
-
-    return partes.length ? partes.join(' · ') : SIN_DATO;
-  });
-
-  /** Las dos filas fijas y los accesorios, con las palabras del informe impreso. */
-  protected readonly ingreso = computed(() => {
-    const datos = this.datos();
-    const fila = (texto: string, verificacion: VerificacionAlIngreso | undefined) => ({
-      texto,
-      estado: verificacion?.estado
-        ? ETIQUETA_DE_ESTADO_AL_INGRESO[verificacion.estado as EstadoAlIngreso]
-        : 'Sin registrar',
-      observacion: verificacion?.observacion || SIN_DATO,
+  constructor() {
+    // Cada PDF nuevo —el reporte cambió y se recargó— deja libre la memoria del anterior.
+    effect(() => {
+      const direccion = this.direccion();
+      this.liberar();
+      this.anterior = direccion;
     });
-
-    return [
-      fila('Estado de la estructura física del equipo', datos?.ingresoFisico),
-      fila('Estado operativo del equipo', datos?.ingresoOperativo),
-    ];
-  });
-
-  protected readonly accesorios = computed(() =>
-    (this.datos()?.accesorios ?? []).map((accesorio) => ({
-      texto: accesorio.nombre,
-      estado: accesorio.conforme ? 'Conforme' : 'No conforme',
-      observacion: accesorio.observacion || SIN_DATO,
-    })),
-  );
-
-  /** Los pasos del protocolo: ✓ hecho, «N/A» con su nota si no aplicó, en blanco si quedó pendiente. */
-  protected readonly pasos = computed(() =>
-    (this.datos()?.pasos ?? []).map((paso) => ({
-      marca: paso.estado === 'HECHO' ? '✓' : paso.estado === 'NO_APLICA' ? 'N/A' : '',
-      nombre: paso.nombre,
-      nota: paso.estado === 'NO_APLICA' ? paso.nota : undefined,
-    })),
-  );
-
-  /** Lo que se escribió a mano, en el orden en que pasó. Solo lo que tiene texto. */
-  protected readonly relato = computed(() => {
-    const datos = this.datos();
-
-    return [
-      { titulo: 'Falla reportada', texto: datos?.fallaReportada },
-      { titulo: 'Diagnóstico', texto: datos?.diagnostico },
-      { titulo: 'Causa', texto: datos?.causa },
-      {
-        titulo: this.pasos().length ? 'Trabajo adicional' : 'Procedimientos',
-        texto: datos?.procedimientos,
-      },
-      { titulo: 'Repuestos', texto: datos?.repuestos },
-    ].filter((parte) => !!parte.texto);
-  });
-
-  /** El ingeniero de la orden, por su nombre: congelado al cerrar, como todo el informe. */
-  protected readonly ingeniero = computed(() => this.informe.data()?.ingeniero || SIN_DATO);
-
-  protected readonly recibe = computed(() => {
-    const recibe = this.datos()?.recibe;
-
-    return {
-      nombre: [recibe?.nombre, recibe?.cedula ? `C.C. ${recibe.cedula}` : '']
-        .filter(Boolean)
-        .join(' · '),
-      cargo: recibe?.cargo ? `Recibe · ${recibe.cargo}` : 'Recibe',
-    };
-  });
-
-  protected readonly pie = computed(() =>
-    [
-      this.empresa()?.codigoInforme,
-      [this.empresa()?.direccion, this.empresa()?.ciudad].filter(Boolean).join(', '),
-      this.empresa()?.movil,
-    ]
-      .filter(Boolean)
-      .join(' · '),
-  );
-
-  /**
-   * El QR lleva a este mismo documento en la aplicación, que pide iniciar sesión y respeta quién ve
-   * qué, como el de la hoja de vida. SVG desde la matriz de módulos, sin canvas.
-   */
-  protected readonly qr = computed(() => {
-    const direccion = `${this.documento.location.origin}/reportes/${this.id()}/documento`;
-    const { modules } = QRCode.create(direccion, { errorCorrectionLevel: 'M' });
-    let trazo = '';
-
-    for (let fila = 0; fila < modules.size; fila++) {
-      for (let columna = 0; columna < modules.size; columna++) {
-        if (modules.get(fila, columna)) {
-          trazo += `M${columna} ${fila}h1v1h-1z`;
-        }
-      }
-    }
-
-    return { direccion, lado: modules.size, trazo };
-  });
-
-  // --- La página 2: la verificación metrológica -------------------------------------------------
-
-  protected readonly LIENZO = LIENZO;
-
-  /**
-   * Una sección por verificación medida, en el orden en que el tipo las declara: su tabla, su gráfica
-   * y sus patrones. Las lecturas se ordenan por punto y número; sin punto, por número —X1, X2—, que es
-   * como las nombran los informes de la empresa.
-   *
-   * <p>El error y la conformidad son los del servidor, y la tolerancia la que se copió en cada lectura:
-   * si el tipo la cambió después, el documento no cambia de veredicto.
-   */
-  protected readonly verificaciones = computed(() => {
-    const lecturas = this.datos()?.lecturas ?? [];
-    const declaradas = this.declaradas();
-    const ids = [...new Set(lecturas.map((lectura) => lectura.idVerificacion!))].sort(
-      (a, b) =>
-        indiceOFinal(declaradas.findIndex((v) => v.id === a)) -
-        indiceOFinal(declaradas.findIndex((v) => v.id === b)),
-    );
-
-    return ids.map((id) => {
-      const declarada = declaradas.find((verificacion) => verificacion.id === id);
-      const puntos = new Map(
-        (declarada?.puntos ?? []).map((punto) => [punto.id, punto.valor ?? 0]),
-      );
-      const suyas = lecturas
-        .filter((lectura) => lectura.idVerificacion === id)
-        .sort(
-          (a, b) =>
-            (puntos.get(a.idPuntoVerificacion ?? '') ?? 0) -
-              (puntos.get(b.idPuntoVerificacion ?? '') ?? 0) ||
-            (a.secuencia ?? 0) - (b.secuencia ?? 0),
-        );
-      const unidad = declarada?.unidad ?? suyas[0]?.unidad ?? '';
-      const tolerancia = suyas.find((lectura) => lectura.tolerancia != null)?.tolerancia ?? null;
-      const variasPorPunto = (declarada?.cantidadDatos ?? 1) > 1;
-      const juzgadas = suyas.filter((lectura) => lectura.conforme != null);
-
-      return {
-        id,
-        magnitud: declarada?.magnitud ?? 'Verificación',
-        unidad,
-        tolerancia:
-          tolerancia === null
-            ? 'sin tolerancia'
-            : `tolerancia ±${NUMERO.format(tolerancia)} ${unidad}`,
-        filas: suyas.map((lectura) => ({
-          registro: lectura.idPuntoVerificacion
-            ? `${NUMERO.format(puntos.get(lectura.idPuntoVerificacion) ?? 0)} ${unidad}` +
-              (variasPorPunto ? ` · ${lectura.secuencia}` : '')
-            : `X${lectura.secuencia}`,
-          patron: NUMERO.format(lectura.valorPatron ?? 0),
-          equipo: NUMERO.format(lectura.valorEquipo ?? 0),
-          error: conSigno(lectura.error ?? 0),
-          conforme: lectura.conforme == null ? '—' : lectura.conforme ? 'Sí' : 'No',
-          fuera: lectura.conforme === false,
-        })),
-        resumen: juzgadas.length
-          ? `${juzgadas.filter((lectura) => lectura.conforme).length} de ${juzgadas.length} lecturas conformes`
-          : `${suyas.length} lecturas, sin tolerancia con que juzgarlas`,
-        grafica: graficaDeError(
-          suyas.map((lectura) => ({
-            error: lectura.error ?? 0,
-            conforme: lectura.conforme ?? null,
-          })),
-          tolerancia,
-        ),
-        leyenda:
-          tolerancia === null
-            ? 'Error de cada lectura (equipo − patrón). Sin tolerancia declarada: no hay banda.'
-            : `Error de cada lectura (equipo − patrón) · banda gris: tolerancia ±${NUMERO.format(tolerancia)} ${unidad} · en rojo, fuera de ella`,
-        patrones: (this.datos()?.patrones ?? [])
-          .filter((usado) => usado.idVerificacion === id)
-          .map((usado) => usado.nombre)
-          .join(' · '),
-      };
-    });
-  });
-
-  /**
-   * La trazabilidad: cada patrón una vez, aunque se usara en dos verificaciones, con las magnitudes en
-   * que se usó. Con la ficha que se copió al ponerlo en el reporte (V30), no la de hoy.
-   */
-  protected readonly trazabilidad = computed(() => {
-    const declaradas = this.declaradas();
-    const porPatron = new Map<string, { patron: PatronUsado; magnitudes: string[] }>();
-
-    for (const usado of this.datos()?.patrones ?? []) {
-      const magnitud =
-        declaradas.find((verificacion) => verificacion.id === usado.idVerificacion)?.magnitud ?? '';
-      const ya = porPatron.get(usado.id!);
-      if (ya) {
-        ya.magnitudes.push(magnitud);
-      } else {
-        porPatron.set(usado.id!, { patron: usado, magnitudes: [magnitud] });
-      }
-    }
-
-    return [...porPatron.values()].map(({ patron, magnitudes }) => ({
-      instrumento: patron.nombre,
-      detalle: [
-        [patron.marca, patron.modelo].filter(Boolean).join(' '),
-        magnitudes.filter(Boolean).join(' y '),
-      ]
-        .filter(Boolean)
-        .join(' · '),
-      serie: patron.serie,
-      codigo: patron.codigoInterno ?? '',
-      rango: patron.rango ?? SIN_DATO,
-      resolucion: patron.resolucion ?? '',
-      certificado: patron.certificado,
-      calibrado: patron.fechaCalibracion ? fechaCorta(patron.fechaCalibracion) : SIN_DATO,
-      vence: `vence ${fechaCorta(patron.vencimiento)}`,
-      calibrador: patron.empresaCalibradora ?? SIN_DATO,
-    }));
-  });
-
-  protected imprimir(): void {
-    window.print();
   }
-}
 
-/** Lo que el tipo ya no declara va al final, no al principio: findIndex da −1. */
-function indiceOFinal(indice: number): number {
-  return indice < 0 ? Number.MAX_SAFE_INTEGER : indice;
-}
+  ngOnDestroy(): void {
+    this.liberar();
+  }
 
-function unidos(valores: readonly string[] | undefined): string {
-  return valores?.length ? valores.join(' · ') : SIN_DATO;
+  private liberar(): void {
+    if (this.anterior) {
+      URL.revokeObjectURL(this.anterior);
+      this.anterior = null;
+    }
+  }
 }

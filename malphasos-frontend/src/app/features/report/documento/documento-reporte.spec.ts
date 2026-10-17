@@ -1,137 +1,41 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { QueryClient } from '@tanstack/angular-query-experimental';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar } from '../../../../testing/pantalla';
-import { ID_VERIFICACION } from '../../../../testing/catalogo';
 import { ID_REPORTE, reporte, urlReporte } from '../../../../testing/reportes';
 import { InformeDeReporte, ReporteDeServicio } from '../../../core/api/tipos';
-import { DocumentoReporte, proximoServicio } from './documento-reporte';
+import { nombreDelArchivo } from '../reporte-api';
+import { DocumentoReporte } from './documento-reporte';
 
-const GARANTIA_DE_EJEMPLO = 'La garantía cubre lo que se reporte en los cinco días siguientes.';
-
-// Una empresa inventada, con sus textos: MalphasOS no lleva los de ninguna real (2026-10-16).
-const EMPRESA = {
-  nombre: 'Servicios de Ejemplo S.A.S.',
-  direccion: 'Carrera 1 N.º 2-3',
-  ciudad: 'Ciudad de Ejemplo',
-  movil: '300 000 0000',
-  aclaracion: 'Mantenimiento realizado bajo el protocolo de la empresa.',
-  garantia: GARANTIA_DE_EJEMPLO,
-  codigoInforme: 'FT-002 · Versión 1',
-};
+const URL_PDF = `${urlReporte(ID_REPORTE)}/pdf`;
+const PDF = new Blob(['%PDF-1.7'], { type: 'application/pdf' });
 
 /**
- * El informe del reporte, como lo sirve el servidor (2026-10-17): lo que imprime de la orden, el cliente,
- * el equipo, su tipo, la empresa y el ingeniero. Antes el documento lo juntaba de cinco consultas.
+ * El informe de un reporte como el PDF del servidor (2026-10-17, RF-17). Lo que el PDF imprime lo fijan
+ * las pruebas del backend —{@code ReportHtmlRendererTest}—, que heredaron los casos de esta cuando el
+ * documento lo pintaba Angular. Aquí, que se pida, se muestre, se exporte y que sus avisos salgan.
  */
-function informe(cambios: Partial<InformeDeReporte> = {}): InformeDeReporte {
-  return {
-    congelado: false,
-    tardio: false,
-    orden: {
-      numero: '4F2A9C',
-      tipoServicio: 'PREVENTIVO',
-      garantia: false,
-      periodicidad: 'TRIMESTRAL',
-      fechaProgramada: '2026-10-15',
-    },
-    cliente: {
-      nombre: 'Hospital Central',
-      documento: '900123456',
-      sede: 'Sede Norte',
-      direccionSede: 'Calle 10 # 20 - 30',
-      ciudadSede: 'Bogotá',
-      area: 'Urgencias',
-      responsables: ['Carla Ruiz'],
-      telefonos: ['3001112233'],
-      correos: ['compras@hospital.co'],
-    },
-    equipo: {
-      tipo: 'Tensiómetro',
-      marca: 'Welch Allyn',
-      modelo: 'ProBP 2400',
-      serie: 'SN-0001',
-      numeroHojaVida: 'HV-HCE-0007',
-      numeroInventario: 'INV-77',
-      codigoInterno: 'MON-03',
-      tecnologia: 'Electrónica',
-      uso: 'Medir la presión arterial',
-      riesgo: 'IIA',
-      alimentacion: 'AC',
-      voltaje: 110,
-      frecuencia: 60,
-    },
-    verificaciones: [
-      {
-        id: ID_VERIFICACION,
-        magnitud: 'Presión',
-        unidad: 'mmHg',
-        cantidadDatos: 3,
-        puntos: [{ id: 'pv1', valor: 100 }],
-      },
-    ],
-    empresa: EMPRESA,
-    ingeniero: 'Ana Ruiz',
-    ...cambios,
-  };
-}
-
-/** Una empresa que no configuró ninguno de sus textos ni su logo. */
-const SIN_TEXTOS = { empresa: { nombre: 'Servicios de Ejemplo S.A.S.' } };
-
-/** Dos lecturas en el punto de 100 mmHg con ±0,5: una dentro y otra fuera. */
-const LECTURAS = [
-  {
-    id: 'l1',
-    idVerificacion: ID_VERIFICACION,
-    idPuntoVerificacion: 'pv1',
-    secuencia: 1,
-    valorPatron: 100,
-    valorEquipo: 100.2,
-    unidad: 'mmHg',
-    tolerancia: 0.5,
-    error: 0.2,
-    conforme: true,
-  },
-  {
-    id: 'l2',
-    idVerificacion: ID_VERIFICACION,
-    idPuntoVerificacion: 'pv1',
-    secuencia: 2,
-    valorPatron: 100,
-    valorEquipo: 100.9,
-    unidad: 'mmHg',
-    tolerancia: 0.5,
-    error: 0.9,
-    conforme: false,
-  },
-];
-
-const PATRON = {
-  idVerificacion: ID_VERIFICACION,
-  id: 'pat1',
-  nombre: 'Manómetro patrón',
-  marca: 'Fluke',
-  modelo: '700G',
-  serie: 'M-1',
-  certificado: 'CAL-1',
-  vencimiento: '2099-04-30',
-  codigoInterno: 'BB-PAT-003',
-  rango: '0 a 300 mmHg',
-  resolucion: '0,1 mmHg',
-  fechaCalibracion: '2026-04-30',
-  empresaCalibradora: 'Metrología Andina',
-};
-
-/** El reporte como documento (2026-10-16). */
 describe('Documento del reporte', () => {
   let fixture: ComponentFixture<DocumentoReporte>;
   let http: HttpTestingController;
+  let creadas: string[];
+  let liberadas: string[];
+  const { createObjectURL, revokeObjectURL } = URL;
 
   beforeEach(() => {
+    // jsdom no implementa las direcciones blob:.
+    creadas = [];
+    liberadas = [];
+    let siguiente = 0;
+    URL.createObjectURL = () => {
+      const direccion = `blob:prueba/${++siguiente}`;
+      creadas.push(direccion);
+      return direccion;
+    };
+    URL.revokeObjectURL = (direccion: string) => liberadas.push(direccion);
+
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -144,383 +48,144 @@ describe('Documento del reporte', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    // En finally: si verify() lanza, el doble no se queda puesto para el archivo siguiente.
+    try {
+      http.verify();
+    } finally {
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+    }
+  });
 
   const raiz = () => fixture.nativeElement as HTMLElement;
-  const texto = (selector?: string) =>
-    ((selector ? raiz().querySelector(selector) : raiz())?.textContent ?? '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  /** Las celdas de una tabla, una a una: el texto de la fila entera las pega. */
-  const celdas = (selector: string) =>
-    [...raiz().querySelectorAll(`${selector} td`)].map((td) =>
-      td.textContent?.replace(/\s+/g, ' ').trim(),
-    );
+  const texto = () => (raiz().textContent ?? '').replace(/\s+/g, ' ').trim();
 
-  /** Responde a las dos peticiones del documento: el reporte y su informe. */
+  /** Responde a las tres peticiones: el PDF, el reporte y su informe, que dice si es tardío. */
   async function abrir(
     datos: Partial<ReporteDeServicio> = {},
-    cambiosDelInforme: Partial<InformeDeReporte> = {},
-  ): Promise<void> {
-    const respuestas = new Map<string, unknown>([
-      [urlReporte(ID_REPORTE), reporte(datos)],
-      [`${urlReporte(ID_REPORTE)}/document`, informe(cambiosDelInforme)],
-    ]);
-
-    fixture.detectChanges();
-    for (let vuelta = 0; vuelta < 2; vuelta++) {
-      await asentar(fixture);
-      http
-        .match((peticion) => respuestas.has(peticion.url))
-        .forEach((peticion) => peticion.flush(respuestas.get(peticion.request.url) as object));
-    }
-    await asentar(fixture);
-  }
-
-  it('la banda dice el número, el título único y el equipo', async () => {
-    // Un solo informe, decidido el 2026-10-16: el tipo de servicio lo dicen las casillas, no el título.
-    await abrir({ numero: '1DC6F5' });
-
-    expect(texto('[data-numero]')).toBe('Informe N.º 1DC6F5');
-    expect(texto('[data-numero-orden]')).toBe('Orden N.º 4F2A9C');
-    expect(texto('h1')).toBe('Informe de mantenimiento');
-    expect(texto('.rs-banda__equipo')).toBe(
-      'Tensiómetro · Welch Allyn ProBP 2400 · Serie SN-0001 · HV-HCE-0007',
-    );
-  });
-
-  it('un borrador lleva la fecha programada, y el próximo servicio suma la periodicidad', async () => {
-    // La orden es trimestral y está programada para el 15 de octubre.
-    await abrir();
-
-    expect(texto('[data-proximo]')).toBe('15 ene 2027');
-    expect(raiz().querySelector('.rs-marca-borrador')).not.toBeNull();
-  });
-
-  it('uno cerrado lleva la fecha del cierre, sin marca de borrador', async () => {
-    await abrir({
-      estado: 'FINALIZADO',
-      finalizado: '2026-10-20T16:30:00',
-      resultado: 'OPERATIVO',
-    });
-
-    expect(texto('[data-proximo]')).toBe('20 ene 2027');
-    expect(raiz().querySelector('.rs-marca-borrador')).toBeNull();
-    expect(texto('[data-resultado]')).toBe('Apto para el servicio');
-  });
-
-  // Tres valores guardados, dos impresos (2026-10-16): la restricción va en las observaciones.
-  for (const [resultado, impreso] of [
-    ['OPERATIVO', 'Apto para el servicio'],
-    ['OPERATIVO_CON_RESTRICCIONES', 'Apto para el servicio'],
-    ['FUERA_DE_SERVICIO', 'No apto para el servicio'],
-  ] as const) {
-    it(`el resultado ${resultado} se imprime «${impreso}»`, async () => {
-      await abrir({ estado: 'FINALIZADO', finalizado: '2026-10-20T16:30:00', resultado });
-
-      expect(texto('[data-resultado]')).toBe(impreso);
-    });
-  }
-
-  it('las fichas del cliente y del equipo dicen lo que trae el informe, campo por campo', async () => {
-    await abrir();
-
-    const fichas = new Map(
-      [...raiz().querySelectorAll('dt')].map((dt) => [
-        dt.textContent?.trim(),
-        dt.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim(),
-      ]),
-    );
-    expect(Object.fromEntries(fichas)).toEqual(
-      expect.objectContaining({
-        'Sede · Ciudad': 'Sede Norte · Bogotá',
-        Dirección: 'Calle 10 # 20 - 30',
-        Área: 'Urgencias',
-        'Marca · Modelo': 'Welch Allyn · ProBP 2400',
-        Riesgo: 'Clase IIa',
-        Alimentación: 'AC · 110 V · 60 Hz',
+    informe: Partial<InformeDeReporte> = {},
+    responderPdf: (peticion: ReturnType<HttpTestingController['expectOne']>) => void = (peticion) =>
+      peticion.flush(PDF, {
+        headers: { 'Content-Disposition': 'inline; filename="informe-1DC6F5.pdf"' },
       }),
-    );
-  });
+  ): Promise<void> {
+    fixture.detectChanges();
+    await asentar(fixture);
+    responderPdf(http.expectOne(URL_PDF));
+    http.expectOne(urlReporte(ID_REPORTE)).flush(reporte(datos));
+    http.expectOne(`${urlReporte(ID_REPORTE)}/document`).flush({ tardio: false, ...informe });
+    await asentar(fixture);
+  }
 
-  it('caducar el reporte caduca su informe: cuelga de la misma clave', async () => {
+  it('muestra el PDF del servidor en el visor', async () => {
     await abrir();
 
-    void TestBed.inject(QueryClient).invalidateQueries({ queryKey: ['reportes', ID_REPORTE] });
+    expect(raiz().querySelector('iframe[data-visor]')!.getAttribute('src')).toBe('blob:prueba/1');
+  });
+
+  it('«Exportar PDF» lo descarga con el nombre que da el servidor', async () => {
+    await abrir();
+    const exportar = raiz().querySelector('[data-exportar]')!;
+
+    expect(exportar.textContent?.trim()).toBe('Exportar PDF');
+    expect(exportar.getAttribute('href')).toBe('blob:prueba/1');
+    expect(exportar.getAttribute('download')).toBe('informe-1DC6F5.pdf');
+  });
+
+  it('mientras llega, lo dice; y no ofrece exportar lo que no hay', async () => {
+    fixture.detectChanges();
     await asentar(fixture);
 
-    http.expectOne(`${urlReporte(ID_REPORTE)}/document`).flush(informe());
-    http.match(urlReporte(ID_REPORTE)).forEach((peticion) => peticion.flush(reporte()));
+    expect(texto()).toContain('Preparando el PDF…');
+    expect(raiz().querySelector('[data-exportar]')).toBeNull();
+
+    http.expectOne(URL_PDF).flush(PDF);
+    http.expectOne(urlReporte(ID_REPORTE)).flush(reporte());
+    http.expectOne(`${urlReporte(ID_REPORTE)}/document`).flush({ tardio: false });
     await asentar(fixture);
   });
 
-  it('el supervisor es el encargado del área, en la ficha del cliente y en las firmas', async () => {
+  it('un borrador lo avisa fuera del PDF', async () => {
     await abrir();
 
-    expect(texto('[data-supervisor]')).toBe('Carla Ruiz');
-    expect(texto('.rs-firmas')).toContain('Carla Ruiz Supervisor responsable');
+    expect(texto()).toContain('Este reporte está en borrador');
   });
 
-  it('marca el tipo de servicio de la orden, y la verificación metrológica sola si hay lecturas', async () => {
-    await abrir({ lecturas: LECTURAS });
+  it('uno cerrado no lleva el aviso de borrador', async () => {
+    await abrir({ estado: 'FINALIZADO', finalizado: '2026-10-01T09:00:00' });
 
-    const marcadas = [...raiz().querySelectorAll('[data-casilla].rs-marcada')].map((c) =>
-      c.getAttribute('data-casilla'),
-    );
-    expect(marcadas).toEqual(['Preventivo', 'Verificación metrológica']);
-    expect(
-      [...raiz().querySelectorAll('[data-casilla]')].map((c) => c.getAttribute('data-casilla')),
-    ).toEqual(['Preventivo', 'Correctivo', 'Calibración', 'Verificación metrológica', 'Garantía']);
+    expect(texto()).not.toContain('Este reporte está en borrador');
   });
 
-  it('un correctivo en garantía marca las dos casillas', async () => {
-    await abrir({}, { orden: { ...informe().orden, tipoServicio: 'CORRECTIVO', garantia: true } });
-
-    const marcadas = [...raiz().querySelectorAll('[data-casilla].rs-marcada')].map((c) =>
-      c.getAttribute('data-casilla'),
-    );
-    expect(marcadas).toEqual(['Correctivo', 'Garantía']);
-  });
-
-  it('sin lecturas la verificación no se marca, y lo dice', async () => {
-    await abrir();
-
-    expect(raiz().querySelector('[data-casilla="Verificación metrológica"].rs-marcada')).toBeNull();
-    expect(texto('[data-verificacion]')).toBe('Sin verificación');
-  });
-
-  it('cuenta las conformes entre las que tienen tolerancia', async () => {
-    await abrir({ lecturas: LECTURAS });
-
-    expect(texto('[data-verificacion]')).toBe('1 de 2 conformes');
-  });
-
-  it('las lecturas sin tolerancia no cuentan como conformes ni como no conformes: no se sabe', async () => {
-    const sinTolerancia = LECTURAS.map((lectura) => ({
-      ...lectura,
-      tolerancia: undefined,
-      conforme: undefined,
-    }));
-    await abrir({ lecturas: [...sinTolerancia, LECTURAS[0]] });
-
-    expect(texto('[data-verificacion]')).toBe('1 de 1 conformes');
-  });
-
-  it('un patrón usado en dos verificaciones sale una sola vez en la trazabilidad', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON, { ...PATRON, idVerificacion: 'ver2' }] });
-
-    expect(raiz().querySelectorAll('[data-trazabilidad]')).toHaveLength(1);
-  });
-
-  it('el ingreso, los accesorios y quien recibe salen como se registraron', async () => {
-    await abrir({
-      ingresoFisico: { estado: 'NO_CONFORME', observacion: 'Carcasa rayada' },
-      ingresoOperativo: { estado: 'CONFORME' },
-      accesorios: [{ orden: 1, nombre: 'Brazalete', conforme: true }],
-      recibe: { nombre: 'Ana Pérez', cedula: '10000001', cargo: 'Jefe de enfermería' },
-    });
-
-    expect(celdas('.rs-tabla').slice(0, 3)).toEqual([
-      'Estado de la estructura física del equipo',
-      'No conforme',
-      'Carcasa rayada',
-    ]);
-    expect(celdas('[data-accesorio]')).toEqual(['Accesorio: Brazalete', 'Conforme', '—']);
-    expect(texto('[data-firma-recibe]')).toBe('Ana Pérez · C.C. 10000001');
-    expect(texto('.rs-firmas')).toContain('Recibe · Jefe de enfermería');
-  });
-
-  it('sin registrar, el ingreso lo dice y los accesorios dicen que no tiene', async () => {
-    await abrir();
-
-    expect(celdas('.rs-tabla').slice(3, 5)).toEqual([
-      'Estado operativo del equipo',
-      'Sin registrar',
-    ]);
-    expect(celdas('.rs-tabla').slice(6, 8)).toEqual(['Accesorios', 'No tiene']);
-  });
-
-  it('el profesional es el ingeniero que trae el informe', async () => {
-    await abrir();
-
-    expect(texto('[data-firma-profesional]')).toBe('Ana Ruiz');
-  });
-
-  it('con la firma guardada del ingeniero, la línea la lleva; sin ella queda para firmar a mano', async () => {
-    // V38, 2026-10-17: la firma vive en la cuenta del ingeniero y el informe la copia al cerrar.
-    await abrir({}, { firmaIngeniero: 'data:image/png;base64,iVBORw0KGgo=' });
-
-    expect(
-      raiz().querySelector<HTMLImageElement>('[data-firma-ingeniero]')!.getAttribute('src'),
-    ).toBe('data:image/png;base64,iVBORw0KGgo=');
-  });
-
-  it('sin firma guardada no hay imagen en la línea del profesional', async () => {
-    await abrir();
-
-    expect(raiz().querySelector('[data-firma-ingeniero]')).toBeNull();
-  });
-
-  it('firmado por quien recibe, su línea lleva la firma; sin firmar queda para firmar a mano', async () => {
-    // V39, 2026-10-17: quien recibe firma en la pantalla, antes o después de cerrar.
-    await abrir({}, { firmaRecibe: 'data:image/png;base64,UkVDSUJF' });
-
-    expect(
-      raiz().querySelector<HTMLImageElement>('[data-firma-recibe-trazo]')!.getAttribute('src'),
-    ).toBe('data:image/png;base64,UkVDSUJF');
-    expect(raiz().querySelector('[data-firma-ingeniero]')).toBeNull();
-  });
-
-  it('sin firma de quien recibe no hay imagen en su línea', async () => {
-    await abrir();
-
-    expect(raiz().querySelector('[data-firma-recibe-trazo]')).toBeNull();
-  });
-
-  it('sin ingeniero en la orden, la línea lleva la raya', async () => {
-    await abrir({}, { ingeniero: undefined });
-
-    expect(texto('[data-firma-profesional]')).toBe('—');
-  });
-
-  it('un informe congelado tarde lo dice; uno congelado al cerrar, no', async () => {
+  it('un informe congelado tarde lo dice', async () => {
     // Decidido por el usuario el 2026-10-17: los reportes cerrados antes de V37 se congelaron después.
-    await abrir(
-      { estado: 'FINALIZADO', finalizado: '2026-10-01T09:00:00' },
-      { congelado: true, tardio: true },
+    await abrir({ estado: 'FINALIZADO', finalizado: '2026-10-01T09:00:00' }, { tardio: true });
+
+    expect(raiz().querySelector('[data-tardio]')?.textContent).toContain(
+      'se congeló después de cerrarse el reporte',
+    );
+  });
+
+  it('si el conversor no responde, lo dice con el mensaje del catálogo, leído del cuerpo binario', async () => {
+    // Una petición binaria recibe el error también como Blob: sin leerlo, el mensaje sería el genérico.
+    await abrir({}, {}, (peticion) =>
+      peticion.flush(
+        new Blob([JSON.stringify({ code: 'ERR_SERVICE_REPORT_010' })], {
+          type: 'application/json',
+        }),
+        { status: 503, statusText: 'Service Unavailable' },
+      ),
     );
 
-    expect(texto('[data-tardio]')).toContain('se congeló después de cerrarse el reporte');
-  });
-
-  it('uno congelado al cerrar no lleva el aviso de tardío', async () => {
-    await abrir({ estado: 'FINALIZADO', finalizado: '2026-10-01T09:00:00' }, { congelado: true });
-
-    expect(raiz().querySelector('[data-tardio]')).toBeNull();
-  });
-
-  it('la aclaración y la garantía son los textos que la empresa configuró', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON] });
-
-    expect(texto('[data-aclaracion]')).toBe(
-      'Aclaración del proceso. Mantenimiento realizado bajo el protocolo de la empresa.',
+    expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+      'No se pudo generar el PDF del informe',
     );
-    expect(texto('[data-garantia]')).toBe(`Garantía. ${GARANTIA_DE_EJEMPLO}`);
+    expect(raiz().querySelector('iframe')).toBeNull();
+    expect(raiz().querySelector('[data-exportar]')).toBeNull();
   });
 
-  it('sin textos configurados no hay aclaración ni garantía, en vez de un rótulo vacío', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON] }, SIN_TEXTOS);
+  it('un reporte que no existe, o que no se ve, lo dice', async () => {
+    await abrir({}, {}, (peticion) =>
+      peticion.flush(
+        new Blob([JSON.stringify({ code: 'ERR_SERVICE_REPORT_001' })], {
+          type: 'application/json',
+        }),
+        { status: 404, statusText: 'Not Found' },
+      ),
+    );
 
-    expect(raiz().querySelector('[data-aclaracion]')).toBeNull();
-    expect(raiz().querySelector('[data-garantia]')).toBeNull();
+    expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+      'Ese reporte no existe o fue retirado.',
+    );
   });
 
-  it('el pie lleva el código del formato que la empresa configuró y su dirección', async () => {
+  it('enlaza de vuelta al reporte', async () => {
     await abrir();
 
-    expect(texto('[data-pie]')).toBe(
-      'FT-002 · Versión 1 · Carrera 1 N.º 2-3, Ciudad de Ejemplo · 300 000 0000',
+    const volver = [...raiz().querySelectorAll('a')].find(
+      (a) => a.textContent?.trim() === 'Volver al reporte',
     );
+    expect(volver?.getAttribute('href')).toBe(`/reportes/${ID_REPORTE}`);
   });
 
-  it('el membrete es el nombre y el logo configurados; sin logo, solo el nombre', async () => {
-    await abrir(
-      { lecturas: LECTURAS, patrones: [PATRON] },
-      { empresa: { ...EMPRESA, logo: 'data:image/png;base64,AAAA' } },
-    );
-
-    expect(texto('.rs-logo')).toBe('Servicios de Ejemplo S.A.S.');
-    expect(raiz().querySelectorAll('img.rs-escudo')).toHaveLength(2);
-    expect(raiz().querySelector('.rs-logo img')?.getAttribute('src')).toBe(
-      'data:image/png;base64,AAAA',
-    );
-  });
-
-  it('sin logo configurado no hay imagen ni marca de agua', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON] }, SIN_TEXTOS);
-
-    expect(raiz().querySelectorAll('img')).toHaveLength(0);
-    expect(texto('.rs-logo')).toBe('Servicios de Ejemplo S.A.S.');
-  });
-
-  it('con verificación hay página 2: la tabla, la gráfica y los patrones', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON] });
-
-    const pagina = raiz().querySelector('[data-pagina="2"]')!;
-    expect(pagina).not.toBeNull();
-    expect(celdas('[data-trazabilidad]')).toEqual([
-      'Manómetro patrón Fluke 700G · Presión',
-      'M-1 BB-PAT-003',
-      '0 a 300 mmHg 0,1 mmHg',
-      'CAL-1',
-      '30 abr 2026 vence 30 abr 2099',
-      'Metrología Andina',
-    ]);
-    expect(celdas('[data-verificacion-documento]')).toEqual(
-      ['100 mmHg · 1', '100', '100,2', '+0,2', 'Sí'].concat([
-        '100 mmHg · 2',
-        '100',
-        '100,9',
-        '+0,9',
-        'No',
-      ]),
-    );
-    expect(pagina.querySelectorAll('[data-verificacion-documento] tbody tr.rs-fuera')).toHaveLength(
-      1,
-    );
-    expect(pagina.querySelectorAll('circle[data-fuera]')).toHaveLength(1);
-    expect(pagina.querySelector('rect[data-banda]')).not.toBeNull();
-    expect(texto('[data-pagina="2"]')).toContain(GARANTIA_DE_EJEMPLO);
-    expect(texto('[data-pagina="2"]')).toContain('Página 2 de 2');
-  });
-
-  it('sin lecturas el informe es de una hoja, y la garantía lo cierra en ella', async () => {
-    // Las secciones salen según los datos (2026-10-16): sin lecturas no hay nada que verificar.
+  it('al salir de la pantalla libera la memoria del PDF', async () => {
     await abrir();
 
-    expect(raiz().querySelector('[data-pagina="2"]')).toBeNull();
-    expect(texto()).toContain('Página 1 de 1');
-    expect(raiz().querySelectorAll('[data-garantia]')).toHaveLength(1);
-    expect(texto('[data-garantia]')).toBe(`Garantía. ${GARANTIA_DE_EJEMPLO}`);
-  });
+    fixture.destroy();
 
-  it('con lecturas la garantía va solo en la segunda hoja, no repetida', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON] });
-
-    expect(raiz().querySelectorAll('[data-garantia]')).toHaveLength(1);
-    expect(raiz().querySelector('[data-pagina="2"] [data-garantia]')).not.toBeNull();
-  });
-
-  it('es un documento: no tiene un solo control que se pueda editar', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON] });
-
-    expect(raiz().querySelectorAll('input, textarea, select')).toHaveLength(0);
-  });
-
-  it('el QR lleva a este mismo documento en la aplicación', async () => {
-    await abrir();
-
-    expect(raiz().querySelector('.rs-qr svg')!.getAttribute('aria-label')).toBe(
-      `Código QR: ${location.origin}/reportes/${ID_REPORTE}/documento`,
-    );
+    expect(liberadas).toEqual(creadas);
   });
 });
 
-describe('El próximo servicio', () => {
-  it('suma la periodicidad en meses de calendario', () => {
-    expect(proximoServicio('2026-01-07', 'SEMESTRAL')).toBe('2026-07-07');
-    expect(proximoServicio('2026-10-15', 'TRIMESTRAL')).toBe('2027-01-15');
-    expect(proximoServicio('2026-12-31', 'MENSUAL')).toBe('2027-01-31');
+describe('El nombre del archivo', () => {
+  it('sale de la cabecera, con o sin comillas', () => {
+    expect(nombreDelArchivo('inline; filename="informe-1DC6F5.pdf"')).toBe('informe-1DC6F5.pdf');
+    expect(nombreDelArchivo('attachment; filename=informe.pdf')).toBe('informe.pdf');
   });
 
-  it('se recorta al fin de mes: el 31 de agosto más seis meses es el último día de febrero', () => {
-    expect(proximoServicio('2026-08-31', 'SEMESTRAL')).toBe('2027-02-28');
-    expect(proximoServicio('2028-02-29', 'ANUAL')).toBe('2029-02-28');
-    expect(proximoServicio('2027-08-31', 'SEMESTRAL')).toBe('2028-02-29');
-  });
-
-  it('sin fecha o sin periodicidad no hay próximo servicio', () => {
-    expect(proximoServicio(undefined, 'ANUAL')).toBeUndefined();
-    expect(proximoServicio('2026-01-07', undefined)).toBeUndefined();
+  it('sin cabecera o sin nombre, nulo', () => {
+    expect(nombreDelArchivo(null)).toBeNull();
+    expect(nombreDelArchivo('inline')).toBeNull();
   });
 });
