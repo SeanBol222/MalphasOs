@@ -8,10 +8,35 @@ import java.util.HexFormat;
 import java.util.Objects;
 
 /**
- * Una imagen que un informe congela —el logo de la empresa, la firma del ingeniero— (2026-10-17): sus
+ * Una imagen que un informe congela —el logo de la empresa, la firma del ingeniero y la de quien recibe—
+ * (2026-10-17): sus
  * bytes y su tipo, ya validados por quien la produjo. Se guarda una vez por versión, por su huella.
  */
 public record DocumentImage(byte[] contenido, String tipo) {
+
+    /** Lo que pesa como mucho una firma dibujada: lo mismo que la del ingeniero (V38). */
+    public static final int TAMANO_MAXIMO_FIRMA = 256 * 1024;
+
+    private static final byte[] FIRMA_PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+
+    /**
+     * La firma de quien recibe, dibujada en la pantalla (V39): un PNG, que es lo que produce el lienzo, de
+     * hasta 256 KB. Se mira la firma de los bytes, no lo que diga quien la sube.
+     */
+    public static DocumentImage firma(byte[] png) {
+        if (png == null || png.length == 0) {
+            throw new IllegalArgumentException("La firma no puede estar vacía");
+        }
+        if (png.length > TAMANO_MAXIMO_FIRMA) {
+            throw new IllegalArgumentException(
+                    "La firma pesa " + png.length + " bytes y el máximo es " + TAMANO_MAXIMO_FIRMA);
+        }
+        if (png.length < FIRMA_PNG.length || !Arrays.equals(Arrays.copyOf(png, FIRMA_PNG.length), FIRMA_PNG)) {
+            throw new IllegalArgumentException("La firma tiene que ser una imagen PNG");
+        }
+
+        return new DocumentImage(png, "image/png");
+    }
 
     public DocumentImage {
         if (contenido == null || contenido.length == 0) {

@@ -27,6 +27,7 @@ import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.ReceiptSignature;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
@@ -362,6 +363,84 @@ class ServiceReportPersistenceAdapterTest {
                     .isEqualTo(1);
             assertThat(logos.find(logo.huella())).contains(logo);
             assertThat(logos.find("b".repeat(64))).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("La firma de quien recibe (V39)")
+    class LaFirmaDeQuienRecibe {
+
+        @Autowired private DocumentImageStoreAdapter imagenes;
+
+        private static final DocumentImage FIRMA = DocumentImage.firma(
+                new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 11});
+        private static final Handover ANA = new Handover("Ana Pérez", "52123456", "Jefe de enfermeria");
+
+        private ServiceReport cerrado() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+            reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
+                    new IntakeCheck(IntakeState.CONFORME, null), List.of());
+            reporte.finish(UnDocumento.CUALQUIERA);
+            return reporte;
+        }
+
+        @Test
+        @DisplayName("firmado después de cerrar, vuelve con quién firmó, su huella y cuándo")
+        void idaYVuelta() {
+            ServiceReport reporte = cerrado();
+            adapter.save(reporte);
+            ServiceReport aFirmar = adapter.findById(reporte.getId()).orElseThrow();
+            imagenes.store(FIRMA);
+            aFirmar.signReceipt(ANA, FIRMA.huella(), java.time.LocalDateTime.of(2026, 10, 17, 9, 30, 15));
+            adapter.save(aFirmar);
+
+            ServiceReport recuperado = adapter.findById(reporte.getId()).orElseThrow();
+
+            assertThat(recuperado.getFirmaRecibe()).isEqualTo(new ReceiptSignature(FIRMA.huella(),
+                    java.time.LocalDateTime.of(2026, 10, 17, 9, 30, 15)));
+            assertThat(recuperado.getRecibe()).isEqualTo(ANA);
+            assertThat(imagenes.find(recuperado.getFirmaRecibe().huella())).contains(FIRMA);
+        }
+
+        @Test
+        @DisplayName("sin firmar vuelve sin firma")
+        void sinFirmar() {
+            ServiceReport reporte = cerrado();
+            adapter.save(reporte);
+
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().getFirmaRecibe()).isNull();
+        }
+
+        @Test
+        @DisplayName("la base impide una firma sin imagen guardada, sin fecha o sin nombre")
+        void laBaseLoImpide() {
+            ServiceReport reporte = cerrado();
+            adapter.save(reporte);
+            imagenes.store(FIRMA);
+
+            // Una huella que no está en imagen_documento.
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET n_recibe_nombre = 'Ana',"
+                            + " k_huella_firma_recibe = ?, f_firma_recibe = now() WHERE k_id_reporte_servicio = ?",
+                            "c".repeat(64), reporte.getId()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET n_recibe_nombre = 'Ana',"
+                            + " k_huella_firma_recibe = ? WHERE k_id_reporte_servicio = ?",
+                            FIRMA.huella(), reporte.getId()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET k_huella_firma_recibe = ?,"
+                            + " f_firma_recibe = now() WHERE k_id_reporte_servicio = ?",
+                            FIRMA.huella(), reporte.getId()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            // Una fecha sin firma tampoco.
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET f_firma_recibe = now()"
+                            + " WHERE k_id_reporte_servicio = ?", reporte.getId()))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            // Y con todo, entra: lo de arriba falla por lo que dice y no por otra cosa.
+            assertThat(jdbcTemplate.update("UPDATE reporte_servicio SET n_recibe_nombre = 'Ana',"
+                            + " k_huella_firma_recibe = ?, f_firma_recibe = now() WHERE k_id_reporte_servicio = ?",
+                    FIRMA.huella(), reporte.getId())).isEqualTo(1);
         }
     }
 

@@ -27,6 +27,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
@@ -47,6 +48,8 @@ import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -316,6 +319,47 @@ public class ServiceReportService implements ServiceReportServicePort {
     }
 
     /**
+     * Quien recibe firma el recibido (V39, RF-18). La imagen se guarda una vez, por su huella, y cada
+     * reporte firmado apunta a ella.
+     *
+     * <p><b>Con {@code aplicarALaOrden}, RF-21</b>: la misma firma, con el mismo nombre, en los reportes
+     * activos de esa orden que aún no tengan, abiertos o cerrados. Los que ya tienen la suya no se tocan
+     * —firmado, no se cambia—, y los retirados tampoco. El pedido sí tiene que poder firmarse: si ya está
+     * firmado, falla aunque se aplique a la orden, porque quien firma cree estar firmando ese.
+     */
+    @Override
+    @Transactional
+    public List<ServiceReport> signReceipt(SignReceiptCommand command) {
+        ServiceReport pedido = findById(command.id(), ReadScope.unrestricted());
+        Handover recibe = new Handover(command.nombre(), command.cedula(), command.cargo());
+        DocumentImage firma = DocumentImage.firma(command.firma());
+        LocalDateTime ahora = LocalDateTime.now();
+
+        List<ServiceReport> aFirmar = new ArrayList<>();
+        aFirmar.add(pedido);
+        if (command.aplicarALaOrden()) {
+            serviceReportPersistencePort.findByWorkOrder(pedido.getIdOrdenTrabajo()).stream()
+                    .filter(otro -> !otro.getId().equals(pedido.getId()))
+                    .filter(ServiceReport::isEstadoActivo)
+                    .filter(otro -> !otro.firmadoPorQuienRecibe())
+                    .forEach(aFirmar::add);
+        }
+
+        // Primero el pedido, que es el que puede fallar: así no se guarda la imagen de una firma rechazada.
+        pedido.signReceipt(recibe, firma.huella(), ahora);
+        documentImageStorePort.store(firma);
+
+        List<ServiceReport> firmados = new ArrayList<>();
+        firmados.add(persistAndPublish(pedido));
+        for (ServiceReport otro : aFirmar.subList(1, aFirmar.size())) {
+            otro.signReceipt(recibe, firma.huella(), ahora);
+            firmados.add(persistAndPublish(otro));
+        }
+
+        return firmados;
+    }
+
+    /**
      * Pone un patrón en una verificación del reporte, copiando lo que el catálogo dice hoy de él, ficha
      * incluida (V30). La verificación tiene que ser una activa del tipo de este equipo: es lo mismo que
      * se exige a las lecturas, y por el mismo camino.
@@ -418,7 +462,7 @@ public class ServiceReportService implements ServiceReportServicePort {
 
             return new ReportDocumentView(reporte, documento,
                     imagen(documento.empresa() == null ? null : documento.empresa().huellaDelLogo()),
-                    imagen(documento.huellaFirmaIngeniero()), true);
+                    imagen(documento.huellaFirmaIngeniero()), firmaRecibe(reporte), true);
         }
 
         // Un borrador, o uno cerrado que aún no se congeló tarde: en vivo, sin guardar nada.
@@ -426,7 +470,13 @@ public class ServiceReportService implements ServiceReportServicePort {
                 reportDocumentComposer.compose(reporte, tipoDelEquipo(reporte.getIdEquipoCliente()));
 
         return new ReportDocumentView(
-                reporte, compuesto.documento(), compuesto.logo(), compuesto.firmaIngeniero(), false);
+                reporte, compuesto.documento(), compuesto.logo(), compuesto.firmaIngeniero(), firmaRecibe(reporte),
+                false);
+    }
+
+    /** La firma de quien recibe no se congela al cerrar: se lee del reporte, que la guarda desde que firma. */
+    private DocumentImage firmaRecibe(ServiceReport reporte) {
+        return reporte.getFirmaRecibe() == null ? null : imagen(reporte.getFirmaRecibe().huella());
     }
 
     @Override

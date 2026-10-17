@@ -11,6 +11,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -64,6 +65,12 @@ public interface ServiceReportServicePort {
 
     /** Registra quién recibió el equipo al entregarlo, o lo borra (V31). */
     ServiceReport recordHandover(RecordHandoverCommand command);
+
+    /**
+     * Quien recibe firma el recibido, antes o después de cerrar (V39). Devuelve los reportes firmados: el
+     * pedido primero y, si se aplica a la orden, los de esa orden que no tenían firma.
+     */
+    List<ServiceReport> signReceipt(SignReceiptCommand command);
 
     /** Pone un patrón en una verificación del reporte, copiando lo que dice hoy el catálogo. */
     ServiceReport useReferenceStandard(UseReferenceStandardCommand command);

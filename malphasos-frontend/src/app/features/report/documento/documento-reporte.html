@@ -267,7 +267,20 @@
             <span>Supervisor responsable</span>
           </div>
           <div>
-            <div class="rs-firmas__linea"></div>
+            <!--
+              La firma de quien recibe (V39, 2026-10-17), dibujada en la pantalla antes o después de
+              cerrar. Sin ella, el hueco queda para firmar a mano.
+            -->
+            <div class="rs-firmas__linea">
+              @if (informe.data()?.firmaRecibe; as firma) {
+                <img
+                  class="rs-firmas__trazo"
+                  data-firma-recibe-trazo
+                  [src]="firma"
+                  alt="Firma de quien recibe"
+                />
+              }
+            </div>
             <strong data-firma-recibe>{{ recibe().nombre || sinDato }}</strong
             >&ngsp;
             <span>{{ recibe().cargo }}</span>

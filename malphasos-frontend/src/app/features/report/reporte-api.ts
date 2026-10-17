@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AvanceDeReportes,
+  FirmaDeRecibido,
   InformeDeReporte,
   LlenarReporte,
   MarcaDePaso,
@@ -190,6 +191,21 @@ export class ReporteApi {
         firstValueFrom(this.http.patch<ReporteDeServicio>(`${this.url}/${id}/handover`, recibe)),
       onSuccess: (reporte: ReporteDeServicio) =>
         this.queryClient.setQueryData(ReporteApi.claveDetalle(reporte.id!), reporte),
+    }));
+  }
+
+  /**
+   * Quien recibe firma el recibido (V39), antes o después de cerrar. Devuelve los reportes firmados —con
+   * la casilla de RF-21, también los de la orden que no tenían firma—, así que se invalida todo lo de los
+   * reportes: listados, fichas e informes.
+   */
+  firmarRecibido() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, firma }: { id: string; firma: FirmaDeRecibido }) =>
+        firstValueFrom(
+          this.http.patch<ReporteDeServicio[]>(`${this.url}/${id}/receipt-signature`, firma),
+        ),
+      onSuccess: () => this.invalidar(),
     }));
   }
 

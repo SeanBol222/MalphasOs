@@ -24,6 +24,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
@@ -49,9 +50,11 @@ import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFo
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -355,6 +358,136 @@ class ServiceReportRestAdapterTest {
                 new RecordHandoverCommand(reporte.getId(), "Ana Pérez", "52123456", "Jefe de enfermeria"));
     }
 
+    @Nested
+    @DisplayName("La firma de quien recibe (V39)")
+    class FirmaDeQuienRecibe {
+
+        /** Un PNG mínimo: la cabecera de ocho bytes y uno más. */
+        private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 7};
+
+        private String cuerpo(String imagen, boolean aplicarALaOrden) {
+            return "{\"nombre\": \"Ana Pérez\", \"cedula\": \"52123456\", \"cargo\": \"Jefe de enfermeria\","
+                    + " \"imagen\": \"" + imagen + "\", \"aplicarALaOrden\": " + aplicarALaOrden + "}";
+        }
+
+        @Test
+        @DisplayName("firmar llega al servicio con los bytes del PNG y la casilla, y devuelve los firmados")
+        void firmar() throws Exception {
+            ServiceReport reporte = unReporte();
+            ServiceReport otro = unReporte();
+            Handover recibe = new Handover("Ana Pérez", "52123456", "Jefe de enfermeria");
+            reporte.signReceipt(recibe, "a".repeat(64), java.time.LocalDateTime.of(2026, 10, 17, 9, 30));
+            otro.signReceipt(recibe, "a".repeat(64), java.time.LocalDateTime.of(2026, 10, 17, 9, 30));
+            when(serviceReportServicePort.signReceipt(any())).thenReturn(List.of(reporte, otro));
+
+            mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo("data:image/png;base64," + Base64.getEncoder().encodeToString(PNG),
+                                    true)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].id").value(reporte.getId().toString()))
+                    .andExpect(jsonPath("$[0].recibe.nombre").value("Ana Pérez"))
+                    .andExpect(jsonPath("$[0].firmadoRecibe").value("2026-10-17T09:30:00"))
+                    .andExpect(jsonPath("$[1].id").value(otro.getId().toString()));
+
+            ArgumentCaptor<SignReceiptCommand> comando = ArgumentCaptor.forClass(SignReceiptCommand.class);
+            verify(serviceReportServicePort).signReceipt(comando.capture());
+            assertThat(comando.getValue().id()).isEqualTo(reporte.getId());
+            assertThat(comando.getValue().nombre()).isEqualTo("Ana Pérez");
+            assertThat(comando.getValue().cedula()).isEqualTo("52123456");
+            assertThat(comando.getValue().cargo()).isEqualTo("Jefe de enfermeria");
+            assertThat(comando.getValue().firma()).isEqualTo(PNG);
+            assertThat(comando.getValue().aplicarALaOrden()).isTrue();
+        }
+
+        @Test
+        @DisplayName("sin la casilla, el comando no aplica a la orden")
+        void sinLaCasilla() throws Exception {
+            ServiceReport reporte = unReporte();
+            when(serviceReportServicePort.signReceipt(any())).thenReturn(List.of(reporte));
+
+            mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo("data:image/png;base64," + Base64.getEncoder().encodeToString(PNG),
+                                    false)))
+                    .andExpect(status().isOk());
+
+            ArgumentCaptor<SignReceiptCommand> comando = ArgumentCaptor.forClass(SignReceiptCommand.class);
+            verify(serviceReportServicePort).signReceipt(comando.capture());
+            assertThat(comando.getValue().aplicarALaOrden()).isFalse();
+        }
+
+        @Test
+        @DisplayName("la casilla es opcional: sin ella, solo este reporte")
+        void sinLaCasillaEnElCuerpo() throws Exception {
+            ServiceReport reporte = unReporte();
+            when(serviceReportServicePort.signReceipt(any())).thenReturn(List.of(reporte));
+
+            mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"nombre\": \"Ana Pérez\", \"imagen\": \"data:image/png;base64,"
+                                    + Base64.getEncoder().encodeToString(PNG) + "\"}"))
+                    .andExpect(status().isOk());
+
+            ArgumentCaptor<SignReceiptCommand> comando = ArgumentCaptor.forClass(SignReceiptCommand.class);
+            verify(serviceReportServicePort).signReceipt(comando.capture());
+            assertThat(comando.getValue().aplicarALaOrden()).isFalse();
+        }
+
+        @Test
+        @DisplayName("una imagen que no llega como PNG se rechaza sin llegar al servicio")
+        void noEsPng() throws Exception {
+            // El mismo largo de prefijo y un base64 válido: lo que la rechaza es el prefijo y no otra cosa.
+            mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo("data:image/gif;base64," + Base64.getEncoder().encodeToString(PNG),
+                                    false)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_002"));
+
+            verify(serviceReportServicePort, never()).signReceipt(any());
+        }
+
+        @Test
+        @DisplayName("un base64 roto responde 400 sin llegar al servicio")
+        void base64Roto() throws Exception {
+            mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo("data:image/png;base64,%%%", false)))
+                    .andExpect(status().isBadRequest());
+
+            verify(serviceReportServicePort, never()).signReceipt(any());
+        }
+
+        @Test
+        @DisplayName("sin nombre no se firma: una firma sin nombre no dice quién firmó")
+        void sinNombre() throws Exception {
+            mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"nombre\": \" \", \"imagen\": \"data:image/png;base64,"
+                                    + Base64.getEncoder().encodeToString(PNG) + "\", \"aplicarALaOrden\": false}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("ERR_INVALID_DATA_002"));
+
+            verify(serviceReportServicePort, never()).signReceipt(any());
+        }
+
+        @Test
+        @DisplayName("un reporte ya firmado responde 409")
+        void yaFirmado() throws Exception {
+            when(serviceReportServicePort.signReceipt(any()))
+                    .thenThrow(new IllegalStateException("Este reporte ya tiene la firma de quien recibe"));
+
+            mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo("data:image/png;base64," + Base64.getEncoder().encodeToString(PNG),
+                                    false)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_003"));
+        }
+    }
+
     @Test
     @DisplayName("la respuesta trae solo los accesorios vigentes, en su orden, no los sustituidos")
     void soloLosAccesoriosVigentes() throws Exception {
@@ -459,8 +592,10 @@ class ServiceReportRestAdapterTest {
                 List.of(), new ReportDocument.Empresa("Ejemplo S.A.S.", null, null, null, null, "La garantía",
                         null, "FT-2", logo.huella()),
                 "Ana Pérez", firma.huella());
+        DocumentImage firmaRecibe =
+                new DocumentImage(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 3}, "image/png");
         when(serviceReportServicePort.document(eq(reporte.getId()), any()))
-                .thenReturn(new ReportDocumentView(reporte, documento, logo, firma, true));
+                .thenReturn(new ReportDocumentView(reporte, documento, logo, firma, firmaRecibe, true));
 
         mockMvc.perform(get("/v1/api/reports/" + reporte.getId() + "/document"))
                 .andExpect(status().isOk())
@@ -474,7 +609,8 @@ class ServiceReportRestAdapterTest {
                 .andExpect(jsonPath("$.empresa.huellaDelLogo").doesNotExist())
                 .andExpect(jsonPath("$.ingeniero").value("Ana Pérez"))
                 .andExpect(jsonPath("$.firmaIngeniero").value(firma.dataUri()))
-                .andExpect(jsonPath("$.huellaFirmaIngeniero").doesNotExist());
+                .andExpect(jsonPath("$.huellaFirmaIngeniero").doesNotExist())
+                .andExpect(jsonPath("$.firmaRecibe").value(firmaRecibe.dataUri()));
     }
 
     @Test
@@ -643,6 +779,7 @@ class ServiceReportRestAdapterTest {
         assertThat(docs).contains("/v1/api/reports/{id}/finish");
         assertThat(docs).contains("/v1/api/reports/{id}/intake");
         assertThat(docs).contains("/v1/api/reports/{id}/handover");
+        assertThat(docs).contains("/v1/api/reports/{id}/receipt-signature");
         assertThat(docs).contains("/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards");
         assertThat(docs).contains(
                 "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards/{idEquipoPatron}");

@@ -7,6 +7,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportH
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportIntakeRecordedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportOpenedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportPayload;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportReceiptSignedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardChosenEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardRemovedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStepMarkedEvent;
@@ -127,6 +128,9 @@ public class ServiceReport extends AggregateRoot {
      * del servicio: los reportes cerrados antes del 2026-10-17. Decidido por el usuario: que se sepa.
      */
     private boolean documentoTardio;
+
+    /** La firma de quien recibe (V39). Nula mientras no firme; una vez puesta no cambia. */
+    private ReceiptSignature firmaRecibe;
 
     /** Lo que cabe en la descripción de una intervención de la hoja de vida: {@code varchar(500)}. */
     static final int LARGO_DESCRIPCION_DEL_SERVICIO = 500;
@@ -363,6 +367,36 @@ public class ServiceReport extends AggregateRoot {
             boolean estadoActivo,
             ReportDocument documento,
             boolean documentoTardio) {
+        return rehydrate(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada, diagnostico, procedimientos,
+                observaciones, causa, repuestos, patrones, ingresoFisico, ingresoOperativo, accesorios, recibe,
+                resultado, finalizado, lecturas, pasos, estadoActivo, documento, documentoTardio, null);
+    }
+
+    /** La rehidratación completa desde V39: con la firma de quien recibe. */
+    public static ServiceReport rehydrate(
+            UUID id,
+            UUID idOrdenTrabajo,
+            UUID idEquipoCliente,
+            ReportState estado,
+            String fallaReportada,
+            String diagnostico,
+            String procedimientos,
+            String observaciones,
+            String causa,
+            String repuestos,
+            Collection<VerificationStandard> patrones,
+            IntakeCheck ingresoFisico,
+            IntakeCheck ingresoOperativo,
+            Collection<ReportAccessory> accesorios,
+            Handover recibe,
+            ServiceResult resultado,
+            LocalDateTime finalizado,
+            Collection<VerificationReading> lecturas,
+            Collection<ReportStep> pasos,
+            boolean estadoActivo,
+            ReportDocument documento,
+            boolean documentoTardio,
+            ReceiptSignature firmaRecibe) {
 
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
@@ -382,6 +416,7 @@ public class ServiceReport extends AggregateRoot {
         reporte.recibe = recibe;
         reporte.documento = documento;
         reporte.documentoTardio = documentoTardio;
+        reporte.firmaRecibe = firmaRecibe;
 
         return reporte;
     }
@@ -516,10 +551,14 @@ public class ServiceReport extends AggregateRoot {
 
     /**
      * Registra quién recibió el equipo, o lo corrige; con nulo lo borra (V31). Decirlo otra vez igual no
-     * emite evento.
+     * emite evento. Después de firmar ya no se cambia: el nombre es el de quien firmó.
      */
     public void recordHandover(Handover recibe) {
         exigirModificable("registrar quien recibe");
+        if (firmaRecibe != null) {
+            throw new IllegalStateException(
+                    "Quien recibe ya firmo: cambiar su nombre dejaria la firma de otra persona");
+        }
 
         if (Objects.equals(recibe, this.recibe)) {
             return;
@@ -824,6 +863,36 @@ public class ServiceReport extends AggregateRoot {
 
         this.documento = documento;
         this.documentoTardio = true;
+    }
+
+    /**
+     * Quien recibe el servicio firma el recibido (V39, RF-18): su nombre y la huella de la firma que dibujó.
+     *
+     * <p><b>Es lo único que se añade a un reporte cerrado</b>, decidido por el usuario: muchas veces el
+     * equipo se entrega después del cierre. Por eso no pasa por {@link #exigirModificable}, y por eso trae
+     * quién firma —un reporte cerrado ya no admite {@link #recordHandover}—. Lo que firma quien recibe es
+     * el recibido, no el contenido técnico, y ese sigue sin tocarse.
+     *
+     * <p>Una sola vez: firmado, no se cambia, ni la firma ni quién la puso. Un reporte retirado no se firma.
+     */
+    public void signReceipt(Handover recibe, String huellaFirma, LocalDateTime cuando) {
+        Objects.requireNonNull(recibe, "Una firma sin nombre no dice quien firmo");
+        if (!estadoActivo) {
+            throw new IllegalStateException("No se puede firmar el recibido de un reporte retirado");
+        }
+        if (firmaRecibe != null) {
+            throw new IllegalStateException("Este reporte ya tiene la firma de quien recibe, del " + firmaRecibe.firmada());
+        }
+
+        this.recibe = recibe;
+        this.firmaRecibe = new ReceiptSignature(huellaFirma, cuando);
+        registerEvent(new ServiceReportReceiptSignedEvent(
+                metadataFor(ServiceReportReceiptSignedEvent.TYPE), payload()));
+    }
+
+    /** Si quien recibe ya firmó. */
+    public boolean firmadoPorQuienRecibe() {
+        return firmaRecibe != null;
     }
 
     /**

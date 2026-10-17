@@ -44,6 +44,9 @@ public record ServiceReportResponse(
         List<ReportAccessoryResponse> accesorios,
         @Schema(description = "Quien recibio el equipo. Nulo mientras no se diga; desde V31")
         HandoverResponse recibe,
+        @Schema(description = "Cuando firmo quien recibe; nulo mientras no firme. La imagen viene en el"
+                + " informe; desde V39")
+        LocalDateTime firmadoRecibe,
         ServiceResult resultado,
         @Schema(description = "Cuando se cerro el reporte. Nulo mientras es borrador")
         LocalDateTime finalizado,

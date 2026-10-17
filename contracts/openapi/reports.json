@@ -360,6 +360,10 @@
             "description" : "La firma guardada del ingeniero, PNG como data: URI; nula si no tenia",
             "type" : "string"
           },
+          "firmaRecibe" : {
+            "description" : "La firma de quien recibe, PNG como data: URI; nula mientras no firme. Desde V39",
+            "type" : "string"
+          },
           "ingeniero" : {
             "description" : "Nombre completo del ingeniero de la orden; nulo si no tenia",
             "type" : "string"
@@ -545,6 +549,11 @@
             "format" : "date-time",
             "type" : "string"
           },
+          "firmadoRecibe" : {
+            "description" : "Cuando firmo quien recibe; nulo mientras no firme. La imagen viene en el informe; desde V39",
+            "format" : "date-time",
+            "type" : "string"
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -609,6 +618,39 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "SignReceiptRequest" : {
+        "properties" : {
+          "aplicarALaOrden" : {
+            "description" : "RF-21: la misma firma en los reportes de la orden que aun no tengan, abiertos o cerrados. Opcional; sin ella, solo este",
+            "type" : "boolean"
+          },
+          "cargo" : {
+            "example" : "Jefe de enfermeria",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "cedula" : {
+            "maxLength" : 20,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "imagen" : {
+            "description" : "PNG de hasta 256 KB como data: URI",
+            "example" : "data:image/png;base64,iVBORw0KGgo=",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "nombre" : {
+            "example" : "Ana Perez",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "imagen", "nombre" ],
         "type" : "object"
       },
       "UseReferenceStandardRequest" : {
@@ -1528,6 +1570,88 @@
           }
         },
         "summary" : "Registrar como llego el equipo",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/receipt-signature" : {
+      "patch" : {
+        "description" : "Quien recibe el servicio firma en la pantalla (RF-18), antes o despues de cerrar: es lo unico que se anade a un reporte cerrado. Una vez firmado no cambia. Con aplicarALaOrden la misma firma va a los reportes activos de la orden que aun no tengan (RF-21). Devuelve los reportes firmados, el pedido primero.",
+        "operationId" : "signReceipt",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SignReceiptRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ServiceReportResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Firmar el recibido",
         "tags" : [ "ServiceReport" ]
       }
     },

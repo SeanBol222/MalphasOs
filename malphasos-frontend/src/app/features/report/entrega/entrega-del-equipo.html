@@ -11,12 +11,12 @@
     A quién se entrega
   </h2>
   <form class="p-3" [formGroup]="formulario" (ngSubmit)="guardar()">
-    @if (registro.isError()) {
+    @if (registro.isError() || firmado.isError()) {
       <div class="mb-2 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
         <p class="font-semibold">{{ mensajeDeError() }}</p>
       </div>
     }
-    @if (!editable() && !recibe()?.nombre) {
+    @if (!editable() && !firmable() && !recibe()?.nombre) {
       <p class="text-neutral-700">No se registró quién recibió el equipo.</p>
     } @else {
       <div class="grid gap-2 md:grid-cols-3">
@@ -50,7 +50,7 @@
         </div>
       </div>
     }
-    @if (editable()) {
+    @if (registrable()) {
       @if (faltaElNombre()) {
         <p class="mt-1 font-semibold text-accent-700" role="alert">
           Falta el nombre: la cédula y el cargo solos no dicen quién recibió.
@@ -64,6 +64,57 @@
           <p class="font-semibold" role="status">Hay cambios sin guardar.</p>
         }
       </div>
+    }
+
+    @if (firmadoRecibe(); as cuando) {
+      <p class="mt-2 font-semibold" data-firmado>
+        Firmó el recibido el {{ fechaCorta(cuando) }}. Una firma no se cambia.
+      </p>
+    } @else if (firmable()) {
+      <!-- RF-18: quien recibe firma aquí, antes o después de cerrar el reporte. -->
+      <div class="mt-3 border-t border-neutral-300 pt-3" data-firmar>
+        <h3 class="font-bold">Firma de quien recibe</h3>
+        <p class="text-sm text-neutral-700">
+          Firma con el nombre de arriba. Se puede firmar también con el reporte ya cerrado; una vez
+          firmado, no se cambia.
+        </p>
+        <div class="mt-1 max-w-[600px]">
+          <app-lienzo-de-firma
+            etiqueta="Área para la firma de quien recibe"
+            (cambio)="alDibujar($event)"
+          />
+        </div>
+        <label class="mt-1 flex min-h-tactil items-center gap-1">
+          <input type="checkbox" data-aplicar-orden [formControl]="aplicarALaOrden" />
+          Aplicar esta firma a los demás reportes de la orden que aún no la tengan
+        </label>
+        @if (faltaQuienFirma()) {
+          <p class="mt-1 font-semibold text-accent-700" role="alert">
+            Escriba el nombre de quien firma.
+          </p>
+        }
+        @if (faltaTrazo()) {
+          <p class="mt-1 font-semibold text-accent-700" role="alert">
+            Dibuje la firma antes de guardarla.
+          </p>
+        }
+        <div class="mt-2">
+          <button
+            class="boton-primario min-h-tactil"
+            type="button"
+            data-boton-firmar
+            [disabled]="firmado.isPending()"
+            (click)="firmar()"
+          >
+            {{ firmado.isPending() ? 'Firmando…' : 'Firmar el recibido' }}
+          </button>
+        </div>
+      </div>
+    }
+    @if (firmados() > 1) {
+      <p class="mt-1 font-semibold" role="status">
+        Firmados {{ firmados() }} reportes de esta orden.
+      </p>
     }
   </form>
 </section>

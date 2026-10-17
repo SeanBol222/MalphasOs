@@ -361,6 +361,22 @@ describe('Documento del reporte', () => {
     expect(raiz().querySelector('[data-firma-ingeniero]')).toBeNull();
   });
 
+  it('firmado por quien recibe, su línea lleva la firma; sin firmar queda para firmar a mano', async () => {
+    // V39, 2026-10-17: quien recibe firma en la pantalla, antes o después de cerrar.
+    await abrir({}, { firmaRecibe: 'data:image/png;base64,UkVDSUJF' });
+
+    expect(
+      raiz().querySelector<HTMLImageElement>('[data-firma-recibe-trazo]')!.getAttribute('src'),
+    ).toBe('data:image/png;base64,UkVDSUJF');
+    expect(raiz().querySelector('[data-firma-ingeniero]')).toBeNull();
+  });
+
+  it('sin firma de quien recibe no hay imagen en su línea', async () => {
+    await abrir();
+
+    expect(raiz().querySelector('[data-firma-recibe-trazo]')).toBeNull();
+  });
+
   it('sin ingeniero en la orden, la línea lleva la raya', async () => {
     await abrir({}, { ingeniero: undefined });
 
