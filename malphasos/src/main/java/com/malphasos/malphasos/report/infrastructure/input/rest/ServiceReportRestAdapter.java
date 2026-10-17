@@ -12,6 +12,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.infrastructure.input.mapper.ServiceReportRestMapper;
@@ -21,6 +22,7 @@ import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordI
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordVerificationRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
+import com.malphasos.malphasos.report.infrastructure.input.model.request.SignReceiptRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.UseReferenceStandardRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ReportDocumentResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ServiceReportResponse;
@@ -29,6 +31,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +65,8 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Dos autoridades: consultar es {@code report.read} y todo lo demás {@code report.write}. No hay
  * una tercera para cerrar, y conviene decir por qué: quien llena el reporte es quien lo firma en
  * campo, de modo que separarlas describiría un reparto de trabajo que en esta empresa no existe. La
- * firma digital (RF-21) sí traerá la suya cuando llegue.
+ * firma de quien recibe (V39) tampoco trae la suya: firma en la pantalla de quien lleva el reporte.
+ * (Aquí decía que RF-21 «traerá la suya cuando llegue»; corregido el 2026-10-17, al construirla.)
  *
  * <p>Este grupo de OpenAPI —{@code reports}— apuntaba a un módulo que no existía desde que se
  * declaró: {@code pathsToMatch} no casaba con ninguna ruta y el grupo salía vacío sin avisar. Su
@@ -77,6 +81,9 @@ public class ServiceReportRestAdapter {
 
     private final ServiceReportServicePort serviceReportServicePort;
     private final ServiceReportRestMapper mapper;
+
+    /** Lo que produce el lienzo de firma: un PNG como data: URI. */
+    private static final String PREFIJO_PNG = "data:image/png;base64,";
 
     /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
     private final ReadScopeResolver readScopeResolver;
@@ -202,6 +209,30 @@ public class ServiceReportRestAdapter {
 
         return mapper.toResponse(serviceReportServicePort.recordHandover(
                 new RecordHandoverCommand(id, request.nombre(), request.cedula(), request.cargo())));
+    }
+
+    @Operation(summary = "Firmar el recibido",
+            description = "Quien recibe el servicio firma en la pantalla (RF-18), antes o despues de cerrar: es "
+                    + "lo unico que se anade a un reporte cerrado. Una vez firmado no cambia. Con aplicarALaOrden "
+                    + "la misma firma va a los reportes activos de la orden que aun no tengan (RF-21). Devuelve "
+                    + "los reportes firmados, el pedido primero.")
+    @PreAuthorize("hasAuthority('report.write')")
+    @PatchMapping("/{id}/receipt-signature")
+    public List<ServiceReportResponse> signReceipt(
+            @PathVariable UUID id, @Valid @RequestBody SignReceiptRequest request) {
+
+        if (!request.imagen().startsWith(PREFIJO_PNG)) {
+            throw new IllegalArgumentException("La firma tiene que llegar como " + PREFIJO_PNG + "...");
+        }
+        byte[] firma;
+        try {
+            firma = Base64.getDecoder().decode(request.imagen().substring(PREFIJO_PNG.length()));
+        } catch (IllegalArgumentException base64Roto) {
+            throw new IllegalArgumentException("La firma no es un base64 valido");
+        }
+
+        return mapper.toList(serviceReportServicePort.signReceipt(new SignReceiptCommand(
+                id, request.nombre(), request.cedula(), request.cargo(), firma, request.aplicaALaOrden())));
     }
 
     @Operation(summary = "Registrar la verificacion metrologica",

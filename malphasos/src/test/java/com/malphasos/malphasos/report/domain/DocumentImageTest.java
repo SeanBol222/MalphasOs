@@ -42,4 +42,31 @@ class DocumentImageTest {
 
         assertThat(imagen.contenido()).isEqualTo(SVG);
     }
+
+    @Test
+    @DisplayName("una firma es un PNG: se mira la cabecera de los bytes")
+    void firmaPng() {
+        byte[] png = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 1};
+
+        assertThat(DocumentImage.firma(png)).isEqualTo(new DocumentImage(png, "image/png"));
+        assertThatIllegalArgumentException().isThrownBy(() -> DocumentImage.firma(SVG))
+                .withMessageContaining("PNG");
+        // Más corta que la cabecera: no puede ser un PNG.
+        assertThatIllegalArgumentException().isThrownBy(() -> DocumentImage.firma(new byte[] {(byte) 0x89, 'P'}))
+                .withMessageContaining("PNG");
+        assertThatIllegalArgumentException().isThrownBy(() -> DocumentImage.firma(new byte[0]));
+        assertThatIllegalArgumentException().isThrownBy(() -> DocumentImage.firma(null));
+    }
+
+    @Test
+    @DisplayName("una firma pesa como mucho 256 KB, y justo eso cabe")
+    void firmaTamano() {
+        byte[] justa = new byte[DocumentImage.TAMANO_MAXIMO_FIRMA];
+        System.arraycopy(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'}, 0, justa, 0, 8);
+        byte[] pasada = java.util.Arrays.copyOf(justa, justa.length + 1);
+
+        assertThat(DocumentImage.firma(justa).contenido()).hasSize(256 * 1024);
+        assertThatIllegalArgumentException().isThrownBy(() -> DocumentImage.firma(pasada))
+                .withMessageContaining("máximo");
+    }
 }

@@ -26,7 +26,9 @@ public record ReportDocumentResponse(
         @Schema(description = "Nula si no habia empresa configurada") Empresa empresa,
         @Schema(description = "Nombre completo del ingeniero de la orden; nulo si no tenia") String ingeniero,
         @Schema(description = "La firma guardada del ingeniero, PNG como data: URI; nula si no tenia")
-        String firmaIngeniero) {
+        String firmaIngeniero,
+        @Schema(description = "La firma de quien recibe, PNG como data: URI; nula mientras no firme. Desde V39")
+        String firmaRecibe) {
 
     @Schema(name = "ReportDocumentOrden")
     public record Orden(
@@ -118,6 +120,7 @@ public record ReportDocumentResponse(
                         empresa.ciudad(), empresa.movil(), empresa.garantia(), empresa.aclaracion(),
                         empresa.codigoInforme(), vista.logo() == null ? null : vista.logo().dataUri()),
                 documento.ingeniero(),
-                vista.firmaIngeniero() == null ? null : vista.firmaIngeniero().dataUri());
+                vista.firmaIngeniero() == null ? null : vista.firmaIngeniero().dataUri(),
+                vista.firmaRecibe() == null ? null : vista.firmaRecibe().dataUri());
     }
 }

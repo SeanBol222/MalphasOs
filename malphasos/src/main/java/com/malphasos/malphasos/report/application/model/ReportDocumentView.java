@@ -12,11 +12,13 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
  *     vivo
  * @param logo nulo si no lleva
  * @param firmaIngeniero nula si el ingeniero no tenía firma guardada
+ * @param firmaRecibe nula mientras quien recibe no firme (V39)
  */
 public record ReportDocumentView(
         ServiceReport reporte,
         ReportDocument documento,
         DocumentImage logo,
         DocumentImage firmaIngeniero,
+        DocumentImage firmaRecibe,
         boolean congelado) {
 }

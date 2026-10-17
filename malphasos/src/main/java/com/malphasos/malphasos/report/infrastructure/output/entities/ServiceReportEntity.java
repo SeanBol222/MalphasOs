@@ -108,6 +108,13 @@ public class ServiceReportEntity {
     @Column(name = "b_documento_tardio", nullable = false)
     private boolean documentoTardio;
 
+    /** La firma de quien recibe, por su huella en imagen_documento, y cuándo se firmó (V39). */
+    @Column(name = "k_huella_firma_recibe")
+    private String huellaFirmaRecibe;
+
+    @Column(name = "f_firma_recibe")
+    private LocalDateTime firmaRecibe;
+
     @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<VerificationReadingEntity> lecturas = new ArrayList<>();
 

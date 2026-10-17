@@ -39,6 +39,8 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportReceiptSignedEvent;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
@@ -1350,6 +1352,163 @@ class ServiceReportServiceTest {
             assertThat(viejo.isDocumentoTardio()).isTrue();
             verify(serviceReportPersistencePort).save(viejo);
             verify(documentImageStorePort, never()).store(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("La firma de quien recibe (V39, 2026-10-17)")
+    class LaFirmaDeQuienRecibe {
+
+        private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 5};
+        private static final DocumentImage FIRMA = new DocumentImage(PNG, "image/png");
+        private static final Handover ANA = new Handover("Ana Pérez", "52123456", "Jefe de enfermeria");
+
+        private SignReceiptCommand firmar(ServiceReport reporte, boolean aplicarALaOrden) {
+            return new SignReceiptCommand(
+                    reporte.getId(), "Ana Pérez", "52123456", "Jefe de enfermeria", PNG, aplicarALaOrden);
+        }
+
+        private ServiceReport cerrado() {
+            return ServiceReport.rehydrate(UUID.randomUUID(), ORDEN, EQUIPO, ReportState.FINALIZADO, null, null,
+                    "Limpieza", null, null, null, List.of(), null, null, List.of(), null, ServiceResult.OPERATIVO,
+                    java.time.LocalDateTime.of(2026, 10, 1, 9, 0), List.of(), List.of(), true,
+                    UnDocumento.CUALQUIERA, false);
+        }
+
+        @Test
+        @DisplayName("firmar guarda la imagen una vez, apunta a ella por su huella y publica el hecho")
+        void firmar() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+            estubarGuardado();
+
+            List<ServiceReport> firmados = service.signReceipt(firmar(reporte, false));
+
+            assertThat(firmados).containsExactly(reporte);
+            assertThat(reporte.getRecibe()).isEqualTo(ANA);
+            assertThat(reporte.getFirmaRecibe().huella()).isEqualTo(FIRMA.huella());
+            verify(documentImageStorePort).store(FIRMA);
+            verify(eventDispatcherPort).dispatch(any(ServiceReportReceiptSignedEvent.class));
+            // Sin la casilla no se mira la orden.
+            verify(serviceReportPersistencePort, never()).findByWorkOrder(any());
+        }
+
+        @Test
+        @DisplayName("RF-21: con la casilla, firma los de la orden sin firma, abiertos o cerrados, y no los demás")
+        void aplicarALaOrden() {
+            ServiceReport pedido = unReporte();
+            ServiceReport abierto = unReporte();
+            ServiceReport cerradoSinFirma = cerrado();
+            ServiceReport yaFirmado = unReporte();
+            yaFirmado.signReceipt(new Handover("Luis Gómez", null, null), "b".repeat(64),
+                    java.time.LocalDateTime.of(2026, 10, 2, 8, 0));
+            ServiceReport retirado = unReporte();
+            retirado.deactivate();
+            estubarReporte(pedido);
+            estubarGuardado();
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN))
+                    .thenReturn(List.of(abierto, pedido, yaFirmado, cerradoSinFirma, retirado));
+
+            List<ServiceReport> firmados = service.signReceipt(firmar(pedido, true));
+
+            assertThat(firmados).containsExactly(pedido, abierto, cerradoSinFirma);
+            assertThat(List.of(pedido, abierto, cerradoSinFirma)).allSatisfy(firmado -> {
+                assertThat(firmado.getRecibe()).isEqualTo(ANA);
+                assertThat(firmado.getFirmaRecibe().huella()).isEqualTo(FIRMA.huella());
+                assertThat(firmado.getFirmaRecibe().firmada()).isEqualTo(pedido.getFirmaRecibe().firmada());
+            });
+            assertThat(yaFirmado.getFirmaRecibe().huella()).isEqualTo("b".repeat(64));
+            assertThat(yaFirmado.getRecibe().nombre()).isEqualTo("Luis Gómez");
+            assertThat(retirado.getFirmaRecibe()).isNull();
+            // Una imagen para los tres.
+            verify(documentImageStorePort).store(FIRMA);
+            verify(serviceReportPersistencePort, never()).save(yaFirmado);
+            verify(serviceReportPersistencePort, never()).save(retirado);
+        }
+
+        @Test
+        @DisplayName("si el pedido ya está firmado falla, aunque se aplique a la orden, y no guarda nada")
+        void pedidoYaFirmado() {
+            ServiceReport pedido = unReporte();
+            pedido.signReceipt(ANA, "b".repeat(64), java.time.LocalDateTime.of(2026, 10, 2, 8, 0));
+            ServiceReport otro = unReporte();
+            estubarReporte(pedido);
+            lenient().when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(pedido, otro));
+
+            assertThatThrownBy(() -> service.signReceipt(firmar(pedido, true)))
+                    .isInstanceOf(IllegalStateException.class);
+
+            assertThat(otro.getFirmaRecibe()).isNull();
+            verify(documentImageStorePort, never()).store(any());
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("una imagen que no es PNG se rechaza antes de guardar nada")
+        void noEsPng() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+
+            assertThatThrownBy(() -> service.signReceipt(new SignReceiptCommand(reporte.getId(), "Ana Pérez", null,
+                            null, "<svg/>".getBytes(java.nio.charset.StandardCharsets.UTF_8), false)))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThat(reporte.getFirmaRecibe()).isNull();
+            verify(documentImageStorePort, never()).store(any());
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("sin nombre no se firma")
+        void sinNombre() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+
+            assertThatThrownBy(() -> service.signReceipt(
+                            new SignReceiptCommand(reporte.getId(), " ", null, null, PNG, false)))
+                    .isInstanceOf(IllegalArgumentException.class);
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("el informe congelado trae la firma de quien recibe, leída por su huella")
+        void elInformeLaTrae() {
+            ServiceReport reporte = cerrado();
+            reporte.signReceipt(ANA, FIRMA.huella(), java.time.LocalDateTime.of(2026, 10, 3, 10, 0));
+            estubarReporte(reporte);
+            when(documentImageStorePort.find(FIRMA.huella())).thenReturn(Optional.of(FIRMA));
+
+            ReportDocumentView vista = service.document(reporte.getId(), ReadScope.unrestricted());
+
+            assertThat(vista.firmaRecibe()).isEqualTo(FIRMA);
+            assertThat(vista.congelado()).isTrue();
+        }
+
+        @Test
+        @DisplayName("el borrador, compuesto en vivo, también la trae")
+        void elBorradorLaTrae() {
+            ServiceReport reporte = unReporte();
+            reporte.signReceipt(ANA, FIRMA.huella(), java.time.LocalDateTime.of(2026, 10, 3, 10, 0));
+            estubarReporte(reporte);
+            EquipmentType tipo = unTipo(null, null, List.of());
+            estubarCadenaDelCatalogo(tipo);
+            when(reportDocumentComposer.compose(reporte, tipo))
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null, null));
+            when(documentImageStorePort.find(FIRMA.huella())).thenReturn(Optional.of(FIRMA));
+
+            ReportDocumentView vista = service.document(reporte.getId(), ReadScope.unrestricted());
+
+            assertThat(vista.firmaRecibe()).isEqualTo(FIRMA);
+            assertThat(vista.congelado()).isFalse();
+        }
+
+        @Test
+        @DisplayName("sin firmar, el informe no trae firma de quien recibe")
+        void sinFirmar() {
+            ServiceReport reporte = cerrado();
+            estubarReporte(reporte);
+
+            assertThat(service.document(reporte.getId(), ReadScope.unrestricted()).firmaRecibe()).isNull();
         }
     }
 }

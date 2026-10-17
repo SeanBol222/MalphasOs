@@ -3,6 +3,7 @@ package com.malphasos.malphasos.report.infrastructure.output.mapper;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReceiptSignature;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
@@ -125,7 +126,10 @@ public class ServiceReportPersistenceMapper {
                         .toList(),
                 entity.isEstadoActivo(),
                 entity.getDocumento() == null ? null : JSON.readValue(entity.getDocumento(), ReportDocument.class),
-                entity.isDocumentoTardio());
+                entity.isDocumentoTardio(),
+                entity.getHuellaFirmaRecibe() == null
+                        ? null
+                        : new ReceiptSignature(entity.getHuellaFirmaRecibe(), entity.getFirmaRecibe()));
     }
 
     private static IntakeCheck ingreso(String estado, String observacion) {
@@ -172,6 +176,9 @@ public class ServiceReportPersistenceMapper {
         entity.setEstadoActivo(reporte.isEstadoActivo());
         entity.setDocumento(reporte.getDocumento() == null ? null : JSON.writeValueAsString(reporte.getDocumento()));
         entity.setDocumentoTardio(reporte.isDocumentoTardio());
+        ReceiptSignature firma = reporte.getFirmaRecibe();
+        entity.setHuellaFirmaRecibe(firma == null ? null : firma.huella());
+        entity.setFirmaRecibe(firma == null ? null : firma.firmada());
 
         actualizarLecturasExistentes(reporte, entity);
         volcarPasos(reporte, entity);
