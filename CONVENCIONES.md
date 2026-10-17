@@ -120,6 +120,13 @@ Las cifras de arriba son el **número de elementos `<testcase>` de los XML de Su
 
 **Y el formato del reporte que la empresa ya entrega, decidido y construido el 2026-10-16** en seis tandas: número, ficha del patrón, patrones por verificación, ingreso y entrega, formato en el tipo de equipo y el documento imprimible. **El marcador tampoco se mueve**: RF-17 pide el PDF firmado. Quedaban tres preguntas al usuario, **contestadas ese mismo día** con el **diseño único del informe**: los formatos `MPx` se retiran, cerrar exige el ingreso, el código interno del patrón es único, el informe se congela al cerrar y **ningún dato de Bolívar Bioingeniería se queda en el código** —MalphasOS es un producto aparte y va a ser de código abierto—. Siete tandas por construir; ver [[hoja-de-ruta-producto]].
 
+**Y la versión 1.0.0, decidida el 2026-10-17**: lo que quedaba del diseño único, **la firma digital**
+—la del ingeniero guardada en su cuenta, la de quien recibe en pantalla, replicada por orden, y el PDF
+generado en el servidor, que es lo que cierra RF-17, RF-18 y RF-21— y **el despliegue de producción**,
+que no estaba listo: `localhost` compilado en el frontend, Keycloak en modo desarrollo, sin HTTPS ni
+respaldo. Ocho tandas; ver [[hoja-de-ruta-producto]]. (Anula «tres líneas para firmar a mano», de la
+víspera.)
+
 **Y la primera versión funcional, decidida el 2026-10-14 y construida hasta el 2026-10-16**: ejecutar una orden exige sus reportes cerrados, el reporte distingue el correctivo, y todo reporte con lecturas dice contra qué patrón se midió y si es conforme; el listado de órdenes, rehecho. Seis tandas y **el marcador no se mueve** —21—, porque ningún RF describe esos formatos. Ver [[hoja-de-ruta-producto]].
 
 **Después de eso quedaban dos caminos abiertos y sin dependencias entre sí**: los **protocolos** (RF-14, y detrás RF-13) —**construidos entre el 2026-10-10 y el 2026-10-11**, con el catálogo, la copia en el reporte, la lista de verificación y la sección de la hoja de vida— y la **firma digital** (RF-18 y RF-21, que abre el PDF de RF-17), **que es lo que queda**. (Decía tres: el tercero era «la hoja de vida como entidad», **construida el 2026-10-04 y no como entidad** —ver [[hoja-de-vida]]—.) El orden completo, en [[hoja-de-ruta-producto]].

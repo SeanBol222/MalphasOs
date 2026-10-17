@@ -1944,3 +1944,20 @@ quedan decididas, sin cerrarse hasta construirlas.
 
 **Tocadas**: [[hoja-de-ruta-producto]], [[dominio-reporte-servicio]], [[deuda-tecnica-y-riesgos]],
 [[decisiones-tecnicas-malphasos]], el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-17] query | la versión 1.0.0, decidida
+
+El usuario pidió cerrar lo necesario para la 1.0.0 y empezar producción. Revisado el despliegue antes
+de preguntar, **no está listo**: `localhost` compilado en el frontend, Keycloak en `start-dev` con el
+realm de desarrollo, sin HTTPS, sin respaldo y con RabbitMQ sin ningún uso. Decidió en dos rondas: un
+compose de producción genérico con Caddy, `pg_dump` diario, y **la firma digital dentro** —la del
+ingeniero guardada en su cuenta, la de quien recibe en pantalla y también después de cerrar, replicada
+como pide RF-21, y el PDF generado en el servidor—. **Eso deja sin efecto «tres líneas a mano»**, de la
+víspera; queda anotado en su fila. Ocho tandas, en [[hoja-de-ruta-producto]].
+
+Antes, ese mismo día: mergeadas la garantía y el número de la orden (`6d7d11e2`) y **cerrar exige el
+ingreso** (`6ab3030b`). Backend **1295** en 91 clases y frontend **702**, medidos sobre la rama de esa
+última antes del merge.
+
+**Tocadas**: [[hoja-de-ruta-producto]].
+
