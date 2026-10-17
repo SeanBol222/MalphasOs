@@ -228,3 +228,14 @@ cumplido, uno a medias, uno no—. **El marcador no se mueve: 21 de 31.** Y la E
 caducadas más, en RF-40 y RF-41, que [[estado-de-la-ers-caducado]] recoge: el `.tex` no se tocó.
 
 **Tocadas**: [[rf-alertas-calibracion]], [[estado-de-la-ers-caducado]].
+
+## [2026-10-16] ingest | el reporte se imprime, y RF-17 sigue previsto
+
+`malphasos/` construyó el formato del reporte que la empresa ya entrega, con un documento que se imprime
+o se guarda en PDF **desde el navegador**. [[rf-reportes-mantenimiento]] decía de RF-17 que no había
+código que produjera documentos: corregido. **RF-17 sigue previsto**, porque depende de RF-21 y pide el
+reporte firmado. [[rf-alertas-calibracion]] se matiza: el reporte copia ya varios patrones por
+verificación (`V30`), con su fecha de calibración (`V29`). **El marcador no se mueve: 21 de 31.** El
+`.tex` de la ERS no se tocó.
+
+**Tocadas**: [[rf-reportes-mantenimiento]], [[rf-alertas-calibracion]].

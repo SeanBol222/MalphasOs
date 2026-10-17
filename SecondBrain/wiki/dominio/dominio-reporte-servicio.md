@@ -1,6 +1,6 @@
 ---
 name: dominio-reporte-servicio
-description: El modulo de reportes de servicio de MalphasOS, backend completo el 2026-09-27 y frontend el 2026-09-28; uno por equipo de la orden, distinto por tipo de servicio desde el 2026-10-14 (correctivo, patron y conformidad), con sus seis reglas cruzadas, el choque de orden entre Hibernate y un indice unico parcial, y las cuatro pantallas que cierran RF-11
+description: El modulo de reportes de servicio de MalphasOS, backend completo el 2026-09-27 y frontend el 2026-09-28; uno por equipo de la orden, distinto por tipo de servicio desde el 2026-10-14 (correctivo, patron y conformidad), con el formato que la empresa entrega desde el 2026-10-16 (numero, patrones por verificacion, ingreso, entrega y el documento imprimible), con sus seis reglas cruzadas, el choque de orden entre Hibernate y un indice unico parcial, y las cuatro pantallas que cierran RF-11
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
@@ -185,6 +185,11 @@ sale del catálogo de [[dominio-equipo-mantenimiento]], cada verificación del t
 **tolerancia en su unidad**, y una lectura es **conforme si `|equipo − patrón| ≤ tolerancia`**, con el
 borde dentro —«±0,5» admite 0,5—.
 
+> **Corregido el 2026-10-16, por la noche: ya no es «el patrón» sino «los patrones de cada
+> verificación».** Los dos párrafos que siguen y el primer punto del cierre se escribieron con un patrón
+> por reporte, que es lo que `V27` guardaba. `V30` lo cambió el mismo día —ver «El formato que la empresa
+> ya entrega», abajo—. La copia y su razón siguen valiendo; lo que cambió es cuántos y dónde.
+
 **El reporte copia el patrón como estaba ese día** —nombre, marca, serie, certificado y vencimiento—,
 además de guardar su identificador. Renovar el certificado en el catálogo cambia la fila del patrón, y
 un reporte firmado tiene que seguir diciendo contra qué certificado se midió. Es
@@ -203,7 +208,8 @@ con la de hoy; si no, seguiría diciendo conforme con un criterio que ya no es e
 
 **Al cerrar**, el agregado exige dos cosas más, y las dos se deciden con lo que tiene delante:
 
-- **Con lecturas, un patrón.** Unas lecturas sin patrón no dicen contra qué se compararon. Sin lecturas
+- **Con lecturas, un patrón** —desde `V30`, **uno en cada verificación medida**—. Unas lecturas sin
+  patrón no dicen contra qué se compararon. Sin lecturas
   —un tipo que no se verifica, o un equipo fuera de servicio— no se pide.
 - **Un patrón vigente el día del cierre**, que es el día del servicio. El último día todavía vale: vence
   al terminar.
@@ -243,6 +249,79 @@ Desde el 2026-10-14 **una orden no se ejecuta con reportes abiertos**, y quien l
 `WorkOrderReportsPort` y este lo implementa con `WorkOrderReportsAdapter`: inversión de dependencias,
 igual que la hoja de vida. Ver [[dominio-orden-trabajo]].
 
+## El formato que la empresa ya entrega (2026-10-16)
+
+El usuario aportó **cuatro informes reales** de la empresa —una balanza, un oxímetro, un
+termohigrómetro y una pedalera, en `Documentation/raw/`, **sin versionar**: llevan datos personales de un
+cliente real, y ningún nombre ni dato de ellos se usa en código, pruebas ni base de desarrollo—, y
+eligió entre tres diseños el **C**: el informe de siempre, con una gráfica de error y su banda de
+tolerancia. Construirlo pedía datos que el reporte no guardaba, y entraron en seis tandas, todas con sus
+decisiones tomadas por el usuario:
+
+| Tanda | Commits | Qué trae |
+|---|---|---|
+| El número | `0e4012ae` · `42e7c793` | `V28`: los seis primeros caracteres del identificador, en mayúsculas —`1DC6F5`— |
+| La ficha del patrón | `2487351f` · `19db813c` | `V29`: modelo, código interno, rango, resolución, calibración y empresa calibradora |
+| Patrones por verificación | `9f769654` · `cfa6b24f` | `V30`: varios patrones en cada verificación, con la ficha copiada |
+| Ingreso y entrega | `6a588034` · `521ebab2` | `V31`: las dos verificaciones al ingreso, los accesorios y quién recibe |
+| El formato en el tipo | `deabd70b` · `042970e4` | `V32`: `BB-ING-MP0`, `MP1` o `MP2`, que elige el tipo de equipo |
+| El documento | `85bc3303` · `ac44e406` · `3ddfc3a1` | `/reportes/:id/documento`, imprimible desde el navegador |
+
+**El número es un prefijo, como un commit de git**, y no un consecutivo: el usuario lo pidió así. Git
+alarga el prefijo cuando dos commits lo comparten; aquí no se puede, porque el número va impreso en un
+documento firmado. **Lo resuelve quien abre el reporte**: si el prefijo ya está tomado, genera otro
+identificador —`conNumeroLibre`, con un número de intentos acotado— y un índice único de `V28` lo
+garantiza. **No es parcial**: un reporte retirado conserva su número.
+
+**Varios patrones por verificación**, porque una balanza se verifica con tres juegos de pesas y un
+termohigrómetro con un patrón de temperatura y otro de humedad. Al cerrar se exige **un patrón vigente
+en cada verificación con lecturas**, y el mensaje nombra la magnitud que falta. Quitar un patrón
+**retira** la fila y volver a ponerlo **la reactiva** en vez de insertar otra: así nunca compiten dos
+filas activas por el mismo sitio en un vaciado de Hibernate, que es la trampa de siempre con un índice
+parcial. `V30` repartió el patrón de `V27` entre las verificaciones de las que el reporte tenía lecturas,
+retiradas incluidas.
+
+**Al ingreso, dos filas fijas en todo reporte** —estado de la estructura física y estado operativo—,
+cada una conforme, no conforme o no aplica, y **«no conforme» exige observación**: sin ella el reporte
+dice que algo estaba mal y no qué. Más **una lista libre de accesorios**, que se sustituye entera al
+guardarla. **Quién recibe el equipo es texto libre** —nombre, cédula y cargo—, porque muchas veces no
+está registrado en el sistema. Ninguna de las tres cosas se exige para cerrar: es una pregunta abierta,
+no una decisión.
+
+**El formato lo elige el tipo de equipo**: `MP0` para los que no se verifican —una sola página—, y `MP1`
+o `MP2` para los que sí. `EquipmentType.chooseReportFormat` rechaza la combinación que no sirve, y
+**declarar o retirar verificaciones ajusta el formato solo** si deja de servir. **Qué distingue `MP1` de
+`MP2` no se sabe todavía**: los cuatro informes son `MP0` y `MP2`. Se imprimen igual.
+
+### El documento: se compone, no se guarda
+
+`/reportes/:id/documento` pinta el informe en hojas carta y se imprime o se guarda en PDF **desde el
+navegador**, como la hoja de vida. **No es una entidad ni guarda nada**: se compone con el reporte, su
+orden y la hoja de vida del equipo, que ya trae cliente, ficha técnica, responsable del área y membrete.
+
+- **Página 1**: banda con el número y un QR que lleva al documento, resultado, fechas y conteo de
+  conformes; cliente, equipo, tipo de servicio, ingreso y accesorios, protocolo, relato, aclaración y
+  tres firmas —ingeniero, supervisor, quien recibe—.
+- **Página 2**, solo en `MP1` y `MP2`: la trazabilidad de los patrones con la ficha copiada, y por cada
+  verificación su tabla y **la gráfica de error con la banda de tolerancia**, con la lectura fuera de la
+  banda en rojo. Cierra con el texto de garantía de la empresa.
+
+**Lo que se deriva en vez de guardarse**: el **supervisor** es el encargado del área —decisión del
+usuario—; el **próximo servicio** es la fecha más la periodicidad de la orden en meses de calendario, con
+el último día del mes si no existe —31 de agosto más seis meses es el último de febrero—; y la casilla
+de **verificación metrológica** se marca sola si hay lecturas. **Un reporte cerrado** lleva su fecha de
+cierre y el ingeniero congelado en la hoja de vida; **un borrador**, la fecha programada y la marca de
+agua «BORRADOR».
+
+**Lo que no queda congelado, y conviene saberlo**: cliente, equipo y responsable salen de la hoja de vida
+**de hoy**, así que el documento de un reporte cerrado cambia si cambian esos datos. Lo que el propio
+reporte congela —lecturas, patrones, tolerancia, ingeniero— sí sale congelado. Congelar el resto es
+trabajo del PDF del servidor, cuando llegue la firma. Anotado en [[deuda-tecnica-y-riesgos]], con el texto
+de garantía fijo en el código y la página 2 que, con muchas lecturas, se partiría en una tercera hoja
+diciendo «Página 2 de 2».
+
+**No sube el marcador**: RF-17 pide el PDF **firmado**, y eso sigue esperando a RF-18 y RF-21.
+
 ## Las seis reglas que viven en el servicio
 
 El esquema sostiene una sola de las cruzadas, y ni esa entera: la foránea compuesta ve que la fila del puente **existe**, no que siga **activa**. Las seis están en `ServiceReportService`:
@@ -255,6 +334,12 @@ El esquema sostiene una sola de las cruzadas, y ni esa entera: la foránea compu
 | No hay ya un reporte vivo para ese par | Lo impide el índice único parcial, pero el servicio lo convierte en una frase que **dice cuál es el reporte que estorba** |
 | Las lecturas cuadran con el tipo | **Cinco** comprobaciones desde el 2026-10-03: que el tipo se verifique, que la lectura señale una **verificación activa** de ese tipo, que el punto sea activo **de esa verificación**, que el número no pase de las lecturas que **esa verificación** declara, y que la unidad salga de ella. Eran cuatro y se razonaban por tipo, porque un tipo tenía una sola modalidad |
 | Al cerrar, la verificación está completa | Exige recorrer las verificaciones del tipo y sus puntos, que están en otro módulo. **Y es más estricta que antes**: se exige por verificación, de modo que un termohigrómetro con las dos magnitudes variables ya no se puede cerrar con una lectura de temperatura y ninguna de humedad |
+
+**Desde el 2026-10-16, una más**: un patrón se pone en una **verificación activa del tipo del
+equipo**, que está a cuatro saltos del reporte y por eso la foránea de `V30` es simple. Reutiliza la
+misma guarda que las lecturas. Y el servicio **repite** al cerrar la exigencia de patrón por verificación
+que el agregado ya impone, solo para que el mensaje diga «temperatura» y no un identificador: no es una
+regla nueva sino una frase mejor.
 
 **Una orden ya `EJECUTADA` sí admite abrir reportes**, y es deliberado: en este negocio se va a la sede y se registra después. Lo que no se admite es reportar antes de empezar.
 
@@ -329,7 +414,8 @@ El backend distingue el nulo —«no lo cambies»— del blanco —«bórralo»�
 
 > **Corregido el 2026-09-28.** Esta nota decía que RF-11 **no** se cerraba, y era cierto el día que se escribió: el backend garantizaba que esos datos no se pudieran teclear y que no discreparan, pero el requisito dice que el reporte los «muestra» y no había pantalla. Ahora la ficha trae un bloque de **datos del servicio** con cliente, sede, servicio, fecha, ingeniero y encargado de la sede, **leídos de la orden y no copiados**, y **sin un solo control que editar** — que es además lo que RNF-07 pide de lo autocompletado. Hay una prueba que cuenta los controles del formulario y falla si alguno de esos datos aparece como campo.
 
-**Desde el 2026-10-10 cierra también RF-13 y RF-14**, con los protocolos —ver arriba y [[hoja-de-ruta-producto]]—. (Este párrafo decía que seguían fuera porque los protocolos no existían: cierto hasta ese día.) **Sigue fuera RF-17**, el PDF, que depende de la firma digital.
+**Desde el 2026-10-10 cierra también RF-13 y RF-14**, con los protocolos —ver arriba y [[hoja-de-ruta-producto]]—. (Este párrafo decía que seguían fuera porque los protocolos no existían: cierto hasta ese día.) **Sigue fuera RF-17**, el PDF, que depende de la firma digital. (Desde el 2026-10-16 el documento se
+imprime desde el navegador, y **no lo cierra**: el requisito pide el PDF firmado.)
 
 **Y el historial de un equipo no es RF-26.** Esa pantalla responde «qué se le ha hecho a este aparato», que es la consulta sobre la que se construirá la hoja de vida; RF-26 y RF-27 piden el historial **dentro de** una hoja de vida que todavía no existe como entidad.
 

@@ -38,6 +38,10 @@ verifica un equipo y qué salió al verificarlo, no cuándo caduca su calibraci�
 > serie, su **certificado** y la **fecha de vencimiento** de ese certificado, y cada reporte con lecturas
 > **copia** el patrón que se usó tal como estaba ese día —migración `V27`—. Lo que sigue sin existir es
 > **quien vigile la fecha**.
+>
+> **Matizado el mismo día, por la noche**: desde `V30` un reporte no copia *un* patrón sino **varios por
+> cada verificación medida**, y desde `V29` cada patrón guarda también su **fecha de calibración** y la
+> empresa que lo calibró. No cambia el estado de RF-40 ni el de RF-41.
 
 ## Cómo queda cada criterio de aceptación de RF-40
 
