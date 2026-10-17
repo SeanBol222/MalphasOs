@@ -88,17 +88,4 @@ class CompanyLogoTest {
         assertThat(logo.contenido()).isEqualTo(PNG);
         assertThat(logo).isEqualTo(CompanyLogo.of(PNG));
     }
-
-    @Test
-    @DisplayName("la huella es el SHA-256 de sus bytes: igual para dos logos iguales, distinta si cambia uno")
-    void huella() {
-        assertThat(CompanyLogo.of(PNG).huella())
-                .hasSize(64)
-                .matches("[0-9a-f]+")
-                .isEqualTo(CompanyLogo.of(PNG.clone()).huella())
-                .isNotEqualTo(CompanyLogo.of(JPEG).huella());
-        // Calculado fuera de Java, con sha256sum: si la huella cambiara de algoritmo o de forma, esto cae.
-        assertThat(CompanyLogo.of(texto("<svg/>")).huella())
-                .isEqualTo("d4dc56669143034f31aa309635d4113d9ad76a02b1739da22c965ed2049be9e6");
-    }
 }

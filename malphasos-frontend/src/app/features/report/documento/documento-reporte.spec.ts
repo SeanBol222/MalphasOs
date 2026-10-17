@@ -346,6 +346,21 @@ describe('Documento del reporte', () => {
     expect(texto('[data-firma-profesional]')).toBe('Ana Ruiz');
   });
 
+  it('con la firma guardada del ingeniero, la línea la lleva; sin ella queda para firmar a mano', async () => {
+    // V38, 2026-10-17: la firma vive en la cuenta del ingeniero y el informe la copia al cerrar.
+    await abrir({}, { firmaIngeniero: 'data:image/png;base64,iVBORw0KGgo=' });
+
+    expect(
+      raiz().querySelector<HTMLImageElement>('[data-firma-ingeniero]')!.getAttribute('src'),
+    ).toBe('data:image/png;base64,iVBORw0KGgo=');
+  });
+
+  it('sin firma guardada no hay imagen en la línea del profesional', async () => {
+    await abrir();
+
+    expect(raiz().querySelector('[data-firma-ingeniero]')).toBeNull();
+  });
+
   it('sin ingeniero en la orden, la línea lleva la raya', async () => {
     await abrir({}, { ingeniero: undefined });
 

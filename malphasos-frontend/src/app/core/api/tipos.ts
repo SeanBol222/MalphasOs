@@ -525,4 +525,7 @@ export function sePuedeCerrar(
  * edita. El logo viaja como data: URI.
  */
 export type Empresa = compania['schemas']['ServiceCompanyResponse'];
+
+/** La firma de quien llama, que copian los informes que cierra (V38, 2026-10-17). */
+export type MiFirma = personas['schemas']['PersonSignatureResponse'];
 export type DatosDeEmpresa = compania['schemas']['ServiceCompanyRequest'];

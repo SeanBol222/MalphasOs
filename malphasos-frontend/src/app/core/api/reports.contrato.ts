@@ -388,6 +388,8 @@ export interface components {
             /** @description Nula si no habia empresa configurada */
             empresa?: components["schemas"]["ReportDocumentEmpresa"];
             equipo?: components["schemas"]["ReportDocumentEquipo"];
+            /** @description La firma guardada del ingeniero, PNG como data: URI; nula si no tenia */
+            firmaIngeniero?: string;
             /** @description Nombre completo del ingeniero de la orden; nulo si no tenia */
             ingeniero?: string;
             orden?: components["schemas"]["ReportDocumentOrden"];

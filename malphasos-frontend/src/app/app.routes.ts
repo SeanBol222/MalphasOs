@@ -113,6 +113,13 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('work-order.write')],
       },
       {
+        // La firma de quien tiene la sesión (V38, 2026-10-17): no es una entrada del menú sino del pie,
+        // junto a su nombre. Guardarla pide report.write, la de quien cierra reportes.
+        path: 'mi-firma',
+        loadComponent: () => import('./features/person/firma/mi-firma').then((m) => m.MiFirma),
+        canActivate: [requiereAutoridad('report.write')],
+      },
+      {
         // Las cuatro altas de persona son la misma pantalla con la clase en la ruta, como el alta de un
         // equipo. Y cada una exige SU autoridad, que es la escalera del backend: la gente de la casa
         // -ingenieros y administradores- va por super.person.write y la del cliente por person.write.

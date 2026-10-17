@@ -259,6 +259,32 @@
         },
         "type" : "object"
       },
+      "PersonSignatureRequest" : {
+        "properties" : {
+          "imagen" : {
+            "description" : "PNG de hasta 256 KB como data: URI",
+            "example" : "data:image/png;base64,iVBORw0KGgo=",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "imagen" ],
+        "type" : "object"
+      },
+      "PersonSignatureResponse" : {
+        "properties" : {
+          "actualizada" : {
+            "description" : "Cuando se guardo",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "imagen" : {
+            "description" : "PNG como data: URI",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PersonUpdateRequest" : {
         "properties" : {
           "cedula" : {
@@ -814,6 +840,174 @@
         },
         "summary" : "Registrar un ingeniero",
         "tags" : [ "Person" ]
+      }
+    },
+    "/v1/api/persons/me/signature" : {
+      "get" : {
+        "description" : "404 si todavia no la he guardado.",
+        "operationId" : "get",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonSignatureResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "502" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Gateway"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Mi firma",
+        "tags" : [ "PersonSignature" ]
+      },
+      "patch" : {
+        "description" : "La sustituye si ya habia una. Los informes ya cerrados conservan la que copiaron.",
+        "operationId" : "save",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PersonSignatureRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonSignatureResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "502" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Gateway"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Guardar mi firma",
+        "tags" : [ "PersonSignature" ]
       }
     },
     "/v1/api/persons/{id}" : {
@@ -1703,6 +1897,9 @@
   }, {
     "description" : "Correos de una persona",
     "name" : "Person emails"
+  }, {
+    "description" : "La firma de quien llama, que copian los informes que cierra",
+    "name" : "PersonSignature"
   }, {
     "description" : "Gestion de personas",
     "name" : "Person"

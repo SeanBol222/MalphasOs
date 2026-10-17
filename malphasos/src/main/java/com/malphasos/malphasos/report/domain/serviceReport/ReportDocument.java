@@ -21,6 +21,8 @@ import java.util.UUID;
  * @param version la forma de este documento, por si un día cambia lo que se copia
  * @param empresa nula si al componerlo no había empresa configurada: el informe sale sin membrete
  * @param ingeniero el nombre completo del ingeniero de la orden; nulo si la orden no tenía
+ * @param huellaFirmaIngeniero la firma que el ingeniero tenía guardada (V38), por su huella; nula si no
+ *     tenía ninguna, y entonces la línea se firma a mano
  */
 public record ReportDocument(
         int version,
@@ -29,7 +31,8 @@ public record ReportDocument(
         Equipo equipo,
         List<Verificacion> verificaciones,
         Empresa empresa,
-        String ingeniero) {
+        String ingeniero,
+        String huellaFirmaIngeniero) {
 
     public static final int VERSION = 1;
 

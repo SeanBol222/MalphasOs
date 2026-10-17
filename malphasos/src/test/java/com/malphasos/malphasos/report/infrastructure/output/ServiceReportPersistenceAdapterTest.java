@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.tuple;
 
 import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
-import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
@@ -25,6 +24,7 @@ import com.malphasos.malphasos.equipment.infrastructure.output.MetrologyCatalogP
 import com.malphasos.malphasos.equipment.infrastructure.output.ModelPersistenceAdapter;
 import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
+import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
@@ -79,7 +79,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM accesorio_reporte",
             "DELETE FROM protocolo",
             "DELETE FROM reporte_servicio",
-            "DELETE FROM logo_documento",
+            "DELETE FROM imagen_documento",
             "DELETE FROM equipo_patron",
             "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
@@ -258,7 +258,7 @@ class ServiceReportPersistenceAdapterTest {
     @DisplayName("El informe congelado (V37)")
     class ElInformeCongelado {
 
-        @Autowired private DocumentLogoStoreAdapter logos;
+        @Autowired private DocumentImageStoreAdapter logos;
 
         private static final UUID VERIFICACION = UUID.randomUUID();
         private static final UUID PUNTO = UUID.randomUUID();
@@ -274,7 +274,8 @@ class ServiceReportPersistenceAdapterTest {
                             List.of(new ReportDocument.Punto(PUNTO, new BigDecimal("10.5000"))))),
                     new ReportDocument.Empresa("Ejemplo S.A.S.", null, null, null, null, "Garantía", null, "FT-2",
                             "a".repeat(64)),
-                    "Ana Pérez");
+                    "Ana Pérez",
+                    "b".repeat(64));
         }
 
         private ServiceReport cerrado(ReportDocument documento) {
@@ -351,12 +352,13 @@ class ServiceReportPersistenceAdapterTest {
         @Test
         @DisplayName("cada versión del logo se guarda una vez, y se recupera por su huella")
         void elLogo() {
-            CompanyLogo logo = CompanyLogo.of(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 9});
+            DocumentImage logo =
+                    new DocumentImage(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 9}, "image/png");
 
             logos.store(logo);
-            logos.store(CompanyLogo.of(logo.contenido()));
+            logos.store(new DocumentImage(logo.contenido(), "image/png"));
 
-            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM logo_documento", Integer.class))
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM imagen_documento", Integer.class))
                     .isEqualTo(1);
             assertThat(logos.find(logo.huella())).contains(logo);
             assertThat(logos.find("b".repeat(64))).isEmpty();

@@ -1,11 +1,8 @@
 package com.malphasos.malphasos.company.domain.serviceCompany;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Locale;
 
 /**
@@ -57,18 +54,6 @@ public record CompanyLogo(byte[] contenido, String tipo) {
     /** El logo como {@code data:} URI, que es como lo pintan los documentos. */
     public String dataUri() {
         return "data:" + tipo + ";base64," + Base64.getEncoder().encodeToString(contenido);
-    }
-
-    /**
-     * La huella SHA-256 de sus bytes, en hexadecimal. Dos logos iguales tienen la misma: es lo que
-     * permite guardar cada versión una sola vez aunque la congelen mil informes (2026-10-17).
-     */
-    public String huella() {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(contenido));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("La JVM no trae SHA-256, que el estándar exige", e);
-        }
     }
 
     private static String tipoDe(byte[] contenido) {

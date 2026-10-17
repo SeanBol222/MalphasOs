@@ -5,8 +5,10 @@ import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataExcept
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
+import com.malphasos.malphasos.person.domain.exception.PersonSignatureNotFoundException;
 import com.malphasos.malphasos.person.infrastructure.input.rest.EmailPersonRestAdapter;
 import com.malphasos.malphasos.person.infrastructure.input.rest.PersonRestAdapter;
+import com.malphasos.malphasos.person.infrastructure.input.rest.PersonSignatureRestAdapter;
 import com.malphasos.malphasos.person.infrastructure.input.rest.PhonePersonRestAdapter;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +33,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
         assignableTypes = {
             PersonRestAdapter.class,
             EmailPersonRestAdapter.class,
-            PhonePersonRestAdapter.class
+            PhonePersonRestAdapter.class,
+            PersonSignatureRestAdapter.class
         })
 public class PersonControllerAdvice {
 
@@ -39,6 +42,13 @@ public class PersonControllerAdvice {
     @ExceptionHandler(PersonNotFoundException.class)
     public PersonErrorResponse handlePersonNotFound(PersonNotFoundException ex) {
         return PersonErrorResponse.of(PersonErrorCatalog.PERSON_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** Quien llama todavía no ha guardado su firma (V38). */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(PersonSignatureNotFoundException.class)
+    public PersonErrorResponse handleSignatureNotFound(PersonSignatureNotFoundException ex) {
+        return PersonErrorResponse.of(PersonErrorCatalog.SIGNATURE_NOT_FOUND, List.of(ex.getMessage()));
     }
 
     /**

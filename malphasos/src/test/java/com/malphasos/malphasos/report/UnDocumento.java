@@ -19,6 +19,7 @@ public final class UnDocumento {
                     null, null, null, null, null, null),
             List.of(),
             null,
+            null,
             null);
 
     private UnDocumento() {

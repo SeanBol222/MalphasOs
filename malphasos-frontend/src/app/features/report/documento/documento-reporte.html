@@ -242,7 +242,20 @@
 
         <section class="rs-firmas" aria-label="Firmas">
           <div>
-            <div class="rs-firmas__linea"></div>
+            <!--
+              La firma guardada del ingeniero (V38, 2026-10-17), congelada al cerrar, en el hueco que la
+              línea deja para firmar. Sin ella, ese hueco queda para firmar a mano.
+            -->
+            <div class="rs-firmas__linea">
+              @if (informe.data()?.firmaIngeniero; as firma) {
+                <img
+                  class="rs-firmas__trazo"
+                  data-firma-ingeniero
+                  [src]="firma"
+                  alt="Firma del profesional"
+                />
+              }
+            </div>
             <strong data-firma-profesional>{{ ingeniero() }}</strong
             >&ngsp;
             <span>Profesional de servicio</span>

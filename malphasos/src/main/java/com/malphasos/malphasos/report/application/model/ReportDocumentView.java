@@ -1,6 +1,6 @@
 package com.malphasos.malphasos.report.application.model;
 
-import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
+import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 
@@ -11,7 +11,12 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
  * @param congelado si el documento es el que se copió al cerrar; falso en un borrador, que lo compone en
  *     vivo
  * @param logo nulo si no lleva
+ * @param firmaIngeniero nula si el ingeniero no tenía firma guardada
  */
 public record ReportDocumentView(
-        ServiceReport reporte, ReportDocument documento, CompanyLogo logo, boolean congelado) {
+        ServiceReport reporte,
+        ReportDocument documento,
+        DocumentImage logo,
+        DocumentImage firmaIngeniero,
+        boolean congelado) {
 }
