@@ -44,9 +44,16 @@ export function reporte(cambios: Partial<ReporteDeServicio> = {}): ReporteDeServ
   };
 }
 
-/** Un reporte al que solo le falta cerrarse: tiene los dos campos que el cierre exige. */
+/** Las dos verificaciones al ingreso, conformes: todo reporte las exige para cerrar desde el 2026-10-16. */
+export const INGRESO: Pick<ReporteDeServicio, 'ingresoFisico' | 'ingresoOperativo'> = {
+  ingresoFisico: { estado: 'CONFORME' },
+  ingresoOperativo: { estado: 'CONFORME' },
+};
+
+/** Un reporte al que solo le falta cerrarse: tiene lo que el cierre exige. */
 export function reporteCerrable(cambios: Partial<ReporteDeServicio> = {}): ReporteDeServicio {
   return reporte({
+    ...INGRESO,
     procedimientos: 'Limpieza y calibracion',
     resultado: 'OPERATIVO',
     ...cambios,

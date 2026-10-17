@@ -261,6 +261,8 @@ class ServiceReportPersistenceAdapterTest {
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.fill("No enciende", "Fuente quemada", "Cambio de fuente", "Queda en prueba",
                     "Sobretension", "Fuente 12 V", ServiceResult.OPERATIVO_CON_RESTRICCIONES);
+            reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
+                    new IntakeCheck(IntakeState.CONFORME, null), List.of());
             reporte.finish();
             adapter.save(reporte);
 
@@ -560,6 +562,8 @@ class ServiceReportPersistenceAdapterTest {
         private ServiceReport cerrado(Alcance alcance) {
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+            reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
+                    new IntakeCheck(IntakeState.CONFORME, null), List.of());
             reporte.finish();
 
             return reporte;
@@ -679,6 +683,8 @@ class ServiceReportPersistenceAdapterTest {
             adapter.save(reporte);
 
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+            reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
+                    new IntakeCheck(IntakeState.CONFORME, null), List.of());
             reporte.finish();
             adapter.save(reporte);
 

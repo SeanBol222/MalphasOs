@@ -177,6 +177,9 @@ class ServiceReportServiceTest {
 
     private static ServiceReport unReporte() {
         ServiceReport reporte = ServiceReport.open(ORDEN, EQUIPO);
+        // Cerrar exige el ingreso desde el diseño único del informe; lo que se prueba aquí es lo demás.
+        reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
+                new IntakeCheck(IntakeState.CONFORME, null), List.of());
         reporte.pullEvents();
 
         return reporte;

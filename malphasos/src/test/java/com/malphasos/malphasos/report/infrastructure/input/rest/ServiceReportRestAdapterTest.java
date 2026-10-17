@@ -446,6 +446,8 @@ class ServiceReportRestAdapterTest {
     void cerrar() throws Exception {
         ServiceReport reporte = unReporte();
         reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+        reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
+                new IntakeCheck(IntakeState.CONFORME, null), List.of());
         reporte.finish();
         when(serviceReportServicePort.finish(any())).thenReturn(reporte);
 

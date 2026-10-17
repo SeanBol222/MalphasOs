@@ -3,6 +3,8 @@ package com.malphasos.malphasos.report.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
@@ -23,12 +25,16 @@ import org.junit.jupiter.api.Test;
  */
 class ServiceReportStepsTest {
 
+    private static final IntakeCheck CONFORME = new IntakeCheck(IntakeState.CONFORME, null);
+
     private static ReportStep paso(int orden, String nombre) {
         return ReportStep.copied(orden, UUID.randomUUID(), nombre, "Descripción de " + nombre, null);
     }
 
     private static ServiceReport conPasos(ReportStep... pasos) {
         ServiceReport reporte = ServiceReport.open(UUID.randomUUID(), UUID.randomUUID(), List.of(pasos));
+        // Cerrar exige el ingreso desde el diseño único del informe; estas pruebas son de los pasos.
+        reporte.recordIntake(CONFORME, CONFORME, List.of());
         reporte.pullEvents();
 
         return reporte;

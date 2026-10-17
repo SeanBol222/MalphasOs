@@ -36,6 +36,7 @@ import {
 } from '../../../../testing/catalogo';
 import {
   ID_REPORTE,
+  INGRESO,
   reporte,
   reporteCerrable,
   urlCerrarReporte,
@@ -326,7 +327,7 @@ describe('Ficha de un reporte de servicio', () => {
 
       expect(botonCerrar().disabled).toBe(true);
       expect(texto()).toContain('Falla reportada');
-      expect(texto()).toContain('hacen falta la falla reportada, el diagnóstico');
+      expect(texto()).toContain('hacen falta las verificaciones al ingreso, la falla reportada');
     });
 
     it('con falla y diagnóstico guardados se puede cerrar', async () => {
@@ -475,12 +476,12 @@ describe('Ficha de un reporte de servicio', () => {
     });
 
     it('el panel cuenta los pasos, y con todos marcados y resultado se cierra sin trabajo adicional', async () => {
-      await abrir(conPasos({ resultado: 'OPERATIVO' }));
+      await abrir(conPasos({ ...INGRESO, resultado: 'OPERATIVO' }));
 
       expect(panel()).toContain('Protocolo: 0 de 2 pasos');
-      // El avance cuenta lo marcado del protocolo, no solo si esta completo: aqui ningun paso y el
-      // resultado son la mitad.
-      expect(panel()).toContain('50 %');
+      // El avance cuenta lo marcado del protocolo, no solo si esta completo: aqui ningun paso, y el
+      // ingreso y el resultado listos, son dos de tres.
+      expect(panel()).toContain('67 %');
       const cerrar = () =>
         [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Cerrar reporte')!;
       expect(cerrar().disabled).toBe(true);
@@ -489,15 +490,19 @@ describe('Ficha de un reporte de servicio', () => {
     it('el avance cuenta los pasos marcados, no solo el protocolo completo', async () => {
       // Con dos de tres pasos el panel decia 0 %: un requisito incompleto contaba como nada. Este caso
       // es el que separa las dos formulas, porque con cero pasos marcados las dos dan lo mismo.
-      await abrir(conPasos({ resultado: 'OPERATIVO', pasos: [{ ...PASOS[0], estado: 'HECHO' }, PASOS[1]] }));
+      await abrir(
+        conPasos({ ...INGRESO, resultado: 'OPERATIVO', pasos: [{ ...PASOS[0], estado: 'HECHO' }, PASOS[1]] }),
+      );
 
-      expect(panel()).toContain('75 %');
+      // Ingreso y resultado enteros, el protocolo a medias: dos y medio de tres.
+      expect(panel()).toContain('83 %');
     });
 
     it('con todos los pasos marcados, sin texto escrito, deja cerrar', async () => {
       // Es la regla de V22: con pasos el texto es opcional. Antes de ella este reporte no se cerraba.
       await abrir(
         conPasos({
+          ...INGRESO,
           resultado: 'OPERATIVO',
           pasos: [
             { ...PASOS[0], estado: 'HECHO' },
@@ -533,10 +538,21 @@ describe('Ficha de un reporte de servicio', () => {
     it('cuenta lo que falta de lo que el servidor exige, y lo dice en palabras', async () => {
       await abrir(reporte({ procedimientos: 'Limpieza' }));
 
-      expect(panel()).toContain('50 %');
+      // Uno de tres: el ingreso y el resultado faltan.
+      expect(panel()).toContain('33 %');
+      expect(panel()).toContain('Verificaciones al ingreso');
       expect(panel()).toContain('Procedimientos');
       expect(panel()).toContain('(listo)');
       expect(panel()).toContain('(falta)');
+    });
+
+    it('sin las verificaciones al ingreso no deja cerrar, aunque tenga todo lo demás', async () => {
+      // 2026-10-16, con el diseño único del informe: el servidor lo rechazaría.
+      await abrir(reporteCerrable({ ingresoFisico: undefined, ingresoOperativo: undefined }));
+
+      expect(panel()).toContain('67 %');
+      const cerrar = [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Cerrar reporte')!;
+      expect(cerrar.disabled).toBe(true);
     });
 
     it('con lo exigido guardado llega al 100 % y deja cerrar', async () => {
@@ -657,10 +673,10 @@ describe('Ficha de un reporte de servicio', () => {
           estado: 'HECHO' as const,
         },
       ];
-      await abrir(reporte({ pasos, resultado: 'OPERATIVO', lecturas: [lectura(true)] }));
+      await abrir(reporte({ ...INGRESO, pasos, resultado: 'OPERATIVO', lecturas: [lectura(true)] }));
 
-      // Pasos y resultado listos, el patrón no: dos de tres partes.
-      expect(panel()).toContain('67 %');
+      // Ingreso, pasos y resultado listos, el patrón no: tres de cuatro partes.
+      expect(panel()).toContain('75 %');
     });
 
     it('operativo con una lectura fuera de tolerancia lo advierte, sin impedirlo', async () => {
@@ -707,7 +723,9 @@ describe('Ficha de un reporte de servicio', () => {
       (b.textContent ?? '').includes('Cerrar reporte'),
     )!;
     expect(cerrar.disabled).toBe(true);
-    expect(texto()).toContain('Para cerrarlo hacen falta los procedimientos y el resultado');
+    expect(texto()).toContain(
+      'Para cerrarlo hacen falta las verificaciones al ingreso, los procedimientos y el resultado',
+    );
   });
 
   it('con los dos campos, cerrar pide confirmación y avisa de que no se podrá modificar', async () => {

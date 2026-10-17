@@ -487,6 +487,11 @@ export function sePuedeCerrar(
     return false;
   }
 
+  // Desde el 2026-10-16, como en el servidor: todo reporte exige las dos verificaciones al ingreso.
+  if (!reporte.ingresoFisico || !reporte.ingresoOperativo) {
+    return false;
+  }
+
   // Desde el 2026-10-14, como en el servidor: un correctivo exige además la falla y el diagnóstico.
   if (esCorrectivo && (!reporte.fallaReportada?.trim() || !reporte.diagnostico?.trim())) {
     return false;
