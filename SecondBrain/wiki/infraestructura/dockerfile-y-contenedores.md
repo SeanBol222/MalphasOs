@@ -1,9 +1,9 @@
 ---
 name: dockerfile-y-contenedores
-description: Cómo se contenedorizan el backend y, desde el 2026-10-04, el frontend — build en dos etapas, usuario sin privilegios, healthcheck real vía Actuator y nginx sin proxy
+description: Cómo se contenedorizan el backend y, desde el 2026-10-04, el frontend — build en dos etapas, usuario sin privilegios, healthcheck real vía Actuator y nginx sin proxy — y, desde el 2026-10-17, Gotenberg, que convierte el informe en PDF
 tags: [infraestructura, docker, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/Dockerfile (original), malphasos/Dockerfile y malphasos-frontend/Dockerfile (MalphasOS)
-updated: 2026-10-04
+updated: 2026-10-17
 ---
 
 # Dockerfile y contenedores
@@ -60,6 +60,25 @@ Tres detalles **comprobados contra el contenedor en marcha**, no solo escritos e
 `V13` horas después de mergear `V14`, porque nadie lo había reconstruido. Con todo en contenedores, **lo
 que hay en `main` y lo que corre son dos cosas**, y se igualan con `docker compose up -d --build`, no
 con un merge.
+
+## Gotenberg, el que convierte el informe en PDF (2026-10-17)
+
+RF-17 pide el informe en PDF, y se decidió generarlo **en el servidor** con la versión 1.0.0. El backend
+compone el informe en una plantilla HTML —`templates/informe.html`, con Thymeleaf— y se lo manda a
+**Gotenberg**, que es Chromium sin pantalla detrás de un API. Va en el compose como `gotenberg`:
+
+- **Versión fijada**, `gotenberg/gotenberg:8.38.1`, la misma que usa su prueba con Testcontainers: el PDF
+  depende del Chromium que trae, y una imagen que cambia sola cambiaría los informes.
+- **Sin puertos publicados**: solo lo llama el backend, por la red interna, en `GOTENBERG_URL`.
+  Convertir HTML arbitrario con un navegador no es algo que deba poder hacer nadie de fuera.
+- **Healthcheck con `curl`**, que la imagen trae, y el backend espera a que esté sano para arrancar.
+- **Unos 700 MB de imagen.** Es el precio de que el diseño viva en un solo sitio.
+- **La fuente va dentro del HTML**, como `data:`: el contenedor no sale a internet a buscarla.
+
+El cliente HTTP lo construye el propio adaptador, con plazos —5 s para conectar, 60 s para leer—: Spring
+Boot 4 sacó el `RestClient.Builder` autoconfigurado a un módulo que este proyecto no usa, y sin plazos un
+Gotenberg colgado deja colgada la petición. Si no responde, el API contesta **503** con
+`ERR_SERVICE_REPORT_010`, que la pantalla traduce.
 
 ## Reutilizable en MalphasOS
 

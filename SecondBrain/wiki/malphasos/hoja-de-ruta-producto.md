@@ -565,7 +565,7 @@ queda en el frontend: RF-17 no la pide.
 | 3 | **El informe congelado al cerrar** | Antes de empezar se enseña al usuario qué se copia. **Hecho** el 2026-10-17 (`V37`, merge `417e90b2`); los cerrados antes se congelan al arrancar, marcados como tardíos |
 | 4 | **La firma del ingeniero en su cuenta** | Tabla nueva y «Mi firma». **Hecha** el 2026-10-17 (`V38`): `/persons/me/signature`, la persona sale del token. Una cuenta sin fila en `persona` —el SuperUsuario— **no puede tener firma** |
 | 5 | **La firma de quien recibe y su réplica** | RF-18 y RF-21. **Hecha** el 2026-10-17 (`V39`): `PATCH /reports/{id}/receipt-signature`, antes o después de cerrar; firmar registra también quién firma, y después ya no se cambia ni la firma ni el nombre. La casilla firma los reportes **activos** de la orden sin firma; la imagen se guarda una vez en `imagen_documento` |
-| 6 | **El PDF en el servidor** | RF-17 |
+| 6 | **El PDF en el servidor** | RF-17. **Hecho** el 2026-10-17: `GET /reports/{id}/pdf`, con la plantilla del informe en Thymeleaf y Gotenberg en el compose. La pantalla del documento muestra ese PDF y lo exporta; la plantilla de Angular, su hoja de estilos y la gráfica **se retiraron**, y sus pruebas pasaron al backend. La hoja de vida se sigue imprimiendo desde el navegador |
 | 7 | **Producción**: configuración del frontend al arrancar, compose de producción con Caddy, Keycloak en `start` con un realm sin usuarios ni secretos, fuera RabbitMQ, respaldo y guía de despliegue | |
 | 8 | **1.0.0**: versiones, `CHANGELOG`, pasada de los dos wikis y de la ERS, y el tag cuando el usuario lo diga | El marcador subiría a **24** |
 

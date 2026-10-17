@@ -2025,3 +2025,35 @@ Backend **1413** en 107 clases y frontend **744**, medidos en la rama. Mutacione
 nada lo notara— hasta escribir su prueba.
 
 **Tocadas**: [[hoja-de-ruta-producto]].
+
+## [2026-10-17] ingest | el informe en PDF, en el servidor
+
+Tanda 6 de la 1.0.0: RF-17. El informe se compone en el backend —`ReportSheetComposer` traduce el informe
+congelado y el reporte a una hoja ya dicha como en el papel— y lo pinta `templates/informe.html` con
+Thymeleaf; **Gotenberg** lo convierte, en el compose, sin puertos publicados. `GET /reports/{id}/pdf` lo
+sirve en línea con su nombre, con el mismo alcance que el reporte; un borrador sale marcado. La pantalla
+`/reportes/:id/documento` muestra ese PDF y lo exporta. **La plantilla de Angular, su hoja de estilos y la
+gráfica se retiraron**, y sus casos de prueba se portaron al backend: el diseño vive en un solo sitio.
+
+**Tres hallazgos antes de commitear.** Uno solo en el navegador: el botón descargaba «informe.pdf»,
+porque el navegador oculta `Content-Disposition` entre orígenes si el CORS no la expone, y el simulador
+HTTP de las pruebas no aplica CORS. Es la misma familia que el CORS que faltaba el 2026-09-26. Otro por
+una mutación: el `replace(".", "")` de la fecha corta era código muerto —Java ya abrevia «oct» sin punto
+en es-CO—. Y Spring Boot 4 ya no autoconfigura `RestClient.Builder`: el adaptador construye el suyo, con
+plazos.
+
+**Y una lección sobre el arnés de mutaciones.** Una espera en segundo plano buscaba «FIN» en la salida y
+casó con «FINALIZADO»: creyó terminada una tanda que seguía, y se lanzó otra sobre el mismo `target/`.
+Las dos se pisaron, una mutación quedó aplicada en el código con su copia de seguridad también mutada, y
+**el `cmp` contra la copia no lo detectó**, porque comparaba dos archivos igual de rotos. Se encontró
+comprobando cada línea mutada a mano, y se repitió todo lo contaminado en primer plano. Dos reglas: una
+espera tiene que casar con una marca que no pueda aparecer en otra parte, y **dos tandas no comparten
+`target/` nunca**.
+
+Backend **1465** en 112 clases y frontend **710** —salen las pruebas del documento de Angular y entran
+las del visor—, medidos en la rama. Mutaciones: 37 en el backend, más las de la garantía en blanco y el
+CORS; mueren todas salvo dos equivalentes, anotadas en el código —el `double` del eje sin tolerancia y
+`preferCssPageSize`, cuyo valor por defecto en Gotenberg también es carta—. Dos sobrevivían de verdad
+hasta escribir su prueba: el orden de las medidas y la garantía en blanco. En el frontend, 8 de 8.
+
+**Tocadas**: [[hoja-de-ruta-producto]], [[dockerfile-y-contenedores]].
