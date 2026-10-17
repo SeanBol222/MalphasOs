@@ -2088,3 +2088,27 @@ Backend **1465** en 112 clases y frontend **714**, medidos en la rama. Mutacione
 configuración: 5 de 5.
 
 **Tocadas**: [[hoja-de-ruta-producto]], [[docker-compose]].
+
+## [2026-10-17] ingest | la versión 1.0.0
+
+Tanda 8: las versiones a `1.0.0` —el backend, el frontend y el tema—, un `CHANGELOG.md` con lo que trae y
+lo que no, y la pasada de los dos wikis y de la ERS. **El marcador sube de 21 a 24 de 31** con RF-17,
+RF-18 y RF-21, recontado criterio por criterio, y **la ERS se puso al día**: sus marcas decían ocho
+implementados, los de su primera revisión del 2 de septiembre. Ver el log de `Documentation/wiki/`.
+
+**Medido sobre `3ed5418e`**, el merge de producción, borrando los informes antes: backend **1465** en
+112 clases y frontend **714** en 59 archivos, todo en verde. La deuda propia, con su receta: **95 filas,
+43 tachadas, 52 abiertas** —la 1.0.0 cerró siete y abrió una—.
+
+**Y el repaso de la deuda destapó una regresión de la tanda 6.** La fila «la página 2 del reporte no sabe
+partirse» decía que con muchas lecturas el navegador seguía en una tercera hoja. Al llevar el informe al
+servidor, la hoja quedó con altura fija y `overflow: hidden`: **lo que no cabía se recortaba del PDF sin
+avisar**. Una prueba con sesenta lecturas contra Gotenberg daba dos hojas —la mitad de las lecturas,
+fuera— y falló contra ese código; con altura mínima da tres. Ninguna prueba lo veía porque los informes
+de prueba caben en dos hojas: **un cambio de `min-height` a `height` es justo la clase de diferencia que
+una prueba de contenido no ve y una de páginas sí**.
+
+**El tag `v1.0.0` no se ha puesto**: lo pone el usuario.
+
+**Tocadas**: [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]], [[index]]; y el `CONVENCIONES.md` de
+la raíz —el estado, las migraciones hasta `V39`, las cifras, el módulo `company`, que faltaba en su tabla—.
