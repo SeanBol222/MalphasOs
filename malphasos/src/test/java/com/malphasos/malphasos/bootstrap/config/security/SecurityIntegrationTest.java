@@ -412,7 +412,8 @@ class SecurityIntegrationTest {
     @DisplayName("el endpoint de salud es publico, para que el contenedor pueda consultarlo")
     void healthEndpointIsPublic() throws Exception {
         // Lo que importa aqui es que la seguridad no lo bloquee. El estado que reporte depende del
-        // entorno: en pruebas no hay RabbitMQ, asi que responde 503 con toda razon. Que distinga
+        // entorno: mientras hubo RabbitMQ -hasta el 2026-10-17-, en pruebas respondia 503 con toda
+        // razon, porque no habia broker. Que distinga
         // entre "el proceso vive" y "sus dependencias responden" es justamente el motivo de usar
         // Actuator en vez de una comprobacion de puerto abierto.
         int status = mockMvc.perform(get("/actuator/health")).andReturn().getResponse().getStatus();

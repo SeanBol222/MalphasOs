@@ -39,12 +39,6 @@ spring:
       hibernate:
         format_sql: true
 
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:malphasos}
-    password: ${RABBITMQ_PASSWORD:cambiame}
-
   # Resource server. Se declaran dos URL distintas a proposito:
   #
   #   issuer-uri  es la URL PUBLICA del realm, la que Keycloak escribe en el claim "iss" de cada
@@ -115,8 +109,8 @@ management:
         include: health
   endpoint:
     health:
-      # Un cliente anonimo solo ve {"status":"UP"}; el desglose por componente (base de datos,
-      # RabbitMQ) requiere estar autenticado.
+      # Un cliente anonimo solo ve {"status":"UP"}; el desglose por componente (base de datos y
+      # espacio en disco) requiere estar autenticado.
       show-details: when-authorized
       probes:
         enabled: true
