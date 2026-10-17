@@ -924,6 +924,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar reportes de una orden o de un equipo",
@@ -987,6 +997,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Avance de los reportes por orden",
@@ -1066,6 +1086,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Abrir el reporte de un equipo de una orden",
@@ -1128,6 +1158,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Retirar un reporte",
@@ -1194,6 +1234,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener un reporte por su identificador",
@@ -1271,6 +1321,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar la informacion tecnica (RF-15)",
@@ -1340,6 +1400,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "El informe de un reporte",
@@ -1409,6 +1479,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Cerrar el reporte",
@@ -1488,6 +1568,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar quien recibe el equipo",
@@ -1567,9 +1657,99 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar como llego el equipo",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/pdf" : {
+      "get" : {
+        "description" : "RF-17: el mismo informe, compuesto en el servidor y convertido por Gotenberg. Un borrador sale marcado como tal. Con el mismo alcance que el reporte.",
+        "operationId" : "getPdf",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/pdf" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "El PDF"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "El informe de un reporte en PDF",
         "tags" : [ "ServiceReport" ]
       }
     },
@@ -1649,6 +1829,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Firmar el recibido",
@@ -1736,6 +1926,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Marcar un paso del protocolo",
@@ -1815,6 +2015,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar la verificacion metrologica",
@@ -1902,6 +2112,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Poner un patron en una verificacion",
@@ -1980,6 +2200,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Quitar un patron de una verificacion",

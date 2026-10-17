@@ -29,6 +29,9 @@ import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.ports.output.DocumentImageStorePort;
+import com.malphasos.malphasos.report.application.ports.output.ReportPdfPort;
+import com.malphasos.malphasos.report.application.model.ReportPdf;
+import com.malphasos.malphasos.report.application.model.ReportSheet;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.ReportDocumentComposer;
 import com.malphasos.malphasos.report.application.services.serviceReport.ServiceReportService;
@@ -82,6 +85,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -116,6 +120,7 @@ class ServiceReportServiceTest {
     @Mock private ReferenceStandardServicePort referenceStandardServicePort;
     @Mock private ReportDocumentComposer reportDocumentComposer;
     @Mock private DocumentImageStorePort documentImageStorePort;
+    @Mock private ReportPdfPort reportPdfPort;
 
     @InjectMocks private ServiceReportService service;
 
@@ -1509,6 +1514,71 @@ class ServiceReportServiceTest {
             estubarReporte(reporte);
 
             assertThat(service.document(reporte.getId(), ReadScope.unrestricted()).firmaRecibe()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("El informe en PDF (RF-17, 2026-10-17)")
+    class ElPdf {
+
+        @Test
+        @DisplayName("un cerrado se convierte desde su copia congelada, con su firma, y se llama por su número")
+        void cerrado() {
+            DocumentImage firma = new DocumentImage(
+                    new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 8}, "image/png");
+            ServiceReport reporte = ServiceReport.rehydrate(UUID.randomUUID(), ORDEN, EQUIPO, ReportState.FINALIZADO,
+                    null, null, "Limpieza", null, null, null, List.of(), null, null, List.of(), null,
+                    ServiceResult.OPERATIVO, java.time.LocalDateTime.of(2026, 10, 1, 9, 0), List.of(), List.of(), true,
+                    UnDocumento.CUALQUIERA, false);
+            reporte.signReceipt(new Handover("Ana Pérez", null, null), firma.huella(),
+                    java.time.LocalDateTime.of(2026, 10, 2, 9, 0));
+            estubarReporte(reporte);
+            when(documentImageStorePort.find(firma.huella())).thenReturn(Optional.of(firma));
+            byte[] bytes = "%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+            when(reportPdfPort.render(any())).thenReturn(bytes);
+
+            ReportPdf pdf = service.pdf(reporte.getId(), ReadScope.unrestricted());
+
+            assertThat(pdf.nombre()).isEqualTo("informe-" + reporte.numero() + ".pdf");
+            assertThat(pdf.contenido()).isEqualTo(bytes);
+            ArgumentCaptor<ReportSheet> hoja = ArgumentCaptor.forClass(ReportSheet.class);
+            verify(reportPdfPort).render(hoja.capture());
+            assertThat(hoja.getValue().borrador()).isFalse();
+            assertThat(hoja.getValue().numero()).isEqualTo(reporte.numero());
+            assertThat(hoja.getValue().firmas().firmaRecibe()).isEqualTo(firma.dataUri());
+            // Congelado: no se compone nada en vivo.
+            verify(reportDocumentComposer, never()).compose(any(), any());
+        }
+
+        @Test
+        @DisplayName("un borrador se compone en vivo y sale marcado como borrador")
+        void borrador() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+            EquipmentType tipo = unTipo(null, null, List.of());
+            estubarCadenaDelCatalogo(tipo);
+            when(reportDocumentComposer.compose(reporte, tipo))
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null, null));
+            when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+
+            service.pdf(reporte.getId(), ReadScope.unrestricted());
+
+            ArgumentCaptor<ReportSheet> hoja = ArgumentCaptor.forClass(ReportSheet.class);
+            verify(reportPdfPort).render(hoja.capture());
+            assertThat(hoja.getValue().borrador()).isTrue();
+        }
+
+        @Test
+        @DisplayName("con alcance acotado, el reporte de otro cliente no existe y no se convierte")
+        void otroCliente() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+            WorkOrder orden = unaOrdenEnEjecucion();
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(orden);
+
+            assertThatThrownBy(() -> service.pdf(reporte.getId(), ReadScope.ofClients(List.of(UUID.randomUUID()))))
+                    .isInstanceOf(ServiceReportNotFoundException.class);
+            verify(reportPdfPort, never()).render(any());
         }
     }
 }

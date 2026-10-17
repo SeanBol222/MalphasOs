@@ -2,6 +2,7 @@ package com.malphasos.malphasos.report.application.ports.input;
 
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
@@ -88,6 +89,12 @@ public interface ServiceReportServicePort {
      * Con el mismo alcance que el propio reporte.
      */
     ReportDocumentView document(UUID id, ReadScope alcance);
+
+    /**
+     * El informe en PDF (RF-17), compuesto en el servidor desde lo mismo que {@link #document}: el congelado
+     * si está cerrado, el de ahora si es un borrador, que sale marcado como tal.
+     */
+    ReportPdf pdf(UUID id, ReadScope alcance);
 
     /**
      * Congela, con los datos de hoy, los reportes cerrados antes de que el informe se congelara, y los

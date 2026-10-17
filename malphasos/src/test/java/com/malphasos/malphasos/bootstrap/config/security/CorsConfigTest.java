@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.bootstrap.config.security;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -84,6 +85,15 @@ class CorsConfigTest {
                 .andExpect(header().string("Access-Control-Allow-Headers", "Authorization"))
                 // Y no se piden cookies: el token va en la cabecera. Misma razon que CSRF apagado.
                 .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
+    }
+
+    @Test
+    @DisplayName("la respuesta deja leer Content-Disposition: es el nombre del PDF del informe")
+    void elNombreDelPdfSeLee() throws Exception {
+        // Sin ella, el navegador oculta la cabecera entre orígenes y el PDF se descargaba como «informe.pdf».
+        mockMvc.perform(get("/v1/api/reports/" + java.util.UUID.randomUUID() + "/pdf")
+                        .header("Origin", ORIGEN_PERMITIDO))
+                .andExpect(header().string("Access-Control-Expose-Headers", "Content-Disposition"));
     }
 
     @Test

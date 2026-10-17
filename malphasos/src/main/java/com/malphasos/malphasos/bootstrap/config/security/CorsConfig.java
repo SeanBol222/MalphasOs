@@ -46,6 +46,15 @@ public class CorsConfig {
     private static final List<String> CABECERAS = List.of("Authorization", "Content-Type");
 
     /**
+     * Cabeceras de la respuesta que el navegador deja leer al frontend, además de las básicas.
+     *
+     * <p>{@code Content-Disposition} trae el nombre del PDF del informe (2026-10-17). Sin exponerla, el
+     * navegador la oculta en una petición entre orígenes y el botón descargaba «informe.pdf». Ninguna
+     * prueba del frontend lo veía, porque el simulador de HTTP no aplica CORS: apareció en el navegador.
+     */
+    private static final List<String> CABECERAS_EXPUESTAS = List.of("Content-Disposition");
+
+    /**
      * Cuánto puede el navegador guardar la respuesta al preflight, en segundos.
      *
      * <p>Sin esto, <b>cada escritura cuesta dos viajes</b> en lugar de uno, y los umbrales de dos
@@ -75,6 +84,7 @@ public class CorsConfig {
         politica.setAllowedOrigins(origenesPermitidos);
         politica.setAllowedMethods(VERBOS);
         politica.setAllowedHeaders(CABECERAS);
+        politica.setExposedHeaders(CABECERAS_EXPUESTAS);
         politica.setMaxAge(CACHE_DEL_PREFLIGHT);
 
         UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
