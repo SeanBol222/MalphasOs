@@ -89,6 +89,26 @@ export interface paths {
         patch: operations["fill"];
         trace?: never;
     };
+    "/v1/api/reports/{id}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * El informe de un reporte
+         * @description Lo que imprime de la orden, el cliente, el equipo y la empresa: congelado al cerrar, compuesto en vivo si es borrador. Con el mismo alcance que el reporte.
+         */
+        get: operations["getDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/reports/{id}/finish": {
         parameters: {
             query?: never;
@@ -303,6 +323,90 @@ export interface components {
             observacion?: string;
             /** Format: int32 */
             orden?: number;
+        };
+        ReportDocumentCliente: {
+            area?: string;
+            ciudadSede?: string;
+            correos?: string[];
+            direccionSede?: string;
+            documento?: string;
+            nombre?: string;
+            responsables?: string[];
+            sede?: string;
+            telefonos?: string[];
+        };
+        ReportDocumentEmpresa: {
+            aclaracion?: string;
+            ciudad?: string;
+            codigoInforme?: string;
+            direccion?: string;
+            garantia?: string;
+            /** @description El logo como data: URI; nulo si no lleva */
+            logo?: string;
+            movil?: string;
+            nit?: string;
+            nombre?: string;
+        };
+        ReportDocumentEquipo: {
+            alimentacion?: string;
+            amperaje?: number;
+            codigoInterno?: string;
+            /** Format: int32 */
+            frecuencia?: number;
+            marca?: string;
+            modelo?: string;
+            numeroHojaVida?: string;
+            numeroInventario?: string;
+            /** Format: int32 */
+            potencia?: number;
+            /** @description Clase de riesgo: I, IIA, IIB o III; nula si no se sabe */
+            riesgo?: string;
+            serie?: string;
+            tecnologia?: string;
+            tipo?: string;
+            uso?: string;
+            /** Format: int32 */
+            voltaje?: number;
+        };
+        ReportDocumentOrden: {
+            /** Format: date */
+            fechaProgramada?: string;
+            garantia?: boolean;
+            numero?: string;
+            periodicidad?: string;
+            tipoServicio?: string;
+        };
+        ReportDocumentPunto: {
+            /** Format: uuid */
+            id?: string;
+            valor?: number;
+        };
+        ReportDocumentResponse: {
+            cliente?: components["schemas"]["ReportDocumentCliente"];
+            /** @description Si es la copia hecha al cerrar; falso en un borrador, que se compone en vivo */
+            congelado?: boolean;
+            /** @description Nula si no habia empresa configurada */
+            empresa?: components["schemas"]["ReportDocumentEmpresa"];
+            equipo?: components["schemas"]["ReportDocumentEquipo"];
+            /** @description Nombre completo del ingeniero de la orden; nulo si no tenia */
+            ingeniero?: string;
+            orden?: components["schemas"]["ReportDocumentOrden"];
+            /** @description Si se congelo despues del cierre, con los datos de ese dia: reportes cerrados antes de que el informe se congelara */
+            tardio?: boolean;
+            /** @description Las verificaciones del tipo del equipo, en su orden */
+            verificaciones?: components["schemas"]["ReportDocumentVerificacion"][];
+        };
+        ReportDocumentVerificacion: {
+            /**
+             * Format: int32
+             * @description Lecturas por punto; nula si la modalidad no las fija
+             */
+            cantidadDatos?: number;
+            /** Format: uuid */
+            id?: string;
+            magnitud?: string;
+            puntos?: components["schemas"]["ReportDocumentPunto"][];
+            unidad?: string;
         };
         ReportStepResponse: {
             descripcion?: string;
@@ -813,6 +917,64 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ServiceReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    getDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReportDocumentResponse"];
                 };
             };
             /** @description Bad Request */

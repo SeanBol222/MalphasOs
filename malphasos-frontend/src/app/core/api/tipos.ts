@@ -392,6 +392,12 @@ export type NuevaLectura = reportes['schemas']['VerificationReadingRequest'];
  */
 export type PatronUsado = reportes['schemas']['UsedReferenceStandardResponse'];
 
+/**
+ * Lo que el informe imprime y no es del reporte: la orden, el cliente, el equipo, cómo se verifica, la
+ * empresa y el ingeniero (2026-10-17). Congelado al cerrar; en un borrador, compuesto en vivo.
+ */
+export type InformeDeReporte = reportes['schemas']['ReportDocumentResponse'];
+
 /** Cómo llegó el equipo y a quién se entregó (V31, 2026-10-16). */
 export type RegistroDeIngreso = reportes['schemas']['RecordIntakeRequest'];
 export type AccesorioDelIngreso = reportes['schemas']['IntakeAccessoryRequest'];

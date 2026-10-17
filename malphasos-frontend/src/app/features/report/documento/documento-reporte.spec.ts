@@ -1,88 +1,86 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { QueryClient } from '@tanstack/angular-query-experimental';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar } from '../../../../testing/pantalla';
-import {
-  EQUIPOS as EQUIPOS_DE_CATALOGO,
-  ID_VERIFICACION,
-  MODELOS,
-  TIPOS,
-  URL_EQUIPOS as URL_EQUIPOS_DE_CATALOGO,
-  URL_MODELOS,
-  URL_TIPOS,
-} from '../../../../testing/catalogo';
-import {
-  EQUIPOS,
-  ID_EQUIPO,
-  ID_INGENIERO,
-  ID_ORDEN,
-  orden,
-  PERSONAS,
-  URL_EQUIPOS_DE_CLIENTE,
-  URL_ORDENES,
-  URL_PERSONAS,
-} from '../../../../testing/ordenes';
+import { ID_VERIFICACION } from '../../../../testing/catalogo';
 import { ID_REPORTE, reporte, urlReporte } from '../../../../testing/reportes';
-import { ReporteDeServicio } from '../../../core/api/tipos';
+import { InformeDeReporte, ReporteDeServicio } from '../../../core/api/tipos';
 import { DocumentoReporte, proximoServicio } from './documento-reporte';
 
-const URL_HOJA = `http://localhost:8081/v1/api/client-equipments/${ID_EQUIPO}/life-sheet`;
-
-/** La hoja de vida del equipo, como la compila el servidor: lo que el documento toma de ella. */
 const GARANTIA_DE_EJEMPLO = 'La garantía cubre lo que se reporte en los cinco días siguientes.';
 
+// Una empresa inventada, con sus textos: MalphasOS no lleva los de ninguna real (2026-10-16).
 const EMPRESA = {
   nombre: 'Servicios de Ejemplo S.A.S.',
   direccion: 'Carrera 1 N.º 2-3',
   ciudad: 'Ciudad de Ejemplo',
-  telefonos: [],
   movil: '300 000 0000',
   aclaracion: 'Mantenimiento realizado bajo el protocolo de la empresa.',
   garantia: GARANTIA_DE_EJEMPLO,
   codigoInforme: 'FT-002 · Versión 1',
 };
 
-/** La hoja de vida con una empresa que no configuró ninguno de sus textos ni su logo. */
-function hojaSinTextos() {
-  return { ...hoja(), empresa: { nombre: 'Servicios de Ejemplo S.A.S.', telefonos: [] } };
-}
-
-function hoja(servicioTecnico: object[] = []) {
+/**
+ * El informe del reporte, como lo sirve el servidor (2026-10-17): lo que imprime de la orden, el cliente,
+ * el equipo, su tipo, la empresa y el ingeniero. Antes el documento lo juntaba de cinco consultas.
+ */
+function informe(cambios: Partial<InformeDeReporte> = {}): InformeDeReporte {
   return {
-    identificacion: {
-      idEquipoCliente: ID_EQUIPO,
-      numeroHojaVida: 'HV-HCE-0007',
-      serie: 'SN-0001',
-      numeroInventario: 'INV-77',
-      codigoInterno: 'MON-03',
-      cliente: 'Hospital Central',
-      documentoCliente: '900123456',
+    congelado: false,
+    tardio: false,
+    orden: {
+      numero: '4F2A9C',
+      tipoServicio: 'PREVENTIVO',
+      garantia: false,
+      periodicidad: 'TRIMESTRAL',
+      fechaProgramada: '2026-10-15',
+    },
+    cliente: {
+      nombre: 'Hospital Central',
+      documento: '900123456',
       sede: 'Sede Norte',
       direccionSede: 'Calle 10 # 20 - 30',
       ciudadSede: 'Bogotá',
-      areaServicio: 'Urgencias',
-      estadoActivo: true,
+      area: 'Urgencias',
       responsables: ['Carla Ruiz'],
-      telefonosCliente: ['3001112233'],
-      correosCliente: ['compras@hospital.co'],
+      telefonos: ['3001112233'],
+      correos: ['compras@hospital.co'],
     },
-    tecnica: {
-      tipoEquipo: 'Tensiómetro',
-      tecnologiaPredominante: 'Electrónica',
-      uso: 'Medir la presión arterial',
+    equipo: {
+      tipo: 'Tensiómetro',
       marca: 'Welch Allyn',
       modelo: 'ProBP 2400',
-      fichaTecnica: { riesgo: 'IIA', alimentacion: 'AC', voltaje: 110, frecuencia: 60 },
-      protocoloPreventivo: [],
+      serie: 'SN-0001',
+      numeroHojaVida: 'HV-HCE-0007',
+      numeroInventario: 'INV-77',
+      codigoInterno: 'MON-03',
+      tecnologia: 'Electrónica',
+      uso: 'Medir la presión arterial',
+      riesgo: 'IIA',
+      alimentacion: 'AC',
+      voltaje: 110,
+      frecuencia: 60,
     },
-    fabricante: { nombre: 'Welch Allyn' },
-    servicioTecnico,
-    // Una empresa inventada, con sus textos: MalphasOS no lleva los de ninguna real (2026-10-16).
+    verificaciones: [
+      {
+        id: ID_VERIFICACION,
+        magnitud: 'Presión',
+        unidad: 'mmHg',
+        cantidadDatos: 3,
+        puntos: [{ id: 'pv1', valor: 100 }],
+      },
+    ],
     empresa: EMPRESA,
+    ingeniero: 'Ana Ruiz',
+    ...cambios,
   };
 }
+
+/** Una empresa que no configuró ninguno de sus textos ni su logo. */
+const SIN_TEXTOS = { empresa: { nombre: 'Servicios de Ejemplo S.A.S.' } };
 
 /** Dos lecturas en el punto de 100 mmHg con ±0,5: una dentro y otra fuera. */
 const LECTURAS = [
@@ -159,24 +157,18 @@ describe('Documento del reporte', () => {
       td.textContent?.replace(/\s+/g, ' ').trim(),
     );
 
-  /** Responde a todo lo que el documento pide, en las vueltas que haga falta: unas consultas esperan a otras. */
+  /** Responde a las dos peticiones del documento: el reporte y su informe. */
   async function abrir(
     datos: Partial<ReporteDeServicio> = {},
-    contexto: { orden?: object; hoja?: object; tipos?: object[] } = {},
+    cambiosDelInforme: Partial<InformeDeReporte> = {},
   ): Promise<void> {
     const respuestas = new Map<string, unknown>([
       [urlReporte(ID_REPORTE), reporte(datos)],
-      [`${URL_ORDENES}/${ID_ORDEN}`, contexto.orden ?? orden({ idIngeniero: ID_INGENIERO })],
-      [URL_HOJA, contexto.hoja ?? hoja()],
-      [URL_PERSONAS, PERSONAS],
-      [URL_EQUIPOS_DE_CLIENTE, EQUIPOS],
-      [URL_MODELOS, MODELOS],
-      [URL_EQUIPOS_DE_CATALOGO, EQUIPOS_DE_CATALOGO],
-      [URL_TIPOS, contexto.tipos ?? TIPOS],
+      [`${urlReporte(ID_REPORTE)}/document`, informe(cambiosDelInforme)],
     ]);
 
     fixture.detectChanges();
-    for (let vuelta = 0; vuelta < 4; vuelta++) {
+    for (let vuelta = 0; vuelta < 2; vuelta++) {
       await asentar(fixture);
       http
         .match((peticion) => respuestas.has(peticion.url))
@@ -230,6 +222,38 @@ describe('Documento del reporte', () => {
     });
   }
 
+  it('las fichas del cliente y del equipo dicen lo que trae el informe, campo por campo', async () => {
+    await abrir();
+
+    const fichas = new Map(
+      [...raiz().querySelectorAll('dt')].map((dt) => [
+        dt.textContent?.trim(),
+        dt.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim(),
+      ]),
+    );
+    expect(Object.fromEntries(fichas)).toEqual(
+      expect.objectContaining({
+        'Sede · Ciudad': 'Sede Norte · Bogotá',
+        Dirección: 'Calle 10 # 20 - 30',
+        Área: 'Urgencias',
+        'Marca · Modelo': 'Welch Allyn · ProBP 2400',
+        Riesgo: 'Clase IIa',
+        Alimentación: 'AC · 110 V · 60 Hz',
+      }),
+    );
+  });
+
+  it('caducar el reporte caduca su informe: cuelga de la misma clave', async () => {
+    await abrir();
+
+    void TestBed.inject(QueryClient).invalidateQueries({ queryKey: ['reportes', ID_REPORTE] });
+    await asentar(fixture);
+
+    http.expectOne(`${urlReporte(ID_REPORTE)}/document`).flush(informe());
+    http.match(urlReporte(ID_REPORTE)).forEach((peticion) => peticion.flush(reporte()));
+    await asentar(fixture);
+  });
+
   it('el supervisor es el encargado del área, en la ficha del cliente y en las firmas', async () => {
     await abrir();
 
@@ -250,12 +274,7 @@ describe('Documento del reporte', () => {
   });
 
   it('un correctivo en garantía marca las dos casillas', async () => {
-    await abrir(
-      {},
-      {
-        orden: orden({ idIngeniero: ID_INGENIERO, tipoServicio: 'CORRECTIVO', garantia: true }),
-      },
-    );
+    await abrir({}, { orden: { ...informe().orden, tipoServicio: 'CORRECTIVO', garantia: true } });
 
     const marcadas = [...raiz().querySelectorAll('[data-casilla].rs-marcada')].map((c) =>
       c.getAttribute('data-casilla'),
@@ -321,20 +340,32 @@ describe('Documento del reporte', () => {
     expect(celdas('.rs-tabla').slice(6, 8)).toEqual(['Accesorios', 'No tiene']);
   });
 
-  it('en un borrador el profesional es el ingeniero de la orden', async () => {
+  it('el profesional es el ingeniero que trae el informe', async () => {
     await abrir();
 
     expect(texto('[data-firma-profesional]')).toBe('Ana Ruiz');
   });
 
-  it('cerrado, el profesional es el que quedó congelado en la hoja de vida', async () => {
-    const linea = { id: 'i1', idReporteServicio: ID_REPORTE, responsable: 'Grace Hopper' };
+  it('sin ingeniero en la orden, la línea lleva la raya', async () => {
+    await abrir({}, { ingeniero: undefined });
+
+    expect(texto('[data-firma-profesional]')).toBe('—');
+  });
+
+  it('un informe congelado tarde lo dice; uno congelado al cerrar, no', async () => {
+    // Decidido por el usuario el 2026-10-17: los reportes cerrados antes de V37 se congelaron después.
     await abrir(
-      { estado: 'FINALIZADO', finalizado: '2026-10-20T16:30:00' },
-      { hoja: hoja([linea]) },
+      { estado: 'FINALIZADO', finalizado: '2026-10-01T09:00:00' },
+      { congelado: true, tardio: true },
     );
 
-    expect(texto('[data-firma-profesional]')).toBe('Grace Hopper');
+    expect(texto('[data-tardio]')).toContain('se congeló después de cerrarse el reporte');
+  });
+
+  it('uno congelado al cerrar no lleva el aviso de tardío', async () => {
+    await abrir({ estado: 'FINALIZADO', finalizado: '2026-10-01T09:00:00' }, { congelado: true });
+
+    expect(raiz().querySelector('[data-tardio]')).toBeNull();
   });
 
   it('la aclaración y la garantía son los textos que la empresa configuró', async () => {
@@ -347,7 +378,7 @@ describe('Documento del reporte', () => {
   });
 
   it('sin textos configurados no hay aclaración ni garantía, en vez de un rótulo vacío', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON] }, { hoja: hojaSinTextos() });
+    await abrir({ lecturas: LECTURAS, patrones: [PATRON] }, SIN_TEXTOS);
 
     expect(raiz().querySelector('[data-aclaracion]')).toBeNull();
     expect(raiz().querySelector('[data-garantia]')).toBeNull();
@@ -364,7 +395,7 @@ describe('Documento del reporte', () => {
   it('el membrete es el nombre y el logo configurados; sin logo, solo el nombre', async () => {
     await abrir(
       { lecturas: LECTURAS, patrones: [PATRON] },
-      { hoja: { ...hoja(), empresa: { ...EMPRESA, logo: 'data:image/png;base64,AAAA' } } },
+      { empresa: { ...EMPRESA, logo: 'data:image/png;base64,AAAA' } },
     );
 
     expect(texto('.rs-logo')).toBe('Servicios de Ejemplo S.A.S.');
@@ -375,7 +406,7 @@ describe('Documento del reporte', () => {
   });
 
   it('sin logo configurado no hay imagen ni marca de agua', async () => {
-    await abrir({ lecturas: LECTURAS, patrones: [PATRON] }, { hoja: hojaSinTextos() });
+    await abrir({ lecturas: LECTURAS, patrones: [PATRON] }, SIN_TEXTOS);
 
     expect(raiz().querySelectorAll('img')).toHaveLength(0);
     expect(texto('.rs-logo')).toBe('Servicios de Ejemplo S.A.S.');
