@@ -96,6 +96,7 @@ export const TIPOS = [
       },
     ],
     verificable: true,
+    formatoReporte: 'MP2' as const,
     estadoActivo: true,
   },
 ];

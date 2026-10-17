@@ -10,11 +10,13 @@ import static org.mockito.Mockito.when;
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentTypePersistencePort;
 import com.malphasos.malphasos.equipment.application.ports.output.MetrologyCatalogPersistencePort;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.EquipmentTypeService;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChooseReportFormatCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.TypeVerificationCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.VerificationPointCommand;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
+import com.malphasos.malphasos.equipment.domain.equipmentType.ReportFormat;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.exception.MagnitudeNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.MeasurementUnitNotFoundException;
@@ -191,6 +193,21 @@ class EquipmentTypeServiceTest {
                 .isInstanceOf(MagnitudeNotFoundException.class);
 
         verify(typePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("elegir el formato del reporte lo cambia y lo guarda, sin consultar el catalogo")
+    void elegirFormato() {
+        UUID id = UUID.randomUUID();
+        when(typePort.findById(id)).thenReturn(Optional.of(EquipmentType.rehydrate(
+                id, "Monitor", "D", "C", "E", null, null, List.of(), 1000L, true)));
+        when(typePort.save(any(EquipmentType.class))).thenAnswer(i -> i.getArgument(0));
+
+        EquipmentType guardado = service().chooseReportFormat(new ChooseReportFormatCommand(id, ReportFormat.MP0));
+
+        assertThat(guardado.getFormatoReporte()).isEqualTo(ReportFormat.MP0);
+        verify(typePort).save(guardado);
+        verify(catalogPort, never()).findMagnitudeById(any());
     }
 
     @Test

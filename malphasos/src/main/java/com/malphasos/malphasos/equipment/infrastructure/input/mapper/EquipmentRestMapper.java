@@ -67,6 +67,7 @@ public class EquipmentRestMapper {
                 // de ahora.
                 .verificaciones(tipo.verificacionesActivas().stream().map(this::toResponse).toList())
                 .valorUnitarioMantenimiento(tipo.getValorUnitarioMantenimiento())
+                .formatoReporte(tipo.getFormatoReporte())
                 .estadoActivo(tipo.isEstadoActivo())
                 .build();
     }

@@ -53,6 +53,31 @@
             -->
             <td>
               {{ tipo.verificaciones?.length ? resumenDeVerificaciones(tipo) : 'Sin verificación' }}
+              <!--
+                El formato del reporte impreso va con la verificacion porque depende de ella (V32): sin
+                verificacion solo cabe MP0, y con ella MP1 o MP2. Se elige aqui y se guarda al elegirlo.
+              -->
+              @if (puedeEscribir() && tipo.estadoActivo && tipo.verificable) {
+                <label class="mt-1 block text-sm" [for]="'formato-' + tipo.id"
+                  >Formato del reporte</label
+                >
+                <select
+                  class="campo min-h-tactil"
+                  [id]="'formato-' + tipo.id"
+                  [disabled]="cambioDeFormato.isPending()"
+                  (change)="elegirFormato(tipo, $any($event.target).value)"
+                >
+                  @for (formato of FORMATOS_CON_VERIFICACION; track formato) {
+                    <option [value]="formato" [selected]="formato === tipo.formatoReporte">
+                      BB-ING-{{ formato }}
+                    </option>
+                  }
+                </select>
+              } @else {
+                <span class="block text-sm text-neutral-700" [attr.data-formato]="tipo.id"
+                  >Reporte BB-ING-{{ tipo.formatoReporte }}</span
+                >
+              }
             </td>
             <td>
               @if (detalle?.pasos) {

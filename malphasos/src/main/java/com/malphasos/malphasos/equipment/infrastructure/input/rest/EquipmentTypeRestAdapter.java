@@ -4,12 +4,14 @@ import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeSe
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.TypeVerificationCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.VerificationPointCommand;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChooseReportFormatCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeactivateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.UpdateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.EquipmentTypeCreateRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.EquipmentTypeUpdateRequest;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.request.ChooseReportFormatRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.DeclareVerificationsRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.TypeVerificationRequest;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.VerificationPointRequest;
@@ -107,6 +109,18 @@ public class EquipmentTypeRestAdapter {
 
         return mapper.toResponse(equipmentTypeServicePort.declareVerifications(
                 new DeclareVerificationsCommand(id, verificacionesDe(request.verificaciones()))));
+    }
+
+    @Operation(summary = "Elegir el formato del reporte",
+            description = "MP0 si el tipo no se verifica; MP1 o MP2 si se verifica. Declarar o vaciar sus"
+                    + " verificaciones lo ajusta solo cuando el que tenia deja de servir.")
+    @PreAuthorize("hasAuthority('equipment.write')")
+    @PatchMapping("/{id}/report-format")
+    public EquipmentTypeResponse chooseReportFormat(
+            @PathVariable UUID id, @Valid @RequestBody ChooseReportFormatRequest request) {
+
+        return mapper.toResponse(equipmentTypeServicePort.chooseReportFormat(
+                new ChooseReportFormatCommand(id, request.formato())));
     }
 
     /** Traduce el cuerpo a comandos. Una lista ausente es una lista vacia, no un nulo. */

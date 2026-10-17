@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.model.response;
 
+import com.malphasos.malphasos.equipment.domain.equipmentType.ReportFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.UUID;
@@ -27,5 +28,7 @@ public record EquipmentTypeResponse(
         boolean verificable,
         List<TypeVerificationResponse> verificaciones,
         long valorUnitarioMantenimiento,
+        @Schema(description = "Formato del reporte impreso: MP0 sin verificacion, MP1 o MP2 con ella. Desde V32")
+        ReportFormat formatoReporte,
         boolean estadoActivo) {
 }
