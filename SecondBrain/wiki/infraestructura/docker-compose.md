@@ -3,7 +3,7 @@ name: docker-compose
 description: 5 servicios orquestados — Postgres con initdb ordenado por prefijo, Keycloak compartiendo la instancia de Postgres, RabbitMQ, pgAdmin, backend
 tags: [infraestructura, docker, "reusable:alta", "describe:ambos"]
 source: docker-compose.yaml
-updated: 2026-08-27
+updated: 2026-10-17
 ---
 
 # `docker-compose.yaml` — orquestación
@@ -31,6 +31,31 @@ Tres problemas en una sola línea:
 3. El sufijo `- Dkeycloak.profile.feature.upload_scripts=enable` quedó concatenado dentro del valor de la variable, en vez de ser un argumento de JVM.
 
 Consecuencia: el realm `sigma-bb-realm` del proyecto original **muy probablemente se importó a mano** desde la consola de administración, no automáticamente. Al reproducir el entorno desde cero, no asumir que el realm aparece solo.
+
+## MalphasOS: desarrollo y producción (2026-10-17)
+
+Lo de arriba describe el compose **del original**. El de MalphasOS se separó en dos con la versión 1.0.0:
+
+- **`docker-compose.yaml`, el de desarrollo**: Postgres, Keycloak en `start-dev` con el realm de
+  desarrollo —con `dev.admin`—, el backend, el frontend, Gotenberg y pgAdmin con el perfil `tools`.
+  Publica los puertos de todo para poder trabajar.
+- **`docker-compose.prod.yaml`, el de producción**, aparte y sin heredar nada: **solo Caddy publica
+  puertos**, el 80 y el 443, con HTTPS automático, y todo vive en un dominio —el frontend en `/`, el API en
+  `/v1` y Keycloak en `/auth`, con su consola de administración bloqueada—. Keycloak corre en `start`, con
+  un realm derivado del de desarrollo **sin usuarios ni secretos escritos**; el backend, con la seguridad
+  encendida y sin Swagger; y un servicio `respaldo` saca un `pg_dump` diario de las dos bases. Cómo se
+  instala, en `DESPLIEGUE.md` de la raíz.
+
+**RabbitMQ se retiró el 2026-10-17** de los dos, del backend y del `.env.example`: ninguna clase lo usaba
+—el adaptador del original nunca se migró, ver [[eventos-de-dominio]]— y solo aportaba un contenedor, un
+puerto publicado y una comprobación de salud que en pruebas había que apagar. Lo que esta nota cuenta de
+él sigue siendo cierto **del original**.
+
+**Y la primera instalación desde cero destapó un defecto del realm versionado**: un rol escrito a mano el
+2026-09-13 tenía un identificador de 38 caracteres, y la columna de Keycloak admite 36. En desarrollo
+nunca falló, porque el realm ya existía y `--import-realm` lo saltaba; **una instalación nueva no habría
+arrancado**. Se corrigió, y el guion que deriva el realm de producción comprueba desde entonces que todo
+identificador sea un UUID.
 
 ## Reutilizable en MalphasOS
 
