@@ -3,7 +3,6 @@ package com.malphasos.malphasos.equipment.infrastructure.output.mapper;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
-import com.malphasos.malphasos.equipment.domain.equipmentType.ReportFormat;
 import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
@@ -78,7 +77,6 @@ public class EquipmentCatalogPersistenceMapper {
                 entity.getLimpiezaCotidiana(),
                 entity.getVerificaciones().stream().map(this::toDomain).toList(),
                 entity.getValorUnitarioMantenimiento(),
-                entity.getFormatoReporte() == null ? null : ReportFormat.valueOf(entity.getFormatoReporte()),
                 entity.isEstadoActivo());
     }
 
@@ -137,7 +135,6 @@ public class EquipmentCatalogPersistenceMapper {
         entity.setUso(tipo.getUso());
         entity.setLimpiezaCotidiana(tipo.getLimpiezaCotidiana());
         entity.setValorUnitarioMantenimiento(tipo.getValorUnitarioMantenimiento());
-        entity.setFormatoReporte(tipo.getFormatoReporte().name());
         entity.setEstadoActivo(tipo.isEstadoActivo());
 
         Map<UUID, TypeVerificationEntity> filas = entity.getVerificaciones().stream()

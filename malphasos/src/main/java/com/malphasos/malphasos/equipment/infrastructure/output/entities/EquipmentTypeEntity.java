@@ -65,10 +65,6 @@ public class EquipmentTypeEntity {
     @Column(name = "m_valor_unitario_mantenimiento", nullable = false)
     private long valorUnitarioMantenimiento;
 
-    /** El nombre del enum: MP0, MP1 o MP2. Desde V32. */
-    @Column(name = "t_formato_reporte", nullable = false)
-    private String formatoReporte;
-
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
 }

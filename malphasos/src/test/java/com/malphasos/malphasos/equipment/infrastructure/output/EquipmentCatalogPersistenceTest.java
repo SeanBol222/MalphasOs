@@ -7,7 +7,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
-import com.malphasos.malphasos.equipment.domain.equipmentType.ReportFormat;
 import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
@@ -104,20 +103,6 @@ class EquipmentCatalogPersistenceTest {
                 java.util.Arrays.stream(valores)
                         .map(valor -> VerificationPoint.of(new BigDecimal(valor)))
                         .toList());
-    }
-
-    @Test
-    @DisplayName("el formato del reporte va y vuelve (V32), y la base no admite uno que no existe")
-    void formatoDelReporte() {
-        EquipmentType tipo = unTipo(List.of(enTemperatura(3, "20")));
-        tipo.chooseReportFormat(ReportFormat.MP1);
-        equipmentTypeAdapter.save(tipo);
-
-        assertThat(equipmentTypeAdapter.findById(tipo.getId()).orElseThrow().getFormatoReporte())
-                .isEqualTo(ReportFormat.MP1);
-        assertThatThrownBy(() -> jdbcTemplate.update(
-                        "UPDATE tipo_equipo SET t_formato_reporte = 'MP9' WHERE k_id_tipo_equipo = ?", tipo.getId()))
-                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
