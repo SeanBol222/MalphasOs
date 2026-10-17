@@ -1,0 +1,69 @@
+<section class="superficie mt-3 p-0" aria-labelledby="seccion-entrega">
+  <h2
+    id="seccion-entrega"
+    class="titulo-seccion flex items-center gap-1.5 border-b border-neutral-300 px-3 py-2"
+  >
+    <span
+      class="flex h-[1.75rem] w-[1.75rem] items-center justify-center bg-ink text-sm text-white"
+      aria-hidden="true"
+      >5</span
+    >
+    A quién se entrega
+  </h2>
+  <form class="p-3" [formGroup]="formulario" (ngSubmit)="guardar()">
+    @if (registro.isError()) {
+      <div class="mb-2 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+        <p class="font-semibold">{{ mensajeDeError() }}</p>
+      </div>
+    }
+    @if (!editable() && !recibe()?.nombre) {
+      <p class="text-neutral-700">No se registró quién recibió el equipo.</p>
+    } @else {
+      <div class="grid gap-2 md:grid-cols-3">
+        <div>
+          <label class="block font-bold" for="recibeNombre">Nombre</label>
+          <input
+            class="campo mt-1 min-h-tactil w-full"
+            id="recibeNombre"
+            maxlength="120"
+            formControlName="nombre"
+          />
+        </div>
+        <div>
+          <label class="block font-bold" for="recibeCedula">Cédula</label>
+          <input
+            class="campo mt-1 min-h-tactil w-full"
+            id="recibeCedula"
+            maxlength="20"
+            inputmode="numeric"
+            formControlName="cedula"
+          />
+        </div>
+        <div>
+          <label class="block font-bold" for="recibeCargo">Cargo</label>
+          <input
+            class="campo mt-1 min-h-tactil w-full"
+            id="recibeCargo"
+            maxlength="80"
+            formControlName="cargo"
+          />
+        </div>
+      </div>
+    }
+    @if (editable()) {
+      @if (faltaElNombre()) {
+        <p class="mt-1 font-semibold text-accent-700" role="alert">
+          Falta el nombre: la cédula y el cargo solos no dicen quién recibió.
+        </p>
+      }
+      <div class="mt-2 flex flex-wrap items-center gap-1.5">
+        <button class="boton-primario min-h-tactil" type="submit" [disabled]="registro.isPending()">
+          {{ registro.isPending() ? 'Guardando…' : 'Guardar entrega' }}
+        </button>
+        @if (formulario.dirty) {
+          <p class="font-semibold" role="status">Hay cambios sin guardar.</p>
+        }
+      </div>
+    }
+  </form>
+</section>

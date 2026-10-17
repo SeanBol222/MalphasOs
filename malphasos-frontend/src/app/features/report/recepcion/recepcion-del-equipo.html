@@ -1,0 +1,137 @@
+<!-- Dentro del bloque 1: es lo primero que se mira del equipo, antes de tocarlo. -->
+<form class="border-b border-neutral-300 p-3" [formGroup]="formulario" (ngSubmit)="guardar()">
+  <h3 class="font-bold">Al recibirlo</h3>
+
+  @if (hayError()) {
+    <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  <!-- Las mismas columnas que el informe impreso: una fila por verificacion, un radio por estado. -->
+  <table class="tabla mt-1">
+    <caption class="sr-only">
+      Verificaciones al ingreso
+    </caption>
+    <thead>
+      <tr class="text-left">
+        <th scope="col">Verificación</th>
+        @for (estado of ESTADOS; track estado) {
+          <th scope="col">{{ etiqueta[estado] }}</th>
+        }
+        <th scope="col">Observación</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (verificacion of VERIFICACIONES; track verificacion.clave) {
+        <tr [formGroupName]="verificacion.clave" [attr.data-ingreso]="verificacion.clave">
+          <th scope="row" class="font-normal">{{ verificacion.texto }}</th>
+          @for (estado of ESTADOS; track estado) {
+            <td>
+              <!-- La etiqueta envuelve el radio y da el area tactil de 44 px; el radio, a su tamano. -->
+              <label
+                class="flex min-h-tactil min-w-tactil cursor-pointer items-center"
+                [for]="idDe(verificacion.clave, estado)"
+              >
+                <input
+                  class="h-[1.25rem] w-[1.25rem] accent-ink"
+                  type="radio"
+                  formControlName="estado"
+                  [id]="idDe(verificacion.clave, estado)"
+                  [value]="estado"
+                  [attr.value]="estado"
+                />
+                <span class="sr-only">{{ verificacion.texto }}: {{ etiqueta[estado] }}</span>
+              </label>
+            </td>
+          }
+          <td>
+            <label class="sr-only" [for]="'ingreso-' + verificacion.clave + '-observacion'">
+              Observación: {{ verificacion.texto }}
+            </label>
+            <input
+              class="campo min-h-tactil w-full min-w-[10rem]"
+              maxlength="500"
+              formControlName="observacion"
+              [id]="'ingreso-' + verificacion.clave + '-observacion'"
+            />
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <h4 class="mt-2 font-bold">Accesorios</h4>
+  @if (!filasDeAccesorios.length) {
+    <p class="text-neutral-700">
+      {{ editable() ? 'Llegó sin accesorios. Añádalos si trae alguno.' : 'Llegó sin accesorios.' }}
+    </p>
+  }
+  <div formArrayName="accesorios">
+    @for (fila of filasDeAccesorios.controls; track fila; let indice = $index) {
+      <div
+        class="mt-1 flex flex-wrap items-end gap-1.5"
+        [formGroupName]="indice"
+        [attr.data-accesorio]="indice"
+      >
+        <div class="min-w-[10rem] flex-[2_1_10rem]">
+          <label class="block text-sm" [for]="'accesorio-nombre-' + indice">Accesorio</label>
+          <input
+            class="campo min-h-tactil w-full"
+            maxlength="120"
+            formControlName="nombre"
+            [id]="'accesorio-nombre-' + indice"
+          />
+        </div>
+        <label class="flex min-h-tactil items-center gap-1">
+          <input
+            class="h-[1.25rem] w-[1.25rem] accent-ink"
+            type="checkbox"
+            formControlName="conforme"
+          />
+          Conforme
+        </label>
+        <div class="min-w-[10rem] flex-[3_1_12rem]">
+          <label class="block text-sm" [for]="'accesorio-observacion-' + indice">Observación</label>
+          <input
+            class="campo min-h-tactil w-full"
+            maxlength="500"
+            formControlName="observacion"
+            [id]="'accesorio-observacion-' + indice"
+          />
+        </div>
+        @if (editable()) {
+          <button
+            class="min-h-tactil px-1 underline"
+            type="button"
+            [attr.aria-label]="'Quitar el accesorio ' + (indice + 1)"
+            (click)="quitarAccesorio(indice)"
+          >
+            Quitar
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (editable()) {
+    @if (formulario.touched && problemas().length) {
+      <ul class="mt-2 font-semibold text-accent-700" role="alert">
+        @for (problema of problemas(); track problema) {
+          <li>{{ problema }}</li>
+        }
+      </ul>
+    }
+    <div class="mt-2 flex flex-wrap items-center gap-1.5">
+      <button class="boton-secundario min-h-tactil" type="button" (click)="anadirAccesorio()">
+        Añadir accesorio
+      </button>
+      <button class="boton-primario min-h-tactil" type="submit" [disabled]="registro.isPending()">
+        {{ registro.isPending() ? 'Guardando…' : 'Guardar recepción' }}
+      </button>
+      @if (formulario.dirty) {
+        <p class="font-semibold" role="status">Hay cambios sin guardar.</p>
+      }
+    </div>
+  }
+</form>

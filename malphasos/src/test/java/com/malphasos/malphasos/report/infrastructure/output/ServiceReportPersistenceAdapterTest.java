@@ -23,6 +23,10 @@ import com.malphasos.malphasos.equipment.infrastructure.output.ManufacturerPersi
 import com.malphasos.malphasos.equipment.infrastructure.output.MetrologyCatalogPersistenceAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.output.ModelPersistenceAdapter;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
+import com.malphasos.malphasos.report.domain.serviceReport.Handover;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
@@ -69,6 +73,7 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM dato_verificacion",
             "DELETE FROM paso_reporte",
             "DELETE FROM patron_verificacion_reporte",
+            "DELETE FROM accesorio_reporte",
             "DELETE FROM protocolo",
             "DELETE FROM reporte_servicio",
             "DELETE FROM equipo_patron",
@@ -469,6 +474,82 @@ class ServiceReportPersistenceAdapterTest {
             assertThat(primera.tolerancia()).isEqualByComparingTo("0.5");
             assertThat(primera.conforme()).isFalse();
             assertThat(segunda.tolerancia()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("El ingreso, los accesorios y quien recibe (V31)")
+    class LaRecepcion {
+
+        @Test
+        @DisplayName("todo va y vuelve, y los accesorios sustituidos quedan retirados en la tabla")
+        void idaYVuelta() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            reporte.recordIntake(new IntakeCheck(IntakeState.NO_CONFORME, "Carcasa rayada"),
+                    new IntakeCheck(IntakeState.NO_APLICA, null),
+                    List.of(ReportAccessory.of(1, "Sonda", true, null),
+                            ReportAccessory.of(2, "Cable", false, "Pelado")));
+            reporte.recordHandover(new Handover("Ana Pérez", "52123456", "Jefe de enfermeria"));
+            adapter.save(reporte);
+
+            ServiceReport leido = adapter.findById(reporte.getId()).orElseThrow();
+            assertThat(leido.getIngresoFisico()).isEqualTo(new IntakeCheck(IntakeState.NO_CONFORME, "Carcasa rayada"));
+            assertThat(leido.getIngresoOperativo()).isEqualTo(new IntakeCheck(IntakeState.NO_APLICA, null));
+            assertThat(leido.accesoriosActivos())
+                    .extracting(ReportAccessory::orden, ReportAccessory::nombre, ReportAccessory::conforme)
+                    .containsExactly(tuple(1, "Sonda", true), tuple(2, "Cable", false));
+            assertThat(leido.getRecibe()).isEqualTo(new Handover("Ana Pérez", "52123456", "Jefe de enfermeria"));
+
+            leido.recordIntake(leido.getIngresoFisico(), leido.getIngresoOperativo(),
+                    List.of(ReportAccessory.of(1, "Brazalete", true, null)));
+            adapter.save(leido);
+
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM accesorio_reporte"
+                    + " WHERE k_id_reporte_servicio = ? AND NOT b_estado_activo", Long.class, reporte.getId()))
+                    .isEqualTo(2);
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().accesoriosActivos())
+                    .extracting(ReportAccessory::nombre).containsExactly("Brazalete");
+        }
+
+        @Test
+        @DisplayName("sin registrar vuelve todo nulo y sin accesorios")
+        void sinRegistrar() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            adapter.save(reporte);
+
+            ServiceReport leido = adapter.findById(reporte.getId()).orElseThrow();
+            assertThat(leido.getIngresoFisico()).isNull();
+            assertThat(leido.getIngresoOperativo()).isNull();
+            assertThat(leido.getAccesorios()).isEmpty();
+            assertThat(leido.getRecibe()).isNull();
+        }
+
+        @Test
+        @DisplayName("la base no deja un no conforme sin observacion, ni una cedula sin nombre")
+        void reglasEnLaBase() {
+            Alcance alcance = unAlcance();
+            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
+            adapter.save(reporte);
+            UUID id = reporte.getId();
+
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET t_ingreso_fisico ="
+                    + " 'NO_CONFORME' WHERE k_id_reporte_servicio = ?", id))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET t_ingreso_operativo ="
+                    + " 'ROTO' WHERE k_id_reporte_servicio = ?", id))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET k_recibe_cedula ="
+                    + " '52123456' WHERE k_id_reporte_servicio = ?", id))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update("INSERT INTO accesorio_reporte (k_id_accesorio_reporte,"
+                    + " k_id_reporte_servicio, i_orden, n_nombre, b_conforme) VALUES (?, ?, 1, 'Sonda', false)",
+                    UUID.randomUUID(), id))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            // Conforme con observacion si cabe, y no conforme con ella tambien.
+            assertThat(jdbcTemplate.update("UPDATE reporte_servicio SET t_ingreso_fisico = 'CONFORME',"
+                    + " t_ingreso_fisico_observacion = 'Limpio' WHERE k_id_reporte_servicio = ?", id)).isEqualTo(1);
         }
     }
 

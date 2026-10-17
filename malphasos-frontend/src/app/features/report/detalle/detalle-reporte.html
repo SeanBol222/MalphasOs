@@ -138,6 +138,13 @@
               >
               Lo que se encontró
             </h2>
+            <app-recepcion-del-equipo
+              [idReporte]="id()"
+              [ingresoFisico]="datos.ingresoFisico"
+              [ingresoOperativo]="datos.ingresoOperativo"
+              [accesorios]="datos.accesorios ?? []"
+              [editable]="editable()"
+            />
             <div class="grid gap-2 p-3 md:grid-cols-2">
               <!--
                 En un correctivo la falla y el diagnóstico son obligatorios para cerrar (2026-10-14): un
@@ -505,6 +512,12 @@
             </div>
           }
         </form>
+
+        <app-entrega-del-equipo
+          [idReporte]="id()"
+          [recibe]="datos.recibe"
+          [editable]="editable()"
+        />
 
         <p class="mt-3">
           <a class="font-semibold underline" [routerLink]="['/ordenes', datos.idOrdenTrabajo]">

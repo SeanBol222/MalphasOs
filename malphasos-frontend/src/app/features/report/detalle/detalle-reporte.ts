@@ -17,6 +17,8 @@ import { nombreCompleto, PersonaApi } from '../../person/persona-api';
 import { OrdenApi } from '../../workOrder/orden-api';
 import { ReporteApi } from '../reporte-api';
 import { TablaDeVerificacion } from '../verificacion/tabla-de-verificacion';
+import { RecepcionDelEquipo } from '../recepcion/recepcion-del-equipo';
+import { EntregaDelEquipo } from '../entrega/entrega-del-equipo';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   EstadoDePaso,
@@ -62,7 +64,13 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-detalle-reporte',
-  imports: [ReactiveFormsModule, RouterLink, TablaDeVerificacion],
+  imports: [
+    EntregaDelEquipo,
+    ReactiveFormsModule,
+    RecepcionDelEquipo,
+    RouterLink,
+    TablaDeVerificacion,
+  ],
   templateUrl: './detalle-reporte.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

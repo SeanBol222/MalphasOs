@@ -7,6 +7,8 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
@@ -55,6 +57,12 @@ public interface ServiceReportServicePort {
     ServiceReport fill(FillServiceReportCommand command);
 
     ServiceReport recordVerification(RecordVerificationCommand command);
+
+    /** Registra cómo llegó el equipo: las verificaciones al ingreso y sus accesorios (V31). */
+    ServiceReport recordIntake(RecordIntakeCommand command);
+
+    /** Registra quién recibió el equipo al entregarlo, o lo borra (V31). */
+    ServiceReport recordHandover(RecordHandoverCommand command);
 
     /** Pone un patrón en una verificación del reporte, copiando lo que dice hoy el catálogo. */
     ServiceReport useReferenceStandard(UseReferenceStandardCommand command);

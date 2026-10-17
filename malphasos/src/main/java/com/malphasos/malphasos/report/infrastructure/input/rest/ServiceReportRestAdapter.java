@@ -8,12 +8,16 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.infrastructure.input.mapper.ServiceReportRestMapper;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.MarkReportStepRequest;
+import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordHandoverRequest;
+import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordIntakeRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordVerificationRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
@@ -153,6 +157,40 @@ public class ServiceReportRestAdapter {
                 request.causa(),
                 request.repuestos(),
                 request.resultado())));
+    }
+
+    @Operation(summary = "Registrar como llego el equipo",
+            description = "Las dos verificaciones al ingreso -estructura fisica y estado operativo- y sus "
+                    + "accesorios, que sustituyen a los que hubiera. Una no conforme exige observacion. Solo en "
+                    + "un borrador.")
+    @PreAuthorize("hasAuthority('report.write')")
+    @PatchMapping("/{id}/intake")
+    public ServiceReportResponse recordIntake(
+            @PathVariable UUID id, @Valid @RequestBody RecordIntakeRequest request) {
+
+        return mapper.toResponse(serviceReportServicePort.recordIntake(new RecordIntakeCommand(
+                id,
+                request.fisico(),
+                request.observacionFisico(),
+                request.operativo(),
+                request.observacionOperativo(),
+                request.accesorios() == null
+                        ? List.of()
+                        : request.accesorios().stream()
+                                .map(a -> new RecordIntakeCommand.Accessory(a.nombre(), a.conforme(), a.observacion()))
+                                .toList())));
+    }
+
+    @Operation(summary = "Registrar quien recibe el equipo",
+            description = "Nombre, cedula y cargo, en texto: quien recibe no tiene por que estar registrado. "
+                    + "Los tres en blanco lo borran. Solo en un borrador.")
+    @PreAuthorize("hasAuthority('report.write')")
+    @PatchMapping("/{id}/handover")
+    public ServiceReportResponse recordHandover(
+            @PathVariable UUID id, @Valid @RequestBody RecordHandoverRequest request) {
+
+        return mapper.toResponse(serviceReportServicePort.recordHandover(
+                new RecordHandoverCommand(id, request.nombre(), request.cedula(), request.cargo())));
     }
 
     @Operation(summary = "Registrar la verificacion metrologica",

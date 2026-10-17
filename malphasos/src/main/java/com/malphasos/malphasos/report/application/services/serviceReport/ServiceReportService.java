@@ -21,11 +21,16 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
+import com.malphasos.malphasos.report.domain.serviceReport.Handover;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
@@ -43,6 +48,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -263,6 +270,41 @@ public class ServiceReportService implements ServiceReportServicePort {
         EquipmentType tipo = tipoDelEquipo(reporte.getIdEquipoCliente());
 
         reporte.recordVerification(traducirLecturas(tipo, command.lecturas()));
+
+        return persistAndPublish(reporte);
+    }
+
+    /**
+     * Registra cómo llegó el equipo (V31). No consulta otros módulos: las dos verificaciones al ingreso
+     * son fijas y los accesorios, una lista libre del propio reporte.
+     */
+    @Override
+    @Transactional
+    public ServiceReport recordIntake(RecordIntakeCommand command) {
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        List<RecordIntakeCommand.Accessory> pedidos =
+                command.accesorios() == null ? List.of() : command.accesorios();
+
+        reporte.recordIntake(
+                new IntakeCheck(command.fisico(), command.observacionFisico()),
+                new IntakeCheck(command.operativo(), command.observacionOperativo()),
+                IntStream.range(0, pedidos.size())
+                        .mapToObj(i -> ReportAccessory.of(i + 1, pedidos.get(i).nombre(),
+                                pedidos.get(i).conforme(), pedidos.get(i).observacion()))
+                        .toList());
+
+        return persistAndPublish(reporte);
+    }
+
+    /** Registra quién recibió el equipo (V31). Los tres campos en blanco lo borran. */
+    @Override
+    @Transactional
+    public ServiceReport recordHandover(RecordHandoverCommand command) {
+        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        boolean vacio = Stream.of(command.nombre(), command.cedula(), command.cargo())
+                .allMatch(texto -> texto == null || texto.isBlank());
+
+        reporte.recordHandover(vacio ? null : new Handover(command.nombre(), command.cedula(), command.cargo()));
 
         return persistAndPublish(reporte);
     }

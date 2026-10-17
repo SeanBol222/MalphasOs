@@ -228,9 +228,17 @@ describe('Ficha de un reporte de servicio', () => {
     // la orden: los elige quien mide.
     expect([...raiz().querySelectorAll('select')].map((s) => s.id)).toEqual(['patron-nuevo-ver1']);
     expect(opcionesDeResultado()).toHaveLength(3);
+    // Los de texto son los del propio reporte desde V31 (2026-10-16): las observaciones del ingreso y
+    // quien recibe. Ninguno trae un dato de la orden.
     expect(
-      [...raiz().querySelectorAll('input')].filter((i) => i.type === 'text').length,
-    ).toBe(0);
+      [...raiz().querySelectorAll('input')].filter((i) => i.type === 'text').map((i) => i.id),
+    ).toEqual([
+      'ingreso-fisico-observacion',
+      'ingreso-operativo-observacion',
+      'recibeNombre',
+      'recibeCedula',
+      'recibeCargo',
+    ]);
   });
 
   it('enseña el número del reporte: los seis primeros caracteres de su id (2026-10-16)', async () => {

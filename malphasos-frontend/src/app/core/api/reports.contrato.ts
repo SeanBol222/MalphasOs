@@ -109,6 +109,46 @@ export interface paths {
         patch: operations["finish"];
         trace?: never;
     };
+    "/v1/api/reports/{id}/handover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Registrar quien recibe el equipo
+         * @description Nombre, cedula y cargo, en texto: quien recibe no tiene por que estar registrado. Los tres en blanco lo borran. Solo en un borrador.
+         */
+        patch: operations["recordHandover"];
+        trace?: never;
+    };
+    "/v1/api/reports/{id}/intake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Registrar como llego el equipo
+         * @description Las dos verificaciones al ingreso -estructura fisica y estado operativo- y sus accesorios, que sustituyen a los que hubiera. Una no conforme exige observacion. Solo en un borrador.
+         */
+        patch: operations["recordIntake"];
+        trace?: never;
+    };
     "/v1/api/reports/{id}/steps/{orden}": {
         parameters: {
             query?: never;
@@ -200,14 +240,69 @@ export interface components {
             /** Format: date-time */
             timestamp?: string;
         };
+        HandoverResponse: {
+            /** @description Nulo si no se dio */
+            cargo?: string;
+            /** @description Nula si no se dio */
+            cedula?: string;
+            nombre?: string;
+        };
+        IntakeAccessoryRequest: {
+            conforme?: boolean;
+            nombre: string;
+            /** @description Obligatoria si no es conforme */
+            observacion?: string;
+        };
+        IntakeCheckResponse: {
+            /** @enum {string} */
+            estado?: "CONFORME" | "NO_CONFORME" | "NO_APLICA";
+            /** @description Nula si no hay */
+            observacion?: string;
+        };
         MarkReportStepRequest: {
             /** @enum {string} */
             estado: "PENDIENTE" | "HECHO" | "NO_APLICA";
             /** @example El equipo no tiene batería */
             nota?: string;
         };
+        RecordHandoverRequest: {
+            /** @example Jefe de enfermeria */
+            cargo?: string;
+            cedula?: string;
+            /**
+             * @description Obligatorio si se da la cedula o el cargo
+             * @example Ana Perez
+             */
+            nombre?: string;
+        };
+        RecordIntakeRequest: {
+            /** @description Sustituyen a los que hubiera, en este orden. Vacia si llego sin accesorios */
+            accesorios?: components["schemas"]["IntakeAccessoryRequest"][];
+            /**
+             * @description Estado de la estructura fisica del equipo al recibirlo
+             * @enum {string}
+             */
+            fisico: "CONFORME" | "NO_CONFORME" | "NO_APLICA";
+            /** @description Obligatoria si no es conforme */
+            observacionFisico?: string;
+            /** @description Obligatoria si no es conforme */
+            observacionOperativo?: string;
+            /**
+             * @description Estado operativo del equipo al recibirlo
+             * @enum {string}
+             */
+            operativo: "CONFORME" | "NO_CONFORME" | "NO_APLICA";
+        };
         RecordVerificationRequest: {
             lecturas: components["schemas"]["VerificationReadingRequest"][];
+        };
+        ReportAccessoryResponse: {
+            conforme?: boolean;
+            nombre?: string;
+            /** @description Nula si no hay */
+            observacion?: string;
+            /** Format: int32 */
+            orden?: number;
         };
         ReportStepResponse: {
             descripcion?: string;
@@ -255,6 +350,8 @@ export interface components {
             idEquipoCliente: string;
         };
         ServiceReportResponse: {
+            /** @description Los accesorios con que llego, en su orden; desde V31 */
+            accesorios?: components["schemas"]["ReportAccessoryResponse"][];
             /** @description Por que fallo el equipo. De un correctivo; desde V24 */
             causa?: string;
             diagnostico?: string;
@@ -273,6 +370,10 @@ export interface components {
             idEquipoCliente?: string;
             /** Format: uuid */
             idOrdenTrabajo?: string;
+            /** @description Estructura fisica al recibir el equipo. Nula mientras no se registre; desde V31 */
+            ingresoFisico?: components["schemas"]["IntakeCheckResponse"];
+            /** @description Estado operativo al recibir el equipo. Nulo mientras no se registre; desde V31 */
+            ingresoOperativo?: components["schemas"]["IntakeCheckResponse"];
             lecturas?: components["schemas"]["VerificationReadingResponse"][];
             /**
              * @description Los seis primeros caracteres del id, en mayusculas: con lo que se cita
@@ -285,6 +386,8 @@ export interface components {
             /** @description Los patrones vigentes de cada verificacion, como estaban ese dia. Desde V30; con V27 era uno por reporte */
             patrones?: components["schemas"]["UsedReferenceStandardResponse"][];
             procedimientos?: string;
+            /** @description Quien recibio el equipo. Nulo mientras no se diga; desde V31 */
+            recibe?: components["schemas"]["HandoverResponse"];
             /** @description Repuestos cambiados, en texto libre; desde V24 */
             repuestos?: string;
             /** @enum {string} */
@@ -760,6 +863,130 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    recordHandover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordHandoverRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    recordIntake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordIntakeRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {

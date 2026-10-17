@@ -1,5 +1,9 @@
 package com.malphasos.malphasos.report.infrastructure.output.mapper;
 
+import com.malphasos.malphasos.report.domain.serviceReport.Handover;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
@@ -8,6 +12,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationStandard;
+import com.malphasos.malphasos.report.infrastructure.output.entities.ReportAccessoryEntity;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ReportStepEntity;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ServiceReportEntity;
 import com.malphasos.malphasos.report.infrastructure.output.entities.VerificationReadingEntity;
@@ -87,6 +92,15 @@ public class ServiceReportPersistenceMapper {
                                         fila.getEmpresaCalibradora()),
                                 fila.isEstadoActivo()))
                         .toList(),
+                ingreso(entity.getIngresoFisico(), entity.getIngresoFisicoObservacion()),
+                ingreso(entity.getIngresoOperativo(), entity.getIngresoOperativoObservacion()),
+                entity.getAccesorios().stream()
+                        .map(fila -> new ReportAccessory(fila.getId(), fila.getOrden(), fila.getNombre(),
+                                fila.isConforme(), fila.getObservacion(), fila.isEstadoActivo()))
+                        .toList(),
+                entity.getRecibeNombre() == null
+                        ? null
+                        : new Handover(entity.getRecibeNombre(), entity.getRecibeCedula(), entity.getRecibeCargo()),
                 entity.getResultado() == null ? null : ServiceResult.valueOf(entity.getResultado()),
                 entity.getFinalizado(),
                 lecturas,
@@ -102,6 +116,10 @@ public class ServiceReportPersistenceMapper {
                                 fila.getNota()))
                         .toList(),
                 entity.isEstadoActivo());
+    }
+
+    private static IntakeCheck ingreso(String estado, String observacion) {
+        return estado == null ? null : new IntakeCheck(IntakeState.valueOf(estado), observacion);
     }
 
     public List<ServiceReport> toDomainList(List<ServiceReportEntity> entities) {
@@ -129,6 +147,16 @@ public class ServiceReportPersistenceMapper {
         entity.setObservaciones(reporte.getObservaciones());
         entity.setCausa(reporte.getCausa());
         entity.setRepuestos(reporte.getRepuestos());
+        IntakeCheck fisico = reporte.getIngresoFisico();
+        entity.setIngresoFisico(fisico == null ? null : fisico.estado().name());
+        entity.setIngresoFisicoObservacion(fisico == null ? null : fisico.observacion());
+        IntakeCheck operativo = reporte.getIngresoOperativo();
+        entity.setIngresoOperativo(operativo == null ? null : operativo.estado().name());
+        entity.setIngresoOperativoObservacion(operativo == null ? null : operativo.observacion());
+        Handover recibe = reporte.getRecibe();
+        entity.setRecibeNombre(recibe == null ? null : recibe.nombre());
+        entity.setRecibeCedula(recibe == null ? null : recibe.cedula());
+        entity.setRecibeCargo(recibe == null ? null : recibe.cargo());
         entity.setResultado(reporte.getResultado() == null ? null : reporte.getResultado().name());
         entity.setFinalizado(reporte.getFinalizado());
         entity.setEstadoActivo(reporte.isEstadoActivo());
@@ -136,8 +164,36 @@ public class ServiceReportPersistenceMapper {
         actualizarLecturasExistentes(reporte, entity);
         volcarPasos(reporte, entity);
         volcarPatrones(reporte, entity);
+        volcarAccesorios(reporte, entity);
 
         return entity;
+    }
+
+    /**
+     * Los accesorios (V31), en una sola pasada: los retirados conservan su fila y los nuevos llegan con
+     * identificador nuevo. Sin índice único sobre el orden no hay nada con que choquen, y el orden de los
+     * {@code INSERT} y los {@code UPDATE} da igual.
+     */
+    private void volcarAccesorios(ServiceReport reporte, ServiceReportEntity entity) {
+        Map<UUID, ReportAccessoryEntity> porId = new LinkedHashMap<>();
+        entity.getAccesorios().forEach(fila -> porId.put(fila.getId(), fila));
+
+        for (ReportAccessory accesorio : reporte.getAccesorios()) {
+            ReportAccessoryEntity fila = porId.get(accesorio.id());
+
+            if (fila == null) {
+                fila = new ReportAccessoryEntity();
+                fila.setId(accesorio.id());
+                fila.setReporte(entity);
+                entity.getAccesorios().add(fila);
+            }
+
+            fila.setOrden(accesorio.orden());
+            fila.setNombre(accesorio.nombre());
+            fila.setConforme(accesorio.conforme());
+            fila.setObservacion(accesorio.observacion());
+            fila.setEstadoActivo(accesorio.estadoActivo());
+        }
     }
 
     /**
