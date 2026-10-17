@@ -25,6 +25,12 @@ RUN npx ng build --configuration production
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /build/dist/malphasos-frontend/browser /usr/share/nginx/html
+# Los ficheros, del usuario de nginx: el arranque reescribe config.json, y la carpeta es de root.
+COPY --from=build --chown=101:101 /build/dist/malphasos-frontend/browser /usr/share/nginx/html
+
+# La configuracion se decide al arrancar y no al compilar (2026-10-17): este guion escribe config.json
+# desde las variables de entorno antes de que nginx empiece a servir. Ver docker/40-configuracion.sh.
+COPY docker/config.template.json /etc/malphasos/config.template.json
+COPY --chmod=755 docker/40-configuracion.sh /docker-entrypoint.d/40-configuracion.sh
 
 EXPOSE 8080
