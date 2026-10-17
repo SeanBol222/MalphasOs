@@ -7,6 +7,14 @@ spring:
   application:
     name: malphasos
 
+  # Los datos de la empresa que presta el servicio viven fuera del repositorio, en config/empresa.yaml
+  # —ignorado por git—, porque MalphasOS no lleva datos de ninguna empresa en su codigo. El directorio
+  # por defecto es el de un arranque desde malphasos/; el contenedor lo monta en otro sitio y lo dice
+  # con MALPHASOS_CONFIG_DIR. Opcional solo para que el error sea el nuestro: sin el archivo falta el
+  # nombre, y ServiceCompanyProperties lo explica en vez de un «file not found» de Spring.
+  config:
+    import: optional:file:${MALPHASOS_CONFIG_DIR:../config}/empresa.yaml
+
   # Los valores por defecto apuntan al docker-compose de la raiz del repo, para que
   # el backend arranque en local sin configuracion extra. En otros entornos se
   # sobrescriben con variables de entorno.
@@ -66,16 +74,10 @@ app:
       # a quien se le abre la puerta. El 5173 es el del frontend en desarrollo, y es el mismo que el
       # realm declara en las URI de retorno de malphasos-frontend.
       allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
-  # La empresa que presta el servicio: el membrete de la hoja de vida impresa. No son datos de un
-  # cliente ni secretos, y por eso estan aqui y no en la base ni en el .env. Vigentes el 2026-10-05:
-  # ya no hay telefonos fijos.
+  # La empresa que presta el servicio: el membrete de la hoja de vida y del informe. Sus datos estan
+  # en config/empresa.yaml, importado arriba; aqui solo el directorio, contra el que se resuelve el logo.
   empresa:
-    nombre: ${EMPRESA_NOMBRE:Bolívar Bioingeniería Ltda.}
-    direccion: ${EMPRESA_DIRECCION:Calle 77 C N.º 100 B 46, Villas del Madrigal}
-    ciudad: ${EMPRESA_CIUDAD:Bogotá}
-    telefonos: ${EMPRESA_TELEFONOS:}
-    movil: ${EMPRESA_MOVIL:312 305 5157}
-    correo: ${EMPRESA_CORREO:bolivarbioingenieria@gmail.com}
+    directorio: ${MALPHASOS_CONFIG_DIR:../config}
 
 # Cliente administrativo de Keycloak (Admin API), para crear usuarios y asignar roles.
 # El cliente se construye sin conectarse: el bean existe aunque Keycloak no este disponible, y solo

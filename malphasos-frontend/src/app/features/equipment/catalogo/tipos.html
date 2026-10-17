@@ -69,13 +69,13 @@
                 >
                   @for (formato of FORMATOS_CON_VERIFICACION; track formato) {
                     <option [value]="formato" [selected]="formato === tipo.formatoReporte">
-                      BB-ING-{{ formato }}
+                      {{ formato }}
                     </option>
                   }
                 </select>
               } @else {
                 <span class="block text-sm text-neutral-700" [attr.data-formato]="tipo.id"
-                  >Reporte BB-ING-{{ tipo.formatoReporte }}</span
+                  >Reporte {{ tipo.formatoReporte }}</span
                 >
               }
             </td>

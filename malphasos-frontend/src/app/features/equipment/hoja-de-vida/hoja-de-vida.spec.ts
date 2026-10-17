@@ -11,6 +11,16 @@ const ID_EQUIPO = 'e1';
 const URL_HOJA = `http://localhost:8081/v1/api/client-equipments/${ID_EQUIPO}/life-sheet`;
 
 /** Una hoja de vida como la compila el servidor, con el historial que se pida. */
+/** Una empresa inventada: MalphasOS no lleva los datos de ninguna real, tampoco en sus pruebas. */
+const EMPRESA = {
+  nombre: 'Servicios de Ejemplo S.A.S.',
+  direccion: 'Carrera 1 N.º 2-3',
+  ciudad: 'Ciudad de Ejemplo',
+  telefonos: [],
+  movil: '300 000 0000',
+  correo: 'contacto@empresa.example',
+};
+
 function hoja(
   servicioTecnico: object[] = [],
   cambios: {
@@ -82,14 +92,7 @@ function hoja(
     },
     fabricante: { nombre: 'Mindray Medical', pais: 'China' },
     servicioTecnico,
-    empresa: {
-      nombre: 'Bolívar Bioingeniería Ltda.',
-      direccion: 'Calle 77 C N.º 100 B 46, Villas del Madrigal',
-      ciudad: 'Bogotá',
-      telefonos: [],
-      movil: '312 305 5157',
-      correo: 'bolivarbioingenieria@gmail.com',
-    },
+    empresa: EMPRESA,
   };
 }
 
@@ -246,14 +249,52 @@ describe('Hoja de vida de un equipo', () => {
     await abrir(hoja());
 
     const empresa = seccion('empresa')?.textContent?.replace(/\s+/g, ' ');
-    expect(empresa).toContain('Bolívar Bioingeniería Ltda.');
-    expect(empresa).toContain('Calle 77 C N.º 100 B 46, Villas del Madrigal, Bogotá');
-    expect(empresa).toContain('Móvil 312 305 5157');
+    expect(empresa).toContain('Servicios de Ejemplo S.A.S.');
+    expect(empresa).toContain('Carrera 1 N.º 2-3, Ciudad de Ejemplo');
+    expect(empresa).toContain('Móvil 300 000 0000');
     expect(empresa).not.toContain(' · Móvil');
-    expect(empresa).toContain('bolivarbioingenieria@gmail.com');
+    expect(empresa).toContain('contacto@empresa.example');
     expect(raiz().querySelector('.hv-firmas')?.textContent).toContain(
-      'Elaboró · Bolívar Bioingeniería Ltda.',
+      'Elaboró · Servicios de Ejemplo S.A.S.',
     );
+  });
+
+  it('el membrete es el nombre y el logo de la empresa configurada, no los de ninguna fija', async () => {
+    // Decidido el 2026-10-16: MalphasOS no lleva la marca de ninguna empresa. El logo llega del
+    // servidor como data: URI y sale en las dos bandas y como marca de agua de las dos hojas.
+    await abrir({ ...hoja(), empresa: { ...EMPRESA, logo: 'data:image/png;base64,AAAA' } });
+
+    expect(raiz().querySelector('.hv-logo')?.textContent?.trim()).toBe(
+      'Servicios de Ejemplo S.A.S.',
+    );
+    const logos = [...raiz().querySelectorAll('img')].map((img) => img.getAttribute('src'));
+    expect(logos).toEqual(Array(4).fill('data:image/png;base64,AAAA'));
+    expect(raiz().querySelectorAll('img.hv-escudo').length).toBe(2);
+  });
+
+  it('sin logo configurado, el membrete es solo el nombre y no hay marca de agua', async () => {
+    await abrir(hoja());
+
+    expect(raiz().querySelectorAll('img').length).toBe(0);
+    expect(raiz().querySelector('.hv-logo')?.textContent?.trim()).toBe(
+      'Servicios de Ejemplo S.A.S.',
+    );
+  });
+
+  it('el pie lleva el código del formato de la empresa si lo configuró, y si no solo la fecha', async () => {
+    await abrir({ ...hoja(), empresa: { ...EMPRESA, codigoHojaDeVida: 'FT-001' } });
+
+    const pies = [...raiz().querySelectorAll('.hv-pie span:first-child')].map(
+      (pie) => pie.textContent,
+    );
+    expect(pies.length).toBe(2);
+    pies.forEach((pie) => expect(pie).toMatch(/^FT-001 · Actualizada el /));
+  });
+
+  it('sin código configurado, el pie dice solo cuándo se actualizó', async () => {
+    await abrir(hoja());
+
+    expect(raiz().querySelector('.hv-pie span')?.textContent).toMatch(/^Actualizada el /);
   });
 
   it('las recomendaciones de cuidado salen como lista, una por línea', async () => {
@@ -334,13 +375,13 @@ describe('Hoja de vida de un equipo', () => {
   });
 
   it('cada servicio dice que se hizo y quien lo hizo: el ingeniero y la empresa', async () => {
-    // Decidido el 2026-10-05: los procedimientos del reporte, y el ingeniero mas Bolivar.
+    // Decidido el 2026-10-05: los procedimientos del reporte, y el ingeniero mas la empresa.
     await abrir(hoja([RECIENTE]));
 
     const celda = filasDelHistorial()[0].querySelectorAll('td')[2];
     expect(celda.textContent).toContain('Ajuste del sensor de presion contra patron');
     expect(celda.querySelector('.hv-responsable')?.textContent?.trim()).toBe(
-      'Grace Hopper · Bolívar Bioingeniería Ltda.',
+      'Grace Hopper · Servicios de Ejemplo S.A.S.',
     );
   });
 
@@ -351,7 +392,7 @@ describe('Hoja de vida de un equipo', () => {
     const celda = filasDelHistorial()[0].querySelectorAll('td')[2];
     expect(celda.textContent).toContain('—');
     expect(celda.querySelector('.hv-responsable')?.textContent?.trim()).toBe(
-      'Bolívar Bioingeniería Ltda.',
+      'Servicios de Ejemplo S.A.S.',
     );
   });
 

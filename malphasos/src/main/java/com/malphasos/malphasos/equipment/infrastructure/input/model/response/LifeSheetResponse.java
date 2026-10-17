@@ -70,14 +70,20 @@ public record LifeSheetResponse(
             @Schema(description = "Lo propio de este tipo de equipo. Nula si no hay") String indicacion) {
     }
 
-    @Schema(name = "LifeSheetEmpresa", description = "Viene de la configuracion, no de la base")
+    @Schema(name = "LifeSheetEmpresa", description = "Viene de la configuracion, no de la base ni del codigo")
     public record Empresa(
             String nombre,
+            @Schema(description = "Opcional") String nit,
             String direccion,
             String ciudad,
             @Schema(description = "Telefonos fijos; vacia si no tiene") List<String> telefonos,
             String movil,
-            String correo) {
+            String correo,
+            @Schema(description = "El logo como data: URI; nulo si no hay") String logo,
+            @Schema(description = "El texto de garantia del informe; nulo si no hay") String garantia,
+            @Schema(description = "La aclaracion del proceso del informe; nula si no hay") String aclaracion,
+            @Schema(description = "Codigo del formato de la hoja de vida; nulo si no hay") String codigoHojaDeVida,
+            @Schema(description = "Codigo del formato del informe; nulo si no hay") String codigoInforme) {
     }
 
     @Schema(name = "LifeSheetFabricante")

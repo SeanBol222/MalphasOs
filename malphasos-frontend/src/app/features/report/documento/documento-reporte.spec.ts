@@ -26,11 +26,29 @@ import {
 } from '../../../../testing/ordenes';
 import { ID_REPORTE, reporte, urlReporte } from '../../../../testing/reportes';
 import { ReporteDeServicio } from '../../../core/api/tipos';
-import { DocumentoReporte, GARANTIA, proximoServicio } from './documento-reporte';
+import { DocumentoReporte, proximoServicio } from './documento-reporte';
 
 const URL_HOJA = `http://localhost:8081/v1/api/client-equipments/${ID_EQUIPO}/life-sheet`;
 
 /** La hoja de vida del equipo, como la compila el servidor: lo que el documento toma de ella. */
+const GARANTIA_DE_EJEMPLO = 'La garantía cubre lo que se reporte en los cinco días siguientes.';
+
+const EMPRESA = {
+  nombre: 'Servicios de Ejemplo S.A.S.',
+  direccion: 'Carrera 1 N.º 2-3',
+  ciudad: 'Ciudad de Ejemplo',
+  telefonos: [],
+  movil: '300 000 0000',
+  aclaracion: 'Mantenimiento realizado bajo el protocolo de la empresa.',
+  garantia: GARANTIA_DE_EJEMPLO,
+  codigoInforme: 'FT-002 · Versión 1',
+};
+
+/** La hoja de vida con una empresa que no configuró ninguno de sus textos ni su logo. */
+function hojaSinTextos() {
+  return { ...hoja(), empresa: { nombre: 'Servicios de Ejemplo S.A.S.', telefonos: [] } };
+}
+
 function hoja(servicioTecnico: object[] = []) {
   return {
     identificacion: {
@@ -61,13 +79,8 @@ function hoja(servicioTecnico: object[] = []) {
     },
     fabricante: { nombre: 'Welch Allyn' },
     servicioTecnico,
-    empresa: {
-      nombre: 'Bolívar Bioingeniería Ltda.',
-      direccion: 'Calle 77 C N.º 100 B 46',
-      ciudad: 'Bogotá',
-      telefonos: [],
-      movil: '312 305 5157',
-    },
+    // Una empresa inventada, con sus textos: MalphasOS no lleva los de ninguna real (2026-10-16).
+    empresa: EMPRESA,
   };
 }
 
@@ -292,18 +305,48 @@ describe('Documento del reporte', () => {
     expect(texto('[data-firma-profesional]')).toBe('Grace Hopper');
   });
 
-  it('la aclaración no acaba en dos puntos aunque el nombre de la empresa traiga el suyo', async () => {
-    await abrir();
+  it('la aclaración y la garantía son los textos que la empresa configuró', async () => {
+    await abrir({ lecturas: LECTURAS, patrones: [PATRON] });
 
     expect(texto('[data-aclaracion]')).toBe(
-      'Aclaración del proceso. Mantenimiento preventivo realizado bajo protocolo de la empresa Bolívar Bioingeniería Ltda.',
+      'Aclaración del proceso. Mantenimiento realizado bajo el protocolo de la empresa.',
+    );
+    expect(texto('[data-garantia]')).toBe(`Garantía. ${GARANTIA_DE_EJEMPLO}`);
+  });
+
+  it('sin textos configurados no hay aclaración ni garantía, en vez de un rótulo vacío', async () => {
+    await abrir({ lecturas: LECTURAS, patrones: [PATRON] }, { hoja: hojaSinTextos() });
+
+    expect(raiz().querySelector('[data-aclaracion]')).toBeNull();
+    expect(raiz().querySelector('[data-garantia]')).toBeNull();
+  });
+
+  it('el pie lleva el código del formato que la empresa configuró y su dirección', async () => {
+    await abrir();
+
+    expect(texto('[data-pie]')).toBe(
+      'FT-002 · Versión 1 · Carrera 1 N.º 2-3, Ciudad de Ejemplo · 300 000 0000',
     );
   });
 
-  it('el pie lleva el formato del tipo', async () => {
-    await abrir();
+  it('el membrete es el nombre y el logo configurados; sin logo, solo el nombre', async () => {
+    await abrir(
+      { lecturas: LECTURAS, patrones: [PATRON] },
+      { hoja: { ...hoja(), empresa: { ...EMPRESA, logo: 'data:image/png;base64,AAAA' } } },
+    );
 
-    expect(texto('[data-pie]')).toContain('BB-ING-MP2 · Versión 1 · noviembre 2019');
+    expect(texto('.rs-logo')).toBe('Servicios de Ejemplo S.A.S.');
+    expect(raiz().querySelectorAll('img.rs-escudo')).toHaveLength(2);
+    expect(raiz().querySelector('.rs-logo img')?.getAttribute('src')).toBe(
+      'data:image/png;base64,AAAA',
+    );
+  });
+
+  it('sin logo configurado no hay imagen ni marca de agua', async () => {
+    await abrir({ lecturas: LECTURAS, patrones: [PATRON] }, { hoja: hojaSinTextos() });
+
+    expect(raiz().querySelectorAll('img')).toHaveLength(0);
+    expect(texto('.rs-logo')).toBe('Servicios de Ejemplo S.A.S.');
   });
 
   it('con verificación hay página 2: la tabla, la gráfica y los patrones', async () => {
@@ -333,7 +376,7 @@ describe('Documento del reporte', () => {
     );
     expect(pagina.querySelectorAll('circle[data-fuera]')).toHaveLength(1);
     expect(pagina.querySelector('rect[data-banda]')).not.toBeNull();
-    expect(texto('[data-pagina="2"]')).toContain(GARANTIA);
+    expect(texto('[data-pagina="2"]')).toContain(GARANTIA_DE_EJEMPLO);
     expect(texto('[data-pagina="2"]')).toContain('Página 2 de 2');
   });
 
@@ -345,7 +388,6 @@ describe('Documento del reporte', () => {
 
     expect(raiz().querySelector('[data-pagina="2"]')).toBeNull();
     expect(texto()).toContain('Página 1 de 1');
-    expect(texto('[data-pie]')).toContain('BB-ING-MP0');
   });
 
   it('es un documento: no tiene un solo control que se pueda editar', async () => {

@@ -597,9 +597,21 @@
         "type" : "object"
       },
       "LifeSheetEmpresa" : {
-        "description" : "Viene de la configuracion, no de la base",
+        "description" : "Viene de la configuracion, no de la base ni del codigo",
         "properties" : {
+          "aclaracion" : {
+            "description" : "La aclaracion del proceso del informe; nula si no hay",
+            "type" : "string"
+          },
           "ciudad" : {
+            "type" : "string"
+          },
+          "codigoHojaDeVida" : {
+            "description" : "Codigo del formato de la hoja de vida; nulo si no hay",
+            "type" : "string"
+          },
+          "codigoInforme" : {
+            "description" : "Codigo del formato del informe; nulo si no hay",
             "type" : "string"
           },
           "correo" : {
@@ -608,7 +620,19 @@
           "direccion" : {
             "type" : "string"
           },
+          "garantia" : {
+            "description" : "El texto de garantia del informe; nulo si no hay",
+            "type" : "string"
+          },
+          "logo" : {
+            "description" : "El logo como data: URI; nulo si no hay",
+            "type" : "string"
+          },
           "movil" : {
+            "type" : "string"
+          },
+          "nit" : {
+            "description" : "Opcional",
             "type" : "string"
           },
           "nombre" : {

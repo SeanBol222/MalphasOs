@@ -50,8 +50,7 @@ export class NuevaPersona {
   private static readonly RECETAS: Readonly<Record<ClaseDeAlta, Receta>> = {
     ingeniero: {
       titulo: 'Registrar ingeniero',
-      explicacion:
-        'Alguien de BolívarBioingeniería que ejecuta mantenimientos. Se le crea cuenta de acceso.',
+      explicacion: 'Alguien de la empresa que ejecuta mantenimientos. Se le crea cuenta de acceso.',
       oficio: 'engineers',
       autoridad: 'super.person.write',
     },

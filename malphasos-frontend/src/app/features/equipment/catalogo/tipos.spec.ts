@@ -217,10 +217,7 @@ describe('Tipos de equipo', () => {
     it('un tipo que se verifica elige entre MP1 y MP2, con el suyo puesto', async () => {
       await abrir();
 
-      expect([...desplegable()!.options].map((o) => o.textContent?.trim())).toEqual([
-        'BB-ING-MP1',
-        'BB-ING-MP2',
-      ]);
+      expect([...desplegable()!.options].map((o) => o.textContent?.trim())).toEqual(['MP1', 'MP2']);
       expect(desplegable()!.value).toBe('MP2');
     });
 
@@ -257,7 +254,7 @@ describe('Tipos de equipo', () => {
 
       expect(desplegable()).toBeNull();
       expect(raiz().querySelector(`[data-formato="${ID_TIPO}"]`)!.textContent).toContain(
-        'Reporte BB-ING-MP0',
+        'Reporte MP0',
       );
     });
   });

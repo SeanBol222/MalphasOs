@@ -25,8 +25,8 @@ const PERSONAS = [
     tipoPersona: 'ADMIN',
     estadoActivo: true,
     emailPersonList: [
-      { correoPersona: 'vieja@bolivarbio.co', estadoActivo: false },
-      { correoPersona: 'laura@bolivarbio.co', estadoActivo: true },
+      { correoPersona: 'vieja@empresa.example', estadoActivo: false },
+      { correoPersona: 'laura@empresa.example', estadoActivo: true },
     ],
   },
   {
@@ -148,7 +148,7 @@ describe('Listado de personas', () => {
     await abrir();
 
     expect(celdas('p1')).toEqual([
-      'LM Laura Méndez laura@bolivarbio.co',
+      'LM Laura Méndez laura@empresa.example',
       '1018456321',
       'Administrador',
       'De la casa',

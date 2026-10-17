@@ -18,7 +18,7 @@ class ClientAcronymTest {
     @CsvSource(delimiter = '|', value = {
         "Clínica Dermatológica del Norte S.A.S. | CDN",
         "Hospital Universitario San Ignacio     | HUSI",
-        "Bolívar Bioingeniería Ltda.            | BBI",
+        "Córdoba Biomédica Ltda.                | CBI",
         "Dermacenter S.A.S.                     | DER",
         "Clínica del Dolor y Neurología S.A.    | CDN",
         "Uñas & Spa Ltda                        | USP",

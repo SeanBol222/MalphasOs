@@ -920,12 +920,24 @@ export interface components {
         InvimaRequest: {
             invima?: string;
         };
-        /** @description Viene de la configuracion, no de la base */
+        /** @description Viene de la configuracion, no de la base ni del codigo */
         LifeSheetEmpresa: {
+            /** @description La aclaracion del proceso del informe; nula si no hay */
+            aclaracion?: string;
             ciudad?: string;
+            /** @description Codigo del formato de la hoja de vida; nulo si no hay */
+            codigoHojaDeVida?: string;
+            /** @description Codigo del formato del informe; nulo si no hay */
+            codigoInforme?: string;
             correo?: string;
             direccion?: string;
+            /** @description El texto de garantia del informe; nulo si no hay */
+            garantia?: string;
+            /** @description El logo como data: URI; nulo si no hay */
+            logo?: string;
             movil?: string;
+            /** @description Opcional */
+            nit?: string;
             nombre?: string;
             /** @description Telefonos fijos; vacia si no tiene */
             telefonos?: string[];

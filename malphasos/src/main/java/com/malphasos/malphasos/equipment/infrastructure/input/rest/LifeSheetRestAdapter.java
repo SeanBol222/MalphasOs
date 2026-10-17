@@ -7,6 +7,7 @@ import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.InterventionResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.LifeSheetResponse;
+import com.malphasos.malphasos.shared.config.ServiceCompanyLogo;
 import com.malphasos.malphasos.shared.config.ServiceCompanyProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,6 +45,7 @@ public class LifeSheetRestAdapter {
     /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
     private final ReadScopeResolver readScopeResolver;
     private final ServiceCompanyProperties empresa;
+    private final ServiceCompanyLogo logo;
     private final EquipmentRestMapper restMapper;
 
     @Operation(
@@ -103,11 +105,17 @@ public class LifeSheetRestAdapter {
                 hoja.servicioTecnico().stream().map(LifeSheetRestAdapter::toResponse).toList(),
                 new LifeSheetResponse.Empresa(
                         empresa.getNombre(),
+                        empresa.getNit(),
                         empresa.getDireccion(),
                         empresa.getCiudad(),
                         List.copyOf(empresa.getTelefonos()),
                         empresa.getMovil(),
-                        empresa.getCorreo()));
+                        empresa.getCorreo(),
+                        logo.dataUri().orElse(null),
+                        empresa.getGarantia(),
+                        empresa.getAclaracion(),
+                        empresa.getCodigoHojaDeVida(),
+                        empresa.getCodigoInforme()));
     }
 
     private static InterventionResponse toResponse(Intervention intervencion) {

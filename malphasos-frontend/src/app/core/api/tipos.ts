@@ -112,7 +112,7 @@ export type ModalidadDeVerificacion = NonNullable<NuevaVerificacionDeTipo['modal
 
 /**
  * Con qué formato se imprime el reporte de un tipo de equipo (V32, 2026-10-16): MP0 si no se verifica,
- * MP1 o MP2 si se verifica. Se imprime como «BB-ING-MP2».
+ * MP1 o MP2 si se verifica.
  */
 export type FormatoDeReporte = NonNullable<TipoDeEquipo['formatoReporte']>;
 
@@ -348,7 +348,7 @@ export const TIPOS_DE_PERSONA: readonly TipoDePersona[] = [
  * Como se nombra cada tipo en pantalla.
  *
  * <p>⚠️ <b>`ENGINEER` y `MANAGER` son dos cosas distintas y se confunden facilisimo.</b> El ingeniero
- * es de BolivarBioingenieria y ejecuta mantenimientos; el encargado es del cliente y responde por una
+ * es de la empresa que presta el servicio y ejecuta mantenimientos; el encargado es del cliente y responde por una
  * sede o un area —lo que la ERS llama «profesional responsable» y el realm, por un nombre heredado,
  * tambien llama `engineer` en sus autoridades—. Ver el glosario del dominio.
  */
