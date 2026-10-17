@@ -1,0 +1,28 @@
+# La empresa que presta el servicio técnico: el membrete de la hoja de vida y del informe de
+# mantenimiento. MalphasOS no lleva los datos de ninguna empresa en su código.
+#
+#   cp config/empresa.example.yaml config/empresa.yaml
+#
+# y llénalo con los de la tuya. config/empresa.yaml y el logo están fuera de git. Solo el nombre es
+# obligatorio: sin él el backend no arranca. Lo demás que falte, el documento no lo imprime.
+#
+# Los datos de abajo son inventados.
+app:
+  empresa:
+    nombre: Servicios Biomédicos de Ejemplo S.A.S.
+    nit: 900.000.000-0
+    direccion: Carrera 1 N.º 2-3
+    ciudad: Ciudad de Ejemplo
+    # Teléfonos fijos, si los hay.
+    telefonos: []
+    movil: 300 000 0000
+    correo: contacto@empresa.example
+    # PNG, JPG o SVG de hasta 512 KB, en este mismo directorio. Sin logo, el membrete es el nombre.
+    # logo: logo.svg
+    garantia: >-
+      La garantía cubre las eventualidades generadas durante el servicio que se reporten en los cinco
+      días calendario siguientes. No aplica a fallas propias del equipo ni a su mal manejo.
+    aclaracion: Mantenimiento realizado bajo el protocolo de la empresa.
+    # Los códigos con que el sistema de calidad de la empresa controla cada formato, si tiene.
+    codigo-hoja-de-vida: FT-001
+    codigo-informe: FT-002

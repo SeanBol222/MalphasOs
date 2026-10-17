@@ -38,6 +38,15 @@ app:
       # pruebas lo sustituye entero. Sin esta clave el @Value de CorsConfig no resuelve y el
       # contexto no arranca en NINGUNA prueba, seguridad encendida o apagada.
       allowed-origins: http://localhost:5173
+  # Una empresa inventada, la misma de config/empresa.example.yaml: MalphasOS no lleva los datos de
+  # ninguna empresa real, tampoco en sus pruebas. Sin nombre el contexto no arranca.
+  empresa:
+    nombre: Servicios Biomédicos de Ejemplo S.A.S.
+    nit: 900.000.000-0
+    direccion: Carrera 1 N.º 2-3
+    ciudad: Ciudad de Ejemplo
+    movil: 300 000 0000
+    correo: contacto@empresa.example
 
 keycloak:
   admin:

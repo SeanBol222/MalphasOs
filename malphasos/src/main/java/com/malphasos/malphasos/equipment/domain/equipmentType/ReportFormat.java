@@ -2,7 +2,7 @@ package com.malphasos.malphasos.equipment.domain.equipmentType;
 
 /**
  * El formato con que se imprime el reporte de servicio de un tipo de equipo (V32, 2026-10-16): los tres
- * que la empresa usa hoy, que se imprimen como {@code BB-ING-MP0}, {@code MP1} y {@code MP2}.
+ * que la empresa usa hoy, que se imprimen como {@code MP0}, {@code MP1} y {@code MP2}.
  */
 public enum ReportFormat {
 

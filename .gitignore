@@ -4,6 +4,11 @@
 .env.local
 .env.*.local
 
+# Los datos de la empresa que usa MalphasOS y su logo: MalphasOS no lleva los de ninguna en su codigo
+# (decidido el 2026-10-16). Solo se versiona el ejemplo, con una empresa inventada.
+/config/*
+!/config/empresa.example.yaml
+
 # Dependencias y productos de compilacion del frontend. Van en la raiz y no solo
 # en malphasos-frontend/ a proposito: una rama que salga de antes de que ese
 # directorio existiera no tiene su .gitignore, y ahi un `git add -A` se traga

@@ -155,6 +155,10 @@ services:
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:5173}
       KEYCLOAK_ADMIN_CLIENT_ID: malphasos-backend-admin
       KEYCLOAK_ADMIN_CLIENT_SECRET: ${MALPHASOS_BACKEND_ADMIN_SECRET:-}
+      # Los datos de la empresa y su logo, fuera de la imagen y de git: ver config/empresa.example.yaml.
+      MALPHASOS_CONFIG_DIR: /app/config
+    volumes:
+      - ./config:/app/config:ro
     ports:
       - "${APP_HOST_PORT}:8081"
     depends_on:

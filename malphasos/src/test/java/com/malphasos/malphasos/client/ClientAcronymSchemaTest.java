@@ -32,7 +32,7 @@ class ClientAcronymSchemaTest {
     private static final List<String> RAZONES_SOCIALES = List.of(
             "Clínica Dermatológica del Norte S.A.S.",
             "Hospital Universitario San Ignacio",
-            "Bolívar Bioingeniería Ltda.",
+            "Córdoba Biomédica Ltda.",
             "Dermacenter S.A.S.",
             "Clínica del Dolor y Neurología S.A.",
             "Uñas & Spa Ltda",
