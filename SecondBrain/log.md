@@ -1893,3 +1893,35 @@ formatos; RF-40 cumple uno de sus tres criterios y sigue previsto.
 **Tocadas**: [[esquema-bd-malphasos]], [[dominio-reporte-servicio]], [[dominio-orden-trabajo]],
 [[dominio-equipo-mantenimiento]], [[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]],
 [[deuda-tecnica-y-riesgos]], el índice y el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-16] ingest | el formato del reporte que la empresa ya entrega
+
+Seis tandas el mismo día, todas en `main`, sobre cuatro informes reales que el usuario aportó y que **no
+se versionan** —llevan datos personales de un cliente real—: el número de seis caracteres (`d9253ac3`,
+`V28`), la ficha del patrón (`e12dfb0d`, `V29`), varios patrones por verificación (`e913c2e3`, `V30`),
+el ingreso y la entrega (`d3644bc6`, `V31`), el formato en el tipo de equipo (`9af749da`, `V32`) y el
+documento imprimible con la gráfica de error (`b873c538`).
+
+**Lo que cambió de sitio**: el patrón de `V27`, que vivía en el reporte, se reparte en `V30` entre las
+verificaciones con lecturas. Es la tercera migración que mueve datos, tras `V10` y `V15`.
+
+**Afirmaciones que resultaron falsas y se corrigieron**:
+
+- «Un `CHECK` de todo o nada» sobre el patrón de `reporte_servicio`, en [[esquema-bd-malphasos]]: falso
+  desde `V30`, que se llevó las columnas.
+- «El reporte copia el patrón» y «con lecturas, un patrón», en [[dominio-reporte-servicio]]: ahora son
+  varios por cada verificación medida. Se dejaron los párrafos con la corrección delante.
+
+**Encontrado construyendo**: la consulta de la hoja de vida salía con el identificador vacío
+—`client-equipments//life-sheet`— y nada fallaba salvo un error de CORS en la consola. Corregido en
+`ac44e406`.
+
+**Cifras**, recalculadas: esquema en `V32` con **33** tablas, 46 foráneas (4 compuestas), 68 `CHECK` y
+9 índices parciales; el guion de columnas da 211 dibujadas, todas existentes. Backend **1278** en 89
+clases sobre `b873c538`, cero fallos; frontend **689** sobre `3ddfc3a1`.
+Deuda propia **93 filas, 57 abiertas**: seis nuevas, ninguna cerrada, y dos de ellas son preguntas al
+usuario. **El marcador de requisitos no se mueve**: 21, porque RF-17 pide el PDF firmado.
+
+**Tocadas**: [[esquema-bd-malphasos]], [[dominio-reporte-servicio]], [[dominio-equipo-mantenimiento]],
+[[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], el índice y
+el `CONVENCIONES.md` de la raíz.

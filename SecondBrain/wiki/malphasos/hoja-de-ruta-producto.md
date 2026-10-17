@@ -19,7 +19,7 @@ updated: 2026-10-16
 |---|---|---|---|
 | Requisitos funcionales | 31 | **21** | ERS 3.2, verificada dos veces contra el código |
 | Requisitos no funcionales | 23 | **1** (RNF-23, JWT) | Matriz de trazabilidad |
-| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio por tipo de servicio y personas**, todo de extremo a extremo, con **630** pruebas | Medido el 2026-10-16 sobre `da7d7ded` |
+| Frontend | — | **Sesión, autenticación, clientes, equipos con su catálogo, órdenes de trabajo, reportes de servicio por tipo de servicio y personas**, todo de extremo a extremo, más **el reporte como documento imprimible**, con **689** pruebas | Medido el 2026-10-16 sobre `3ddfc3a1` (decía **630** sobre `da7d7ded`, unas horas antes) |
 
 > **Corregido el 2026-10-16.** Esta fila decía **409** pruebas «medidas el 2026-10-03»: llevaba trece
 > días caducada mientras `CONVENCIONES.md` subía de 409 a 572. Es la misma lección de siempre —un conteo
@@ -419,6 +419,44 @@ en [[esquema-bd-malphasos]].
   conformidad —la ERS habla de «preventivo con calibración» y no dice qué se registra—, y ejecutar con
   reportes cerrados tampoco está escrito como requisito. Es trabajo que la especificación no reclama,
   igual que el filtrado por dueño.
+
+## El formato que la empresa ya entrega (decidido y construido el 2026-10-16)
+
+El usuario aportó **cuatro informes reales** de la empresa —en `Documentation/raw/`, **sin versionar**,
+porque llevan datos personales de un cliente real— y pidió que el reporte se pudiera **llenar, ver en la
+aplicación y exportar a PDF** con ese formato. Entre tres diseños eligió el **C**: el informe de siempre,
+con una gráfica de error y su banda de tolerancia.
+
+**Decisiones del usuario:**
+
+| Pregunta | Decisión |
+|---|---|
+| Número del reporte | **Los seis primeros caracteres del identificador**, como un commit de git |
+| Patrones | **Varios por verificación**, con la ficha que el informe imprime en su trazabilidad |
+| Tipos de servicio | **Los tres, más la verificación metrológica derivada**: la casilla se marca sola si hay lecturas |
+| Formato `MP0`/`MP1`/`MP2` | **Lo elige el tipo de equipo** |
+| Supervisor | **El encargado del área** |
+| Quién recibe | **Texto libre en el reporte**: nombre, cédula y cargo |
+| Al ingreso | **Las dos verificaciones fijas en todo reporte**, más una lista libre de accesorios |
+
+**Las tandas, las seis en `main` el mismo día:**
+
+| # | Tanda | Commits | Merge |
+|---|---|---|---|
+| 1 | **El número** — `V28` | `0e4012ae` · `42e7c793` | `d9253ac3` |
+| 2 | **La ficha del patrón** — `V29` y su formulario | `2487351f` · `19db813c` | `e12dfb0d` |
+| 3 | **Patrones por verificación** — `V30` | `9f769654` · `cfa6b24f` | `e913c2e3` |
+| 4a | **Ingreso y entrega** — `V31` | `6a588034` · `521ebab2` | `d3644bc6` |
+| 4b | **El formato en el tipo** — `V32` | `deabd70b` · `042970e4` | `9af749da` |
+| 5 | **El documento** — `/reportes/:id/documento`, impreso desde el navegador | `85bc3303` · `ac44e406` · `3ddfc3a1` | `b873c538` |
+
+**Lo que queda abierto, como preguntas al usuario**: qué distingue `MP1` de `MP2` —se imprimen igual—,
+si el ingreso y la entrega deben exigirse para cerrar —hoy no—, y si el código interno de un patrón
+puede repetirse —hoy sí—. Y **lo que el documento no congela**: cliente y equipo salen de la hoja de vida
+de hoy. Todo en [[deuda-tecnica-y-riesgos]]; el detalle, en [[dominio-reporte-servicio]].
+
+**El marcador no se mueve: siguen siendo 21.** RF-17 pide el PDF **firmado**, y el documento se imprime
+sin firma; sigue esperando a RF-18 y RF-21, que es exactamente donde el orden de abajo lo pone.
 
 ## El orden propuesto
 

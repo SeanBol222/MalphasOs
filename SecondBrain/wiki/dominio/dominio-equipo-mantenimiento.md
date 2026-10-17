@@ -393,6 +393,31 @@ puntos y la cantidad sigan igual, porque cambia qué lecturas son conformes. Y r
 tanda después**: el reporte copia la tolerancia en cada lectura al tomarla, y la conformidad tiene que
 calcularse con esa copia, no con la que el tipo declare hoy. Ver [[dominio-reporte-servicio]].
 
+## La ficha del patrón y el formato del reporte (2026-10-16)
+
+Dos de las tandas del formato que la empresa ya entrega —ver [[dominio-reporte-servicio]]— tocan este
+módulo:
+
+| Tanda | Commits | Qué trae |
+|---|---|---|
+| La ficha del patrón | `2487351f` · `19db813c` | `V29` y `ReferenceStandardSheet`, con los dos bloques del formulario de Catálogo › Patrones |
+| El formato en el tipo | `deabd70b` · `042970e4` | `V32`, `ReportFormat` y su selector en Catálogo › Tipos |
+
+**La ficha del patrón** es un `record` aparte, `ReferenceStandardSheet` —modelo, código interno, rango,
+resolución, fecha de calibración y empresa calibradora—, **toda opcional**: los patrones ya registrados
+no la tienen. El patrón exige una sola cosa de ella, que **la calibración no sea posterior al
+vencimiento** del certificado que produjo, y lo exige también el esquema. **Rango y resolución son
+texto**, porque un mismo patrón cubre a veces dos magnitudes —«0 a 50 °C; 10 a 90 %HR»— y así se imprime.
+**El código interno no es único**: es una pregunta abierta, no una decisión.
+
+**El formato del reporte lo elige el tipo** —`MP0`, `MP1` o `MP2`, impresos como `BB-ING-MP0`…—, y
+`ReportFormat.sirvePara(verificable)` dice cuál cabe: `MP0` solo sin verificaciones, los otros dos solo
+con ellas. Un tipo nuevo nace con el que le toca —`porDefecto`—, `chooseReportFormat` rechaza el que no
+sirve, y **`declareVerifications` lo ajusta solo** cuando el cambio lo deja inservible: declarar la
+primera verificación de un tipo `MP0` lo pasa a `MP2`, y retirar la última lo devuelve a `MP0`. Tiene ruta
+propia, `PATCH /equipment-types/{id}/report-format`, como la modalidad de verificación: no está en el
+cuerpo de edición del tipo.
+
 ## Reutilizable en MalphasOS
 
 `reusable:alta` — **debería portarse casi completo**, y así se hizo con la primera tanda. El modelo de dominio (`Equipment`, `EquipmentType`, `Brand`, `Manufacturer`, `Model`, `TechnicalVerification`, `MetrologicalData`) es genérico y no acopla nada de facturación/gestión ajena al mantenimiento en sí. Es, junto con `location_hexagon`, la plantilla arquitectónica a seguir para todos los módulos nuevos de MalphasOS — no la de `client_hexagon`.

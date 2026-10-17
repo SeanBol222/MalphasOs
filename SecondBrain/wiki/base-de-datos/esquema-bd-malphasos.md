@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 31 tablas, 43 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 33 tablas, 46 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -18,7 +18,7 @@ original**, generado con Enterprise Architect, y la primera se anuncia como «el
 **Coincidencia que conviene no confundir**: el original tenía **27** tablas y MalphasOS tenía **26** el
 día que se escribió esta nota. No eran las mismas menos una; es otro modelo con un número parecido.
 (Esta frase decía «tiene **26**» en presente: **falso desde `V12`**, el 2026-10-04, y nadie la tocó en
-seis recuentos. Hoy son **31**; la cifra viva está en «Las cifras», más abajo.)
+seis recuentos. Hoy son **33**; la cifra viva está en «Las cifras», más abajo.)
 
 ## Cómo se hizo esta nota, y cómo se vuelve a hacer
 
@@ -82,13 +82,39 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **27** (`V1`…`V27`) |
-| Tablas de dominio | **31** |
-| Llaves foráneas | **43**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **54** |
+| Migraciones aplicadas | **32** (`V1`…`V32`) |
+| Tablas de dominio | **33** |
+| Llaves foráneas | **46**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **68** |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
-| Índices únicos **parciales** | **8** |
-| Tablas con borrado lógico | **31 de 31** — universal, sin excepción, otra vez desde `V23` |
+| Índices únicos **parciales** | **9** |
+| Tablas con borrado lógico | **33 de 33** — universal, sin excepción, otra vez desde `V23` |
+
+> **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
+> migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
+> traen:
+>
+> - `V28`, el **número del reporte**: los seis primeros caracteres de su identificador, como un commit
+>   de git. Un índice único **sobre una expresión** —`left(k_id_reporte_servicio::text, 6)`— y **no
+>   parcial**, a propósito: un reporte retirado conserva su número y otro no puede heredarlo. No cuenta
+>   entre los parciales.
+> - `V29`, la **ficha del patrón**: seis columnas opcionales en `equipo_patron` —modelo, código interno,
+>   rango, resolución, fecha de calibración y empresa calibradora— con **seis `CHECK`**: cinco de «no en
+>   blanco» y uno de que la calibración no sea posterior al vencimiento.
+> - `V30`, **varios patrones por verificación**: la tabla `patron_verificacion_reporte`, con **tres
+>   foráneas**, un `CHECK` y el **noveno índice parcial**. Y **deshace `V27`**: el patrón pasa a cada
+>   verificación de la que el reporte tiene lecturas, y las seis columnas, la foránea y el `CHECK` de
+>   todo o nada salen de `reporte_servicio`. Es la tercera migración que mueve datos, tras `V10` y `V15`.
+> - `V31`, **el ingreso y la entrega**: siete columnas en `reporte_servicio` con **cuatro `CHECK`** —tres
+>   escritos con `CASE`— y la tabla `accesorio_reporte`, con una foránea y **tres `CHECK`**. **Sin índice
+>   único sobre el orden**, y es la primera tabla con orden que lo deja fuera a propósito: la lista se
+>   sustituye entera, y retirar e insertar en el mismo vaciado chocaría con él.
+> - `V32`, el **formato del reporte** en `tipo_equipo`: obligatorio, con `DEFAULT 'MP0'` y un `CHECK`.
+>   El `DEFAULT` lo exigieron **ocho clases de prueba** que insertan tipos con SQL.
+>
+> Antes: 27 migraciones, 31 tablas, 43 foráneas, 54 `CHECK`, 8 parciales. Las cuentas cuadran: +3 +1 −1
+> foráneas, +6 +1 +4 +3 +1 −1 `CHECK`. El guion de columnas da **211 dibujadas, todas existentes**
+> —eran 180—: las treinta y una de las tablas y columnas nuevas, menos las seis de `V27` que se fueron.
 
 > **Recontado el 2026-10-16, sobre la base con `V27`**, leyendo `pg_constraint` y `pg_index`. Las cuatro
 > migraciones de la primera versión funcional —ver [[hoja-de-ruta-producto]]— traen:
@@ -356,6 +382,7 @@ erDiagram
         varchar t_uso "V15"
         varchar t_limpieza_cotidiana "V15"
         bigint m_valor_unitario_mantenimiento
+        varchar t_formato_reporte "MP0, MP1 o MP2 - V32"
         boolean b_estado_activo
     }
     equipo {
@@ -467,12 +494,18 @@ reporte copia la tolerancia al tomarse, por la misma razón que copia la unidad.
 
 ```mermaid
 erDiagram
-    equipo_patron ||--o{ reporte_servicio : "se usa en, desde V27"
+    equipo_patron ||--o{ patron_verificacion_reporte : "se usa en, desde V30"
     equipo_patron {
         uuid k_id_equipo_patron PK
         varchar n_nombre
         varchar n_marca "anulable"
+        varchar n_modelo "anulable - V29"
         varchar k_serie "UK entre los vigentes"
+        varchar k_codigo_interno "anulable, NO unico - V29"
+        varchar t_rango "texto: puede cubrir dos magnitudes - V29"
+        varchar t_resolucion "V29"
+        date f_calibracion "no despues del vencimiento - V29"
+        varchar n_empresa_calibradora "V29"
         varchar n_certificado
         date f_vencimiento_certificado
         boolean b_estado_activo
@@ -484,6 +517,11 @@ Los aparatos de referencia **de la empresa**, contra los que se toman las lectur
 habría hecho de cada patrón una máquina de un cliente ficticio. El vencimiento del certificado es la
 fecha que RF-40 y RF-41 necesitan; **quién la vigila sigue sin existir**. Ver
 [[dominio-equipo-mantenimiento]].
+
+**Desde `V29` lleva la ficha que el informe imprime** en su tabla de trazabilidad, toda opcional: los
+patrones ya registrados no la tienen y uno hecho en casa no tiene modelo ni empresa calibradora. **El
+código interno no es único**, y es una pregunta abierta y no una decisión: la serie ya lo es entre los
+vigentes, y nadie ha dicho si el código de inventario puede repetirse. Ver [[deuda-tecnica-y-riesgos]].
 
 ### Los protocolos de mantenimiento — 2 tablas, desde `V21`
 
@@ -551,13 +589,42 @@ erDiagram
 **`orden_trabajo_equipo` se identifica por el par**, sin identificador propio: un equipo está en una
 orden o no está, y no hay nada que decir dos veces sobre eso.
 
-## `report` — 3 tablas
+## `report` — 5 tablas
 
 ```mermaid
 erDiagram
     orden_trabajo_equipo ||--o{ reporte_servicio : "se reporta en"
     reporte_servicio ||--o{ dato_verificacion : "registra"
     reporte_servicio ||--o{ paso_reporte : "lleva, desde V22"
+    reporte_servicio ||--o{ patron_verificacion_reporte : "se midio contra, desde V30"
+    reporte_servicio ||--o{ accesorio_reporte : "llego con, desde V31"
+    patron_verificacion_reporte {
+        uuid k_id_patron_verificacion_reporte PK
+        uuid k_id_reporte_servicio FK "UK parcial con verificacion y patron"
+        uuid k_id_verificacion FK "simple: el tipo lo comprueba el servicio"
+        uuid k_id_equipo_patron FK
+        varchar n_nombre "copia, como toda la ficha"
+        varchar n_marca "copia"
+        varchar k_serie "copia"
+        varchar n_certificado "copia"
+        date f_vencimiento "copia"
+        varchar n_modelo "copia - V29"
+        varchar k_codigo_interno "copia"
+        varchar t_rango "copia"
+        varchar t_resolucion "copia"
+        date f_calibracion "copia"
+        varchar n_empresa_calibradora "copia"
+        boolean b_estado_activo "quitar retira, volver a poner reactiva"
+    }
+    accesorio_reporte {
+        uuid k_id_accesorio_reporte PK
+        uuid k_id_reporte_servicio FK
+        integer i_orden "SIN indice unico, a proposito"
+        varchar n_nombre
+        boolean b_conforme
+        varchar t_observacion "obligatoria si no es conforme"
+        boolean b_estado_activo
+    }
     paso_reporte {
         uuid k_id_paso_reporte PK
         uuid k_id_reporte_servicio FK
@@ -581,12 +648,13 @@ erDiagram
         varchar t_observaciones
         varchar t_causa "V24, del correctivo"
         varchar t_repuestos "V24"
-        uuid k_id_equipo_patron FK "V27, anulable"
-        varchar n_patron_nombre "copia - V27"
-        varchar n_patron_marca "copia"
-        varchar k_patron_serie "copia"
-        varchar n_patron_certificado "copia"
-        date f_patron_vencimiento "copia"
+        varchar t_ingreso_fisico "CONFORME, NO_CONFORME, NO_APLICA - V31"
+        varchar t_ingreso_fisico_observacion "obligatoria si NO_CONFORME"
+        varchar t_ingreso_operativo "V31"
+        varchar t_ingreso_operativo_observacion
+        varchar n_recibe_nombre "texto libre - V31"
+        varchar k_recibe_cedula "sin nombre, nada"
+        varchar n_recibe_cargo
         varchar t_resultado
         timestamp t_finalizado
         boolean b_estado_activo
@@ -611,8 +679,18 @@ debe cambiar un reporte ya firmado. Ver [[congelar-una-referencia-historica]].
 **El patrón y la tolerancia también son copias, desde `V27`**, y por la misma razón: renovar el
 certificado de un patrón en el catálogo no puede reescribir un reporte firmado, y que el tipo cambie su
 tolerancia no puede volver no conforme una lectura de ayer. El patrón guarda además su identificador
-con una foránea **simple** —un patrón nunca se borra—, y un `CHECK` de **todo o nada**: sin
-identificador no hay copia, y con él están todas salvo la marca.
+con una foránea **simple** —un patrón nunca se borra—.
+
+> **Corregido el 2026-10-16, por la noche.** Este párrafo seguía: «y un `CHECK` de **todo o nada**: sin
+> identificador no hay copia». **Falso desde `V30`**, el mismo día: un reporte no tiene ya un patrón
+> sino **varios por cada verificación**, y las columnas de `V27` salieron de `reporte_servicio` hacia
+> `patron_verificacion_reporte`, con la ficha entera de `V29` copiada. La copia sigue siendo copia y la
+> foránea sigue siendo simple; lo que cambió es dónde viven.
+
+**Quién recibe el equipo es texto y no una foránea a `persona`**, decidido por el usuario: muchas veces
+es la jefa de enfermería de turno, que no está registrada. Y **las dos verificaciones al ingreso son
+columnas fijas**, no filas, porque todo reporte las lleva —estructura física y estado operativo—; lo que
+es lista libre son los accesorios.
 
 **Los pasos del protocolo también son una copia**, por lo mismo: nombre, descripción e indicación son
 los del día en que se abrió el reporte. Pero aquí **sí** hay foránea al protocolo, y no contradice lo
@@ -635,13 +713,16 @@ cuatro y cada una tapa un estado que de otro modo se podría escribir:
 nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
 lectura sin punto pasa y la que trae punto queda atada.
 
-## Los 8 índices únicos parciales, y por qué son parciales
+## Los 9 índices únicos parciales, y por qué son parciales
 
 `UQ_reporte_servicio_activo`, `UQ_verificacion_magnitud_activa_por_tipo`,
 `UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo`, desde `V11`
 `UQ_modelo_nombre_activo_por_equipo`, desde `V21` `UQ_protocolo_clave_activo` y
-`UQ_protocolo_tipo_equipo_prioridad_activa`, y desde `V25` `UQ_equipo_patron_serie_activo`. (Decía
-**cinco**: cierto hasta el **2026-10-10**; y **siete** hasta el **2026-10-14**.) Los ocho llevan `WHERE b_estado_activo`, y la razón es la misma
+`UQ_protocolo_tipo_equipo_prioridad_activa`, desde `V25` `UQ_equipo_patron_serie_activo` y desde `V30`
+`UQ_patron_verificacion_reporte_activo`. (Decía **cinco**: cierto hasta el **2026-10-10**; **siete**
+hasta el **2026-10-14**, y **ocho** hasta el **2026-10-16**.) **`UQ_reporte_servicio_numero`, de `V28`,
+no está en la lista y no es un olvido**: es único y no parcial, porque un número impreso no se recicla.
+Los nueve llevan `WHERE b_estado_activo`, y la razón es la misma
 en todos: **aquí nada se borra**. Una restricción normal impediría volver a dar de alta algo que se
 retiró, de modo que reconfigurar hacia atrás sería imposible.
 

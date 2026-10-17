@@ -439,3 +439,33 @@ la sesión y quedan para discutir.
   URL no caben con un listado largo, y el alcance se filtra preguntando a `work-order`.
 - **Los filtros del listado de órdenes son del frontend**, sobre la lista entera; la combinación en el
   servidor sigue sin existir y hará falta con la paginación.
+
+## El formato que la empresa ya entrega (2026-10-16)
+
+Decisiones **del usuario** —en [[hoja-de-ruta-producto]], con la tabla completa— y las de la sesión,
+marcadas.
+
+- **El número del reporte es el prefijo de su identificador**, seis caracteres en mayúsculas, como un
+  commit. **Quien abre el reporte busca uno libre** generando otro identificador, porque un número
+  impreso y firmado no puede alargarse después como hace git; un índice único **no parcial** lo
+  garantiza, para que un retirado no lo ceda.
+- **Varios patrones por verificación, con la ficha copiada.** La copia vive en una tabla propia y no en
+  el reporte, y **quitar retira y volver a poner reactiva**: así no compiten dos filas activas en el
+  mismo vaciado, que es la trampa de Hibernate con un índice parcial —ver
+  [[stack-spring-boot-4-particularidades]]—.
+- **La ficha del patrón es un `record` aparte y toda opcional** *(de la sesión)*: los patrones ya
+  registrados no la tienen. Rango y resolución son texto, porque un patrón cubre a veces dos magnitudes.
+- **Ingreso: dos columnas fijas y una lista libre.** Las dos verificaciones las lleva todo reporte, así
+  que son columnas; los accesorios varían, así que son filas. «No conforme» exige observación.
+- **Quién recibe es texto, no una persona del sistema**: muchas veces no está registrada.
+- **Ni el ingreso ni la entrega se exigen para cerrar** *(de la sesión)*, a la espera de que el usuario
+  lo decida.
+- **El formato lo elige el tipo de equipo y se ajusta solo** *(el ajuste, de la sesión)*: declarar la
+  primera verificación de un tipo `MP0` lo pasa a `MP2`, y retirar la última lo devuelve a `MP0`. Elegir a
+  mano uno que no sirve se rechaza.
+- **El documento se compone, no se guarda.** Reporte, orden y hoja de vida en una pantalla; supervisor,
+  próximo servicio y la casilla de verificación metrológica se **derivan**. **Se imprime desde el
+  navegador**, como la hoja de vida, y **no congela** los datos del cliente: eso queda para el PDF del
+  servidor que llegue con la firma.
+- **La cadena de cuatro consultas hacia el tipo del equipo vive en una función**, `tipoDelEquipo`, en
+  cuanto hubo dos pantallas que la necesitaban: la tabla de verificación y el documento.
