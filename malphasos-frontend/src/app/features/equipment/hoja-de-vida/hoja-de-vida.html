@@ -17,44 +17,21 @@
   -->
   <article class="hv" aria-label="Hoja de vida del equipo">
     <div class="hv-hoja">
-      <!-- El escudo de la marca, detras de todo: decidido por el usuario, centrado y en el naranja del logo. -->
-      <svg class="hv-escudo" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-        <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
-          <line x1="28" y1="12" x2="72" y2="30" />
-          <line x1="72" y1="30" x2="28" y2="50" />
-          <line x1="28" y1="50" x2="80" y2="72" />
-          <line x1="80" y1="72" x2="28" y2="88" />
-          <line x1="28" y1="12" x2="28" y2="88" />
-        </g>
-        <g fill="#EC3013">
-          <circle cx="28" cy="12" r="5" />
-          <circle cx="72" cy="30" r="5" />
-          <circle cx="28" cy="50" r="5" />
-          <circle cx="80" cy="72" r="5" />
-          <circle cx="28" cy="88" r="5" />
-        </g>
-      </svg>
+      <!--
+        El logo de la empresa como marca de agua, detras de todo: decidido por el usuario, centrado. Viene
+        de su configuracion, como el nombre: MalphasOS no lleva el de ninguna empresa (2026-10-16).
+      -->
+      @if (empresa()?.logo; as logo) {
+        <img class="hv-escudo" [src]="logo" alt="" />
+      }
 
       <header class="hv-banda">
         <div class="hv-banda__texto">
           <p class="hv-logo">
-            <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true" focusable="false">
-              <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
-                <line x1="28" y1="12" x2="72" y2="30" />
-                <line x1="72" y1="30" x2="28" y2="50" />
-                <line x1="28" y1="50" x2="80" y2="72" />
-                <line x1="80" y1="72" x2="28" y2="88" />
-                <line x1="28" y1="12" x2="28" y2="88" />
-              </g>
-              <g fill="#EC3013">
-                <circle cx="28" cy="12" r="5" />
-                <circle cx="72" cy="30" r="5" />
-                <circle cx="28" cy="50" r="5" />
-                <circle cx="80" cy="72" r="5" />
-                <circle cx="28" cy="88" r="5" />
-              </g>
-            </svg>
-            <span><strong>BOLÍVAR</strong> BIOINGENIERÍA</span>
+            @if (empresa()?.logo; as logo) {
+              <img [src]="logo" alt="" width="30" height="30" />
+            }
+            <span>{{ empresa()?.nombre }}</span>
           </p>
           <p class="hv-banda__rotulo">Hoja de vida · {{ identificacion()?.numeroHojaVida }}</p>
           <h1 class="hv-banda__titulo">{{ nombreDelEquipo() }}</h1>
@@ -256,54 +233,23 @@
         </div>
 
         <footer class="hv-pie">
-          <span>BB-ING-HV-30 · Actualizada el {{ fechaDeActualizacion }}</span>
+          <span>{{ codigoYFecha() }}</span>
           <span>Página 1</span>
         </footer>
       </div>
     </div>
 
     <div class="hv-hoja">
-      <svg
-        class="hv-escudo hv-escudo--segunda"
-        viewBox="0 0 100 100"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
-          <line x1="28" y1="12" x2="72" y2="30" />
-          <line x1="72" y1="30" x2="28" y2="50" />
-          <line x1="28" y1="50" x2="80" y2="72" />
-          <line x1="80" y1="72" x2="28" y2="88" />
-          <line x1="28" y1="12" x2="28" y2="88" />
-        </g>
-        <g fill="#EC3013">
-          <circle cx="28" cy="12" r="5" />
-          <circle cx="72" cy="30" r="5" />
-          <circle cx="28" cy="50" r="5" />
-          <circle cx="80" cy="72" r="5" />
-          <circle cx="28" cy="88" r="5" />
-        </g>
-      </svg>
+      @if (empresa()?.logo; as logo) {
+        <img class="hv-escudo hv-escudo--segunda" [src]="logo" alt="" />
+      }
 
       <header class="hv-banda hv-banda--estrecha">
         <p class="hv-logo">
-          <svg viewBox="0 0 100 100" width="26" height="26" aria-hidden="true" focusable="false">
-            <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
-              <line x1="28" y1="12" x2="72" y2="30" />
-              <line x1="72" y1="30" x2="28" y2="50" />
-              <line x1="28" y1="50" x2="80" y2="72" />
-              <line x1="80" y1="72" x2="28" y2="88" />
-              <line x1="28" y1="12" x2="28" y2="88" />
-            </g>
-            <g fill="#EC3013">
-              <circle cx="28" cy="12" r="5" />
-              <circle cx="72" cy="30" r="5" />
-              <circle cx="28" cy="50" r="5" />
-              <circle cx="80" cy="72" r="5" />
-              <circle cx="28" cy="88" r="5" />
-            </g>
-          </svg>
-          <span><strong>BOLÍVAR</strong> BIOINGENIERÍA</span>
+          @if (empresa()?.logo; as logo) {
+            <img [src]="logo" alt="" width="26" height="26" />
+          }
+          <span>{{ empresa()?.nombre }}</span>
         </p>
         <p class="hv-banda__resumen">
           {{ identificacion()?.numeroHojaVida }} · <strong>{{ nombreDelEquipo() }}</strong> · Serie
@@ -410,7 +356,7 @@
         </div>
 
         <footer class="hv-pie">
-          <span>BB-ING-HV-30 · Actualizada el {{ fechaDeActualizacion }}</span>
+          <span>{{ codigoYFecha() }}</span>
           <!-- Sin «de N»: el historial puede seguir en mas hojas, y el navegador no sabe contarlas. -->
           <span>Página 2</span>
         </footer>

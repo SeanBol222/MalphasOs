@@ -18,8 +18,9 @@ const SIN_DATO = '—';
 
 /**
  * La hoja de vida de un equipo instalado, con el formato aprobado el 2026-10-05: el «tablero con
- * escudo», con la marca de Bolivar Bioingenieria. La misma pagina se lee en pantalla y se imprime en
- * dos hojas carta; el plan completo esta en la nota hoja-de-vida-formato-impreso del wiki.
+ * escudo», con la marca de la empresa que presta el servicio, que llega de su configuración. La misma
+ * pagina se lee en pantalla y se imprime en dos hojas carta; el plan completo esta en la nota
+ * hoja-de-vida-formato-impreso del wiki.
  *
  * <p><b>Es un documento, no un formulario.</b> No tiene un solo control editable, y es la decision
  * tomada sobre RF-24: cada dato vive en su propio agregado y se corrige alli.
@@ -74,6 +75,13 @@ export class HojaDeVida {
     unidos(this.identificacion()?.correosCliente),
   );
 
+  /** El código del formato en el sistema de calidad de la empresa, si tiene, y cuándo se actualizó. */
+  protected readonly codigoYFecha = computed(() =>
+    [this.empresa()?.codigoHojaDeVida, `Actualizada el ${this.fechaDeActualizacion}`]
+      .filter(Boolean)
+      .join(' · '),
+  );
+
   protected readonly direccionDeLaEmpresa = computed(() =>
     [this.empresa()?.direccion, this.empresa()?.ciudad].filter(Boolean).join(', '),
   );
@@ -109,7 +117,7 @@ export class HojaDeVida {
       // Los procedimientos del reporte, congelados al cerrarse (V17). Un reporte viejo sin ellos sale
       // con la raya, no con un hueco.
       descripcion: linea.descripcion || SIN_DATO,
-      // «Grace Hopper · Bolivar Bioingenieria Ltda.»: el ingeniero y la empresa, decidido el
+      // «Grace Hopper · Servicios de Ejemplo S.A.S.»: el ingeniero y la empresa, decidido el
       // 2026-10-05. Sin ingeniero, solo la empresa: un servicio lo presto alguien de ella aunque no
       // conste quien.
       responsable: [linea.responsable, this.empresa()?.nombre].filter(Boolean).join(' · '),

@@ -162,6 +162,19 @@ dd {
   letter-spacing: 1px;
 }
 
+.rs-logo span {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.rs-logo img {
+  object-fit: contain;
+}
+
+img.rs-escudo {
+  object-fit: contain;
+}
+
 .rs-banda__rotulo {
   font-size: 12px;
   letter-spacing: 2px;

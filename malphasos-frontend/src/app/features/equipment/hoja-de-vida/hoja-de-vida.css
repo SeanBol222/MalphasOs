@@ -2,8 +2,8 @@
  * La hoja de vida tiene hoja de estilos propia, y es la unica pantalla que la tiene: es un documento
  * que se imprime en hojas carta, con medidas de papel, una marca de agua y reglas de impresion que en
  * clases de utilidad serian ilegibles. Las medidas son las del diseño aprobado el 2026-10-05, en px a
- * 96 ppp —816 x 1056 es la hoja carta—, y los colores son los tokens del manual, que son los mismos en
- * la marca de Bolivar y en la de MalphasOS.
+ * 96 ppp —816 x 1056 es la hoja carta—, y los colores son los tokens del manual de MalphasOS. El logo y
+ * el nombre de la empresa llegan de su configuración (2026-10-16): aquí no hay ninguno.
  */
 
 :host {
@@ -173,8 +173,17 @@ p {
   font-size: 13px;
 }
 
-.hv-logo strong {
+.hv-logo span {
   font-weight: 800;
+  text-transform: uppercase;
+}
+
+.hv-logo img {
+  object-fit: contain;
+}
+
+img.hv-escudo {
+  object-fit: contain;
 }
 
 .hv-banda__rotulo {

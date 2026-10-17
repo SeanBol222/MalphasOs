@@ -22,17 +22,6 @@ import { traducirError } from '../../../core/errores/traducir';
 import { fechaCorta } from '../../../core/fechas';
 import { conSigno, graficaDeError, LIENZO } from './grafica-de-error';
 
-/**
- * El texto de garantía de los informes de la empresa, tal cual, con mayúsculas y tildes corregidas. Es
- * una política de Bolívar y no un dato de ningún reporte: si cambia, cambia aquí.
- */
-export const GARANTIA =
-  'La garantía sobre procedimientos preventivos será por eventualidades generadas durante el proceso, ' +
-  'las cuales deberán ser reportadas durante los siguientes 5 días calendario después de realizado el ' +
-  'mantenimiento. No aplica para fallas propias del equipo o mal manejo del mismo. En procesos ' +
-  'correctivos, Bolívar Bioingeniería Ltda. garantizará los repuestos de acuerdo a las condiciones ' +
-  'establecidas directamente por el fabricante de los mismos.';
-
 const NUMERO = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 4 });
 
 /** Lo que dice el documento cuando un dato no está registrado. */
@@ -292,13 +281,6 @@ export class DocumentoReporte {
     ].filter((parte) => !!parte.texto);
   });
 
-  protected readonly aclaracion = computed(() => {
-    // «Ltda.» ya trae su punto: sin quitarlo, la frase acabaria en dos.
-    const empresa = (this.empresa()?.nombre ?? 'la empresa').replace(/\.$/, '');
-
-    return `${this.titulo()} realizado bajo protocolo de la empresa ${empresa}.`;
-  });
-
   /**
    * El ingeniero de la orden. Un reporte cerrado lo tiene congelado en su línea de la hoja de vida;
    * uno en borrador, no todavía, y se busca entre las personas.
@@ -330,7 +312,7 @@ export class DocumentoReporte {
 
   protected readonly pie = computed(() =>
     [
-      `BB-ING-${this.formato()} · Versión 1 · noviembre 2019`,
+      this.empresa()?.codigoInforme,
       [this.empresa()?.direccion, this.empresa()?.ciudad].filter(Boolean).join(', '),
       this.empresa()?.movil,
     ]
@@ -361,7 +343,6 @@ export class DocumentoReporte {
   // --- La página 2: la verificación metrológica -------------------------------------------------
 
   protected readonly LIENZO = LIENZO;
-  protected readonly GARANTIA = GARANTIA;
 
   /**
    * Una sección por verificación medida, en el orden en que el tipo las declara: su tabla, su gráfica

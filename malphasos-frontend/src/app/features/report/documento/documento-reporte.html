@@ -19,22 +19,9 @@
 
   <article class="rs" aria-label="Reporte de servicio">
     <div class="rs-hoja">
-      <svg class="rs-escudo" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-        <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
-          <line x1="28" y1="12" x2="72" y2="30" />
-          <line x1="72" y1="30" x2="28" y2="50" />
-          <line x1="28" y1="50" x2="80" y2="72" />
-          <line x1="80" y1="72" x2="28" y2="88" />
-          <line x1="28" y1="12" x2="28" y2="88" />
-        </g>
-        <g fill="#EC3013">
-          <circle cx="28" cy="12" r="5" />
-          <circle cx="72" cy="30" r="5" />
-          <circle cx="28" cy="50" r="5" />
-          <circle cx="80" cy="72" r="5" />
-          <circle cx="28" cy="88" r="5" />
-        </g>
-      </svg>
+      @if (empresa()?.logo; as logo) {
+        <img class="rs-escudo" [src]="logo" alt="" />
+      }
       @if (esBorrador()) {
         <p class="rs-marca-borrador" aria-hidden="true">BORRADOR</p>
       }
@@ -42,23 +29,10 @@
       <header class="rs-banda">
         <div class="rs-banda__texto">
           <p class="rs-logo">
-            <svg viewBox="0 0 100 100" width="26" height="26" aria-hidden="true" focusable="false">
-              <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
-                <line x1="28" y1="12" x2="72" y2="30" />
-                <line x1="72" y1="30" x2="28" y2="50" />
-                <line x1="28" y1="50" x2="80" y2="72" />
-                <line x1="80" y1="72" x2="28" y2="88" />
-                <line x1="28" y1="12" x2="28" y2="88" />
-              </g>
-              <g fill="#EC3013">
-                <circle cx="28" cy="12" r="5" />
-                <circle cx="72" cy="30" r="5" />
-                <circle cx="28" cy="50" r="5" />
-                <circle cx="80" cy="72" r="5" />
-                <circle cx="28" cy="88" r="5" />
-              </g>
-            </svg>
-            <span><strong>BOLÍVAR</strong> BIOINGENIERÍA</span>
+            @if (empresa()?.logo; as logo) {
+              <img [src]="logo" alt="" width="26" height="26" />
+            }
+            <span>{{ empresa()?.nombre }}</span>
           </p>
           <p class="rs-banda__rotulo" data-numero>Reporte de servicio N.º {{ datos()?.numero }}</p>
           <h1 class="rs-banda__titulo">{{ titulo() }}</h1>
@@ -239,7 +213,10 @@
         }
 
         <section class="rs-relato">
-          <p data-aclaracion><strong>Aclaración del proceso.</strong> {{ aclaracion() }}</p>
+          <!-- La aclaración y la garantía son textos de la empresa, de su configuración: sin ellos no salen. -->
+          @if (empresa()?.aclaracion; as aclaracion) {
+            <p data-aclaracion><strong>Aclaración del proceso.</strong> {{ aclaracion }}</p>
+          }
           <p><strong>Observaciones.</strong> {{ datos()?.observaciones || 'Ninguna.' }}</p>
         </section>
 
@@ -274,27 +251,9 @@
     @if (paginas() === 2) {
       <!-- La página 2: de los formatos con verificación, MP1 y MP2. -->
       <div class="rs-hoja" data-pagina="2">
-        <svg
-          class="rs-escudo rs-escudo--segunda"
-          viewBox="0 0 100 100"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <g fill="none" stroke="#EC3013" stroke-width="7" stroke-linecap="square">
-            <line x1="28" y1="12" x2="72" y2="30" />
-            <line x1="72" y1="30" x2="28" y2="50" />
-            <line x1="28" y1="50" x2="80" y2="72" />
-            <line x1="80" y1="72" x2="28" y2="88" />
-            <line x1="28" y1="12" x2="28" y2="88" />
-          </g>
-          <g fill="#EC3013">
-            <circle cx="28" cy="12" r="5" />
-            <circle cx="72" cy="30" r="5" />
-            <circle cx="28" cy="50" r="5" />
-            <circle cx="80" cy="72" r="5" />
-            <circle cx="28" cy="88" r="5" />
-          </g>
-        </svg>
+        @if (empresa()?.logo; as logo) {
+          <img class="rs-escudo rs-escudo--segunda" [src]="logo" alt="" />
+        }
         @if (esBorrador()) {
           <p class="rs-marca-borrador" aria-hidden="true">BORRADOR</p>
         }
@@ -302,7 +261,7 @@
         <header class="rs-banda rs-banda--segunda">
           <div class="rs-banda__texto">
             <p class="rs-logo">
-              <span><strong>BOLÍVAR</strong> BIOINGENIERÍA</span>
+              <span>{{ empresa()?.nombre }}</span>
             </p>
             <h2 class="rs-banda__titulo rs-banda__titulo--segunda">Verificación metrológica</h2>
             <p class="rs-banda__equipo">{{ lineaDelEquipo() }}</p>
@@ -477,7 +436,9 @@
             </div>
           </section>
 
-          <p class="rs-garantia"><strong>Garantía.</strong> {{ GARANTIA }}</p>
+          @if (empresa()?.garantia; as garantia) {
+            <p class="rs-garantia" data-garantia><strong>Garantía.</strong> {{ garantia }}</p>
+          }
 
           <footer class="rs-pie">
             <span>{{ pie() }}</span>
