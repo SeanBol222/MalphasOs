@@ -221,6 +221,16 @@ export class DetalleReporte {
     ];
   });
 
+  /** Las dos verificaciones al ingreso: todo reporte las exige para cerrar desde el 2026-10-16. */
+  private readonly requisitoDelIngreso = computed(() => {
+    const datos = this.reporte.data();
+
+    return {
+      texto: 'Verificaciones al ingreso',
+      hecho: !!datos?.ingresoFisico && !!datos?.ingresoOperativo,
+    };
+  });
+
   /**
    * Lo que el servidor exige para cerrar, con lo que ya esta guardado: es lo que pinta el panel de la
    * derecha. Se mira lo guardado y no lo escrito, igual que {@link cerrable}, porque cerrar opera
@@ -240,6 +250,7 @@ export class DetalleReporte {
       const marcados = pasos.filter((paso) => paso.estado !== 'PENDIENTE').length;
 
       return [
+        this.requisitoDelIngreso(),
         {
           texto: `Protocolo: ${marcados} de ${pasos.length} pasos`,
           hecho: marcados === pasos.length,
@@ -251,6 +262,7 @@ export class DetalleReporte {
 
     if (this.esCorrectivo()) {
       return [
+        this.requisitoDelIngreso(),
         { texto: 'Falla reportada', hecho: !!datos?.fallaReportada?.trim() },
         { texto: 'Diagnóstico', hecho: !!datos?.diagnostico?.trim() },
         { texto: 'Trabajo realizado', hecho: !!datos?.procedimientos?.trim() },
@@ -260,6 +272,7 @@ export class DetalleReporte {
     }
 
     return [
+      this.requisitoDelIngreso(),
       { texto: 'Procedimientos', hecho: !!datos?.procedimientos?.trim() },
       { texto: 'Resultado', hecho: !!datos?.resultado },
       ...this.requisitoDelPatron(),
@@ -279,6 +292,7 @@ export class DetalleReporte {
       // El patron, si hace falta, cuenta como una parte mas: sin el, el panel diria 100 % de algo
       // que el servidor no deja cerrar.
       const partes = [
+        this.requisitoDelIngreso().hecho ? 1 : 0,
         marcados / pasos.length,
         resultado,
         ...this.requisitoDelPatron().map((requisito) => (requisito.hecho ? 1 : 0)),

@@ -578,16 +578,17 @@
         @if (datos.estado === 'BORRADOR' && !cerrable() && puedeEscribir() && datos.estadoActivo) {
           <p class="mt-2 text-sm text-neutral-300">
             @if (pasos().length) {
-              Para cerrarlo hacen falta todos los pasos del protocolo marcados y el resultado,
-              guardados. Si el equipo se verifica, el servidor exige además la verificación completa
-              y un patrón vigente.
+              Para cerrarlo hacen falta las verificaciones al ingreso, todos los pasos del protocolo
+              marcados y el resultado, guardados. Si el equipo se verifica, el servidor exige además
+              la verificación completa y un patrón vigente.
             } @else if (esCorrectivo()) {
-              Para cerrarlo hacen falta la falla reportada, el diagnóstico, el trabajo realizado y
-              el resultado, guardados. Si el equipo se verifica, el servidor exige además la
-              verificación completa y un patrón vigente.
+              Para cerrarlo hacen falta las verificaciones al ingreso, la falla reportada, el
+              diagnóstico, el trabajo realizado y el resultado, guardados. Si el equipo se verifica,
+              el servidor exige además la verificación completa y un patrón vigente.
             } @else {
-              Para cerrarlo hacen falta los procedimientos y el resultado, guardados. Si el equipo
-              se verifica, el servidor exige además la verificación completa y un patrón vigente.
+              Para cerrarlo hacen falta las verificaciones al ingreso, los procedimientos y el
+              resultado, guardados. Si el equipo se verifica, el servidor exige además la
+              verificación completa y un patrón vigente.
             }
           </p>
         }
