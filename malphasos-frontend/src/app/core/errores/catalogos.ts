@@ -142,5 +142,16 @@ export const CATALOGO_PERSON: Readonly<Record<string, string>> = {
     'No se pudo contactar con el sistema de acceso. La persona no se dio de alta; vuelva a intentarlo.',
 };
 
+/**
+ * Y los de la empresa que presta el servicio (2026-10-17): el membrete de los documentos, que edita un
+ * administrador.
+ */
+export const CATALOGO_COMPANY: Readonly<Record<string, string>> = {
+  ERR_COMPANY_001:
+    'La empresa todavía no se ha configurado. Guarde sus datos antes de ponerle logo.',
+  ERR_COMPANY_002:
+    'Revise los datos de la empresa. Si subió un logo, tiene que ser PNG, JPG o SVG de hasta 512 KB.',
+};
+
 /** Lo que se dice cuando no hay nada mejor que decir. */
 export const MENSAJE_DE_RESPALDO = 'No se pudo completar la operación. Intente de nuevo.';

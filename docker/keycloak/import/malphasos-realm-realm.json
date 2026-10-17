@@ -452,6 +452,24 @@
           "attributes": {}
         },
         {
+          "id": "1a59f45f-1f0f-4ea1-8b67-26bd835adc23",
+          "name": "company.read",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
+        },
+        {
+          "id": "3e1ee999-3bc5-482e-a54d-044ad4eaf453",
+          "name": "company.write",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
+        },
+        {
           "id": "4d5d80bb-4aa8-43ee-a7d0-f06fccaf1334",
           "name": "equipment.read",
           "description": "",
@@ -624,6 +642,8 @@
           "client.delete",
           "client.read",
           "client.write",
+          "company.read",
+          "company.write",
           "engineer.assign",
           "engineer.read",
           "equipment.assign",

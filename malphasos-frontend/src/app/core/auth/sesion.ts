@@ -43,7 +43,7 @@ export class Sesion {
    * Si la sesion actual alcanza para una autoridad.
    *
    * <p>Aqui vive la unica regla que el frontend conoce del modelo de permisos:
-   * {@code admin.full} expande a todo. Por eso no hace falta enumerar las 19.
+   * {@code admin.full} expande a todo. Por eso no hace falta enumerar las 21.
    */
   puede(autoridad: string): boolean {
     const autoridades = this.autoridades();

@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   CATALOGO_CLIENT,
+  CATALOGO_COMPANY,
   CATALOGO_EQUIPMENT,
   CATALOGO_LOCATION,
   CATALOGO_PERSON,
@@ -40,7 +41,8 @@ export function traducirError(fallo: unknown): string {
         CATALOGO_EQUIPMENT[codigo] ??
         CATALOGO_WORK_ORDER[codigo] ??
         CATALOGO_SERVICE_REPORT[codigo] ??
-        CATALOGO_PERSON[codigo])) ||
+        CATALOGO_PERSON[codigo] ??
+        CATALOGO_COMPANY[codigo])) ||
     MENSAJE_DE_RESPALDO
   );
 }

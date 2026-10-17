@@ -115,6 +115,9 @@ export const NAVEGACION: readonly EntradaDeNavegacion[] = [
       { ruta: 'patrones', etiqueta: 'Patrones' },
     ],
   },
+  // La empresa que presta el servicio, del 2026-10-17: el membrete de los documentos. Va al final porque
+  // se configura una vez y se toca poco.
+  { ruta: 'empresa', etiqueta: 'Empresa', autoridad: 'company.read', grupo: 'administracion' },
 ] as const;
 
 /**
@@ -187,6 +190,8 @@ function cargarPagina(camino: string): Promise<Type<unknown>> {
       return import('../features/equipment/catalogo/protocolos').then((m) => m.Protocolos);
     case 'catalogo/patrones':
       return import('../features/equipment/catalogo/patrones').then((m) => m.Patrones);
+    case 'empresa':
+      return import('../features/company/empresa').then((m) => m.Empresa);
     default:
       throw new Error(`El destino de navegacion "${camino}" no tiene pagina asociada`);
   }

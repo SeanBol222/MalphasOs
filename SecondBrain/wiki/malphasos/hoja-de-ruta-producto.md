@@ -560,13 +560,27 @@ queda en el frontend: RF-17 no la pide.
 | # | Tanda | |
 |---|---|---|
 | 1 | **Este registro** | |
-| 2 | **Código interno del patrón único** entre los vigentes | Lo que quedaba de la tanda 5 |
+| 2 | **Código interno del patrón único** entre los vigentes | Lo que quedaba de la tanda 5. **Hecho** el 2026-10-17 (`V35`) |
+| 2b | **La empresa editable por un administrador** | Pedida el mismo día, después del plan: ver abajo |
 | 3 | **El informe congelado al cerrar** | Antes de empezar se enseña al usuario qué se copia |
 | 4 | **La firma del ingeniero en su cuenta** | Tabla nueva y «Mi firma» |
 | 5 | **La firma de quien recibe y su réplica** | RF-18 y RF-21 |
 | 6 | **El PDF en el servidor** | RF-17 |
 | 7 | **Producción**: configuración del frontend al arrancar, compose de producción con Caddy, Keycloak en `start` con un realm sin usuarios ni secretos, fuera RabbitMQ, respaldo y guía de despliegue | |
 | 8 | **1.0.0**: versiones, `CHANGELOG`, pasada de los dos wikis y de la ERS, y el tag cuando el usuario lo diga | El marcador subiría a **24** |
+
+**La empresa, editable (decidido el 2026-10-17, después del plan).** El usuario pidió que datos como la
+política de garantía los pueda cambiar un administrador, sin tocar el servidor. Tres decisiones:
+
+| Pregunta | Decisión |
+|---|---|
+| Qué se edita | **Todo, logo incluido**: nombre, NIT, dirección, contacto, garantía, aclaración, códigos de los formatos y el logo |
+| El archivo `config/empresa.yaml` | **Solo siembra el primer arranque**: si la base no tiene empresa, la crea con él; después manda la base y el archivo no se lee. Deja de ser obligatorio |
+| Quién | **Administradores**, con `company.read` y `company.write`, que el escalón de administrador ya concede |
+
+Se construye **antes de congelar el informe**, porque lo congelado copia la empresa. Entra un módulo
+nuevo, `company`, con `V36`, y la pantalla «Empresa». **Anula** «sin nombre la aplicación no arranca» del
+2026-10-16.
 
 ## El orden propuesto
 

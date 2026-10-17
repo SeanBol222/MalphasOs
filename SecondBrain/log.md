@@ -1961,3 +1961,20 @@ ingreso** (`6ab3030b`). Backend **1295** en 91 clases y frontend **702**, medido
 
 **Tocadas**: [[hoja-de-ruta-producto]].
 
+## [2026-10-17] ingest | la empresa, editable por un administrador
+
+Pedido por el usuario tras el plan de la 1.0.0: la política de garantía y el resto del membrete se
+editan desde la aplicación, logo incluido, y `config/empresa.yaml` queda para sembrar el primer arranque.
+Módulo nuevo, `company` —el séptimo—, con `V36`: una sola fila, sin borrado lógico, el logo en `bytea` con
+su tipo deducido de los bytes. Dos autoridades nuevas, `company.read` y `company.write`: el catálogo pasa
+de **19 a 21** y el vocabulario de **22 a 24**.
+
+**Dos defectos encontrados antes del merge, los dos por una prueba y no por leer el código.** El `CHECK`
+del logo caía otra vez en la trampa de `V9`: con el tipo nulo, el `IN` daba `NULL` y dejaba pasar un logo
+sin tipo. Y en la pantalla, el aviso «Datos guardados» se borraba con la recarga que sigue a guardar:
+la prueba no lo veía porque su recarga devolvía los datos viejos, idénticos a la caché.
+
+Backend **1343** en 98 clases y frontend **714**, medidos en la rama.
+
+**Tocadas**: [[hoja-de-ruta-producto]].
+

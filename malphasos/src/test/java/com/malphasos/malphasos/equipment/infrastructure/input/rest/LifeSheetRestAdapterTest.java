@@ -8,10 +8,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
+import com.malphasos.malphasos.company.application.ports.input.ServiceCompanyServicePort;
+import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
+import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
+import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
 import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
-import com.malphasos.malphasos.shared.config.ServiceCompanyLogo;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,8 +28,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * El membrete de la hoja de vida sale de la configuración de la empresa (2026-10-16): la de pruebas es
- * la empresa inventada de src/test/resources/application.yaml. Nada lo comprobaba hasta entonces.
+ * El membrete de la hoja de vida sale de la empresa (2026-10-16). Desde el 2026-10-17 la empresa vive en
+ * la base y la edita un administrador, así que aquí se dobla su puerto.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,7 +39,7 @@ class LifeSheetRestAdapterTest {
     @Autowired private MockMvc mockMvc;
 
     @MockitoBean private LifeSheetServicePort servicio;
-    @MockitoBean private ServiceCompanyLogo logo;
+    @MockitoBean private ServiceCompanyServicePort empresa;
 
     private static LifeSheet hoja(UUID id) {
         return new LifeSheet(
@@ -49,32 +52,57 @@ class LifeSheetRestAdapterTest {
                 List.of());
     }
 
+    /** Un PNG de verdad: el logo deduce su tipo de los bytes. */
+    private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 0};
+
+    private static ServiceCompany unaEmpresa(CompanyLogo logo) {
+        return ServiceCompany.rehydrate(UUID.randomUUID(),
+                new CompanyDetails("Servicios Biomédicos de Ejemplo S.A.S.", "900.000.000-0", null, null,
+                        List.of(), "300 000 0000", null, null, null, null, null),
+                logo);
+    }
+
     @Test
-    @DisplayName("el membrete trae los datos configurados de la empresa, y nulo lo que no se configuró")
+    @DisplayName("el membrete trae los datos de la empresa, y nulo lo que no tiene")
     void elMembrete() throws Exception {
         UUID id = UUID.randomUUID();
         when(servicio.findByEquipment(eq(id), any())).thenReturn(hoja(id));
-        when(logo.dataUri()).thenReturn(Optional.of("data:image/png;base64,AAAA"));
+        CompanyLogo logo = CompanyLogo.of(PNG);
+        when(empresa.find()).thenReturn(Optional.of(unaEmpresa(logo)));
 
         mockMvc.perform(get("/v1/api/client-equipments/{id}/life-sheet", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.empresa.nombre").value("Servicios Biomédicos de Ejemplo S.A.S."))
                 .andExpect(jsonPath("$.empresa.nit").value("900.000.000-0"))
                 .andExpect(jsonPath("$.empresa.movil").value("300 000 0000"))
-                .andExpect(jsonPath("$.empresa.logo").value("data:image/png;base64,AAAA"))
+                .andExpect(jsonPath("$.empresa.logo").value(logo.dataUri()))
                 .andExpect(jsonPath("$.empresa.garantia").doesNotExist())
                 .andExpect(jsonPath("$.empresa.codigoInforme").doesNotExist());
     }
 
     @Test
-    @DisplayName("sin logo configurado, el membrete no lo trae")
+    @DisplayName("sin logo, el membrete no lo trae")
     void sinLogo() throws Exception {
         UUID id = UUID.randomUUID();
         when(servicio.findByEquipment(eq(id), any())).thenReturn(hoja(id));
-        when(logo.dataUri()).thenReturn(Optional.empty());
+        when(empresa.find()).thenReturn(Optional.of(unaEmpresa(null)));
 
         mockMvc.perform(get("/v1/api/client-equipments/{id}/life-sheet", id))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.empresa.nombre").value("Servicios Biomédicos de Ejemplo S.A.S."))
                 .andExpect(jsonPath("$.empresa.logo").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("sin empresa configurada la hoja de vida sale igual, sin membrete")
+    void sinEmpresa() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(servicio.findByEquipment(eq(id), any())).thenReturn(hoja(id));
+        when(empresa.find()).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/v1/api/client-equipments/{id}/life-sheet", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.identificacion.serie").value("SN-1"))
+                .andExpect(jsonPath("$.empresa").doesNotExist());
     }
 }
