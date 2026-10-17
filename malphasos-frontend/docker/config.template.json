@@ -1,0 +1,8 @@
+{
+  "api": "${MALPHASOS_API_URL}",
+  "keycloak": {
+    "url": "${MALPHASOS_KEYCLOAK_URL}",
+    "realm": "${MALPHASOS_KEYCLOAK_REALM}",
+    "clientId": "${MALPHASOS_KEYCLOAK_CLIENT_ID}"
+  }
+}

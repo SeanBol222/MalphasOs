@@ -1,0 +1,8 @@
+{
+  "api": "http://localhost:8081",
+  "keycloak": {
+    "url": "http://localhost:8080",
+    "realm": "malphasos-realm",
+    "clientId": "malphasos-frontend"
+  }
+}

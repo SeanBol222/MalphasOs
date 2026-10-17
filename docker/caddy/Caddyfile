@@ -1,0 +1,34 @@
+# La puerta de MalphasOS en produccion (2026-10-17): el unico servicio que publica puertos. Un solo
+# dominio para todo, decidido con la version 1.0.0 -un registro DNS, un certificado, y sin CORS entre el
+# frontend y el API, porque son el mismo origen-.
+#
+# Caddy pide y renueva el certificado solo, con Let's Encrypt, en cuanto el dominio apunta a este
+# servidor y los puertos 80 y 443 estan abiertos. Con MALPHASOS_DOMAIN=localhost emite uno de su
+# propia autoridad, que es como se prueba en una maquina sin dominio.
+
+{$MALPHASOS_DOMAIN} {
+	encode zstd gzip
+
+	# El API. Swagger no se publica en produccion: el backend lo apaga, y aqui ni se enruta.
+	handle /v1/* {
+		reverse_proxy app:8081
+	}
+
+	# La consola de administracion de Keycloak NO se publica: es la llave de todas las cuentas, y nadie
+	# la necesita desde fuera. El primer SuperUsuario se crea desde el propio servidor -ver
+	# DESPLIEGUE.md-, y las personas se dan de alta desde MalphasOS, que habla con Keycloak por la red
+	# interna.
+	handle /auth/admin* {
+		respond "No disponible" 404
+	}
+
+	# Keycloak: el inicio de sesion, los tokens y las claves, en la ruta /auth.
+	handle /auth/* {
+		reverse_proxy keycloak:8080
+	}
+
+	# Todo lo demas es el frontend.
+	handle {
+		reverse_proxy frontend:8080
+	}
+}

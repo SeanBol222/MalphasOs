@@ -2057,3 +2057,34 @@ CORS; mueren todas salvo dos equivalentes, anotadas en el código —el `double`
 hasta escribir su prueba: el orden de las medidas y la garantía en blanco. En el frontend, 8 de 8.
 
 **Tocadas**: [[hoja-de-ruta-producto]], [[dockerfile-y-contenedores]].
+
+## [2026-10-17] ingest | producción
+
+Tanda 7 de la 1.0.0. **RabbitMQ fuera**: ninguna clase lo usaba. **El frontend se configura al
+arrancar**: lee `/config.json` antes de importar nada —la condición del token y Keycloak leen las
+direcciones al importarse—, y su contenedor lo escribe desde variables de entorno; sin él, la página lo
+dice en vez de quedarse en blanco. **`docker-compose.prod.yaml`**: un solo dominio detrás de Caddy, único
+servicio con puertos, Keycloak en `start` bajo `/auth` con su consola bloqueada, un realm derivado del de
+desarrollo sin usuarios ni secretos —Keycloak sustituye `${...}` al importar, y se comprobó que el secreto
+del backend coincide con el del entorno—, el backend con la seguridad encendida y sin Swagger, y un
+respaldo diario con `pg_dump`. Con `DESPLIEGUE.md` y dos guiones: el del primer SuperUsuario y el de
+restaurar.
+
+**Tres defectos, los tres al ejecutar y ninguno al leer.** El realm versionado tenía desde el 2026-09-13
+un identificador de rol de 38 caracteres: **una instalación desde cero no habría arrancado**, y en
+desarrollo no se veía porque el import se salta un realm que ya existe. El respaldo diario y uno pedido a
+mano coincidieron en el mismo minuto, y como el nombre llegaba solo a los minutos, el segundo acabó
+**dentro** del primero: ahora va hasta el segundo, con un cerrojo, y una carpeta `.parcial` ya no cuenta
+como el respaldo del día. Y la URL de retorno tras cerrar sesión era otra referencia a `localhost` que el
+guion del realm cazó al negarse a escribir un realm que la tuviera.
+
+**Probado levantando producción entera en esta máquina con `localhost`**, siguiendo la guía al pie de la
+letra desde cero: HTTPS con el certificado de Caddy, el SuperUsuario creado con su guion y obligado a
+cambiar la contraseña temporal, un alta de ingeniero que crea su cuenta en Keycloak con el secreto
+sustituido, el PDF de un informe, y **un respaldo restaurado de ida y vuelta**: con datos de desarrollo,
+las 37 tablas idénticas al origen; de vuelta al respaldo anterior, idénticas a él.
+
+Backend **1465** en 112 clases y frontend **714**, medidos en la rama. Mutaciones del cargador de la
+configuración: 5 de 5.
+
+**Tocadas**: [[hoja-de-ruta-producto]], [[docker-compose]].
