@@ -957,7 +957,7 @@ export interface components {
         };
         /** @description Hoja de vida de un equipo instalado */
         LifeSheetResponse: {
-            /** @description La empresa que presta el servicio: el membrete del documento */
+            /** @description La empresa que presta el servicio: el membrete del documento. Nula si no se ha configurado */
             empresa?: components["schemas"]["LifeSheetEmpresa"];
             /** @description Quien lo fabrico */
             fabricante?: components["schemas"]["LifeSheetFabricante"];

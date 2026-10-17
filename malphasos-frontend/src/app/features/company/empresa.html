@@ -1,0 +1,235 @@
+<section>
+  <h2 class="titulo-seccion">Empresa</h2>
+  <p class="text-neutral-700">
+    La empresa que presta el servicio: el membrete de la hoja de vida y del informe de
+    mantenimiento. Un informe ya cerrado conserva los datos que tenía al cerrarse.
+  </p>
+
+  @if (hayError()) {
+    <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  @if (empresa.isPending()) {
+    <p class="mt-2 text-neutral-700" role="status">Cargando la empresa…</p>
+  } @else {
+    @if (!configurada()) {
+      <p class="superficie mt-2 text-neutral-800" data-sin-configurar>
+        Todavía no se ha configurado la empresa: los documentos se imprimen sin membrete hasta que
+        se guarden sus datos.
+      </p>
+    }
+
+    <section class="superficie mt-3 max-w-[720px]" aria-labelledby="empresa-datos">
+      <h3 id="empresa-datos" class="titulo-seccion">Datos de la empresa</h3>
+      <fieldset class="mt-1.5">
+        <legend class="font-bold">Identificación y contacto</legend>
+        <div class="mt-1 grid gap-1.5 md:grid-cols-2">
+          <div>
+            <label class="block font-semibold" for="empresa-nombre"
+              >Nombre o razón social
+              <span class="text-accent-700" aria-hidden="true">*</span></label
+            >
+            <input
+              id="empresa-nombre"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="160"
+              aria-required="true"
+              [formControl]="formulario.controls.nombre"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="empresa-nit">NIT</label>
+            <input
+              id="empresa-nit"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="30"
+              [formControl]="formulario.controls.nit"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="empresa-direccion">Dirección</label>
+            <input
+              id="empresa-direccion"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="200"
+              [formControl]="formulario.controls.direccion"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="empresa-ciudad">Ciudad</label>
+            <input
+              id="empresa-ciudad"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="80"
+              [formControl]="formulario.controls.ciudad"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="empresa-telefonos">Teléfonos fijos</label>
+            <input
+              id="empresa-telefonos"
+              class="campo mt-1 min-h-tactil w-full"
+              aria-describedby="empresa-telefonos-ayuda"
+              [formControl]="formulario.controls.telefonos"
+            />
+            <p id="empresa-telefonos-ayuda" class="mt-0.5 text-sm text-neutral-700">
+              Separados por comas, hasta cinco
+            </p>
+          </div>
+          <div>
+            <label class="block font-semibold" for="empresa-movil">Móvil</label>
+            <input
+              id="empresa-movil"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="30"
+              [formControl]="formulario.controls.movil"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="empresa-correo">Correo</label>
+            <input
+              id="empresa-correo"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="120"
+              type="email"
+              [formControl]="formulario.controls.correo"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="mt-2">
+        <legend class="font-bold">Lo que imprimen los documentos</legend>
+        <div class="mt-1 grid gap-1.5 md:grid-cols-2">
+          <div class="md:col-span-2">
+            <label class="block font-semibold" for="empresa-garantia">Política de garantía</label>
+            <textarea
+              id="empresa-garantia"
+              class="campo mt-1 w-full"
+              rows="4"
+              maxlength="2000"
+              aria-describedby="empresa-garantia-ayuda"
+              [formControl]="formulario.controls.garantia"
+            ></textarea>
+            <p id="empresa-garantia-ayuda" class="mt-0.5 text-sm text-neutral-700">
+              Cierra el informe de mantenimiento. Sin texto, el informe no la lleva.
+            </p>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block font-semibold" for="empresa-aclaracion"
+              >Aclaración del proceso</label
+            >
+            <textarea
+              id="empresa-aclaracion"
+              class="campo mt-1 w-full"
+              rows="4"
+              maxlength="2000"
+              aria-describedby="empresa-aclaracion-ayuda"
+              [formControl]="formulario.controls.aclaracion"
+            ></textarea>
+            <p id="empresa-aclaracion-ayuda" class="mt-0.5 text-sm text-neutral-700">
+              Va en el informe, antes de las observaciones. Sin texto, no se imprime.
+            </p>
+          </div>
+          <div>
+            <label class="block font-semibold" for="empresa-codigoHojaDeVida"
+              >Código del formato de la hoja de vida</label
+            >
+            <input
+              id="empresa-codigoHojaDeVida"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="40"
+              [formControl]="formulario.controls.codigoHojaDeVida"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold" for="empresa-codigoInforme"
+              >Código del formato del informe</label
+            >
+            <input
+              id="empresa-codigoInforme"
+              class="campo mt-1 min-h-tactil w-full"
+              maxlength="40"
+              [formControl]="formulario.controls.codigoInforme"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      @if (formulario.touched && formulario.controls.nombre.invalid) {
+        <p class="mt-1 font-semibold text-accent-700">El nombre es obligatorio.</p>
+      }
+      @if (demasiadosTelefonos()) {
+        <p class="mt-1 font-semibold text-accent-700">Caben hasta cinco teléfonos fijos.</p>
+      }
+      @if (guardadoConExito()) {
+        <p class="mt-1 font-semibold" role="status">Datos guardados.</p>
+      }
+
+      @if (puedeEscribir()) {
+        <div class="mt-2 flex flex-wrap gap-1.5">
+          <button
+            class="boton-primario min-h-tactil"
+            type="button"
+            [disabled]="guardado.isPending()"
+            (click)="guardar()"
+          >
+            {{ guardado.isPending() ? 'Guardando…' : 'Guardar datos' }}
+          </button>
+        </div>
+      }
+    </section>
+
+    <section class="superficie mt-3 max-w-[720px]" aria-labelledby="empresa-logo">
+      <h3 id="empresa-logo" class="titulo-seccion">Logo</h3>
+      @if (empresa.data()?.logo; as logo) {
+        <img
+          class="mt-1 max-h-[96px] max-w-[240px] border border-neutral-300 bg-white p-1"
+          data-logo
+          [src]="logo"
+          alt="Logo actual de la empresa"
+        />
+      } @else {
+        <p class="mt-1 text-neutral-700" data-sin-logo>
+          Sin logo: el membrete de los documentos es el nombre de la empresa.
+        </p>
+      }
+
+      @if (puedeEscribir()) {
+        @if (configurada()) {
+          <div class="mt-2 flex flex-wrap items-center gap-1.5">
+            <label
+              class="boton-secundario flex min-h-tactil cursor-pointer items-center"
+              for="empresa-archivo"
+            >
+              {{ empresa.data()?.logo ? 'Cambiar logo' : 'Subir logo' }}
+            </label>
+            <input
+              id="empresa-archivo"
+              class="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml"
+              [disabled]="subida.isPending()"
+              (change)="elegirLogo($event)"
+            />
+            @if (empresa.data()?.logo) {
+              <button
+                class="min-h-tactil px-1 underline"
+                type="button"
+                [disabled]="retiroDelLogo.isPending()"
+                (click)="retiroDelLogo.mutate()"
+              >
+                Quitar logo
+              </button>
+            }
+          </div>
+          <p class="mt-1 text-sm text-neutral-700">PNG, JPG o SVG de hasta 512 KB.</p>
+        } @else {
+          <p class="mt-1 text-sm text-neutral-700">Guarde primero los datos de la empresa.</p>
+        }
+      }
+    </section>
+  }
+</section>

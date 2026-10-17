@@ -26,6 +26,7 @@ describe('Armazón', () => {
     'equipment.read',
     'work-order.read',
     'person.read',
+    'company.read',
   ];
 
   async function pintar(
@@ -85,7 +86,7 @@ describe('Armazón', () => {
       expect(rotulos(raiz)).toEqual(['Operación', 'Administración']);
       expect(bloques).toEqual([
         ['Inicio', 'Órdenes de trabajo', 'Equipos', 'Clientes'],
-        ['Personas', 'Catálogo'],
+        ['Personas', 'Catálogo', 'Empresa'],
       ]);
     });
 

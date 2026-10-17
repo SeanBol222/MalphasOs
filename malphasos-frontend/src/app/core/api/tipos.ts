@@ -4,6 +4,7 @@ import { components as personas } from './person.contrato';
 import { components as equipos } from './equipment.contrato';
 import { components as ordenes } from './work-order.contrato';
 import { components as reportes } from './reports.contrato';
+import { components as compania } from './company.contrato';
 
 /**
  * Nombres legibles para lo que el contrato genera.
@@ -512,3 +513,10 @@ export function sePuedeCerrar(
     ? pasos.every((paso) => paso.estado !== 'PENDIENTE')
     : !!reporte.procedimientos?.trim();
 }
+
+/**
+ * La empresa que presta el servicio (2026-10-17): el membrete de los documentos, que un administrador
+ * edita. El logo viaja como data: URI.
+ */
+export type Empresa = compania['schemas']['ServiceCompanyResponse'];
+export type DatosDeEmpresa = compania['schemas']['ServiceCompanyRequest'];
