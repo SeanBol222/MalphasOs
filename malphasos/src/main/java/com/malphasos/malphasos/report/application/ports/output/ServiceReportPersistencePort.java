@@ -36,4 +36,7 @@ public interface ServiceReportPersistencePort {
      * las dos columnas choca.
      */
     Optional<ServiceReport> findActiveByWorkOrderAndEquipment(UUID idOrdenTrabajo, UUID idEquipoCliente);
+
+    /** Los reportes cerrados, retirados o no, que todavía no tienen su informe congelado (V37). */
+    List<ServiceReport> findFinishedWithoutDocument();
 }

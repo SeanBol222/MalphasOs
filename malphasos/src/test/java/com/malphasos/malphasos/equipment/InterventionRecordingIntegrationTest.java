@@ -13,6 +13,7 @@ import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
 import com.malphasos.malphasos.equipment.domain.model.RiskClass;
+import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
@@ -250,6 +251,26 @@ class InterventionRecordingIntegrationTest {
         // de este contexto no tiene ingeniero, de modo que el responsable queda vacio.
         assertThat(historial.getFirst().descripcion()).isEqualTo("Se cambio la fuente");
         assertThat(historial.getFirst().responsable()).isNull();
+    }
+
+    @Test
+    @DisplayName("cerrar congela el informe con lo que la hoja de vida decía ese día, y cambiarla después no lo toca")
+    void cerrarCongelaElInforme() {
+        // Por el servicio real y contra PostgreSQL: el compositor camina la orden, la hoja de vida, el tipo y
+        // la empresa de verdad (2026-10-17).
+        Contexto contexto = unBorrador("CORRECTIVO");
+        String serieDelDia = lifeSheetServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted())
+                .identificacion().serie();
+
+        llenarYCerrar(contexto.reporte(), ServiceResult.OPERATIVO);
+        jdbcTemplate.update("UPDATE equipo_cliente SET k_serie = 'OTRA-SERIE' WHERE k_id_equipo_cliente = ?",
+                contexto.equipo());
+
+        ReportDocumentView informe = serviceReportServicePort.document(contexto.reporte(), ReadScope.unrestricted());
+        assertThat(informe.congelado()).isTrue();
+        assertThat(informe.documento().equipo().serie()).isEqualTo(serieDelDia);
+        assertThat(informe.documento().orden().tipoServicio()).isEqualTo("CORRECTIVO");
+        assertThat(informe.documento().cliente().area()).isNotBlank();
     }
 
     @Test

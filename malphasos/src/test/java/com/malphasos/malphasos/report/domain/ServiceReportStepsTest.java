@@ -3,6 +3,7 @@ package com.malphasos.malphasos.report.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
@@ -102,7 +103,7 @@ class ServiceReportStepsTest {
         reporte.fill(null, null, "Cambio de pila", null, ServiceResult.OPERATIVO);
         reporte.markStep(1, StepState.HECHO, null);
 
-        assertThatThrownBy(reporte::finish)
+        assertThatThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("1 paso");
         assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
@@ -116,7 +117,7 @@ class ServiceReportStepsTest {
         reporte.markStep(1, StepState.HECHO, null);
         reporte.markStep(2, StepState.NO_APLICA, "No tiene");
 
-        reporte.finish();
+        reporte.finish(UnDocumento.CUALQUIERA);
 
         assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
     }
@@ -127,7 +128,7 @@ class ServiceReportStepsTest {
         ServiceReport reporte = conPasos();
         reporte.fill(null, null, null, null, ServiceResult.OPERATIVO);
 
-        assertThatThrownBy(reporte::finish)
+        assertThatThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("procedimientos");
     }
@@ -138,7 +139,7 @@ class ServiceReportStepsTest {
         ServiceReport reporte = conPasos(paso(1, "Limpieza"));
         reporte.fill(null, null, null, null, ServiceResult.OPERATIVO);
         reporte.markStep(1, StepState.HECHO, null);
-        reporte.finish();
+        reporte.finish(UnDocumento.CUALQUIERA);
 
         assertThatThrownBy(() -> reporte.markStep(1, StepState.PENDIENTE, null))
                 .isInstanceOf(IllegalStateException.class);

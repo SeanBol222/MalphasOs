@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
@@ -26,7 +27,11 @@ import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
 import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
+import com.malphasos.malphasos.report.UnDocumento;
+import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.ports.output.DocumentLogoStorePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
+import com.malphasos.malphasos.report.application.services.serviceReport.ReportDocumentComposer;
 import com.malphasos.malphasos.report.application.services.serviceReport.ServiceReportService;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
@@ -41,6 +46,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
@@ -106,6 +112,8 @@ class ServiceReportServiceTest {
     @Mock private EventDispatcherPort eventDispatcherPort;
     @Mock private ProtocolServicePort protocolServicePort;
     @Mock private ReferenceStandardServicePort referenceStandardServicePort;
+    @Mock private ReportDocumentComposer reportDocumentComposer;
+    @Mock private DocumentLogoStorePort documentLogoStorePort;
 
     @InjectMocks private ServiceReportService service;
 
@@ -702,6 +710,9 @@ class ServiceReportServiceTest {
         void laOrdenEsPreventiva() {
             lenient().when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
                     .thenReturn(unaOrdenEnEjecucion());
+            // Cerrar congela el informe (2026-10-17): lo que se congela lo prueba su propia sección.
+            lenient().when(reportDocumentComposer.compose(any(), any()))
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null));
         }
 
         private ServiceReport unReporteSinVerificacion() {
@@ -1221,6 +1232,97 @@ class ServiceReportServiceTest {
 
             assertThat(service.findByEquipment(EQUIPO, ReadScope.unrestricted())).isEmpty();
             verify(clientEquipmentServicePort).findById(EQUIPO, ReadScope.unrestricted());
+        }
+    }
+
+    @Nested
+    @DisplayName("El informe congelado (V37, 2026-10-17)")
+    class ElInformeCongelado {
+
+        private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 3};
+
+        private ServiceReport cerradoCon(ReportDocument documento) {
+            return ServiceReport.rehydrate(UUID.randomUUID(), ORDEN, EQUIPO, ReportState.FINALIZADO, null, null,
+                    "Limpieza", null, null, null, List.of(), null, null, List.of(), null, ServiceResult.OPERATIVO,
+                    java.time.LocalDateTime.of(2026, 10, 1, 9, 0), List.of(), List.of(), true, documento, false);
+        }
+
+        private ReportDocument conLogo(String huella) {
+            ReportDocument base = UnDocumento.CUALQUIERA;
+            return new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(), List.of(),
+                    new ReportDocument.Empresa("Ejemplo", null, null, null, null, null, null, null, huella), null);
+        }
+
+        @Test
+        @DisplayName("uno cerrado se sirve congelado, con el logo de su huella, sin componer nada")
+        void cerradoSeSirveCongelado() {
+            CompanyLogo logo = CompanyLogo.of(PNG);
+            ServiceReport reporte = cerradoCon(conLogo(logo.huella()));
+            estubarReporte(reporte);
+            when(documentLogoStorePort.find(logo.huella())).thenReturn(Optional.of(logo));
+
+            ReportDocumentView vista = service.document(reporte.getId(), ReadScope.unrestricted());
+
+            assertThat(vista.congelado()).isTrue();
+            assertThat(vista.documento()).isEqualTo(reporte.getDocumento());
+            assertThat(vista.logo()).isEqualTo(logo);
+            verify(reportDocumentComposer, never()).compose(any(), any());
+        }
+
+        @Test
+        @DisplayName("un borrador se compone en vivo, y no guarda ningún logo: leer no escribe")
+        void borradorEnVivo() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+            EquipmentType tipo = unTipo(null, null, List.of());
+            estubarCadenaDelCatalogo(tipo);
+            CompanyLogo logo = CompanyLogo.of(PNG);
+            when(reportDocumentComposer.compose(reporte, tipo))
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, logo));
+
+            ReportDocumentView vista = service.document(reporte.getId(), ReadScope.unrestricted());
+
+            assertThat(vista.congelado()).isFalse();
+            assertThat(vista.documento()).isEqualTo(UnDocumento.CUALQUIERA);
+            assertThat(vista.logo()).isEqualTo(logo);
+            verify(documentLogoStorePort, never()).store(any());
+        }
+
+        @Test
+        @DisplayName("cerrar congela lo compuesto en ese momento, y guarda su versión del logo")
+        void cerrarGuardaElLogo() {
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+            estubarReporte(reporte);
+            EquipmentType tipo = unTipo(null, null, List.of());
+            estubarCadenaDelCatalogo(tipo);
+            estubarGuardado();
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
+            CompanyLogo logo = CompanyLogo.of(PNG);
+            when(reportDocumentComposer.compose(reporte, tipo))
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, logo));
+
+            ServiceReport cerrado = service.finish(new FinishServiceReportCommand(reporte.getId()));
+
+            assertThat(cerrado.getDocumento()).isEqualTo(UnDocumento.CUALQUIERA);
+            verify(documentLogoStorePort).store(logo);
+        }
+
+        @Test
+        @DisplayName("al arrancar, los cerrados sin documento se congelan tarde y se guardan")
+        void congelarTarde() {
+            ServiceReport viejo = cerradoCon(null);
+            when(serviceReportPersistencePort.findFinishedWithoutDocument()).thenReturn(List.of(viejo));
+            EquipmentType tipo = unTipo(null, null, List.of());
+            estubarCadenaDelCatalogo(tipo);
+            when(reportDocumentComposer.compose(viejo, tipo))
+                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null));
+
+            assertThat(service.freezeClosedWithoutDocument()).isEqualTo(1);
+
+            assertThat(viejo.isDocumentoTardio()).isTrue();
+            verify(serviceReportPersistencePort).save(viejo);
+            verify(documentLogoStorePort, never()).store(any());
         }
     }
 }

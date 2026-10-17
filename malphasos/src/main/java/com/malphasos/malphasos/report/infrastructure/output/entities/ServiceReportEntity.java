@@ -14,6 +14,8 @@ import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * Representación JPA de un reporte de servicio.
@@ -97,6 +99,14 @@ public class ServiceReportEntity {
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
+
+    /** El informe congelado al cerrar, en JSON (V37). Lo escribe y lo lee el mapper. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "t_documento")
+    private String documento;
+
+    @Column(name = "b_documento_tardio", nullable = false)
+    private boolean documentoTardio;
 
     @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<VerificationReadingEntity> lecturas = new ArrayList<>();

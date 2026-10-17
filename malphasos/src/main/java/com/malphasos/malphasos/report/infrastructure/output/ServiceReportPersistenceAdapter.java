@@ -2,6 +2,7 @@ package com.malphasos.malphasos.report.infrastructure.output;
 
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ServiceReportEntity;
 import com.malphasos.malphasos.report.infrastructure.output.mapper.ServiceReportPersistenceMapper;
@@ -102,5 +103,12 @@ public class ServiceReportPersistenceAdapter implements ServiceReportPersistence
                 .findByIdOrdenTrabajoAndIdEquipoClienteAndEstadoActivoTrue(
                         idOrdenTrabajo, idEquipoCliente)
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ServiceReport> findFinishedWithoutDocument() {
+        return mapper.toDomainList(serviceReportRepository.findByEstadoAndDocumentoIsNull(
+                ReportState.FINALIZADO.name()));
     }
 }

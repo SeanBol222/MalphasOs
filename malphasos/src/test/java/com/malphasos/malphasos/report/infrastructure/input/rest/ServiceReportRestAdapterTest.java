@@ -2,6 +2,7 @@ package com.malphasos.malphasos.report.infrastructure.input.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,7 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
+import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
+import com.malphasos.malphasos.report.UnDocumento;
+import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
@@ -26,6 +30,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
@@ -442,13 +447,39 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
+    @DisplayName("el informe viaja con lo congelado, el logo como data: URI y si es copia del cierre o tardía")
+    void elInforme() throws Exception {
+        ServiceReport reporte = unReporte();
+        CompanyLogo logo = CompanyLogo.of(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 1});
+        ReportDocument base = UnDocumento.CUALQUIERA;
+        ReportDocument documento = new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(),
+                List.of(), new ReportDocument.Empresa("Ejemplo S.A.S.", null, null, null, null, "La garantía",
+                        null, "FT-2", logo.huella()),
+                "Ana Pérez");
+        when(serviceReportServicePort.document(eq(reporte.getId()), any()))
+                .thenReturn(new ReportDocumentView(reporte, documento, logo, true));
+
+        mockMvc.perform(get("/v1/api/reports/" + reporte.getId() + "/document"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.congelado").value(true))
+                .andExpect(jsonPath("$.tardio").value(false))
+                .andExpect(jsonPath("$.orden.numero").value("4F2A9C"))
+                .andExpect(jsonPath("$.cliente.nombre").value("Clínica de Ejemplo"))
+                .andExpect(jsonPath("$.equipo.modelo").value("MS-200"))
+                .andExpect(jsonPath("$.empresa.garantia").value("La garantía"))
+                .andExpect(jsonPath("$.empresa.logo").value(logo.dataUri()))
+                .andExpect(jsonPath("$.empresa.huellaDelLogo").doesNotExist())
+                .andExpect(jsonPath("$.ingeniero").value("Ana Pérez"));
+    }
+
+    @Test
     @DisplayName("cerrar es una operacion, no un campo que se edita")
     void cerrar() throws Exception {
         ServiceReport reporte = unReporte();
         reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
         reporte.recordIntake(new IntakeCheck(IntakeState.CONFORME, null),
                 new IntakeCheck(IntakeState.CONFORME, null), List.of());
-        reporte.finish();
+        reporte.finish(UnDocumento.CUALQUIERA);
         when(serviceReportServicePort.finish(any())).thenReturn(reporte);
 
         mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/finish"))

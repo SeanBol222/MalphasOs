@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+// Antes que cualquier otro arranque: congelar los informes viejos copia la empresa, y tiene que estar.
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class ServiceCompanySeeder implements ApplicationRunner {
 
     private final ServiceCompanyProperties archivo;

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
@@ -65,7 +66,7 @@ class ServiceReportTest {
 
     private static ServiceReport unReporteCerrado() {
         ServiceReport reporte = unReporteCerrable();
-        reporte.finish();
+        reporte.finish(UnDocumento.CUALQUIERA);
         reporte.pullEvents();
 
         return reporte;
@@ -579,7 +580,7 @@ class ServiceReportTest {
             // Un patron en otra verificacion no cuenta: no es contra el que se tomaron estas lecturas.
             reporte.useReferenceStandard(OTRA, unPatronQueVence(LocalDate.now().plusYears(1)));
 
-            assertThatIllegalStateException().isThrownBy(reporte::finish)
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA))
                     .withMessageContaining("patron");
             assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
         }
@@ -593,7 +594,7 @@ class ServiceReportTest {
             reporte.useReferenceStandard(VERIFICACION, patron);
             reporte.removeReferenceStandard(VERIFICACION, patron.id());
 
-            assertThatIllegalStateException().isThrownBy(reporte::finish);
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA));
         }
 
         @Test
@@ -605,7 +606,7 @@ class ServiceReportTest {
             // El informe los imprime todos: uno vencido no certifica nada, mida lo que mida.
             reporte.useReferenceStandard(OTRA, unPatronQueVence(LocalDate.now().minusDays(1)));
 
-            assertThatIllegalStateException().isThrownBy(reporte::finish)
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA))
                     .withMessageContaining("vencio");
             assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
         }
@@ -620,7 +621,7 @@ class ServiceReportTest {
             reporte.useReferenceStandard(VERIFICACION, vencido);
             reporte.removeReferenceStandard(VERIFICACION, vencido.id());
 
-            reporte.finish();
+            reporte.finish(UnDocumento.CUALQUIERA);
 
             assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
         }
@@ -632,7 +633,7 @@ class ServiceReportTest {
             reporte.recordVerification(List.of(unaLectura(1, "50", "50.1")));
             reporte.useReferenceStandard(VERIFICACION, unPatronQueVence(LocalDate.now()));
 
-            reporte.finish();
+            reporte.finish(UnDocumento.CUALQUIERA);
 
             assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
         }
@@ -642,7 +643,7 @@ class ServiceReportTest {
         void sinLecturasNoHaceFalta() {
             ServiceReport reporte = unReporteCerrable();
 
-            reporte.finish();
+            reporte.finish(UnDocumento.CUALQUIERA);
 
             assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
         }
@@ -691,7 +692,7 @@ class ServiceReportTest {
         void quedaFinalizado() {
             ServiceReport reporte = unReporteCerrable();
 
-            reporte.finish();
+            reporte.finish(UnDocumento.CUALQUIERA);
 
             assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
             assertThat(reporte.getFinalizado()).isNotNull();
@@ -704,7 +705,7 @@ class ServiceReportTest {
             ServiceReport reporte = unReporte();
             reporte.fill(null, null, null, null, ServiceResult.OPERATIVO);
 
-            assertThatIllegalStateException().isThrownBy(reporte::finish)
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA))
                     .withMessageContaining("procedimientos");
         }
 
@@ -714,7 +715,7 @@ class ServiceReportTest {
             ServiceReport reporte = unReporte();
             reporte.fill(null, null, "Limpieza", null, null);
 
-            assertThatIllegalStateException().isThrownBy(reporte::finish)
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA))
                     .withMessageContaining("resultado");
         }
 
@@ -724,7 +725,7 @@ class ServiceReportTest {
             ServiceReport reporte = unReporte();
             reporte.fill(null, null, "   ", null, ServiceResult.OPERATIVO);
 
-            assertThatIllegalStateException().isThrownBy(reporte::finish);
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA));
         }
 
         @Test
@@ -732,7 +733,7 @@ class ServiceReportTest {
         void noSeCierraDosVeces() {
             ServiceReport cerrado = unReporteCerrado();
 
-            assertThatIllegalStateException().isThrownBy(cerrado::finish);
+            assertThatIllegalStateException().isThrownBy(() -> cerrado.finish(UnDocumento.CUALQUIERA));
         }
 
         @Test
@@ -741,7 +742,7 @@ class ServiceReportTest {
             ServiceReport reporte = unReporteCerrable();
             reporte.fill(null, "Sensor descalibrado", null, null, null);
 
-            assertThatIllegalStateException().isThrownBy(reporte::finishCorrective)
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finishCorrective(UnDocumento.CUALQUIERA))
                     .withMessageContaining("falla reportada");
             assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
         }
@@ -752,7 +753,7 @@ class ServiceReportTest {
             ServiceReport reporte = unReporteCerrable();
             reporte.fill("No enciende", null, null, null, null);
 
-            assertThatIllegalStateException().isThrownBy(reporte::finishCorrective)
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finishCorrective(UnDocumento.CUALQUIERA))
                     .withMessageContaining("diagnostico");
         }
 
@@ -762,7 +763,7 @@ class ServiceReportTest {
             ServiceReport reporte = unReporteCerrable();
             reporte.fill("No enciende", "Fusible abierto", null, null, null);
 
-            reporte.finishCorrective();
+            reporte.finishCorrective(UnDocumento.CUALQUIERA);
 
             assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
         }
@@ -773,7 +774,7 @@ class ServiceReportTest {
             ServiceReport reporte = unReporte();
             reporte.fill("No enciende", "Fusible abierto", "Cambio de fusible", null, null);
 
-            assertThatIllegalStateException().isThrownBy(reporte::finishCorrective)
+            assertThatIllegalStateException().isThrownBy(() -> reporte.finishCorrective(UnDocumento.CUALQUIERA))
                     .withMessageContaining("resultado");
         }
 
