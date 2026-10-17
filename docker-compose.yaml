@@ -155,6 +155,10 @@ services:
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:5173}
       KEYCLOAK_ADMIN_CLIENT_ID: malphasos-backend-admin
       KEYCLOAK_ADMIN_CLIENT_SECRET: ${MALPHASOS_BACKEND_ADMIN_SECRET:-}
+      # El PDF del informe lo convierte Gotenberg, por la red interna; y el QR de cada informe lleva a su
+      # version digital, en la direccion publica del frontend.
+      GOTENBERG_URL: http://gotenberg:3000
+      APP_FRONTEND_URL: ${APP_FRONTEND_URL:-http://localhost:5173}
       # Los datos de la empresa y su logo, fuera de la imagen y de git: ver config/empresa.example.yaml.
       MALPHASOS_CONFIG_DIR: /app/config
     volumes:
@@ -168,6 +172,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+      gotenberg:
+        condition: service_healthy
     networks:
       - malphasos-network
     restart: unless-stopped
@@ -177,6 +183,22 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+
+  # Convierte el informe de un reporte en PDF (2026-10-17, RF-17): Chromium sin pantalla. El backend le
+  # manda el HTML y recibe el PDF. No publica puertos a proposito: solo lo llama el backend, por la red
+  # interna, y nadie de fuera tiene por que convertir HTML con el.
+  gotenberg:
+    container_name: malphasos-gotenberg
+    image: gotenberg/gotenberg:8.38.1
+    networks:
+      - malphasos-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Solo para desarrollo: inspeccion visual de la base de datos.
   # Levantalo con: docker compose --profile tools up -d
