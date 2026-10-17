@@ -12,6 +12,8 @@ import {
   LlenarReporte,
   MarcaDePaso,
   NuevaLectura,
+  QuienRecibe,
+  RegistroDeIngreso,
   ReporteDeServicio,
 } from '../../core/api/tipos';
 
@@ -150,6 +152,29 @@ export class ReporteApi {
           this.http.patch<ReporteDeServicio>(`${this.url}/${id}/verification`, { lecturas }),
         ),
       onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /**
+   * Registra cómo llegó el equipo: las dos verificaciones al ingreso y sus accesorios, que sustituyen a
+   * los anteriores (V31). La respuesta es el reporte entero, así que se pone en la caché.
+   */
+  registrarIngreso() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, ingreso }: { id: string; ingreso: RegistroDeIngreso }) =>
+        firstValueFrom(this.http.patch<ReporteDeServicio>(`${this.url}/${id}/intake`, ingreso)),
+      onSuccess: (reporte: ReporteDeServicio) =>
+        this.queryClient.setQueryData(ReporteApi.claveDetalle(reporte.id!), reporte),
+    }));
+  }
+
+  /** Registra quién recibió el equipo, o lo borra con los tres campos en blanco (V31). */
+  registrarEntrega() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, recibe }: { id: string; recibe: QuienRecibe }) =>
+        firstValueFrom(this.http.patch<ReporteDeServicio>(`${this.url}/${id}/handover`, recibe)),
+      onSuccess: (reporte: ReporteDeServicio) =>
+        this.queryClient.setQueryData(ReporteApi.claveDetalle(reporte.id!), reporte),
     }));
   }
 

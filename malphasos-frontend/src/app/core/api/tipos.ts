@@ -391,6 +391,27 @@ export type NuevaLectura = reportes['schemas']['VerificationReadingRequest'];
  */
 export type PatronUsado = reportes['schemas']['UsedReferenceStandardResponse'];
 
+/** Cómo llegó el equipo y a quién se entregó (V31, 2026-10-16). */
+export type RegistroDeIngreso = reportes['schemas']['RecordIntakeRequest'];
+export type AccesorioDelIngreso = reportes['schemas']['IntakeAccessoryRequest'];
+export type QuienRecibe = reportes['schemas']['RecordHandoverRequest'];
+export type VerificacionAlIngreso = reportes['schemas']['IntakeCheckResponse'];
+export type AccesorioDeReporte = reportes['schemas']['ReportAccessoryResponse'];
+export type EstadoAlIngreso = NonNullable<RegistroDeIngreso['fisico']>;
+
+/** Las tres columnas del informe impreso, en su orden. */
+export const ESTADOS_AL_INGRESO: readonly EstadoAlIngreso[] = [
+  'CONFORME',
+  'NO_CONFORME',
+  'NO_APLICA',
+] as const;
+
+export const ETIQUETA_DE_ESTADO_AL_INGRESO: Readonly<Record<EstadoAlIngreso, string>> = {
+  CONFORME: 'Conforme',
+  NO_CONFORME: 'No conforme',
+  NO_APLICA: 'No aplica',
+};
+
 /** Cuántos equipos de una orden tienen su reporte cerrado y cuántos en borrador (2026-10-16). */
 export type AvanceDeReportes = reportes['schemas']['WorkOrderReportProgressResponse'];
 
