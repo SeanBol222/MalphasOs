@@ -13,6 +13,7 @@ import {
   EquipoDeCatalogo,
   Fabricante,
   FichaTecnica,
+  FormatoDeReporte,
   Magnitud,
   Marca,
   Modelo,
@@ -23,8 +24,8 @@ import {
   NuevoNombre,
   NuevoPatron,
   NuevoProtocolo,
-  Patron,
   NuevoTipoDeEquipo,
+  Patron,
   Protocolo,
   ProtocoloAsignado,
   ProtocolosDeTipo,
@@ -128,6 +129,22 @@ export class CatalogoApi {
    * <p>La ruta se llamaba `/verification-mode` y recibia una sola modalidad. Desde el 2026-10-03 es
    * `/verifications` y recibe la lista: un termohigrometro se verifica en dos magnitudes.
    */
+  /**
+   * Elige con qué formato se imprime el reporte de un tipo (V32). El servidor rechaza uno que no
+   * sirva para lo que el tipo es: MP0 solo sin verificación, MP1 o MP2 solo con ella.
+   */
+  elegirFormatoDeReporte() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, formato }: { id: string; formato: FormatoDeReporte }) =>
+        firstValueFrom(
+          this.http.patch<TipoDeEquipo>(`${this.api}/equipment-types/${id}/report-format`, {
+            formato,
+          }),
+        ),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
   declararVerificaciones() {
     return injectMutation(() => ({
       mutationFn: ({
