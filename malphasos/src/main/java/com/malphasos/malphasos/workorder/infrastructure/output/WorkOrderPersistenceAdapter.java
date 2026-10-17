@@ -87,6 +87,12 @@ public class WorkOrderPersistenceAdapter implements WorkOrderPersistencePort {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean numberTaken(String numero) {
+        return workOrderRepository.existsByNumero(numero);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<WorkOrder> findInPeriod(
             LocalDate desde, LocalDate hasta, UUID idIngeniero, Collection<UUID> idsClientes) {
 

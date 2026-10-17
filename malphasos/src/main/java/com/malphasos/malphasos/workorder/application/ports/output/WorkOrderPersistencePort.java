@@ -19,6 +19,9 @@ public interface WorkOrderPersistencePort {
 
     List<WorkOrder> findAll();
 
+    /** Si alguna orden, cancelada o no, tiene ya ese número: el prefijo de su identificador (V34). */
+    boolean numberTaken(String numero);
+
     Optional<WorkOrder> findById(UUID id);
 
     /** Las órdenes de un cliente, para la consulta que más se hace. */

@@ -11,5 +11,6 @@ public record ScheduleWorkOrderCommand(
         UUID idSede,
         LocalDate fechaMantenimiento,
         Periodicity periodicidad,
-        ServiceType tipoServicio) {
+        ServiceType tipoServicio,
+        boolean garantia) {
 }

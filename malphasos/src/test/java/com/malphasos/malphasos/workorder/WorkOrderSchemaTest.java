@@ -349,6 +349,56 @@ class WorkOrderSchemaTest {
                 .doesNotThrowAnyException();
     }
 
+    private void insertWorkOrderWithWarranty(UUID id, UUID cliente, UUID sede, String tipoServicio) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                                           f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio, b_garantia)
+                VALUES (?, ?, ?, ?, 'MENSUAL', ?, true)
+                """,
+                id, cliente, sede, LocalDate.now(), tipoServicio);
+    }
+
+    @Test
+    @DisplayName("V34: un correctivo puede estar en garantia; un preventivo o una calibracion, no")
+    void garantiaSoloEnCorrectivo() {
+        UUID cliente = insertClient();
+        UUID sede = insertHeadquarter(cliente);
+
+        insertWorkOrderWithWarranty(UUID.randomUUID(), cliente, sede, "CORRECTIVO");
+        assertThatThrownBy(() -> insertWorkOrderWithWarranty(UUID.randomUUID(), cliente, sede, "PREVENTIVO"))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("CHK_orden_trabajo_garantia");
+        assertThatThrownBy(() -> insertWorkOrderWithWarranty(UUID.randomUUID(), cliente, sede, "CALIBRACION"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("V34: la que se inserta sin decirlo no esta en garantia")
+    void sinGarantiaPorDefecto() {
+        UUID cliente = insertClient();
+        UUID orden = insertMinimalWorkOrder(cliente, insertHeadquarter(cliente));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT b_garantia FROM orden_trabajo WHERE k_id_orden_trabajo = ?", Boolean.class, orden))
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("V34: dos ordenes no comparten numero, los seis primeros caracteres del identificador")
+    void numeroUnico() {
+        UUID cliente = insertClient();
+        UUID sede = insertHeadquarter(cliente);
+        String prefijo = UUID.randomUUID().toString().substring(0, 6);
+
+        insertWorkOrderWithWarranty(UUID.fromString(prefijo + "00-0000-4000-8000-000000000001"), cliente, sede,
+                "CORRECTIVO");
+        assertThatThrownBy(() -> insertWorkOrderWithWarranty(
+                UUID.fromString(prefijo + "00-0000-4000-8000-000000000002"), cliente, sede, "CORRECTIVO"))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("UQ_orden_trabajo_numero");
+    }
+
     @Test
     @DisplayName("BIANNUAL no es una periodicidad valida: es el error de traduccion del original")
     void biannualNoEsPeriodicidadValida() {

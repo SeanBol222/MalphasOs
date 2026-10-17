@@ -140,7 +140,8 @@ public class WorkOrderRestAdapter {
                         request.idSede(),
                         request.fechaMantenimiento(),
                         request.periodicidad(),
-                        request.tipoServicio())));
+                        request.tipoServicio(),
+                        Boolean.TRUE.equals(request.garantia()))));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(creada);
     }

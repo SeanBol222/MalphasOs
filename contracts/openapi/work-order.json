@@ -86,6 +86,10 @@
             "format" : "date",
             "type" : "string"
           },
+          "garantia" : {
+            "description" : "Un correctivo en garantia",
+            "type" : "boolean"
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -101,6 +105,11 @@
           },
           "idSede" : {
             "format" : "uuid",
+            "type" : "string"
+          },
+          "numero" : {
+            "description" : "Los seis primeros caracteres del identificador, en mayusculas",
+            "example" : "4F2A9C",
             "type" : "string"
           },
           "periodicidad" : {
@@ -120,6 +129,10 @@
             "description" : "Dia para el que se programa el servicio, no la fecha de registro",
             "format" : "date",
             "type" : "string"
+          },
+          "garantia" : {
+            "description" : "Un correctivo en garantia. Opcional: ausente es falso. Solo un correctivo puede estarlo",
+            "type" : "boolean"
           },
           "idCliente" : {
             "format" : "uuid",

@@ -23,6 +23,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.request.WorkOrderEquipmentRequest;
+import com.malphasos.malphasos.workorder.application.services.workOrder.commands.ScheduleWorkOrderCommand;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.request.WorkOrderScheduleRequest;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
@@ -61,7 +62,7 @@ class WorkOrderRestAdapterTest {
 
     private static WorkOrderScheduleRequest unaPeticion() {
         return new WorkOrderScheduleRequest(CLIENTE, SEDE, LocalDate.now().plusDays(1),
-                Periodicity.TRIMESTRAL, ServiceType.PREVENTIVO);
+                Periodicity.TRIMESTRAL, ServiceType.PREVENTIVO, null);
     }
 
     @Test
@@ -79,13 +80,50 @@ class WorkOrderRestAdapterTest {
     }
 
     @Test
+    @DisplayName("la respuesta lleva el numero de la orden y si esta en garantia")
+    void numeroYGarantia() throws Exception {
+        WorkOrder orden = WorkOrder.schedule(CLIENTE, SEDE, LocalDate.now().plusDays(1),
+                Periodicity.MENSUAL, ServiceType.CORRECTIVO, true);
+        when(workOrderServicePort.schedule(any())).thenReturn(orden);
+
+        mockMvc.perform(post("/v1/api/work-orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(unaPeticion())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.numero").value(orden.numero()))
+                .andExpect(jsonPath("$.garantia").value(true));
+    }
+
+    @Test
+    @DisplayName("la garantia viaja al comando, y sin decirla es falsa")
+    void laGarantiaViajaAlComando() throws Exception {
+        when(workOrderServicePort.schedule(any())).thenReturn(unaOrden());
+        org.mockito.ArgumentCaptor<ScheduleWorkOrderCommand> comando =
+                org.mockito.ArgumentCaptor.forClass(ScheduleWorkOrderCommand.class);
+
+        mockMvc.perform(post("/v1/api/work-orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(new WorkOrderScheduleRequest(CLIENTE, SEDE,
+                                LocalDate.now().plusDays(1), Periodicity.MENSUAL, ServiceType.CORRECTIVO, true))))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/v1/api/work-orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(unaPeticion())))
+                .andExpect(status().isCreated());
+
+        verify(workOrderServicePort, org.mockito.Mockito.times(2)).schedule(comando.capture());
+        org.assertj.core.api.Assertions.assertThat(comando.getAllValues())
+                .extracting(ScheduleWorkOrderCommand::garantia).containsExactly(true, false);
+    }
+
+    @Test
     @DisplayName("una orden sin cliente se rechaza sin llegar al servicio")
     void sinCliente() throws Exception {
         mockMvc.perform(post("/v1/api/work-orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(new WorkOrderScheduleRequest(
                                 null, SEDE, LocalDate.now(), Periodicity.ANUAL,
-                                ServiceType.PREVENTIVO))))
+                                ServiceType.PREVENTIVO, null))))
                 .andExpect(status().isBadRequest());
 
         verify(workOrderServicePort, never()).schedule(any());

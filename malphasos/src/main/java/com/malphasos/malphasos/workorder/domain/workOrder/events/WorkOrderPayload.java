@@ -19,6 +19,7 @@ public record WorkOrderPayload(
         LocalDate fechaMantenimiento,
         Periodicity periodicidad,
         ServiceType tipoServicio,
+        boolean garantia,
         ExecutionState estadoEjecucion,
         UUID idIngeniero)
         implements Payload {
