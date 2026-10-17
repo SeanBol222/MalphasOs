@@ -1,6 +1,10 @@
 package com.malphasos.malphasos.report.infrastructure.input.mapper;
 
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
+import com.malphasos.malphasos.report.infrastructure.input.model.response.HandoverResponse;
+import com.malphasos.malphasos.report.infrastructure.input.model.response.IntakeCheckResponse;
+import com.malphasos.malphasos.report.infrastructure.input.model.response.ReportAccessoryResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ReportStepResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ServiceReportResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.UsedReferenceStandardResponse;
@@ -60,6 +64,16 @@ public class ServiceReportRestMapper {
                                 usado.patron().fechaCalibracion(),
                                 usado.patron().empresaCalibradora()))
                         .toList())
+                .ingresoFisico(ingreso(reporte.getIngresoFisico()))
+                .ingresoOperativo(ingreso(reporte.getIngresoOperativo()))
+                .accesorios(reporte.accesoriosActivos().stream()
+                        .map(accesorio -> new ReportAccessoryResponse(accesorio.orden(), accesorio.nombre(),
+                                accesorio.conforme(), accesorio.observacion()))
+                        .toList())
+                .recibe(reporte.getRecibe() == null
+                        ? null
+                        : new HandoverResponse(reporte.getRecibe().nombre(), reporte.getRecibe().cedula(),
+                                reporte.getRecibe().cargo()))
                 .resultado(reporte.getResultado())
                 .finalizado(reporte.getFinalizado())
                 .lecturas(lecturas)
@@ -75,6 +89,10 @@ public class ServiceReportRestMapper {
                         .toList())
                 .estadoActivo(reporte.isEstadoActivo())
                 .build();
+    }
+
+    private static IntakeCheckResponse ingreso(IntakeCheck verificacion) {
+        return verificacion == null ? null : new IntakeCheckResponse(verificacion.estado(), verificacion.observacion());
     }
 
     public List<ServiceReportResponse> toList(List<ServiceReport> reportes) {

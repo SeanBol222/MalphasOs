@@ -17,9 +17,15 @@ import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundE
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
+import com.malphasos.malphasos.report.domain.serviceReport.Handover;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
@@ -280,6 +286,101 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
+    @DisplayName("registrar el ingreso lleva al servicio las dos verificaciones y los accesorios en su orden")
+    void registrarIngreso() throws Exception {
+        ServiceReport reporte = unReporte();
+        reporte.recordIntake(new IntakeCheck(IntakeState.NO_CONFORME, "Rayado"),
+                new IntakeCheck(IntakeState.CONFORME, null), List.of(ReportAccessory.of(1, "Sonda", true, null)));
+        when(serviceReportServicePort.recordIntake(any())).thenReturn(reporte);
+
+        mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/intake")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fisico": "NO_CONFORME", "observacionFisico": "Rayado", "operativo": "CONFORME",
+                                 "accesorios": [{"nombre": "Sonda", "conforme": true},
+                                                {"nombre": "Cable", "conforme": false, "observacion": "Pelado"}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ingresoFisico.estado").value("NO_CONFORME"))
+                .andExpect(jsonPath("$.ingresoFisico.observacion").value("Rayado"))
+                .andExpect(jsonPath("$.ingresoOperativo.estado").value("CONFORME"))
+                .andExpect(jsonPath("$.accesorios[0].orden").value(1))
+                .andExpect(jsonPath("$.accesorios[0].nombre").value("Sonda"));
+
+        ArgumentCaptor<RecordIntakeCommand> comando = ArgumentCaptor.forClass(RecordIntakeCommand.class);
+        verify(serviceReportServicePort).recordIntake(comando.capture());
+        assertThat(comando.getValue()).isEqualTo(new RecordIntakeCommand(reporte.getId(), IntakeState.NO_CONFORME,
+                "Rayado", IntakeState.CONFORME, null, List.of(
+                        new RecordIntakeCommand.Accessory("Sonda", true, null),
+                        new RecordIntakeCommand.Accessory("Cable", false, "Pelado"))));
+    }
+
+    @Test
+    @DisplayName("el ingreso sin una de las dos verificaciones, o con un accesorio sin nombre, es 400")
+    void ingresoIncompleto() throws Exception {
+        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/intake")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fisico\": \"CONFORME\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/intake")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fisico\": \"CONFORME\", \"operativo\": \"CONFORME\","
+                                + " \"accesorios\": [{\"nombre\": \" \", \"conforme\": true}]}"))
+                .andExpect(status().isBadRequest());
+
+        verify(serviceReportServicePort, never()).recordIntake(any());
+    }
+
+    @Test
+    @DisplayName("quien recibe llega al servicio y vuelve en la respuesta")
+    void registrarQuienRecibe() throws Exception {
+        ServiceReport reporte = unReporte();
+        reporte.recordHandover(new Handover("Ana Pérez", "52123456", "Jefe de enfermeria"));
+        when(serviceReportServicePort.recordHandover(any())).thenReturn(reporte);
+
+        mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/handover")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombre\": \"Ana Pérez\", \"cedula\": \"52123456\","
+                                + " \"cargo\": \"Jefe de enfermeria\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recibe.nombre").value("Ana Pérez"))
+                .andExpect(jsonPath("$.recibe.cargo").value("Jefe de enfermeria"));
+
+        verify(serviceReportServicePort).recordHandover(
+                new RecordHandoverCommand(reporte.getId(), "Ana Pérez", "52123456", "Jefe de enfermeria"));
+    }
+
+    @Test
+    @DisplayName("la respuesta trae solo los accesorios vigentes, en su orden, no los sustituidos")
+    void soloLosAccesoriosVigentes() throws Exception {
+        IntakeCheck conforme = new IntakeCheck(IntakeState.CONFORME, null);
+        ServiceReport reporte = unReporte();
+        reporte.recordIntake(conforme, conforme, List.of(ReportAccessory.of(1, "Viejo", true, null)));
+        reporte.recordIntake(conforme, conforme, List.of(
+                ReportAccessory.of(2, "Cable", true, null), ReportAccessory.of(1, "Sonda", true, null)));
+        when(serviceReportServicePort.findById(any(), any())).thenReturn(reporte);
+
+        mockMvc.perform(get("/v1/api/reports/" + reporte.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accesorios.length()").value(2))
+                .andExpect(jsonPath("$.accesorios[0].nombre").value("Sonda"))
+                .andExpect(jsonPath("$.accesorios[1].nombre").value("Cable"));
+    }
+
+    @Test
+    @DisplayName("un reporte sin ingreso ni quien recibe los devuelve nulos y sin accesorios")
+    void sinRecepcion() throws Exception {
+        ServiceReport reporte = unReporte();
+        when(serviceReportServicePort.findById(any(), any())).thenReturn(reporte);
+
+        mockMvc.perform(get("/v1/api/reports/" + reporte.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ingresoFisico").doesNotExist())
+                .andExpect(jsonPath("$.accesorios").isEmpty())
+                .andExpect(jsonPath("$.recibe").doesNotExist());
+    }
+
+    @Test
     @DisplayName("cada lectura sale con su tolerancia, su error y si es conforme")
     void conformidadEnLaRespuesta() throws Exception {
         ServiceReport reporte = unReporte();
@@ -502,6 +603,8 @@ class ServiceReportRestAdapterTest {
         assertThat(docs).contains("/v1/api/reports");
         assertThat(docs).contains("/v1/api/reports/{id}/verification");
         assertThat(docs).contains("/v1/api/reports/{id}/finish");
+        assertThat(docs).contains("/v1/api/reports/{id}/intake");
+        assertThat(docs).contains("/v1/api/reports/{id}/handover");
         assertThat(docs).contains("/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards");
         assertThat(docs).contains(
                 "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards/{idEquipoPatron}");

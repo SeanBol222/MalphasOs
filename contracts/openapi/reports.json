@@ -22,6 +22,55 @@
         },
         "type" : "object"
       },
+      "HandoverResponse" : {
+        "properties" : {
+          "cargo" : {
+            "description" : "Nulo si no se dio",
+            "type" : "string"
+          },
+          "cedula" : {
+            "description" : "Nula si no se dio",
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "IntakeAccessoryRequest" : {
+        "properties" : {
+          "conforme" : {
+            "type" : "boolean"
+          },
+          "nombre" : {
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "observacion" : {
+            "description" : "Obligatoria si no es conforme",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "nombre" ],
+        "type" : "object"
+      },
+      "IntakeCheckResponse" : {
+        "properties" : {
+          "estado" : {
+            "enum" : [ "CONFORME", "NO_CONFORME", "NO_APLICA" ],
+            "type" : "string"
+          },
+          "observacion" : {
+            "description" : "Nula si no hay",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "MarkReportStepRequest" : {
         "properties" : {
           "estado" : {
@@ -38,6 +87,66 @@
         "required" : [ "estado" ],
         "type" : "object"
       },
+      "RecordHandoverRequest" : {
+        "properties" : {
+          "cargo" : {
+            "example" : "Jefe de enfermeria",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "cedula" : {
+            "maxLength" : 20,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "nombre" : {
+            "description" : "Obligatorio si se da la cedula o el cargo",
+            "example" : "Ana Perez",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "RecordIntakeRequest" : {
+        "properties" : {
+          "accesorios" : {
+            "description" : "Sustituyen a los que hubiera, en este orden. Vacia si llego sin accesorios",
+            "items" : {
+              "$ref" : "#/components/schemas/IntakeAccessoryRequest"
+            },
+            "maxItems" : 50,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "fisico" : {
+            "description" : "Estado de la estructura fisica del equipo al recibirlo",
+            "enum" : [ "CONFORME", "NO_CONFORME", "NO_APLICA" ],
+            "type" : "string"
+          },
+          "observacionFisico" : {
+            "description" : "Obligatoria si no es conforme",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "observacionOperativo" : {
+            "description" : "Obligatoria si no es conforme",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "operativo" : {
+            "description" : "Estado operativo del equipo al recibirlo",
+            "enum" : [ "CONFORME", "NO_CONFORME", "NO_APLICA" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "fisico", "operativo" ],
+        "type" : "object"
+      },
       "RecordVerificationRequest" : {
         "properties" : {
           "lecturas" : {
@@ -49,6 +158,25 @@
           }
         },
         "required" : [ "lecturas" ],
+        "type" : "object"
+      },
+      "ReportAccessoryResponse" : {
+        "properties" : {
+          "conforme" : {
+            "type" : "boolean"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "observacion" : {
+            "description" : "Nula si no hay",
+            "type" : "string"
+          },
+          "orden" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "ReportStepResponse" : {
@@ -160,6 +288,13 @@
       },
       "ServiceReportResponse" : {
         "properties" : {
+          "accesorios" : {
+            "description" : "Los accesorios con que llego, en su orden; desde V31",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportAccessoryResponse"
+            },
+            "type" : "array"
+          },
           "causa" : {
             "description" : "Por que fallo el equipo. De un correctivo; desde V24",
             "type" : "string"
@@ -194,6 +329,14 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "ingresoFisico" : {
+            "$ref" : "#/components/schemas/IntakeCheckResponse",
+            "description" : "Estructura fisica al recibir el equipo. Nula mientras no se registre; desde V31"
+          },
+          "ingresoOperativo" : {
+            "$ref" : "#/components/schemas/IntakeCheckResponse",
+            "description" : "Estado operativo al recibir el equipo. Nulo mientras no se registre; desde V31"
+          },
           "lecturas" : {
             "items" : {
               "$ref" : "#/components/schemas/VerificationReadingResponse"
@@ -224,6 +367,10 @@
           },
           "procedimientos" : {
             "type" : "string"
+          },
+          "recibe" : {
+            "$ref" : "#/components/schemas/HandoverResponse",
+            "description" : "Quien recibio el equipo. Nulo mientras no se diga; desde V31"
           },
           "repuestos" : {
             "description" : "Repuestos cambiados, en texto libre; desde V24",
@@ -926,6 +1073,164 @@
           }
         },
         "summary" : "Cerrar el reporte",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/handover" : {
+      "patch" : {
+        "description" : "Nombre, cedula y cargo, en texto: quien recibe no tiene por que estar registrado. Los tres en blanco lo borran. Solo en un borrador.",
+        "operationId" : "recordHandover",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecordHandoverRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Registrar quien recibe el equipo",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/intake" : {
+      "patch" : {
+        "description" : "Las dos verificaciones al ingreso -estructura fisica y estado operativo- y sus accesorios, que sustituyen a los que hubiera. Una no conforme exige observacion. Solo en un borrador.",
+        "operationId" : "recordIntake",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecordIntakeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Registrar como llego el equipo",
         "tags" : [ "ServiceReport" ]
       }
     },

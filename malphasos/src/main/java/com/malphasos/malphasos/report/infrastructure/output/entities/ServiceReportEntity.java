@@ -66,6 +66,28 @@ public class ServiceReportEntity {
     @Column(name = "t_repuestos")
     private String repuestos;
 
+    /** Las verificaciones al ingreso y quién recibe, desde V31. El estado es el nombre del enum. */
+    @Column(name = "t_ingreso_fisico")
+    private String ingresoFisico;
+
+    @Column(name = "t_ingreso_fisico_observacion")
+    private String ingresoFisicoObservacion;
+
+    @Column(name = "t_ingreso_operativo")
+    private String ingresoOperativo;
+
+    @Column(name = "t_ingreso_operativo_observacion")
+    private String ingresoOperativoObservacion;
+
+    @Column(name = "n_recibe_nombre")
+    private String recibeNombre;
+
+    @Column(name = "k_recibe_cedula")
+    private String recibeCedula;
+
+    @Column(name = "n_recibe_cargo")
+    private String recibeCargo;
+
     @Column(name = "t_resultado")
     private String resultado;
 
@@ -86,4 +108,8 @@ public class ServiceReportEntity {
     /** Los patrones de cada verificación, desde V30. */
     @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<VerificationStandardEntity> patrones = new ArrayList<>();
+
+    /** Los accesorios con que llegó el equipo, desde V31. */
+    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ReportAccessoryEntity> accesorios = new ArrayList<>();
 }

@@ -3,6 +3,8 @@ package com.malphasos.malphasos.report.domain.serviceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportDeactivatedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFilledEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportFinishedEvent;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportHandedOverEvent;
+import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportIntakeRecordedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportOpenedEvent;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportPayload;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportStandardChosenEvent;
@@ -80,6 +82,18 @@ public class ServiceReport extends AggregateRoot {
      * retirados incluidos. Desde V30 (2026-10-16); con V27 era un solo patrón por reporte.
      */
     private final List<VerificationStandard> patrones = new ArrayList<>();
+
+    /** Cómo llegó la estructura física del equipo. Nulo mientras no se registre. Desde V31. */
+    private IntakeCheck ingresoFisico;
+
+    /** Cómo llegó funcionando el equipo. Nulo mientras no se registre. Desde V31. */
+    private IntakeCheck ingresoOperativo;
+
+    /** Los accesorios con que llegó, retirados incluidos, como las lecturas. Desde V31. */
+    private final List<ReportAccessory> accesorios = new ArrayList<>();
+
+    /** Quién recibió el equipo al entregarlo. Nulo mientras no se diga. Desde V31. */
+    private Handover recibe;
 
     private ServiceResult resultado;
 
@@ -259,7 +273,7 @@ public class ServiceReport extends AggregateRoot {
                 estadoActivo);
     }
 
-    /** La rehidratación completa, con la causa y los repuestos de V24 y los patrones de V30. */
+    /** Con la causa y los repuestos de V24 y los patrones de V30, sin lo de V31. */
     public static ServiceReport rehydrate(
             UUID id,
             UUID idOrdenTrabajo,
@@ -278,6 +292,37 @@ public class ServiceReport extends AggregateRoot {
             Collection<ReportStep> pasos,
             boolean estadoActivo) {
 
+        return rehydrate(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada, diagnostico,
+                procedimientos, observaciones, causa, repuestos, patrones, null, null, List.of(), null, resultado,
+                finalizado, lecturas, pasos, estadoActivo);
+    }
+
+    /**
+     * La rehidratación completa: con la causa y los repuestos de V24, los patrones de V30 y el ingreso,
+     * los accesorios y quién recibe de V31.
+     */
+    public static ServiceReport rehydrate(
+            UUID id,
+            UUID idOrdenTrabajo,
+            UUID idEquipoCliente,
+            ReportState estado,
+            String fallaReportada,
+            String diagnostico,
+            String procedimientos,
+            String observaciones,
+            String causa,
+            String repuestos,
+            Collection<VerificationStandard> patrones,
+            IntakeCheck ingresoFisico,
+            IntakeCheck ingresoOperativo,
+            Collection<ReportAccessory> accesorios,
+            Handover recibe,
+            ServiceResult resultado,
+            LocalDateTime finalizado,
+            Collection<VerificationReading> lecturas,
+            Collection<ReportStep> pasos,
+            boolean estadoActivo) {
+
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
         ServiceReport reporte = new ServiceReport(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada,
@@ -288,6 +333,12 @@ public class ServiceReport extends AggregateRoot {
         if (patrones != null) {
             reporte.patrones.addAll(patrones);
         }
+        reporte.ingresoFisico = ingresoFisico;
+        reporte.ingresoOperativo = ingresoOperativo;
+        if (accesorios != null) {
+            reporte.accesorios.addAll(accesorios);
+        }
+        reporte.recibe = recibe;
 
         return reporte;
     }
@@ -367,6 +418,80 @@ public class ServiceReport extends AggregateRoot {
             registerEvent(new ServiceReportFilledEvent(
                     metadataFor(ServiceReportFilledEvent.TYPE), payload()));
         }
+    }
+
+    // ---------------------------------------------------------------------------
+    // La recepción y la entrega: V31
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Registra cómo llegó el equipo: las dos verificaciones al ingreso y sus accesorios, que sustituyen a
+     * los que hubiera (V31). Van juntos porque se miran juntos, al recibir el equipo y antes de tocarlo.
+     *
+     * <p>Las dos verificaciones son obligatorias —son las dos filas fijas del informe— y los accesorios
+     * pueden ser ninguno: muchos equipos llegan solos. Los anteriores se retiran, no se borran.
+     * Registrar exactamente lo mismo no emite evento.
+     */
+    public void recordIntake(IntakeCheck fisico, IntakeCheck operativo, Collection<ReportAccessory> accesorios) {
+        exigirModificable("registrar como llego el equipo");
+
+        if (fisico == null || operativo == null) {
+            throw new IllegalArgumentException(
+                    "Hay que registrar las dos verificaciones al ingreso: estructura fisica y estado operativo");
+        }
+
+        List<ReportAccessory> nuevos = accesorios == null ? List.of() : List.copyOf(accesorios);
+        if (nuevos.stream().map(ReportAccessory::orden).distinct().count() != nuevos.size()) {
+            throw new IllegalArgumentException("Dos accesorios no pueden tener el mismo orden");
+        }
+
+        if (fisico.equals(ingresoFisico) && operativo.equals(ingresoOperativo) && mismosAccesorios(nuevos)) {
+            return;
+        }
+
+        this.ingresoFisico = fisico;
+        this.ingresoOperativo = operativo;
+        this.accesorios.replaceAll(accesorio -> accesorio.estadoActivo() ? accesorio.deactivated() : accesorio);
+        this.accesorios.addAll(nuevos);
+
+        registerEvent(new ServiceReportIntakeRecordedEvent(
+                metadataFor(ServiceReportIntakeRecordedEvent.TYPE), payload()));
+    }
+
+    /** Todos los accesorios, retirados incluidos, como copia inmutable. */
+    public List<ReportAccessory> getAccesorios() {
+        return List.copyOf(accesorios);
+    }
+
+    /** Los accesorios que valen hoy, en su orden. */
+    public List<ReportAccessory> accesoriosActivos() {
+        return accesorios.stream()
+                .filter(ReportAccessory::estadoActivo)
+                .sorted((a, b) -> Integer.compare(a.orden(), b.orden()))
+                .toList();
+    }
+
+    /**
+     * Registra quién recibió el equipo, o lo corrige; con nulo lo borra (V31). Decirlo otra vez igual no
+     * emite evento.
+     */
+    public void recordHandover(Handover recibe) {
+        exigirModificable("registrar quien recibe");
+
+        if (Objects.equals(recibe, this.recibe)) {
+            return;
+        }
+
+        this.recibe = recibe;
+        registerEvent(new ServiceReportHandedOverEvent(
+                metadataFor(ServiceReportHandedOverEvent.TYPE), payload()));
+    }
+
+    private boolean mismosAccesorios(List<ReportAccessory> pedidos) {
+        List<ReportAccessory> activos = accesoriosActivos();
+
+        return activos.size() == pedidos.size()
+                && pedidos.stream().allMatch(pedido -> activos.stream().anyMatch(pedido::diceLoMismoQue));
     }
 
     // ---------------------------------------------------------------------------

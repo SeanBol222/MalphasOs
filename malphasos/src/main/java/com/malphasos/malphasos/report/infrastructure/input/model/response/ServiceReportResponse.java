@@ -36,6 +36,14 @@ public record ServiceReportResponse(
         @Schema(description = "Los patrones vigentes de cada verificacion, como estaban ese dia. Desde V30;"
                 + " con V27 era uno por reporte")
         List<UsedReferenceStandardResponse> patrones,
+        @Schema(description = "Estructura fisica al recibir el equipo. Nula mientras no se registre; desde V31")
+        IntakeCheckResponse ingresoFisico,
+        @Schema(description = "Estado operativo al recibir el equipo. Nulo mientras no se registre; desde V31")
+        IntakeCheckResponse ingresoOperativo,
+        @Schema(description = "Los accesorios con que llego, en su orden; desde V31")
+        List<ReportAccessoryResponse> accesorios,
+        @Schema(description = "Quien recibio el equipo. Nulo mientras no se diga; desde V31")
+        HandoverResponse recibe,
         ServiceResult resultado,
         @Schema(description = "Cuando se cerro el reporte. Nulo mientras es borrador")
         LocalDateTime finalizado,

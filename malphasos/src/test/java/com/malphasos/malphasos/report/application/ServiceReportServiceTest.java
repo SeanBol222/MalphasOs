@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,10 +31,16 @@ import com.malphasos.malphasos.report.application.services.serviceReport.Service
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
+import com.malphasos.malphasos.report.domain.serviceReport.Handover;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
@@ -1124,6 +1131,67 @@ class ServiceReportServiceTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("de Presión tiene lecturas");
             assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("registrar el ingreso pone a los accesorios el orden de la lista, sin consultar otros modulos")
+        void registraElIngreso() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+            estubarGuardado();
+
+            service.recordIntake(new RecordIntakeCommand(reporte.getId(), IntakeState.NO_CONFORME, "Rayado",
+                    IntakeState.CONFORME, null, List.of(
+                            new RecordIntakeCommand.Accessory("Sonda", true, null),
+                            new RecordIntakeCommand.Accessory("Cable", false, "Pelado"))));
+
+            assertThat(reporte.getIngresoFisico()).isEqualTo(new IntakeCheck(IntakeState.NO_CONFORME, "Rayado"));
+            assertThat(reporte.getIngresoOperativo()).isEqualTo(new IntakeCheck(IntakeState.CONFORME, null));
+            assertThat(reporte.accesoriosActivos())
+                    .extracting(ReportAccessory::orden, ReportAccessory::nombre, ReportAccessory::observacion)
+                    .containsExactly(tuple(1, "Sonda", null), tuple(2, "Cable", "Pelado"));
+            verify(serviceReportPersistencePort).save(reporte);
+            verify(clientEquipmentServicePort, never()).findById(any(), any());
+        }
+
+        @Test
+        @DisplayName("sin lista de accesorios se registra sin ninguno")
+        void ingresoSinAccesorios() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+            estubarGuardado();
+
+            service.recordIntake(new RecordIntakeCommand(
+                    reporte.getId(), IntakeState.CONFORME, null, IntakeState.CONFORME, null, null));
+
+            assertThat(reporte.accesoriosActivos()).isEmpty();
+            assertThat(reporte.getIngresoFisico()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("quien recibe se registra; con los tres campos en blanco se borra")
+        void quienRecibe() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+            estubarGuardado();
+
+            service.recordHandover(new RecordHandoverCommand(reporte.getId(), "Ana Pérez", "52123456", "Jefe"));
+            assertThat(reporte.getRecibe()).isEqualTo(new Handover("Ana Pérez", "52123456", "Jefe"));
+
+            service.recordHandover(new RecordHandoverCommand(reporte.getId(), " ", null, ""));
+            assertThat(reporte.getRecibe()).isNull();
+        }
+
+        @Test
+        @DisplayName("una cedula sin nombre no se acepta: no dice quien recibio")
+        void cedulaSinNombre() {
+            ServiceReport reporte = unReporte();
+            estubarReporte(reporte);
+
+            assertThatThrownBy(() -> service.recordHandover(
+                            new RecordHandoverCommand(reporte.getId(), null, "52123456", null)))
+                    .isInstanceOf(IllegalArgumentException.class);
             verify(serviceReportPersistencePort, never()).save(any());
         }
 
