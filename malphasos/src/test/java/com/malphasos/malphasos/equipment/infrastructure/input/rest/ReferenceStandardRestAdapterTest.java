@@ -16,6 +16,7 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
 import com.malphasos.malphasos.equipment.application.services.referenceStandard.commands.SaveReferenceStandardCommand;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardInternalCodeTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardSerialTakenException;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandardSheet;
@@ -125,6 +126,16 @@ class ReferenceStandardRestAdapterTest {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_018"));
+    }
+
+    @Test
+    @DisplayName("un código interno ocupado responde 409 con un código propio, no el de la serie")
+    void codigoInternoOcupado() throws Exception {
+        when(servicio.create(any())).thenThrow(new ReferenceStandardInternalCodeTakenException("PT-01", "Otro"));
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_019"));
     }
 
     @Test

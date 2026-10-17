@@ -5,6 +5,7 @@ import com.malphasos.malphasos.equipment.application.ports.output.ReferenceStand
 import com.malphasos.malphasos.equipment.application.services.referenceStandard.commands.DeactivateReferenceStandardCommand;
 import com.malphasos.malphasos.equipment.application.services.referenceStandard.commands.SaveReferenceStandardCommand;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardInternalCodeTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardSerialTakenException;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
@@ -15,10 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * El catálogo de equipos patrón. Una regla vive aquí y no en el agregado, porque exige mirar a los
- * demás: que la serie no se repita entre los vigentes. La base la impide también, con un índice único
- * parcial; aquí se comprueba antes para responder «esa serie ya la tiene tal patrón» y no un conflicto
- * de integridad genérico.
+ * El catálogo de equipos patrón. Dos reglas viven aquí y no en el agregado, porque exigen mirar a los
+ * demás: que ni la serie ni el código interno se repitan entre los vigentes —el código, desde V35—. La
+ * base las impide también, con un índice único parcial cada una; aquí se comprueban antes para responder
+ * «esa serie ya la tiene tal patrón» y no un conflicto de integridad genérico.
  *
  * <p>Retirar un patrón no mira si algún reporte lo usó: los reportes copian lo que tenía, y retirarlo
  * solo impide elegirlo en adelante.
@@ -49,6 +50,7 @@ public class ReferenceStandardService implements ReferenceStandardServicePort {
         ReferenceStandard patron = ReferenceStandard.create(command.nombre(), command.marca(), command.serie(),
                 command.certificado(), command.vencimientoCertificado(), command.ficha());
         exigirSerieLibre(patron);
+        exigirCodigoInternoLibre(patron);
 
         return persistAndPublish(patron);
     }
@@ -60,6 +62,7 @@ public class ReferenceStandardService implements ReferenceStandardServicePort {
         patron.update(command.nombre(), command.marca(), command.serie(), command.certificado(),
                 command.vencimientoCertificado(), command.ficha());
         exigirSerieLibre(patron);
+        exigirCodigoInternoLibre(patron);
 
         return persistAndPublish(patron);
     }
@@ -82,6 +85,21 @@ public class ReferenceStandardService implements ReferenceStandardServicePort {
                 .filter(otro -> !otro.getId().equals(patron.getId()))
                 .ifPresent(otro -> {
                     throw new ReferenceStandardSerialTakenException(patron.getSerie(), otro.getNombre());
+                });
+    }
+
+    /** Otro vigente con el mismo código interno, que no sea este mismo. Sin código no hay nada que comparar. */
+    private void exigirCodigoInternoLibre(ReferenceStandard patron) {
+        String codigo = patron.getFicha().codigoInterno();
+
+        if (!patron.isEstadoActivo() || codigo == null) {
+            return;
+        }
+
+        referenceStandardPersistencePort.findActiveByCodigoInterno(codigo)
+                .filter(otro -> !otro.getId().equals(patron.getId()))
+                .ifPresent(otro -> {
+                    throw new ReferenceStandardInternalCodeTakenException(codigo, otro.getNombre());
                 });
     }
 

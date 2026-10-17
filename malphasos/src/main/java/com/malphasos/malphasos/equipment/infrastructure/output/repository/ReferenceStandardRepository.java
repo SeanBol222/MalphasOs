@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ReferenceStandardRepository extends JpaRepository<ReferenceStandardEntity, UUID> {
 
     Optional<ReferenceStandardEntity> findBySerieAndEstadoActivoTrue(String serie);
+
+    Optional<ReferenceStandardEntity> findByCodigoInternoAndEstadoActivoTrue(String codigoInterno);
 }

@@ -14,5 +14,7 @@ public interface ReferenceStandardPersistencePort {
 
     Optional<ReferenceStandard> findActiveBySerie(String serie);
 
+    Optional<ReferenceStandard> findActiveByCodigoInterno(String codigoInterno);
+
     ReferenceStandard save(ReferenceStandard patron);
 }
