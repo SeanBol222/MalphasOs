@@ -3,7 +3,6 @@ package com.malphasos.malphasos.equipment.application.services.equipmentType;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentTypePersistencePort;
 import com.malphasos.malphasos.equipment.application.ports.output.MetrologyCatalogPersistencePort;
-import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChooseReportFormatCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeactivateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
@@ -83,15 +82,6 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
     public EquipmentType declareVerifications(DeclareVerificationsCommand command) {
         EquipmentType tipo = findById(command.id());
         tipo.declareVerifications(verificacionesDe(command.verificaciones()));
-
-        return persistAndPublish(tipo);
-    }
-
-    @Override
-    @Transactional
-    public EquipmentType chooseReportFormat(ChooseReportFormatCommand command) {
-        EquipmentType tipo = findById(command.id());
-        tipo.chooseReportFormat(command.formato());
 
         return persistAndPublish(tipo);
     }

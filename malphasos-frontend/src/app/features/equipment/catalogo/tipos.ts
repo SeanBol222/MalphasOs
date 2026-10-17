@@ -11,8 +11,6 @@ import { CatalogoApi } from '../catalogo-api';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   ETIQUETA_DE_MODALIDAD,
-  FormatoDeReporte,
-  FORMATOS_CON_VERIFICACION,
   ModalidadDeVerificacion,
   TipoDeEquipo,
 } from '../../../core/api/tipos';
@@ -88,8 +86,6 @@ export class TiposDeEquipo {
   });
   protected readonly baja = this.api.retirarTipo();
   protected readonly cambioDeVerificaciones = this.api.declararVerificaciones();
-  protected readonly cambioDeFormato = this.api.elegirFormatoDeReporte();
-  protected readonly FORMATOS_CON_VERIFICACION = FORMATOS_CON_VERIFICACION;
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
@@ -110,19 +106,10 @@ export class TiposDeEquipo {
   private readonly bloqueDeVerificacion = viewChild(Verificacion);
 
   protected readonly hayError = computed(
-    () =>
-      this.tipos.isError() ||
-      this.baja.isError() ||
-      this.cambioDeVerificaciones.isError() ||
-      this.cambioDeFormato.isError(),
+    () => this.tipos.isError() || this.baja.isError() || this.cambioDeVerificaciones.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
-    traducirError(
-      this.tipos.error() ??
-        this.baja.error() ??
-        this.cambioDeVerificaciones.error() ??
-        this.cambioDeFormato.error(),
-    ),
+    traducirError(this.tipos.error() ?? this.baja.error() ?? this.cambioDeVerificaciones.error()),
   );
 
   protected etiquetaDeModalidad(modalidad: ModalidadDeVerificacion | undefined): string {
@@ -180,15 +167,6 @@ export class TiposDeEquipo {
       { id, verificaciones: [...configuracion.verificaciones] },
       { onSuccess: () => this.cambiando.set(null) },
     );
-  }
-
-  /** Se guarda al elegirlo; elegir el que ya tiene no manda nada. */
-  protected elegirFormato(tipo: TipoDeEquipo, formato: FormatoDeReporte): void {
-    if (formato === tipo.formatoReporte) {
-      return;
-    }
-
-    this.cambioDeFormato.mutate({ id: tipo.id!, formato });
   }
 
   protected retirar(id: string): void {

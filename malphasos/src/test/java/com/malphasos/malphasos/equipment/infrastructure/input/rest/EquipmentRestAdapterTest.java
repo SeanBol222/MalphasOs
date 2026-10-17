@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChooseReportFormatCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.request.VerificationPointRequest;
 import com.malphasos.malphasos.TestcontainersConfiguration;
@@ -21,7 +20,6 @@ import com.malphasos.malphasos.equipment.application.services.model.commands.Cre
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
-import com.malphasos.malphasos.equipment.domain.equipmentType.ReportFormat;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
@@ -176,36 +174,6 @@ class EquipmentRestAdapterTest {
                 // Con patron y equipo variables no hay cantidad ni puntos, y la respuesta lo refleja.
                 .andExpect(jsonPath("$[0].verificaciones[1].cantidadDatos").doesNotExist())
                 .andExpect(jsonPath("$[0].verificaciones[1].puntos").isEmpty());
-    }
-
-    @Test
-    @DisplayName("la ruta del formato del reporte lleva el formato al servicio, y la respuesta lo trae")
-    void elegirFormato() throws Exception {
-        UUID id = UUID.randomUUID();
-        EquipmentType tipo = unTipo(VerificationMode.PATRON_CONSTANTE);
-        tipo.chooseReportFormat(ReportFormat.MP1);
-        when(equipmentTypeServicePort.chooseReportFormat(any())).thenReturn(tipo);
-
-        mockMvc.perform(patch("/v1/api/equipment-types/" + id + "/report-format")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"formato\": \"MP1\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.formatoReporte").value("MP1"));
-
-        verify(equipmentTypeServicePort).chooseReportFormat(new ChooseReportFormatCommand(id, ReportFormat.MP1));
-    }
-
-    @Test
-    @DisplayName("sin formato, o con uno que no existe, responde 400 sin llegar al servicio")
-    void formatoInvalido() throws Exception {
-        for (String cuerpo : List.of("{}", "{\"formato\": \"MP9\"}")) {
-            mockMvc.perform(patch("/v1/api/equipment-types/" + UUID.randomUUID() + "/report-format")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(cuerpo))
-                    .andExpect(status().isBadRequest());
-        }
-
-        verify(equipmentTypeServicePort, never()).chooseReportFormat(any());
     }
 
     @Test
@@ -575,7 +543,6 @@ class EquipmentRestAdapterTest {
                 // controladores: esta lista no los nombraba.
                 .contains("/v1/api/protocols")
                 .contains("/v1/api/equipment-types/{id}/protocols")
-                .contains("/v1/api/equipment-types/{id}/report-format")
                 // El listado del rediseño, del 2026-10-11: cabe en el patron de las unidades, y
                 // por eso mismo hay que nombrarlo, para que deje de caber sin que nadie se entere.
                 .contains("/v1/api/client-equipments/overview")

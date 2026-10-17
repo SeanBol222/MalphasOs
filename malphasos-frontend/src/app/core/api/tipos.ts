@@ -111,15 +111,6 @@ export type NuevaVerificacionDeTipo = equipos['schemas']['TypeVerificationReques
 export type ModalidadDeVerificacion = NonNullable<NuevaVerificacionDeTipo['modalidad']>;
 
 /**
- * Con qué formato se imprime el reporte de un tipo de equipo (V32, 2026-10-16): MP0 si no se verifica,
- * MP1 o MP2 si se verifica.
- */
-export type FormatoDeReporte = NonNullable<TipoDeEquipo['formatoReporte']>;
-
-/** Los que sirven para un tipo que se verifica: MP0 es el de los que no. */
-export const FORMATOS_CON_VERIFICACION: readonly FormatoDeReporte[] = ['MP1', 'MP2'] as const;
-
-/**
  * Los puntos en los que se verifica, y cuantas lecturas se toman en cada uno.
  *
  * <p>Las dos cosas solo existen con una modalidad <b>constante</b>: con patron y equipo variables,

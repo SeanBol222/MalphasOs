@@ -17,7 +17,7 @@
     </p>
   }
 
-  <article class="rs" aria-label="Reporte de servicio">
+  <article class="rs" aria-label="Informe de mantenimiento">
     <div class="rs-hoja">
       @if (empresa()?.logo; as logo) {
         <img class="rs-escudo" [src]="logo" alt="" />
@@ -34,8 +34,8 @@
             }
             <span>{{ empresa()?.nombre }}</span>
           </p>
-          <p class="rs-banda__rotulo" data-numero>Reporte de servicio N.º {{ datos()?.numero }}</p>
-          <h1 class="rs-banda__titulo">{{ titulo() }}</h1>
+          <p class="rs-banda__rotulo" data-numero>Informe N.º {{ datos()?.numero }}</p>
+          <h1 class="rs-banda__titulo">{{ titulo }}</h1>
           <p class="rs-banda__equipo">{{ lineaDelEquipo() }}</p>
         </div>
         <figure class="rs-qr">
@@ -218,6 +218,10 @@
             <p data-aclaracion><strong>Aclaración del proceso.</strong> {{ aclaracion }}</p>
           }
           <p><strong>Observaciones.</strong> {{ datos()?.observaciones || 'Ninguna.' }}</p>
+          <!-- La garantía cierra el informe: en esta hoja si es la única, y si no en la segunda. -->
+          @if (paginas() === 1 && empresa()?.garantia; as garantia) {
+            <p class="rs-garantia" data-garantia><strong>Garantía.</strong> {{ garantia }}</p>
+          }
         </section>
 
         <section class="rs-firmas" aria-label="Firmas">
@@ -267,7 +271,7 @@
             <p class="rs-banda__equipo">{{ lineaDelEquipo() }}</p>
           </div>
           <div class="rs-banda__numero">
-            <span>Reporte de servicio</span>
+            <span>Informe</span>
             <strong>N.º {{ datos()?.numero }}</strong>
             <span>{{ fechaCorta(fechaDelServicio()) }}</span>
           </div>
@@ -415,13 +419,6 @@
                 </figure>
               </div>
             </section>
-          } @empty {
-            <p class="rs-gris">
-              No se tomaron lecturas.
-              @if (datos()?.resultado === 'FUERA_DE_SERVICIO') {
-                El equipo quedó fuera de servicio: no se le podía medir nada.
-              }
-            </p>
           }
 
           <section class="rs-estado rs-estado--cierre">

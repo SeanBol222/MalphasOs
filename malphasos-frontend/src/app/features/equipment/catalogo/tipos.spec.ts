@@ -211,54 +211,6 @@ describe('Tipos de equipo', () => {
     expect(texto()).toContain('Sin verificación');
   });
 
-  describe('El formato del reporte (V32, 2026-10-16)', () => {
-    const desplegable = () => raiz().querySelector<HTMLSelectElement>(`#formato-${ID_TIPO}`);
-
-    it('un tipo que se verifica elige entre MP1 y MP2, con el suyo puesto', async () => {
-      await abrir();
-
-      expect([...desplegable()!.options].map((o) => o.textContent?.trim())).toEqual(['MP1', 'MP2']);
-      expect(desplegable()!.value).toBe('MP2');
-    });
-
-    it('elegir otro lo guarda por su ruta', async () => {
-      await abrir();
-
-      desplegable()!.value = 'MP1';
-      desplegable()!.dispatchEvent(new Event('change'));
-      await asentar(fixture);
-
-      const peticion = http.expectOne({
-        method: 'PATCH',
-        url: `${URL_TIPOS}/${ID_TIPO}/report-format`,
-      });
-      expect(peticion.request.body).toEqual({ formato: 'MP1' });
-      peticion.flush({ ...TIPOS[0], formatoReporte: 'MP1' });
-      await asentar(fixture);
-      await atenderRecargas();
-    });
-
-    it('elegir el que ya tiene no manda nada', async () => {
-      await abrir();
-
-      desplegable()!.dispatchEvent(new Event('change'));
-      await asentar(fixture);
-
-      http.expectNone(`${URL_TIPOS}/${ID_TIPO}/report-format`);
-    });
-
-    it('uno que no se verifica no elige: su formato es MP0, y lo dice', async () => {
-      await abrir({
-        tipos: [{ ...TIPOS[0], verificaciones: [], verificable: false, formatoReporte: 'MP0' }],
-      });
-
-      expect(desplegable()).toBeNull();
-      expect(raiz().querySelector(`[data-formato="${ID_TIPO}"]`)!.textContent).toContain(
-        'Reporte MP0',
-      );
-    });
-  });
-
   it('el alta y la edicion tienen pagina propia: la ficha tecnica no cabe en una linea', async () => {
     await abrir();
 

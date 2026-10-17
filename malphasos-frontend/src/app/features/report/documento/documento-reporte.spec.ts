@@ -185,11 +185,12 @@ describe('Documento del reporte', () => {
     await asentar(fixture);
   }
 
-  it('la banda dice el número, el servicio de la orden y el equipo', async () => {
+  it('la banda dice el número, el título único y el equipo', async () => {
+    // Un solo informe, decidido el 2026-10-16: el tipo de servicio lo dicen las casillas, no el título.
     await abrir({ numero: '1DC6F5' });
 
-    expect(texto('[data-numero]')).toBe('Reporte de servicio N.º 1DC6F5');
-    expect(texto('h1')).toBe('Mantenimiento preventivo');
+    expect(texto('[data-numero]')).toBe('Informe N.º 1DC6F5');
+    expect(texto('h1')).toBe('Informe de mantenimiento');
     expect(texto('.rs-banda__equipo')).toBe(
       'Tensiómetro · Welch Allyn ProBP 2400 · Serie SN-0001 · HV-HCE-0007',
     );
@@ -212,8 +213,21 @@ describe('Documento del reporte', () => {
 
     expect(texto('[data-proximo]')).toBe('20 ene 2027');
     expect(raiz().querySelector('.rs-marca-borrador')).toBeNull();
-    expect(texto('[data-resultado]')).toBe('Operativo');
+    expect(texto('[data-resultado]')).toBe('Apto para el servicio');
   });
+
+  // Tres valores guardados, dos impresos (2026-10-16): la restricción va en las observaciones.
+  for (const [resultado, impreso] of [
+    ['OPERATIVO', 'Apto para el servicio'],
+    ['OPERATIVO_CON_RESTRICCIONES', 'Apto para el servicio'],
+    ['FUERA_DE_SERVICIO', 'No apto para el servicio'],
+  ] as const) {
+    it(`el resultado ${resultado} se imprime «${impreso}»`, async () => {
+      await abrir({ estado: 'FINALIZADO', finalizado: '2026-10-20T16:30:00', resultado });
+
+      expect(texto('[data-resultado]')).toBe(impreso);
+    });
+  }
 
   it('el supervisor es el encargado del área, en la ficha del cliente y en las firmas', async () => {
     await abrir();
@@ -229,6 +243,9 @@ describe('Documento del reporte', () => {
       c.getAttribute('data-casilla'),
     );
     expect(marcadas).toEqual(['Preventivo', 'Verificación metrológica']);
+    expect(
+      [...raiz().querySelectorAll('[data-casilla]')].map((c) => c.getAttribute('data-casilla')),
+    ).toEqual(['Preventivo', 'Correctivo', 'Calibración', 'Verificación metrológica', 'Garantía']);
   });
 
   it('sin lecturas la verificación no se marca, y lo dice', async () => {
@@ -380,14 +397,21 @@ describe('Documento del reporte', () => {
     expect(texto('[data-pagina="2"]')).toContain('Página 2 de 2');
   });
 
-  it('un tipo con formato MP0 se imprime en una sola página', async () => {
-    await abrir(
-      {},
-      { tipos: [{ ...TIPOS[0], verificaciones: [], verificable: false, formatoReporte: 'MP0' }] },
-    );
+  it('sin lecturas el informe es de una hoja, y la garantía lo cierra en ella', async () => {
+    // Las secciones salen según los datos (2026-10-16): sin lecturas no hay nada que verificar.
+    await abrir();
 
     expect(raiz().querySelector('[data-pagina="2"]')).toBeNull();
     expect(texto()).toContain('Página 1 de 1');
+    expect(raiz().querySelectorAll('[data-garantia]')).toHaveLength(1);
+    expect(texto('[data-garantia]')).toBe(`Garantía. ${GARANTIA_DE_EJEMPLO}`);
+  });
+
+  it('con lecturas la garantía va solo en la segunda hoja, no repetida', async () => {
+    await abrir({ lecturas: LECTURAS, patrones: [PATRON] });
+
+    expect(raiz().querySelectorAll('[data-garantia]')).toHaveLength(1);
+    expect(raiz().querySelector('[data-pagina="2"] [data-garantia]')).not.toBeNull();
   });
 
   it('es un documento: no tiene un solo control que se pueda editar', async () => {
