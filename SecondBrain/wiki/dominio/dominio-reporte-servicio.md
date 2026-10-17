@@ -293,6 +293,13 @@ o `MP2` para los que sí. `EquipmentType.chooseReportFormat` rechaza la combinac
 **declarar o retirar verificaciones ajusta el formato solo** si deja de servir. **Qué distingue `MP1` de
 `MP2` no se sabe todavía**: los cuatro informes son `MP0` y `MP2`. Se imprimen igual.
 
+> **Corregido el 2026-10-16, y dos veces.** La frase de arriba era **falsa el día que se escribió**: la
+> balanza es `MP1`. Releídos, los informes dicen `MP0` para un equipo mecánico sin verificación, `MP1`
+> para uno mecánico con ella y `MP2` para los electrónicos con ella. Y **la pregunta dejó de importar
+> ese mismo día**: el usuario decidió que los formatos `MPx` eran del sistema antiguo y **se retiran**.
+> Habrá un solo «Informe de mantenimiento», con secciones que aparecen según los datos. El diseño
+> completo está en [[hoja-de-ruta-producto]], en «El diseño único del informe».
+
 ### El documento: se compone, no se guarda
 
 `/reportes/:id/documento` pinta el informe en hojas carta y se imprime o se guarda en PDF **desde el

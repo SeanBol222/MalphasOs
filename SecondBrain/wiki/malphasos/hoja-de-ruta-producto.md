@@ -434,7 +434,7 @@ con una gráfica de error y su banda de tolerancia.
 | Número del reporte | **Los seis primeros caracteres del identificador**, como un commit de git |
 | Patrones | **Varios por verificación**, con la ficha que el informe imprime en su trazabilidad |
 | Tipos de servicio | **Los tres, más la verificación metrológica derivada**: la casilla se marca sola si hay lecturas |
-| Formato `MP0`/`MP1`/`MP2` | **Lo elige el tipo de equipo** |
+| Formato `MP0`/`MP1`/`MP2` | **Lo elige el tipo de equipo** — **revocada ese mismo día**: los formatos se retiran, ver «El diseño único del informe» |
 | Supervisor | **El encargado del área** |
 | Quién recibe | **Texto libre en el reporte**: nombre, cédula y cargo |
 | Al ingreso | **Las dos verificaciones fijas en todo reporte**, más una lista libre de accesorios |
@@ -457,6 +457,59 @@ de hoy. Todo en [[deuda-tecnica-y-riesgos]]; el detalle, en [[dominio-reporte-se
 
 **El marcador no se mueve: siguen siendo 21.** RF-17 pide el PDF **firmado**, y el documento se imprime
 sin firma; sigue esperando a RF-18 y RF-21, que es exactamente donde el orden de abajo lo pone.
+
+## El diseño único del informe (decidido el 2026-10-16)
+
+Construido el formato de los informes reales, el usuario lo revisó con todas las preguntas abiertas
+delante y decidió que **los formatos `MP0`, `MP1` y `MP2` eran del sistema antiguo** y no se conservan:
+**un solo «Informe de mantenimiento»**. Y una segunda decisión que va más allá del informe: **MalphasOS
+es un producto aparte de Bolívar Bioingeniería y va a ser de código abierto**, así que ningún dato de la
+empresa puede vivir en el código.
+
+**El informe:**
+
+| Pregunta | Decisión |
+|---|---|
+| Formatos | **Ninguno.** Se retira el formato del tipo de equipo (`V32`) y su selector |
+| Título | **Fijo**, «Informe de mantenimiento», con las casillas Preventivo · Correctivo · Calibración · V. Metrológica · Garantía |
+| Secciones que no aplican | **No se imprimen.** Sin lecturas no hay trazabilidad ni gráfica, y el informe cabe en una hoja |
+| Garantía | **Una marca del correctivo** en la orden; solo un correctivo puede llevarla |
+| Resultado | **Tres valores guardados, dos impresos**: Operativo y Con restricciones son «Apto» —la restricción va en las observaciones—, Fuera de servicio es «No apto» |
+| Falla y diagnóstico | **Opcionales en todo reporte** —ya lo eran—, obligatorios en el correctivo, impresos solo con texto |
+| Para cerrar | **Exige además las dos verificaciones al ingreso**. Quién recibe, no |
+| Protocolo | **Con ✓ o N/A por paso**, y la nota del N/A |
+| Placa de inventario | **No se añade**: basta el código interno |
+| Firmas | **Tres líneas para firmar a mano**, con el nombre debajo, mientras no haya firma digital |
+| La orden | **Lleva número**, los seis primeros caracteres de su identificador como el reporte, y el informe lo imprime |
+| Al cerrar | **El informe se congela**: el reporte guarda copia de lo que imprime, incluidos los datos de la empresa *(esto último, de la sesión)* |
+| Código interno del patrón | **Único entre los vigentes**, como la serie |
+| La gráfica | **Sin cambios**: la de error con su banda de tolerancia, el diseño C |
+
+**Los datos de la empresa:**
+
+| Pregunta | Decisión |
+|---|---|
+| Qué sale del código | **Todo lo de Bolívar Bioingeniería**: nombre, NIT, dirección, contacto, garantía, aclaración del proceso y su escudo. **El logo, los colores y el diseño de MalphasOS se quedan** |
+| Dónde viven | **En un archivo aparte, ignorado por git**, que lee el backend; el frontend los pide al API. Una sola fuente para la hoja de vida, el informe y el inicio |
+| Qué se versiona | **Un ejemplo con una empresa inventada**, sin valores por defecto en el código; las pruebas usan esa empresa |
+| El historial de git | **No se reescribe**: se limpia el árbol desde ahora |
+| Sin logo configurado | El documento imprime solo el nombre *(de la sesión)* |
+
+**Las tandas, en este orden:**
+
+| # | Tanda | Por qué aquí |
+|---|---|---|
+| 1 | **Este registro**, y la corrección de lo que se dijo de `MP1` | Antes de construir |
+| 2 | **Los datos de la empresa fuera del código** | El informe nuevo ya los lee del API |
+| 3 | **El informe único**: sin `MPx`, título, casillas, secciones por datos, Apto/No apto y líneas de firma | |
+| 4 | **La garantía y el número de la orden** | Tocan `work-order` |
+| 5 | **Cerrar exige el ingreso**, y el código interno del patrón único | Dos reglas pequeñas |
+| 6 | **El informe congelado al cerrar** | La más grande: antes de empezarla se enseña al usuario qué se copia |
+| 7 | **Pasada de wiki** | |
+
+> **Corrección de esta misma nota.** La sección anterior, y [[dominio-reporte-servicio]], decían que los
+> cuatro informes reales eran `MP0` y `MP2`. **La balanza es `MP1`**: se leyó mal el primer día. Ya no
+> cambia nada, porque los formatos se retiran, pero quedó escrito y se corrige.
 
 ## El orden propuesto
 

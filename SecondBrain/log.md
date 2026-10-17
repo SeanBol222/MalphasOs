@@ -1925,3 +1925,22 @@ usuario. **El marcador de requisitos no se mueve**: 21, porque RF-17 pide el PDF
 **Tocadas**: [[esquema-bd-malphasos]], [[dominio-reporte-servicio]], [[dominio-equipo-mantenimiento]],
 [[hoja-de-ruta-producto]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]], el índice y
 el `CONVENCIONES.md` de la raíz.
+
+## [2026-10-16] query | el diseño único del informe, decidido
+
+El usuario revisó el informe construido con todas las preguntas abiertas delante y decidió en cuatro
+rondas: **los formatos `MPx` se retiran** —un solo «Informe de mantenimiento», con secciones según los
+datos—, la garantía es una marca del correctivo, el resultado se imprime como Apto o No apto, cerrar
+exige el ingreso, la orden lleva número, el informe se congela al cerrar y el código interno del patrón
+es único. Y **ningún dato de Bolívar Bioingeniería se queda en el código**: MalphasOS es un producto
+aparte y va a ser de código abierto. Siete tandas, en [[hoja-de-ruta-producto]].
+
+**Afirmación falsa, corregida**: «los cuatro informes son `MP0` y `MP2`», en [[dominio-reporte-servicio]]
+y en [[deuda-tecnica-y-riesgos]]. La balanza es `MP1`; se leyó mal el primer día y se encontró al
+releerlos para preparar las preguntas.
+
+Deuda propia **94 filas, 58 abiertas**: entra una —los datos de la empresa en el código— y cuatro
+quedan decididas, sin cerrarse hasta construirlas.
+
+**Tocadas**: [[hoja-de-ruta-producto]], [[dominio-reporte-servicio]], [[deuda-tecnica-y-riesgos]],
+[[decisiones-tecnicas-malphasos]], el `CONVENCIONES.md` de la raíz.
