@@ -1,18 +1,19 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.rest;
 
 import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
+import com.malphasos.malphasos.company.application.ports.input.ServiceCompanyServicePort;
+import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
+import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
+import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.InterventionResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.LifeSheetResponse;
-import com.malphasos.malphasos.shared.config.ServiceCompanyLogo;
-import com.malphasos.malphasos.shared.config.ServiceCompanyProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -44,8 +45,8 @@ public class LifeSheetRestAdapter {
 
     /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
     private final ReadScopeResolver readScopeResolver;
-    private final ServiceCompanyProperties empresa;
-    private final ServiceCompanyLogo logo;
+    /** El membrete: desde el 2026-10-17 sale de la base, donde lo edita un administrador. */
+    private final ServiceCompanyServicePort serviceCompanyServicePort;
     private final EquipmentRestMapper restMapper;
 
     @Operation(
@@ -103,19 +104,26 @@ public class LifeSheetRestAdapter {
                 new LifeSheetResponse.Fabricante(
                         hoja.fabricante().nombre(), hoja.fabricante().pais()),
                 hoja.servicioTecnico().stream().map(LifeSheetRestAdapter::toResponse).toList(),
-                new LifeSheetResponse.Empresa(
-                        empresa.getNombre(),
-                        empresa.getNit(),
-                        empresa.getDireccion(),
-                        empresa.getCiudad(),
-                        List.copyOf(empresa.getTelefonos()),
-                        empresa.getMovil(),
-                        empresa.getCorreo(),
-                        logo.dataUri().orElse(null),
-                        empresa.getGarantia(),
-                        empresa.getAclaracion(),
-                        empresa.getCodigoHojaDeVida(),
-                        empresa.getCodigoInforme()));
+                serviceCompanyServicePort.find().map(LifeSheetRestAdapter::toResponse).orElse(null));
+    }
+
+    /** Sin empresa configurada el membrete viaja nulo, y el documento sale sin él. */
+    private static LifeSheetResponse.Empresa toResponse(ServiceCompany empresa) {
+        CompanyDetails datos = empresa.getDatos();
+
+        return new LifeSheetResponse.Empresa(
+                datos.nombre(),
+                datos.nit(),
+                datos.direccion(),
+                datos.ciudad(),
+                datos.telefonos(),
+                datos.movil(),
+                datos.correo(),
+                empresa.logo().map(CompanyLogo::dataUri).orElse(null),
+                datos.garantia(),
+                datos.aclaracion(),
+                datos.codigoHojaDeVida(),
+                datos.codigoInforme());
     }
 
     private static InterventionResponse toResponse(Intervention intervencion) {

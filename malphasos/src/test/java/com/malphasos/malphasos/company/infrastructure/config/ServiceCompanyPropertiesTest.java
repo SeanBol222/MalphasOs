@@ -1,4 +1,4 @@
-package com.malphasos.malphasos.shared.config;
+package com.malphasos.malphasos.company.infrastructure.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,8 +11,8 @@ import org.springframework.boot.validation.autoconfigure.ValidationAutoConfigura
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Sin la empresa, la aplicación no arranca y dice qué copiar. Es lo que pasa al clonar el repositorio
- * sin crear config/empresa.yaml, porque el código no trae ningún valor por defecto.
+ * El archivo de la empresa es opcional desde el 2026-10-17: solo siembra el primer arranque. Hasta ese
+ * día, sin nombre la aplicación no arrancaba.
  */
 class ServiceCompanyPropertiesTest {
 
@@ -26,14 +26,16 @@ class ServiceCompanyPropertiesTest {
             .withUserConfiguration(Configuracion.class);
 
     @Test
-    @DisplayName("sin nombre el contexto no arranca, y el mensaje dice qué archivo copiar")
+    @DisplayName("sin archivo arranca: la empresa se llena desde la pantalla")
     void sinNombre() {
-        contexto.run(arrancado -> assertThat(arrancado).hasFailed()
-                .getFailure().rootCause().hasMessageContaining("config/empresa.example.yaml"));
+        contexto.run(arrancado -> {
+            assertThat(arrancado).hasNotFailed();
+            assertThat(arrancado.getBean(ServiceCompanyProperties.class).getNombre()).isNull();
+        });
     }
 
     @Test
-    @DisplayName("con nombre arranca, y lo demás es opcional")
+    @DisplayName("con archivo lee lo que trae, y lo demás es opcional")
     void conNombre() {
         contexto.withPropertyValues("app.empresa.nombre=Servicios de Ejemplo", "app.empresa.codigo-hoja-de-vida=FT-001")
                 .run(arrancado -> {

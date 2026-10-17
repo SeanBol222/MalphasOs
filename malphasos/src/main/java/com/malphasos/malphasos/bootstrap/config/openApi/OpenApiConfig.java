@@ -166,4 +166,13 @@ public class OpenApiConfig {
                 .pathsToMatch(API + "/reports/**")
                 .build();
     }
+
+    /** La empresa que presta el servicio: el membrete de los documentos (2026-10-17). */
+    @Bean
+    public GroupedOpenApi companyApi() {
+        return GroupedOpenApi.builder()
+                .group("company")
+                .pathsToMatch(API + "/company/**")
+                .build();
+    }
 }

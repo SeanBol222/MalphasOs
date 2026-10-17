@@ -45,7 +45,7 @@ class OpenApiContractDumpTest {
     @Autowired private MockMvc mockMvc;
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"client", "equipment", "person", "location", "work-order", "reports"})
+    @ValueSource(strings = {"client", "equipment", "person", "location", "work-order", "reports", "company"})
     @DisplayName("el grupo publica su contrato y queda escrito en contracts/openapi")
     void publicaSuContrato(String grupo) throws Exception {
         String json = mockMvc.perform(get("/v3/api-docs/" + grupo))

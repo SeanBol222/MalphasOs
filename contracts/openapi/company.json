@@ -1,0 +1,482 @@
+{
+  "components" : {
+    "schemas" : {
+      "CompanyErrorResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "details" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "GlobalErrorResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "details" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ServiceCompanyRequest" : {
+        "properties" : {
+          "aclaracion" : {
+            "description" : "Opcional: la aclaracion del proceso del informe",
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "ciudad" : {
+            "description" : "Opcional",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "codigoHojaDeVida" : {
+            "description" : "Opcional: el codigo del formato de la hoja de vida",
+            "example" : "FT-001",
+            "maxLength" : 40,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "codigoInforme" : {
+            "description" : "Opcional: el codigo del formato del informe",
+            "example" : "FT-002",
+            "maxLength" : 40,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "correo" : {
+            "description" : "Opcional",
+            "example" : "contacto@empresa.example",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "direccion" : {
+            "description" : "Opcional",
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "garantia" : {
+            "description" : "Opcional: el texto de garantia que cierra el informe",
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "movil" : {
+            "description" : "Opcional",
+            "maxLength" : 30,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "nit" : {
+            "description" : "Opcional",
+            "example" : "900.000.000-0",
+            "maxLength" : 30,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "nombre" : {
+            "example" : "Servicios Biomédicos de Ejemplo S.A.S.",
+            "maxLength" : 160,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "telefonos" : {
+            "description" : "Telefonos fijos, como se imprimen; hasta cinco",
+            "items" : {
+              "maxLength" : 30,
+              "minLength" : 0,
+              "type" : "string"
+            },
+            "maxItems" : 5,
+            "minItems" : 0,
+            "type" : "array"
+          }
+        },
+        "required" : [ "nombre" ],
+        "type" : "object"
+      },
+      "ServiceCompanyResponse" : {
+        "properties" : {
+          "aclaracion" : {
+            "type" : "string"
+          },
+          "ciudad" : {
+            "type" : "string"
+          },
+          "codigoHojaDeVida" : {
+            "type" : "string"
+          },
+          "codigoInforme" : {
+            "type" : "string"
+          },
+          "correo" : {
+            "type" : "string"
+          },
+          "direccion" : {
+            "type" : "string"
+          },
+          "garantia" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "logo" : {
+            "description" : "El logo como data: URI; nulo si no hay",
+            "type" : "string"
+          },
+          "movil" : {
+            "type" : "string"
+          },
+          "nit" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          },
+          "telefonos" : {
+            "description" : "Telefonos fijos; vacia si no tiene",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "bearer-jwt" : {
+        "bearerFormat" : "JWT",
+        "description" : "Alternativa: pegar un token obtenido por otro medio",
+        "scheme" : "bearer",
+        "type" : "http"
+      },
+      "keycloak-oauth" : {
+        "description" : "Inicia sesion en Keycloak y usa el token en cada peticion",
+        "flows" : {
+          "authorizationCode" : {
+            "authorizationUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/auth",
+            "scopes" : {
+              "email" : "Correo electronico",
+              "openid" : "Identificacion del usuario",
+              "profile" : "Datos basicos del perfil"
+            },
+            "tokenUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/token"
+          }
+        },
+        "type" : "oauth2"
+      }
+    }
+  },
+  "info" : {
+    "description" : "API REST para la gestión de mantenimientos preventivos y clientes",
+    "license" : {
+      "name" : "GNU GPL v3",
+      "url" : "https://www.gnu.org/licenses/gpl-3.0.html"
+    },
+    "title" : "MalphasOS API",
+    "version" : "v0.0.1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/v1/api/company" : {
+      "get" : {
+        "description" : "404 si todavia no se ha configurado.",
+        "operationId" : "get",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceCompanyResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompanyErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompanyErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Obtener la empresa",
+        "tags" : [ "ServiceCompany" ]
+      },
+      "patch" : {
+        "description" : "La configura si no existia y la corrige si si. Los informes ya cerrados no cambian.",
+        "operationId" : "save",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceCompanyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceCompanyResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompanyErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompanyErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Guardar los datos de la empresa",
+        "tags" : [ "ServiceCompany" ]
+      }
+    },
+    "/v1/api/company/logo" : {
+      "delete" : {
+        "description" : "Sin logo, el membrete es el nombre. 404 sin empresa.",
+        "operationId" : "removeLogo",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompanyErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompanyErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Quitar el logo",
+        "tags" : [ "ServiceCompany" ]
+      },
+      "patch" : {
+        "description" : "PNG, JPG o SVG de hasta 512 KB; el tipo se deduce de los bytes. 404 sin empresa.",
+        "operationId" : "changeLogo",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "archivo" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "archivo" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceCompanyResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompanyErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompanyErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Poner o cambiar el logo",
+        "tags" : [ "ServiceCompany" ]
+      }
+    }
+  },
+  "security" : [ {
+    "keycloak-oauth" : [ ]
+  }, {
+    "bearer-jwt" : [ ]
+  } ],
+  "servers" : [ {
+    "description" : "Generated server url",
+    "url" : "http://localhost"
+  } ],
+  "tags" : [ {
+    "description" : "La empresa que presta el servicio: el membrete de los documentos",
+    "name" : "ServiceCompany"
+  } ]
+}

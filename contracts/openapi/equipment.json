@@ -746,7 +746,7 @@
         "properties" : {
           "empresa" : {
             "$ref" : "#/components/schemas/LifeSheetEmpresa",
-            "description" : "La empresa que presta el servicio: el membrete del documento"
+            "description" : "La empresa que presta el servicio: el membrete del documento. Nula si no se ha configurado"
           },
           "fabricante" : {
             "$ref" : "#/components/schemas/LifeSheetFabricante",

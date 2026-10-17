@@ -1,30 +1,27 @@
-package com.malphasos.malphasos.shared.config;
+package com.malphasos.malphasos.company.infrastructure.config;
 
-import jakarta.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
-import org.springframework.validation.annotation.Validated;
 
 /**
- * Los datos de la empresa que presta el servicio técnico, leídos del prefijo {@code app.empresa}.
+ * La empresa del archivo de arranque, leída del prefijo {@code app.empresa}.
  *
- * <p>Son el membrete de los documentos que se entregan al cliente —la hoja de vida y el informe de
- * mantenimiento— y no un dato de ningún cliente, de modo que no van en la base.
+ * <p><b>Desde el 2026-10-17 solo siembra el primer arranque</b>: la empresa vive en la base y la edita un
+ * administrador. Si la base no tiene ninguna y este archivo trae nombre, {@link ServiceCompanySeeder} la
+ * crea con él; a partir de ahí el archivo no pisa nada. Sin archivo la aplicación arranca igual, y los
+ * documentos salen sin membrete hasta que alguien la configure. (Hasta ese día era la única fuente, y sin
+ * nombre la aplicación no arrancaba.)
  *
- * <p><b>Ninguno vive en el código</b>, decidido por el usuario el 2026-10-16: MalphasOS es un producto
- * aparte de la empresa que lo usa y va a ser de código abierto. Se leen de {@code config/empresa.yaml},
- * fuera de git, que {@code application.yaml} importa; el repositorio solo versiona
- * {@code config/empresa.example.yaml}, con una empresa inventada. Sin nombre la aplicación no arranca:
- * un documento sin membrete no se puede entregar, y fallar al arrancar lo dice antes que el primer
- * documento en blanco.
+ * <p>Ninguno de sus datos vive en el código, decidido por el usuario el 2026-10-16: MalphasOS es un
+ * producto aparte de la empresa que lo usa. El repositorio solo versiona
+ * {@code config/empresa.example.yaml}, con una empresa inventada.
  */
 @Getter
 @Setter
-@Validated
 @Component
 @ConfigurationProperties(prefix = "app.empresa")
 public class ServiceCompanyProperties {
@@ -32,8 +29,7 @@ public class ServiceCompanyProperties {
     /** El directorio de la configuración de la empresa, contra el que se resuelve el logo. */
     private String directorio;
 
-    @NotBlank(message = "falta la empresa que presta el servicio: copia config/empresa.example.yaml en"
-            + " config/empresa.yaml y llénalo")
+    /** Sin él no hay nada que sembrar. */
     private String nombre;
 
     private String nit;

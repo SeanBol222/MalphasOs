@@ -3,8 +3,12 @@
 #
 #   cp config/empresa.example.yaml config/empresa.yaml
 #
-# y llénalo con los de la tuya. config/empresa.yaml y el logo están fuera de git. Solo el nombre es
-# obligatorio: sin él el backend no arranca. Lo demás que falte, el documento no lo imprime.
+# y llénalo con los de la tuya. config/empresa.yaml y el logo están fuera de git.
+#
+# Este archivo solo siembra el primer arranque: si la base todavía no tiene empresa, el backend la crea
+# con lo de aquí, y desde ese momento manda la base —un administrador la edita en la pantalla
+# «Empresa»— y este archivo ya no se lee. Es opcional: sin él, la empresa se llena desde la pantalla.
+# Solo el nombre es obligatorio; lo demás que falte, el documento no lo imprime.
 #
 # Los datos de abajo son inventados.
 app:

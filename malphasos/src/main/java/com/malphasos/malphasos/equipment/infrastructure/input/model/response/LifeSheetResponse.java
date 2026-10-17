@@ -19,7 +19,8 @@ public record LifeSheetResponse(
         @Schema(description = "Quien lo fabrico") Fabricante fabricante,
         @Schema(description = "Historial de intervenciones, de la mas reciente a la mas antigua")
         List<InterventionResponse> servicioTecnico,
-        @Schema(description = "La empresa que presta el servicio: el membrete del documento") Empresa empresa) {
+        @Schema(description = "La empresa que presta el servicio: el membrete del documento. Nula si no se ha configurado")
+                Empresa empresa) {
 
     @Schema(name = "LifeSheetIdentificacion")
     public record Identificacion(

@@ -138,6 +138,13 @@ public final class ApiAuthority {
   public static final String REPORT_WRITE = "report.write";
 
   /**
+   * Ver y editar la empresa que presta el servicio: sus datos y su logo (2026-10-17). Ningún grupo
+   * fuera de {@code admins} las tiene: quien imprime un documento recibe el membrete dentro de él.
+   */
+  public static final String COMPANY_READ = "company.read";
+  public static final String COMPANY_WRITE = "company.write";
+
+  /**
    * Todo lo que el administrador recibe al expandirse. No se incluye a sí mismo
    * ni a
    * {@link #SUPER_ADMIN_FULL}: son quién manda, no lo que se manda.
@@ -171,7 +178,9 @@ public final class ApiAuthority {
           WORK_ORDER_WRITE,
           WORK_ORDER_ASSIGN,
           REPORT_READ,
-          REPORT_WRITE)));
+          REPORT_WRITE,
+          COMPANY_READ,
+          COMPANY_WRITE)));
 
   /**
    * Lo que solo {@link #SUPER_ADMIN_FULL} concede, y {@link #ADMIN_FULL} no.
