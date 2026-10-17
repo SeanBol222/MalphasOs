@@ -33,19 +33,28 @@
         <h1 class="titulo-pagina mt-0.5">Reporte de {{ equipo() }}</h1>
       </div>
 
-      <!-- El estado como sello: por peso y borde, no por un color nuevo. -->
-      <p
-        class="inline-flex min-h-tactil items-center gap-1 border-2 border-ink px-1.5 text-sm"
-        [class.font-extrabold]="datos.estado === 'BORRADOR' && datos.estadoActivo"
-        [class.font-semibold]="datos.estado === 'FINALIZADO'"
-        [class.border-dashed]="!datos.estadoActivo"
-      >
-        <span class="inline-block h-1 w-1 bg-ink" aria-hidden="true"></span>
-        {{ estado() }}
-        @if (datos.finalizado) {
-          · cerrado el {{ datos.finalizado.slice(0, 10) }}
-        }
-      </p>
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- El documento: lo que se imprime, se guarda en PDF y se entrega (2026-10-16). -->
+        <a
+          class="boton-secundario inline-flex min-h-tactil items-center"
+          [routerLink]="['/reportes', id(), 'documento']"
+        >
+          Ver el documento
+        </a>
+        <!-- El estado como sello: por peso y borde, no por un color nuevo. -->
+        <p
+          class="inline-flex min-h-tactil items-center gap-1 border-2 border-ink px-1.5 text-sm"
+          [class.font-extrabold]="datos.estado === 'BORRADOR' && datos.estadoActivo"
+          [class.font-semibold]="datos.estado === 'FINALIZADO'"
+          [class.border-dashed]="!datos.estadoActivo"
+        >
+          <span class="inline-block h-1 w-1 bg-ink" aria-hidden="true"></span>
+          {{ estado() }}
+          @if (datos.finalizado) {
+            · cerrado el {{ datos.finalizado.slice(0, 10) }}
+          }
+        </p>
+      </div>
     </div>
 
     <!--

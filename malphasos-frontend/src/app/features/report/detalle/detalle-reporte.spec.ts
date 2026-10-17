@@ -247,6 +247,15 @@ describe('Ficha de un reporte de servicio', () => {
     expect(raiz().querySelector('[data-numero]')!.textContent).toContain('N.º 1DC6F5');
   });
 
+  it('enlaza con su documento, para leerlo, imprimirlo o guardarlo en PDF (2026-10-16)', async () => {
+    await abrir();
+
+    const enlace = [...raiz().querySelectorAll('a')].find(
+      (a) => a.textContent?.trim() === 'Ver el documento',
+    );
+    expect(enlace?.getAttribute('href')).toBe(`/reportes/${ID_REPORTE}/documento`);
+  });
+
   it('una orden sin ingeniero lo dice, en vez de dejar el hueco en blanco', async () => {
     await abrir();
 
