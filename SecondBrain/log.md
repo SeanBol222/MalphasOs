@@ -1996,3 +1996,32 @@ cambiarle la contraseña; lo cubren las pruebas contra PostgreSQL y las de REST 
 Backend **1385** en 106 clases y frontend **732**, medidos en la rama.
 
 **Tocadas**: [[hoja-de-ruta-producto]].
+
+## [2026-10-17] ingest | la firma de quien recibe, y su réplica a la orden
+
+Tanda 5 de la 1.0.0: RF-18 y RF-21. `V39` añade a `reporte_servicio` la huella de la firma de quien
+recibe —con foránea a `imagen_documento`, de modo que la réplica a veinte reportes guarda la imagen una
+vez— y cuándo firmó, con un `CHECK` que exige el nombre: una firma sin nombre no dice quién firmó.
+
+**La firma es lo único que se añade a un reporte cerrado**, y por eso `signReceipt` no pasa por
+`exigirModificable` y trae quién firma: un cerrado ya no admite `recordHandover`. Una vez firmado no
+cambia nada de la entrega. Con la casilla, la misma firma va a los reportes **activos** de la orden que
+no la tengan, abiertos o cerrados; si el pedido ya estaba firmado falla aunque se marque, porque quien
+firma cree estar firmando ese. En la pantalla, el bloque «A quién se entrega» reutiliza el lienzo de la
+tanda 4, y en un cerrado sin firma deja escribir el nombre para firmar, pero no guardar la entrega.
+
+**Dos hallazgos antes de commitear, los dos por una prueba.** La casilla era un `boolean` primitivo y
+Jackson rechazaba el cuerpo que la omitía: la prueba de «sin nombre» devolvía 400 por eso y no por el
+nombre. Ahora es opcional. Y la prueba de la ficha que exige que quien solo lee no vea ninguna escritura
+cazó que el lienzo se ofrecía con `report.read`; la entrega recibe ahora `puedeFirmar`.
+
+En vivo, sobre la base de desarrollo: firmar sin dibujar no envía nada; con trazo y la casilla, `200`,
+un PNG de 10,9 KB, el reporte retirado de la misma orden se quedó sin firma y el informe la lleva en la
+línea de quien recibe. **Se revirtió después por SQL**: la base de desarrollo solo tiene un reporte activo
+por orden, así que la réplica a varios la cubren las pruebas del servicio y no se vio en vivo.
+
+Backend **1413** en 107 clases y frontend **744**, medidos en la rama. Mutaciones: 17 en el backend y
+13 en el frontend, todas muertas; una sobrevivía —firmar no recargaba los reportes de la orden sin que
+nada lo notara— hasta escribir su prueba.
+
+**Tocadas**: [[hoja-de-ruta-producto]].
