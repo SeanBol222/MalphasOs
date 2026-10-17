@@ -562,8 +562,8 @@ queda en el frontend: RF-17 no la pide.
 | 1 | **Este registro** | |
 | 2 | **Código interno del patrón único** entre los vigentes | Lo que quedaba de la tanda 5. **Hecho** el 2026-10-17 (`V35`) |
 | 2b | **La empresa editable por un administrador** | Pedida el mismo día, después del plan: ver abajo |
-| 3 | **El informe congelado al cerrar** | Antes de empezar se enseña al usuario qué se copia |
-| 4 | **La firma del ingeniero en su cuenta** | Tabla nueva y «Mi firma» |
+| 3 | **El informe congelado al cerrar** | Antes de empezar se enseña al usuario qué se copia. **Hecho** el 2026-10-17 (`V37`, merge `417e90b2`); los cerrados antes se congelan al arrancar, marcados como tardíos |
+| 4 | **La firma del ingeniero en su cuenta** | Tabla nueva y «Mi firma». **Hecha** el 2026-10-17 (`V38`): `/persons/me/signature`, la persona sale del token. Una cuenta sin fila en `persona` —el SuperUsuario— **no puede tener firma** |
 | 5 | **La firma de quien recibe y su réplica** | RF-18 y RF-21 |
 | 6 | **El PDF en el servidor** | RF-17 |
 | 7 | **Producción**: configuración del frontend al arrancar, compose de producción con Caddy, Keycloak en `start` con un realm sin usuarios ni secretos, fuera RabbitMQ, respaldo y guía de despliegue | |

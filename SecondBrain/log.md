@@ -1978,3 +1978,21 @@ Backend **1343** en 98 clases y frontend **714**, medidos en la rama.
 
 **Tocadas**: [[hoja-de-ruta-producto]].
 
+
+## [2026-10-17] ingest | la firma del ingeniero, en su cuenta
+
+Tanda 4 de la 1.0.0. `V38` crea `firma_persona` —un PNG de hasta 256 KB por persona— y renombra el
+almacén de imágenes de `V37` a `imagen_documento`, porque guarda ya logos y firmas, cada versión una vez
+por su huella. La firma se lee y se guarda en `/persons/me/signature`, sin identificador en la ruta: la
+persona sale del `sub` del token. El informe la congela al cerrar como al logo. En el frontend, el lienzo
+de firma es pieza común —la tanda 5 lo reutiliza para quien recibe— y «Mi firma» cuelga del pie de la
+barra para quien tiene `report.write`.
+
+**Un hallazgo en vivo**: `dev.admin`, como el SuperUsuario, se crea a mano en Keycloak y no tiene fila
+en `persona`, así que no puede tener firma. La pantalla lo explica en vez de decir «esa persona no
+existe». Lo que no se probó en vivo es guardar con éxito, porque no había una cuenta de ingeniero sin
+cambiarle la contraseña; lo cubren las pruebas contra PostgreSQL y las de REST con token.
+
+Backend **1385** en 106 clases y frontend **732**, medidos en la rama.
+
+**Tocadas**: [[hoja-de-ruta-producto]].
