@@ -253,6 +253,26 @@ export interface paths {
         patch: operations["assign"];
         trace?: never;
     };
+    "/v1/api/equipment-types/{id}/report-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Elegir el formato del reporte
+         * @description MP0 si el tipo no se verifica; MP1 o MP2 si se verifica. Declarar o vaciar sus verificaciones lo ajusta solo cuando el que tenia deja de servir.
+         */
+        patch: operations["chooseReportFormat"];
+        trace?: never;
+    };
     "/v1/api/equipment-types/{id}/verifications": {
         parameters: {
             query?: never;
@@ -658,6 +678,13 @@ export interface components {
             id?: string;
             nombre?: string;
         };
+        ChooseReportFormatRequest: {
+            /**
+             * @description MP0 si el tipo no se verifica; MP1 o MP2 si se verifica
+             * @enum {string}
+             */
+            formato: "MP0" | "MP1" | "MP2";
+        };
         ClientEquipmentRegisterRequest: {
             /** @description El codigo que el cliente le pone a su maquina */
             codigoInterno?: string;
@@ -816,6 +843,11 @@ export interface components {
         EquipmentTypeResponse: {
             definicionTecnica?: string;
             estadoActivo?: boolean;
+            /**
+             * @description Formato del reporte impreso: MP0 sin verificacion, MP1 o MP2 con ella. Desde V32
+             * @enum {string}
+             */
+            formatoReporte?: "MP0" | "MP1" | "MP2";
             /** Format: uuid */
             id?: string;
             limpiezaCotidiana?: string;
@@ -2401,6 +2433,68 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AssignedProtocolResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    chooseReportFormat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChooseReportFormatRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentTypeResponse"];
                 };
             };
             /** @description Bad Request */

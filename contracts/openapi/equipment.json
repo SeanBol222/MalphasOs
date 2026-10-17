@@ -69,6 +69,17 @@
         },
         "type" : "object"
       },
+      "ChooseReportFormatRequest" : {
+        "properties" : {
+          "formato" : {
+            "description" : "MP0 si el tipo no se verifica; MP1 o MP2 si se verifica",
+            "enum" : [ "MP0", "MP1", "MP2" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "formato" ],
+        "type" : "object"
+      },
       "ClientEquipmentRegisterRequest" : {
         "properties" : {
           "codigoInterno" : {
@@ -427,6 +438,11 @@
           },
           "estadoActivo" : {
             "type" : "boolean"
+          },
+          "formatoReporte" : {
+            "description" : "Formato del reporte impreso: MP0 sin verificacion, MP1 o MP2 con ella. Desde V32",
+            "enum" : [ "MP0", "MP1", "MP2" ],
+            "type" : "string"
           },
           "id" : {
             "format" : "uuid",
@@ -2767,6 +2783,85 @@
           }
         },
         "summary" : "Fijar los protocolos de un tipo de equipo",
+        "tags" : [ "EquipmentType" ]
+      }
+    },
+    "/v1/api/equipment-types/{id}/report-format" : {
+      "patch" : {
+        "description" : "MP0 si el tipo no se verifica; MP1 o MP2 si se verifica. Declarar o vaciar sus verificaciones lo ajusta solo cuando el que tenia deja de servir.",
+        "operationId" : "chooseReportFormat",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChooseReportFormatRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentTypeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Elegir el formato del reporte",
         "tags" : [ "EquipmentType" ]
       }
     },

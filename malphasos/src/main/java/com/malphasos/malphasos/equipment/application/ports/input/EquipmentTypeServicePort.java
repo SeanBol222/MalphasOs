@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.application.ports.input;
 
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
+import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.ChooseReportFormatCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeactivateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.UpdateEquipmentTypeCommand;
@@ -21,6 +22,9 @@ public interface EquipmentTypeServicePort {
 
     /** Declara qué se verifica en el tipo, o que deja de verificarse si la lista llega vacía. */
     EquipmentType declareVerifications(DeclareVerificationsCommand command);
+
+    /** Elige con qué formato se imprime su reporte (V32). */
+    EquipmentType chooseReportFormat(ChooseReportFormatCommand command);
 
     void deactivate(DeactivateEquipmentTypeCommand command);
 }

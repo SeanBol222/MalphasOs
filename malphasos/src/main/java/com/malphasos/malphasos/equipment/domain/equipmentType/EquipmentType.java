@@ -74,6 +74,12 @@ public class EquipmentType extends AggregateRoot {
 
     private long valorUnitarioMantenimiento;
 
+    /**
+     * Con qué formato se imprime su reporte (V32). Lo elige el usuario entre los compatibles y se ajusta
+     * solo cuando el tipo empieza o deja de verificarse. Ver {@link ReportFormat}.
+     */
+    private ReportFormat formatoReporte;
+
     private boolean estadoActivo;
 
     private EquipmentType(
@@ -101,6 +107,7 @@ public class EquipmentType extends AggregateRoot {
         if (verificaciones != null) {
             this.verificaciones.addAll(verificaciones);
         }
+        this.formatoReporte = ReportFormat.porDefecto(isVerificable());
     }
 
     public static EquipmentType create(
@@ -150,6 +157,53 @@ public class EquipmentType extends AggregateRoot {
         return new EquipmentType(id, nombre, definicionTecnica, recomendacionesCuidado,
                 tecnologiaPredominante, uso, limpiezaCotidiana, verificaciones,
                 valorUnitarioMantenimiento, estadoActivo);
+    }
+
+    /** Con el formato del reporte de V32. Sin él, el que el dominio pone por defecto. */
+    public static EquipmentType rehydrate(
+            UUID id,
+            String nombre,
+            String definicionTecnica,
+            String recomendacionesCuidado,
+            String tecnologiaPredominante,
+            String uso,
+            String limpiezaCotidiana,
+            List<TypeVerification> verificaciones,
+            long valorUnitarioMantenimiento,
+            ReportFormat formatoReporte,
+            boolean estadoActivo) {
+
+        EquipmentType tipo = rehydrate(id, nombre, definicionTecnica, recomendacionesCuidado,
+                tecnologiaPredominante, uso, limpiezaCotidiana, verificaciones, valorUnitarioMantenimiento,
+                estadoActivo);
+        if (formatoReporte != null) {
+            tipo.formatoReporte = formatoReporte;
+        }
+
+        return tipo;
+    }
+
+    /**
+     * Elige con qué formato se imprime su reporte (V32). Tiene que servir para lo que el tipo es: MP0
+     * solo si no se verifica, MP1 o MP2 solo si se verifica. Elegir el que ya tiene no emite evento.
+     */
+    public void chooseReportFormat(ReportFormat formato) {
+        if (formato == null) {
+            throw new IllegalArgumentException("Hay que decir con que formato se imprime el reporte");
+        }
+        if (!formato.sirvePara(isVerificable())) {
+            throw new IllegalArgumentException(isVerificable()
+                    ? "El formato " + formato + " es el de un equipo que no se verifica, y el tipo " + nombre
+                            + " se verifica: elija MP1 o MP2"
+                    : "El formato " + formato + " lleva verificacion, y el tipo " + nombre
+                            + " no se verifica: su formato es MP0");
+        }
+        if (formato == formatoReporte) {
+            return;
+        }
+
+        this.formatoReporte = formato;
+        registerEvent(new EquipmentTypeUpdatedEvent(metadataFor(EquipmentTypeUpdatedEvent.TYPE), payload()));
     }
 
     /** Las verificaciones, retiradas incluidas, como copia inmutable. */
@@ -260,6 +314,12 @@ public class EquipmentType extends AggregateRoot {
         verificaciones.replaceAll(
                 verificacion -> verificacion.estadoActivo() ? verificacion.deactivated() : verificacion);
         verificaciones.addAll(declaradas);
+
+        // Si deja de servir —el tipo empieza o deja de verificarse— el formato pasa al de por defecto.
+        // Si sigue sirviendo se respeta: quien eligio MP1 lo conserva al cambiar sus puntos.
+        if (!formatoReporte.sirvePara(isVerificable())) {
+            this.formatoReporte = ReportFormat.porDefecto(isVerificable());
+        }
 
         registerEvent(new EquipmentTypeUpdatedEvent(
                 metadataFor(EquipmentTypeUpdatedEvent.TYPE), payload()));
