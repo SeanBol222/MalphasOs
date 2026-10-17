@@ -469,3 +469,17 @@ marcadas.
   servidor que llegue con la firma.
 - **La cadena de cuatro consultas hacia el tipo del equipo vive en una función**, `tipoDelEquipo`, en
   cuanto hubo dos pantallas que la necesitaban: la tabla de verificación y el documento.
+
+## El diseño único del informe, y la empresa fuera del código (2026-10-16)
+
+Revocan parte de la sección anterior el mismo día; las decisiones completas están en
+[[hoja-de-ruta-producto]], «El diseño único del informe».
+
+- **Se retiran los formatos `MP0`, `MP1` y `MP2`.** Eran del sistema antiguo. El informe es uno y sus
+  secciones aparecen según los datos, que es lo que el formato hacía a mano: decir si había página de
+  verificación. `ReportFormat` y la columna de `V32` salen en la tanda del informe.
+- **El informe se congela al cerrar** sin esperar a la firma: un documento que se entrega no puede
+  cambiar al reimprimirlo.
+- **MalphasOS no lleva datos de ninguna empresa.** Es un producto aparte de Bolívar Bioingeniería y va a
+  ser de código abierto: la configuración de la empresa vive en un archivo ignorado que lee el backend,
+  y el frontend la pide al API. Lo de MalphasOS —logo, colores, diseño— sí se queda.
