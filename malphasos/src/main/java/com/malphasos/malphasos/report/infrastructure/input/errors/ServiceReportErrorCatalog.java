@@ -29,7 +29,10 @@ public enum ServiceReportErrorCatalog {
     MODEL_NOT_FOUND("ERR_SERVICE_REPORT_006", "Model not found"),
     EQUIPMENT_NOT_FOUND("ERR_SERVICE_REPORT_007", "Equipment not found"),
     EQUIPMENT_TYPE_NOT_FOUND("ERR_SERVICE_REPORT_008", "Equipment type not found"),
-    REFERENCE_STANDARD_NOT_FOUND("ERR_SERVICE_REPORT_009", "Reference standard not found");
+    REFERENCE_STANDARD_NOT_FOUND("ERR_SERVICE_REPORT_009", "Reference standard not found"),
+
+    /** El conversor del PDF no respondió (2026-10-17): no es culpa de lo pedido, y se puede reintentar. */
+    PDF_UNAVAILABLE("ERR_SERVICE_REPORT_010", "The report PDF could not be generated");
 
     private final String code;
     private final String message;

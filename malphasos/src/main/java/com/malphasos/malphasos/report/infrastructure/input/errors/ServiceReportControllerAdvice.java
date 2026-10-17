@@ -5,6 +5,7 @@ import com.malphasos.malphasos.equipment.domain.exception.EquipmentNotFoundExcep
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
+import com.malphasos.malphasos.report.application.ports.output.ReportPdfUnavailableException;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.infrastructure.input.rest.ServiceReportRestAdapter;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
@@ -83,6 +84,12 @@ public class ServiceReportControllerAdvice {
      * un reporte en una orden que no ha empezado, tocar uno ya cerrado, o cerrarlo con la
      * verificación a medias.
      */
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler(ReportPdfUnavailableException.class)
+    public ServiceReportErrorResponse handlePdfUnavailable(ReportPdfUnavailableException ex) {
+        return ServiceReportErrorResponse.of(ServiceReportErrorCatalog.PDF_UNAVAILABLE, List.of(ex.getMessage()));
+    }
+
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(IllegalStateException.class)
     public ServiceReportErrorResponse handleState(IllegalStateException ex) {

@@ -182,8 +182,8 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('report.read')],
       },
       {
-        // El reporte como documento, para leerlo, imprimirlo o guardarlo en PDF desde el navegador
-        // (2026-10-16). Antes que 'reportes/:id' solo por legibilidad: el router casa segmentos
+        // El informe del reporte (2026-10-16): desde el 2026-10-17, el PDF que compone el servidor, a la
+        // vista y para exportarlo (RF-17). Antes que 'reportes/:id' solo por legibilidad: el router casa segmentos
         // completos y no los confunde. Exige report.read, como el reporte.
         path: 'reportes/:id/documento',
         loadComponent: () =>

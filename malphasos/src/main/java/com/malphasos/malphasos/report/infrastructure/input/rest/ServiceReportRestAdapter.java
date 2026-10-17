@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.infrastructure.input.rest;
 
+import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -29,13 +30,19 @@ import com.malphasos.malphasos.report.infrastructure.input.model.response.Servic
 import com.malphasos.malphasos.report.infrastructure.input.model.response.WorkOrderReportProgressResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -141,6 +148,24 @@ public class ServiceReportRestAdapter {
     public ReportDocumentResponse getDocument(@PathVariable UUID id, Authentication autenticacion) {
         return ReportDocumentResponse.from(
                 serviceReportServicePort.document(id, readScopeResolver.scopeFor(autenticacion)));
+    }
+
+    @Operation(summary = "El informe de un reporte en PDF",
+            description = "RF-17: el mismo informe, compuesto en el servidor y convertido por Gotenberg. Un"
+                    + " borrador sale marcado como tal. Con el mismo alcance que el reporte.")
+    @ApiResponse(responseCode = "200", description = "El PDF",
+            content = @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary")))
+    @PreAuthorize("hasAuthority('report.read')")
+    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> getPdf(@PathVariable UUID id, Authentication autenticacion) {
+        ReportPdf pdf = serviceReportServicePort.pdf(id, readScopeResolver.scopeFor(autenticacion));
+
+        // En línea y no como adjunto: la pantalla lo muestra, y su botón lo descarga con este nombre.
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline().filename(pdf.nombre()).build().toString())
+                .body(pdf.contenido());
     }
 
     @Operation(summary = "Abrir el reporte de un equipo de una orden",

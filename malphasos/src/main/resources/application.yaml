@@ -74,6 +74,11 @@ app:
       # a quien se le abre la puerta. El 5173 es el del frontend en desarrollo, y es el mismo que el
       # realm declara en las URI de retorno de malphasos-frontend.
       allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  # Donde se publica el frontend: el QR de cada informe en PDF lleva a su version digital (2026-10-17).
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
+  # Gotenberg convierte el informe en PDF: Chromium sin pantalla, en un contenedor sin puertos publicados.
+  gotenberg:
+    url: ${GOTENBERG_URL:http://localhost:3000}
   # La empresa del archivo de arranque, importado arriba: aqui solo el directorio, contra el que se
   # resuelve su logo.
   empresa:

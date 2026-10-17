@@ -38,6 +38,11 @@ app:
       # pruebas lo sustituye entero. Sin esta clave el @Value de CorsConfig no resuelve y el
       # contexto no arranca en NINGUNA prueba, seguridad encendida o apagada.
       allowed-origins: http://localhost:5173
+  # El informe en PDF (2026-10-17). Ninguna prueba de contexto llama a Gotenberg: la conversión real la
+  # prueba GotenbergReportPdfAdapterTest con su propio contenedor.
+  frontend-url: http://localhost:5173
+  gotenberg:
+    url: http://localhost:3000
   # Una empresa inventada, la misma de config/empresa.example.yaml: MalphasOS no lleva los datos de
   # ninguna empresa real, tampoco en sus pruebas. Desde el 2026-10-17 solo siembra la base de pruebas
   # en el primer arranque del contexto, como en una instalación nueva.

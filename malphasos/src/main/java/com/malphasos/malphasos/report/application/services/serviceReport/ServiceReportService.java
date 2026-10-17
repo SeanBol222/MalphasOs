@@ -18,6 +18,9 @@ import com.malphasos.malphasos.report.application.ports.input.ServiceReportServi
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.ports.output.DocumentImageStorePort;
+import com.malphasos.malphasos.report.application.ports.output.ReportPdfPort;
+import com.malphasos.malphasos.report.application.model.ReportPdf;
+import com.malphasos.malphasos.report.application.services.serviceReport.sheet.ReportSheetComposer;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
@@ -92,6 +95,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final EventDispatcherPort eventDispatcherPort;
     private final ReportDocumentComposer reportDocumentComposer;
     private final DocumentImageStorePort documentImageStorePort;
+    private final ReportPdfPort reportPdfPort;
 
     // ---------------------------------------------------------------------------
     // Consultas
@@ -477,6 +481,16 @@ public class ServiceReportService implements ServiceReportServicePort {
     /** La firma de quien recibe no se congela al cerrar: se lee del reporte, que la guarda desde que firma. */
     private DocumentImage firmaRecibe(ServiceReport reporte) {
         return reporte.getFirmaRecibe() == null ? null : imagen(reporte.getFirmaRecibe().huella());
+    }
+
+    /** El mismo informe que {@link #document}, en PDF: la hoja la compone el servidor y la convierte el puerto. */
+    @Override
+    @Transactional(readOnly = true)
+    public ReportPdf pdf(UUID id, ReadScope alcance) {
+        ReportDocumentView vista = document(id, alcance);
+
+        return new ReportPdf("informe-" + vista.reporte().numero() + ".pdf",
+                reportPdfPort.render(ReportSheetComposer.compose(vista)));
     }
 
     @Override

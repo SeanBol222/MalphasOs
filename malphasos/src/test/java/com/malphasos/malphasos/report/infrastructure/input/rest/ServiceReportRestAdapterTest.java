@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +19,8 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
 import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.model.ReportPdf;
+import com.malphasos.malphasos.report.application.ports.output.ReportPdfUnavailableException;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
@@ -614,6 +618,42 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
+    @DisplayName("el PDF se sirve en línea, con su tipo y el nombre con que se descarga (RF-17)")
+    void elPdf() throws Exception {
+        UUID id = UUID.randomUUID();
+        byte[] bytes = "%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        when(serviceReportServicePort.pdf(eq(id), any())).thenReturn(new ReportPdf("informe-1DC6F5.pdf", bytes));
+
+        mockMvc.perform(get("/v1/api/reports/" + id + "/pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", "inline; filename=\"informe-1DC6F5.pdf\""))
+                .andExpect(content().bytes(bytes));
+    }
+
+    @Test
+    @DisplayName("si el conversor no responde, 503 con su código: se puede reintentar")
+    void pdfSinConversor() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(serviceReportServicePort.pdf(eq(id), any()))
+                .thenThrow(new ReportPdfUnavailableException(new RuntimeException("caído")));
+
+        mockMvc.perform(get("/v1/api/reports/" + id + "/pdf"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_010"));
+    }
+
+    @Test
+    @DisplayName("el PDF de un reporte que no existe, o que no se ve, responde 404")
+    void pdfQueNoExiste() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(serviceReportServicePort.pdf(eq(id), any())).thenThrow(new ServiceReportNotFoundException(id));
+
+        mockMvc.perform(get("/v1/api/reports/" + id + "/pdf"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("cerrar es una operacion, no un campo que se edita")
     void cerrar() throws Exception {
         ServiceReport reporte = unReporte();
@@ -780,6 +820,7 @@ class ServiceReportRestAdapterTest {
         assertThat(docs).contains("/v1/api/reports/{id}/intake");
         assertThat(docs).contains("/v1/api/reports/{id}/handover");
         assertThat(docs).contains("/v1/api/reports/{id}/receipt-signature");
+        assertThat(docs).contains("/v1/api/reports/{id}/pdf");
         assertThat(docs).contains("/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards");
         assertThat(docs).contains(
                 "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards/{idEquipoPatron}");

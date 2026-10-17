@@ -20,6 +20,8 @@
 		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
 		<springdoc.version>3.0.2</springdoc.version>
 		<keycloak.version>26.0.9</keycloak.version>
+		<zxing.version>3.5.3</zxing.version>
+		<jsoup.version>1.21.2</jsoup.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -47,6 +49,18 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- El informe en PDF se compone en el servidor (2026-10-17): Thymeleaf pinta la plantilla HTML,
+		     que Gotenberg convierte, y zxing dibuja el QR que lleva a la version digital. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>${zxing.version}</version>
 		</dependency>
 
 		<dependency>
@@ -123,6 +137,13 @@
 
 		<!-- Testcontainers: los tests levantan un PostgreSQL real, el mismo motor
 		     que produccion, para que las migraciones de Flyway se validen de verdad -->
+		<!-- Para leer el HTML del informe en las pruebas, como el DOM en las del frontend (2026-10-17). -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>${jsoup.version}</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-testcontainers</artifactId>

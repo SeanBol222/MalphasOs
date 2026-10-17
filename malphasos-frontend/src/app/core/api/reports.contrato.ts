@@ -169,6 +169,26 @@ export interface paths {
         patch: operations["recordIntake"];
         trace?: never;
     };
+    "/v1/api/reports/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * El informe de un reporte en PDF
+         * @description RF-17: el mismo informe, compuesto en el servidor y convertido por Gotenberg. Un borrador sale marcado como tal. Con el mismo alcance que el reporte.
+         */
+        get: operations["getPdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/reports/{id}/receipt-signature": {
         parameters: {
             query?: never;
@@ -704,6 +724,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     progress: {
@@ -758,6 +787,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
                 };
             };
         };
@@ -822,6 +860,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     getById: {
@@ -880,6 +927,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     discard: {
@@ -934,6 +990,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
                 };
             };
         };
@@ -998,6 +1063,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     getDocument: {
@@ -1056,6 +1130,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     finish: {
@@ -1112,6 +1195,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
                 };
             };
         };
@@ -1176,6 +1268,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     recordIntake: {
@@ -1238,6 +1339,82 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+        };
+    };
+    getPdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description El PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     signReceipt: {
@@ -1298,6 +1475,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
                 };
             };
         };
@@ -1363,6 +1549,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     recordVerification: {
@@ -1423,6 +1618,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
                 };
             };
         };
@@ -1488,6 +1692,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
         };
     };
     removeReferenceStandard: {
@@ -1544,6 +1757,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
                 };
             };
         };

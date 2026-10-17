@@ -1,0 +1,887 @@
+<!doctype html>
+<!--
+  El informe de un reporte de servicio, en el servidor (2026-10-17, RF-17). Es el formato «C · tablero con
+  escudo» que el usuario eligió el 2026-10-16, en hojas carta; hasta el 2026-10-17 lo pintaba Angular, en
+  documento-reporte.html, y se movió aquí entero para que el diseño viva en un solo sitio. Gotenberg lo
+  convierte en PDF.
+
+  Todo lo que imprime viene ya dicho en la hoja (ReportSheet): aquí no se calcula nada, salvo las
+  coordenadas del SVG, que se escriben con punto decimal.
+
+  Las medidas son las del diseño, en px a 96 ppp: 816 x 1056 es la hoja carta.
+-->
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <title th:text="'Informe N.º ' + ${hoja.numero}">Informe</title>
+    <style th:inline="css">
+      /* La fuente de la marca va dentro: Gotenberg no sale a internet a buscarla. */
+      @font-face {
+        font-family: 'Archivo';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url([(${fuenteLatina})]) format('woff2-variations');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+          U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Archivo';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url([(${fuenteLatinaExtendida})]) format('woff2-variations');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF,
+          U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @page {
+        size: letter;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+        font-variant-numeric: tabular-nums;
+        color: #201e1d;
+        background: #ffffff;
+        /* Sin esto Chromium no imprime fondos: la banda y las tarjetas saldrían en blanco. */
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .rs-hoja {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        width: 8.5in;
+        height: 11in;
+        background: #ffffff;
+        break-after: page;
+      }
+
+      .rs-hoja:last-child {
+        break-after: auto;
+      }
+
+      .rs-escudo {
+        position: absolute;
+        top: 340px;
+        left: 50%;
+        width: 620px;
+        height: 620px;
+        transform: translateX(-50%);
+        object-fit: contain;
+        opacity: 0.05;
+      }
+
+      .rs-marca-borrador {
+        position: absolute;
+        top: 480px;
+        left: 50%;
+        transform: translateX(-50%) rotate(-30deg);
+        font-size: 120px;
+        font-weight: 900;
+        letter-spacing: 8px;
+        color: #ae1800;
+        opacity: 0.12;
+      }
+
+      .rs-banda,
+      .rs-estado,
+      .rs-cuerpo {
+        position: relative;
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+      }
+
+      h2 {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+
+      p,
+      dl,
+      dd {
+        margin: 0;
+      }
+
+      dt {
+        color: #605d5d;
+      }
+
+      dd {
+        font-weight: 700;
+      }
+
+      .rs-gris {
+        color: #605d5d;
+      }
+
+      .rs-banda {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 24px 48px 20px;
+        background: #201e1d;
+        color: #f3f2f2;
+      }
+
+      .rs-banda__texto {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .rs-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+        font-size: 13px;
+        letter-spacing: 1px;
+      }
+
+      .rs-logo span {
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .rs-logo img {
+        object-fit: contain;
+      }
+
+      .rs-banda__rotulo {
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #bab6b6;
+      }
+
+      .rs-banda__titulo {
+        font-size: 30px;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.8px;
+      }
+
+      .rs-banda__equipo {
+        font-size: 13px;
+        color: #d7d3d3;
+      }
+
+      .rs-qr {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+      }
+
+      .rs-qr svg {
+        width: 74px;
+        height: 74px;
+      }
+
+      .rs-qr figcaption {
+        font-size: 11px;
+        color: #d7d3d3;
+      }
+
+      .rs-estado {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        border-bottom: 1px solid #d7d3d3;
+      }
+
+      .rs-estado > div {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 10px 14px;
+        border-right: 1px solid #d7d3d3;
+      }
+
+      .rs-estado > div:first-child {
+        padding-left: 48px;
+      }
+
+      .rs-estado > div:last-child {
+        padding-right: 48px;
+        border-right: 0;
+      }
+
+      .rs-estado span {
+        font-size: 12px;
+        color: #605d5d;
+      }
+
+      .rs-estado strong {
+        font-size: 17px;
+        font-weight: 900;
+        line-height: 1.15;
+      }
+
+      .rs-cuerpo {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px 48px 20px;
+      }
+
+      .rs-tarjetas {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .rs-tarjeta {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 14px;
+        /* Deja ver el escudo: opaca lo cortaría en recuadros. */
+        background: rgb(234 231 231 / 55%);
+      }
+
+      .rs-tarjeta dl {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 5px 12px;
+        font-size: 12px;
+      }
+
+      .rs-ancho {
+        grid-column: span 2;
+      }
+
+      .rs-servicio {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 16px;
+        font-size: 12px;
+        color: #605d5d;
+      }
+
+      .rs-servicio .rs-marcada {
+        font-weight: 800;
+        color: #201e1d;
+      }
+
+      .rs-tabla {
+        width: 100%;
+        margin-top: 4px;
+        border-collapse: collapse;
+        border-top: 2px solid #201e1d;
+        font-size: 12px;
+      }
+
+      .rs-tabla td {
+        padding: 4px 8px 4px 0;
+        border-bottom: 1px solid #d7d3d3;
+        vertical-align: top;
+      }
+
+      .rs-tabla__que {
+        width: 42%;
+      }
+
+      .rs-tabla__estado {
+        width: 18%;
+        font-weight: 700;
+      }
+
+      .rs-pasos {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin: 4px 0 0;
+        padding: 6px 0 0;
+        border-top: 2px solid #201e1d;
+        list-style: none;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .rs-pasos li {
+        display: flex;
+        gap: 8px;
+      }
+
+      .rs-pasos__marca {
+        flex-shrink: 0;
+        width: 24px;
+        font-weight: 800;
+      }
+
+      .rs-relato {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .rs-firmas {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+        margin-top: auto;
+        font-size: 12px;
+      }
+
+      .rs-firmas > div {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .rs-firmas span {
+        color: #605d5d;
+      }
+
+      /* La firma guardada, en el hueco de la línea: se apoya en ella como una firma a mano. */
+      .rs-firmas__trazo {
+        display: block;
+        height: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        object-fit: contain;
+      }
+
+      .rs-firmas__linea {
+        height: 46px;
+        border-bottom: 1px solid #201e1d;
+      }
+
+      .rs-pie {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding-top: 8px;
+        border-top: 1px solid #d7d3d3;
+        font-size: 11px;
+        color: #605d5d;
+      }
+
+      /* La página 2 */
+
+      .rs-escudo--segunda {
+        top: 260px;
+      }
+
+      .rs-banda--segunda {
+        padding: 18px 48px;
+      }
+
+      .rs-banda__titulo--segunda {
+        font-size: 24px;
+        text-transform: none;
+        letter-spacing: -0.5px;
+      }
+
+      .rs-banda__numero {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+        font-size: 12px;
+        color: #d7d3d3;
+      }
+
+      .rs-banda__numero strong {
+        font-size: 20px;
+        font-weight: 900;
+        color: #f3f2f2;
+      }
+
+      .rs-tabla--rejilla th {
+        padding: 4px 8px 4px 0;
+        border-bottom: 1px solid #201e1d;
+        font-size: 11px;
+        font-weight: 700;
+        text-align: left;
+      }
+
+      .rs-debajo {
+        display: block;
+        font-size: 11px;
+        color: #605d5d;
+      }
+
+      .rs-fuera td {
+        font-weight: 800;
+      }
+
+      .rs-fuera td:last-child {
+        color: #ae1800;
+      }
+
+      .rs-medida {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        break-inside: avoid;
+      }
+
+      .rs-medida__cabeza {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+      }
+
+      /* La unidad no se pasa a mayúsculas con el título: «g» no es «G», que es otra unidad (gauss). */
+      .rs-unidad {
+        text-transform: none;
+        letter-spacing: 0;
+      }
+
+      .rs-medida__cuerpo {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .rs-resumen {
+        margin-top: 4px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .rs-grafica {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 0;
+      }
+
+      .rs-grafica svg {
+        display: block;
+        width: 100%;
+      }
+
+      .rs-grafica figcaption {
+        padding-left: 48px;
+        font-size: 11px;
+        color: #605d5d;
+      }
+
+      .rs-estado--cierre {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: auto;
+        border-top: 1px solid #d7d3d3;
+      }
+
+      .rs-estado--cierre > div:first-child {
+        padding-left: 0;
+      }
+
+      .rs-estado--cierre > div:last-child {
+        padding-right: 0;
+      }
+
+      .rs-garantia {
+        font-size: 10px;
+        line-height: 1.4;
+        color: #444141;
+      }
+    </style>
+  </head>
+  <body>
+    <article class="rs" aria-label="Informe de mantenimiento">
+      <div class="rs-hoja" data-pagina="1">
+        <img th:if="${hoja.logo}" class="rs-escudo" th:src="${hoja.logo}" alt="" />
+        <p th:if="${hoja.borrador}" class="rs-marca-borrador" data-borrador>BORRADOR</p>
+
+        <header class="rs-banda">
+          <div class="rs-banda__texto">
+            <p class="rs-logo">
+              <img th:if="${hoja.logo}" th:src="${hoja.logo}" alt="" width="26" height="26" />
+              <span th:text="${hoja.empresa}">Empresa</span>
+            </p>
+            <p class="rs-banda__rotulo">
+              <span data-numero th:text="'Informe N.º ' + ${hoja.numero}">Informe N.º</span>
+              <th:block th:if="${hoja.numeroOrden}">
+                · <span data-numero-orden th:text="'Orden N.º ' + ${hoja.numeroOrden}">Orden</span>
+              </th:block>
+            </p>
+            <h1 class="rs-banda__titulo">Informe de mantenimiento</h1>
+            <p class="rs-banda__equipo" data-equipo th:text="${hoja.lineaDelEquipo}">Equipo</p>
+          </div>
+          <figure class="rs-qr">
+            <svg
+              th:attr="viewBox='-2 -2 ' + (${qr.lado} + 4) + ' ' + (${qr.lado} + 4),aria-label='Código QR: ' + ${qr.direccion}"
+              role="img"
+              data-qr
+            >
+              <rect
+                x="-2"
+                y="-2"
+                th:attr="width=${qr.lado} + 4,height=${qr.lado} + 4"
+                fill="#fff"
+              />
+              <path th:attr="d=${qr.trazo}" fill="#201e1d" />
+            </svg>
+            <figcaption>Versión digital</figcaption>
+          </figure>
+        </header>
+
+        <div class="rs-estado">
+          <div>
+            <span>Resultado a la entrega</span
+            ><strong data-resultado th:text="${hoja.estado.resultado}">Resultado</strong>
+          </div>
+          <div>
+            <span>Fecha del servicio</span
+            ><strong data-fecha th:text="${hoja.estado.fechaDelServicio}">Fecha</strong>
+          </div>
+          <div>
+            <span>Próximo servicio</span
+            ><strong data-proximo th:text="${hoja.estado.proximoServicio}">Próximo</strong>
+          </div>
+          <div>
+            <span>Verificación</span
+            ><strong data-verificacion th:text="${hoja.estado.verificacion}">Verificación</strong>
+          </div>
+        </div>
+
+        <div class="rs-cuerpo">
+          <div class="rs-tarjetas">
+            <section class="rs-tarjeta">
+              <h2>Cliente</h2>
+              <dl>
+                <div class="rs-ancho">
+                  <dt>Razón social · NIT</dt>
+                  <dd data-cliente th:text="${hoja.cliente.razonSocialNit}">Cliente</dd>
+                </div>
+                <div>
+                  <dt>Sede · Ciudad</dt>
+                  <dd th:text="${hoja.cliente.sedeCiudad}">Sede</dd>
+                </div>
+                <div>
+                  <dt>Dirección</dt>
+                  <dd th:text="${hoja.cliente.direccion}">Dirección</dd>
+                </div>
+                <div>
+                  <dt>Supervisor responsable</dt>
+                  <dd data-supervisor th:text="${hoja.cliente.supervisor}">Supervisor</dd>
+                </div>
+                <div>
+                  <dt>Teléfono</dt>
+                  <dd th:text="${hoja.cliente.telefono}">Teléfono</dd>
+                </div>
+                <div class="rs-ancho">
+                  <dt>Correo</dt>
+                  <dd th:text="${hoja.cliente.correo}">Correo</dd>
+                </div>
+              </dl>
+            </section>
+            <section class="rs-tarjeta">
+              <h2>Equipo</h2>
+              <dl>
+                <div>
+                  <dt>Marca · Modelo</dt>
+                  <dd data-marca-modelo th:text="${hoja.equipo.marcaModelo}">Marca</dd>
+                </div>
+                <div>
+                  <dt>Placa · Código interno</dt>
+                  <dd th:text="${hoja.equipo.placaCodigo}">Placa</dd>
+                </div>
+                <div>
+                  <dt>Área</dt>
+                  <dd th:text="${hoja.equipo.area}">Área</dd>
+                </div>
+                <div>
+                  <dt>Tecnología · Uso</dt>
+                  <dd th:text="${hoja.equipo.tecnologiaUso}">Tecnología</dd>
+                </div>
+                <div>
+                  <dt>Riesgo</dt>
+                  <dd data-riesgo th:text="${hoja.equipo.riesgo}">Riesgo</dd>
+                </div>
+                <div>
+                  <dt>Alimentación</dt>
+                  <dd data-alimentacion th:text="${hoja.equipo.alimentacion}">Alimentación</dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+
+          <section class="rs-servicio">
+            <h2>Tipo de servicio</h2>
+            <span
+              th:each="casilla : ${hoja.casillas}"
+              th:classappend="${casilla.marcada} ? 'rs-marcada'"
+              th:attr="data-casilla=${casilla.texto},data-marcada=${casilla.marcada}"
+              th:text="(${casilla.marcada} ? '■ ' : '□ ') + ${casilla.texto}"
+              >□ Tipo</span
+            >
+          </section>
+
+          <section>
+            <h2>Verificaciones al ingreso</h2>
+            <table class="rs-tabla">
+              <tbody>
+                <tr th:each="fila : ${hoja.ingreso}" th:attr="data-accesorio=${fila.accesorio} ? 'si' : null">
+                  <td class="rs-tabla__que" th:text="${fila.texto}">Qué</td>
+                  <td class="rs-tabla__estado" th:text="${fila.estado}">Estado</td>
+                  <td class="rs-gris" th:text="${fila.observacion}">Observación</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section th:unless="${#lists.isEmpty(hoja.pasos)}" data-protocolo>
+            <h2>Protocolo de mantenimiento preventivo</h2>
+            <ol class="rs-pasos">
+              <li th:each="paso : ${hoja.pasos}">
+                <span class="rs-pasos__marca" th:text="${paso.marca}">✓</span>
+                <span
+                  ><th:block th:text="${paso.nombre}">Paso</th:block>
+                  <span th:if="${paso.nota}" class="rs-gris" th:text="'— ' + ${paso.nota}">— nota</span></span
+                >
+              </li>
+            </ol>
+          </section>
+
+          <section th:unless="${#lists.isEmpty(hoja.relato)}" class="rs-relato" data-relato>
+            <h2>Lo que se encontró y se hizo</h2>
+            <p th:each="parte : ${hoja.relato}">
+              <strong th:text="${parte.titulo} + '.'">Título.</strong>
+              <th:block th:text="${parte.texto}">Texto</th:block>
+            </p>
+          </section>
+
+          <section class="rs-relato">
+            <!-- La aclaración y la garantía son textos de la empresa: sin ellos no salen. -->
+            <p th:if="${hoja.aclaracion}" data-aclaracion>
+              <strong>Aclaración del proceso.</strong> <th:block th:text="${hoja.aclaracion}" />
+            </p>
+            <p data-observaciones>
+              <strong>Observaciones.</strong> <th:block th:text="${hoja.observaciones}" />
+            </p>
+            <!-- La garantía cierra el informe: en esta hoja si es la única, y si no en la segunda. -->
+            <p th:if="${hoja.paginas == 1 and hoja.garantia != null}" class="rs-garantia" data-garantia>
+              <strong>Garantía.</strong> <th:block th:text="${hoja.garantia}" />
+            </p>
+          </section>
+
+          <section class="rs-firmas" aria-label="Firmas">
+            <div>
+              <div class="rs-firmas__linea">
+                <img
+                  th:if="${hoja.firmas.firmaIngeniero}"
+                  class="rs-firmas__trazo"
+                  data-firma-ingeniero
+                  th:src="${hoja.firmas.firmaIngeniero}"
+                  alt="Firma del profesional"
+                />
+              </div>
+              <strong data-firma-profesional th:text="${hoja.firmas.ingeniero}">Ingeniero</strong>
+              <span>Profesional de servicio</span>
+            </div>
+            <div>
+              <div class="rs-firmas__linea"></div>
+              <strong th:text="${hoja.firmas.supervisor}">Supervisor</strong>
+              <span>Supervisor responsable</span>
+            </div>
+            <div>
+              <div class="rs-firmas__linea">
+                <img
+                  th:if="${hoja.firmas.firmaRecibe}"
+                  class="rs-firmas__trazo"
+                  data-firma-recibe-trazo
+                  th:src="${hoja.firmas.firmaRecibe}"
+                  alt="Firma de quien recibe"
+                />
+              </div>
+              <strong data-firma-recibe th:text="${hoja.firmas.recibe}">Recibe</strong>
+              <span th:text="${hoja.firmas.cargoRecibe}">Recibe</span>
+            </div>
+          </section>
+
+          <footer class="rs-pie">
+            <span data-pie th:text="${hoja.pie}">Pie</span>
+            <span th:text="'Página 1 de ' + ${hoja.paginas}">Página 1 de 1</span>
+          </footer>
+        </div>
+      </div>
+
+      <div th:if="${hoja.paginas == 2}" class="rs-hoja" data-pagina="2">
+        <img th:if="${hoja.logo}" class="rs-escudo rs-escudo--segunda" th:src="${hoja.logo}" alt="" />
+        <p th:if="${hoja.borrador}" class="rs-marca-borrador">BORRADOR</p>
+
+        <header class="rs-banda rs-banda--segunda">
+          <div class="rs-banda__texto">
+            <p class="rs-logo"><span th:text="${hoja.empresa}">Empresa</span></p>
+            <h2 class="rs-banda__titulo rs-banda__titulo--segunda">Verificación metrológica</h2>
+            <p class="rs-banda__equipo" th:text="${hoja.lineaDelEquipo}">Equipo</p>
+          </div>
+          <div class="rs-banda__numero">
+            <span>Informe</span>
+            <strong th:text="'N.º ' + ${hoja.numero}">N.º</strong>
+            <span th:text="${hoja.estado.fechaDelServicio}">Fecha</span>
+          </div>
+        </header>
+
+        <div class="rs-cuerpo">
+          <section>
+            <h2>Trazabilidad · patrones usados</h2>
+            <table th:unless="${#lists.isEmpty(hoja.trazabilidad)}" class="rs-tabla rs-tabla--rejilla">
+              <thead>
+                <tr>
+                  <th scope="col">Instrumento</th>
+                  <th scope="col">Serie · Código</th>
+                  <th scope="col">Rango · Resolución</th>
+                  <th scope="col">Certificado</th>
+                  <th scope="col">Calibrado · Vence</th>
+                  <th scope="col">Calibrador</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="patron : ${hoja.trazabilidad}" data-trazabilidad>
+                  <td>
+                    <strong th:text="${patron.instrumento}">Instrumento</strong>
+                    <span class="rs-debajo" th:text="${patron.detalle}">Detalle</span>
+                  </td>
+                  <td>
+                    <th:block th:text="${patron.serie}" />
+                    <span class="rs-debajo" th:text="${patron.codigo}">Código</span>
+                  </td>
+                  <td>
+                    <th:block th:text="${patron.rango}" />
+                    <span class="rs-debajo" th:text="${patron.resolucion}">Resolución</span>
+                  </td>
+                  <td th:text="${patron.certificado}">Certificado</td>
+                  <td>
+                    <th:block th:text="${patron.calibrado}" />
+                    <span class="rs-debajo" th:text="${patron.vence}">vence</span>
+                  </td>
+                  <td th:text="${patron.calibrador}">Calibrador</td>
+                </tr>
+              </tbody>
+            </table>
+            <p th:if="${#lists.isEmpty(hoja.trazabilidad)}" class="rs-gris" data-sin-patrones>
+              No se registró contra qué patrones se midió.
+            </p>
+          </section>
+
+          <section th:each="medida : ${hoja.medidas}" class="rs-medida" data-medida>
+            <div class="rs-medida__cabeza">
+              <h2>
+                <th:block th:text="${medida.magnitud}">Magnitud</th:block>
+                <span class="rs-gris rs-unidad" th:text="'· ' + ${medida.unidad}">· unidad</span>
+              </h2>
+              <span class="rs-gris" data-tolerancia th:text="${medida.tolerancia}">tolerancia</span>
+            </div>
+            <div class="rs-medida__cuerpo">
+              <div>
+                <table class="rs-tabla rs-tabla--rejilla">
+                  <thead>
+                    <tr>
+                      <th scope="col">Registro</th>
+                      <th scope="col">Patrón</th>
+                      <th scope="col">Equipo</th>
+                      <th scope="col">Error</th>
+                      <th scope="col">Conf.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="fila : ${medida.filas}" th:classappend="${fila.fuera} ? 'rs-fuera'" data-lectura>
+                      <td th:text="${fila.registro}">Registro</td>
+                      <td th:text="${fila.patron}">Patrón</td>
+                      <td th:text="${fila.equipo}">Equipo</td>
+                      <td th:text="${fila.error}">Error</td>
+                      <td th:text="${fila.conforme}">Conf.</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p class="rs-resumen" th:text="${medida.resumen}">Resumen</p>
+                <p
+                  th:unless="${#strings.isEmpty(medida.patrones)}"
+                  class="rs-gris rs-resumen"
+                  th:text="'Contra: ' + ${medida.patrones}"
+                >
+                  Contra:
+                </p>
+              </div>
+              <figure class="rs-grafica">
+                <svg
+                  th:attr="viewBox='0 0 ' + ${lienzo.ANCHO} + ' ' + ${lienzo.ALTO},aria-label=${medida.leyenda}"
+                  role="img"
+                >
+                  <rect
+                    th:if="${medida.grafica.banda}"
+                    th:attr="x=${lienzo.IZQUIERDA},y=${svg.n(medida.grafica.banda.y)},width=${lienzo.DERECHA - lienzo.IZQUIERDA},height=${svg.n(medida.grafica.banda.alto)}"
+                    fill="#eae7e7"
+                    data-banda
+                  />
+                  <line
+                    th:attr="x1=${lienzo.IZQUIERDA},y1=${svg.n(medida.grafica.ceroY)},x2=${lienzo.DERECHA},y2=${svg.n(medida.grafica.ceroY)}"
+                    stroke="#9b9797"
+                  />
+                  <line
+                    th:attr="x1=${lienzo.IZQUIERDA},y1=${lienzo.ARRIBA},x2=${lienzo.IZQUIERDA},y2=${lienzo.ABAJO}"
+                    stroke="#bab6b6"
+                  />
+                  <text
+                    th:each="marca : ${medida.grafica.marcas}"
+                    th:attr="x=${lienzo.IZQUIERDA - 6},y=${svg.n(marca.y)}"
+                    font-size="10"
+                    text-anchor="end"
+                    dominant-baseline="middle"
+                    fill="#444141"
+                    th:text="${marca.texto}"
+                  >
+                    0
+                  </text>
+                  <circle
+                    th:each="punto : ${medida.grafica.puntos}"
+                    th:attr="cx=${svg.n(punto.x)},cy=${svg.n(punto.y)},r=${punto.fuera} ? '5.5' : '4.5',fill=${punto.fuera} ? '#EC3013' : '#201e1d',stroke=${punto.fuera} ? '#201e1d' : null,data-fuera=${punto.fuera} ? 'si' : null"
+                  />
+                </svg>
+                <figcaption th:text="${medida.leyenda}">Leyenda</figcaption>
+              </figure>
+            </div>
+          </section>
+
+          <section class="rs-estado rs-estado--cierre">
+            <div>
+              <span>Resultado a la entrega</span><strong th:text="${hoja.estado.resultado}">Resultado</strong>
+            </div>
+            <div>
+              <span>Lecturas conformes</span><strong th:text="${hoja.estado.verificacion}">Lecturas</strong>
+            </div>
+            <div>
+              <span>Hoja de vida</span><strong th:text="${hoja.hojaDeVida}">HV</strong>
+            </div>
+          </section>
+
+          <p th:if="${hoja.garantia}" class="rs-garantia" data-garantia>
+            <strong>Garantía.</strong> <th:block th:text="${hoja.garantia}" />
+          </p>
+
+          <footer class="rs-pie">
+            <span th:text="${hoja.pie}">Pie</span>
+            <span>Página 2 de 2</span>
+          </footer>
+        </div>
+      </div>
+    </article>
+  </body>
+</html>
