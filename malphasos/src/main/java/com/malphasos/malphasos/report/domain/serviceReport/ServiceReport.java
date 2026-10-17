@@ -693,6 +693,12 @@ public class ServiceReport extends AggregateRoot {
      * alerta. Es la misma pareja que exige el {@code CHECK} de cierre en V9, y está en los dos sitios a
      * propósito: el dominio da el mensaje y la base garantiza que nadie lo esquive por SQL.
      *
+     * <p>Exige también las dos verificaciones al ingreso (decidido el 2026-10-16, con el diseño único del
+     * informe). <b>Esta solo vive aquí</b>, sin {@code CHECK}: los reportes cerrados antes de V31 no las
+     * tienen, y un {@code CHECK} —aun {@code NOT VALID}— se comprueba en todo {@code UPDATE}, de modo que
+     * impediría retirarlos, que es la única salida de un reporte cerrado con un error. Quién recibe el
+     * equipo no se exige, también por decisión del usuario: el informe deja su firma a mano.
+     *
      * <p><b>Lo que no se comprueba aquí:</b> que un equipo verificable traiga sus lecturas. Saber si el
      * tipo de ese equipo se verifica exige consultar el módulo de equipos, y eso es del servicio.
      */
@@ -715,6 +721,11 @@ public class ServiceReport extends AggregateRoot {
             throw new IllegalStateException(
                     "No se puede cerrar un reporte sin resultado: es como quedo el equipo, y de ahi"
                             + " cuelgan la hoja de vida y las alertas");
+        }
+        if (ingresoFisico == null || ingresoOperativo == null) {
+            throw new IllegalStateException(
+                    "No se puede cerrar un reporte sin las verificaciones al ingreso: son como llego el"
+                            + " equipo, y sin ellas el informe no dice de donde se partio");
         }
 
         LocalDateTime ahora = LocalDateTime.now();

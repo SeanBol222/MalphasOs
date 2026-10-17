@@ -17,6 +17,8 @@ import com.malphasos.malphasos.report.application.ports.input.ServiceReportServi
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
@@ -224,6 +226,8 @@ class InterventionRecordingIntegrationTest {
     private void llenarYCerrar(UUID reporte, ServiceResult resultado) {
         serviceReportServicePort.fill(new FillServiceReportCommand(
                 reporte, "No enciende", "Fuente danada", "Se cambio la fuente", null, resultado));
+        serviceReportServicePort.recordIntake(new RecordIntakeCommand(
+                reporte, IntakeState.CONFORME, null, IntakeState.CONFORME, null, List.of()));
         serviceReportServicePort.finish(new FinishServiceReportCommand(reporte));
     }
 

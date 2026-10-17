@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
@@ -37,6 +39,7 @@ import org.junit.jupiter.api.Test;
  */
 class ServiceReportTest {
 
+    private static final IntakeCheck CONFORME = new IntakeCheck(IntakeState.CONFORME, null);
     private static final UUID ORDEN = UUID.randomUUID();
     private static final UUID EQUIPO = UUID.randomUUID();
     private static final UUID PUNTO = UUID.randomUUID();
@@ -44,6 +47,8 @@ class ServiceReportTest {
 
     private static ServiceReport unReporte() {
         ServiceReport reporte = ServiceReport.open(ORDEN, EQUIPO);
+        // Cerrar exige el ingreso desde el diseño único del informe; lo que se prueba aquí es lo demás.
+        reporte.recordIntake(CONFORME, CONFORME, List.of());
         reporte.pullEvents();
 
         return reporte;

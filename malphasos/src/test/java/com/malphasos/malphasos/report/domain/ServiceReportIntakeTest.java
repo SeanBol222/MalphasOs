@@ -30,9 +30,16 @@ class ServiceReportIntakeTest {
         return reporte;
     }
 
-    private static ServiceReport unReporteCerrado() {
+    private static ServiceReport unReporteCerrable() {
         ServiceReport reporte = unReporte();
         reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
+        reporte.pullEvents();
+        return reporte;
+    }
+
+    private static ServiceReport unReporteCerrado() {
+        ServiceReport reporte = unReporteCerrable();
+        reporte.recordIntake(CONFORME, CONFORME, List.of());
         reporte.finish();
         return reporte;
     }
@@ -143,8 +150,12 @@ class ServiceReportIntakeTest {
         @Test
         @DisplayName("en un reporte cerrado no se registra")
         void soloEnBorrador() {
+            // El cierre va fuera de la lambda: dentro, si cerrar lanzara, la prueba pasaría por ese camino.
+            ServiceReport cerrado = unReporteCerrado();
+
             assertThatIllegalStateException()
-                    .isThrownBy(() -> unReporteCerrado().recordIntake(CONFORME, CONFORME, List.of()));
+                    .isThrownBy(() -> cerrado.recordIntake(CONFORME, CONFORME, List.of()))
+                    .withMessageContaining("ya cerrado");
         }
     }
 
@@ -189,8 +200,49 @@ class ServiceReportIntakeTest {
         @Test
         @DisplayName("en un reporte cerrado no se registra")
         void soloEnBorrador() {
+            ServiceReport cerrado = unReporteCerrado();
+
             assertThatIllegalStateException()
-                    .isThrownBy(() -> unReporteCerrado().recordHandover(new Handover("Ana", null, null)));
+                    .isThrownBy(() -> cerrado.recordHandover(new Handover("Ana", null, null)))
+                    .withMessageContaining("ya cerrado");
+        }
+    }
+
+    @Nested
+    @DisplayName("Al cerrar (diseño único del informe, 2026-10-16)")
+    class AlCerrar {
+
+        @Test
+        @DisplayName("sin las verificaciones al ingreso no se cierra: el informe no diría de dónde se partió")
+        void sinIngresoNoSeCierra() {
+            ServiceReport reporte = unReporteCerrable();
+
+            assertThatIllegalStateException()
+                    .isThrownBy(reporte::finish)
+                    .withMessageContaining("verificaciones al ingreso");
+            assertThat(reporte.pullEvents()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("un correctivo tampoco, aunque traiga falla y diagnóstico")
+        void tampocoUnCorrectivo() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.fill("No enciende", "Fusible abierto", "Cambio de fusible", null, ServiceResult.OPERATIVO);
+
+            assertThatIllegalStateException()
+                    .isThrownBy(reporte::finishCorrective)
+                    .withMessageContaining("verificaciones al ingreso");
+        }
+
+        @Test
+        @DisplayName("con ellas se cierra, aunque nadie haya firmado que lo recibe: eso va a mano")
+        void conIngresoSinQuienRecibe() {
+            ServiceReport reporte = unReporteCerrable();
+            reporte.recordIntake(CONFORME, new IntakeCheck(IntakeState.NO_APLICA, null), List.of());
+
+            reporte.finish();
+
+            assertThat(reporte.getRecibe()).isNull();
         }
     }
 }
