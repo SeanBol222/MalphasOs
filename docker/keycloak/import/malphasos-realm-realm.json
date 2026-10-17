@@ -515,7 +515,7 @@
           "attributes": {}
         },
         {
-          "id": "b7f3c2d1-4a5e-4c6b-9d8f-super0person0w",
+          "id": "90c5bd82-a4f7-4014-8ba3-5882cbd1a47a",
           "name": "super.person.write",
           "description": "Alta, edicion y baja de ingenieros y administradores. Solo el super usuario.",
           "composite": false,
