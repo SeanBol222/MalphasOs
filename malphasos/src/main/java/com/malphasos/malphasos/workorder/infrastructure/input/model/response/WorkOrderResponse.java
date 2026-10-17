@@ -14,11 +14,14 @@ import lombok.Builder;
 @Schema(name = "WorkOrderResponse")
 public record WorkOrderResponse(
         UUID id,
+        @Schema(description = "Los seis primeros caracteres del identificador, en mayusculas", example = "4F2A9C")
+        String numero,
         UUID idCliente,
         UUID idSede,
         LocalDate fechaMantenimiento,
         Periodicity periodicidad,
         ServiceType tipoServicio,
+        @Schema(description = "Un correctivo en garantia") boolean garantia,
         ExecutionState estadoEjecucion,
         @Schema(description = "Nulo mientras la orden esta creada pero sin asignar")
         UUID idIngeniero,

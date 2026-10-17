@@ -52,6 +52,9 @@ public class WorkOrderEntity {
     @Column(name = "t_tipo_servicio", nullable = false)
     private String tipoServicio;
 
+    @Column(name = "b_garantia", nullable = false)
+    private boolean garantia;
+
     @Column(name = "t_estado_ejecucion", nullable = false)
     private String estadoEjecucion;
 

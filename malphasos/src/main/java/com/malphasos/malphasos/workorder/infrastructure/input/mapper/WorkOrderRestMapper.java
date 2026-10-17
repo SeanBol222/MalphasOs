@@ -23,11 +23,13 @@ public class WorkOrderRestMapper {
 
         return WorkOrderResponse.builder()
                 .id(orden.getId())
+                .numero(orden.numero())
                 .idCliente(orden.getIdCliente())
                 .idSede(orden.getIdSede())
                 .fechaMantenimiento(orden.getFechaMantenimiento())
                 .periodicidad(orden.getPeriodicidad())
                 .tipoServicio(orden.getTipoServicio())
+                .garantia(orden.isGarantia())
                 .estadoEjecucion(orden.getEstadoEjecucion())
                 .idIngeniero(orden.getIdIngeniero())
                 .equipos(equipos)

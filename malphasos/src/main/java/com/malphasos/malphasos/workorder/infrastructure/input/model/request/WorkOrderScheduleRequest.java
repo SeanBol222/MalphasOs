@@ -22,5 +22,9 @@ public record WorkOrderScheduleRequest(
 
         @NotNull(message = "La periodicidad es obligatoria") Periodicity periodicidad,
 
-        @NotNull(message = "El tipo de servicio es obligatorio") ServiceType tipoServicio) {
+        @NotNull(message = "El tipo de servicio es obligatorio") ServiceType tipoServicio,
+
+        @Schema(description = "Un correctivo en garantia. Opcional: ausente es falso. Solo un correctivo"
+                + " puede estarlo")
+        Boolean garantia) {
 }

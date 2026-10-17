@@ -118,7 +118,46 @@ describe('Programar una orden de trabajo', () => {
       fechaMantenimiento: '2026-11-20',
       tipoServicio: 'CALIBRACION',
       periodicidad: 'ANUAL',
+      garantia: false,
     });
+    alta.flush({ id: ID_ORDEN });
+    await asentar(fixture);
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+  });
+
+  it('la garantía solo se ofrece para un correctivo, y viaja marcada', async () => {
+    // Decidido el 2026-10-16: es una marca del correctivo, no un tipo de servicio.
+    await abrir();
+    expect(raiz().querySelector('#garantia')).toBeNull();
+
+    await elegirClienteYSede();
+    escribir('fechaMantenimiento', '2026-11-20');
+    escribir('tipoServicio', 'CORRECTIVO');
+    raiz().querySelector<HTMLInputElement>('#garantia')!.click();
+    fixture.detectChanges();
+    await enviar();
+
+    const alta = http.expectOne({ method: 'POST', url: URL_ORDENES });
+    expect(alta.request.body.garantia).toBe(true);
+    alta.flush({ id: ID_ORDEN });
+    await asentar(fixture);
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+  });
+
+  it('marcada y cambiado el tipo, la garantía no viaja: un preventivo no la admite', async () => {
+    await abrir();
+    await elegirClienteYSede();
+    escribir('fechaMantenimiento', '2026-11-20');
+    escribir('tipoServicio', 'CORRECTIVO');
+    raiz().querySelector<HTMLInputElement>('#garantia')!.click();
+    escribir('tipoServicio', 'PREVENTIVO');
+    expect(raiz().querySelector('#garantia')).toBeNull();
+    await enviar();
+
+    const alta = http.expectOne({ method: 'POST', url: URL_ORDENES });
+    expect(alta.request.body.garantia).toBe(false);
     alta.flush({ id: ID_ORDEN });
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));

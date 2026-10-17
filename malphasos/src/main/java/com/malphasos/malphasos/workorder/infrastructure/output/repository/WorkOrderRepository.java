@@ -12,6 +12,11 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrderEntity, UUID
 
     List<WorkOrderEntity> findByIdCliente(UUID idCliente);
 
+    /** Si el prefijo ya lo tiene alguna orden. Nativa: es la misma expresión que el índice de V34. */
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM orden_trabajo"
+            + " WHERE left(k_id_orden_trabajo::text, 6) = lower(:numero))", nativeQuery = true)
+    boolean existsByNumero(@org.springframework.data.repository.query.Param("numero") String numero);
+
     List<WorkOrderEntity> findByIdSede(UUID idSede);
 
     List<WorkOrderEntity> findByIdIngeniero(UUID idIngeniero);

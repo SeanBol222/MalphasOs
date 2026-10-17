@@ -187,6 +187,8 @@ export interface components {
             estadoEjecucion?: "CREADA" | "EN_EJECUCION" | "EJECUTADA";
             /** Format: date */
             fechaMantenimiento?: string;
+            /** @description Un correctivo en garantia */
+            garantia?: boolean;
             /** Format: uuid */
             id?: string;
             /** Format: uuid */
@@ -198,6 +200,11 @@ export interface components {
             idIngeniero?: string;
             /** Format: uuid */
             idSede?: string;
+            /**
+             * @description Los seis primeros caracteres del identificador, en mayusculas
+             * @example 4F2A9C
+             */
+            numero?: string;
             /** @enum {string} */
             periodicidad?: "MENSUAL" | "TRIMESTRAL" | "SEMESTRAL" | "ANUAL";
             /** @enum {string} */
@@ -209,6 +216,8 @@ export interface components {
              * @description Dia para el que se programa el servicio, no la fecha de registro
              */
             fechaMantenimiento: string;
+            /** @description Un correctivo en garantia. Opcional: ausente es falso. Solo un correctivo puede estarlo */
+            garantia?: boolean;
             /** Format: uuid */
             idCliente: string;
             /** Format: uuid */

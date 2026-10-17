@@ -117,6 +117,47 @@ class WorkOrderTest {
         }
 
         @Test
+        @DisplayName("un correctivo puede estar en garantia, y lo anuncia en el alta")
+        void correctivoEnGarantia() {
+            WorkOrder orden = WorkOrder.schedule(
+                    CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.CORRECTIVO, true);
+
+            assertThat(orden.isGarantia()).isTrue();
+            assertThat(((com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderPayload)
+                    orden.pullEvents().getFirst().payload()).garantia()).isTrue();
+        }
+
+        @Test
+        @DisplayName("solo un correctivo: un preventivo o una calibracion en garantia se rechazan")
+        void soloElCorrectivo() {
+            // Decidido el 2026-10-16: la garantia es una marca del correctivo, no un tipo de servicio.
+            assertThatIllegalArgumentException().isThrownBy(() -> WorkOrder.schedule(
+                    CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.PREVENTIVO, true))
+                    .withMessageContaining("correctivo");
+            assertThatIllegalArgumentException().isThrownBy(() -> WorkOrder.schedule(
+                    CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.CALIBRACION, true));
+        }
+
+        @Test
+        @DisplayName("sin decir nada, ninguna orden esta en garantia")
+        void porDefectoSinGarantia() {
+            assertThat(unaOrden().isGarantia()).isFalse();
+            assertThat(WorkOrder.schedule(CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.CORRECTIVO)
+                    .isGarantia()).isFalse();
+        }
+
+        @Test
+        @DisplayName("el numero son los seis primeros caracteres del identificador, en mayusculas")
+        void elNumero() {
+            WorkOrder orden = WorkOrder.rehydrate(UUID.fromString("4f2a9c00-0000-4000-8000-000000000000"),
+                    CLIENTE, SEDE, MANANA, Periodicity.MENSUAL, ServiceType.CORRECTIVO, true,
+                    ExecutionState.CREADA, null, Set.of(), true);
+
+            assertThat(orden.numero()).isEqualTo("4F2A9C");
+            assertThat(orden.isGarantia()).isTrue();
+        }
+
+        @Test
         @DisplayName("rehidratar no emite ningun evento")
         void rehidratarNoEmite() {
             // Leer de la base no es un hecho del dominio.

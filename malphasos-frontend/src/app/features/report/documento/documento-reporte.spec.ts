@@ -190,6 +190,7 @@ describe('Documento del reporte', () => {
     await abrir({ numero: '1DC6F5' });
 
     expect(texto('[data-numero]')).toBe('Informe N.º 1DC6F5');
+    expect(texto('[data-numero-orden]')).toBe('Orden N.º 4F2A9C');
     expect(texto('h1')).toBe('Informe de mantenimiento');
     expect(texto('.rs-banda__equipo')).toBe(
       'Tensiómetro · Welch Allyn ProBP 2400 · Serie SN-0001 · HV-HCE-0007',
@@ -246,6 +247,20 @@ describe('Documento del reporte', () => {
     expect(
       [...raiz().querySelectorAll('[data-casilla]')].map((c) => c.getAttribute('data-casilla')),
     ).toEqual(['Preventivo', 'Correctivo', 'Calibración', 'Verificación metrológica', 'Garantía']);
+  });
+
+  it('un correctivo en garantía marca las dos casillas', async () => {
+    await abrir(
+      {},
+      {
+        orden: orden({ idIngeniero: ID_INGENIERO, tipoServicio: 'CORRECTIVO', garantia: true }),
+      },
+    );
+
+    const marcadas = [...raiz().querySelectorAll('[data-casilla].rs-marcada')].map((c) =>
+      c.getAttribute('data-casilla'),
+    );
+    expect(marcadas).toEqual(['Correctivo', 'Garantía']);
   });
 
   it('sin lecturas la verificación no se marca, y lo dice', async () => {

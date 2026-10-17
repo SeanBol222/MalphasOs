@@ -172,12 +172,34 @@ public class WorkOrderService implements WorkOrderServicePort {
         requireActiveClient(command.idCliente());
         requireActiveHeadquarterOf(command.idSede(), command.idCliente());
 
-        return persistAndPublish(WorkOrder.schedule(
+        return persistAndPublish(conNumeroLibre(() -> WorkOrder.schedule(
                 command.idCliente(),
                 command.idSede(),
                 command.fechaMantenimiento(),
                 command.periodicidad(),
-                command.tipoServicio()));
+                command.tipoServicio(),
+                command.garantia())));
+    }
+
+    static final int INTENTOS_DE_NUMERO = 10;
+
+    /**
+     * Programa la orden con un identificador cuyo número —su prefijo— no tenga ya otra (V34).
+     *
+     * <p>Como el reporte: un número impreso en un informe entregado no puede alargarse después, así que
+     * se elige otro identificador. Las órdenes descartadas no emiten nada, porque no se guardan.
+     */
+    private WorkOrder conNumeroLibre(java.util.function.Supplier<WorkOrder> nueva) {
+        for (int intento = 0; intento < INTENTOS_DE_NUMERO; intento++) {
+            WorkOrder orden = nueva.get();
+
+            if (!workOrderPersistencePort.numberTaken(orden.numero())) {
+                return orden;
+            }
+        }
+
+        throw new IllegalStateException("No se encontro un numero de orden libre en "
+                + INTENTOS_DE_NUMERO + " intentos");
     }
 
     /**

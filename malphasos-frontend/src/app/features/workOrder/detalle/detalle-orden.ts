@@ -125,7 +125,9 @@ export class DetalleOrden {
 
   protected readonly servicio = computed(() => {
     const datos = this.orden.data();
-    const tipo = datos?.tipoServicio ? ETIQUETA_DE_TIPO_DE_SERVICIO[datos.tipoServicio] : '';
+    const etiqueta = datos?.tipoServicio ? ETIQUETA_DE_TIPO_DE_SERVICIO[datos.tipoServicio] : '';
+    // La garantía es una marca del correctivo (2026-10-16): «Correctivo en garantía».
+    const tipo = datos?.garantia ? `${etiqueta} en garantía` : etiqueta;
     const cada = datos?.periodicidad ? ETIQUETA_DE_PERIODICIDAD[datos.periodicidad] : '';
 
     return cada ? `${tipo} · ${cada}` : tipo;

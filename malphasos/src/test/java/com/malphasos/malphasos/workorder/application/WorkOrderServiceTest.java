@@ -133,7 +133,7 @@ class WorkOrderServiceTest {
 
         private ScheduleWorkOrderCommand elComando() {
             return new ScheduleWorkOrderCommand(
-                    CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.PREVENTIVO);
+                    CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.PREVENTIVO, false);
         }
 
         @Test
@@ -148,6 +148,50 @@ class WorkOrderServiceTest {
             assertThat(creada.getIdCliente()).isEqualTo(CLIENTE);
             assertThat(creada.getIdSede()).isEqualTo(SEDE);
             verify(eventDispatcherPort).dispatch(any());
+        }
+
+        @Test
+        @DisplayName("un correctivo en garantia llega asi al agregado")
+        void enGarantia() {
+            when(clientServicePort.findById(CLIENTE, ReadScope.unrestricted())).thenReturn(unCliente(true));
+            when(headquarterServicePort.findById(SEDE, ReadScope.unrestricted())).thenReturn(unaSede(CLIENTE, true));
+            elAlmacenGuardaYDevuelve();
+
+            WorkOrder creada = service.schedule(new ScheduleWorkOrderCommand(
+                    CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.CORRECTIVO, true));
+
+            assertThat(creada.isGarantia()).isTrue();
+        }
+
+        @Test
+        @DisplayName("si el numero ya lo tiene otra orden, se elige otro identificador y se guarda ese")
+        void numeroTomado() {
+            when(clientServicePort.findById(CLIENTE, ReadScope.unrestricted())).thenReturn(unCliente(true));
+            when(headquarterServicePort.findById(SEDE, ReadScope.unrestricted())).thenReturn(unaSede(CLIENTE, true));
+            when(workOrderPersistencePort.numberTaken(any())).thenReturn(true, false);
+            elAlmacenGuardaYDevuelve();
+
+            WorkOrder creada = service.schedule(elComando());
+
+            org.mockito.ArgumentCaptor<String> numeros = org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(workOrderPersistencePort, org.mockito.Mockito.times(2)).numberTaken(numeros.capture());
+            assertThat(numeros.getAllValues().get(1)).isEqualTo(creada.numero());
+            assertThat(numeros.getAllValues().get(0)).isNotEqualTo(creada.numero());
+        }
+
+        @Test
+        @DisplayName("sin numero libre tras los intentos, no se guarda nada y lo dice")
+        void sinNumeroLibre() {
+            when(clientServicePort.findById(CLIENTE, ReadScope.unrestricted())).thenReturn(unCliente(true));
+            when(headquarterServicePort.findById(SEDE, ReadScope.unrestricted())).thenReturn(unaSede(CLIENTE, true));
+            when(workOrderPersistencePort.numberTaken(any())).thenReturn(true);
+
+            org.assertj.core.api.Assertions.assertThatIllegalStateException()
+                    .isThrownBy(() -> service.schedule(elComando()))
+                    .withMessageContaining("numero de orden libre");
+
+            verify(workOrderPersistencePort, never()).save(any());
+            verify(eventDispatcherPort, never()).dispatch(any());
         }
 
         @Test
@@ -383,7 +427,7 @@ class WorkOrderServiceTest {
             });
 
             service.schedule(new ScheduleWorkOrderCommand(
-                    CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.PREVENTIVO));
+                    CLIENTE, SEDE, MANANA, Periodicity.ANUAL, ServiceType.PREVENTIVO, false));
 
             verify(eventDispatcherPort).dispatch(any());
         }

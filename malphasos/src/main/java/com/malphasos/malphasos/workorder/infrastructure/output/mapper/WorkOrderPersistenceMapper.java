@@ -42,6 +42,7 @@ public class WorkOrderPersistenceMapper {
                 entity.getFechaMantenimiento(),
                 Periodicity.valueOf(entity.getPeriodicidad()),
                 ServiceType.valueOf(entity.getTipoServicio()),
+                entity.isGarantia(),
                 ExecutionState.valueOf(entity.getEstadoEjecucion()),
                 entity.getIdIngeniero(),
                 equipos,
@@ -68,6 +69,7 @@ public class WorkOrderPersistenceMapper {
         entity.setFechaMantenimiento(orden.getFechaMantenimiento());
         entity.setPeriodicidad(orden.getPeriodicidad().name());
         entity.setTipoServicio(orden.getTipoServicio().name());
+        entity.setGarantia(orden.isGarantia());
         entity.setEstadoEjecucion(orden.getEstadoEjecucion().name());
         entity.setIdIngeniero(orden.getIdIngeniero());
         entity.setEstadoActivo(orden.isEstadoActivo());

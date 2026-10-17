@@ -62,6 +62,12 @@ public class WorkOrder extends AggregateRoot {
 
     private ServiceType tipoServicio;
 
+    /**
+     * Un correctivo en garantía (2026-10-16): una marca del correctivo, no un cuarto tipo de servicio.
+     * Se decide al programar y no cambia, como el tipo.
+     */
+    private final boolean garantia;
+
     private ExecutionState estadoEjecucion;
 
     /** Ingeniero a cargo. Nulo mientras la orden está creada pero sin asignar. */
@@ -78,6 +84,7 @@ public class WorkOrder extends AggregateRoot {
             LocalDate fechaMantenimiento,
             Periodicity periodicidad,
             ServiceType tipoServicio,
+            boolean garantia,
             ExecutionState estadoEjecucion,
             UUID idIngeniero,
             Collection<SelectedEquipment> equipos,
@@ -89,6 +96,7 @@ public class WorkOrder extends AggregateRoot {
         this.fechaMantenimiento = fechaMantenimiento;
         this.periodicidad = periodicidad;
         this.tipoServicio = tipoServicio;
+        this.garantia = garantia;
         this.estadoEjecucion = estadoEjecucion;
         this.idIngeniero = idIngeniero;
         this.equipos = new LinkedHashSet<>(equipos);
@@ -108,13 +116,32 @@ public class WorkOrder extends AggregateRoot {
             Periodicity periodicidad,
             ServiceType tipoServicio) {
 
+        return schedule(idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio, false);
+    }
+
+    /** Lo mismo, diciendo si es un correctivo en garantía. Solo un correctivo puede estarlo. */
+    public static WorkOrder schedule(
+            UUID idCliente,
+            UUID idSede,
+            LocalDate fechaMantenimiento,
+            Periodicity periodicidad,
+            ServiceType tipoServicio,
+            boolean garantia) {
+
+        exigir(tipoServicio, "tipo de servicio");
+        if (garantia && tipoServicio != ServiceType.CORRECTIVO) {
+            throw new IllegalArgumentException("Solo un correctivo puede estar en garantia, y esta orden es "
+                    + tipoServicio);
+        }
+
         WorkOrder orden = new WorkOrder(
                 UUID.randomUUID(),
                 exigir(idCliente, "cliente"),
                 exigir(idSede, "sede"),
                 exigirFecha(fechaMantenimiento),
                 exigir(periodicidad, "periodicidad"),
-                exigir(tipoServicio, "tipo de servicio"),
+                tipoServicio,
+                garantia,
                 ExecutionState.CREADA,
                 null,
                 Set.of(),
@@ -138,8 +165,36 @@ public class WorkOrder extends AggregateRoot {
             Collection<SelectedEquipment> equipos,
             boolean estadoActivo) {
 
-        return new WorkOrder(id, idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio,
+        return rehydrate(id, idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio, false,
                 estadoEjecucion, idIngeniero, equipos, estadoActivo);
+    }
+
+    public static WorkOrder rehydrate(
+            UUID id,
+            UUID idCliente,
+            UUID idSede,
+            LocalDate fechaMantenimiento,
+            Periodicity periodicidad,
+            ServiceType tipoServicio,
+            boolean garantia,
+            ExecutionState estadoEjecucion,
+            UUID idIngeniero,
+            Collection<SelectedEquipment> equipos,
+            boolean estadoActivo) {
+
+        return new WorkOrder(id, idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio,
+                garantia, estadoEjecucion, idIngeniero, equipos, estadoActivo);
+    }
+
+    public static final int LARGO_NUMERO = 6;
+
+    /**
+     * El número con que se cita la orden: los seis primeros caracteres de su identificador, en
+     * mayúsculas, como el del reporte (2026-10-16). Único: lo garantiza el índice de V34, y quien la
+     * programa elige otro identificador si el prefijo está tomado.
+     */
+    public String numero() {
+        return id.toString().substring(0, LARGO_NUMERO).toUpperCase(java.util.Locale.ROOT);
     }
 
     // ---------------------------------------------------------------------------
@@ -281,7 +336,7 @@ public class WorkOrder extends AggregateRoot {
 
     private WorkOrderPayload payload() {
         return new WorkOrderPayload(idCliente, idSede, fechaMantenimiento, periodicidad,
-                tipoServicio, estadoEjecucion, idIngeniero);
+                tipoServicio, garantia, estadoEjecucion, idIngeniero);
     }
 
     /**

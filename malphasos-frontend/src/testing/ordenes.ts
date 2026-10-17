@@ -85,12 +85,15 @@ export function orden(
     estadoEjecucion: string;
     estadoActivo: boolean;
     tipoServicio: string;
+    garantia: boolean;
     idIngeniero: string | undefined;
     equipos: { idEquipoCliente: string; idAreaServicio: string }[];
   }> = {},
 ) {
   return {
     id: ID_ORDEN,
+    numero: '4F2A9C',
+    garantia: false,
     fechaMantenimiento: '2026-10-15',
     idCliente: ID_CLIENTE,
     idSede: ID_SEDE,

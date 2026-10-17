@@ -165,6 +165,13 @@ class WorkOrderPersistenceAdapterTest {
         return persona;
     }
 
+    private UUID guardadaSinGarantia(UUID cliente, UUID sede) {
+        WorkOrder orden = unaOrdenDe(cliente, sede);
+        adapter.save(orden);
+
+        return orden.getId();
+    }
+
     private WorkOrder unaOrdenDe(UUID cliente, UUID sede) {
         return WorkOrder.schedule(cliente, sede, LocalDate.of(2026, 10, 1),
                 Periodicity.TRIMESTRAL, ServiceType.PREVENTIVO);
@@ -212,6 +219,35 @@ class WorkOrderPersistenceAdapterTest {
                     .extracting(SelectedEquipment::getIdEquipoCliente,
                             SelectedEquipment::getIdAreaServicio)
                     .containsExactly(equipo, area);
+        }
+
+        @Test
+        @DisplayName("la garantia vuelve como se guardo, y el numero es el del identificador")
+        void garantiaYNumero() {
+            UUID cliente = unCliente();
+            UUID sede = unaSedeDe(cliente);
+            WorkOrder orden = WorkOrder.schedule(cliente, sede, LocalDate.of(2026, 10, 1),
+                    Periodicity.MENSUAL, ServiceType.CORRECTIVO, true);
+            adapter.save(orden);
+
+            WorkOrder recuperada = adapter.findById(orden.getId()).orElseThrow();
+
+            assertThat(recuperada.isGarantia()).isTrue();
+            assertThat(recuperada.numero()).isEqualTo(orden.numero());
+            assertThat(adapter.findById(guardadaSinGarantia(cliente, sede)).orElseThrow().isGarantia()).isFalse();
+        }
+
+        @Test
+        @DisplayName("numberTaken dice si el prefijo ya lo tiene una orden, sin importar mayusculas")
+        void numeroTomado() {
+            UUID cliente = unCliente();
+            WorkOrder orden = unaOrdenDe(cliente, unaSedeDe(cliente));
+            adapter.save(orden);
+
+            assertThat(adapter.numberTaken(orden.numero())).isTrue();
+            assertThat(adapter.numberTaken(orden.numero().toLowerCase())).isTrue();
+            // Un identificador es hexadecimal: un prefijo con Z no lo puede tener ninguna orden.
+            assertThat(adapter.numberTaken("ZZZZZZ")).isFalse();
         }
 
         @Test
