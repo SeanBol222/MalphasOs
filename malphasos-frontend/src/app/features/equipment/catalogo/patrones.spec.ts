@@ -153,6 +153,32 @@ describe('Equipos patrón', () => {
     http.match(URL).forEach((p) => p.flush(PATRONES));
   });
 
+  it('un código interno ocupado se explica con el catálogo, distinto de la serie ocupada', async () => {
+    // 2026-10-17: el código interno no se repite entre los vigentes (V35).
+    montar();
+    await abrir();
+    escribir('patronNombre', 'Higrómetro');
+    escribir('patronSerie', 'H-1');
+    escribir('patronCodigo', 'PT-01');
+    escribir('patronCertificado', 'C-9');
+    escribir('patronVence', '2027-06-30');
+    await asentar(fixture);
+    boton('Registrar patrón').click();
+    await asentar(fixture);
+
+    http
+      .expectOne({ method: 'POST', url: URL })
+      .flush(
+        { code: 'ERR_EQUIPMENT_019', message: 'A reference standard with that internal code already exists' },
+        { status: 409, statusText: 'Conflict' },
+      );
+    await asentar(fixture);
+
+    expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+      'Ya hay un equipo patrón vigente con ese código interno.',
+    );
+  });
+
   it('una calibración posterior al vencimiento no llega al servidor, y lo dice aparte', async () => {
     montar();
     await abrir();

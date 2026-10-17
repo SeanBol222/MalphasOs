@@ -73,6 +73,7 @@ export const CATALOGO_EQUIPMENT: Readonly<Record<string, string>> = {
     'Ese protocolo está asignado a tipos de equipo. Quítelo de ellos antes de retirarlo.',
   ERR_EQUIPMENT_017: 'Ese equipo patrón no existe.',
   ERR_EQUIPMENT_018: 'Ya hay un equipo patrón vigente con esa serie.',
+  ERR_EQUIPMENT_019: 'Ya hay un equipo patrón vigente con ese código interno.',
 };
 
 /**
