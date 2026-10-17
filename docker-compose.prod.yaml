@@ -1,0 +1,194 @@
+# MalphasOS en produccion (2026-10-17, version 1.0.0).
+#
+#   cp .env.prod.example .env.prod      # y llenarlo: ver DESPLIEGUE.md
+#   docker compose -f docker-compose.prod.yaml --env-file .env.prod up -d --build
+#
+# Va aparte del docker-compose.yaml de desarrollo a proposito: no hereda nada de el. Las diferencias son
+# las que separan una maquina de trabajo de un servidor:
+#
+#   - Caddy es el UNICO servicio que publica puertos, el 80 y el 443, con HTTPS automatico. Postgres,
+#     Keycloak, el backend, Gotenberg y el frontend solo se alcanzan por la red interna.
+#   - Un solo dominio: el frontend en /, el API en /v1 y Keycloak en /auth.
+#   - Keycloak en modo «start», detras del proxy, con un realm SIN usuarios ni secretos escritos.
+#   - El backend con la seguridad encendida y sin Swagger.
+#   - Sin pgAdmin.
+
+name: malphasos-produccion
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_DB_NAME: ${KC_DB_NAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Crea la base de Keycloak al inicializar el volumen. El esquema de la aplicacion es de Flyway.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - interna
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  keycloak:
+    # La misma imagen que en desarrollo, con el tema de MalphasOS dentro.
+    build:
+      context: ./malphasos-keycloak-theme
+      dockerfile: Dockerfile
+    image: malphasos-keycloak:26.6.1
+    # «start» y no «start-dev»: el modo de produccion exige un nombre de host y no admite los atajos de
+    # desarrollo. El realm se importa solo si no existe -IGNORE_EXISTING-, asi que una vez creado los
+    # cambios se hacen en Keycloak y no en el archivo.
+    command:
+      - start
+      - --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${KC_DB_NAME}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # La direccion publica, la que el navegador ve y la que Keycloak escribe en cada token. Caddy
+      # termina el TLS y le habla por HTTP en la red interna, diciendole por cabeceras como llego.
+      KC_HOSTNAME: https://${MALPHASOS_DOMAIN}/auth
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+
+      # El realm de produccion los nombra como ${...} y Keycloak los sustituye al importarlo.
+      MALPHASOS_DOMAIN: ${MALPHASOS_DOMAIN}
+      MALPHASOS_BACKEND_ADMIN_SECRET: ${MALPHASOS_BACKEND_ADMIN_SECRET}
+    volumes:
+      # Sin dev.admin y sin secretos: lo deriva docker/keycloak/derivar-realm-produccion.py.
+      - ./docker/keycloak/produccion:/opt/keycloak/data/import:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - interna
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '\"status\": \"UP\"'"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  gotenberg:
+    # Convierte el informe en PDF. Version fijada: el PDF depende del Chromium que trae.
+    image: gotenberg/gotenberg:8.38.1
+    networks:
+      - interna
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    build:
+      context: ./malphasos
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8081
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # El emisor es la direccion publica; las claves se descargan por la red interna.
+      KEYCLOAK_ISSUER_URI: https://${MALPHASOS_DOMAIN}/auth/realms/malphasos-realm
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/auth/realms/malphasos-realm/protocol/openid-connect/certs
+      KEYCLOAK_SERVER_URL: http://keycloak:8080/auth
+      KEYCLOAK_REALM: malphasos-realm
+      KEYCLOAK_CLIENT_ID: malphasos-api
+      KEYCLOAK_ADMIN_CLIENT_ID: malphasos-backend-admin
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${MALPHASOS_BACKEND_ADMIN_SECRET}
+      APP_SECURITY_ENABLED: "true"
+      # Mismo origen que el frontend: el navegador no necesita CORS. Se declara igual, porque el
+      # backend no arranca sin la lista y una explicita es mejor que una vacia.
+      APP_CORS_ALLOWED_ORIGINS: https://${MALPHASOS_DOMAIN}
+      APP_FRONTEND_URL: https://${MALPHASOS_DOMAIN}
+      GOTENBERG_URL: http://gotenberg:3000
+      # Sin documentacion publica del API en produccion.
+      SPRINGDOC_API_DOCS_ENABLED: "false"
+      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+      MALPHASOS_CONFIG_DIR: /app/config
+    volumes:
+      # Opcional: config/empresa.yaml siembra la empresa en el primer arranque.
+      - ./config:/app/config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      gotenberg:
+        condition: service_healthy
+    networks:
+      - interna
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./malphasos-frontend
+      dockerfile: Dockerfile
+    # Lo escribe el arranque en /config.json: la misma imagen sirve en cualquier dominio.
+    environment:
+      MALPHASOS_API_URL: https://${MALPHASOS_DOMAIN}
+      MALPHASOS_KEYCLOAK_URL: https://${MALPHASOS_DOMAIN}/auth
+      MALPHASOS_KEYCLOAK_REALM: malphasos-realm
+      MALPHASOS_KEYCLOAK_CLIENT_ID: malphasos-frontend
+    networks:
+      - interna
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.10-alpine
+    environment:
+      MALPHASOS_DOMAIN: ${MALPHASOS_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Los certificados y la cuenta de Let's Encrypt: perderlos obliga a pedirlos otra vez, y hay un
+      # limite de peticiones por semana.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+      - keycloak
+      - frontend
+    networks:
+      - interna
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  interna:
