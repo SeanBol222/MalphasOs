@@ -13,7 +13,7 @@
       <div class="flex flex-wrap items-start gap-2">
         <div class="min-w-0 flex-[1_1_24rem]">
           <p class="text-sm font-bold tracking-[0.14em] text-accent-700 uppercase">
-            {{ servicio() }}
+            <span data-numero-orden>Orden N.º {{ datos.numero }}</span> · {{ servicio() }}
           </p>
           <h1 class="titulo-pagina mt-1">{{ cliente() }} — {{ sede() }}</h1>
           <p class="mt-1 text-neutral-800">

@@ -116,6 +116,18 @@
     </div>
   </div>
 
+  @if (esCorrectivo()) {
+    <label class="mb-3 flex min-h-tactil items-center gap-2">
+      <input
+        id="garantia"
+        class="h-[1.25rem] w-[1.25rem] accent-ink"
+        type="checkbox"
+        formControlName="garantia"
+      />
+      En garantía
+    </label>
+  }
+
   <div class="flex gap-2">
     <button
       class="boton-primario min-h-tactil"

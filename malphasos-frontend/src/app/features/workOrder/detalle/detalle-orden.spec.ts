@@ -153,6 +153,20 @@ describe('Ficha de una orden de trabajo', () => {
     expect(texto()).toContain('Creada');
   });
 
+  it('la cabecera dice el número de la orden, el que imprime el informe', async () => {
+    await abrir();
+
+    expect(raiz().querySelector('[data-numero-orden]')?.textContent?.trim()).toBe(
+      'Orden N.º 4F2A9C',
+    );
+  });
+
+  it('un correctivo en garantía lo dice junto al servicio', async () => {
+    await abrir(orden({ tipoServicio: 'CORRECTIVO', garantia: true }));
+
+    expect(texto()).toContain('Correctivo en garantía · Trimestral');
+  });
+
   describe('El estado se avanza, no se edita', () => {
     it('una orden creada solo ofrece iniciarla', async () => {
       // Un desplegable de estados invitaria a saltarse el orden, y el backend responderia «el estado

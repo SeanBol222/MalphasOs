@@ -112,6 +112,9 @@ export class DocumentoReporte {
 
   protected readonly titulo = 'Informe de mantenimiento';
 
+  /** El número de la orden de la que salió, que el informe imprime junto al suyo (V34). */
+  protected readonly numeroDeLaOrden = computed(() => this.orden.data()?.numero);
+
   protected readonly cargando = computed(
     () => this.reporte.isPending() || this.orden.isPending() || this.hoja.isPending(),
   );
@@ -137,7 +140,7 @@ export class DocumentoReporte {
   );
   /**
    * Las cinco del informe: los tres tipos de orden, la verificación, que se marca sola, y la garantía,
-   * que será una marca del correctivo en la orden y hoy no se registra todavía.
+   * que es una marca del correctivo en la orden (V34).
    */
   protected readonly casillas = computed(() => {
     const tipo = this.tipoDeServicio();
@@ -147,7 +150,7 @@ export class DocumentoReporte {
       { texto: 'Correctivo', marcada: tipo === 'CORRECTIVO' },
       { texto: 'Calibración', marcada: tipo === 'CALIBRACION' },
       { texto: 'Verificación metrológica', marcada: !!this.datos()?.lecturas?.length },
-      { texto: 'Garantía', marcada: false },
+      { texto: 'Garantía', marcada: !!this.orden.data()?.garantia },
     ];
   });
 

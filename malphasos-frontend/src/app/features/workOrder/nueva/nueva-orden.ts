@@ -64,6 +64,7 @@ export class NuevaOrden {
     fechaMantenimiento: ['', Validators.required],
     periodicidad: ['MENSUAL' as (typeof PERIODICIDADES)[number], Validators.required],
     tipoServicio: ['PREVENTIVO' as (typeof TIPOS_DE_SERVICIO)[number], Validators.required],
+    garantia: [false],
   });
 
   /** Los formularios reactivos no son senales; sin esto, la sede no se recargaria al cambiar de cliente. */
@@ -71,6 +72,9 @@ export class NuevaOrden {
     this.formulario.valueChanges.pipe(map(() => this.formulario.getRawValue())),
     { initialValue: this.formulario.getRawValue() },
   );
+
+  /** La garantía es una marca del correctivo (2026-10-16): solo se ofrece para él. */
+  protected readonly esCorrectivo = computed(() => this.valores().tipoServicio === 'CORRECTIVO');
 
   private readonly clientes = inject(ClienteApi).listar();
   protected readonly sedes = inject(SedeApi).listarDe(computed(() => this.valores().idCliente));
@@ -164,9 +168,17 @@ export class NuevaOrden {
       return;
     }
 
-    this.alta.mutate(this.formulario.getRawValue(), {
-      // A la ficha y no al listado: lo siguiente es anadirle los equipos, y estan ahi.
-      onSuccess: (orden) => void this.router.navigate(['/ordenes', orden.id]),
-    });
+    const valores = this.formulario.getRawValue();
+    // Marcada y luego cambiado el tipo, la casilla se esconde pero conserva su valor: el servidor
+    // rechazaría la garantía de un preventivo, así que solo viaja con un correctivo.
+    const garantia = valores.tipoServicio === 'CORRECTIVO' && valores.garantia;
+
+    this.alta.mutate(
+      { ...valores, garantia },
+      {
+        // A la ficha y no al listado: lo siguiente es anadirle los equipos, y estan ahi.
+        onSuccess: (orden) => void this.router.navigate(['/ordenes', orden.id]),
+      },
+    );
   }
 }
