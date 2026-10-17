@@ -9,7 +9,6 @@ import { nombreCompleto, PersonaApi } from '../../person/persona-api';
 import { tipoDelEquipo } from '../tipo-del-equipo';
 import {
   ETIQUETA_DE_ESTADO_AL_INGRESO,
-  ETIQUETA_DE_RESULTADO,
   ETIQUETA_DE_RIESGO,
   EstadoAlIngreso,
   PatronUsado,
@@ -35,11 +34,15 @@ const MESES: Readonly<Record<Periodicidad, number>> = {
   ANUAL: 12,
 };
 
-/** Los tres tipos de servicio de una orden y la verificación metrológica, que se deriva (2026-10-16). */
-const TITULO: Readonly<Record<TipoDeServicio, string>> = {
-  PREVENTIVO: 'Mantenimiento preventivo',
-  CORRECTIVO: 'Mantenimiento correctivo',
-  CALIBRACION: 'Calibración',
+/**
+ * El resultado como lo dice un informe entregado: apto o no apto para el servicio (2026-10-16). Se
+ * guardan tres valores y se imprimen dos; la restricción de un equipo que queda operativo con ella va
+ * en las observaciones, que es donde el reporte la pide.
+ */
+const APTITUD: Readonly<Record<ResultadoDeServicio, string>> = {
+  OPERATIVO: 'Apto para el servicio',
+  OPERATIVO_CON_RESTRICCIONES: 'Apto para el servicio',
+  FUERA_DE_SERVICIO: 'No apto para el servicio',
 };
 
 /**
@@ -78,8 +81,10 @@ export function proximoServicio(fecha: string | undefined, periodicidad: Periodi
  * encargado del área, como en la hoja de vida; el próximo servicio, la fecha más la periodicidad de la
  * orden; y la casilla de verificación metrológica se marca sola si el reporte tiene lecturas.
  *
- * <p>La página 2 —la tabla de lecturas, su gráfica de error y la trazabilidad de los patrones— es de
- * los formatos con verificación, MP1 y MP2. MP0 es de una sola página.
+ * <p><b>Es un solo informe</b>, decidido por el usuario el 2026-10-16: los formatos MP0, MP1 y MP2
+ * eran del sistema antiguo. El título es siempre «Informe de mantenimiento», el tipo de servicio lo
+ * dicen las casillas, y cada sección sale solo si tiene datos: la página 2 —la tabla de lecturas, su
+ * gráfica de error y la trazabilidad de los patrones— existe si el reporte tiene lecturas.
  */
 @Component({
   selector: 'app-documento-reporte',
@@ -105,6 +110,8 @@ export class DocumentoReporte {
   private readonly personas = inject(PersonaApi).listar();
   private readonly tipo = tipoDelEquipo(() => this.reporte.data()?.idEquipoCliente).tipo;
 
+  protected readonly titulo = 'Informe de mantenimiento';
+
   protected readonly cargando = computed(
     () => this.reporte.isPending() || this.orden.isPending() || this.hoja.isPending(),
   );
@@ -122,22 +129,16 @@ export class DocumentoReporte {
 
   protected readonly esBorrador = computed(() => this.datos()?.estado !== 'FINALIZADO');
 
-  /** MP0, MP1 o MP2, del tipo del equipo (V32). Sin tipo a la vista, por las lecturas: MP2 o MP0. */
-  protected readonly formato = computed(
-    () => this.tipo()?.formatoReporte ?? (this.datos()?.lecturas?.length ? 'MP2' : 'MP0'),
-  );
-  protected readonly paginas = computed(() => (this.formato() === 'MP0' ? 1 : 2));
+  /** Sin lecturas no hay nada que verificar en la página 2, y el informe cabe en una hoja. */
+  protected readonly paginas = computed(() => (this.datos()?.lecturas?.length ? 2 : 1));
 
   protected readonly tipoDeServicio = computed(
     () => this.orden.data()?.tipoServicio as TipoDeServicio | undefined,
   );
-  protected readonly titulo = computed(() => {
-    const tipo = this.tipoDeServicio();
-
-    return tipo ? TITULO[tipo] : 'Reporte de servicio';
-  });
-
-  /** Los cuatro del informe: los tres tipos de orden y la verificación, que se marca sola. */
+  /**
+   * Las cinco del informe: los tres tipos de orden, la verificación, que se marca sola, y la garantía,
+   * que será una marca del correctivo en la orden y hoy no se registra todavía.
+   */
   protected readonly casillas = computed(() => {
     const tipo = this.tipoDeServicio();
 
@@ -146,6 +147,7 @@ export class DocumentoReporte {
       { texto: 'Correctivo', marcada: tipo === 'CORRECTIVO' },
       { texto: 'Calibración', marcada: tipo === 'CALIBRACION' },
       { texto: 'Verificación metrológica', marcada: !!this.datos()?.lecturas?.length },
+      { texto: 'Garantía', marcada: false },
     ];
   });
 
@@ -182,7 +184,7 @@ export class DocumentoReporte {
   protected readonly resultado = computed(() => {
     const resultado = this.datos()?.resultado as ResultadoDeServicio | undefined;
 
-    return resultado ? ETIQUETA_DE_RESULTADO[resultado] : 'Sin registrar';
+    return resultado ? APTITUD[resultado] : 'Sin registrar';
   });
 
   /**
