@@ -2492,6 +2492,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Inventario de un area de servicio",
@@ -2569,6 +2579,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Incorporar una unidad al inventario de un area",

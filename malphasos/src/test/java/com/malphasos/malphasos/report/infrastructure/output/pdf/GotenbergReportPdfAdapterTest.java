@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfUnavailableException;
+import com.malphasos.malphasos.shared.infrastructure.output.pdf.GotenbergPdfConverter;
 import com.malphasos.malphasos.report.application.services.serviceReport.sheet.ReportSheetComposer;
 import com.malphasos.malphasos.report.application.sheet.UnInforme;
 import java.nio.charset.StandardCharsets;
@@ -50,7 +51,7 @@ class GotenbergReportPdfAdapterTest {
     @BeforeAll
     static void conectar() {
         adaptador = new GotenbergReportPdfAdapter(new ReportHtmlRenderer(motor(), "http://localhost:5173"),
-                "http://" + GOTENBERG.getHost() + ":" + GOTENBERG.getMappedPort(3000));
+                new GotenbergPdfConverter("http://" + GOTENBERG.getHost() + ":" + GOTENBERG.getMappedPort(3000)));
     }
 
     /** Las páginas del PDF: cada una es un objeto {@code /Type /Page}, que no es {@code /Pages}. */
@@ -85,7 +86,7 @@ class GotenbergReportPdfAdapterTest {
     @DisplayName("si el conversor no responde, lo dice con su excepción y no con la del cliente HTTP")
     void sinConversor() {
         GotenbergReportPdfAdapter caido = new GotenbergReportPdfAdapter(
-                new ReportHtmlRenderer(motor(), "http://localhost:5173"), "http://localhost:1");
+                new ReportHtmlRenderer(motor(), "http://localhost:5173"), new GotenbergPdfConverter("http://localhost:1"));
 
         assertThatThrownBy(() -> caido.render(ReportSheetComposer.compose(new UnInforme().vista())))
                 .isInstanceOf(ReportPdfUnavailableException.class);

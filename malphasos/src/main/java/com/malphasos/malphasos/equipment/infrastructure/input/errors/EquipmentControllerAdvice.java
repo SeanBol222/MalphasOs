@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.errors;
 
+import com.malphasos.malphasos.equipment.application.ports.output.LifeSheetPdfUnavailableException;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.BrandNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolInUseException;
@@ -18,15 +19,18 @@ import com.malphasos.malphasos.equipment.domain.exception.MeasurementUnitNotFoun
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeException;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.BrandRestAdapter;
-import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
-import com.malphasos.malphasos.equipment.infrastructure.input.rest.ProtocolRestAdapter;
-import com.malphasos.malphasos.equipment.infrastructure.input.rest.ReferenceStandardRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ClientEquipmentRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentOverviewRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.InterventionRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.LifeSheetRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ManufacturerRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.MetrologyCatalogRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ModelRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.ProtocolRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.ReferenceStandardRestAdapter;
 import com.malphasos.malphasos.location.domain.exception.CountryNotFoundException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -53,7 +57,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             MetrologyCatalogRestAdapter.class,
             ProtocolRestAdapter.class,
             EquipmentTypeProtocolRestAdapter.class,
-            ReferenceStandardRestAdapter.class
+            ReferenceStandardRestAdapter.class,
+            // Las tres que faltaban: hasta el 2026-10-18, un equipo que no existe respondía 500 en su hoja
+            // de vida y en su historial, porque sus errores no llegaban a este manejador.
+            LifeSheetRestAdapter.class,
+            InterventionRestAdapter.class,
+            EquipmentOverviewRestAdapter.class
         })
 public class EquipmentControllerAdvice {
 
@@ -205,6 +214,14 @@ public class EquipmentControllerAdvice {
             ReferenceStandardInternalCodeTakenException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.REFERENCE_STANDARD_INTERNAL_CODE_TAKEN, List.of(ex.getMessage()));
+    }
+
+    /** Gotenberg no respondió: no es culpa de lo pedido, y se puede volver a intentar. */
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler(LifeSheetPdfUnavailableException.class)
+    public EquipmentErrorResponse handleLifeSheetPdfUnavailable(LifeSheetPdfUnavailableException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.LIFE_SHEET_PDF_UNAVAILABLE, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */

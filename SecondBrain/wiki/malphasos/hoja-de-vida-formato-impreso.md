@@ -176,6 +176,30 @@ confirmarlos**: la landing page de Bolívar tiene esos campos todavía en blanco
 - El **valor de compra** sí sale, en la línea de «Qué es». **Decisión abierta**: si al cliente le
   sirve verlo, o es de los datos que se quedan en la pantalla.
 
+## En PDF del servidor (2026-10-18)
+
+**Lo que sigue en «Cómo se imprime» y en «La hoja 1 no cabía» quedó superado al día siguiente.** El
+usuario volvió a probar y la impresión seguía mal: lo que sale del diálogo de imprimir depende del
+navegador, de su tamaño de papel y de sus márgenes, y no se controla desde la página. **Decidido por el
+usuario: «que salga directamente a PDF», como el informe.**
+
+- **La plantilla vive en el servidor**, `templates/hoja-de-vida.html`, con el mismo diseño, y Gotenberg
+  la convierte: `GET /client-equipments/{id}/life-sheet/pdf`, con `equipment.read` y el mismo alcance que
+  la hoja de vida. La pantalla muestra ese PDF en un visor, con «Exportar PDF»; ya no hay «Imprimir», y
+  la plantilla, la hoja de estilos y el QR de Angular se retiraron —también la librería `qrcode`—.
+- **Lo que la pantalla calculaba lo calcula `LifeSheetPrintComposer`**, con las mismas reglas: la raya,
+  «Sin servicios», el responsable con la empresa, los pesos sin decimales. La fecha de actualización es
+  la de impresión **en la zona de la empresa** (`app.time-zone`, Bogotá por defecto): el servidor corre
+  en UTC, y desde las siete de la noche eso ya es mañana.
+- **El número de página por fin es verdadero**: «Página 2 de 3». Lo pone Gotenberg en un pie aparte,
+  `hoja-de-vida-pie.html`, en el margen de abajo de cada página —las clases `pageNumber` y
+  `totalPages` de Chromium—, y cada hoja mide la carta menos ese margen. Cierra el defecto que dejó el
+  arreglo de la víspera.
+- **El cliente de Gotenberg, las fuentes y el QR son compartidos** con el informe, en
+  `shared/infrastructure/output/pdf`: `report` ya depende de `equipment`, y al revés habría un ciclo.
+- **Comprobado** con un Gotenberg de verdad en las pruebas —dos páginas para una hoja normal, más de
+  tres para un protocolo de nueve pasos y cuarenta servicios—, y en la pantalla con Chromium sin ventana.
+
 ## Cómo se imprime
 
 **Recomendación: imprimir desde el navegador, con la pantalla y una hoja de estilos de impresión**, no

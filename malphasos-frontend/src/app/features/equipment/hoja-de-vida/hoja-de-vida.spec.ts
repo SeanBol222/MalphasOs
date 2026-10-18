@@ -1,487 +1,160 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import QRCode from 'qrcode';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
-import { responderA } from '../../../../testing/pantalla';
+import { asentar } from '../../../../testing/pantalla';
 import { HojaDeVida } from './hoja-de-vida';
 
-const ID_EQUIPO = 'e1';
-const URL_HOJA = `http://localhost:8081/v1/api/client-equipments/${ID_EQUIPO}/life-sheet`;
+const ID = 'e1';
+const URL_PDF = `http://localhost:8081/v1/api/client-equipments/${ID}/life-sheet/pdf`;
+const PDF = new Blob(['%PDF-1.7'], { type: 'application/pdf' });
 
-/** Una hoja de vida como la compila el servidor, con el historial que se pida. */
-/** Una empresa inventada: MalphasOS no lleva los datos de ninguna real, tampoco en sus pruebas. */
-const EMPRESA = {
-  nombre: 'Servicios de Ejemplo S.A.S.',
-  direccion: 'Carrera 1 N.º 2-3',
-  ciudad: 'Ciudad de Ejemplo',
-  telefonos: [],
-  movil: '300 000 0000',
-  correo: 'contacto@empresa.example',
-};
-
-function hoja(
-  servicioTecnico: object[] = [],
-  cambios: {
-    estadoActivo?: boolean;
-    responsables?: string[];
-    telefonosCliente?: string[];
-    correosCliente?: string[];
-    /** Un equipo cuyo modelo, tipo y unidad no tienen llenos los datos opcionales. */
-    sinOpcionales?: boolean;
-  } = {},
-): object {
-  return {
-    identificacion: {
-      idEquipoCliente: ID_EQUIPO,
-      numeroHojaVida: 'HV-HCE-0007',
-      serie: 'SN-0001',
-      numeroInventario: 'INV-7',
-      fechaCompra: '2025-02-01',
-      valorCompra: 12500000,
-      cliente: 'Hospital Central',
-      documentoCliente: '900123456',
-      sede: 'Sede Norte',
-      direccionSede: 'Calle 10 # 20 - 30-40',
-      ciudadSede: 'Bogotá',
-      areaServicio: 'UCI',
-      estadoActivo: cambios.estadoActivo ?? true,
-      responsables: cambios.responsables ?? ['Carla Ruiz'],
-      telefonosCliente: cambios.telefonosCliente ?? ['3001112233', '6015550000'],
-      correosCliente: cambios.correosCliente ?? ['compras@hospital.co'],
-      codigoInterno: cambios.sinOpcionales ? null : 'MON-03',
-      proveedor: cambios.sinOpcionales ? null : 'Distribuidora Médica',
-    },
-    tecnica: {
-      tipoEquipo: 'Monitor de signos vitales',
-      definicionTecnica: 'Mide y muestra signos vitales',
-      tecnologiaPredominante: 'Electrónica',
-      recomendacionesCuidado: 'No exponer a humedad\nLimpiar la pantalla con un paño seco',
-      uso: cambios.sinOpcionales ? null : 'Monitoreo de pacientes',
-      limpiezaCotidiana: cambios.sinOpcionales ? null : 'Paño con alcohol al 70 %',
-      marca: 'Mindray',
-      modelo: 'iMEC 10',
-      registroInvima: null,
-      protocoloPreventivo: cambios.sinOpcionales
-        ? []
-        : [
-            {
-              prioridad: 1,
-              nombre: 'Limpieza y desinfección',
-              descripcion: 'Paño y desinfectante en carcasa y cables.',
-              indicacion: 'Alcohol isopropílico, no al 70 %',
-            },
-            {
-              prioridad: 2,
-              nombre: 'Verificación eléctrica',
-              descripcion: 'Corriente de fuga con analizador.',
-            },
-          ],
-      fichaTecnica: cambios.sinOpcionales
-        ? {}
-        : {
-            riesgo: 'IIA',
-            caracteristicas: 'Pantalla táctil',
-            alimentacion: 'Red eléctrica',
-            voltaje: 110,
-            potencia: 45,
-            amperaje: 1.5,
-            frecuencia: 60,
-          },
-    },
-    fabricante: { nombre: 'Mindray Medical', pais: 'China' },
-    servicioTecnico,
-    empresa: EMPRESA,
-  };
-}
-
-const RECIENTE = {
-  id: 'i2',
-  idEquipoCliente: ID_EQUIPO,
-  idReporteServicio: 'r2',
-  fechaServicio: '2026-10-04T21:30:00',
-  tipoServicio: 'CALIBRACION',
-  resultado: 'OPERATIVO_CON_RESTRICCIONES',
-  descripcion: 'Ajuste del sensor de presion contra patron',
-  responsable: 'Grace Hopper',
-};
-
-const ANTIGUA = {
-  id: 'i1',
-  idEquipoCliente: ID_EQUIPO,
-  idReporteServicio: 'r1',
-  fechaServicio: '2026-03-01T09:00:00',
-  tipoServicio: 'PREVENTIVO',
-  resultado: 'OPERATIVO',
-};
-
-describe('Hoja de vida de un equipo', () => {
+/**
+ * La hoja de vida como el PDF del servidor (2026-10-18). Lo que el PDF imprime lo fijan las pruebas del
+ * backend —{@code LifeSheetHtmlRendererTest} y {@code LifeSheetPrintComposerTest}—, que heredaron los casos
+ * de esta cuando la hoja la pintaba Angular y se imprimía desde el navegador. Aquí, que se pida, se
+ * muestre, se exporte y que sus errores se expliquen.
+ */
+describe('Hoja de vida', () => {
   let fixture: ComponentFixture<HojaDeVida>;
   let http: HttpTestingController;
+  let creadas: string[];
+  let liberadas: string[];
+  const { createObjectURL, revokeObjectURL } = URL;
 
   beforeEach(() => {
+    // jsdom no implementa las direcciones blob:.
+    creadas = [];
+    liberadas = [];
+    let siguiente = 0;
+    URL.createObjectURL = () => {
+      const direccion = `blob:prueba/${++siguiente}`;
+      creadas.push(direccion);
+      return direccion;
+    };
+    URL.revokeObjectURL = (direccion: string) => liberadas.push(direccion);
+
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([]),
         ...proveerApiSimulado(),
         ...proveerSesionFalsa({ autoridades: ['equipment.read'] }),
-        provideRouter([]),
       ],
     });
     fixture = TestBed.createComponent(HojaDeVida);
+    fixture.componentRef.setInput('id', ID);
     http = TestBed.inject(HttpTestingController);
-    fixture.componentRef.setInput('id', ID_EQUIPO);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    // En finally: si verify() lanza, el doble no se queda puesto para el archivo siguiente.
+    try {
+      http.verify();
+    } finally {
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+    }
+  });
 
   const raiz = () => fixture.nativeElement as HTMLElement;
-  const texto = () => raiz().textContent ?? '';
-  const seccion = (id: string) => raiz().querySelector(`section[aria-labelledby="${id}"]`);
-  /** El valor de un dato por su etiqueta, dentro de un bloque: «Riesgo» → «—». */
-  const dato = (bloque: Element | null, etiqueta: string) =>
-    [...(bloque?.querySelectorAll('dt') ?? [])]
-      .find((dt) => dt.textContent?.trim() === etiqueta)
-      ?.nextElementSibling?.textContent?.trim();
-  const estado = () => raiz().querySelector('[aria-label="Estado del equipo"]');
-  const filasDelHistorial = () => [...raiz().querySelectorAll('.hv-tabla tbody tr.hv-fila')];
+  const texto = () => (raiz().textContent ?? '').replace(/\s+/g, ' ').trim();
 
-  async function abrir(cuerpo: object): Promise<void> {
+  async function abrir(
+    responder: (peticion: ReturnType<HttpTestingController['expectOne']>) => void = (peticion) =>
+      peticion.flush(PDF, {
+        headers: { 'Content-Disposition': 'inline; filename="hoja-de-vida-HV-CDN-0001.pdf"' },
+      }),
+  ): Promise<void> {
     fixture.detectChanges();
-    await responderA(fixture, http, URL_HOJA, cuerpo);
+    await asentar(fixture);
+    responder(http.expectOne(URL_PDF));
+    await asentar(fixture);
   }
 
-  it('pide la hoja de vida en una sola petición, ya compilada por el servidor', async () => {
-    // Antes pintarla eran nueve consultas cruzadas aquí. Si alguien vuelve a armarla en el cliente,
-    // http.verify() falla por las peticiones de más.
-    await abrir(hoja());
+  it('muestra el PDF del servidor en el visor, sin pasar por la impresión del navegador', async () => {
+    await abrir();
 
-    expect(raiz().querySelector('h1')?.textContent?.trim()).toBe(
-      'Monitor de signos vitales Mindray iMEC 10',
+    expect(raiz().querySelector('iframe[data-visor]')!.getAttribute('src')).toBe('blob:prueba/1');
+    expect(texto()).not.toContain('Imprimir');
+  });
+
+  it('«Exportar PDF» lo descarga con el nombre que da el servidor', async () => {
+    await abrir();
+    const exportar = raiz().querySelector('[data-exportar]')!;
+
+    expect(exportar.textContent?.trim()).toBe('Exportar PDF');
+    expect(exportar.getAttribute('href')).toBe('blob:prueba/1');
+    expect(exportar.getAttribute('download')).toBe('hoja-de-vida-HV-CDN-0001.pdf');
+  });
+
+  it('sin nombre en la respuesta, se descarga con uno que dice qué es', async () => {
+    await abrir((peticion) => peticion.flush(PDF));
+
+    expect(raiz().querySelector('[data-exportar]')!.getAttribute('download')).toBe(
+      'hoja-de-vida.pdf',
     );
   });
 
-  it('tiene los bloques del formato aprobado, que juntos son las cuatro secciones de RF-22', async () => {
-    // RF-22 pide identificación, técnica, fabricante y servicio técnico. El formato los reparte en más
-    // bloques —el cliente aparte, el fabricante dentro de «Qué es»—, pero ninguno de los cuatro falta.
-    await abrir(hoja());
+  it('mientras llega, lo dice; y no ofrece exportar lo que no hay', async () => {
+    fixture.detectChanges();
+    await asentar(fixture);
 
-    const titulos = [...raiz().querySelectorAll('section h2')].map((h) => h.textContent?.trim());
-    expect(titulos).toEqual([
-      'Identificación',
-      'Cliente',
-      'Qué es',
-      'Características técnicas',
-      'Protocolo preventivo',
-      'Cuidado y limpieza',
-      'Historial de servicio técnico',
-      'Servicio técnico',
-    ]);
-    expect(seccion('que-es')?.textContent).toContain('Mindray Medical');
+    expect(texto()).toContain('Preparando el PDF…');
+    expect(raiz().querySelector('[data-exportar]')).toBeNull();
+
+    http.expectOne(URL_PDF).flush(PDF);
+    await asentar(fixture);
   });
 
-  it('enseña los datos que ya existen, cada uno en su sitio', async () => {
-    await abrir(hoja());
+  it('enlaza los reportes del equipo y la vuelta al listado', async () => {
+    await abrir();
 
-    expect(dato(seccion('identificacion'), 'Marca · Modelo')).toBe('Mindray · iMEC 10');
-    expect(dato(seccion('identificacion'), 'Área')).toBe('UCI');
-    expect(dato(seccion('cliente'), 'Razón social · NIT')).toBe('Hospital Central · 900123456');
-    expect(dato(seccion('cliente'), 'Dirección')).toBe('Calle 10 # 20 - 30-40');
-    expect(dato(seccion('caracteristicas'), 'Voltaje')).toBe('110 V');
-    expect(dato(seccion('caracteristicas'), 'Corriente')).toBe('1.5 A');
-    expect(seccion('que-es')?.textContent).toContain('China');
-    expect(seccion('que-es')?.textContent).toContain('01 feb 2025');
-  });
-
-  it('lo que el sistema todavía no guarda sale con «—», sin inventarlo', async () => {
-    // El formato pide datos que llegan en tandas posteriores. Hasta entonces, la raya: un valor
-    // inventado en un documento que se firma sería peor que uno vacío.
-    await abrir(hoja());
-
-    expect(dato(seccion('identificacion'), 'Registro INVIMA')).toBe('—');
-  });
-
-  it('la ficha del modelo, el uso del tipo y el codigo y proveedor de la unidad salen en su sitio', async () => {
-    // Entraron el 2026-10-05. Voltaje y amperaje salen ahora de la ficha del MODELO, no del tipo.
-    await abrir(hoja());
-
-    expect(dato(estado(), 'Riesgo')).toBe('Clase IIa');
-    expect(dato(seccion('caracteristicas'), 'Uso')).toBe('Monitoreo de pacientes');
-    expect(dato(seccion('caracteristicas'), 'Alimentación')).toBe('Red eléctrica');
-    expect(dato(seccion('caracteristicas'), 'Potencia')).toBe('45 W');
-    expect(dato(seccion('caracteristicas'), 'Frecuencia')).toBe('60 Hz');
-    expect(dato(seccion('caracteristicas'), 'Específicas')).toBe('Pantalla táctil');
-    expect(dato(seccion('identificacion'), 'Placa · Código interno')).toBe('INV-7 · MON-03');
-    expect(seccion('que-es')?.textContent).toContain('Proveedor Distribuidora Médica');
-    expect(seccion('cuidado')?.textContent).toContain('Cada día: Paño con alcohol al 70 %');
-  });
-
-  it('un equipo sin los datos opcionales llenos los imprime con la raya', async () => {
-    await abrir(hoja([], { sinOpcionales: true }));
-
-    expect(dato(estado(), 'Riesgo')).toBe('—');
-    expect(dato(seccion('caracteristicas'), 'Uso')).toBe('—');
-    expect(dato(seccion('caracteristicas'), 'Voltaje')).toBe('— V');
-    expect(dato(seccion('identificacion'), 'Placa · Código interno')).toBe('INV-7 · —');
-    expect(seccion('cuidado')?.textContent).not.toContain('Cada día');
-    expect(dato(seccion('identificacion'), 'Registro INVIMA')).toBe('—');
-  });
-
-  it('el responsable y los contactos del cliente salen en su tarjeta, varios separados por «·»', async () => {
-    await abrir(hoja());
-
-    expect(dato(seccion('cliente'), 'Responsable')).toBe('Carla Ruiz');
-    expect(dato(seccion('cliente'), 'Teléfonos')).toBe('3001112233 · 6015550000');
-    expect(dato(seccion('cliente'), 'Correo')).toBe('compras@hospital.co');
-  });
-
-  it('sin encargado ni contactos registrados, la raya: no se inventa a nadie', async () => {
-    await abrir(hoja([], { responsables: [], telefonosCliente: [], correosCliente: [] }));
-
-    expect(dato(seccion('cliente'), 'Responsable')).toBe('—');
-    expect(dato(seccion('cliente'), 'Teléfonos')).toBe('—');
-    expect(dato(seccion('cliente'), 'Correo')).toBe('—');
-  });
-
-  it('el servicio técnico lleva los datos de la empresa que manda el servidor, sin fijos vacíos', async () => {
-    // Vienen de la configuración del backend. La empresa ya no tiene fijos: la línea de teléfonos
-    // dice solo el móvil, sin un «·» colgando ni una etiqueta vacía.
-    await abrir(hoja());
-
-    const empresa = seccion('empresa')?.textContent?.replace(/\s+/g, ' ');
-    expect(empresa).toContain('Servicios de Ejemplo S.A.S.');
-    expect(empresa).toContain('Carrera 1 N.º 2-3, Ciudad de Ejemplo');
-    expect(empresa).toContain('Móvil 300 000 0000');
-    expect(empresa).not.toContain(' · Móvil');
-    expect(empresa).toContain('contacto@empresa.example');
-    expect(raiz().querySelector('.hv-firmas')?.textContent).toContain(
-      'Elaboró · Servicios de Ejemplo S.A.S.',
+    expect(raiz().querySelector(`a[href="/equipos/${ID}/historial"]`)?.textContent?.trim()).toBe(
+      'Ver los reportes',
     );
+    expect(raiz().querySelector('a[href="/equipos"]')).not.toBeNull();
   });
 
-  it('el membrete es el nombre y el logo de la empresa configurada, no los de ninguna fija', async () => {
-    // Decidido el 2026-10-16: MalphasOS no lleva la marca de ninguna empresa. El logo llega del
-    // servidor como data: URI y sale en las dos bandas y como marca de agua de las dos hojas.
-    await abrir({ ...hoja(), empresa: { ...EMPRESA, logo: 'data:image/png;base64,AAAA' } });
-
-    expect(raiz().querySelector('.hv-logo')?.textContent?.trim()).toBe(
-      'Servicios de Ejemplo S.A.S.',
+  it('si el conversor no responde, lo dice con el mensaje del catálogo, leído del cuerpo binario', async () => {
+    // Una petición binaria recibe el error también como Blob: sin leerlo, el mensaje sería el genérico.
+    await abrir((peticion) =>
+      peticion.flush(
+        new Blob([JSON.stringify({ code: 'ERR_EQUIPMENT_020' })], { type: 'application/json' }),
+        {
+          status: 503,
+          statusText: 'Service Unavailable',
+        },
+      ),
     );
-    const logos = [...raiz().querySelectorAll('img')].map((img) => img.getAttribute('src'));
-    expect(logos).toEqual(Array(4).fill('data:image/png;base64,AAAA'));
-    expect(raiz().querySelectorAll('img.hv-escudo').length).toBe(2);
-  });
 
-  it('sin logo configurado, el membrete es solo el nombre y no hay marca de agua', async () => {
-    await abrir(hoja());
-
-    expect(raiz().querySelectorAll('img').length).toBe(0);
-    expect(raiz().querySelector('.hv-logo')?.textContent?.trim()).toBe(
-      'Servicios de Ejemplo S.A.S.',
+    expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+      'No se pudo generar el PDF de la hoja de vida',
     );
+    expect(raiz().querySelector('iframe')).toBeNull();
+    expect(raiz().querySelector('[data-exportar]')).toBeNull();
   });
 
-  it('el pie lleva el código del formato de la empresa si lo configuró, y si no solo la fecha', async () => {
-    await abrir({ ...hoja(), empresa: { ...EMPRESA, codigoHojaDeVida: 'FT-001' } });
-
-    const pies = [...raiz().querySelectorAll('.hv-pie span:first-child')].map(
-      (pie) => pie.textContent,
-    );
-    expect(pies.length).toBe(2);
-    pies.forEach((pie) => expect(pie).toMatch(/^FT-001 · Actualizada el /));
-  });
-
-  it('sin código configurado, el pie dice solo cuándo se actualizó', async () => {
-    await abrir(hoja());
-
-    expect(raiz().querySelector('.hv-pie span')?.textContent).toMatch(/^Actualizada el /);
-  });
-
-  it('las recomendaciones de cuidado salen como lista, una por línea', async () => {
-    await abrir(hoja());
-
-    const consejos = [...(seccion('cuidado')?.querySelectorAll('li') ?? [])].map((li) =>
-      li.textContent?.trim(),
-    );
-    // Las recomendaciones del tipo, una por linea, y al final la limpieza diaria, tambien del tipo.
-    expect(consejos).toEqual([
-      'No exponer a humedad',
-      'Limpiar la pantalla con un paño seco',
-      'Cada día: Paño con alcohol al 70 %',
-    ]);
-  });
-
-  it('el protocolo preventivo del tipo sale en orden, con la indicación para este equipo', async () => {
-    // La sección esperaba a RF-14 diciendo «Sin protocolo registrado» para todos. Desde el
-    // 2026-10-11 lleva los pasos del tipo, en el orden de su prioridad.
-    await abrir(hoja());
-
-    const pasos = [...(seccion('protocolo')?.querySelectorAll('ol > li') ?? [])].map((li) =>
-      li.textContent?.replace(/\s+/g, ' ').trim(),
-    );
-    expect(pasos).toEqual([
-      'Limpieza y desinfección. Paño y desinfectante en carcasa y cables. Para este equipo: Alcohol isopropílico, no al 70 %',
-      'Verificación eléctrica. Corriente de fuga con analizador.',
-    ]);
-    expect(seccion('protocolo')?.textContent).not.toContain('Sin protocolo');
-  });
-
-  it('el protocolo y el cuidado van en la segunda hoja, antes del historial: la primera es una carta fija', async () => {
-    // Hasta el 2026-10-17 iban en la primera, y como crecen con cada paso la desbordaban: al imprimir,
-    // el último paso y el pie salían solos en una página casi en blanco. La segunda ya sabe partirse.
-    await abrir(hoja());
-
-    const [primera, segunda] = [...raiz().querySelectorAll('.hv-hoja')];
-    for (const id of ['protocolo', 'cuidado']) {
-      expect(primera.querySelector(`section[aria-labelledby="${id}"]`), id).toBeNull();
-      expect(segunda.querySelector(`section[aria-labelledby="${id}"]`), id).not.toBeNull();
-    }
-    const orden = [...segunda.querySelectorAll('section[aria-labelledby]')].map((s) =>
-      s.getAttribute('aria-labelledby'),
-    );
-    expect(orden.indexOf('protocolo')).toBeLessThan(orden.indexOf('servicio-tecnico'));
-  });
-
-  it('un tipo sin protocolo lo dice, sin inventar una lista', async () => {
-    await abrir(hoja([], { sinOpcionales: true }));
-
-    expect(seccion('protocolo')?.querySelector('ol')).toBeNull();
-    expect(seccion('protocolo')?.textContent).toContain('Sin protocolo registrado.');
-  });
-
-  it('la fila de estado sale del historial: la intervención más reciente es el estado actual', async () => {
-    await abrir(hoja([RECIENTE, ANTIGUA]));
-
-    expect(dato(estado(), 'Estado actual')).toBe('Operativo con restricciones');
-    expect(dato(estado(), 'Último servicio')).toBe('04 oct 2026');
-    expect(dato(estado(), 'Intervenciones')).toBe('2');
-  });
-
-  it('la fecha del servicio es la del día en que se cerró, aunque fuera de noche', async () => {
-    // El servidor manda fecha y hora locales. Pasarlas por Date en UTC corre un cierre de las 21:30 al
-    // día siguiente en Bogotá.
-    await abrir(hoja([RECIENTE]));
-
-    expect(filasDelHistorial()[0].textContent).toContain('04 oct 2026');
-  });
-
-  it('un equipo sin mantenimientos tiene hoja de vida, con el historial vacío y dicho', async () => {
-    // Es la aclaración que ordenó este trabajo: la hoja de vida no sale de los mantenimientos.
-    await abrir(hoja([]));
-
-    expect(dato(estado(), 'Estado actual')).toBe('Sin servicios');
-    expect(dato(estado(), 'Intervenciones')).toBe('0');
-    expect(seccion('servicio-tecnico')?.textContent).toContain('Sin intervenciones todavía');
-    expect(filasDelHistorial().length).toBe(0);
-  });
-
-  it('el historial se pinta en el orden en que llega, con su resultado marcado y su reporte enlazado', async () => {
-    // El orden lo fija el servidor —es parte del contrato de RF-27— y aquí no se reordena.
-    await abrir(hoja([RECIENTE, ANTIGUA]));
-
-    const filas = filasDelHistorial();
-    expect(filas.length).toBe(2);
-    expect(filas[0].textContent).toContain('Calibración');
-    expect(filas[0].textContent).toContain('Operativo con restricciones');
-    expect(filas[1].textContent).toContain('Preventivo');
-    // La marca distingue el resultado por la forma; la clase es la que la dibuja.
-    expect(filas[0].querySelector('.hv-marca--OPERATIVO_CON_RESTRICCIONES')).not.toBeNull();
-    expect(filas[1].querySelector('.hv-marca--OPERATIVO')).not.toBeNull();
-    expect(filas[0].querySelector('a')?.getAttribute('href')).toBe('/reportes/r2');
-  });
-
-  it('cada servicio dice que se hizo y quien lo hizo: el ingeniero y la empresa', async () => {
-    // Decidido el 2026-10-05: los procedimientos del reporte, y el ingeniero mas la empresa.
-    await abrir(hoja([RECIENTE]));
-
-    const celda = filasDelHistorial()[0].querySelectorAll('td')[2];
-    expect(celda.textContent).toContain('Ajuste del sensor de presion contra patron');
-    expect(celda.querySelector('.hv-responsable')?.textContent?.trim()).toBe(
-      'Grace Hopper · Servicios de Ejemplo S.A.S.',
-    );
-  });
-
-  it('un servicio sin ingeniero ni procedimientos dice la empresa y la raya, sin huecos', async () => {
-    // Las lineas anteriores a V17 que no se pudieron rellenar, o una orden que nunca tuvo ingeniero.
-    await abrir(hoja([ANTIGUA]));
-
-    const celda = filasDelHistorial()[0].querySelectorAll('td')[2];
-    expect(celda.textContent).toContain('—');
-    expect(celda.querySelector('.hv-responsable')?.textContent?.trim()).toBe(
-      'Servicios de Ejemplo S.A.S.',
-    );
-  });
-
-  it('deja filas en blanco para anotar a mano, que no cuentan como intervenciones', async () => {
-    await abrir(hoja([ANTIGUA]));
-
-    expect(raiz().querySelectorAll('.hv-tabla tbody tr.hv-en-blanco').length).toBe(6);
-    expect(dato(estado(), 'Intervenciones')).toBe('1');
-  });
-
-  it('el código QR lleva a esta misma hoja de vida en la aplicación', async () => {
-    // Decidido el 2026-10-05: abre la aplicación y pide iniciar sesión. Se comprueba contra la matriz
-    // que genera la librería para esa dirección, no contra una imagen.
-    await abrir(hoja());
-
-    const direccion = `${window.location.origin}/equipos/${ID_EQUIPO}/hoja-de-vida`;
-    const qr = raiz().querySelector('.hv-qr svg');
-    const { modules } = QRCode.create(direccion, { errorCorrectionLevel: 'M' });
-
-    expect(qr?.getAttribute('aria-label')).toContain(direccion);
-    expect(qr?.getAttribute('viewBox')).toBe(`0 0 ${modules.size} ${modules.size}`);
-    const oscuros = Array.from(modules.data).filter(Boolean).length;
-    expect(qr?.querySelector('path')?.getAttribute('d')?.match(/M/g)?.length).toBe(oscuros);
-  });
-
-  it('el numero de la hoja sale en las dos bandas, el de la primera y el de la segunda pagina', async () => {
-    // HV-<sigla>-0001: lo asigna el servidor al registrar el equipo y no cambia nunca.
-    await abrir(hoja());
-
-    const bandas = [...raiz().querySelectorAll('.hv-banda')].map((b) => b.textContent ?? '');
-    expect(bandas).toHaveLength(2);
-    expect(bandas.every((b) => b.includes('HV-HCE-0007'))).toBe(true);
-  });
-
-  it('un equipo dado de baja lo dice en la cabecera', async () => {
-    await abrir(hoja([], { estadoActivo: false }));
-
-    expect(raiz().querySelector('.hv-banda')?.textContent).toContain('De baja');
-  });
-
-  it('no tiene un solo control editable: es un documento, no un formulario', async () => {
-    // La decisión sobre RF-24. Cada dato se corrige donde vive.
-    await abrir(hoja());
-
-    expect(raiz().querySelectorAll('input, select, textarea').length).toBe(0);
-  });
-
-  it('el botón de imprimir llama a la impresión del navegador', async () => {
-    // Decidido el 2026-10-05: se imprime desde el navegador, sin PDF del servidor.
-    await abrir(hoja());
-    const imprimir = vi.spyOn(window, 'print').mockImplementation(() => undefined);
-
-    try {
-      [...raiz().querySelectorAll('button')]
-        .find((b) => b.textContent?.trim() === 'Imprimir')!
-        .click();
-
-      expect(imprimir).toHaveBeenCalledTimes(1);
-    } finally {
-      imprimir.mockRestore();
-    }
-  });
-
-  it('un equipo ajeno o inexistente responde con el mensaje del catálogo, sin pintar la hoja', async () => {
-    await responderA(
-      fixture,
-      http,
-      URL_HOJA,
-      { code: 'ERR_EQUIPMENT_006', message: 'Client equipment not found', details: [] },
-      { status: 404, statusText: 'Not Found' },
+  it('un equipo que no existe, o que no se ve, lo dice', async () => {
+    await abrir((peticion) =>
+      peticion.flush(
+        new Blob([JSON.stringify({ code: 'ERR_EQUIPMENT_006' })], { type: 'application/json' }),
+        {
+          status: 404,
+          statusText: 'Not Found',
+        },
+      ),
     );
 
     expect(raiz().querySelector('[role="alert"]')).not.toBeNull();
-    expect(raiz().querySelector('article')).toBeNull();
+    expect(raiz().querySelector('iframe')).toBeNull();
+  });
+
+  it('al salir de la pantalla libera la memoria del PDF', async () => {
+    await abrir();
+
+    fixture.destroy();
+
+    expect(liberadas).toEqual(['blob:prueba/1']);
   });
 });

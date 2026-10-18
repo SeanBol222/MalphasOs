@@ -6,7 +6,7 @@ import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar } from '../../../../testing/pantalla';
 import { ID_REPORTE, reporte, urlReporte } from '../../../../testing/reportes';
 import { InformeDeReporte, ReporteDeServicio } from '../../../core/api/tipos';
-import { nombreDelArchivo } from '../reporte-api';
+import { nombreDelArchivo } from '../../../core/api/pdf';
 import { DocumentoReporte } from './documento-reporte';
 
 const URL_PDF = `${urlReporte(ID_REPORTE)}/pdf`;

@@ -1,215 +1,107 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import QRCode from 'qrcode';
 import {
-  ETIQUETA_DE_RESULTADO,
-  ETIQUETA_DE_RIESGO,
-  ETIQUETA_DE_TIPO_DE_SERVICIO,
-  ResultadoDeServicio,
-  TipoDeServicio,
-} from '../../../core/api/tipos';
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  OnDestroy,
+} from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { RouterLink } from '@angular/router';
 import { traducirError } from '../../../core/errores/traducir';
-import { fechaCorta } from '../../../core/fechas';
 import { EquipoApi } from '../equipo-api';
 
-/** Lo que dice la hoja cuando un dato no esta registrado, o todavia no existe en el sistema. */
-const SIN_DATO = '—';
-
 /**
- * La hoja de vida de un equipo instalado, con el formato aprobado el 2026-10-05: el «tablero con
- * escudo», con la marca de la empresa que presta el servicio, que llega de su configuración. La misma
- * pagina se lee en pantalla y se imprime en dos hojas carta; el plan completo esta en la nota
- * hoja-de-vida-formato-impreso del wiki.
+ * La hoja de vida de un equipo instalado (RF-22): el PDF que compone y convierte el servidor, a la vista
+ * y con su botón para exportarlo (2026-10-18).
  *
- * <p><b>Es un documento, no un formulario.</b> No tiene un solo control editable, y es la decision
- * tomada sobre RF-24: cada dato vive en su propio agregado y se corrige alli.
+ * <p>Hasta ese día esta pantalla pintaba el documento entero —plantilla, hoja de estilos de impresión, QR—
+ * y el PDF salía del diálogo de imprimir del navegador. Lo que salía dependía del navegador, y el usuario lo
+ * vio distinto de la pantalla. Ahora es como el informe de un reporte: el diseño vive en la plantilla del
+ * servidor, y lo que se ve aquí es exactamente lo que se descarga.
  *
- * <p><b>Existe desde que el equipo se registra.</b> Un equipo sin mantenimientos tiene su hoja de vida
- * con el historial vacio, y la pagina lo dice en vez de esconderlo.
- *
- * <p><b>Lo que el diseño pide y el sistema todavia no guarda sale con «—»</b>: el protocolo y la foto. Y lo que se guarda pero nadie
- * ha llenado, tambien: un modelo sin ficha tecnica tiene sus datos electricos en blanco. Se iran
- * llenando tanda a tanda sin tocar esta forma. El estado, el ultimo servicio y el numero de
- * intervenciones no esperan a nadie: salen del historial que ya llega.
+ * <p><b>Es un documento, no un formulario</b>: cada dato se corrige donde vive, que es la decisión tomada
+ * sobre RF-24.
  */
 @Component({
   selector: 'app-hoja-de-vida',
   imports: [RouterLink],
-  templateUrl: './hoja-de-vida.html',
-  styleUrl: './hoja-de-vida.css',
+  template: `
+    <div class="flex flex-wrap items-center gap-2">
+      <h2 class="titulo-seccion">Hoja de vida</h2>
+      @if (pdf.data(); as hoja) {
+        <a
+          class="boton-primario ml-auto flex min-h-tactil items-center"
+          data-exportar
+          [href]="direccion()"
+          [attr.download]="hoja.nombre"
+          >Exportar PDF</a
+        >
+      }
+      <a class="font-semibold underline" [routerLink]="['/equipos', id(), 'historial']"
+        >Ver los reportes</a
+      >
+      <a class="font-semibold underline" routerLink="/equipos">Volver a los equipos</a>
+    </div>
+
+    @if (pdf.isPending()) {
+      <p class="mt-3 text-neutral-700" role="status">Preparando el PDF…</p>
+    } @else if (pdf.isError()) {
+      <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+        <p class="font-semibold">{{ mensajeDeError() }}</p>
+      </div>
+    } @else if (visor(); as visor) {
+      <iframe
+        class="mt-3 block h-[80vh] w-full border border-neutral-300 bg-white"
+        title="Hoja de vida del equipo en PDF"
+        data-visor
+        [src]="visor"
+      ></iframe>
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HojaDeVida {
+export class HojaDeVida implements OnDestroy {
   readonly id = input.required<string>();
 
-  private readonly documento = inject(DOCUMENT);
+  private readonly sanitizer = inject(DomSanitizer);
 
-  protected readonly sinDato = SIN_DATO;
+  protected readonly pdf = inject(EquipoApi).hojaDeVidaEnPdf(this.id);
+  protected readonly mensajeDeError = computed(() => traducirError(this.pdf.error()));
 
-  protected readonly hoja = inject(EquipoApi).hojaDeVida(this.id);
+  /** La dirección local del PDF descargado: la usan el visor y el botón de exportar. */
+  protected readonly direccion = computed(() => {
+    const hoja = this.pdf.data();
 
-  protected readonly identificacion = computed(() => this.hoja.data()?.identificacion);
-  protected readonly tecnica = computed(() => this.hoja.data()?.tecnica);
-  protected readonly fabricante = computed(() => this.hoja.data()?.fabricante);
+    return hoja ? URL.createObjectURL(hoja.pdf) : null;
+  });
+  protected readonly visor = computed<SafeResourceUrl | null>(() => {
+    const direccion = this.direccion();
 
-  protected readonly empresa = computed(() => this.hoja.data()?.empresa);
-
-  /** La ficha tecnica del modelo: riesgo, caracteristicas y datos electricos, desde V15. */
-  protected readonly ficha = computed(() => this.tecnica()?.fichaTecnica);
-  protected readonly riesgo = computed(() => {
-    const clase = this.ficha()?.riesgo;
-
-    return clase ? ETIQUETA_DE_RIESGO[clase] : SIN_DATO;
+    // Una dirección blob: creada aquí mismo, no un dato del servidor: es lo único que se marca seguro.
+    return direccion ? this.sanitizer.bypassSecurityTrustResourceUrl(direccion) : null;
   });
 
-  /*
-   * Varios valores en una casilla se separan con «·», como en el resto del documento. Una lista vacia
-   * es la raya: el cliente no tiene ese dato registrado, o el area y la sede no tienen encargado.
-   */
-  protected readonly responsable = computed(() => unidos(this.identificacion()?.responsables));
-  protected readonly telefonosDelCliente = computed(() =>
-    unidos(this.identificacion()?.telefonosCliente),
-  );
-  protected readonly correosDelCliente = computed(() =>
-    unidos(this.identificacion()?.correosCliente),
-  );
+  private anterior: string | null = null;
 
-  /** El código del formato en el sistema de calidad de la empresa, si tiene, y cuándo se actualizó. */
-  protected readonly codigoYFecha = computed(() =>
-    [this.empresa()?.codigoHojaDeVida, `Actualizada el ${this.fechaDeActualizacion}`]
-      .filter(Boolean)
-      .join(' · '),
-  );
-
-  protected readonly direccionDeLaEmpresa = computed(() =>
-    [this.empresa()?.direccion, this.empresa()?.ciudad].filter(Boolean).join(', '),
-  );
-
-  /** Fijos y movil en una linea. Hoy solo hay movil: la empresa ya no tiene fijos. */
-  protected readonly telefonosDeLaEmpresa = computed(() => {
-    const empresa = this.empresa();
-    const fijos = empresa?.telefonos ?? [];
-    const movil = empresa?.movil ? [`Móvil ${empresa.movil}`] : [];
-
-    return [...fijos, ...movil].join(' · ');
-  });
-
-  /** «Balanza Beurer GS14»: como se nombra un equipo en voz alta, de lo general a lo concreto. */
-  protected readonly nombreDelEquipo = computed(() => {
-    const tecnica = this.tecnica();
-
-    return [tecnica?.tipoEquipo, tecnica?.marca, tecnica?.modelo].filter(Boolean).join(' ');
-  });
-
-  protected readonly historial = computed(() =>
-    (this.hoja.data()?.servicioTecnico ?? []).map((linea) => ({
-      id: linea.id!,
-      idReporte: linea.idReporteServicio,
-      fecha: fechaCorta(linea.fechaServicio),
-      servicio: linea.tipoServicio
-        ? ETIQUETA_DE_TIPO_DE_SERVICIO[linea.tipoServicio as TipoDeServicio]
-        : SIN_DATO,
-      resultado: linea.resultado as ResultadoDeServicio | undefined,
-      etiquetaDelResultado: linea.resultado
-        ? ETIQUETA_DE_RESULTADO[linea.resultado as ResultadoDeServicio]
-        : SIN_DATO,
-      // Los procedimientos del reporte, congelados al cerrarse (V17). Un reporte viejo sin ellos sale
-      // con la raya, no con un hueco.
-      descripcion: linea.descripcion || SIN_DATO,
-      // «Grace Hopper · Servicios de Ejemplo S.A.S.»: el ingeniero y la empresa, decidido el
-      // 2026-10-05. Sin ingeniero, solo la empresa: un servicio lo presto alguien de ella aunque no
-      // conste quien.
-      responsable: [linea.responsable, this.empresa()?.nombre].filter(Boolean).join(' · '),
-    })),
-  );
-
-  /*
-   * La fila de estado sale del historial, que el servidor manda de la intervencion mas reciente a la
-   * mas antigua: la primera linea es el estado actual. Sin intervenciones, el equipo no tiene un
-   * estado que se pueda afirmar, y se dice asi.
-   */
-  protected readonly ultimaIntervencion = computed(() => this.historial()[0]);
-  protected readonly estadoActual = computed(
-    () => this.ultimaIntervencion()?.etiquetaDelResultado ?? 'Sin servicios',
-  );
-
-  /** El protocolo preventivo del tipo, ya ordenado por prioridad en el servidor. */
-  protected readonly protocolo = computed(() => this.tecnica()?.protocoloPreventivo ?? []);
-
-  /** Las recomendaciones son un solo texto en el tipo; cada linea es un consejo. */
-  protected readonly recomendaciones = computed(() =>
-    (this.tecnica()?.recomendacionesCuidado ?? '')
-      .split('\n')
-      .map((linea) => linea.trim())
-      .filter(Boolean),
-  );
-
-  protected readonly fechaDeCompra = computed(() => {
-    const fecha = this.identificacion()?.fechaCompra;
-
-    return fecha ? fechaCorta(fecha) : SIN_DATO;
-  });
-
-  /** El valor de compra en pesos, sin decimales: es lo que se escribe en una hoja de vida impresa. */
-  protected readonly valorDeCompra = computed(() => {
-    const valor = this.identificacion()?.valorCompra;
-
-    return valor == null
-      ? SIN_DATO
-      : new Intl.NumberFormat('es-CO', {
-          style: 'currency',
-          currency: 'COP',
-          maximumFractionDigits: 0,
-        }).format(valor);
-  });
-
-  /** La fecha de actualizacion es la de impresion: decidido el 2026-10-05. */
-  protected readonly fechaDeActualizacion = fechaCorta(hoy());
-
-  /*
-   * El QR lleva a esta misma hoja en la aplicacion, que pide iniciar sesion y respeta quien ve que:
-   * decidido el 2026-10-05, sin enlace publico. Se dibuja como SVG desde la matriz de modulos y no
-   * con canvas, para no depender de un API que el corredor de pruebas no tiene.
-   */
-  protected readonly qr = computed(() => {
-    const direccion = `${this.documento.location.origin}/equipos/${this.id()}/hoja-de-vida`;
-    const { modules } = QRCode.create(direccion, { errorCorrectionLevel: 'M' });
-    let trazo = '';
-
-    for (let fila = 0; fila < modules.size; fila++) {
-      for (let columna = 0; columna < modules.size; columna++) {
-        if (modules.get(fila, columna)) {
-          trazo += `M${columna} ${fila}h1v1h-1z`;
-        }
-      }
-    }
-
-    return { direccion, lado: modules.size, trazo };
-  });
-
-  /** Filas vacias al final del historial, para anotar a mano un servicio hecho fuera del sistema. */
-  protected readonly filasEnBlanco = Array.from({ length: 6 });
-
-  protected readonly hayError = computed(() => this.hoja.isError());
-  protected readonly mensajeDeError = computed(() => traducirError(this.hoja.error()));
-
-  protected imprimir(): void {
-    window.print();
+  constructor() {
+    // Cada PDF nuevo —se cerró un reporte y la hoja se recargó— deja libre la memoria del anterior.
+    effect(() => {
+      const direccion = this.direccion();
+      this.liberar();
+      this.anterior = direccion;
+    });
   }
-}
 
-function unidos(valores: readonly string[] | undefined): string {
-  return valores?.length ? valores.join(' · ') : SIN_DATO;
-}
+  ngOnDestroy(): void {
+    this.liberar();
+  }
 
-/**
- * La fecha de hoy en la zona de quien imprime. No toISOString(): esa es la de Greenwich, y en Bogota
- * a partir de las siete de la noche ya es mañana.
- */
-function hoy(): string {
-  const ahora = new Date();
-  const dos = (n: number) => String(n).padStart(2, '0');
-
-  return `${ahora.getFullYear()}-${dos(ahora.getMonth() + 1)}-${dos(ahora.getDate())}`;
+  private liberar(): void {
+    if (this.anterior) {
+      URL.revokeObjectURL(this.anterior);
+      this.anterior = null;
+    }
+  }
 }

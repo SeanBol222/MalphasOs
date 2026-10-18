@@ -1,0 +1,48 @@
+<!doctype html>
+<!--
+  El pie de cada página de la hoja de vida (2026-10-18). Gotenberg lo pone en el margen de abajo de cada
+  página, y es el único sitio donde Chromium dice qué página es y cuántas hay: las clases pageNumber y
+  totalPages. Antes decía «Página 2» aunque el historial ocupara tres.
+
+  Es un documento aparte, sin las reglas de la hoja: lleva sus propios estilos y su fuente.
+-->
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <style th:inline="css">
+      @font-face {
+        font-family: 'Archivo';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url([(${fuenteLatina})]) format('woff2-variations');
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      .pie {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        width: 100%;
+        margin: 0 48px;
+        padding-top: 8px;
+        border-top: 1px solid #d7d3d3;
+        font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+        /* Chromium escala el pie: sin un tamaño explícito saldría diminuto. */
+        font-size: 9pt;
+        color: #605d5d;
+        -webkit-print-color-adjust: exact;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pie">
+      <span th:text="${hoja.codigoYFecha}">Código · Actualizada el</span>
+      <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+    </div>
+  </body>
+</html>

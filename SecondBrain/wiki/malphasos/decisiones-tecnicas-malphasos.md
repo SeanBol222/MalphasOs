@@ -563,3 +563,17 @@ correo, ahora; la recuperación por correo, cuando lo haya.
   temporal** —la del alta y la del restablecimiento—, porque la eligió otra persona. Al entrar por
   primera vez, Keycloak obliga a cambiarla; el formulario del alta la llama «Contraseña temporal».
 
+## La hoja de vida, en PDF del servidor (2026-10-18)
+
+Revoca «la hoja de vida se imprime desde el navegador», del 2026-10-05: el usuario probó la impresión y
+no se parecía a la pantalla, también después del arreglo de la víspera. **Lo que sale del diálogo de
+imprimir depende del navegador**, y una página no lo controla. Decidido por el usuario: que salga
+directamente a PDF, como el informe.
+
+- **El servidor compone y convierte**, y la pantalla solo muestra el PDF: el diseño vive en un sitio,
+  como desde el 2026-10-17 el del informe. Los detalles están en [[hoja-de-vida-formato-impreso]].
+- **El pie numerado lo pone Gotenberg**: es el único sitio donde se sabe cuántas páginas tiene el
+  documento. El informe todavía no lo usa; su «Página 2 de 2» sigue anotado como deuda.
+- **Lo compartido sube a `shared`**: el cliente de Gotenberg, las fuentes y el QR. Cada módulo traduce el
+  fallo del conversor a su propio código —`ERR_SERVICE_REPORT_010`, `ERR_EQUIPMENT_020`—.
+

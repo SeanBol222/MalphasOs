@@ -15,8 +15,8 @@ el 443. Todo vive en un solo dominio:
 | `https://<dominio>/v1/…` | El API |
 | `https://<dominio>/auth/…` | Keycloak: el inicio de sesión y los tokens. **Su consola de administración no se publica** |
 
-Además están **PostgreSQL**, con la base de la aplicación y la de Keycloak, **Gotenberg**, que convierte los
-informes en PDF, y **el respaldo diario**. Swagger y pgAdmin no existen en producción.
+Además están **PostgreSQL**, con la base de la aplicación y la de Keycloak, **Gotenberg**, que convierte en PDF los
+informes y las hojas de vida, y **el respaldo diario**. Swagger y pgAdmin no existen en producción.
 
 ## Lo que necesita el servidor
 
