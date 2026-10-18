@@ -114,7 +114,7 @@
     />
 
     <label class="mt-2 block font-semibold" for="password">
-      Contraseña inicial <span aria-hidden="true">*</span>
+      Contraseña temporal <span aria-hidden="true">*</span>
     </label>
     <input
       class="campo min-h-tactil w-full"
@@ -126,7 +126,8 @@
       formControlName="password"
     />
     <p class="mt-1 text-neutral-700">
-      Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo.
+      Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo. Es temporal:
+      désela a la persona, y al entrar por primera vez tendrá que elegir una propia.
     </p>
   }
 

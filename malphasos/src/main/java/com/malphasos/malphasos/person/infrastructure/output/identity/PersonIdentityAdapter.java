@@ -58,7 +58,7 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
         user.setGroups(List.of(groupFor(roleType)));
         user.setEnabled(true);
         user.setEmailVerified(true);
-        user.setCredentials(List.of(credential(request.password())));
+        user.setCredentials(List.of(temporaryCredential(request.password())));
 
         // El Response de JAX-RS retiene la conexion hasta que se cierra. El original nunca lo
         // cerraba, de modo que cada alta de usuario dejaba una conexion sin liberar.
@@ -126,11 +126,8 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
      */
     @Override
     public void resetPassword(String userId, String temporaryPassword) {
-        CredentialRepresentation temporal = credential(temporaryPassword);
-        temporal.setTemporary(true);
-
         try {
-            keycloakClient.realm(realm).users().get(userId).resetPassword(temporal);
+            keycloakClient.realm(realm).users().get(userId).resetPassword(temporaryCredential(temporaryPassword));
 
         } catch (ProcessingException | WebApplicationException e) {
             RuntimeException traducido = translateClientFailure(e, "restablecer la contrasena de " + userId);
@@ -312,11 +309,16 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
         };
     }
 
-    private CredentialRepresentation credential(String password) {
+    /**
+     * Toda contraseña que pone este servicio es <b>temporal</b>: la eligió otra persona —quien da de
+     * alta o quien restablece— y Keycloak obliga a cambiarla al entrar, de modo que quien la puso deja de
+     * saberla. Hasta el 2026-10-17 la del alta era definitiva.
+     */
+    private CredentialRepresentation temporaryCredential(String password) {
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(password);
-        credential.setTemporary(false);
+        credential.setTemporary(true);
 
         return credential;
     }

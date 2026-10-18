@@ -182,6 +182,24 @@ class PersonIdentityAdapterTest {
     }
 
     @Test
+    @DisplayName("la contraseña del alta es temporal: la eligió otra persona, y quien entra tiene que cambiarla")
+    void initialPasswordIsTemporary() {
+        // Hasta el 2026-10-17 era definitiva, y quien daba de alta a alguien seguía sabiendo su contraseña.
+        when(response.getStatus()).thenReturn(201);
+        when(response.getLocation())
+                .thenReturn(URI.create("http://keycloak/users/" + UUID.randomUUID()));
+
+        adapter.createUser(request(), RoleType.ENGINEER);
+
+        ArgumentCaptor<UserRepresentation> user = ArgumentCaptor.forClass(UserRepresentation.class);
+        verify(usersResource).create(user.capture());
+        assertThat(user.getValue().getCredentials()).singleElement().satisfies(credencial -> {
+            assertThat(credencial.isTemporary()).isTrue();
+            assertThat(credencial.getValue()).isEqualTo("secreto");
+        });
+    }
+
+    @Test
     @DisplayName("si el cliente no logra autenticarse contra Keycloak, se traduce a excepcion de dominio")
     void clientAuthFailureIsTranslated() {
         // Regresion: el cliente lanza antes de devolver un Response cuando el secreto del client
