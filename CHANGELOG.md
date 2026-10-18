@@ -24,7 +24,8 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 - Los protocolos de mantenimiento preventivo, asignados a cada tipo con su prioridad.
 - El catálogo de equipos patrón, con su certificado y su vencimiento.
 - **La hoja de vida de cada equipo**: identificación, ficha técnica, protocolo e historial de
-  intervenciones, que se escribe solo al cerrar cada reporte. Numerada por cliente e imprimible.
+  intervenciones, que se escribe solo al cerrar cada reporte. Numerada por cliente, y **en PDF generado
+  por el servidor**, como el informe, con el número de página en cada hoja.
 
 ### Órdenes de trabajo
 
@@ -87,4 +88,3 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
   Es una desviación consciente.
 - La exportación a Excel que menciona la ERS en su apartado 2.2, que no tiene requisito propio.
 - El uso sin conexión, la foto en la hoja de vida y las alertas de vencimiento de los patrones.
-- La hoja de vida se imprime desde el navegador; el PDF del servidor es el del informe del reporte.

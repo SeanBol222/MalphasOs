@@ -2213,3 +2213,16 @@ temporal, y en vivo una cuenta nueva va a cambiarla antes de entrar. Una mutaci�
 tumba dos pruebas. Backend **1513** en 114 clases, frontend **747**; [[deuda-tecnica-y-riesgos]] queda en
 **99 filas, 46 tachadas, 53 abiertas**.
 
+## [2026-10-18] ingest | la hoja de vida, en PDF del servidor
+
+La impresión desde el navegador seguía saliendo distinta de la pantalla, y el usuario pidió que la hoja
+de vida saliera directamente a PDF, como el informe. Plantilla en el servidor, Gotenberg, un pie
+numerado de verdad y la pantalla como visor con «Exportar PDF». Por el camino, el cliente de Gotenberg
+pasó a `shared`, y apareció que la hoja de vida y el historial de un equipo inexistente respondían 500.
+Once mutaciones en el backend —una sobrevivió por ser equivalente y se quitó la línea— y seis en el
+frontend. Backend **1540** en 118 clases, frontend **725**: bajan porque las pruebas de lo que imprime la
+hoja pasaron al servidor.
+
+**Tocadas**: [[hoja-de-vida-formato-impreso]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]]
+—100 filas, 48 tachadas, 52 abiertas— y el `CONVENCIONES.md` de la raíz.
+
