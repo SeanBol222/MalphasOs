@@ -7,6 +7,7 @@ import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExists
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonSignatureNotFoundException;
 import com.malphasos.malphasos.person.infrastructure.input.rest.EmailPersonRestAdapter;
+import com.malphasos.malphasos.person.infrastructure.input.rest.MyPersonRestAdapter;
 import com.malphasos.malphasos.person.infrastructure.input.rest.PersonRestAdapter;
 import com.malphasos.malphasos.person.infrastructure.input.rest.PersonSignatureRestAdapter;
 import com.malphasos.malphasos.person.infrastructure.input.rest.PhonePersonRestAdapter;
@@ -34,7 +35,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             PersonRestAdapter.class,
             EmailPersonRestAdapter.class,
             PhonePersonRestAdapter.class,
-            PersonSignatureRestAdapter.class
+            PersonSignatureRestAdapter.class,
+            MyPersonRestAdapter.class
         })
 public class PersonControllerAdvice {
 

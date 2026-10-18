@@ -842,6 +842,86 @@
         "tags" : [ "Person" ]
       }
     },
+    "/v1/api/persons/me" : {
+      "get" : {
+        "description" : "404 si la sesión no corresponde a ninguna persona registrada, como el SuperUsuario.",
+        "operationId" : "get_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "502" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Gateway"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Mis datos",
+        "tags" : [ "MyPerson" ]
+      }
+    },
     "/v1/api/persons/me/signature" : {
       "get" : {
         "description" : "404 si todavia no la he guardado.",
@@ -1900,6 +1980,9 @@
   }, {
     "description" : "La firma de quien llama, que copian los informes que cierra",
     "name" : "PersonSignature"
+  }, {
+    "description" : "Los datos de quien llama",
+    "name" : "MyPerson"
   }, {
     "description" : "Gestion de personas",
     "name" : "Person"

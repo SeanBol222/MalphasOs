@@ -1,7 +1,6 @@
 package com.malphasos.malphasos.person.infrastructure.input.rest;
 
 import com.malphasos.malphasos.person.application.ports.input.PersonSignatureServicePort;
-import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonSignatureNotFoundException;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonSignatureRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.response.PersonSignatureResponse;
@@ -13,7 +12,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,7 +40,7 @@ public class PersonSignatureRestAdapter {
     @PreAuthorize("hasAuthority('report.read')")
     @GetMapping
     public PersonSignatureResponse get(Authentication autenticacion) {
-        UUID yo = quienLlama(autenticacion);
+        UUID yo = SessionPerson.of(autenticacion);
 
         return PersonSignatureResponse.from(personSignatureServicePort.find(yo)
                 .orElseThrow(() -> new PersonSignatureNotFoundException(yo)));
@@ -64,18 +62,6 @@ public class PersonSignatureRestAdapter {
             throw new IllegalArgumentException("La firma no es un base64 válido");
         }
 
-        return PersonSignatureResponse.from(personSignatureServicePort.save(quienLlama(autenticacion), imagen));
-    }
-
-    /** La persona de la sesión: el {@code sub} del token es su identificador, como en el filtrado por dueño. */
-    private static UUID quienLlama(Authentication autenticacion) {
-        String sub = autenticacion instanceof JwtAuthenticationToken token
-                ? token.getToken().getSubject()
-                : autenticacion == null ? null : autenticacion.getName();
-        try {
-            return UUID.fromString(sub);
-        } catch (IllegalArgumentException | NullPointerException sinPersona) {
-            throw new PersonNotFoundException("La sesion no corresponde a ninguna persona registrada");
-        }
+        return PersonSignatureResponse.from(personSignatureServicePort.save(SessionPerson.of(autenticacion), imagen));
     }
 }
