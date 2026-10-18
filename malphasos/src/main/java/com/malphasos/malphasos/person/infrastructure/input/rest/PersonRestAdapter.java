@@ -2,6 +2,7 @@ package com.malphasos.malphasos.person.infrastructure.input.rest;
 
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
 import com.malphasos.malphasos.person.infrastructure.input.mapper.PersonRestMapper;
+import com.malphasos.malphasos.person.infrastructure.input.model.request.PasswordResetRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonCreateRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonRegisterRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonUpdateRequest;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -134,5 +136,20 @@ public class PersonRestAdapter {
             com.malphasos.malphasos.person.domain.person.Person person) {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(personRestMapper.toResponse(person));
+    }
+
+    @Operation(
+            summary = "Restablecer la contraseña",
+            description = "Pone una contraseña temporal en su cuenta: al entrar, la persona tendrá que "
+                    + "cambiarla. 400 si no cumple la política; 404 si la persona no tiene cuenta.")
+    @PreAuthorize("@personWriteGuard.canWrite(#id, authentication)")
+    @PatchMapping("/{id}/password")
+    public ResponseEntity<Void> resetPassword(
+            @Parameter(description = "Identificador de la persona") @PathVariable UUID id,
+            @Valid @RequestBody PasswordResetRequest request) {
+
+        personServicePort.resetPassword(id, request.password());
+
+        return ResponseEntity.noContent().build();
     }
 }

@@ -164,6 +164,10 @@ export class VentanaDeUsuario {
     });
   }
 
+  protected cambiarContrasena(): void {
+    void this.sesion.cambiarContrasena();
+  }
+
   protected salir(): void {
     void this.sesion.salir();
   }

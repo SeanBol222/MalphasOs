@@ -93,7 +93,7 @@ describe('Alta de una persona', () => {
     montar('ingeniero');
     rellenarLoComun();
     escribir('nombreUsuario', 'ghopper');
-    escribir('password', 'contrasena8');
+    escribir('password', 'contrasena-de-12');
     escribir('correo-0', 'grace@armada.mil');
 
     enviar();
@@ -115,7 +115,7 @@ describe('Alta de una persona', () => {
     montar('administrador');
     rellenarLoComun();
     escribir('nombreUsuario', 'jefe');
-    escribir('password', 'contrasena8');
+    escribir('password', 'contrasena-de-12');
 
     enviar();
     await asentar(fixture);
@@ -129,6 +129,21 @@ describe('Alta de una persona', () => {
     rellenarLoComun();
     escribir('nombreUsuario', 'ghopper');
     escribir('password', 'corta');
+    escribir('correo-0', 'grace@armada.mil');
+
+    enviar();
+    await asentar(fixture);
+
+    http.expectNone(`${URL}/engineers`);
+  });
+
+  it('una contraseña de once caracteres no llega: el sistema de acceso exige doce', async () => {
+    // La política del realm es length(12). Con ocho, como exigía el alta hasta el 2026-10-17, esta
+    // contraseña pasaba el formulario y la rechazaba Keycloak.
+    montar('ingeniero');
+    rellenarLoComun();
+    escribir('nombreUsuario', 'ghopper');
+    escribir('password', 'once-letras');
     escribir('correo-0', 'grace@armada.mil');
 
     enviar();
@@ -157,7 +172,7 @@ describe('Alta de una persona', () => {
     montar('representante');
     rellenarLoComun();
     escribir('nombreUsuario', 'repre');
-    escribir('password', 'contrasena8');
+    escribir('password', 'contrasena-de-12');
     escribir('correo-0', 'repre@hospital.co');
     const casilla = raiz().querySelector<HTMLInputElement>('input[type="checkbox"]')!;
     casilla.click();
@@ -177,7 +192,7 @@ describe('Alta de una persona', () => {
     montar('ingeniero');
     rellenarLoComun();
     escribir('nombreUsuario', 'ghopper');
-    escribir('password', 'contrasena8');
+    escribir('password', 'contrasena-de-12');
     escribir('correo-0', 'grace@armada.mil');
     enviar();
     await asentar(fixture);
@@ -210,7 +225,7 @@ describe('Alta de una persona', () => {
     function rellenarConCuenta(): void {
       rellenarLoComun();
       escribir('nombreUsuario', 'ghopper');
-      escribir('password', 'contrasena8');
+      escribir('password', 'contrasena-de-12');
       escribir('correo-0', 'grace@armada.mil');
     }
 

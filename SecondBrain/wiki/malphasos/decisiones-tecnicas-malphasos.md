@@ -537,3 +537,27 @@ ficha nunca se enteraba de que habían cambiado.
   `error-user-attribute-read-only` y Keycloak no cambia.
 - **La contraseña sí la sigue cambiando cada quien**: es suya y la aplicación no la guarda.
 
+## Contraseñas sin servidor de correo (2026-10-17)
+
+Hasta este día una contraseña olvidada **solo se arreglaba entrando al servidor**: el realm no permite
+«¿Olvidó su contraseña?» y no tiene servidor de correo. Decidido por el usuario: lo que no necesita
+correo, ahora; la recuperación por correo, cuando lo haya.
+
+- **«Cambiar contraseña» en la ventana de la sesión** lleva a la acción `UPDATE_PASSWORD` de Keycloak
+  (`keycloak.login({ action })`) y vuelve. La aplicación nunca ve la contraseña, y la página es la del
+  tema: se comprobó en vivo que `login-update-password` sale con la marca.
+- **«Restablecer contraseña» en la ficha de la persona**: `PATCH /persons/{id}/password` pone una
+  **temporal**, que Keycloak obliga a cambiar al entrar —comprobado en vivo: con la temporal no se
+  entrega el código, se manda a `UPDATE_PASSWORD`—. Pide **la misma escalera que editar a la persona**,
+  porque poner una contraseña es tomar su cuenta: un administrador no se la pone a un ingeniero. Se
+  rechaza a un encargado, que no tiene cuenta, y a una persona retirada, cuya cuenta está deshabilitada
+  a propósito.
+- **La política la impone Keycloak** —`length(12) and notUsername and notEmail`— y el backend no la
+  repite; el frontend sí la refleja, para no mandar lo que se va a rechazar. **Y eso destapó un
+  desajuste del alta**: exigía 8 caracteres, de modo que una contraseña de 8 a 11 pasaba el formulario y
+  la rechazaba Keycloak. Las dos pantallas leen ahora `LARGO_MINIMO_DE_CONTRASENA`.
+- **El SuperUsuario no tiene ficha**: si olvida la suya, `kcadm` desde el servidor, con la receta de
+  `DESPLIEGUE.md`.
+- **Queda abierto**: la contraseña inicial que pone quien da de alta a alguien es **definitiva**, no
+  temporal, de modo que quien la puso la sigue sabiendo. Ver [[deuda-tecnica-y-riesgos]].
+

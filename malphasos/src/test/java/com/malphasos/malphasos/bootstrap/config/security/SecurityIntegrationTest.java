@@ -307,6 +307,30 @@ class SecurityIntegrationTest {
         }
 
         @Test
+        @DisplayName("ni restablecer su contraseña, que es tomar su cuenta (2026-10-17)")
+        void elAdministradorNoRestableceLaContrasenaDelIngeniero() throws Exception {
+            // Poner una contraseña temporal es entrar como esa persona: si la escalera no aplicara
+            // aquí, un administrador tomaría la cuenta de un ingeniero por la puerta de al lado.
+            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.ENGINEER));
+
+            prohibido(patch("/v1/api/persons/" + ID + "/password")
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"password\":\"temporal-de-prueba\"}"));
+        }
+
+        @Test
+        @DisplayName("la de un representante sí, que es de su escalón")
+        void elAdministradorRestableceLaDelRepresentante() throws Exception {
+            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.CEO_CLIENT));
+
+            autorizado(patch("/v1/api/persons/" + ID + "/password")
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"password\":\"temporal-de-prueba\"}"));
+        }
+
+        @Test
         @DisplayName("el administrador NO puede convertir a un representante en administrador")
         void elAdministradorNoPromueve() throws Exception {
             // El agujero que esta prueba cierra. La escalera mira el tipo que la persona TIENE, y la

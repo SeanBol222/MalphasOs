@@ -18,8 +18,10 @@ import tools.jackson.databind.json.JsonMapper;
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakPasswordRejectedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PrimaryEmailRemovalException;
 import com.malphasos.malphasos.person.domain.person.EmailPerson;
@@ -365,5 +367,57 @@ class PersonRestAdapterTest {
         mockMvc.perform(get("/v1/api/persons/{id}", personId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.emailPersonList[0].principal").value(true));
+    }
+
+    // --- Restablecer la contraseña (2026-10-17) ---------------------------------------------
+
+    @Test
+    @DisplayName("restablecer la contraseña es un PATCH que responde 204 y no devuelve la contraseña")
+    void restablecer() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(patch("/v1/api/persons/{id}/password", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"temporal-de-prueba\"}"))
+                .andExpect(status().isNoContent());
+
+        verify(personServicePort).resetPassword(id, "temporal-de-prueba");
+    }
+
+    @Test
+    @DisplayName("sin contraseña no llega al servicio")
+    void restablecerSinContrasena() throws Exception {
+        mockMvc.perform(patch("/v1/api/persons/{id}/password", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\" \"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(personServicePort, never()).resetPassword(any(), any());
+    }
+
+    @Test
+    @DisplayName("una contraseña que la política rechaza responde 400 con su propio código")
+    void restablecerRechazada() throws Exception {
+        UUID id = UUID.randomUUID();
+        doThrow(new KeycloakPasswordRejectedException("corta", null)).when(personServicePort).resetPassword(eq(id), any());
+
+        mockMvc.perform(patch("/v1/api/persons/{id}/password", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"corta\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("ERR_KEYCLOAK_006"));
+    }
+
+    @Test
+    @DisplayName("una persona cuya cuenta no está en Keycloak responde 404 con su código, no 500")
+    void restablecerSinCuenta() throws Exception {
+        UUID id = UUID.randomUUID();
+        doThrow(new KeycloakUserNotFoundException("no esta")).when(personServicePort).resetPassword(eq(id), any());
+
+        mockMvc.perform(patch("/v1/api/persons/{id}/password", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"temporal-de-prueba\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ERR_KEYCLOAK_007"));
     }
 }

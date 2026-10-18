@@ -256,6 +256,16 @@ describe('Ventana de la sesión', () => {
       expect(pedidas).toBe(1);
     });
 
+    it('cambiar la contraseña lleva a la acción de Keycloak, que la guarda sin que la aplicación la vea', async () => {
+      await abrirIngeniera(null);
+
+      boton('Cambiar contraseña')!.click();
+
+      expect((TestBed.inject(Keycloak) as KeycloakFalso).entradasPedidas).toEqual([
+        { action: 'UPDATE_PASSWORD' },
+      ]);
+    });
+
     it('cerrar sesión le pide la salida a Keycloak', async () => {
       await abrirIngeniera(null);
 

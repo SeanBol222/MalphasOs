@@ -61,6 +61,14 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
   en Keycloak en el mismo paso.
 - **Cada quien ve lo suyo**: un representante de cliente solo ve los datos de su cliente, y la escalera de
   permisos separa al SuperUsuario del administrador.
+- **El representante se nombra desde la ficha del cliente**, y es lo que decide qué clientes ve; el
+  alta entrada desde la ficha lo nombra al terminar.
+- **El correo de la cuenta**: uno de los correos de la ficha es el de Keycloak —con él también se
+  entra—. Cambiarlo o corregirlo en la aplicación cambia la cuenta, y no se retira sin elegir otro. La
+  consola de cuenta de Keycloak ya no deja a nadie cambiarse el correo ni el nombre por fuera.
+- **Contraseñas**: cada quien cambia la suya desde la ventana de su nombre. Si alguien la olvida, quien
+  puede editarlo le pone una temporal desde «Personas», y al entrar con ella tendrá que cambiarla. La
+  recuperación por correo («¿Olvidó su contraseña?») queda para cuando haya servidor de correo.
 
 ### Despliegue
 

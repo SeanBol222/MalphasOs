@@ -780,4 +780,40 @@ class PersonServiceTest {
 
         verifyNoInteractions(identityPort);
     }
+
+    // --- Restablecer la contraseña (2026-10-17) ---------------------------------------------
+
+    @Test
+    @DisplayName("restablecer la contraseña la pone en la cuenta y no toca la base")
+    void restablecerContrasena() {
+        Person persona = ingenieraConDosCorreos();
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+
+        service().resetPassword(persona.getIdentificador(), "temporal-de-prueba");
+
+        verify(identityPort).resetPassword(persona.getIdentificador().toString(), "temporal-de-prueba");
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("un encargado no tiene contraseña que restablecer")
+    void restablecerEncargado() {
+        Person persona = ingenieraConDosCorreos().setTipoPersona(PersonType.MANAGER);
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+
+        assertThatThrownBy(() -> service().resetPassword(persona.getIdentificador(), "temporal-de-prueba"))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(identityPort);
+    }
+
+    @Test
+    @DisplayName("a una persona retirada no se le restablece: su cuenta está deshabilitada a propósito")
+    void restablecerRetirada() {
+        Person persona = ingenieraConDosCorreos().setEstadoActivo(false);
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+
+        assertThatThrownBy(() -> service().resetPassword(persona.getIdentificador(), "temporal-de-prueba"))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(identityPort);
+    }
 }

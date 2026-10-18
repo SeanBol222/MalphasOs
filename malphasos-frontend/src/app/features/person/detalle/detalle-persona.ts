@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { LARGO_MINIMO_DE_CONTRASENA } from '../contrasena';
 import { nombreCompleto, PersonaApi } from '../persona-api';
 import { Sesion } from '../../../core/auth/sesion';
 import {
@@ -110,6 +111,28 @@ export class DetallePersona {
   protected readonly bajaDeCorreo = this.api.retirarCorreo();
   protected readonly correoDeCuenta = this.api.usarCorreoParaLaCuenta();
 
+  // --- La cuenta: restablecer la contraseña -------------------------------------
+
+  protected readonly restablecimiento = this.api.restablecerContrasena();
+  protected readonly restableciendo = signal(false);
+  protected readonly restablecida = signal(false);
+  protected readonly largoMinimo = LARGO_MINIMO_DE_CONTRASENA;
+
+  /**
+   * Visible a propósito, no como puntos: quien la pone tiene que leerla para dársela a la persona, y
+   * solo vale para entrar una vez.
+   */
+  protected readonly formularioDeAcceso = this.fb.nonNullable.group({
+    contrasenaTemporal: [
+      '',
+      [Validators.required, Validators.minLength(LARGO_MINIMO_DE_CONTRASENA)],
+    ],
+  });
+
+  protected get contrasenaTemporal() {
+    return this.formularioDeAcceso.controls.contrasenaTemporal;
+  }
+
   /**
    * Si la persona tiene cuenta, que es lo que da sentido al correo de la cuenta. Un encargado no:
    * existe como contacto y no entra al sistema.
@@ -146,6 +169,7 @@ export class DetallePersona {
       this.altaDeCorreo.isError() ||
       this.bajaDeCorreo.isError() ||
       this.correoDeCuenta.isError() ||
+      this.restablecimiento.isError() ||
       this.altaDeTelefono.isError() ||
       this.bajaDeTelefono.isError(),
   );
@@ -157,6 +181,7 @@ export class DetallePersona {
         this.altaDeCorreo.error() ??
         this.bajaDeCorreo.error() ??
         this.correoDeCuenta.error() ??
+        this.restablecimiento.error() ??
         this.altaDeTelefono.error() ??
         this.bajaDeTelefono.error(),
     ),
@@ -251,6 +276,32 @@ export class DetallePersona {
 
   protected retirarCorreo(idContacto: string): void {
     this.bajaDeCorreo.mutate({ idPersona: this.id(), idContacto });
+  }
+
+  protected empezarARestablecer(): void {
+    this.restableciendo.set(true);
+    this.restablecida.set(false);
+    this.contrasenaTemporal.reset();
+    this.restablecimiento.reset();
+  }
+
+  protected restablecer(): void {
+    if (this.contrasenaTemporal.invalid) {
+      this.contrasenaTemporal.markAsTouched();
+
+      return;
+    }
+
+    this.restablecimiento.mutate(
+      { idPersona: this.id(), password: this.contrasenaTemporal.value },
+      {
+        onSuccess: () => {
+          this.restableciendo.set(false);
+          this.restablecida.set(true);
+          this.contrasenaTemporal.reset();
+        },
+      },
+    );
   }
 
   protected usarParaLaCuenta(idContacto: string): void {

@@ -393,4 +393,82 @@ describe('Ficha de una persona', () => {
       expect(botonesDe('grace@casa.mil')).toEqual(['Retirar']);
     });
   });
+
+  describe('Restablecer la contraseña (2026-10-17)', () => {
+    // Sin servidor de correo, es como se resuelve una contraseña olvidada.
+    const INGENIERA = persona({ tipoPersona: 'ENGINEER' });
+    const acceso = () => raiz().querySelector('section[aria-labelledby="titulo-acceso"]');
+
+    async function ponerTemporal(valor: string): Promise<void> {
+      pulsar('Restablecer contraseña');
+      const campo = raiz().querySelector<HTMLInputElement>('#contrasenaTemporal')!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      pulsar('Poner contraseña temporal');
+      await asentar(fixture);
+    }
+
+    it('manda la temporal a su ruta y dice que tendrá que cambiarla', async () => {
+      await abrir(INGENIERA);
+
+      await ponerTemporal('temporal-de-doce');
+
+      const peticion = http.expectOne(`${URL}/${ID}/password`);
+      expect(peticion.request.method).toBe('PATCH');
+      expect(peticion.request.body).toEqual({ password: 'temporal-de-doce' });
+      peticion.flush(null, { status: 204, statusText: 'No Content' });
+      await asentar(fixture);
+
+      expect(acceso()?.textContent).toContain('tendrá que cambiarla');
+      expect(raiz().querySelector('#contrasenaTemporal')).toBeNull();
+    });
+
+    it('una de once caracteres no llega: la política del sistema de acceso pide doce', async () => {
+      await abrir(INGENIERA);
+
+      await ponerTemporal('once-letras');
+
+      http.expectNone(`${URL}/${ID}/password`);
+      expect(acceso()?.textContent).toContain('al menos 12 caracteres');
+    });
+
+    it('si el sistema de acceso la rechaza, lo explica', async () => {
+      await abrir(INGENIERA);
+      await ponerTemporal('temporal-de-doce');
+
+      http
+        .expectOne(`${URL}/${ID}/password`)
+        .flush(
+          { code: 'ERR_KEYCLOAK_006', message: 'The password does not meet the policy' },
+          { status: 400, statusText: 'Bad Request' },
+        );
+      await asentar(fixture);
+
+      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+        'rechazó la contraseña',
+      );
+    });
+
+    it('un encargado no tiene cuenta: no hay contraseña que restablecer', async () => {
+      await abrir(persona({ tipoPersona: 'MANAGER' }));
+
+      expect(acceso()).toBeNull();
+    });
+
+    it('a una persona retirada tampoco: su cuenta está deshabilitada', async () => {
+      await abrir(persona({ tipoPersona: 'ENGINEER', estadoActivo: false }));
+
+      expect(acceso()).toBeNull();
+    });
+
+    it('sin el escalón que pide esta persona no se ofrece', async () => {
+      // Restablecerla es tomar su cuenta: la misma escalera que editarla.
+      TestBed.resetTestingModule();
+      montar(['person.read', 'person.write']);
+      await abrir(INGENIERA);
+
+      expect(acceso()).toBeNull();
+    });
+  });
 });

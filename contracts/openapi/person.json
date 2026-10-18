@@ -55,6 +55,17 @@
         },
         "type" : "object"
       },
+      "PasswordResetRequest" : {
+        "properties" : {
+          "password" : {
+            "description" : "Contraseña temporal; la persona tendrá que cambiarla al entrar",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "password" ],
+        "type" : "object"
+      },
       "PersonCreateRequest" : {
         "description" : "Alta de una persona sin acceso al sistema",
         "properties" : {
@@ -1358,6 +1369,99 @@
           }
         },
         "summary" : "Actualizar los datos de una persona",
+        "tags" : [ "Person" ]
+      }
+    },
+    "/v1/api/persons/{id}/password" : {
+      "patch" : {
+        "description" : "Pone una contraseña temporal en su cuenta: al entrar, la persona tendrá que cambiarla. 400 si no cumple la política; 404 si la persona no tiene cuenta.",
+        "operationId" : "resetPassword",
+        "parameters" : [ {
+          "description" : "Identificador de la persona",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "502" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Gateway"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Restablecer la contraseña",
         "tags" : [ "Person" ]
       }
     },

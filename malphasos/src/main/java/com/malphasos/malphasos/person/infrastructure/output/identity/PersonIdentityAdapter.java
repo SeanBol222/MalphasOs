@@ -6,6 +6,7 @@ import com.malphasos.malphasos.person.application.ports.output.PersonIdentityPor
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakPasswordRejectedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
@@ -116,6 +117,32 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
         } catch (KeycloakUserAlreadyExistsException otraCuentaLoUsa) {
             throw new KeycloakEmailInUseException(
                     "Otra cuenta ya usa el correo " + email, otraCuentaLoUsa);
+        }
+    }
+
+    /**
+     * Un 400 aquí es la política de contraseñas del realm —largo mínimo, distinta del usuario y del
+     * correo—, no un dato de la cuenta mal formado, y se dice así.
+     */
+    @Override
+    public void resetPassword(String userId, String temporaryPassword) {
+        CredentialRepresentation temporal = credential(temporaryPassword);
+        temporal.setTemporary(true);
+
+        try {
+            keycloakClient.realm(realm).users().get(userId).resetPassword(temporal);
+
+        } catch (ProcessingException | WebApplicationException e) {
+            RuntimeException traducido = translateClientFailure(e, "restablecer la contrasena de " + userId);
+            if (traducido instanceof KeycloakInvalidDataException) {
+                throw new KeycloakPasswordRejectedException(
+                        "La contrasena no cumple la politica del sistema de acceso", e);
+            }
+            throw traducido;
+
+        } catch (RuntimeException e) {
+            throw new KeycloakConnectionException(
+                    "No se pudo restablecer la contrasena de " + userId + " en Keycloak", e);
         }
     }
 

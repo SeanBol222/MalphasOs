@@ -20,7 +20,9 @@ public enum PersonErrorCatalog {
     KEYCLOAK_INVALID_DATA("ERR_KEYCLOAK_002", "Invalid data for Keycloak operation"),
     KEYCLOAK_UNAUTHORIZED("ERR_KEYCLOAK_003", "The service account cannot operate on Keycloak"),
     KEYCLOAK_CONNECTION_ERROR("ERR_KEYCLOAK_004", "Connection error with Keycloak"),
-    KEYCLOAK_EMAIL_IN_USE("ERR_KEYCLOAK_005", "Another account already uses that email");
+    KEYCLOAK_EMAIL_IN_USE("ERR_KEYCLOAK_005", "Another account already uses that email"),
+    KEYCLOAK_PASSWORD_REJECTED("ERR_KEYCLOAK_006", "The password does not meet the policy"),
+    KEYCLOAK_ACCOUNT_NOT_FOUND("ERR_KEYCLOAK_007", "The person has no account in the identity provider");
 
     private final String code;
     private final String message;
