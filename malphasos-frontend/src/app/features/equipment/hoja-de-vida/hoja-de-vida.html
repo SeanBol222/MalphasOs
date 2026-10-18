@@ -193,6 +193,37 @@
           </dl>
         </section>
 
+        <footer class="hv-pie">
+          <span>{{ codigoYFecha() }}</span>
+          <span>Página 1</span>
+        </footer>
+      </div>
+    </div>
+
+    <div class="hv-hoja">
+      @if (empresa()?.logo; as logo) {
+        <img class="hv-escudo hv-escudo--segunda" [src]="logo" alt="" />
+      }
+
+      <header class="hv-banda hv-banda--estrecha">
+        <p class="hv-logo">
+          @if (empresa()?.logo; as logo) {
+            <img [src]="logo" alt="" width="26" height="26" />
+          }
+          <span>{{ empresa()?.nombre }}</span>
+        </p>
+        <p class="hv-banda__resumen">
+          {{ identificacion()?.numeroHojaVida }} · <strong>{{ nombreDelEquipo() }}</strong> · Serie
+          {{ identificacion()?.serie }}
+        </p>
+      </header>
+
+      <div class="hv-cuerpo">
+        <!--
+          El protocolo y el cuidado van aquí y no en la hoja 1 desde el 2026-10-17: crecen con cada paso,
+          y en la hoja 1, que es una carta fija, desbordaban y partían el pie en una página casi en blanco.
+          Aquí el contenido ya puede crecer: la hoja se parte y la tabla repite su cabecera.
+        -->
         <div class="hv-dos">
           <section aria-labelledby="protocolo">
             <h2 id="protocolo">Protocolo preventivo</h2>
@@ -232,32 +263,6 @@
           </section>
         </div>
 
-        <footer class="hv-pie">
-          <span>{{ codigoYFecha() }}</span>
-          <span>Página 1</span>
-        </footer>
-      </div>
-    </div>
-
-    <div class="hv-hoja">
-      @if (empresa()?.logo; as logo) {
-        <img class="hv-escudo hv-escudo--segunda" [src]="logo" alt="" />
-      }
-
-      <header class="hv-banda hv-banda--estrecha">
-        <p class="hv-logo">
-          @if (empresa()?.logo; as logo) {
-            <img [src]="logo" alt="" width="26" height="26" />
-          }
-          <span>{{ empresa()?.nombre }}</span>
-        </p>
-        <p class="hv-banda__resumen">
-          {{ identificacion()?.numeroHojaVida }} · <strong>{{ nombreDelEquipo() }}</strong> · Serie
-          {{ identificacion()?.serie }}
-        </p>
-      </header>
-
-      <div class="hv-cuerpo">
         <section aria-labelledby="servicio-tecnico">
           <div class="hv-encabezado">
             <h2 id="servicio-tecnico" class="hv-titulo">Historial de servicio técnico</h2>

@@ -326,6 +326,22 @@ describe('Hoja de vida de un equipo', () => {
     expect(seccion('protocolo')?.textContent).not.toContain('Sin protocolo');
   });
 
+  it('el protocolo y el cuidado van en la segunda hoja, antes del historial: la primera es una carta fija', async () => {
+    // Hasta el 2026-10-17 iban en la primera, y como crecen con cada paso la desbordaban: al imprimir,
+    // el último paso y el pie salían solos en una página casi en blanco. La segunda ya sabe partirse.
+    await abrir(hoja());
+
+    const [primera, segunda] = [...raiz().querySelectorAll('.hv-hoja')];
+    for (const id of ['protocolo', 'cuidado']) {
+      expect(primera.querySelector(`section[aria-labelledby="${id}"]`), id).toBeNull();
+      expect(segunda.querySelector(`section[aria-labelledby="${id}"]`), id).not.toBeNull();
+    }
+    const orden = [...segunda.querySelectorAll('section[aria-labelledby]')].map((s) =>
+      s.getAttribute('aria-labelledby'),
+    );
+    expect(orden.indexOf('protocolo')).toBeLessThan(orden.indexOf('servicio-tecnico'));
+  });
+
   it('un tipo sin protocolo lo dice, sin inventar una lista', async () => {
     await abrir(hoja([], { sinOpcionales: true }));
 
