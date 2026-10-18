@@ -89,12 +89,17 @@ export class VentanaDeUsuario {
       : '';
   });
 
-  /** El primer correo y el primer teléfono vigentes: la ficha completa vive en «Personas». */
-  protected readonly correo = computed(
-    () =>
-      this.persona.data()?.emailPersonList?.find((c) => c.estadoActivo !== false)?.correoPersona ??
-      '',
-  );
+  /**
+   * El correo de la cuenta, o el primero vigente si la ficha aún no lo tiene marcado; y el primer
+   * teléfono vigente. La ficha completa vive en «Personas».
+   */
+  protected readonly correo = computed(() => {
+    const vigentes = (this.persona.data()?.emailPersonList ?? []).filter(
+      (c) => c.estadoActivo !== false,
+    );
+
+    return (vigentes.find((c) => c.principal) ?? vigentes[0])?.correoPersona ?? '';
+  });
   protected readonly telefono = computed(
     () =>
       this.persona.data()?.phonePersonList?.find((t) => t.estadoActivo !== false)

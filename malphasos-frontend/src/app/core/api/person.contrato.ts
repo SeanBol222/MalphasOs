@@ -189,6 +189,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/persons/{personId}/emails/{emailId}/primary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Usar un correo para la cuenta
+         * @description Lo marca como principal y lo lleva a Keycloak. 409 si otra cuenta ya lo usa.
+         */
+        patch: operations["markPrimaryEmail"];
+        trace?: never;
+    };
     "/v1/api/persons/{personId}/phones": {
         parameters: {
             query?: never;
@@ -244,6 +264,8 @@ export interface components {
             estadoActivo?: boolean;
             /** Format: uuid */
             idCorreoPersona?: string;
+            /** @description Si es el correo de la cuenta en Keycloak (V40) */
+            principal?: boolean;
         };
         GlobalErrorResponse: {
             code?: string;
@@ -1450,6 +1472,84 @@ export interface operations {
         };
     };
     removeEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                personId: string;
+                /** @description Identificador del correo */
+                emailId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+        };
+    };
+    markPrimaryEmail: {
         parameters: {
             query?: never;
             header?: never;
