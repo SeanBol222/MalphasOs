@@ -1,0 +1,199 @@
+<!--
+  En escritorio la ventana sale pegada al pie de la barra lateral y oscurece el contenido, no la barra:
+  quien la abrió sigue viendo de dónde salió. En un teléfono ocupa la pantalla, encima del menú abierto,
+  y «Volver al menú» la cierra.
+-->
+<div
+  class="fixed inset-0 z-30 bg-ink/45 md:left-[15.5rem] print:hidden"
+  aria-hidden="true"
+  (click)="cerrar.emit()"
+></div>
+
+<section
+  class="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-paper text-ink md:inset-auto md:bottom-1 md:left-[calc(15.5rem+0.5rem)] md:max-h-[calc(100dvh-1rem)] md:w-[440px] md:border md:border-ink print:hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="titulo-ventana-usuario"
+  cdkTrapFocus
+  [cdkTrapFocusAutoCapture]="true"
+>
+  <div class="flex flex-col gap-2 bg-ink p-2 text-paper md:p-3">
+    <button
+      class="flex min-h-tactil items-center gap-1 self-start font-semibold md:hidden"
+      type="button"
+      (click)="cerrar.emit()"
+    >
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <path d="M15 6l-6 6 6 6" />
+      </svg>
+      Volver al menú
+    </button>
+
+    <div class="flex items-start gap-2">
+      <span
+        class="flex h-8 w-8 flex-none items-center justify-center bg-paper text-2xl font-extrabold text-ink"
+        aria-hidden="true"
+      >
+        {{ iniciales() }}
+      </span>
+      <div class="flex min-w-0 grow flex-col gap-0.5">
+        <h2 id="titulo-ventana-usuario" class="text-2xl leading-tight font-extrabold break-words">
+          {{ nombre() }}
+        </h2>
+        @if (sesion.usuario()) {
+          <span class="text-sm text-neutral-300">{{ sesion.usuario() }}</span>
+        }
+        @if (rol()) {
+          <span
+            class="mt-1 self-start border border-neutral-500 px-1 py-0.5 text-xs font-bold tracking-[0.14em] uppercase"
+            data-rol
+          >
+            {{ rol() }}
+          </span>
+        }
+      </div>
+      <button
+        class="-mt-1 -mr-1 hidden h-tactil w-tactil flex-none items-center justify-center md:flex"
+        type="button"
+        aria-label="Cerrar"
+        (click)="cerrar.emit()"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path d="M5 5l14 14M19 5L5 19" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  @if (hayError()) {
+    <div class="mx-2 mt-2 border-l-2 border-accent-700 bg-accent-100 p-2 md:mx-3" role="alert">
+      <p class="font-semibold">{{ mensajeDeError() }}</p>
+    </div>
+  }
+
+  @if (persona.isPending()) {
+    <p class="px-2 py-2 text-neutral-700 md:px-3" role="status">Cargando…</p>
+  } @else if (persona.data(); as ficha) {
+    <dl
+      class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-2 gap-y-1 border-b border-neutral-300 px-2 py-2 text-sm md:px-3"
+      data-datos
+    >
+      <dt class="text-neutral-700">Correo</dt>
+      <dd class="font-semibold break-all">{{ correo() || 'Sin registrar' }}</dd>
+      <dt class="text-neutral-700">Teléfono</dt>
+      <dd class="font-semibold">{{ telefono() || 'Sin registrar' }}</dd>
+      <dt class="text-neutral-700">Cédula</dt>
+      <dd class="font-semibold">{{ ficha.cedula }}</dd>
+    </dl>
+  } @else if (!persona.isError()) {
+    <p
+      class="border-b border-neutral-300 px-2 py-2 text-sm text-neutral-800 md:px-3"
+      data-sin-ficha
+    >
+      Su cuenta no tiene ficha de persona: se creó directamente en el sistema de acceso, así que no
+      hay datos que mostrar ni dónde guardar una firma.
+    </p>
+  }
+
+  @if (firmaInformes() && persona.data()) {
+    <section class="flex flex-col gap-2 p-2 md:p-3" aria-labelledby="titulo-firma-digital">
+      <div class="flex items-baseline gap-1">
+        <h3 id="titulo-firma-digital" class="text-xs font-bold tracking-[0.14em] uppercase">
+          Firma digital
+        </h3>
+        @if (firma.data(); as actual) {
+          <span class="ml-auto text-xs text-neutral-700">
+            Guardada el {{ fechaCorta(actual.actualizada) }}
+          </span>
+        }
+      </div>
+
+      @if (cambiando()) {
+        <app-lienzo-de-firma etiqueta="Área para dibujar su firma" (cambio)="alDibujar($event)" />
+        @if (faltaTrazo()) {
+          <p class="font-semibold text-accent-700">Dibuje su firma antes de guardarla.</p>
+        }
+        <div class="flex flex-wrap items-center gap-1">
+          <button
+            class="boton-primario min-h-tactil"
+            type="button"
+            [disabled]="guardado.isPending()"
+            (click)="guardar()"
+          >
+            {{ guardado.isPending() ? 'Guardando…' : 'Guardar firma' }}
+          </button>
+          <button class="boton-secundario min-h-tactil" type="button" (click)="cancelar()">
+            Cancelar
+          </button>
+        </div>
+        <p class="text-sm text-neutral-800">
+          Los informes ya cerrados conservan la firma con la que se cerraron.
+        </p>
+      } @else {
+        @if (firma.isPending()) {
+          <p class="text-neutral-700" role="status">Cargando…</p>
+        } @else if (firma.data(); as actual) {
+          <img
+            class="max-h-[120px] w-full border border-neutral-300 bg-white object-contain"
+            data-firma-actual
+            [src]="actual.imagen"
+            alt="Su firma guardada"
+          />
+        } @else {
+          <p class="text-neutral-800" data-sin-firma>
+            Todavía no tiene firma: los informes que cierre dejan la línea para firmar a mano.
+          </p>
+        }
+        @if (guardadaConExito()) {
+          <p class="font-semibold" role="status">Firma guardada.</p>
+        }
+        <p class="text-sm text-neutral-800">
+          Los informes que cierre la llevan en la línea del profesional de servicio. Cambiarla no
+          altera los informes ya cerrados.
+        </p>
+        <div>
+          <button class="boton-primario min-h-tactil" type="button" (click)="empezarACambiar()">
+            {{ firma.data() ? 'Cambiar firma' : 'Dibujar firma' }}
+          </button>
+        </div>
+      }
+    </section>
+  }
+
+  <div class="mt-auto border-t border-neutral-300 px-2 py-1 md:mt-0 md:px-3">
+    <button
+      class="flex min-h-tactil w-full items-center gap-1 font-semibold"
+      type="button"
+      (click)="salir()"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11" />
+      </svg>
+      Cerrar sesión
+    </button>
+  </div>
+</section>

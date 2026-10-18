@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import Keycloak from 'keycloak-js';
 import { KeycloakFalso } from '../../../testing/keycloak-falso';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { proveerSesionFalsa } from '../../../testing/keycloak-falso';
 import { proveerApiVacio } from '../../../testing/entorno';
@@ -73,15 +73,55 @@ describe('Armazón', () => {
     expect(destinos).not.toContain('Órdenes de trabajo');
   });
 
-  it('«Mi firma» está en el pie para quien cierra reportes, y no para quien solo lee', async () => {
-    // V38, 2026-10-17: la firma la copian los informes que se cierran, así que es de quien los cierra.
-    expect(
-      (await pintar('/inicio', ['report.write'])).querySelector('[data-mi-firma]'),
-    ).not.toBeNull();
-  });
+  describe('La ventana de la sesión', () => {
+    // 2026-10-17: el nombre al pie abre una ventana con los datos, la firma digital y cerrar sesión.
+    // Sustituye al enlace «Mi firma» y al botón de salir que vivían sueltos junto al nombre.
+    const botonDeUsuario = (raiz: HTMLElement) =>
+      raiz.querySelector('[data-boton-de-usuario]') as HTMLButtonElement;
+    const ventana = (raiz: HTMLElement) => raiz.querySelector('[role="dialog"]');
 
-  it('sin report.write no se ofrece «Mi firma»', async () => {
-    expect((await pintar('/inicio', ['report.read'])).querySelector('[data-mi-firma]')).toBeNull();
+    async function pulsar(boton: HTMLElement): Promise<void> {
+      boton.click();
+      await armazon.fixture.whenStable();
+      armazon.fixture.detectChanges();
+    }
+
+    it('el nombre es un botón que abre la ventana y lo dice', async () => {
+      const raiz = await pintar();
+
+      expect(botonDeUsuario(raiz).getAttribute('aria-expanded')).toBe('false');
+      expect(ventana(raiz)).toBeNull();
+
+      await pulsar(botonDeUsuario(raiz));
+
+      expect(botonDeUsuario(raiz).getAttribute('aria-expanded')).toBe('true');
+      expect(ventana(raiz)?.getAttribute('aria-modal')).toBe('true');
+    });
+
+    it('cerrarla devuelve el foco al nombre, que es de donde salió', async () => {
+      const raiz = await pintar();
+      await pulsar(botonDeUsuario(raiz));
+
+      const cerrar = ventana(raiz)!.querySelector(
+        'button[aria-label="Cerrar"]',
+      ) as HTMLButtonElement;
+      await pulsar(cerrar);
+
+      expect(ventana(raiz)).toBeNull();
+      expect(document.activeElement).toBe(botonDeUsuario(raiz));
+    });
+
+    it('ya no hay enlace suelto a «Mi firma» en el pie', async () => {
+      const raiz = await pintar('/inicio', ['report.write']);
+
+      expect(raiz.querySelector('a[href="/mi-firma"]')).toBeNull();
+    });
+
+    it('la dirección vieja de «Mi firma» lleva al inicio en vez de a una página que ya no existe', async () => {
+      await pintar('/mi-firma', ['report.write']);
+
+      expect(TestBed.inject(Router).url).toBe('/inicio');
+    });
   });
 
   describe('Los dos bloques del menú', () => {
@@ -127,8 +167,14 @@ describe('Armazón', () => {
 
     it('cerrar sesión le pide la salida a Keycloak', async () => {
       // No existia en ninguna pantalla hasta el 2026-10-10.
+      // Desde el 2026-10-17 vive dentro de la ventana de la sesión.
       const raiz = await pintar();
-      const boton = raiz.querySelector('button[aria-label="Cerrar sesión"]') as HTMLButtonElement;
+      (raiz.querySelector('[data-boton-de-usuario]') as HTMLButtonElement).click();
+      await armazon.fixture.whenStable();
+      armazon.fixture.detectChanges();
+      const boton = [...raiz.querySelectorAll('[role="dialog"] button')].find(
+        (b) => b.textContent?.trim() === 'Cerrar sesión',
+      ) as HTMLButtonElement;
 
       boton.click();
 

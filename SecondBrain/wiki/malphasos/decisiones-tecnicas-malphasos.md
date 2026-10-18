@@ -483,3 +483,23 @@ Revocan parte de la sección anterior el mismo día; las decisiones completas es
 - **MalphasOS no lleva datos de ninguna empresa.** Es un producto aparte de Bolívar Bioingeniería y va a
   ser de código abierto: la configuración de la empresa vive en un archivo ignorado que lee el backend,
   y el frontend la pide al API. Lo de MalphasOS —logo, colores, diseño— sí se queda.
+
+## La ventana de la sesión (2026-10-17)
+
+El nombre al pie de la barra lateral abre una ventana con los datos de quien tiene la sesión, **su firma
+digital** y cerrar sesión. Diseño aprobado por el usuario sobre una propuesta en tres pantallas.
+
+- **La firma deja de ser una página.** «Mi firma» era un enlace en letra pequeña junto al nombre; ahora
+  se ve y se cambia dentro de la ventana, con el lienzo en el mismo sitio. `/mi-firma` redirige al
+  inicio para no romper un enlace guardado.
+- **`GET /persons/me`**, nuevo en el backend: los datos de quien llama, sacados del token como la firma.
+  Hacía falta porque `GET /persons/{id}` exige `person.read` y **un representante no la tiene**: no
+  podía ver ni su propio correo. Pide `report.read`, la misma autoridad que la lectura de la firma y por
+  la misma razón —todo `GET` necesita una de lectura y esa la tienen los tres grupos—; como solo se lee
+  la propia fila, no abre nada ajeno. `SessionPerson` saca del token la persona para las dos rutas.
+- **Tres sesiones caben en la misma ventana.** Quien cierra informes ve su firma; un representante ve
+  sus datos y no la firma, que no necesita; el SuperUsuario **no tiene ficha** y lo dice, y la ventana
+  **no pide su firma**, porque su 404 se leería como «todavía no tiene firma» cuando no puede tenerla.
+- **Los datos son de solo lectura.** Editarlos sigue siendo cosa de «Personas», que es donde la
+  escalera de permisos decide quién toca a quién.
+

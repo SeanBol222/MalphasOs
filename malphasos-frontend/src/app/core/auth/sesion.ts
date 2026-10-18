@@ -23,6 +23,9 @@ export class Sesion {
   /** Nombre para mostrar. Cae al usuario si el token no trae nombre completo. */
   readonly nombre = computed(() => this.estado().nombre);
 
+  /** El nombre de usuario con el que entra, que no siempre coincide con el que se muestra. */
+  readonly usuario = computed(() => this.estado().usuario);
+
   /**
    * El identificador de quien esta dentro, que es tambien el de su fila en {@code persona}: el backend
    * da a cada persona el identificador que le asigna Keycloak. Es lo que permite pedir «mis ordenes»
@@ -66,6 +69,7 @@ export class Sesion {
       autenticado: this.keycloak.authenticated ?? false,
       autoridades: autoridadesDe(token),
       nombre: token?.['name'] ?? token?.['preferred_username'] ?? '',
+      usuario: (token?.['preferred_username'] as string | undefined) ?? '',
       identificador: (token?.['sub'] as string | undefined) ?? '',
     };
   }

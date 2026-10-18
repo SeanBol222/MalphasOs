@@ -1,8 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { EntradaDeNavegacion, GRUPOS_DE_NAVEGACION, NAVEGACION } from '../navegacion';
 import { Sesion } from '../auth/sesion';
+import { ETIQUETA_DE_TIPO_DE_PERSONA } from '../api/tipos';
+import { PersonaApi } from '../../features/person/persona-api';
+import { VentanaDeUsuario } from '../../features/person/ventana/ventana-de-usuario';
 
 /**
  * Los trazos del icono de cada destino de primer nivel, en una reticula de 24.
@@ -56,10 +67,15 @@ const ICONOS: Readonly<Record<string, readonly string[]>> = {
  * piezas y «catalogo» no es una pantalla, es el sitio donde estan. El desplegable es un boton con
  * {@code aria-expanded} y no un menu de CSS que se abre al pasar el raton: con el raton por encima no se
  * puede navegar con el teclado, y en un telefono no hay raton.
+ *
+ * <p><b>El nombre al pie abre la ventana de quien tiene la sesion</b> (2026-10-17): sus datos, su firma
+ * digital y cerrar sesion. Sustituye al enlace «Mi firma» y al boton de salir que vivian sueltos junto
+ * al nombre. La ventana es de {@code features/person} porque lee de ese modulo; el armazon solo decide
+ * cuando se abre y adonde vuelve el foco.
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, VentanaDeUsuario],
   templateUrl: './shell.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -86,6 +102,21 @@ export class Shell {
       entradas: this.navegacion().filter((entrada) => (entrada.grupo ?? 'operacion') === grupo.id),
     })).filter((grupo) => grupo.entradas.length > 0),
   );
+
+  /** La ficha de quien tiene la sesion: la misma consulta que la ventana, que la comparte por clave. */
+  private readonly persona = inject(PersonaApi).yo();
+
+  /** El tipo de persona bajo el nombre; vacio para una cuenta sin ficha. */
+  protected readonly rol = computed(() => {
+    const tipo = this.persona.data()?.tipoPersona;
+
+    return tipo ? ETIQUETA_DE_TIPO_DE_PERSONA[tipo] : '';
+  });
+
+  /** Si la ventana de la sesion esta abierta. */
+  protected readonly ventanaAbierta = signal(false);
+
+  private readonly botonDeUsuario = viewChild.required<ElementRef<HTMLElement>>('botonDeUsuario');
 
   /** Las iniciales del nombre de la sesion, para el cuadro junto a el. */
   protected readonly iniciales = computed(() =>
@@ -118,6 +149,16 @@ export class Shell {
   /** Al elegir un destino el menu del telefono se cierra: se abrio para ir a algun sitio. */
   protected cerrarMenu(): void {
     this.menuAbierto.set(false);
+  }
+
+  protected alternarVentana(): void {
+    this.ventanaAbierta.update((abierta) => !abierta);
+  }
+
+  /** Al cerrarla el foco vuelve al nombre, que es de donde salio: sin eso se pierde en el documento. */
+  protected cerrarVentana(): void {
+    this.ventanaAbierta.set(false);
+    this.botonDeUsuario().nativeElement.focus();
   }
 
   protected iconoDe(ruta: string): readonly string[] {
