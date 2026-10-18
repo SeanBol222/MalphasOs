@@ -11,6 +11,7 @@ import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { PersonaApi } from '../persona-api';
 import { ClienteApi } from '../../client/cliente-api';
+import { LARGO_MINIMO_DE_CONTRASENA } from '../contrasena';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
 
 /** Las cuatro altas que el API ofrece, cada una con su puerta y su autoridad. */
@@ -97,6 +98,7 @@ export class NuevaPersona {
   };
 
   protected readonly receta = computed(() => NuevaPersona.RECETAS[this.clase()]);
+  protected readonly largoMinimo = LARGO_MINIMO_DE_CONTRASENA;
 
   /** Si esta alta crea cuenta en Keycloak, que es lo que decide la mitad del formulario. */
   protected readonly conCuenta = computed(() => this.receta().oficio !== null);
@@ -183,7 +185,10 @@ export class NuevaPersona {
 
       if (conCuenta) {
         usuario.addValidators(Validators.required);
-        clave.addValidators([Validators.required, Validators.minLength(8)]);
+        clave.addValidators([
+          Validators.required,
+          Validators.minLength(LARGO_MINIMO_DE_CONTRASENA),
+        ]);
         primerCorreo?.addValidators([Validators.required, Validators.email]);
       } else {
         primerCorreo?.addValidators(Validators.email);

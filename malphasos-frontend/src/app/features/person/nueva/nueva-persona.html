@@ -121,11 +121,13 @@
       id="password"
       type="password"
       autocomplete="new-password"
-      minlength="8"
+      [attr.minlength]="largoMinimo"
       aria-required="true"
       formControlName="password"
     />
-    <p class="mt-1 text-neutral-700">Al menos ocho caracteres.</p>
+    <p class="mt-1 text-neutral-700">
+      Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo.
+    </p>
   }
 
   <h2 class="titulo-seccion mt-3">
