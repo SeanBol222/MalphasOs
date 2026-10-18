@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, Signal } from '@angular/core';
 import {
   injectMutation,
@@ -52,6 +52,25 @@ export class PersonaApi {
     return injectQuery(() => ({
       queryKey: PersonaApi.CLAVE,
       queryFn: () => firstValueFrom(this.http.get<Persona[]>(this.url)),
+      enabled: habilitada ? habilitada() : true,
+    }));
+  }
+
+  /**
+   * Los datos de quien tiene la sesión, por {@code /persons/me}: un representante no tiene
+   * {@code person.read} y no podría leerse por su identificador. <b>Nulo si la cuenta no tiene ficha</b>
+   * —el SuperUsuario, creado a mano en Keycloak—, que es un estado y no un fallo.
+   */
+  yo(habilitada?: Signal<boolean>) {
+    return injectQuery(() => ({
+      queryKey: [...PersonaApi.CLAVE, 'yo'] as const,
+      queryFn: () =>
+        firstValueFrom(this.http.get<Persona>(`${this.url}/me`)).catch((fallo: unknown) => {
+          if (fallo instanceof HttpErrorResponse && fallo.status === 404) {
+            return null;
+          }
+          throw fallo;
+        }),
       enabled: habilitada ? habilitada() : true,
     }));
   }

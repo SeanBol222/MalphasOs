@@ -115,9 +115,10 @@ export const routes: Routes = [
       {
         // La firma de quien tiene la sesión (V38, 2026-10-17): no es una entrada del menú sino del pie,
         // junto a su nombre. Guardarla pide report.write, la de quien cierra reportes.
+        // La firma vive desde el 2026-10-17 en la ventana de la sesion, que se abre desde el nombre al pie
+        // de la barra lateral. La ruta se queda para no romper un enlace guardado.
         path: 'mi-firma',
-        loadComponent: () => import('./features/person/firma/mi-firma').then((m) => m.MiFirma),
-        canActivate: [requiereAutoridad('report.write')],
+        redirectTo: 'inicio',
       },
       {
         // Las cuatro altas de persona son la misma pantalla con la clase en la ruta, como el alta de un

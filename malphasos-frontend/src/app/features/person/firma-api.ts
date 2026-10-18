@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, Signal } from '@angular/core';
 import {
   injectMutation,
   injectQuery,
@@ -22,8 +22,13 @@ export class FirmaApi {
 
   static readonly CLAVE = ['mi-firma'] as const;
 
-  /** La firma, o nulo si todavía no la ha guardado: el 404 aquí es un estado, no un fallo. */
-  consultar() {
+  /**
+   * La firma, o nulo si todavía no la ha guardado: el 404 aquí es un estado, no un fallo.
+   *
+   * <p>Admite una señal que la apaga: una cuenta sin ficha de persona también responde 404, y se
+   * leería como «todavía no tiene firma» cuando no puede tenerla.
+   */
+  consultar(habilitada?: Signal<boolean>) {
     return injectQuery(() => ({
       queryKey: FirmaApi.CLAVE,
       queryFn: () =>
@@ -33,6 +38,7 @@ export class FirmaApi {
           }
           throw fallo;
         }),
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 
