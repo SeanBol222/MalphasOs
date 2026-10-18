@@ -64,13 +64,15 @@ tabulares. El texto más pequeño es de 12 px (9 pt), que es el mínimo legible 
    país, proveedor, fecha y valor de compra.
 5. **Características técnicas**, cuadrícula de 4×2: tecnología, uso, alimentación, frecuencia,
    voltaje, potencia, corriente y específicas.
-6. **Protocolo preventivo** (lista numerada) y **cuidado y limpieza** (lista, con la limpieza diaria
-   en negrita), lado a lado.
+6. ~~**Protocolo preventivo** (lista numerada) y **cuidado y limpieza** (lista, con la limpieza diaria
+   en negrita), lado a lado.~~ **Pasaron a la página 2 el 2026-10-17**: ver abajo, «La hoja 1 no
+   cabía».
 7. Pie: código del documento, fecha de actualización y «Página 1 de 2».
 
 **Página 2 — la vida del equipo**
 
 1. **Banda oscura** estrecha: logotipo, número de hoja, equipo y serie.
+1b. **Protocolo preventivo** y **cuidado y limpieza**, lado a lado, desde el 2026-10-17.
 2. **Historial de servicio técnico**, tabla con fecha, tipo, **descripción y responsable** y
    **resultado**, y filas alternas grises. El resultado se marca con un cuadrado que se distingue
    **por la forma y no solo por el color** —relleno en tinta: operativo; hueco en rojo: con
@@ -200,6 +202,30 @@ cerradas, y un equipo real puede tener **cuarenta servicios**.
   página («2 de 3») **no** se puede calcular así, y o se omite o exige el PDF del servidor.
 - **Los fondos**: el navegador no imprime colores de fondo por defecto. La banda y las tarjetas
   necesitan `print-color-adjust: exact`.
+
+## La hoja 1 no cabía (2026-10-17)
+
+**El usuario vio que el PDF no se parecía a la pantalla, y tenía razón.** En pantalla la hoja 1 medía
+**1166 px** de alto contra los **1056** de una carta —tiene alto *mínimo* y crece, así que la pantalla no
+lo delataba—, y al imprimir lo que sobraba —el último paso del protocolo y el pie «Página 1»— salía solo
+en una página casi en blanco: **tres páginas en vez de dos**. Con un protocolo de **tres** pasos ya
+sobraban 110 px, de modo que un equipo real se desbordaría siempre.
+
+**Decidido por el usuario: el protocolo y el cuidado pasan a la hoja 2**, antes del historial. Son lo que
+crece; la hoja 1 queda con datos de tamaño fijo y mide exactamente una carta, y la hoja 2 ya sabía
+partirse —la cabecera de la tabla se repite y una fila no se corta—. Y en impresión el cuerpo lleva
+`box-decoration-break: clone`, para que una página de continuación no empiece pegada al borde del papel:
+la página no tiene márgenes, y sin eso el relleno solo estaba al principio de la hoja.
+
+**Cómo se comprobó, y cómo volver a hacerlo**: Chromium sin ventana manejado por su protocolo de
+depuración desde Node, sin instalar nada —entra con la cuenta de desarrollo, abre la hoja, guarda la
+captura de pantalla y el PDF con `printToPDF` y los valores por defecto del diálogo—, y `pdftoppm` para
+mirarlo. Antes: hojas de 816×1166 y 816×1056, **3 páginas**. Después: 816×1056 las dos, **2 páginas**. Y
+con un protocolo de nueve pasos y dieciocho servicios, la hoja 2 en **tres páginas** bien partidas.
+
+**Lo que sigue abierto**, en [[deuda-tecnica-y-riesgos]]: el pie de la hoja 2 dice «Página 2» aunque se
+parta en varias, y la hoja 1 todavía puede desbordarse con una definición o unas características
+específicas muy largas —el límite de caracteres que esta nota pedía más arriba no se ha puesto—.
 
 ## El QR
 

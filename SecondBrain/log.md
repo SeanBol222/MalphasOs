@@ -2196,3 +2196,12 @@ todas muertas; backend **1512** en 114 clases, frontend **746**.
 [[deuda-tecnica-y-riesgos]] queda en **98 filas, 45 tachadas, 53 abiertas**. La recuperación por correo
 queda fuera, decidido por el usuario.
 
+## [2026-10-17] ingest | la hoja de vida impresa no se parecía a la pantalla
+
+El usuario lo vio y era cierto: la hoja 1 no cabía en una carta —medía 1166 px de alto—, la pantalla no
+lo delataba porque la hoja crece, y el PDF salía con una página casi en blanco. El protocolo y el cuidado
+pasan a la hoja 2, decidido por el usuario, y las páginas de continuación conservan su margen.
+Comprobado con Chromium sin ventana, comparando la captura con el PDF, también con un protocolo y un
+historial largos. Ver [[hoja-de-vida-formato-impreso]]; [[deuda-tecnica-y-riesgos]] queda en **99 filas,
+45 tachadas, 54 abiertas**.
+

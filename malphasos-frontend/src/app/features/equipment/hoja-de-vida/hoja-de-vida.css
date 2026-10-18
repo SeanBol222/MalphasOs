@@ -600,6 +600,16 @@ ol.hv-lista {
     border-bottom: 1px solid var(--hv-gris-linea);
   }
 
+  /*
+   * Si la hoja 2 no cabe en una carta —un protocolo largo, un historial largo— el navegador la parte en
+   * varias páginas. La página no tiene márgenes, así que sin esto la continuación empezaría pegada al
+   * borde del papel, donde una impresora no llega: el relleno del cuerpo se repite en cada trozo.
+   */
+  .hv-cuerpo {
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
   /* Si el historial sigue en otra hoja, la cabecera de la tabla se repite y una fila no se parte. */
   .hv-tabla thead {
     display: table-header-group;
