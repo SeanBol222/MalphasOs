@@ -297,6 +297,7 @@ erDiagram
         uuid k_identificador FK "ANULABLE - deuda"
         varchar n_correo_persona
         boolean b_estado_activo
+        boolean b_principal "el de la cuenta de Keycloak, desde V40"
     }
     telefono_persona {
         uuid k_id_telefono_persona PK
@@ -306,9 +307,12 @@ erDiagram
     }
 ```
 
-**Dos deudas propias viven aquí**: el dueño es **anulable** en las dos tablas hijas —al contrario que
-en los contactos del cliente—, y **ningún correo está marcado como principal**, que es lo que impide
-sincronizar el correo con Keycloak al editar. Corregir cualquiera de las dos exige su propia migración.
+**Una deuda propia vive aquí**: el dueño es **anulable** en las dos tablas hijas —al contrario que en
+los contactos del cliente—, y corregirlo exige su propia migración. (Eran **dos** hasta el
+**2026-10-17**: la otra era que **ningún correo estaba marcado como principal**, y la cerró `V40` con
+`b_principal`, un `CHECK` que impide un principal retirado y una **restricción de exclusión diferida**
+que deja uno solo por persona —ver la sección de los índices parciales para por qué no es un índice—.
+El valor no lo rellena la migración sino un conciliador al arrancar, que le pregunta a Keycloak.)
 
 ## `client` — 7 tablas
 
@@ -382,7 +386,6 @@ erDiagram
         varchar t_uso "V15"
         varchar t_limpieza_cotidiana "V15"
         bigint m_valor_unitario_mantenimiento
-        varchar t_formato_reporte "MP0, MP1 o MP2 - V32"
         boolean b_estado_activo
     }
     equipo {
@@ -728,11 +731,24 @@ retiró, de modo que reconfigurar hacia atrás sería imposible.
 
 **Y cobran un precio**: Hibernate vacía los `INSERT` antes que los `UPDATE`, así que
 sustituir una fila activa por otra equivalente choca contra el índice. Un índice **parcial** no se
-puede declarar diferido —`DEFERRABLE` es de las restricciones, y una restricción no admite `WHERE`—,
-así que el orden se impone en el adaptador con un `saveAndFlush` intermedio —o, en la asignación de
+puede declarar diferido —`DEFERRABLE` es de las restricciones, y una restricción `UNIQUE` no admite
+`WHERE`—, así que el orden se impone en el adaptador con un `saveAndFlush` intermedio —o, en la asignación de
 protocolos del 2026-10-10, con SQL en dos pasos—. Lo pagaron dos módulos:
 `report` el 2026-09-27 y `equipment` el 2026-10-03, donde llevaba **latente** porque ninguna prueba lo
 ejercía. Ver [[stack-spring-boot-4-particularidades]].
+
+**Corregido el 2026-10-17: había una salida que esta nota no veía.** Decía que «una restricción no
+admite `WHERE`», y eso es cierto de `UNIQUE` pero **no de `EXCLUDE`**: una restricción de exclusión
+admite `WHERE` **y** `DEFERRABLE INITIALLY DEFERRED`, y con `USING btree (col WITH =)` dice lo mismo que
+un índice único parcial. `V40` la usa para el correo principal —`EX_correo_principal_por_persona`—,
+porque cambiar de principal son dos `UPDATE` en el mismo flush y Hibernate no garantiza su orden: diferida,
+se comprueba al confirmar. **Hay una prueba que lo demuestra quitando el `DEFERRABLE`**, y su primera
+versión no lo demostraba: con el correo nuevo detrás en la lista Hibernate actualizaba primero el viejo y
+pasaba igual sin diferir. Los nueve índices de arriba podrían migrarse a esta forma; no se ha hecho.
+
+**Y otra corrección del mismo día**, que el guion de esta nota cazó al volver a pasarlo: el diagrama de
+`equipment` seguía dibujando `tipo_equipo.t_formato_reporte`, que `V33` retiró el 2026-10-16 al
+abandonar los formatos `MPx`. Llevaba un día caducada, y nadie había vuelto a correr el guion.
 
 ## Lo que el esquema **no** dice
 
