@@ -43,6 +43,9 @@ app:
     ciudad: Ciudad de Ejemplo
     movil: 300 000 0000
     correo: contacto@empresa.example
+  identity:
+    # No hay Keycloak en las pruebas: la conciliación se prueba con dobles, no al arrancar el contexto.
+    reconcile-primary-email: false
 
 keycloak:
   admin:

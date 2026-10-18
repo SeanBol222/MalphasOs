@@ -77,6 +77,10 @@ app:
   # resuelve su logo.
   empresa:
     directorio: ${MALPHASOS_CONFIG_DIR:../config}
+  identity:
+    # Al arrancar, marca el correo de la cuenta en las fichas que no lo tienen, preguntando a Keycloak
+    # (V40, 2026-10-17). Tras la primera vez no hace ninguna llamada.
+    reconcile-primary-email: ${APP_RECONCILE_PRIMARY_EMAIL:true}
 
 # Cliente administrativo de Keycloak (Admin API), para crear usuarios y asignar roles.
 # El cliente se construye sin conectarse: el bean existe aunque Keycloak no este disponible, y solo

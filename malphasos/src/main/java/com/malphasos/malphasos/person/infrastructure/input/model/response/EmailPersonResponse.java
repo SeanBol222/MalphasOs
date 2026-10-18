@@ -7,5 +7,9 @@ import lombok.Builder;
 /** Correo de una persona tal como se devuelve al cliente. */
 @Builder
 @Schema(name = "EmailPersonResponse")
-public record EmailPersonResponse(UUID idCorreoPersona, String correoPersona, boolean estadoActivo) {
+public record EmailPersonResponse(
+        UUID idCorreoPersona,
+        String correoPersona,
+        boolean estadoActivo,
+        @Schema(description = "Si es el correo de la cuenta en Keycloak (V40)") boolean principal) {
 }

@@ -39,4 +39,8 @@ public class EmailPersonEntity {
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo = true;
+
+    /** Si es el correo de la cuenta (V40). La restricción de exclusión que lo hace único es diferida. */
+    @Column(name = "b_principal", nullable = false)
+    private boolean principal;
 }

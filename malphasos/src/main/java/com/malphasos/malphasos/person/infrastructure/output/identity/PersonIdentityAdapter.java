@@ -4,6 +4,7 @@ import com.malphasos.malphasos.person.application.model.identity.PersonIdentityP
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityRequest;
 import com.malphasos.malphasos.person.application.ports.output.PersonIdentityPort;
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
@@ -13,6 +14,7 @@ import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import java.util.Optional;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -101,6 +103,38 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
             user.setFirstName(profile.firstName());
             user.setLastName(profile.lastName());
         });
+    }
+
+    /**
+     * Un 409 aquí no es «el usuario ya existe», que es lo que significa al crearlo: es que otra cuenta
+     * ya tiene ese correo, y quien llama necesita saberlo así para decirlo así.
+     */
+    @Override
+    public void updateUserEmail(String userId, String email) {
+        try {
+            modifyUser(userId, "cambiar el correo del usuario " + userId, user -> user.setEmail(email));
+        } catch (KeycloakUserAlreadyExistsException otraCuentaLoUsa) {
+            throw new KeycloakEmailInUseException(
+                    "Otra cuenta ya usa el correo " + email, otraCuentaLoUsa);
+        }
+    }
+
+    @Override
+    public Optional<String> findUserEmail(String userId) {
+        try {
+            return Optional.ofNullable(
+                    keycloakClient.realm(realm).users().get(userId).toRepresentation().getEmail());
+
+        } catch (ProcessingException | WebApplicationException e) {
+            RuntimeException traducido = translateClientFailure(e, "leer el usuario " + userId);
+            if (traducido instanceof KeycloakUserNotFoundException) {
+                return Optional.empty();
+            }
+            throw traducido;
+
+        } catch (RuntimeException e) {
+            throw new KeycloakConnectionException("No se pudo leer el usuario " + userId + " en Keycloak", e);
+        }
     }
 
     /**

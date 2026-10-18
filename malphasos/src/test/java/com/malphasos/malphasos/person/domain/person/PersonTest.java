@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.malphasos.malphasos.person.domain.exception.PrimaryEmailRemovalException;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -165,5 +166,72 @@ class PersonTest {
         assertThat(person.getEmailPersonList())
                 .singleElement()
                 .satisfies(email -> assertThat(email.isEstadoActivo()).isTrue());
+    }
+
+    // --- El correo de la cuenta (V40, 2026-10-17) -------------------------------------------
+
+    private static Person conDosCorreos() {
+        Person persona = Person.builder().tipoPersona(PersonType.ENGINEER).build();
+        persona.addEmail(EmailPerson.builder().idCorreoPersona(UUID.randomUUID())
+                .correoPersona("a@x.local").estadoActivo(true).principal(true).build());
+        persona.addEmail(EmailPerson.builder().idCorreoPersona(UUID.randomUUID())
+                .correoPersona("b@x.local").estadoActivo(true).build());
+        return persona;
+    }
+
+    @Test
+    @DisplayName("marcar un correo como el de la cuenta desmarca el que lo era: solo hay uno")
+    void unSoloPrincipal() {
+        Person persona = conDosCorreos();
+        UUID segundo = persona.getEmailPersonList().get(1).getIdCorreoPersona();
+
+        persona.markPrimaryEmail(segundo);
+
+        assertThat(persona.getEmailPersonList()).filteredOn(EmailPerson::isPrincipal)
+                .singleElement()
+                .extracting(EmailPerson::getIdCorreoPersona)
+                .isEqualTo(segundo);
+    }
+
+    @Test
+    @DisplayName("un correo retirado no puede ser el de la cuenta")
+    void retiradoNoEsPrincipal() {
+        Person persona = conDosCorreos();
+        EmailPerson segundo = persona.getEmailPersonList().get(1);
+        segundo.setEstadoActivo(false);
+
+        assertThatThrownBy(() -> persona.markPrimaryEmail(segundo.getIdCorreoPersona()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(persona.getEmailPersonList().getFirst().isPrincipal()).isTrue();
+    }
+
+    @Test
+    @DisplayName("el correo de la cuenta no se retira sin elegir otro antes")
+    void principalNoSeRetira() {
+        Person persona = conDosCorreos();
+        EmailPerson primero = persona.getEmailPersonList().getFirst();
+
+        assertThatThrownBy(() -> persona.removeEmail(primero.getIdCorreoPersona()))
+                .isInstanceOf(PrimaryEmailRemovalException.class);
+        assertThat(primero.isEstadoActivo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("los demás correos se retiran como siempre")
+    void otroSeRetira() {
+        Person persona = conDosCorreos();
+        EmailPerson segundo = persona.getEmailPersonList().get(1);
+
+        persona.removeEmail(segundo.getIdCorreoPersona());
+
+        assertThat(segundo.isEstadoActivo()).isFalse();
+    }
+
+    @Test
+    @DisplayName("un encargado no accede al sistema; los demás tipos sí")
+    void quienAccede() {
+        assertThat(Person.builder().tipoPersona(PersonType.MANAGER).build().hasAccess()).isFalse();
+        assertThat(Person.builder().tipoPersona(PersonType.CEO_CLIENT).build().hasAccess()).isTrue();
+        assertThat(Person.builder().tipoPersona(PersonType.ENGINEER).build().hasAccess()).isTrue();
     }
 }

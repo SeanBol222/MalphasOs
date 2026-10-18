@@ -372,6 +372,11 @@ public class PersonService implements PersonServicePort {
         return personPersistencePort.save(person);
     }
 
+    /**
+     * Corrige un correo. Si es el de la cuenta, la corrección llega también a Keycloak, y antes de
+     * guardar: si Keycloak la rechaza —otra cuenta ya lo usa— no se guarda nada y los dos sistemas
+     * siguen de acuerdo.
+     */
     @Override
     @Transactional
     public Person updateEmail(UUID personId, UUID emailId, EmailPerson email) {
@@ -380,9 +385,52 @@ public class PersonService implements PersonServicePort {
         person.getEmailPersonList().stream()
                 .filter(e -> e.getIdCorreoPersona().equals(emailId))
                 .findFirst()
-                .ifPresent(e -> e.setCorreoPersona(email.getCorreoPersona()));
+                .ifPresent(e -> {
+                    boolean cambia = !email.getCorreoPersona().equals(e.getCorreoPersona());
+                    e.setCorreoPersona(email.getCorreoPersona());
+                    if (e.isPrincipal() && e.isEstadoActivo() && cambia) {
+                        propagateEmail(person, email.getCorreoPersona());
+                    }
+                });
 
         return personPersistencePort.save(person);
+    }
+
+    /**
+     * Cambia el correo de la cuenta (V40, 2026-10-17). En el mismo orden que la edición: primero la
+     * regla, después Keycloak, al final la base.
+     *
+     * <p>Un encargado no tiene cuenta, y marcarle un principal sería afirmar algo que no existe: se
+     * rechaza. Una persona con acceso cuya cuenta no aparece en Keycloak —borrada a mano— sí se marca:
+     * la ficha es la que manda, y el conciliador lo deja dicho en el log.
+     */
+    @Override
+    @Transactional
+    public Person markPrimaryEmail(UUID personId, UUID emailId) {
+        Person person = findOrFail(personId);
+
+        if (!person.hasAccess()) {
+            throw new IllegalArgumentException(
+                    "Un encargado no tiene cuenta en el sistema: ninguno de sus correos es el de una cuenta");
+        }
+
+        EmailPerson elegido = person.markPrimaryEmail(emailId);
+        propagateEmail(person, elegido.getCorreoPersona());
+
+        return personPersistencePort.save(person);
+    }
+
+    /** Como {@link #propagateProfile}: que la persona no tenga cuenta no es un error. */
+    private void propagateEmail(Person person, String correo) {
+        try {
+            personIdentityPort.updateUserEmail(person.getIdentificador().toString(), correo);
+
+        } catch (KeycloakUserNotFoundException sinCuenta) {
+            log.warn(
+                    "La persona {} no tiene usuario en el proveedor de identidad; su correo principal "
+                            + "solo cambia en la base de datos.",
+                    person.getIdentificador());
+        }
     }
 
     @Override
@@ -444,13 +492,7 @@ public class PersonService implements PersonServicePort {
                 // El original recibia este dato en la peticion y nunca lo trasladaba a la persona.
                 .segundoTipoPersona(request.segundoTipoPersona())
                 .estadoActivo(true)
-                .emailPersonList(listaOVacia(request.emailPersonList()).stream()
-                        .map(email -> EmailPerson.builder()
-                                .idCorreoPersona(UUID.randomUUID())
-                                .correoPersona(email.correoPersona())
-                                .estadoActivo(true)
-                                .build())
-                        .collect(Collectors.toCollection(ArrayList::new)))
+                .emailPersonList(correosDeLaCuenta(request))
                 .phonePersonList(listaOVacia(request.phonePersonList()).stream()
                         .map(phone -> PhonePerson.builder()
                                 .idTelefonoPersona(UUID.randomUUID())
@@ -459,6 +501,27 @@ public class PersonService implements PersonServicePort {
                                 .build())
                         .collect(Collectors.toCollection(ArrayList::new)))
                 .build();
+    }
+
+    /**
+     * Los correos de un alta con cuenta, con el primero marcado como el de la cuenta (V40): es el
+     * mismo que {@link #identityRequestFrom} manda a Keycloak, así que los dos sistemas empiezan de
+     * acuerdo.
+     */
+    private List<EmailPerson> correosDeLaCuenta(PersonUseCaseRequest request) {
+        List<EmailPerson> correos = listaOVacia(request.emailPersonList()).stream()
+                .map(email -> EmailPerson.builder()
+                        .idCorreoPersona(UUID.randomUUID())
+                        .correoPersona(email.correoPersona())
+                        .estadoActivo(true)
+                        .build())
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        if (!correos.isEmpty()) {
+            correos.get(0).setPrincipal(true);
+        }
+
+        return correos;
     }
 
     /**

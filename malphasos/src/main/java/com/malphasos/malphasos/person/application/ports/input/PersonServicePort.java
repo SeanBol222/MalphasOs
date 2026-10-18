@@ -53,6 +53,9 @@ public interface PersonServicePort {
     /** Desactiva el correo sin borrarlo. */
     Person removeEmail(UUID personId, UUID emailId);
 
+    /** Hace de ese correo el de la cuenta y lo lleva a Keycloak (V40). */
+    Person markPrimaryEmail(UUID personId, UUID emailId);
+
     /** Desactiva el teléfono sin borrarlo. */
     Person removePhone(UUID personId, UUID phoneId);
 }
