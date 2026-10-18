@@ -4,7 +4,7 @@ description: Como MalphasOS acota lo que un representante legal puede leer, el a
 tags: [malphasos, seguridad, permisos, arquitectura, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/shared/application/model/ReadScope.java
 estado: estable
-updated: 2026-10-04
+updated: 2026-10-17
 ---
 
 # El filtrado por dueño
@@ -137,6 +137,33 @@ lectura de un área o de un reporte pasaría a costar una consulta extra para to
 - **`findAll()` de sedes y de áreas** siguen en sus puertos de entrada **sin acotar y sin llamante**:
   ninguna ruta los expone y nadie los invoca. Exponerlos sin acotarlos sería un agujero, así que
   conviene borrarlos o acotarlos antes de que alguien los use.
+
+## El hueco que nadie vio en trece días: nombrar al representante
+
+**Corregido el 2026-10-17, antes del tag `v1.0.0`.** Esta nota daba el filtrado por construido, y lo
+estaba en el servidor; pero **ninguna pantalla nombraba a nadie representante de un cliente**. El alta
+de «Personas» creaba la persona y su cuenta sin preguntar de qué cliente era, y la ficha del cliente
+solo enlazaba a esa alta. `POST /clients/{id}/representatives/{idPersona}` no tenía llamante. Una cuenta
+de cliente creada desde la aplicación **entraba y no veía nada**: sin fuga, pero sin uso. Lo destapó la
+pregunta del usuario —«¿ya está que haya un usuario para un cliente que vea únicamente lo suyo?»—, no
+una prueba: las del filtrado estuban el nombramiento.
+
+Ahora la ficha del cliente **nombra y retira**, y el alta entrada desde ella llega con `?cliente=` y lo
+nombra al terminar. Tres decisiones:
+
+- **Se ofrece nombrar solo a `CEO_CLIENT` activos.** El servidor admite a cualquier persona, pero el
+  alcance solo se acota a ese tipo: un ingeniero nombrado no ganaría ni perdería nada, y la ficha diría
+  algo que no significa lo que parece.
+- **Hace falta `client.write` y `person.read`** para tocar la lista, y las dos más `person.write` para
+  registrar uno nuevo desde la ficha: registrar sin poder nombrar dejaría otra cuenta vacía.
+- **Alta y nombramiento son dos llamadas sin transacción.** Si la segunda falla, la persona ya existe:
+  la pantalla lo dice, enlaza la ficha y **no deja reenviar el formulario**, que crearía a la misma
+  persona dos veces.
+
+**Verificado en vivo** contra la pila de desarrollo, con un representante y un segundo cliente
+inventados y borrados después: sin nombrar ve **0** clientes; nombrado, ve el suyo y sus 5 órdenes, la
+ficha del otro responde **404**, editar su cliente **403** y listar personas **403**; retirado, vuelve a
+**0** —en el acto, con un token nuevo—. Diez mutaciones sobre las pantallas, diez muertas.
 
 ## Cómo se verificó
 

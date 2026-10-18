@@ -2112,3 +2112,21 @@ una prueba de contenido no ve y una de páginas sí**.
 
 **Tocadas**: [[hoja-de-ruta-producto]], [[deuda-tecnica-y-riesgos]], [[index]]; y el `CONVENCIONES.md` de
 la raíz —el estado, las migraciones hasta `V39`, las cifras, el módulo `company`, que faltaba en su tabla—.
+
+## [2026-10-17] ingest | el representante de cliente, nombrado desde la pantalla
+
+Revisando antes del tag, el usuario preguntó si ya había un usuario de cliente que viera solo lo suyo.
+En el servidor sí, desde el 2026-10-04; en la pantalla **no se podía nombrar a nadie representante de
+un cliente**, así que una cuenta de cliente creada desde la aplicación entraba y no veía nada. Se cerró
+en el frontend sin tocar el backend: la ficha del cliente nombra y retira, y el alta de representante
+entrada desde ella llega con `?cliente=` y lo nombra al terminar. Nueve pruebas, diez mutaciones
+muertas, y verificado en vivo con un representante y un cliente inventados, borrados después.
+
+**Y apareció otro defecto al probar**: el alta de una persona responde 500 si el cuerpo no trae
+`phonePersonList`, que el contrato declara opcional. El frontend manda siempre la lista y no lo paga;
+queda abierto en su propia fila.
+
+**Tocadas**: [[filtrado-por-dueno]] —con una sección corregida: daba el filtrado por construido sin
+decir que nadie podía nombrar al representante—, [[deuda-tecnica-y-riesgos]] —97 filas, 44 tachadas,
+53 abiertas—, [[index]] y el `CONVENCIONES.md` de la raíz.
+
