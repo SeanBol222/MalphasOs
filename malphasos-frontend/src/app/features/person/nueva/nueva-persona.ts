@@ -1,7 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { PersonaApi } from '../persona-api';
+import { ClienteApi } from '../../client/cliente-api';
 import { detallesDe, traducirError } from '../../../core/errores/traducir';
 
 /** Las cuatro altas que el API ofrece, cada una con su puerta y su autoridad. */
@@ -32,6 +41,12 @@ interface Receta {
  * errores: «ese nombre de usuario ya existe» se arregla cambiándolo, y «no se pudo contactar con el
  * sistema de acceso» no se arregla tocando el formulario. El catálogo de errores los distingue, así que
  * aquí basta con enseñar lo que traduce.
+ *
+ * <p><b>Un representante se registra para un cliente.</b> Entrando desde la ficha del cliente, la
+ * ruta trae {@code ?cliente=} y, creada la persona, se la nombra representante de ese cliente: sin
+ * eso la cuenta entra y no ve nada, porque el filtrado por dueño acota sus lecturas a los clientes
+ * que representa. Son dos llamadas sin transacción, y si la segunda falla la persona ya existe: se
+ * dice así y se enlaza la ficha, en lugar de dejar el formulario listo para crearla otra vez.
  */
 @Component({
   selector: 'app-nueva-persona',
@@ -43,7 +58,11 @@ export class NuevaPersona {
   /** Lo pone la ruta, no el usuario: cada clase de alta tiene su propia dirección. */
   readonly clase = input.required<ClaseDeAlta>();
 
+  /** El cliente del que será representante, si se entró desde su ficha. Llega por `?cliente=`. */
+  readonly cliente = input<string>();
+
   private readonly api = inject(PersonaApi);
+  private readonly clientes = inject(ClienteApi);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
@@ -86,6 +105,16 @@ export class NuevaPersona {
   protected readonly altaDeIngeniero = this.api.registrarConCuenta('engineers');
   protected readonly altaDeAdministrador = this.api.registrarConCuenta('admins');
   protected readonly altaDeRepresentante = this.api.registrarConCuenta('ceo-clients');
+  protected readonly nombramiento = this.clientes.nombrarRepresentante();
+
+  /** Para qué cliente es el alta: solo cuenta en la de representante. */
+  protected readonly idCliente = computed(() =>
+    this.clase() === 'representante' ? (this.cliente() ?? '') : '',
+  );
+  protected readonly clienteDelAlta = this.clientes.detalle(this.idCliente);
+
+  /** La persona ya creada cuyo nombramiento falló: el formulario no debe volver a enviarse. */
+  protected readonly sinNombrar = signal(false);
 
   protected readonly formulario = this.fb.nonNullable.group({
     cedula: ['', [Validators.required, Validators.maxLength(10)]],
@@ -114,7 +143,9 @@ export class NuevaPersona {
       this.altaSinCuenta.isPending() ||
       this.altaDeIngeniero.isPending() ||
       this.altaDeAdministrador.isPending() ||
-      this.altaDeRepresentante.isPending(),
+      this.altaDeRepresentante.isPending() ||
+      this.nombramiento.isPending() ||
+      this.sinNombrar(),
   );
 
   protected readonly hayError = computed(
@@ -226,9 +257,33 @@ export class NuevaPersona {
         this.altaDeAdministrador.mutate(conCuenta, alVolver);
         break;
       case 'representante':
-        this.altaDeRepresentante.mutate(conCuenta, alVolver);
+        this.altaDeRepresentante.mutate(conCuenta, {
+          onSuccess: (persona) => this.nombrarEnSuCliente(persona.identificador),
+        });
         break;
     }
+  }
+
+  /**
+   * Nombra a la persona recién creada representante del cliente de la ruta, y vuelve a su ficha.
+   * Sin cliente en la ruta, vuelve al listado de personas como las demás altas.
+   */
+  private nombrarEnSuCliente(idPersona: string | undefined): void {
+    const idCliente = this.idCliente();
+
+    if (!idCliente || !idPersona) {
+      void this.router.navigate(['/personas']);
+
+      return;
+    }
+
+    this.nombramiento.mutate(
+      { id: idCliente, idPersona },
+      {
+        onSuccess: () => void this.router.navigate(['/clientes', idCliente]),
+        onError: () => this.sinNombrar.set(true),
+      },
+    );
   }
 
   private fallo(): unknown {

@@ -101,9 +101,45 @@ export class DetalleCliente {
     return ids.map((id) => {
       const persona = personas.get(id);
 
-      return persona ? nombreCompleto(persona) : 'Representante';
+      return { id, nombre: persona ? nombreCompleto(persona) : 'Representante' };
     });
   });
+
+  /**
+   * Quién puede cambiar los representantes: hace falta escribir sobre el cliente y poder leer
+   * personas, porque nombrar es elegir a alguien de una lista.
+   */
+  protected readonly nombraRepresentantes = computed(
+    () => this.sesion.puede('client.write') && this.vePersonas(),
+  );
+
+  /**
+   * A quién se puede nombrar: los representantes de cliente activos que aún no lo son de este.
+   *
+   * <p><b>Solo {@code CEO_CLIENT}</b>, aunque el servidor admite a cualquier persona: el filtrado por
+   * dueño solo acota a ese tipo, así que nombrar a un ingeniero no le daría ni le quitaría nada y
+   * dejaría en la ficha un dato que no significa lo que parece.
+   */
+  protected readonly candidatos = computed(() => {
+    const ya = new Set(this.cliente.data()?.representantes ?? []);
+
+    return (this.personas.data() ?? [])
+      .filter(
+        (p) =>
+          p.tipoPersona === 'CEO_CLIENT' &&
+          p.estadoActivo !== false &&
+          !!p.identificador &&
+          !ya.has(p.identificador),
+      )
+      .map((p) => ({ id: p.identificador!, nombre: nombreCompleto(p) }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  });
+
+  protected readonly nombramiento = this.api.nombrarRepresentante();
+  protected readonly retiroDeRepresentante = this.api.retirarRepresentante();
+  protected readonly representanteElegido = inject(FormBuilder).nonNullable.control('', [
+    Validators.required,
+  ]);
 
   protected readonly baja = this.api.retirar();
   protected readonly altaDeCorreo = this.api.agregarCorreo();
@@ -132,6 +168,8 @@ export class DetalleCliente {
     traducirError(
       this.cliente.error() ??
         this.baja.error() ??
+        this.nombramiento.error() ??
+        this.retiroDeRepresentante.error() ??
         this.altaDeCorreo.error() ??
         this.bajaDeCorreo.error() ??
         this.altaDeTelefono.error() ??
@@ -144,6 +182,8 @@ export class DetalleCliente {
     () =>
       this.cliente.isError() ||
       this.baja.isError() ||
+      this.nombramiento.isError() ||
+      this.retiroDeRepresentante.isError() ||
       this.altaDeCorreo.isError() ||
       this.bajaDeCorreo.isError() ||
       this.altaDeTelefono.isError() ||
@@ -199,6 +239,23 @@ export class DetalleCliente {
       { id: this.id(), valor: this.telefonoNuevo.value },
       { onSuccess: () => this.telefonoNuevo.reset() },
     );
+  }
+
+  protected nombrar(): void {
+    if (this.representanteElegido.invalid) {
+      this.representanteElegido.markAsTouched();
+
+      return;
+    }
+
+    this.nombramiento.mutate(
+      { id: this.id(), idPersona: this.representanteElegido.value },
+      { onSuccess: () => this.representanteElegido.reset() },
+    );
+  }
+
+  protected retirarRepresentante(idPersona: string): void {
+    this.retiroDeRepresentante.mutate({ id: this.id(), idPersona });
   }
 
   protected quitarCorreo(idContacto: string): void {

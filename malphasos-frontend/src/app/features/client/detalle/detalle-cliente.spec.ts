@@ -462,7 +462,10 @@ describe('Ficha de un cliente', () => {
       expect(texto()).toContain('Carolina Vélez');
       // El otro representante no está en la lista de personas: no se inventa su nombre.
       expect(texto()).toContain('Representante');
-      expect(raiz().querySelector('a[href="/personas/nueva/representante"]')).not.toBeNull();
+      // El alta lleva el cliente, para nombrar a la persona al crearla.
+      expect(
+        raiz().querySelector(`a[href="/personas/nueva/representante?cliente=${ID}"]`),
+      ).not.toBeNull();
     });
 
     it('sin equipment.read ni person.read no pide ni pinta lo que no puede leer', async () => {
@@ -471,7 +474,116 @@ describe('Ficha de un cliente', () => {
       expect(cifra('Equipos instalados')).toBeUndefined();
       expect(http.match((r) => r.url === URL_CONTEOS)).toHaveLength(0);
       expect(http.match(URL_PERSONAS)).toHaveLength(0);
-      expect(raiz().querySelector('a[href="/personas/nueva/representante"]')).toBeNull();
+      expect(raiz().querySelector('a[href^="/personas/nueva/representante"]')).toBeNull();
+    });
+  });
+
+  describe('Sus representantes, que deciden qué ve cada cuenta del cliente', () => {
+    const PERSONAS = [
+      {
+        identificador: 'p1',
+        primerNombre: 'Carolina',
+        primerApellido: 'Vélez',
+        tipoPersona: 'CEO_CLIENT',
+        estadoActivo: true,
+      },
+      {
+        identificador: 'p3',
+        primerNombre: 'Andrés',
+        primerApellido: 'Mora',
+        tipoPersona: 'CEO_CLIENT',
+        estadoActivo: true,
+      },
+      {
+        identificador: 'p4',
+        primerNombre: 'Iván',
+        primerApellido: 'Ruiz',
+        tipoPersona: 'ENGINEER',
+        estadoActivo: true,
+      },
+      {
+        identificador: 'p5',
+        primerNombre: 'Lucía',
+        primerApellido: 'Paz',
+        tipoPersona: 'CEO_CLIENT',
+        estadoActivo: false,
+      },
+    ];
+
+    async function abrirCon(autoridades: readonly string[]): Promise<void> {
+      TestBed.resetTestingModule();
+      montar(autoridades);
+      await abrir();
+      http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS));
+      await asentar();
+    }
+
+    const opciones = () =>
+      [...raiz().querySelectorAll<HTMLOptionElement>('#representanteElegido option')]
+        .filter((o) => o.value)
+        .map((o) => o.textContent?.trim());
+
+    it('ofrece nombrar solo a representantes de cliente activos que aún no lo son', async () => {
+      // Un ingeniero nombrado no ganaría ni perdería nada: el filtrado solo acota a CEO_CLIENT.
+      await abrirCon(['client.read', 'client.write', 'person.read']);
+
+      expect(opciones()).toEqual(['Andrés Mora']);
+    });
+
+    it('nombrar manda la persona elegida al sub-recurso del cliente', async () => {
+      await abrirCon(['client.read', 'client.write', 'person.read']);
+      const select = raiz().querySelector<HTMLSelectElement>('#representanteElegido')!;
+      select.value = 'p3';
+      select.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      pulsar('Nombrar');
+      await asentar();
+
+      const peticion = http.expectOne(`${URL}/representatives/p3`);
+      expect(peticion.request.method).toBe('POST');
+      peticion.flush({ ...CLIENTE, representantes: ['p1', 'p2', 'p3'] });
+      await asentar();
+      // La ficha se vuelve a pedir: sin eso, el cambio no se veria hasta recargar.
+      http.expectOne({ method: 'GET', url: URL }).flush(CLIENTE);
+      await atenderRecargas();
+    });
+
+    it('sin elegir a nadie no se nombra', async () => {
+      await abrirCon(['client.read', 'client.write', 'person.read']);
+
+      pulsar('Nombrar');
+      await asentar();
+
+      expect(http.match((r) => r.url.includes('/representatives/'))).toHaveLength(0);
+    });
+
+    it('retirar a uno llama al sub-recurso con su identificador', async () => {
+      await abrirCon(['client.read', 'client.write', 'person.read']);
+
+      const boton = raiz().querySelector<HTMLButtonElement>(
+        'button[aria-label="Retirar a Carolina Vélez como representante"]',
+      )!;
+      boton.click();
+      await asentar();
+
+      const peticion = http.expectOne(`${URL}/representatives/p1`);
+      expect(peticion.request.method).toBe('DELETE');
+      peticion.flush({ ...CLIENTE, representantes: ['p2'] });
+      await asentar();
+      // La ficha se vuelve a pedir: sin eso, el cambio no se veria hasta recargar.
+      http.expectOne({ method: 'GET', url: URL }).flush(CLIENTE);
+      await atenderRecargas();
+    });
+
+    it('sin client.write los ve y no los toca', async () => {
+      await abrirCon(['client.read', 'person.read', 'person.write']);
+
+      expect(texto()).toContain('Carolina Vélez');
+      expect(raiz().querySelector('#representanteElegido')).toBeNull();
+      expect(raiz().querySelector('button[aria-label^="Retirar a"]')).toBeNull();
+      // Registrar uno nuevo sin poder nombrarlo dejaría una cuenta que no ve nada.
+      expect(raiz().querySelector('a[href^="/personas/nueva/representante"]')).toBeNull();
     });
   });
 

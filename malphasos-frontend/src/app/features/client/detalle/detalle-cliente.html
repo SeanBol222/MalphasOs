@@ -168,22 +168,67 @@
 
       <aside class="flex min-w-0 flex-[1_1_18rem] flex-col gap-3">
         <!--
-          Los representantes se ven y no se tocan desde aquí: se registran en Personas, que es donde
-          se crea la persona con su cuenta.
+          Los representantes son lo que decide qué ve cada cuenta del cliente: un representante solo
+          lee lo de los clientes que representa. La persona se crea en Personas, con su cuenta; aquí
+          se nombra y se retira.
         -->
         <section class="superficie" aria-labelledby="representantes">
           <h2 id="representantes" class="titulo-seccion">Representantes</h2>
-          @for (nombre of representantes(); track $index) {
-            <p class="mt-1 font-semibold">{{ nombre }}</p>
-          } @empty {
-            <p class="mt-1 text-sm text-neutral-800">Ninguno registrado.</p>
+          <p class="mt-0.5 text-sm text-neutral-800">
+            Entran al sistema y consultan solo lo de este cliente.
+          </p>
+          <ul>
+            @for (representante of representantes(); track representante.id) {
+              <li class="flex items-center gap-1">
+                <span class="min-w-0 grow font-semibold">{{ representante.nombre }}</span>
+                @if (nombraRepresentantes()) {
+                  <button
+                    class="min-h-tactil min-w-tactil text-sm font-semibold underline"
+                    type="button"
+                    [attr.aria-label]="'Retirar a ' + representante.nombre + ' como representante'"
+                    [disabled]="retiroDeRepresentante.isPending()"
+                    (click)="retirarRepresentante(representante.id)"
+                  >
+                    Retirar
+                  </button>
+                }
+              </li>
+            } @empty {
+              <li class="mt-1 text-sm text-neutral-800">Ninguno registrado.</li>
+            }
+          </ul>
+          @if (nombraRepresentantes() && candidatos().length) {
+            <label class="mt-1.5 block text-sm font-semibold" for="representanteElegido">
+              Nombrar a un representante ya registrado
+            </label>
+            <div class="mt-0.5 flex gap-1">
+              <select
+                id="representanteElegido"
+                class="campo min-h-tactil min-w-0 grow"
+                [formControl]="representanteElegido"
+              >
+                <option value="" disabled>Elegir…</option>
+                @for (candidato of candidatos(); track candidato.id) {
+                  <option [value]="candidato.id">{{ candidato.nombre }}</option>
+                }
+              </select>
+              <button
+                class="boton-secundario min-h-tactil"
+                type="button"
+                [disabled]="nombramiento.isPending()"
+                (click)="nombrar()"
+              >
+                Nombrar
+              </button>
+            </div>
           }
-          @if (registraPersonas()) {
+          @if (registraPersonas() && nombraRepresentantes()) {
             <a
               class="mt-1.5 inline-block text-sm font-semibold underline"
               routerLink="/personas/nueva/representante"
+              [queryParams]="{ cliente: id() }"
             >
-              Registrar representante
+              Registrar representante nuevo
             </a>
           }
         </section>

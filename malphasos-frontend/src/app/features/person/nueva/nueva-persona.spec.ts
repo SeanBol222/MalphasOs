@@ -8,6 +8,8 @@ import { asentar } from '../../../../testing/pantalla';
 import { ClaseDeAlta, NuevaPersona } from './nueva-persona';
 
 const URL = 'http://localhost:8081/v1/api/persons';
+const ID_CLIENTE = '33333333-3333-3333-3333-333333333333';
+const URL_CLIENTE = `http://localhost:8081/v1/api/clients/${ID_CLIENTE}`;
 
 @Component({ selector: 'app-listado-falso', template: '' })
 class ListadoFalso {}
@@ -16,17 +18,23 @@ describe('Alta de una persona', () => {
   let fixture: ComponentFixture<NuevaPersona>;
   let http: HttpTestingController;
 
-  function montar(clase: ClaseDeAlta): void {
+  function montar(clase: ClaseDeAlta, cliente?: string): void {
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
         ...proveerSesionFalsa({ autoridades: ['super.person.write', 'person.write'] }),
-        provideRouter([{ path: 'personas', component: ListadoFalso }]),
+        provideRouter([
+          { path: 'personas', component: ListadoFalso },
+          { path: 'clientes/:id', component: ListadoFalso },
+        ]),
       ],
     });
     fixture = TestBed.createComponent(NuevaPersona);
     http = TestBed.inject(HttpTestingController);
     fixture.componentRef.setInput('clase', clase);
+    if (cliente) {
+      fixture.componentRef.setInput('cliente', cliente);
+    }
     fixture.detectChanges();
   }
 
@@ -195,5 +203,98 @@ describe('Alta de una persona', () => {
     await asentar(fixture);
 
     expect(viaje).toHaveBeenCalledWith(['/personas']);
+  });
+
+  describe('Un representante se registra para un cliente', () => {
+    // Sin nombrarlo, su cuenta entra y no ve nada: el filtrado por dueño lo acota a sus clientes.
+    function rellenarConCuenta(): void {
+      rellenarLoComun();
+      escribir('nombreUsuario', 'ghopper');
+      escribir('password', 'contrasena8');
+      escribir('correo-0', 'grace@armada.mil');
+    }
+
+    it('entrando desde la ficha dice de qué cliente, lo nombra al crearlo y vuelve a la ficha', async () => {
+      montar('representante', ID_CLIENTE);
+      const viaje = vi.spyOn(TestBed.inject(Router), 'navigate');
+      await asentar(fixture);
+      http.expectOne(URL_CLIENTE).flush({ id: ID_CLIENTE, razonSocial: 'Hospital Central' });
+      await asentar(fixture);
+
+      expect(texto()).toContain('Se nombrará representante de Hospital Central');
+
+      rellenarConCuenta();
+      enviar();
+      await asentar(fixture);
+      http.expectOne(`${URL}/ceo-clients`).flush({ identificador: 'p9' });
+      await asentar(fixture);
+
+      // Hasta que no se nombra no se sale: salir antes dejaba la cuenta sin nada que ver.
+      expect(viaje).not.toHaveBeenCalled();
+      const nombramiento = http.expectOne(`${URL_CLIENTE}/representatives/p9`);
+      expect(nombramiento.request.method).toBe('POST');
+      nombramiento.flush({ id: ID_CLIENTE, representantes: ['p9'] });
+      await asentar(fixture);
+      // Nombrar invalida la ficha del cliente, y la mutación espera a tenerla antes de resolverse.
+      http
+        .match(URL_CLIENTE)
+        .forEach((p) => p.flush({ id: ID_CLIENTE, razonSocial: 'Hospital Central' }));
+      await asentar(fixture);
+
+      expect(viaje).toHaveBeenCalledWith(['/clientes', ID_CLIENTE]);
+    });
+
+    it('si no se pudo nombrar, dice que la persona ya existe y no deja registrarla otra vez', async () => {
+      // Son dos llamadas sin transacción: reenviar el formulario crearía a la misma persona dos veces.
+      montar('representante', ID_CLIENTE);
+      const viaje = vi.spyOn(TestBed.inject(Router), 'navigate');
+      await asentar(fixture);
+      http.expectOne(URL_CLIENTE).flush({ id: ID_CLIENTE, razonSocial: 'Hospital Central' });
+      rellenarConCuenta();
+      enviar();
+      await asentar(fixture);
+      http.expectOne(`${URL}/ceo-clients`).flush({ identificador: 'p9' });
+      await asentar(fixture);
+
+      http
+        .expectOne(`${URL_CLIENTE}/representatives/p9`)
+        .flush({ code: 'ERR_CLIENT_001' }, { status: 500, statusText: 'Server Error' });
+      await asentar(fixture);
+
+      expect(texto()).toContain('La persona quedó registrada');
+      expect(viaje).not.toHaveBeenCalled();
+      expect(raiz().querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+      expect(
+        raiz().querySelector(`a[href="/clientes/${ID_CLIENTE}"]`),
+        'enlaza la ficha para nombrarla desde ahí',
+      ).not.toBeNull();
+    });
+
+    it('sin cliente en la ruta se registra como siempre y vuelve al listado', async () => {
+      montar('representante');
+      const viaje = vi.spyOn(TestBed.inject(Router), 'navigate');
+      rellenarConCuenta();
+      enviar();
+      await asentar(fixture);
+
+      http.expectOne(`${URL}/ceo-clients`).flush({ identificador: 'p9' });
+      await asentar(fixture);
+
+      http.expectNone((r) => r.url.includes('/clients/'));
+      expect(viaje).toHaveBeenCalledWith(['/personas']);
+    });
+
+    it('el cliente de la ruta no cuenta en otra alta: a un ingeniero no se le nombra representante', async () => {
+      montar('ingeniero', ID_CLIENTE);
+      rellenarConCuenta();
+      enviar();
+      await asentar(fixture);
+
+      http.expectOne(`${URL}/engineers`).flush({ identificador: 'p9' });
+      await asentar(fixture);
+
+      http.expectNone((r) => r.url.includes('/clients/'));
+      expect(texto()).not.toContain('Se nombrará representante');
+    });
   });
 });

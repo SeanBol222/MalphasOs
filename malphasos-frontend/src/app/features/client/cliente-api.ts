@@ -123,6 +123,32 @@ export class ClienteApi {
     }));
   }
 
+  /**
+   * Nombra a una persona representante legal del cliente.
+   *
+   * <p>No es un dato de la ficha y nada mas: es lo que decide <b>que ve</b> esa persona al entrar.
+   * El filtrado por dueño acota sus lecturas a los clientes que representa, de modo que un
+   * representante sin nombrar entra y no ve nada. Nombrar dos veces a la misma no cambia nada.
+   */
+  nombrarRepresentante() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, idPersona }: { id: string; idPersona: string }) =>
+        firstValueFrom(
+          this.http.post<Cliente>(`${this.url}/${id}/representatives/${idPersona}`, null),
+        ),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /** Le quita a la persona la vista de este cliente; su cuenta y sus otros clientes siguen igual. */
+  retirarRepresentante() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, idPersona }: { id: string; idPersona: string }) =>
+        firstValueFrom(this.http.delete<Cliente>(`${this.url}/${id}/representatives/${idPersona}`)),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
   agregarCorreo() {
     return this.altaDeContacto('emails');
   }
