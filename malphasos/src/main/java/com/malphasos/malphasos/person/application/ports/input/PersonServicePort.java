@@ -56,6 +56,9 @@ public interface PersonServicePort {
     /** Hace de ese correo el de la cuenta y lo lleva a Keycloak (V40). */
     Person markPrimaryEmail(UUID personId, UUID emailId);
 
+    /** Pone una contraseña temporal en la cuenta de la persona, que tendrá que cambiar al entrar. */
+    void resetPassword(UUID personId, String temporaryPassword);
+
     /** Desactiva el teléfono sin borrarlo. */
     Person removePhone(UUID personId, UUID phoneId);
 }

@@ -420,6 +420,30 @@ public class PersonService implements PersonServicePort {
         return personPersistencePort.save(person);
     }
 
+    /**
+     * Restablece la contraseña de una cuenta con una temporal (2026-10-17): es como se resuelve hoy una
+     * contraseña olvidada, porque el realm no tiene servidor de correo para el «¿Olvidó su contraseña?».
+     *
+     * <p>No toca la base: la contraseña no se guarda aquí. Se rechaza a un encargado, que no tiene
+     * cuenta, y a una persona retirada, cuya cuenta está deshabilitada a propósito. Que la persona
+     * tenga acceso y Keycloak no la encuentre sí es un error, y llega a quien llama.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public void resetPassword(UUID personId, String temporaryPassword) {
+        Person person = findOrFail(personId);
+
+        if (!person.hasAccess()) {
+            throw new IllegalArgumentException("Un encargado no tiene cuenta en el sistema: no tiene contrasena");
+        }
+        if (!person.isEstadoActivo()) {
+            throw new IllegalArgumentException(
+                    "Esa persona esta retirada y su cuenta deshabilitada: no se le restablece la contrasena");
+        }
+
+        personIdentityPort.resetPassword(person.getIdentificador().toString(), temporaryPassword);
+    }
+
     /** Como {@link #propagateProfile}: que la persona no tenga cuenta no es un error. */
     private void propagateEmail(Person person, String correo) {
         try {

@@ -71,6 +71,16 @@ public interface PersonIdentityPort {
     Optional<String> findUserEmail(String userId);
 
     /**
+     * Pone una contraseña <b>temporal</b>: al entrar con ella, Keycloak obliga a cambiarla. Es como un
+     * administrador resuelve una contraseña olvidada sin servidor de correo (2026-10-17).
+     *
+     * @throws KeycloakUserNotFoundException si no hay ningún usuario con ese identificador
+     * @throws com.malphasos.malphasos.person.domain.exception.KeycloakPasswordRejectedException si
+     *     la contraseña no cumple la política del realm
+     */
+    void resetPassword(String userId, String temporaryPassword);
+
+    /**
      * Deja al usuario en el grupo que le corresponde, y en ninguno más.
      *
      * <p>Existe porque cambiar el tipo de una persona **no movía su cuenta de grupo**: quien dejaba

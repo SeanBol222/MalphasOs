@@ -3,8 +3,10 @@ package com.malphasos.malphasos.person.infrastructure.input.errors;
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakPasswordRejectedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonSignatureNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PrimaryEmailRemovalException;
@@ -77,6 +79,24 @@ public class PersonControllerAdvice {
     @ExceptionHandler(KeycloakEmailInUseException.class)
     public PersonErrorResponse handleEmailInUse() {
         return PersonErrorResponse.of(PersonErrorCatalog.KEYCLOAK_EMAIL_IN_USE);
+    }
+
+    /** La política de contraseñas del realm: largo, o igual al usuario o al correo. */
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(KeycloakPasswordRejectedException.class)
+    public PersonErrorResponse handlePasswordRejected() {
+        return PersonErrorResponse.of(PersonErrorCatalog.KEYCLOAK_PASSWORD_REJECTED);
+    }
+
+    /**
+     * La persona debería tener cuenta y Keycloak no la encuentra: se borró a mano. Hasta el 2026-10-17
+     * ningún caso de uso dejaba escapar esta excepción —todos la toleran—, y el primero que lo hace es
+     * restablecer una contraseña, donde sin cuenta no hay nada que hacer.
+     */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(KeycloakUserNotFoundException.class)
+    public PersonErrorResponse handleAccountNotFound() {
+        return PersonErrorResponse.of(PersonErrorCatalog.KEYCLOAK_ACCOUNT_NOT_FOUND);
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)

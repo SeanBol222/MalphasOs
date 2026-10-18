@@ -13,11 +13,13 @@ import com.malphasos.malphasos.person.application.model.identity.PersonIdentityR
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakPasswordRejectedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
 import com.malphasos.malphasos.person.domain.person.RoleType;
 import jakarta.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ProcessingException;
@@ -39,6 +41,7 @@ import org.keycloak.admin.client.resource.GroupsResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.GroupRepresentation;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -490,5 +493,44 @@ class PersonIdentityAdapterTest {
 
         when(userResource.toRepresentation()).thenThrow(new ProcessingException("red caida"));
         assertThatThrownBy(() -> adapter.findUserEmail(userId)).isInstanceOf(KeycloakConnectionException.class);
+    }
+
+    // --- Restablecer la contraseña (2026-10-17) ---------------------------------------------
+
+    @Test
+    @DisplayName("restablecer pone la contraseña como temporal: Keycloak obliga a cambiarla al entrar")
+    void resetPasswordIsTemporary() {
+        String userId = UUID.randomUUID().toString();
+        when(usersResource.get(userId)).thenReturn(userResource);
+
+        adapter.resetPassword(userId, "temporal-de-prueba");
+
+        ArgumentCaptor<CredentialRepresentation> enviada = ArgumentCaptor.forClass(CredentialRepresentation.class);
+        verify(userResource).resetPassword(enviada.capture());
+        assertThat(enviada.getValue().isTemporary()).isTrue();
+        assertThat(enviada.getValue().getValue()).isEqualTo("temporal-de-prueba");
+        assertThat(enviada.getValue().getType()).isEqualTo(CredentialRepresentation.PASSWORD);
+    }
+
+    @Test
+    @DisplayName("un 400 al restablecer es la política de contraseñas, y se dice así")
+    void resetPasswordRejected() {
+        String userId = UUID.randomUUID().toString();
+        when(usersResource.get(userId)).thenReturn(userResource);
+        doThrow(new BadRequestException("invalidPasswordMinLengthMessage")).when(userResource).resetPassword(any());
+
+        assertThatThrownBy(() -> adapter.resetPassword(userId, "corta"))
+                .isInstanceOf(KeycloakPasswordRejectedException.class);
+    }
+
+    @Test
+    @DisplayName("restablecer en una cuenta que no existe lo dice como tal")
+    void resetPasswordNotFound() {
+        String userId = UUID.randomUUID().toString();
+        when(usersResource.get(userId)).thenReturn(userResource);
+        doThrow(new NotFoundException("HTTP 404")).when(userResource).resetPassword(any());
+
+        assertThatThrownBy(() -> adapter.resetPassword(userId, "temporal-de-prueba"))
+                .isInstanceOf(KeycloakUserNotFoundException.class);
     }
 }
