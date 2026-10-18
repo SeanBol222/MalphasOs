@@ -520,3 +520,20 @@ llegaba a Keycloak**, y como el realm deja entrar con el correo, se seguía entr
 - **Uno por persona con una restricción de exclusión diferida**, no con un índice único parcial: ver
   [[esquema-bd-malphasos]].
 
+## La ficha manda: la cuenta no se edita por fuera (2026-10-17)
+
+Con el correo de la cuenta sincronizado desde la aplicación quedaba la otra dirección: **la consola de
+cuenta de Keycloak** —`/realms/malphasos-realm/account`, que en producción responde aunque la
+aplicación no la enlace— dejaba a cada usuario cambiarse el correo, el nombre y el apellido, que la
+ficha nunca se enteraba de que habían cambiado.
+
+- **El perfil de usuario del realm deja editar `username`, `email`, `firstName` y `lastName` solo al
+  administrador.** Verlos sigue pudiendo el usuario. «Administrador» es el contexto de la Admin API, que
+  es por donde escribe el backend, así que la aplicación sigue sincronizando —comprobado en vivo—.
+- **Va en el realm versionado** como componente `UserProfileProvider`, y de ahí al de producción con el
+  guion de siempre. Se comprobó **importándolo en un Keycloak desechable**, que es lo que haría una
+  instalación nueva; en el de desarrollo, que no reimporta, se aplicó con `kcadm`.
+- **En vivo**: un usuario que intenta cambiarse correo y nombre por la API de cuenta recibe
+  `error-user-attribute-read-only` y Keycloak no cambia.
+- **La contraseña sí la sigue cambiando cada quien**: es suya y la aplicación no la guarda.
+

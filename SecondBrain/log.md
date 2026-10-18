@@ -2175,3 +2175,11 @@ delante en la lista. Once mutaciones en el backend y seis en el frontend, todas 
 **Tocadas**: [[esquema-bd-malphasos]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]] y
 el `CONVENCIONES.md` de la raíz.
 
+## [2026-10-17] ingest | la cuenta no se edita por fuera de la aplicación
+
+Segunda tanda del acceso. El perfil de usuario del realm deja editar usuario, correo, nombre y apellido
+solo al administrador, de modo que la consola de cuenta de Keycloak ya no puede desincronizar la ficha.
+Versionado en el realm, derivado al de producción, **probado importándolo en un Keycloak desechable** y
+aplicado al de desarrollo con `kcadm`. En vivo: el usuario recibe `read-only`; la aplicación sigue
+cambiando correo y nombre. Ver [[decisiones-tecnicas-malphasos]].
+
