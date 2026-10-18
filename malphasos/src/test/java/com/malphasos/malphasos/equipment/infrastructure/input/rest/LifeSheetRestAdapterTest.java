@@ -14,6 +14,7 @@ import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
+import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import java.util.List;
 import java.util.Optional;
@@ -104,5 +105,21 @@ class LifeSheetRestAdapterTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.identificacion.serie").value("SN-1"))
                 .andExpect(jsonPath("$.empresa").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("la hoja de un equipo que no existe responde 404 con su código, no 500")
+    void equipoQueNoExiste() throws Exception {
+        // Hasta el 2026-10-18 este controlador no estaba en el manejador de errores del módulo, y la
+        // excepción llegaba al transversal como un 500. Su historial, igual.
+        UUID id = UUID.randomUUID();
+        when(servicio.findByEquipment(eq(id), any())).thenThrow(new ClientEquipmentNotFoundException(id));
+
+        mockMvc.perform(get("/v1/api/client-equipments/{id}/life-sheet", id))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_006"));
+        mockMvc.perform(get("/v1/api/client-equipments/{id}/interventions", UUID.randomUUID()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_006"));
     }
 }

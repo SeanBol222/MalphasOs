@@ -18,15 +18,18 @@ import com.malphasos.malphasos.equipment.domain.exception.MeasurementUnitNotFoun
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeException;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.BrandRestAdapter;
-import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
-import com.malphasos.malphasos.equipment.infrastructure.input.rest.ProtocolRestAdapter;
-import com.malphasos.malphasos.equipment.infrastructure.input.rest.ReferenceStandardRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ClientEquipmentRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentOverviewRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.InterventionRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.LifeSheetRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ManufacturerRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.MetrologyCatalogRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ModelRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.ProtocolRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.ReferenceStandardRestAdapter;
 import com.malphasos.malphasos.location.domain.exception.CountryNotFoundException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -53,7 +56,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             MetrologyCatalogRestAdapter.class,
             ProtocolRestAdapter.class,
             EquipmentTypeProtocolRestAdapter.class,
-            ReferenceStandardRestAdapter.class
+            ReferenceStandardRestAdapter.class,
+            // Las tres que faltaban: hasta el 2026-10-18, un equipo que no existe respondía 500 en su hoja
+            // de vida y en su historial, porque sus errores no llegaban a este manejador.
+            LifeSheetRestAdapter.class,
+            InterventionRestAdapter.class,
+            EquipmentOverviewRestAdapter.class
         })
 public class EquipmentControllerAdvice {
 
