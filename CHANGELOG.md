@@ -66,7 +66,8 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 - **El correo de la cuenta**: uno de los correos de la ficha es el de Keycloak —con él también se
   entra—. Cambiarlo o corregirlo en la aplicación cambia la cuenta, y no se retira sin elegir otro. La
   consola de cuenta de Keycloak ya no deja a nadie cambiarse el correo ni el nombre por fuera.
-- **Contraseñas**: cada quien cambia la suya desde la ventana de su nombre. Si alguien la olvida, quien
+- **Contraseñas**: la del alta es temporal y se cambia al entrar por primera vez; cada quien cambia la
+  suya desde la ventana de su nombre. Si alguien la olvida, quien
   puede editarlo le pone una temporal desde «Personas», y al entrar con ella tendrá que cambiarla. La
   recuperación por correo («¿Olvidó su contraseña?») queda para cuando haya servidor de correo.
 

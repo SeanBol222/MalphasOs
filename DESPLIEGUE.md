@@ -91,6 +91,8 @@ informes necesita su propia cuenta de ingeniero o de administrador, creada desde
 
 ## Contraseñas
 
+- **La contraseña que se pone al dar de alta a alguien es temporal**: désela, y al entrar por primera vez
+  tendrá que elegir una propia. Quien la puso deja de saberla.
 - **Cada quien cambia la suya** desde la ventana que abre su nombre, al pie de la barra lateral:
   «Cambiar contraseña» lleva a la página de Keycloak y vuelve.
 - **Si alguien la olvida**, quien puede editar a esa persona en «Personas» le pone una **contraseña

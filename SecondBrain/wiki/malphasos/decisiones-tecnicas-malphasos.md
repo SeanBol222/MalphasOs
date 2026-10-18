@@ -558,6 +558,8 @@ correo, ahora; la recuperación por correo, cuando lo haya.
   la rechazaba Keycloak. Las dos pantallas leen ahora `LARGO_MINIMO_DE_CONTRASENA`.
 - **El SuperUsuario no tiene ficha**: si olvida la suya, `kcadm` desde el servidor, con la receta de
   `DESPLIEGUE.md`.
-- **Queda abierto**: la contraseña inicial que pone quien da de alta a alguien es **definitiva**, no
-  temporal, de modo que quien la puso la sigue sabiendo. Ver [[deuda-tecnica-y-riesgos]].
+- ~~**Queda abierto**: la contraseña inicial que pone quien da de alta a alguien es **definitiva**~~.
+  **Cerrado el 2026-10-18**, decidido por el usuario: **toda contraseña que pone el backend es
+  temporal** —la del alta y la del restablecimiento—, porque la eligió otra persona. Al entrar por
+  primera vez, Keycloak obliga a cambiarla; el formulario del alta la llama «Contraseña temporal».
 

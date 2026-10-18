@@ -2205,3 +2205,11 @@ Comprobado con Chromium sin ventana, comparando la captura con el PDF, también 
 historial largos. Ver [[hoja-de-vida-formato-impreso]]; [[deuda-tecnica-y-riesgos]] queda en **99 filas,
 45 tachadas, 54 abiertas**.
 
+## [2026-10-18] ingest | la contraseña del alta, temporal
+
+Cerrada la deuda que dejaron las contraseñas: quien daba de alta a alguien elegía una contraseña
+definitiva y la seguía sabiendo. Decidido por el usuario, toda contraseña que pone el backend es ahora
+temporal, y en vivo una cuenta nueva va a cambiarla antes de entrar. Una mutación —volverla definitiva—
+tumba dos pruebas. Backend **1513** en 114 clases, frontend **747**; [[deuda-tecnica-y-riesgos]] queda en
+**99 filas, 46 tachadas, 53 abiertas**.
+
