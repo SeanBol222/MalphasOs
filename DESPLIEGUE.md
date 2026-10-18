@@ -86,7 +86,7 @@ cambiarla. A partir de ahí, **las demás personas se dan de alta desde MalphasO
 ingenieros y administradores reciben su cuenta de Keycloak en el mismo paso.
 
 **Lo que el SuperUsuario no tiene**: una fila en `persona`. Ve y administra todo, pero **no puede guardar
-una firma** —«Mi firma» se lo explica— y no figura como ingeniero de ninguna orden. Quien vaya a firmar
+una firma** —la ventana que abre su nombre, al pie de la barra, se lo explica— y no figura como ingeniero de ninguna orden. Quien vaya a firmar
 informes necesita su propia cuenta de ingeniero o de administrador, creada desde «Personas».
 
 ## Respaldos

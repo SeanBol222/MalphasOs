@@ -2142,3 +2142,19 @@ sesenta lecturas que entró en la tanda 8, después de la medición anterior—.
 **Tocadas**: [[deuda-tecnica-y-riesgos]] —97 filas, 45 tachadas, 52 abiertas—, [[filtrado-por-dueno]]
 y el `CONVENCIONES.md` de la raíz.
 
+## [2026-10-17] ingest | la ventana de la sesión, con la firma dentro
+
+El nombre al pie de la barra abre una ventana con los datos de quien tiene la sesión, su firma digital y
+cerrar sesión, sobre un diseño que el usuario aprobó en un lienzo de tres pantallas. «Mi firma» deja de
+ser página —`/mi-firma` redirige al inicio— y entra `GET /persons/me`, porque un representante no
+podía leer su propia ficha. Diez mutaciones sobre la ventana y el armazón, diez muertas; frontend
+**733**, backend **1472** en 113 clases.
+
+**Y al probarlo en vivo apareció que el Keycloak de desarrollo llevaba semanas incompleto**: le
+faltaban 7 de los 24 roles del API, y los ingenieros no podían cerrar reportes. Es la deuda de
+`IGNORE_EXISTING`, anotada desde el 2026-09-28, cobrando más de lo que se creía; se alineó a mano.
+
+**Tocadas**: [[decisiones-tecnicas-malphasos]], [[arquitectura-frontend-malphasos]],
+[[deuda-tecnica-y-riesgos]] —sin filas nuevas: se amplió la de `IGNORE_EXISTING`— y el
+`CONVENCIONES.md` de la raíz.
+

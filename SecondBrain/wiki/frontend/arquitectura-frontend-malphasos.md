@@ -354,6 +354,17 @@ Dos cosas que conviene llevarse:
 
 El entorno de pruebas de Angular reinicia el TestBed en un `beforeEach` propio, de modo que **la primera prueba monta bien y la segunda encuentra el módulo ya instanciado**. Montar va en el `beforeEach` del archivo; para cambiar de autoridades en un caso concreto, `TestBed.resetTestingModule()` y volver a montar, que es lo que hacen las pantallas con permisos distintos.
 
+## La ventana de la sesión (2026-10-17)
+
+El nombre al pie de la barra lateral es un botón que abre `VentanaDeUsuario` (`features/person/ventana/`):
+datos de la ficha por `GET /persons/me`, la firma digital con su lienzo y cerrar sesión. **Es el primer
+diálogo modal de este frontend**, y por eso el primero que usa `CdkTrapFocus` de `@angular/cdk/a11y`:
+el foco queda dentro mientras está abierta, Escape la cierra y **el armazón devuelve el foco al nombre**,
+que es de donde salió —hay prueba, y quitar esa línea la tumba—. En escritorio sale pegada al pie y
+oscurece el contenido, no la barra; en un teléfono ocupa la pantalla sobre el menú abierto y «Volver al
+menú» la cierra. La consulta de la ficha la comparten el armazón —para el rol bajo el nombre— y la
+ventana, por clave. Sustituye a la página «Mi firma». Ver [[decisiones-tecnicas-malphasos]].
+
 ## Por dónde se empieza
 
 **Rebanada vertical: arranque de la aplicación, autenticación y el flujo completo de órdenes de trabajo.** Atraviesa sesión, datos, formularios, errores y accesibilidad de una vez, de modo que una decisión equivocada aparece en la primera semana y no en la quinta.

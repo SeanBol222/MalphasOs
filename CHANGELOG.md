@@ -45,8 +45,9 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 
 ### Firma digital y PDF
 
-- **La firma del ingeniero vive en su cuenta**: la dibuja una vez en «Mi firma» y cada informe que cierra
-  la copia.
+- **La firma del ingeniero vive en su cuenta**: la dibuja una vez en la ventana que abre su nombre, al
+  pie de la barra lateral, y cada informe que cierra la copia. Esa ventana reúne también sus datos y
+  cerrar sesión.
 - **Quien recibe el servicio firma en la pantalla**, antes o después de cerrar el reporte, y con una
   casilla la misma firma vale para los demás reportes de la orden que aún no la tengan.
 - **El informe en PDF lo genera el servidor**, con el formato de la empresa, las dos firmas, la gráfica
