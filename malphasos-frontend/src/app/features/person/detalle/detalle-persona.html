@@ -351,6 +351,77 @@
       }
     </section>
 
+    @if (tieneCuenta() && puedeEscribir() && datos.estadoActivo) {
+      <!--
+        Sin servidor de correo, una contraseña olvidada se resuelve aquí (2026-10-17): una temporal que
+        el sistema de acceso obliga a cambiar al entrar. La pide la misma escalera que editar a la persona.
+      -->
+      <section class="superficie mt-3 max-w-[640px]" aria-labelledby="titulo-acceso">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="titulo-acceso" class="titulo-seccion">Acceso</h2>
+          @if (!restableciendo()) {
+            <button
+              class="min-h-tactil px-1 font-semibold underline"
+              type="button"
+              (click)="empezarARestablecer()"
+            >
+              Restablecer contraseña
+            </button>
+          }
+        </div>
+        <p class="text-neutral-700">
+          Si olvidó su contraseña, póngale una temporal y désela: al entrar con ella tendrá que
+          elegir una nueva.
+        </p>
+        @if (restablecida()) {
+          <p class="mt-1 font-semibold" role="status">
+            Contraseña temporal puesta. Al entrar, tendrá que cambiarla.
+          </p>
+        }
+        @if (restableciendo()) {
+          <form class="mt-2" [formGroup]="formularioDeAcceso" (ngSubmit)="restablecer()">
+            <label class="block font-semibold" for="contrasenaTemporal">
+              Contraseña temporal <span aria-hidden="true">*</span>
+            </label>
+            <input
+              class="campo min-h-tactil w-full"
+              id="contrasenaTemporal"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              aria-required="true"
+              [attr.minlength]="largoMinimo"
+              formControlName="contrasenaTemporal"
+            />
+            <p class="mt-1 text-neutral-700">
+              Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo.
+            </p>
+            @if (contrasenaTemporal.touched && contrasenaTemporal.invalid) {
+              <p class="mt-1 font-semibold text-accent-700">
+                Escriba una contraseña de al menos {{ largoMinimo }} caracteres.
+              </p>
+            }
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button
+                class="boton-primario min-h-tactil"
+                type="submit"
+                [disabled]="restablecimiento.isPending()"
+              >
+                {{ restablecimiento.isPending() ? 'Poniéndola…' : 'Poner contraseña temporal' }}
+              </button>
+              <button
+                class="boton-secundario min-h-tactil"
+                type="button"
+                (click)="restableciendo.set(false)"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        }
+      </section>
+    }
+
     <p class="mt-3">
       <a class="font-semibold underline" routerLink="/personas">Volver al listado</a>
     </p>

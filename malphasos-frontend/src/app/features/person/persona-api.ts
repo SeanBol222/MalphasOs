@@ -171,6 +171,18 @@ export class PersonaApi {
     }));
   }
 
+  /**
+   * Pone una contraseña temporal en la cuenta de la persona (2026-10-17): al entrar con ella, Keycloak
+   * le obliga a cambiarla. Es como se resuelve una contraseña olvidada sin servidor de correo. No toca
+   * la ficha, así que no invalida nada.
+   */
+  restablecerContrasena() {
+    return injectMutation(() => ({
+      mutationFn: ({ idPersona, password }: { idPersona: string; password: string }) =>
+        firstValueFrom(this.http.patch<void>(`${this.url}/${idPersona}/password`, { password })),
+    }));
+  }
+
   anadirTelefono() {
     return this.anadirContacto<{ telefonoPersona: string }>('phones');
   }

@@ -58,6 +58,14 @@ export class Sesion {
     return this.keycloak.login();
   }
 
+  /**
+   * Lleva a Keycloak a cambiar la contraseña y vuelve aquí (2026-10-17). Es una acción de Keycloak
+   * —`UPDATE_PASSWORD`—, con la página de su tema: la aplicación nunca ve la contraseña.
+   */
+  cambiarContrasena(): Promise<void> {
+    return this.keycloak.login({ action: 'UPDATE_PASSWORD' });
+  }
+
   salir(): Promise<void> {
     return this.keycloak.logout();
   }

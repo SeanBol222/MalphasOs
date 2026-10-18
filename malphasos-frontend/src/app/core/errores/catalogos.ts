@@ -147,6 +147,10 @@ export const CATALOGO_PERSON: Readonly<Record<string, string>> = {
   ERR_KEYCLOAK_004:
     'No se pudo contactar con el sistema de acceso. La persona no se dio de alta; vuelva a intentarlo.',
   ERR_KEYCLOAK_005: 'Otra cuenta ya usa ese correo. No se cambió nada.',
+  ERR_KEYCLOAK_006:
+    'El sistema de acceso rechazó la contraseña: debe tener al menos 12 caracteres y ser distinta del usuario y del correo.',
+  ERR_KEYCLOAK_007:
+    'Esta persona no tiene cuenta en el sistema de acceso: se borró por fuera de la aplicación.',
 };
 
 /**

@@ -177,6 +177,25 @@
   }
 
   <div class="mt-auto border-t border-neutral-300 px-2 py-1 md:mt-0 md:px-3">
+    <!-- Cada quien cambia la suya en el sistema de acceso, que la guarda; la aplicación no la ve. -->
+    <button
+      class="flex min-h-tactil w-full items-center gap-1 font-semibold"
+      type="button"
+      (click)="cambiarContrasena()"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <path d="M6 11h12v10H6zM9 11V7a3 3 0 0 1 6 0v4" />
+      </svg>
+      Cambiar contraseña
+    </button>
     <button
       class="flex min-h-tactil w-full items-center gap-1 font-semibold"
       type="button"
