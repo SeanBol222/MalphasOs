@@ -4,6 +4,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,9 +15,13 @@ import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
+import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheetPdf;
+import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetPdfServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
+import com.malphasos.malphasos.equipment.application.ports.output.LifeSheetPdfUnavailableException;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +31,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -41,6 +49,7 @@ class LifeSheetRestAdapterTest {
 
     @MockitoBean private LifeSheetServicePort servicio;
     @MockitoBean private ServiceCompanyServicePort empresa;
+    @MockitoBean private LifeSheetPdfServicePort pdfs;
 
     private static LifeSheet hoja(UUID id) {
         return new LifeSheet(
@@ -119,6 +128,43 @@ class LifeSheetRestAdapterTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_006"));
         mockMvc.perform(get("/v1/api/client-equipments/{id}/interventions", UUID.randomUUID()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_006"));
+    }
+
+    @Test
+    @DisplayName("el PDF sale en línea, con el nombre del archivo, para que la pantalla lo muestre y lo exporte")
+    void elPdf() throws Exception {
+        UUID id = UUID.randomUUID();
+        byte[] contenido = "%PDF-1.7".getBytes(StandardCharsets.ISO_8859_1);
+        when(pdfs.pdf(eq(id), any())).thenReturn(new LifeSheetPdf("hoja-de-vida-HV-CDN-0001.pdf", contenido));
+
+        mockMvc.perform(get("/v1/api/client-equipments/{id}/life-sheet/pdf", id))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"hoja-de-vida-HV-CDN-0001.pdf\""))
+                .andExpect(content().bytes(contenido));
+    }
+
+    @Test
+    @DisplayName("si el conversor no responde, 503 con su código: se puede volver a intentar")
+    void sinConversor() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(pdfs.pdf(eq(id), any())).thenThrow(new LifeSheetPdfUnavailableException(new RuntimeException("caído")));
+
+        mockMvc.perform(get("/v1/api/client-equipments/{id}/life-sheet/pdf", id))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_020"));
+    }
+
+    @Test
+    @DisplayName("el PDF de un equipo que no existe, o que no se ve, responde 404")
+    void pdfDeUnEquipoQueNoExiste() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(pdfs.pdf(eq(id), any())).thenThrow(new ClientEquipmentNotFoundException(id));
+
+        mockMvc.perform(get("/v1/api/client-equipments/{id}/life-sheet/pdf", id))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ERR_EQUIPMENT_006"));
     }

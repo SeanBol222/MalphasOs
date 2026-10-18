@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.errors;
 
+import com.malphasos.malphasos.equipment.application.ports.output.LifeSheetPdfUnavailableException;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.BrandNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolInUseException;
@@ -213,6 +214,14 @@ public class EquipmentControllerAdvice {
             ReferenceStandardInternalCodeTakenException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.REFERENCE_STANDARD_INTERNAL_CODE_TAKEN, List.of(ex.getMessage()));
+    }
+
+    /** Gotenberg no respondió: no es culpa de lo pedido, y se puede volver a intentar. */
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler(LifeSheetPdfUnavailableException.class)
+    public EquipmentErrorResponse handleLifeSheetPdfUnavailable(LifeSheetPdfUnavailableException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.LIFE_SHEET_PDF_UNAVAILABLE, List.of(ex.getMessage()));
     }
 
     /** Las reglas de los agregados y de los servicios llegan como esto. */

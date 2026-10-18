@@ -1419,6 +1419,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar todas las marcas",
@@ -1486,6 +1496,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar una marca",
@@ -1548,6 +1568,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Retirar una marca",
@@ -1614,6 +1644,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener una marca por su identificador",
@@ -1690,6 +1730,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Cambiar el nombre de una marca",
@@ -1752,6 +1802,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar todas las unidades",
@@ -1846,6 +1906,26 @@
             },
             "description" : "OK"
           },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
           "409" : {
             "content" : {
               "*/*" : {
@@ -1865,6 +1945,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar los equipos instalados, con su ubicacion y su ultimo servicio",
@@ -1898,6 +1988,26 @@
             },
             "description" : "OK"
           },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
           "409" : {
             "content" : {
               "*/*" : {
@@ -1917,6 +2027,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Contar los equipos en servicio por area",
@@ -1979,6 +2099,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Dar de baja una unidad",
@@ -2045,6 +2175,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener una unidad por su identificador",
@@ -2122,6 +2262,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Corregir los datos de compra de una unidad",
@@ -2156,6 +2306,26 @@
             },
             "description" : "OK"
           },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
           "409" : {
             "content" : {
               "*/*" : {
@@ -2175,6 +2345,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Historial de intervenciones de un equipo",
@@ -2206,6 +2386,26 @@
             },
             "description" : "OK"
           },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
           "409" : {
             "content" : {
               "*/*" : {
@@ -2225,9 +2425,100 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Hoja de vida de un equipo",
+        "tags" : [ "LifeSheet" ]
+      }
+    },
+    "/v1/api/client-equipments/{id}/life-sheet/pdf" : {
+      "get" : {
+        "description" : "La misma hoja de vida, compuesta en el servidor y convertida por Gotenberg, con el número de página en cada una. Con el mismo alcance que la hoja de vida.",
+        "operationId" : "getLifeSheetPdf",
+        "parameters" : [ {
+          "description" : "Identificador del equipo instalado",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/pdf" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "El PDF"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "La hoja de vida en PDF",
         "tags" : [ "LifeSheet" ]
       }
     },
@@ -2302,6 +2593,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Trasladar una unidad a otra area de servicio",
@@ -2364,6 +2665,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar todos los tipos de equipo",
@@ -2432,6 +2743,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar un tipo de equipo",
@@ -2494,6 +2815,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Retirar un tipo de equipo",
@@ -2560,6 +2891,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener un tipo por su identificador",
@@ -2637,6 +2978,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Cambiar las caracteristicas de un tipo",
@@ -2708,6 +3059,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar los protocolos de un tipo de equipo, en orden de prioridad",
@@ -2788,6 +3149,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Fijar los protocolos de un tipo de equipo",
@@ -2867,6 +3238,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Declarar que se verifica en el tipo",
@@ -2940,6 +3321,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar asociaciones",
@@ -3007,6 +3398,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar que una marca fabrica un tipo de equipo",
@@ -3069,6 +3470,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Retirar una asociacion",
@@ -3135,6 +3546,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener una asociacion por su identificador",
@@ -3197,6 +3618,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar las magnitudes que se pueden verificar",
@@ -3269,6 +3700,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar las unidades de una magnitud",
@@ -3331,6 +3772,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar todos los fabricantes",
@@ -3398,6 +3849,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar un fabricante",
@@ -3460,6 +3921,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Retirar un fabricante",
@@ -3526,6 +3997,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener un fabricante por su identificador",
@@ -3603,6 +4084,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Cambiar los datos de un fabricante",
@@ -3676,6 +4167,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar modelos",
@@ -3744,6 +4245,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar un modelo",
@@ -3806,6 +4317,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Retirar un modelo",
@@ -3872,6 +4393,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener un modelo por su identificador",
@@ -3949,6 +4480,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Corregir el nombre del modelo",
@@ -4028,6 +4569,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Anotar o corregir el registro INVIMA",
@@ -4107,6 +4658,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Corregir la ficha tecnica",
@@ -4170,6 +4731,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar todos los protocolos",
@@ -4238,6 +4809,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar un protocolo",
@@ -4301,6 +4882,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Los protocolos de cada tipo de equipo",
@@ -4363,6 +4954,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Retirar un protocolo",
@@ -4429,6 +5030,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener un protocolo por su identificador",
@@ -4506,6 +5117,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Cambiar el nombre y la descripcion de un protocolo",
@@ -4569,6 +5190,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Listar los equipos patron",
@@ -4637,6 +5268,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Registrar un equipo patron",
@@ -4699,6 +5340,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Retirar un equipo patron",
@@ -4765,6 +5416,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Obtener un equipo patron por su identificador",
@@ -4842,6 +5503,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Corregir un equipo patron o renovar su certificado",
@@ -4914,6 +5585,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Inventario de un area de servicio",
@@ -4991,6 +5672,16 @@
               }
             },
             "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
           }
         },
         "summary" : "Incorporar una unidad al inventario de un area",

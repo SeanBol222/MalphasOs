@@ -6,6 +6,8 @@ import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
+import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheetPdf;
+import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetPdfServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
@@ -13,9 +15,16 @@ import com.malphasos.malphasos.equipment.infrastructure.input.model.response.Int
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.LifeSheetResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,6 +51,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class LifeSheetRestAdapter {
 
     private final LifeSheetServicePort lifeSheetServicePort;
+    /** La hoja de vida en PDF, del servidor desde el 2026-10-18. */
+    private final LifeSheetPdfServicePort lifeSheetPdfServicePort;
 
     /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
     private final ReadScopeResolver readScopeResolver;
@@ -59,6 +70,28 @@ public class LifeSheetRestAdapter {
             Authentication autenticacion) {
 
         return toResponse(lifeSheetServicePort.findByEquipment(id, readScopeResolver.scopeFor(autenticacion)));
+    }
+
+    @Operation(
+            summary = "La hoja de vida en PDF",
+            description = "La misma hoja de vida, compuesta en el servidor y convertida por Gotenberg, con "
+                    + "el número de página en cada una. Con el mismo alcance que la hoja de vida.")
+    @ApiResponse(responseCode = "200", description = "El PDF",
+            content = @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary")))
+    @PreAuthorize("hasAuthority('equipment.read')")
+    @GetMapping(value = "/client-equipments/{id}/life-sheet/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> getLifeSheetPdf(
+            @Parameter(description = "Identificador del equipo instalado") @PathVariable UUID id,
+            Authentication autenticacion) {
+
+        LifeSheetPdf pdf = lifeSheetPdfServicePort.pdf(id, readScopeResolver.scopeFor(autenticacion));
+
+        // En línea y no como adjunto: la pantalla lo muestra, y su botón lo descarga con este nombre.
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline().filename(pdf.nombre()).build().toString())
+                .body(pdf.contenido());
     }
 
     /*

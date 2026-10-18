@@ -47,7 +47,9 @@ public enum EquipmentErrorCatalog {
     REFERENCE_STANDARD_NOT_FOUND("ERR_EQUIPMENT_017", "Reference standard not found"),
     REFERENCE_STANDARD_SERIAL_TAKEN("ERR_EQUIPMENT_018", "A reference standard with that serial already exists"),
     REFERENCE_STANDARD_INTERNAL_CODE_TAKEN("ERR_EQUIPMENT_019",
-            "A reference standard with that internal code already exists");
+            "A reference standard with that internal code already exists"),
+    // La hoja de vida en PDF, del 2026-10-18.
+    LIFE_SHEET_PDF_UNAVAILABLE("ERR_EQUIPMENT_020", "The life sheet PDF could not be generated");
 
     private final String code;
     private final String message;
