@@ -73,6 +73,11 @@ public class PersonService implements PersonServicePort {
         person.setIdentificador(UUID.randomUUID());
         person.setEstadoActivo(true);
 
+        // El mapper pone nulo encima de la lista vacía por defecto cuando la petición no la trae, y
+        // el contrato declara las dos listas opcionales: sin esto, omitirlas respondía 500.
+        person.setPhonePersonList(new ArrayList<>(listaOVacia(person.getPhonePersonList())));
+        person.setEmailPersonList(new ArrayList<>(listaOVacia(person.getEmailPersonList())));
+
         person.getPhonePersonList().forEach(phone -> {
             phone.setIdTelefonoPersona(UUID.randomUUID());
             phone.setEstadoActivo(true);
@@ -439,14 +444,14 @@ public class PersonService implements PersonServicePort {
                 // El original recibia este dato en la peticion y nunca lo trasladaba a la persona.
                 .segundoTipoPersona(request.segundoTipoPersona())
                 .estadoActivo(true)
-                .emailPersonList(request.emailPersonList().stream()
+                .emailPersonList(listaOVacia(request.emailPersonList()).stream()
                         .map(email -> EmailPerson.builder()
                                 .idCorreoPersona(UUID.randomUUID())
                                 .correoPersona(email.correoPersona())
                                 .estadoActivo(true)
                                 .build())
                         .collect(Collectors.toCollection(ArrayList::new)))
-                .phonePersonList(request.phonePersonList().stream()
+                .phonePersonList(listaOVacia(request.phonePersonList()).stream()
                         .map(phone -> PhonePerson.builder()
                                 .idTelefonoPersona(UUID.randomUUID())
                                 .telefonoPersona(phone.telefonoPersona())
@@ -456,10 +461,19 @@ public class PersonService implements PersonServicePort {
                 .build();
     }
 
+    /**
+     * Una lista que la petición puede no traer. Correos y teléfonos son opcionales en el contrato
+     * —salvo el correo de quien tiene cuenta, que se exige aparte y con su propio mensaje—, y que no
+     * vengan significa que no hay ninguno.
+     */
+    private static <T> List<T> listaOVacia(List<T> lista) {
+        return lista == null ? List.of() : lista;
+    }
+
     private PersonIdentityRequest identityRequestFrom(PersonUseCaseRequest request) {
         return PersonIdentityRequest.builder()
                 .userName(request.nombreUsuario())
-                .email(request.emailPersonList().stream()
+                .email(listaOVacia(request.emailPersonList()).stream()
                         .findFirst()
                         .map(EmailPersonUseCaseRequest::correoPersona)
                         .orElseThrow(() -> new IllegalArgumentException(

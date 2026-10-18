@@ -163,7 +163,7 @@ nombra al terminar. Tres decisiones:
 **Verificado en vivo** contra la pila de desarrollo, con un representante y un segundo cliente
 inventados y borrados después: sin nombrar ve **0** clientes; nombrado, ve el suyo y sus 5 órdenes, la
 ficha del otro responde **404**, editar su cliente **403** y listar personas **403**; retirado, vuelve a
-**0** —en el acto, con un token nuevo—. Diez mutaciones sobre las pantallas, diez muertas.
+**0** —en el acto, con un token nuevo—. Diez mutaciones sobre las pantallas, diez muertas. Al probarlo apareció además que el alta de una persona respondía 500 sin `phonePersonList`; cerrado ese mismo día, ver [[deuda-tecnica-y-riesgos]].
 
 ## Cómo se verificó
 

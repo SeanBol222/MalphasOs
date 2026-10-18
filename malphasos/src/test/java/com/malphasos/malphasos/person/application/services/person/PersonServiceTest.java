@@ -130,6 +130,62 @@ class PersonServiceTest {
     }
 
     @Test
+    @DisplayName("un encargado sin correos ni telefonos entra: las dos listas son opcionales")
+    void saveSinListasDeContacto() {
+        // El mapper pone nulo encima de la lista por defecto cuando la peticion no la trae.
+        when(persistencePort.save(any(Person.class))).thenAnswer(i -> i.getArgument(0));
+        Person persona = personaDeTipo(PersonType.MANAGER);
+        persona.setEmailPersonList(null);
+        persona.setPhonePersonList(null);
+
+        Person guardada = service().save(persona);
+
+        assertThat(guardada.getEmailPersonList()).isEmpty();
+        assertThat(guardada.getPhonePersonList()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("un registro sin telefonos se completa: la lista es opcional en el contrato")
+    void registroSinTelefonos() {
+        // Respondia 500: el servicio recorria la lista sin mirar si venia.
+        when(identityPort.createUser(any(), any())).thenReturn(UUID.randomUUID().toString());
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        PersonUseCaseRequest sinTelefonos = PersonUseCaseRequest.builder()
+                .cedula("1234567890")
+                .primerNombre("Ada")
+                .primerApellido("Lovelace")
+                .nombreUsuario("ada")
+                .password("secreto")
+                .emailPersonList(List.of(
+                        EmailPersonUseCaseRequest.builder().correoPersona("ada@malphasos.local").build()))
+                .build();
+
+        Person creada = service().registerCeoClient(sinTelefonos);
+
+        assertThat(creada.getPhonePersonList()).isEmpty();
+        assertThat(creada.getEmailPersonList()).hasSize(1);
+        verify(identityPort, never()).deleteUser(any());
+    }
+
+    @Test
+    @DisplayName("un registro sin la lista de correos se rechaza diciendo por que, no con un nulo")
+    void registroSinListaDeCorreos() {
+        PersonUseCaseRequest sinCorreos = PersonUseCaseRequest.builder()
+                .cedula("1234567890")
+                .primerNombre("Ada")
+                .primerApellido("Lovelace")
+                .nombreUsuario("ada")
+                .password("secreto")
+                .build();
+
+        assertThatThrownBy(() -> service().registerEngineer(sinCorreos))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("al menos un correo");
+
+        verify(identityPort, never()).createUser(any(PersonIdentityRequest.class), any());
+    }
+
+    @Test
     @DisplayName("buscar una persona inexistente lanza PersonNotFoundException")
     void findingUnknownPersonFails() {
         UUID id = UUID.randomUUID();

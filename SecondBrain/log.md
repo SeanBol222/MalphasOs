@@ -2130,3 +2130,15 @@ queda abierto en su propia fila.
 decir que nadie podía nombrar al representante—, [[deuda-tecnica-y-riesgos]] —97 filas, 44 tachadas,
 53 abiertas—, [[index]] y el `CONVENCIONES.md` de la raíz.
 
+## [2026-10-17] ingest | el alta de una persona sin listas de contacto
+
+Cerrado el 500 que apareció al probar el representante: las altas recorrían correos y teléfonos sin
+mirar si venían, y el contrato los declara opcionales. **Valía para las dos puertas**, no solo para la
+de cuenta: el mapper generado pone nulo encima de la lista vacía por defecto de `Person`. Se arregló en
+`PersonService`, donde convergen los tres caminos de alta, con tres pruebas vistas fallar contra el
+código viejo. Batería completa: **1469** en 112 clases, cero fallos —1465 + 3, y una del informe de
+sesenta lecturas que entró en la tanda 8, después de la medición anterior—. En vivo, 201, 201 y 400.
+
+**Tocadas**: [[deuda-tecnica-y-riesgos]] —97 filas, 45 tachadas, 52 abiertas—, [[filtrado-por-dueno]]
+y el `CONVENCIONES.md` de la raíz.
+
