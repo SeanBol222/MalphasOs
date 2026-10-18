@@ -1,8 +1,10 @@
 package com.malphasos.malphasos.person.domain.person;
 
+import com.malphasos.malphasos.person.domain.exception.PrimaryEmailRemovalException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -122,12 +124,52 @@ public class Person {
     /**
      * Desactiva un correo sin eliminarlo. Si el identificador no corresponde a ninguno de los
      * correos de esta persona, la llamada no tiene efecto.
+     *
+     * <p><b>El correo de la cuenta no se retira</b> (V40): la cuenta seguiría usando una dirección que
+     * la ficha da por muerta. Hay que elegir otro antes.
      */
     public void removeEmail(UUID idEmail) {
         this.emailPersonList.stream()
                 .filter(e -> e.getIdCorreoPersona().equals(idEmail))
                 .findFirst()
-                .ifPresent(e -> e.setEstadoActivo(false));
+                .ifPresent(e -> {
+                    if (e.isPrincipal() && e.isEstadoActivo()) {
+                        throw new PrimaryEmailRemovalException(idEmail);
+                    }
+                    e.setEstadoActivo(false);
+                });
+    }
+
+    /** El correo de la cuenta, si lo tiene. */
+    public Optional<EmailPerson> primaryEmail() {
+        return emailPersonList.stream().filter(e -> e.isPrincipal() && e.isEstadoActivo()).findFirst();
+    }
+
+    /**
+     * Hace de este correo el de la cuenta, y deja de serlo el que lo era.
+     *
+     * @throws IllegalArgumentException si el correo no es de esta persona o está retirado: una cuenta
+     *     no puede quedarse con una dirección que la ficha ya no reconoce
+     */
+    public EmailPerson markPrimaryEmail(UUID idEmail) {
+        EmailPerson elegido = emailPersonList.stream()
+                .filter(e -> e.getIdCorreoPersona().equals(idEmail) && e.isEstadoActivo())
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "El correo " + idEmail + " no es un correo activo de esta persona"));
+
+        emailPersonList.forEach(e -> e.setPrincipal(false));
+        elegido.setPrincipal(true);
+
+        return elegido;
+    }
+
+    /**
+     * Si esta persona entra al sistema y por tanto tiene cuenta. Un encargado no: existe como contacto
+     * de una sede, y ninguno de sus correos es de una cuenta.
+     */
+    public boolean hasAccess() {
+        return tipoPersona != null && tipoPersona != PersonType.MANAGER;
     }
 
     public void addPhone(PhonePerson phone) {

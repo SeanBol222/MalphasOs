@@ -4,6 +4,7 @@ import com.malphasos.malphasos.person.application.model.identity.PersonIdentityP
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityRequest;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
 import com.malphasos.malphasos.person.domain.person.RoleType;
+import java.util.Optional;
 
 /**
  * Puerto de salida hacia el proveedor de identidad, donde viven los usuarios con los que se accede
@@ -53,6 +54,21 @@ public interface PersonIdentityPort {
      * @throws KeycloakUserNotFoundException si no hay ningún usuario con ese identificador
      */
     void updateUserProfile(String userId, PersonIdentityProfile profile);
+
+    /**
+     * Cambia el correo de la cuenta (V40, 2026-10-17): el que la ficha marca como principal.
+     *
+     * @throws KeycloakUserNotFoundException si no hay ningún usuario con ese identificador
+     * @throws com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException si otra
+     *     cuenta ya usa ese correo
+     */
+    void updateUserEmail(String userId, String email);
+
+    /**
+     * El correo que tiene hoy la cuenta, o vacío si no hay cuenta con ese identificador. Lo usa el
+     * conciliador que marca el principal de las fichas anteriores a V40.
+     */
+    Optional<String> findUserEmail(String userId);
 
     /**
      * Deja al usuario en el grupo que le corresponde, y en ninguno más.

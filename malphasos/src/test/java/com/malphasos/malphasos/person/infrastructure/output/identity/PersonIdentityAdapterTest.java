@@ -3,6 +3,7 @@ package com.malphasos.malphasos.person.infrastructure.output.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
@@ -10,12 +11,14 @@ import static org.mockito.Mockito.never;
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityProfile;
 import com.malphasos.malphasos.person.application.model.identity.PersonIdentityRequest;
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
 import com.malphasos.malphasos.person.domain.person.RoleType;
 import jakarta.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.core.Response;
@@ -427,5 +430,65 @@ class PersonIdentityAdapterTest {
         verify(userResource).leaveGroup("id-clients");
         verify(userResource, never()).leaveGroup("id-admins");
         verify(userResource, never()).joinGroup(any());
+    }
+
+    // --- El correo de la cuenta (V40, 2026-10-17) -------------------------------------------
+
+    @Test
+    @DisplayName("cambiar el correo solo cambia el correo")
+    void updateUserEmailTouchesOnlyEmail() {
+        String userId = UUID.randomUUID().toString();
+        UserRepresentation existing = new UserRepresentation();
+        existing.setUsername("ada");
+        existing.setEmail("ada@viejo.local");
+        existing.setFirstName("Ada");
+        when(usersResource.get(userId)).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(existing);
+
+        adapter.updateUserEmail(userId, "ada@nuevo.local");
+
+        ArgumentCaptor<UserRepresentation> sent = ArgumentCaptor.forClass(UserRepresentation.class);
+        verify(userResource).update(sent.capture());
+        assertThat(sent.getValue().getEmail()).isEqualTo("ada@nuevo.local");
+        assertThat(sent.getValue().getUsername()).isEqualTo("ada");
+        assertThat(sent.getValue().getFirstName()).isEqualTo("Ada");
+    }
+
+    @Test
+    @DisplayName("un 409 al cambiar el correo es que otra cuenta lo usa, no que el usuario exista")
+    void updateUserEmailConflict() {
+        String userId = UUID.randomUUID().toString();
+        when(usersResource.get(userId)).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(new UserRepresentation());
+        doThrow(new ClientErrorException(409)).when(userResource).update(any());
+
+        assertThatThrownBy(() -> adapter.updateUserEmail(userId, "ocupado@x.local"))
+                .isInstanceOf(KeycloakEmailInUseException.class);
+    }
+
+    @Test
+    @DisplayName("leer el correo de una cuenta que no existe da vacío, no un error")
+    void findUserEmailSinCuenta() {
+        String userId = UUID.randomUUID().toString();
+        when(usersResource.get(userId)).thenReturn(userResource);
+        when(userResource.toRepresentation())
+                .thenThrow(new ProcessingException(new NotFoundException("HTTP 404 Not Found")));
+
+        assertThat(adapter.findUserEmail(userId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("leer el correo de una cuenta devuelve el suyo, y otros fallos no se esconden")
+    void findUserEmailConCuenta() {
+        String userId = UUID.randomUUID().toString();
+        UserRepresentation existing = new UserRepresentation();
+        existing.setEmail("ada@x.local");
+        when(usersResource.get(userId)).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(existing);
+
+        assertThat(adapter.findUserEmail(userId)).contains("ada@x.local");
+
+        when(userResource.toRepresentation()).thenThrow(new ProcessingException("red caida"));
+        assertThatThrownBy(() -> adapter.findUserEmail(userId)).isInstanceOf(KeycloakConnectionException.class);
     }
 }

@@ -19,7 +19,8 @@ const INGENIERA = {
   estadoActivo: true,
   emailPersonList: [
     { correoPersona: 'vieja@ejemplo.test', estadoActivo: false },
-    { correoPersona: 'ada@ejemplo.test', estadoActivo: true },
+    { correoPersona: 'otro@ejemplo.test', estadoActivo: true },
+    { correoPersona: 'ada@ejemplo.test', estadoActivo: true, principal: true },
   ],
   phonePersonList: [{ telefonoPersona: '3000000000', estadoActivo: true }],
 };
@@ -87,14 +88,15 @@ describe('Ventana de la sesión', () => {
   }
 
   describe('Los datos', () => {
-    it('enseña el nombre de la ficha, el usuario, el rol y el correo vigente', async () => {
+    it('enseña el nombre de la ficha, el usuario, el rol y el correo de la cuenta', async () => {
       await abrirIngeniera(null);
 
       expect(raiz().querySelector('h2')?.textContent?.trim()).toBe('Ada Lovelace');
       expect(texto()).toContain('sbolivar');
       expect(raiz().querySelector('[data-rol]')?.textContent?.trim()).toBe('Ingeniero');
-      // El retirado no: la ventana dice cómo localizar a la persona hoy.
+      // El de la cuenta, aunque no sea el primero; nunca el retirado.
       expect(raiz().querySelector('[data-datos]')?.textContent).toContain('ada@ejemplo.test');
+      expect(raiz().querySelector('[data-datos]')?.textContent).not.toContain('otro@ejemplo.test');
       expect(raiz().querySelector('[data-datos]')?.textContent).not.toContain('vieja@ejemplo.test');
       expect(raiz().querySelector('[data-datos]')?.textContent).toContain('1000000000');
     });

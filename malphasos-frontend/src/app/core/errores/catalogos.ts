@@ -137,6 +137,8 @@ export const CATALOGO_PERSON: Readonly<Record<string, string>> = {
   ERR_PERSON_001: 'Esa persona no existe o fue retirada.',
   ERR_PERSON_002: 'Revise los datos de la persona.',
   ERR_PERSON_003: 'Todavía no ha guardado su firma.',
+  ERR_PERSON_004:
+    'Ese es el correo de la cuenta y no se puede retirar. Elija antes otro como correo de la cuenta.',
   ERR_KEYCLOAK_001: 'Ese nombre de usuario ya existe en el sistema de acceso. Elija otro.',
   ERR_KEYCLOAK_002:
     'El sistema de acceso rechazó los datos de la cuenta. Revise el nombre de usuario, el correo y la contraseña.',
@@ -144,6 +146,7 @@ export const CATALOGO_PERSON: Readonly<Record<string, string>> = {
     'El servidor no tiene permiso para crear cuentas en el sistema de acceso. Es un problema de configuración, no de los datos.',
   ERR_KEYCLOAK_004:
     'No se pudo contactar con el sistema de acceso. La persona no se dio de alta; vuelva a intentarlo.',
+  ERR_KEYCLOAK_005: 'Otra cuenta ya usa ese correo. No se cambió nada.',
 };
 
 /**

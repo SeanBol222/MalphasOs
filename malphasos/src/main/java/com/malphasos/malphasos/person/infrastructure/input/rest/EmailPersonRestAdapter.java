@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -60,6 +61,18 @@ public class EmailPersonRestAdapter {
 
         return personRestMapper.toResponse(
                 personServicePort.updateEmail(personId, emailId, personRestMapper.toEmailPerson(request)));
+    }
+
+    @Operation(
+            summary = "Usar un correo para la cuenta",
+            description = "Lo marca como principal y lo lleva a Keycloak. 409 si otra cuenta ya lo usa.")
+    @PreAuthorize("@personWriteGuard.canWrite(#personId, authentication)")
+    @PatchMapping("/{emailId}/primary")
+    public PersonResponse markPrimaryEmail(
+            @PathVariable UUID personId,
+            @Parameter(description = "Identificador del correo") @PathVariable UUID emailId) {
+
+        return personRestMapper.toResponse(personServicePort.markPrimaryEmail(personId, emailId));
     }
 
     @Operation(

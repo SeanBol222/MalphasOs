@@ -108,6 +108,17 @@ export class DetallePersona {
 
   protected readonly altaDeCorreo = this.api.anadirCorreo();
   protected readonly bajaDeCorreo = this.api.retirarCorreo();
+  protected readonly correoDeCuenta = this.api.usarCorreoParaLaCuenta();
+
+  /**
+   * Si la persona tiene cuenta, que es lo que da sentido al correo de la cuenta. Un encargado no:
+   * existe como contacto y no entra al sistema.
+   */
+  protected readonly tieneCuenta = computed(() => {
+    const tipo = this.persona.data()?.tipoPersona;
+
+    return !!tipo && tipo !== 'MANAGER';
+  });
   protected readonly altaDeTelefono = this.api.anadirTelefono();
   protected readonly bajaDeTelefono = this.api.retirarTelefono();
 
@@ -134,6 +145,7 @@ export class DetallePersona {
       this.baja.isError() ||
       this.altaDeCorreo.isError() ||
       this.bajaDeCorreo.isError() ||
+      this.correoDeCuenta.isError() ||
       this.altaDeTelefono.isError() ||
       this.bajaDeTelefono.isError(),
   );
@@ -144,6 +156,7 @@ export class DetallePersona {
         this.baja.error() ??
         this.altaDeCorreo.error() ??
         this.bajaDeCorreo.error() ??
+        this.correoDeCuenta.error() ??
         this.altaDeTelefono.error() ??
         this.bajaDeTelefono.error(),
     ),
@@ -238,6 +251,10 @@ export class DetallePersona {
 
   protected retirarCorreo(idContacto: string): void {
     this.bajaDeCorreo.mutate({ idPersona: this.id(), idContacto });
+  }
+
+  protected usarParaLaCuenta(idContacto: string): void {
+    this.correoDeCuenta.mutate({ idPersona: this.id(), idContacto });
   }
 
   protected retirarTelefono(idContacto: string): void {

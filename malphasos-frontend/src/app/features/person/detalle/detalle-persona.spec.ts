@@ -312,4 +312,85 @@ describe('Ficha de una persona', () => {
     expect(botones()).toEqual([]);
     expect(texto()).toContain('Retirada');
   });
+
+  describe('El correo de la cuenta (V40)', () => {
+    // Con él se puede entrar y a él van los avisos de Keycloak: es el único que viaja a la cuenta.
+    const CON_CUENTA = persona({
+      tipoPersona: 'ENGINEER',
+      emailPersonList: [
+        {
+          idCorreoPersona: 'c1',
+          correoPersona: 'grace@armada.mil',
+          estadoActivo: true,
+          principal: true,
+        },
+        {
+          idCorreoPersona: 'c2',
+          correoPersona: 'grace@casa.mil',
+          estadoActivo: true,
+          principal: false,
+        },
+      ],
+    });
+
+    const filaDe = (correo: string) =>
+      [...seccion('Correos').querySelectorAll('li')].find((li) =>
+        li.textContent?.includes(correo),
+      )!;
+    const botonesDe = (correo: string) =>
+      [...filaDe(correo).querySelectorAll('button')].map((b) => (b.textContent ?? '').trim());
+
+    it('lo dice en palabras, y no se ofrece retirarlo', async () => {
+      await abrir(CON_CUENTA);
+
+      expect(filaDe('grace@armada.mil').hasAttribute('data-correo-de-cuenta')).toBe(true);
+      expect(filaDe('grace@armada.mil').textContent).toContain('Correo de la cuenta');
+      expect(botonesDe('grace@armada.mil')).toEqual([]);
+      expect(filaDe('grace@armada.mil').textContent).toContain('elija antes otro para la cuenta');
+    });
+
+    it('los demás se pueden usar para la cuenta o retirar', async () => {
+      await abrir(CON_CUENTA);
+
+      expect(botonesDe('grace@casa.mil')).toEqual(['Usar para la cuenta', 'Retirar']);
+    });
+
+    it('usar otro para la cuenta es un PATCH sobre su sub-recurso', async () => {
+      await abrir(CON_CUENTA);
+
+      pulsar('Usar para la cuenta', filaDe('grace@casa.mil'));
+      await asentar(fixture);
+
+      const peticion = http.expectOne(`${URL}/${ID}/emails/c2/primary`);
+      expect(peticion.request.method).toBe('PATCH');
+      peticion.flush(CON_CUENTA);
+      await asentar(fixture);
+      http.match(`${URL}/${ID}`).forEach((p) => p.flush(CON_CUENTA));
+      await asentar(fixture);
+    });
+
+    it('si otra cuenta ya usa ese correo, lo explica', async () => {
+      await abrir(CON_CUENTA);
+
+      pulsar('Usar para la cuenta', filaDe('grace@casa.mil'));
+      await asentar(fixture);
+      http
+        .expectOne(`${URL}/${ID}/emails/c2/primary`)
+        .flush(
+          { code: 'ERR_KEYCLOAK_005', message: 'Another account already uses that email' },
+          { status: 409, statusText: 'Conflict' },
+        );
+      await asentar(fixture);
+
+      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+        'Otra cuenta ya usa ese correo',
+      );
+    });
+
+    it('un encargado no tiene cuenta: no se le ofrece usar ninguno para ella', async () => {
+      await abrir({ ...CON_CUENTA, tipoPersona: 'MANAGER' });
+
+      expect(botonesDe('grace@casa.mil')).toEqual(['Retirar']);
+    });
+  });
 });

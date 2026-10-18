@@ -18,9 +18,11 @@ import com.malphasos.malphasos.person.application.model.request.PhonePersonUseCa
 import com.malphasos.malphasos.person.application.ports.output.PersonIdentityPort;
 import com.malphasos.malphasos.person.application.ports.output.PersonPersistencePort;
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
+import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.person.domain.person.RoleType;
@@ -647,5 +649,135 @@ class PersonServiceTest {
         Person resultado = service().update(id, personaDeTipo(PersonType.CEO_CLIENT));
 
         assertThat(resultado.getTipoPersona()).isEqualTo(PersonType.CEO_CLIENT);
+    }
+
+    // --- El correo de la cuenta (V40, 2026-10-17) -------------------------------------------
+
+    private Person ingenieraConDosCorreos() {
+        Person persona = Person.builder()
+                .identificador(UUID.randomUUID())
+                .cedula("1234567890")
+                .primerNombre("Ada")
+                .primerApellido("Lovelace")
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(true)
+                .build();
+        persona.addEmail(EmailPerson.builder().idCorreoPersona(UUID.randomUUID())
+                .correoPersona("ada@viejo.local").estadoActivo(true).principal(true).build());
+        persona.addEmail(EmailPerson.builder().idCorreoPersona(UUID.randomUUID())
+                .correoPersona("ada@nuevo.local").estadoActivo(true).build());
+        return persona;
+    }
+
+    @Test
+    @DisplayName("el alta con cuenta marca como principal el correo que recibe Keycloak, que es el primero")
+    void altaMarcaElPrimerCorreo() {
+        when(identityPort.createUser(any(), any())).thenReturn(UUID.randomUUID().toString());
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        ArgumentCaptor<PersonIdentityRequest> aKeycloak = ArgumentCaptor.forClass(PersonIdentityRequest.class);
+        PersonUseCaseRequest dosCorreos = PersonUseCaseRequest.builder()
+                .cedula("1234567890").primerNombre("Ada").primerApellido("Lovelace")
+                .nombreUsuario("ada").password("secreto")
+                .emailPersonList(List.of(
+                        EmailPersonUseCaseRequest.builder().correoPersona("primero@x.local").build(),
+                        EmailPersonUseCaseRequest.builder().correoPersona("segundo@x.local").build()))
+                .build();
+
+        Person creada = service().registerEngineer(dosCorreos);
+
+        verify(identityPort).createUser(aKeycloak.capture(), any());
+        assertThat(creada.primaryEmail()).get().extracting(EmailPerson::getCorreoPersona)
+                .isEqualTo(aKeycloak.getValue().email())
+                .isEqualTo("primero@x.local");
+        assertThat(creada.getEmailPersonList()).filteredOn(EmailPerson::isPrincipal).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("cambiar el correo de la cuenta lo lleva a Keycloak antes de guardar")
+    void marcarPrincipalSincroniza() {
+        Person persona = ingenieraConDosCorreos();
+        EmailPerson nuevo = persona.getEmailPersonList().get(1);
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Person guardada = service().markPrimaryEmail(persona.getIdentificador(), nuevo.getIdCorreoPersona());
+
+        InOrder orden = Mockito.inOrder(identityPort, persistencePort);
+        orden.verify(identityPort).updateUserEmail(persona.getIdentificador().toString(), "ada@nuevo.local");
+        orden.verify(persistencePort).save(persona);
+        assertThat(guardada.primaryEmail()).get().isSameAs(nuevo);
+    }
+
+    @Test
+    @DisplayName("si otra cuenta ya usa ese correo, no se guarda nada")
+    void correoEnUsoNoGuarda() {
+        Person persona = ingenieraConDosCorreos();
+        EmailPerson nuevo = persona.getEmailPersonList().get(1);
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        doThrow(new KeycloakEmailInUseException("en uso", null))
+                .when(identityPort).updateUserEmail(any(), any());
+
+        assertThatThrownBy(() -> service().markPrimaryEmail(persona.getIdentificador(), nuevo.getIdCorreoPersona()))
+                .isInstanceOf(KeycloakEmailInUseException.class);
+
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("a un encargado no se le marca correo de cuenta: no tiene cuenta")
+    void encargadoSinPrincipal() {
+        Person persona = ingenieraConDosCorreos().setTipoPersona(PersonType.MANAGER);
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+
+        assertThatThrownBy(() -> service().markPrimaryEmail(
+                        persona.getIdentificador(), persona.getEmailPersonList().get(1).getIdCorreoPersona()))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verifyNoInteractions(identityPort);
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("una persona con acceso cuya cuenta no está en Keycloak se marca igual: la ficha manda")
+    void sinCuentaSeMarcaIgual() {
+        Person persona = ingenieraConDosCorreos();
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new KeycloakUserNotFoundException("no esta")).when(identityPort).updateUserEmail(any(), any());
+
+        Person guardada = service().markPrimaryEmail(
+                persona.getIdentificador(), persona.getEmailPersonList().get(1).getIdCorreoPersona());
+
+        assertThat(guardada.primaryEmail()).get().extracting(EmailPerson::getCorreoPersona)
+                .isEqualTo("ada@nuevo.local");
+    }
+
+    @Test
+    @DisplayName("corregir el correo de la cuenta lo corrige también en Keycloak")
+    void editarPrincipalSincroniza() {
+        Person persona = ingenieraConDosCorreos();
+        EmailPerson principal = persona.getEmailPersonList().getFirst();
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service().updateEmail(persona.getIdentificador(), principal.getIdCorreoPersona(),
+                EmailPerson.builder().correoPersona("ada@corregido.local").build());
+
+        verify(identityPort).updateUserEmail(persona.getIdentificador().toString(), "ada@corregido.local");
+    }
+
+    @Test
+    @DisplayName("corregir otro correo no toca Keycloak, ni reescribir el principal con su mismo valor")
+    void editarOtroNoSincroniza() {
+        Person persona = ingenieraConDosCorreos();
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service().updateEmail(persona.getIdentificador(), persona.getEmailPersonList().get(1).getIdCorreoPersona(),
+                EmailPerson.builder().correoPersona("otro@x.local").build());
+        service().updateEmail(persona.getIdentificador(), persona.getEmailPersonList().getFirst().getIdCorreoPersona(),
+                EmailPerson.builder().correoPersona("ada@viejo.local").build());
+
+        verifyNoInteractions(identityPort);
     }
 }

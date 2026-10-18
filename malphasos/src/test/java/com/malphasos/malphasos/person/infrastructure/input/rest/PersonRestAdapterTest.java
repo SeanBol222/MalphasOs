@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,9 +17,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import tools.jackson.databind.json.JsonMapper;
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
+import com.malphasos.malphasos.person.domain.exception.PrimaryEmailRemovalException;
+import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.EmailPersonCreateRequest;
@@ -308,5 +312,58 @@ class PersonRestAdapterTest {
                 .contains("/v1/api/persons")
                 .contains("/v1/api/persons/{personId}/emails")
                 .contains("/v1/api/persons/{personId}/phones");
+    }
+
+    @Test
+    @DisplayName("usar un correo para la cuenta es un PATCH sobre su sub-recurso")
+    void marcarPrincipal() throws Exception {
+        UUID personId = UUID.randomUUID();
+        UUID emailId = UUID.randomUUID();
+        when(personServicePort.markPrimaryEmail(personId, emailId)).thenReturn(samplePerson(personId));
+
+        mockMvc.perform(patch("/v1/api/persons/{id}/emails/{emailId}/primary", personId, emailId))
+                .andExpect(status().isOk());
+
+        verify(personServicePort).markPrimaryEmail(personId, emailId);
+    }
+
+    @Test
+    @DisplayName("retirar el correo de la cuenta responde 409 con su código")
+    void retirarPrincipal() throws Exception {
+        UUID personId = UUID.randomUUID();
+        UUID emailId = UUID.randomUUID();
+        when(personServicePort.removeEmail(personId, emailId))
+                .thenThrow(new PrimaryEmailRemovalException(emailId));
+
+        mockMvc.perform(delete("/v1/api/persons/{id}/emails/{emailId}", personId, emailId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_PERSON_004"));
+    }
+
+    @Test
+    @DisplayName("un correo que otra cuenta ya usa responde 409 con un código distinto de «el usuario ya existe»")
+    void correoEnUso() throws Exception {
+        UUID personId = UUID.randomUUID();
+        UUID emailId = UUID.randomUUID();
+        when(personServicePort.markPrimaryEmail(personId, emailId))
+                .thenThrow(new KeycloakEmailInUseException("en uso", null));
+
+        mockMvc.perform(patch("/v1/api/persons/{id}/emails/{emailId}/primary", personId, emailId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_KEYCLOAK_005"));
+    }
+
+    @Test
+    @DisplayName("cada correo de la respuesta dice si es el de la cuenta")
+    void respuestaConPrincipal() throws Exception {
+        UUID personId = UUID.randomUUID();
+        Person persona = samplePerson(personId);
+        persona.addEmail(EmailPerson.builder().idCorreoPersona(UUID.randomUUID())
+                .correoPersona("ada@ejemplo.com").estadoActivo(true).principal(true).build());
+        when(personServicePort.findById(personId)).thenReturn(persona);
+
+        mockMvc.perform(get("/v1/api/persons/{id}", personId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.emailPersonList[0].principal").value(true));
     }
 }

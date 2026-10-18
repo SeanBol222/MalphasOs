@@ -156,6 +156,21 @@ export class PersonaApi {
     return this.retirarContacto('emails');
   }
 
+  /**
+   * Hace de un correo el de la cuenta de Keycloak (V40, 2026-10-17): con él se puede entrar y a él van
+   * los avisos. El servidor lo lleva a Keycloak antes de guardarlo, y responde 409 si otra cuenta ya
+   * lo usa.
+   */
+  usarCorreoParaLaCuenta() {
+    return injectMutation(() => ({
+      mutationFn: ({ idPersona, idContacto }: { idPersona: string; idContacto: string }) =>
+        firstValueFrom(
+          this.http.patch<Persona>(`${this.url}/${idPersona}/emails/${idContacto}/primary`, null),
+        ),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
   anadirTelefono() {
     return this.anadirContacto<{ telefonoPersona: string }>('phones');
   }

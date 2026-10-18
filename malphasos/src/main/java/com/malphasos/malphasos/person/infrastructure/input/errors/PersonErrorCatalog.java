@@ -15,10 +15,12 @@ public enum PersonErrorCatalog {
     PERSON_NOT_FOUND("ERR_PERSON_001", "Person not found"),
     INVALID_PERSON_DATA("ERR_PERSON_002", "Invalid person data"),
     SIGNATURE_NOT_FOUND("ERR_PERSON_003", "The person has not saved a signature"),
+    PRIMARY_EMAIL_REMOVAL("ERR_PERSON_004", "The account email cannot be removed: choose another one first"),
     KEYCLOAK_USER_ALREADY_EXISTS("ERR_KEYCLOAK_001", "Keycloak user already exists"),
     KEYCLOAK_INVALID_DATA("ERR_KEYCLOAK_002", "Invalid data for Keycloak operation"),
     KEYCLOAK_UNAUTHORIZED("ERR_KEYCLOAK_003", "The service account cannot operate on Keycloak"),
-    KEYCLOAK_CONNECTION_ERROR("ERR_KEYCLOAK_004", "Connection error with Keycloak");
+    KEYCLOAK_CONNECTION_ERROR("ERR_KEYCLOAK_004", "Connection error with Keycloak"),
+    KEYCLOAK_EMAIL_IN_USE("ERR_KEYCLOAK_005", "Another account already uses that email");
 
     private final String code;
     private final String message;

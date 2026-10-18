@@ -205,21 +205,50 @@
       } @else {
         <ul>
           @for (correo of correos(); track correo.idCorreoPersona) {
-            <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
-              <span class="grow">{{ correo.correoPersona }}</span>
+            <li
+              class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200"
+              [attr.data-correo-de-cuenta]="correo.principal ? '' : null"
+            >
+              <span class="grow" [class.font-bold]="correo.principal">
+                {{ correo.correoPersona }}
+                @if (correo.principal) {
+                  <!-- Por peso y en palabras, no por color: es la regla de los estados en el manual. -->
+                  <span class="ml-1 text-xs font-bold tracking-[0.14em] uppercase">
+                    Correo de la cuenta
+                  </span>
+                }
+              </span>
               @if (puedeEscribir() && datos.estadoActivo) {
-                <!--
-                  Retirar y no borrar: apaga el estado y la fila se queda, como todo aqui. El API no
-                  admite mandar la lista completa, asi que cada uno es su propia llamada.
-                -->
-                <button
-                  class="min-h-tactil px-1 font-semibold underline"
-                  type="button"
-                  [disabled]="bajaDeCorreo.isPending()"
-                  (click)="retirarCorreo(correo.idCorreoPersona!)"
-                >
-                  Retirar
-                </button>
+                @if (correo.principal) {
+                  <span class="text-sm text-neutral-700">
+                    Para retirarlo, elija antes otro para la cuenta.
+                  </span>
+                } @else {
+                  @if (tieneCuenta()) {
+                    <button
+                      class="min-h-tactil px-1 font-semibold underline"
+                      type="button"
+                      [attr.aria-label]="'Usar ' + correo.correoPersona + ' para la cuenta'"
+                      [disabled]="correoDeCuenta.isPending()"
+                      (click)="usarParaLaCuenta(correo.idCorreoPersona!)"
+                    >
+                      Usar para la cuenta
+                    </button>
+                  }
+                  <!--
+                    Retirar y no borrar: apaga el estado y la fila se queda, como todo aqui. El API no
+                    admite mandar la lista completa, asi que cada uno es su propia llamada.
+                  -->
+                  <button
+                    class="min-h-tactil px-1 font-semibold underline"
+                    type="button"
+                    [attr.aria-label]="'Retirar ' + correo.correoPersona"
+                    [disabled]="bajaDeCorreo.isPending()"
+                    (click)="retirarCorreo(correo.idCorreoPersona!)"
+                  >
+                    Retirar
+                  </button>
+                }
               }
             </li>
           }

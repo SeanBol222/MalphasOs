@@ -1,11 +1,13 @@
 package com.malphasos.malphasos.person.infrastructure.input.errors;
 
 import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionException;
+import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakInvalidDataException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonSignatureNotFoundException;
+import com.malphasos.malphasos.person.domain.exception.PrimaryEmailRemovalException;
 import com.malphasos.malphasos.person.infrastructure.input.rest.EmailPersonRestAdapter;
 import com.malphasos.malphasos.person.infrastructure.input.rest.MyPersonRestAdapter;
 import com.malphasos.malphasos.person.infrastructure.input.rest.PersonRestAdapter;
@@ -61,6 +63,20 @@ public class PersonControllerAdvice {
     @ExceptionHandler(IllegalArgumentException.class)
     public PersonErrorResponse handleInvalidData(IllegalArgumentException ex) {
         return PersonErrorResponse.of(PersonErrorCatalog.INVALID_PERSON_DATA, List.of(ex.getMessage()));
+    }
+
+    /** El correo de la cuenta no se retira sin elegir otro (V40). */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(PrimaryEmailRemovalException.class)
+    public PersonErrorResponse handlePrimaryEmailRemoval(PrimaryEmailRemovalException ex) {
+        return PersonErrorResponse.of(PersonErrorCatalog.PRIMARY_EMAIL_REMOVAL, List.of(ex.getMessage()));
+    }
+
+    /** Otra cuenta ya usa ese correo: no es «el usuario ya existe», y se dice distinto. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(KeycloakEmailInUseException.class)
+    public PersonErrorResponse handleEmailInUse() {
+        return PersonErrorResponse.of(PersonErrorCatalog.KEYCLOAK_EMAIL_IN_USE);
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)

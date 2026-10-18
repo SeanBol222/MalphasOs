@@ -26,6 +26,10 @@
           "idCorreoPersona" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "principal" : {
+            "description" : "Si es el correo de la cuenta en Keycloak (V40)",
+            "type" : "boolean"
           }
         },
         "type" : "object"
@@ -1656,6 +1660,104 @@
           }
         },
         "summary" : "Actualizar un correo de una persona",
+        "tags" : [ "Person emails" ]
+      }
+    },
+    "/v1/api/persons/{personId}/emails/{emailId}/primary" : {
+      "patch" : {
+        "description" : "Lo marca como principal y lo lleva a Keycloak. 409 si otra cuenta ya lo usa.",
+        "operationId" : "markPrimaryEmail",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "personId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Identificador del correo",
+          "in" : "path",
+          "name" : "emailId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "502" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Gateway"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Usar un correo para la cuenta",
         "tags" : [ "Person emails" ]
       }
     },

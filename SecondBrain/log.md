@@ -2158,3 +2158,20 @@ faltaban 7 de los 24 roles del API, y los ingenieros no podían cerrar reportes.
 [[deuda-tecnica-y-riesgos]] —sin filas nuevas: se amplió la de `IGNORE_EXISTING`— y el
 `CONVENCIONES.md` de la raíz.
 
+## [2026-10-17] ingest | el correo de la cuenta
+
+Primera tanda de las cinco decididas antes del tag para el acceso: el correo de la cuenta. `V40` marca
+uno de los correos de la ficha como el de Keycloak; cambiarlo, corregirlo o intentar retirarlo se
+comporta como debe, y las fichas anteriores las concilia el arranque. En desarrollo marcó la del
+ingeniero con cuenta y dejó dicho en el log la de una persona con acceso y sin cuenta.
+
+**Dos correcciones del wiki por el camino**: «una restricción no admite `WHERE`» era falso para las de
+exclusión, que además se pueden diferir —es lo que usa `V40`—; y el diagrama del esquema dibujaba una
+columna que `V33` quitó el día anterior, que el guion de la nota cazó al volver a pasarlo. **Y una
+prueba que no probaba**: la del cambio de principal pasaba sin el diferido hasta poner el correo nuevo
+delante en la lista. Once mutaciones en el backend y seis en el frontend, todas muertas; backend
+**1500** en 114 clases, frontend **738**.
+
+**Tocadas**: [[esquema-bd-malphasos]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]] y
+el `CONVENCIONES.md` de la raíz.
+

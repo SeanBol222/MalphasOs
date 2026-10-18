@@ -503,3 +503,20 @@ digital** y cerrar sesión. Diseño aprobado por el usuario sobre una propuesta 
 - **Los datos son de solo lectura.** Editarlos sigue siendo cosa de «Personas», que es donde la
   escalera de permisos decide quién toca a quién.
 
+## El correo de la cuenta (2026-10-17)
+
+Cerrado antes del tag, a pregunta del usuario: el correo se podía cambiar en la aplicación y **no
+llegaba a Keycloak**, y como el realm deja entrar con el correo, se seguía entrando con el viejo.
+
+- **Uno de los correos de la ficha es el de la cuenta** (`V40`, `b_principal`). Solo lo tiene quien
+  accede al sistema; a un encargado se le rechaza, porque no tiene cuenta.
+- **Cambiarlo o corregirlo llega a Keycloak antes de guardarse**, en el mismo orden que el nombre: si
+  Keycloak lo rechaza —otra cuenta ya lo usa, `ERR_KEYCLOAK_005`— no se guarda nada.
+- **No se retira sin elegir otro antes** (`ERR_PERSON_004`), y la base lo sostiene con un `CHECK`.
+- **Las fichas anteriores las concilia el arranque**, preguntándole a Keycloak cuál es el de cada
+  cuenta: la tabla no guarda fecha de alta para adivinar el primero. **Si el de la cuenta no está en la
+  ficha, se añade y se marca**, decidido por el usuario: es el que recibe los avisos y con el que se
+  entra. Nunca tumba el arranque.
+- **Uno por persona con una restricción de exclusión diferida**, no con un índice único parcial: ver
+  [[esquema-bd-malphasos]].
+

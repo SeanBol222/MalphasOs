@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.person.infrastructure.output;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.person.domain.person.EmailPerson;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.jdbc.Sql;
 
 /**
@@ -117,6 +119,61 @@ class PersonPersistenceAdapterTest {
 
         assertThat(rows).singleElement().satisfies(fila ->
                 assertThat(fila.get("b_estado_activo")).isEqualTo(false));
+    }
+
+    @Test
+    @DisplayName("cambiar de correo principal en un solo guardado no choca contra la regla de uno por persona")
+    void cambiarDePrincipalEnUnGuardado() {
+        // Son dos UPDATE en el mismo flush —el viejo a falso, el nuevo a verdadero— y Hibernate no
+        // garantiza su orden. Con un índice único parcial esto fallaría según el orden; la restricción
+        // de exclusión de V40 es diferida y se comprueba al confirmar, con las dos filas en su sitio.
+        Person persona = personWithContacts();
+        persona.getEmailPersonList().getFirst().setPrincipal(true);
+        EmailPerson segundo = EmailPerson.builder()
+                .idCorreoPersona(UUID.randomUUID())
+                .correoPersona("ada@otro.local")
+                .estadoActivo(true)
+                .build();
+        // Delante en la lista a propósito: así su UPDATE a verdadero sale antes que el del viejo a
+        // falso, que es el orden que rompe sin el diferido. Detrás, la prueba pasaba igual sin él.
+        persona.getEmailPersonList().addFirst(segundo);
+        Person guardada = adapter.save(persona);
+
+        guardada.markPrimaryEmail(segundo.getIdCorreoPersona());
+        adapter.save(guardada);
+
+        assertThat(adapter.findById(guardada.getIdentificador()).orElseThrow().primaryEmail())
+                .get()
+                .extracting(EmailPerson::getCorreoPersona)
+                .isEqualTo("ada@otro.local");
+    }
+
+    @Test
+    @DisplayName("la base rechaza dos correos principales para la misma persona")
+    void dosPrincipalesNo() {
+        // La regla tiene que valer también para lo que no entra por el dominio.
+        Person guardada = adapter.save(personWithContacts());
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "INSERT INTO correo_persona (k_id_correo_persona, n_correo_persona, k_identificador, "
+                                + "b_estado_activo, b_principal) VALUES (?, 'a@x.local', ?, true, true), "
+                                + "(?, 'b@x.local', ?, true, true)",
+                        UUID.randomUUID(), guardada.getIdentificador(), UUID.randomUUID(), guardada.getIdentificador()))
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("EX_correo_principal_por_persona");
+    }
+
+    @Test
+    @DisplayName("la base rechaza un correo principal retirado")
+    void principalRetiradoNo() {
+        Person guardada = adapter.save(personWithContacts());
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "INSERT INTO correo_persona (k_id_correo_persona, n_correo_persona, k_identificador, "
+                                + "b_estado_activo, b_principal) VALUES (?, 'a@x.local', ?, false, true)",
+                        UUID.randomUUID(), guardada.getIdentificador()))
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("CHK_correo_principal_activo");
     }
 
     @Test

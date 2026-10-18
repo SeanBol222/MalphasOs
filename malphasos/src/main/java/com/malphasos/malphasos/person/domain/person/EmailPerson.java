@@ -28,4 +28,10 @@ public class EmailPerson {
 
     /** Borrado lógico: un correo inactivo se conserva como historial. */
     private boolean estadoActivo;
+
+    /**
+     * Si es el correo de la cuenta de Keycloak (V40, 2026-10-17). Uno como mucho por persona, solo
+     * entre los activos, y solo tiene sentido para quien accede al sistema.
+     */
+    private boolean principal;
 }
