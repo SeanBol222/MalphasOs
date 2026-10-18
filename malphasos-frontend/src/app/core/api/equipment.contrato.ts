@@ -166,6 +166,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/client-equipments/{id}/life-sheet/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La hoja de vida en PDF
+         * @description La misma hoja de vida, compuesta en el servidor y convertida por Gotenberg, con el número de página en cada una. Con el mismo alcance que la hoja de vida.
+         */
+        get: operations["getLifeSheetPdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/client-equipments/{id}/service-area/{idAreaServicio}": {
         parameters: {
             query?: never;
@@ -1339,6 +1359,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     create_6: {
@@ -1399,6 +1428,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getById_6: {
@@ -1457,6 +1495,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     deactivate_5: {
@@ -1511,6 +1558,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -1575,6 +1631,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll_9: {
@@ -1631,6 +1696,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     list: {
@@ -1664,6 +1738,24 @@ export interface operations {
                     "*/*": components["schemas"]["EquipmentOverviewResponse"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
             /** @description Conflict */
             409: {
                 headers: {
@@ -1680,6 +1772,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -1704,6 +1805,24 @@ export interface operations {
                     "*/*": components["schemas"]["EquipmentAreaSummaryResponse"][];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
             /** @description Conflict */
             409: {
                 headers: {
@@ -1720,6 +1839,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -1780,6 +1908,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     decommission: {
@@ -1834,6 +1971,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -1898,6 +2044,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getByEquipment: {
@@ -1921,6 +2076,24 @@ export interface operations {
                     "*/*": components["schemas"]["InterventionResponse"][];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
             /** @description Conflict */
             409: {
                 headers: {
@@ -1937,6 +2110,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -1962,6 +2144,24 @@ export interface operations {
                     "*/*": components["schemas"]["LifeSheetResponse"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
             /** @description Conflict */
             409: {
                 headers: {
@@ -1978,6 +2178,83 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+        };
+    };
+    getLifeSheetPdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del equipo instalado */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description El PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -2039,6 +2316,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll_5: {
@@ -2093,6 +2379,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -2155,6 +2450,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getById_4: {
@@ -2213,6 +2517,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     deactivate_4: {
@@ -2267,6 +2580,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -2331,6 +2653,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll_7: {
@@ -2387,6 +2718,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -2451,6 +2791,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     declareVerifications: {
@@ -2513,6 +2862,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll_4: {
@@ -2570,6 +2928,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -2632,6 +2999,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getById_7: {
@@ -2690,6 +3066,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     deactivate_6: {
@@ -2746,6 +3131,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll_8: {
@@ -2800,6 +3194,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -2860,6 +3263,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll_3: {
@@ -2914,6 +3326,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -2976,6 +3397,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getById_3: {
@@ -3034,6 +3464,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     deactivate_3: {
@@ -3088,6 +3527,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -3152,6 +3600,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll_2: {
@@ -3209,6 +3666,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -3271,6 +3737,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getById_2: {
@@ -3329,6 +3804,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     deactivate_2: {
@@ -3383,6 +3867,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -3447,6 +3940,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     changeInvima: {
@@ -3507,6 +4009,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -3571,6 +4082,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll_1: {
@@ -3625,6 +4145,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -3687,6 +4216,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getByType: {
@@ -3741,6 +4279,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -3801,6 +4348,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     deactivate_1: {
@@ -3855,6 +4411,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -3919,6 +4484,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getAll: {
@@ -3973,6 +4547,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -4035,6 +4618,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getById: {
@@ -4093,6 +4685,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     deactivate: {
@@ -4147,6 +4748,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -4211,6 +4821,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     getByServiceArea: {
@@ -4268,6 +4887,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };
@@ -4330,6 +4958,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };

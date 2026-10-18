@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, Signal } from '@angular/core';
 import {
   injectMutation,
@@ -18,35 +18,10 @@ import {
   RegistroDeIngreso,
   ReporteDeServicio,
 } from '../../core/api/tipos';
+import { DocumentoEnPdf, pedirPdf } from '../../core/api/pdf';
 
 /** El informe en PDF y el nombre con que se descarga, que dice el servidor (2026-10-17). */
-export interface InformeEnPdf {
-  readonly pdf: Blob;
-  readonly nombre: string;
-}
-
-/** El nombre de {@code inline; filename="informe-1DC6F5.pdf"}; nulo si no lo trae. */
-export function nombreDelArchivo(cabecera: string | null): string | null {
-  return cabecera?.match(/filename="?([^";]+)"?/)?.[1] ?? null;
-}
-
-/** Un error de una petición binaria con su cuerpo de error leído como JSON, si lo es. */
-async function conCuerpoLeido(fallo: unknown): Promise<unknown> {
-  if (!(fallo instanceof HttpErrorResponse) || !(fallo.error instanceof Blob)) {
-    return fallo;
-  }
-  try {
-    return new HttpErrorResponse({
-      error: JSON.parse(await fallo.error.text()),
-      headers: fallo.headers,
-      status: fallo.status,
-      statusText: fallo.statusText,
-      url: fallo.url ?? undefined,
-    });
-  } catch {
-    return fallo;
-  }
-}
+export type InformeEnPdf = DocumentoEnPdf;
 
 /** Qué patrón, en qué verificación de qué reporte (V30). */
 export interface PatronDeVerificacion {
@@ -168,20 +143,8 @@ export class ReporteApi {
   pdf(id: Signal<string>) {
     return injectQuery(() => ({
       queryKey: [...ReporteApi.claveDetalle(id()), 'pdf'] as const,
-      queryFn: async (): Promise<InformeEnPdf> => {
-        try {
-          const respuesta = await firstValueFrom(
-            this.http.get(`${this.url}/${id()}/pdf`, { observe: 'response', responseType: 'blob' }),
-          );
-
-          return {
-            pdf: respuesta.body!,
-            nombre: nombreDelArchivo(respuesta.headers.get('Content-Disposition')) ?? 'informe.pdf',
-          };
-        } catch (fallo) {
-          throw await conCuerpoLeido(fallo);
-        }
-      },
+      queryFn: (): Promise<InformeEnPdf> =>
+        pedirPdf(this.http, `${this.url}/${id()}/pdf`, 'informe.pdf'),
       enabled: !!id(),
     }));
   }

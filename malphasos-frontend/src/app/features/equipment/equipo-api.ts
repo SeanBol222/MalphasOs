@@ -8,12 +8,12 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { DocumentoEnPdf, pedirPdf } from '../../core/api/pdf';
 import {
   CambioDeEquipoDeCliente,
   ConsultaDeEquipos,
   EquipoDeCliente,
   EquiposDeArea,
-  HojaDeVida,
   NuevoEquipoDeCliente,
   ResumenDeEquipos,
 } from '../../core/api/tipos';
@@ -78,20 +78,18 @@ export class EquipoApi {
   }
 
   /**
-   * La hoja de vida completa de un equipo, en una sola peticion.
-   *
-   * <p>Antes pintarla exigia nueve consultas cruzadas aqui, porque ninguna respuesta del modulo trae
-   * nombres. El servidor la compila ahora, con el alcance ya aplicado.
+   * La hoja de vida en PDF, compuesta y convertida en el servidor (2026-10-18). Cuelga de la clave de la
+   * hoja de vida: lo que la caduca —cerrar un reporte, corregir el catálogo— caduca también su PDF.
    */
-  hojaDeVida(id: Signal<string>) {
+  hojaDeVidaEnPdf(id: Signal<string>) {
     return injectQuery(() => ({
-      queryKey: [...EquipoApi.CLAVE_HOJA_DE_VIDA, id()],
-      queryFn: () =>
-        firstValueFrom(
-          this.http.get<HojaDeVida>(`${this.api}/client-equipments/${id()}/life-sheet`),
+      queryKey: [...EquipoApi.CLAVE_HOJA_DE_VIDA, id(), 'pdf'],
+      queryFn: (): Promise<DocumentoEnPdf> =>
+        pedirPdf(
+          this.http,
+          `${this.api}/client-equipments/${id()}/life-sheet/pdf`,
+          'hoja-de-vida.pdf',
         ),
-      // Sin identificador no se pide: el documento del reporte la pide con el equipo de un reporte que
-      // todavia no ha llegado, y salia un GET a «client-equipments//life-sheet» (2026-10-16).
       enabled: !!id(),
     }));
   }

@@ -74,6 +74,8 @@ export const CATALOGO_EQUIPMENT: Readonly<Record<string, string>> = {
   ERR_EQUIPMENT_017: 'Ese equipo patrón no existe.',
   ERR_EQUIPMENT_018: 'Ya hay un equipo patrón vigente con esa serie.',
   ERR_EQUIPMENT_019: 'Ya hay un equipo patrón vigente con ese código interno.',
+  ERR_EQUIPMENT_020:
+    'No se pudo generar el PDF de la hoja de vida: el servicio que lo convierte no respondió. Vuelva a intentarlo en un momento.',
 };
 
 /**
