@@ -2183,3 +2183,16 @@ Versionado en el realm, derivado al de producción, **probado importándolo en u
 aplicado al de desarrollo con `kcadm`. En vivo: el usuario recibe `read-only`; la aplicación sigue
 cambiando correo y nombre. Ver [[decisiones-tecnicas-malphasos]].
 
+## [2026-10-17] ingest | contraseñas sin servidor de correo
+
+Tercera tanda del acceso. «Cambiar contraseña» en la ventana de la sesión —la acción `UPDATE_PASSWORD`
+de Keycloak— y «Restablecer contraseña» en la ficha de la persona, que pone una temporal con la misma
+escalera que editarla. Comprobado en vivo que la temporal obliga a cambiarla y que la página sale con
+el tema. La política del realm pide 12 caracteres y el alta exigía 8: alineado. Seis mutaciones en el
+backend —incluida cambiar la guarda de la escalera por una autoridad suelta— y siete en el frontend,
+todas muertas; backend **1512** en 114 clases, frontend **746**.
+
+**Abierta una deuda**: la contraseña inicial de un alta es definitiva y la sabe quien la puso.
+[[deuda-tecnica-y-riesgos]] queda en **98 filas, 45 tachadas, 53 abiertas**. La recuperación por correo
+queda fuera, decidido por el usuario.
+

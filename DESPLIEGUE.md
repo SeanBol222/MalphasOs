@@ -89,6 +89,27 @@ ingenieros y administradores reciben su cuenta de Keycloak en el mismo paso.
 una firma** —la ventana que abre su nombre, al pie de la barra, se lo explica— y no figura como ingeniero de ninguna orden. Quien vaya a firmar
 informes necesita su propia cuenta de ingeniero o de administrador, creada desde «Personas».
 
+## Contraseñas
+
+- **Cada quien cambia la suya** desde la ventana que abre su nombre, al pie de la barra lateral:
+  «Cambiar contraseña» lleva a la página de Keycloak y vuelve.
+- **Si alguien la olvida**, quien puede editar a esa persona en «Personas» le pone una **contraseña
+  temporal** en la sección «Acceso» de su ficha y se la da; al entrar con ella, Keycloak obliga a
+  elegir una nueva. La política es de **12 caracteres** como mínimo, distinta del usuario y del correo.
+- **El SuperUsuario no tiene ficha**, así que si olvida la suya se le pone una temporal desde el
+  servidor:
+
+  ```sh
+  docker compose -f docker-compose.prod.yaml --env-file .env.prod exec keycloak sh -c \
+    '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master \
+       --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" &&
+     /opt/keycloak/bin/kcadm.sh set-password -r malphasos-realm --username <usuario> \
+       --new-password <temporal> --temporary'
+  ```
+
+- **No hay «¿Olvidó su contraseña?» por correo**: exige un servidor de correo, que esta versión no
+  configura.
+
 ## Respaldos
 
 El servicio `respaldo` saca **uno al día** de las dos bases, la de la aplicación y la de Keycloak, a la
