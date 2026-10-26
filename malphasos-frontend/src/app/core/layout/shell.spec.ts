@@ -14,7 +14,8 @@ describe('Armazón', () => {
   let armazon: RouterTestingHarness;
 
   /**
-   * Las autoridades de lectura de todos los destinos del menu: una sesion que lo ve entero.
+   * Las autoridades de todos los destinos del menu: una sesion que lo ve entero. Son de lectura salvo
+   * {@code equipment.write}, que es la del catalogo desde el 2026-10-26.
    *
    * <p>Hacen falta desde el 2026-10-02: el menu oculta lo que la sesion no puede usar, de modo que sin
    * esto se pintaria solo «Inicio». Se nombran una a una en vez de usar {@code admin.full} a proposito
@@ -24,6 +25,7 @@ describe('Armazón', () => {
   const LECTURA_COMPLETA = [
     'client.read',
     'equipment.read',
+    'equipment.write',
     'work-order.read',
     'person.read',
     'company.read',
@@ -71,6 +73,8 @@ describe('Armazón', () => {
     expect(destinos).toContain('Equipos');
     expect(destinos).not.toContain('Personas');
     expect(destinos).not.toContain('Órdenes de trabajo');
+    // Lee equipos para ver los suyos, y el catálogo de la empresa no es asunto suyo (2026-10-26).
+    expect(destinos).not.toContain('Catálogo');
   });
 
   describe('La ventana de la sesión', () => {

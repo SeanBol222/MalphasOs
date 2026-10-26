@@ -210,11 +210,29 @@ describe('Listado de clientes', () => {
   });
 
   it('sin clientes no enseña una tabla vacía, sino que dice por dónde empezar', async () => {
-    montar();
+    montar(['client.read', 'client.write', 'equipment.read', 'location.read']);
     await abrir([]);
 
     expect(raiz().querySelector('table')).toBeNull();
     expect(texto()).toContain('Empiece dando de alta el primero');
+    expect(texto()).toContain('Nuevo cliente');
+  });
+
+  describe('Quien solo consulta, como el representante de un cliente (2026-10-26)', () => {
+    it('no tiene «Nuevo cliente», que el servidor le rechazaría', async () => {
+      montar(['client.read', 'equipment.read']);
+      await abrir([]);
+
+      expect(raiz().querySelector('a[href="/clientes/nuevo"]')).toBeNull();
+    });
+
+    it('sin clientes le dice que espere a que le asignen uno, no que dé de alta el primero', async () => {
+      montar(['client.read', 'equipment.read']);
+      await abrir([]);
+
+      expect(texto()).toContain('Todavía no tiene ningún cliente asignado');
+      expect(texto()).not.toContain('Empiece dando de alta');
+    });
   });
 
   it('un fallo del API se enseña traducido, con el código real del backend', async () => {
