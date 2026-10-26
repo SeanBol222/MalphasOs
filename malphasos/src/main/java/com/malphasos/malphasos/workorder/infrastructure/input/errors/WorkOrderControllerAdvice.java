@@ -7,6 +7,8 @@ import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoun
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReportsException;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEngineerException;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
 import com.malphasos.malphasos.workorder.infrastructure.input.rest.WorkOrderRestAdapter;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -80,6 +82,22 @@ public class WorkOrderControllerAdvice {
     public WorkOrderErrorResponse handleOpenReports(WorkOrderHasOpenReportsException ex) {
         return WorkOrderErrorResponse.of(
                 WorkOrderErrorCatalog.WORK_ORDER_HAS_OPEN_REPORTS, List.of(ex.getMessage()));
+    }
+
+    /** Sin ingeniero no se empieza: 409, con código propio para que la pantalla diga qué falta. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(WorkOrderWithoutEngineerException.class)
+    public WorkOrderErrorResponse handleWithoutEngineer(WorkOrderWithoutEngineerException ex) {
+        return WorkOrderErrorResponse.of(
+                WorkOrderErrorCatalog.WORK_ORDER_WITHOUT_ENGINEER, List.of(ex.getMessage()));
+    }
+
+    /** Sin equipos tampoco. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(WorkOrderWithoutEquipmentException.class)
+    public WorkOrderErrorResponse handleWithoutEquipment(WorkOrderWithoutEquipmentException ex) {
+        return WorkOrderErrorResponse.of(
+                WorkOrderErrorCatalog.WORK_ORDER_WITHOUT_EQUIPMENT, List.of(ex.getMessage()));
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)

@@ -2,11 +2,14 @@ package com.malphasos.malphasos.workorder.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import com.malphasos.malphasos.shared.domain.events.DomainEvent;
 import com.malphasos.malphasos.shared.domain.events.Payload;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEngineerException;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
@@ -361,7 +364,9 @@ class WorkOrderTest {
             WorkOrder orden = unaOrden();
             orden.addEquipment(UUID.randomUUID(), UUID.randomUUID());
 
-            assertThatIllegalStateException().isThrownBy(orden::start)
+            // Con su propia excepción, que lleva su propio código al API (2026-10-26).
+            assertThatExceptionOfType(WorkOrderWithoutEngineerException.class)
+                    .isThrownBy(orden::start)
                     .withMessageContaining("sin ingeniero");
         }
 
@@ -371,7 +376,8 @@ class WorkOrderTest {
             WorkOrder orden = unaOrden();
             orden.assignTo(INGENIERO);
 
-            assertThatIllegalStateException().isThrownBy(orden::start)
+            assertThatExceptionOfType(WorkOrderWithoutEquipmentException.class)
+                    .isThrownBy(orden::start)
                     .withMessageContaining("sin equipos");
         }
 

@@ -97,6 +97,12 @@ export const CATALOGO_WORK_ORDER: Readonly<Record<string, string>> = {
   ERR_WORK_ORDER_008: 'Esa persona no existe o fue retirada.',
   ERR_WORK_ORDER_009:
     'La orden todavía tiene equipos sin reporte cerrado. Cierre el reporte de cada equipo antes de darla por ejecutada.',
+  // Del 2026-10-26: compartían el 003, y una orden creada sin ingeniero leía que una orden se inicia
+  // estando creada, que no le decía qué faltaba.
+  ERR_WORK_ORDER_010:
+    'La orden no tiene un ingeniero asignado. Asígnele uno antes de iniciar el trabajo.',
+  ERR_WORK_ORDER_011:
+    'La orden no tiene equipos. Añádale al menos uno antes de iniciar el trabajo.',
 };
 
 /**

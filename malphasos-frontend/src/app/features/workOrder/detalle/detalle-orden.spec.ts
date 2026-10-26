@@ -298,6 +298,43 @@ describe('Ficha de una orden de trabajo', () => {
         'El estado de la orden no permite',
       );
     });
+
+    it('si falta el ingeniero, lo dice y dice qué hacer, no que el estado no lo permite', async () => {
+      // 2026-10-26: el código de estado le decía a una orden creada que una orden se inicia creada.
+      await abrir();
+      pulsar('Iniciar trabajo');
+      await asentar(fixture);
+      http.expectOne({ method: 'PATCH', url: `${URL}/start` }).flush(
+        {
+          code: 'ERR_WORK_ORDER_010',
+          message: 'Work order has no engineer assigned',
+          details: [],
+        },
+        { status: 409, statusText: 'Conflict' },
+      );
+      await asentar(fixture);
+
+      const alerta = raiz().querySelector('[role="alert"]')?.textContent ?? '';
+      expect(alerta).toContain('no tiene un ingeniero asignado');
+      expect(alerta).not.toContain('El estado de la orden');
+    });
+
+    it('si faltan equipos, lo dice', async () => {
+      await abrir();
+      pulsar('Iniciar trabajo');
+      await asentar(fixture);
+      http
+        .expectOne({ method: 'PATCH', url: `${URL}/start` })
+        .flush(
+          { code: 'ERR_WORK_ORDER_011', message: 'Work order has no equipment', details: [] },
+          { status: 409, statusText: 'Conflict' },
+        );
+      await asentar(fixture);
+
+      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+        'La orden no tiene equipos',
+      );
+    });
   });
 
   describe('Anular no es un clic', () => {
