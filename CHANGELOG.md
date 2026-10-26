@@ -64,6 +64,8 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 - **Cada quien ve lo suyo**: un representante de cliente solo ve los datos de su cliente, y la escalera de
   permisos separa al SuperUsuario del administrador. No ve el catálogo de la empresa ni «Nuevo
   cliente», y si todavía no representa a ninguno, la pantalla le dice que espere a que se lo asignen.
+  Las fichas de su cliente y de sus sedes son de solo lectura: sin editar, retirar ni cerrar, sin abrir
+  sedes ni áreas y sin tocar el contacto.
 - **El representante se nombra desde la ficha del cliente**, y es lo que decide qué clientes ve; el
   alta entrada desde la ficha lo nombra al terminar. **Desde «Personas» el alta también deja elegir**,
   sin obligar —el cliente se busca escribiendo, y solo se admite uno que exista—: el cliente del
