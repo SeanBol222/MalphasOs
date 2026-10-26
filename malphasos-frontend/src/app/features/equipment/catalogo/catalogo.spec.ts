@@ -90,7 +90,8 @@ describe('Catálogo de equipos', () => {
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
-        ...proveerSesionFalsa({ autoridades: ['equipment.read'] }),
+        // Entrar al catálogo exige equipment.write desde el 2026-10-26: es de quien lo administra.
+        ...proveerSesionFalsa({ autoridades: ['equipment.read', 'equipment.write'] }),
         provideRouter(rutasDeNavegacion),
       ],
     });

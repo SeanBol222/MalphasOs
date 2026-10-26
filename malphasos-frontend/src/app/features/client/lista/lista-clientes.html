@@ -6,9 +6,11 @@
     }
   </div>
 
-  <a class="boton-primario ml-auto flex min-h-tactil items-center" routerLink="/clientes/nuevo">
-    Nuevo cliente
-  </a>
+  @if (creaClientes()) {
+    <a class="boton-primario ml-auto flex min-h-tactil items-center" routerLink="/clientes/nuevo">
+      Nuevo cliente
+    </a>
+  }
 </div>
 
 <div
@@ -74,7 +76,16 @@
   </div>
 } @else if (clientes.data()?.length === 0) {
   <p class="superficie mt-3 text-neutral-800">
-    Todavía no hay clientes registrados. Empiece dando de alta el primero.
+    @if (creaClientes()) {
+      Todavía no hay clientes registrados. Empiece dando de alta el primero.
+    } @else {
+      <!--
+        Quien no da de alta clientes solo ve los que representa: una lista vacia no es que no haya
+        clientes, es que todavia no le han asignado ninguno.
+      -->
+      Todavía no tiene ningún cliente asignado. Cuando un administrador le asigne uno, aparecerá
+      aquí.
+    }
   </p>
 } @else if (!filas().length) {
   <p class="superficie mt-3 text-neutral-800">

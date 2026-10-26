@@ -37,6 +37,11 @@ export class ListaClientes {
   protected readonly clientes = inject(ClienteApi).listar();
   private readonly sedes = inject(SedeApi).resumen();
 
+  /**
+   * Quien da de alta clientes, que no es quien solo los consulta: el representante de un cliente ve
+   * el suyo y no tiene un «Nuevo cliente» que el servidor le rechazaría (2026-10-26).
+   */
+  protected readonly creaClientes = computed(() => this.sesion.puede('client.write'));
   protected readonly veEquipos = computed(() => this.sesion.puede('equipment.read'));
   protected readonly veCiudades = computed(() => this.sesion.puede('location.read'));
   private readonly equipos = inject(EquipoApi).conteoPorArea(undefined, this.veEquipos);
