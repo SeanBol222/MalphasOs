@@ -69,6 +69,8 @@ const PERSONAS = [
 const AUTORIDADES = [
   'client.read',
   'client.write',
+  // Las áreas se editan con la suya desde el 2026-10-26, como en el servidor.
+  'service-area.write',
   'engineer.read',
   'engineer.assign',
   'person.read',
@@ -395,6 +397,54 @@ describe('Ficha de una sede', () => {
 
     expect(aviso?.textContent).toContain('Esa sede no existe');
     expect(aviso?.textContent).not.toContain('not found');
+  });
+
+  describe('Quien solo lee, como el representante del cliente (2026-10-26)', () => {
+    // No se le ofrece lo que el servidor le rechazaría: la sede pide client.write, y sus áreas,
+    // service-area.write.
+    const botones = () => [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim());
+
+    async function abrirCon(autoridades: readonly string[], sede: object = SEDE): Promise<void> {
+      TestBed.resetTestingModule();
+      montar(autoridades);
+      fixture.detectChanges();
+      await responderA(fixture, http, URL, sede);
+      await responderA(fixture, http, URL_AREAS, AREAS);
+      http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+      await asentar(fixture);
+    }
+
+    it('no tiene Editar ni Cerrar sede', async () => {
+      await abrirCon(['client.read']);
+
+      expect(raiz().querySelector(`a[href="/sedes/${ID}/editar"]`)).toBeNull();
+      expect(botones()).not.toContain('Cerrar sede');
+    });
+
+    it('ve las áreas y no las toca: ni renombrar, ni cerrar, ni añadir', async () => {
+      await abrirCon(['client.read']);
+
+      expect(texto()).toContain(AREAS[0].nombre);
+      expect(botones()).not.toContain('Renombrar');
+      expect(botones()).not.toContain('Cerrar');
+      expect(botones()).not.toContain('Añadir área');
+      expect(raiz().querySelector('#areaNueva')).toBeNull();
+    });
+
+    it('en una sede cerrada no le explica por qué no puede abrir áreas: no podría de todos modos', async () => {
+      await abrirCon(['client.read'], { ...SEDE, estadoActivo: false });
+
+      expect(texto()).not.toContain('no se pueden abrir áreas nuevas');
+    });
+
+    it('quien edita las áreas sin editar la sede toca las áreas y no la sede', async () => {
+      await abrirCon(['client.read', 'service-area.write']);
+
+      expect(botones()).toContain('Renombrar');
+      expect(raiz().querySelector('#areaNueva')).not.toBeNull();
+      expect(raiz().querySelector(`a[href="/sedes/${ID}/editar"]`)).toBeNull();
+      expect(botones()).not.toContain('Cerrar sede');
+    });
   });
 
   it('el estado se dice en palabras, con el mismo color abierta y cerrada', async () => {

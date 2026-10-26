@@ -26,15 +26,18 @@
         </div>
 
         <div class="flex flex-wrap gap-1">
-          <a
-            class="boton-secundario flex min-h-tactil items-center"
-            [routerLink]="['/sedes', id(), 'editar']"
-          >
-            Editar
-          </a>
+          @if (editaSede()) {
+            <a
+              class="boton-secundario flex min-h-tactil items-center"
+              [routerLink]="['/sedes', id(), 'editar']"
+            >
+              Editar
+            </a>
+          }
 
           @if (datos.estadoActivo) {
-            @if (confirmandoCierre()) {
+            <!-- Quien no edita la sede tampoco la cierra: lo protege la misma autoridad. -->
+            @if (editaSede() && confirmandoCierre()) {
               <button
                 class="boton-primario min-h-tactil"
                 type="button"
@@ -50,7 +53,7 @@
               >
                 Cancelar
               </button>
-            } @else {
+            } @else if (editaSede()) {
               <button
                 class="boton-secundario min-h-tactil"
                 type="button"
@@ -175,15 +178,17 @@
                               Registrar equipo
                             </a>
                           }
-                          <button
-                            class="min-h-tactil px-1 underline"
-                            type="button"
-                            [attr.aria-label]="'Renombrar ' + area.nombre"
-                            (click)="empezarARenombrar(area.id, area.nombre)"
-                          >
-                            Renombrar
-                          </button>
-                          @if (area.abierta) {
+                          @if (editaAreas()) {
+                            <button
+                              class="min-h-tactil px-1 underline"
+                              type="button"
+                              [attr.aria-label]="'Renombrar ' + area.nombre"
+                              (click)="empezarARenombrar(area.id, area.nombre)"
+                            >
+                              Renombrar
+                            </button>
+                          }
+                          @if (editaAreas() && area.abierta) {
                             <button
                               class="min-h-tactil px-1 underline"
                               type="button"
@@ -202,7 +207,8 @@
               </table>
             }
 
-            @if (datos.estadoActivo) {
+            <!-- Quien solo lee las areas no tiene nada que abrir aqui. -->
+            @if (editaAreas() && datos.estadoActivo) {
               <div
                 class="flex flex-wrap gap-1 border-t border-neutral-300 bg-neutral-100 px-2 py-1.5"
               >
@@ -233,7 +239,7 @@
                   El nombre del área es obligatorio y no pasa de 50 caracteres.
                 </p>
               }
-            } @else {
+            } @else if (editaAreas()) {
               <!-- No es una limitacion de la pantalla: el backend rechaza abrir un area en una sede
                    cerrada. Ofrecer el formulario prometeria algo que el servidor niega. -->
               <p class="border-t border-neutral-300 px-2 py-1.5 text-neutral-800">

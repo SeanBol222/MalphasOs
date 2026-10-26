@@ -36,14 +36,16 @@
         </div>
 
         <div class="flex flex-wrap gap-1">
-          <a
-            class="boton-secundario flex min-h-tactil items-center"
-            [routerLink]="['/clientes', id(), 'editar']"
-          >
-            Editar
-          </a>
+          @if (editaCliente()) {
+            <a
+              class="boton-secundario flex min-h-tactil items-center"
+              [routerLink]="['/clientes', id(), 'editar']"
+            >
+              Editar
+            </a>
+          }
 
-          @if (datos.estadoActivo) {
+          @if (datos.estadoActivo && retiraCliente()) {
             @if (confirmandoBaja()) {
               <button
                 class="boton-primario min-h-tactil"
@@ -108,19 +110,25 @@
       <section class="flex min-w-0 flex-[2_1_34rem] flex-col gap-2" aria-labelledby="sedes">
         <div class="flex flex-wrap items-center gap-2">
           <h2 id="sedes" class="titulo-seccion">Sedes</h2>
-          <a
-            class="boton-primario ml-auto flex min-h-tactil items-center"
-            [routerLink]="['/clientes', id(), 'sedes', 'nueva']"
-          >
-            Nueva sede
-          </a>
+          @if (editaCliente()) {
+            <a
+              class="boton-primario ml-auto flex min-h-tactil items-center"
+              [routerLink]="['/clientes', id(), 'sedes', 'nueva']"
+            >
+              Nueva sede
+            </a>
+          }
         </div>
 
         @if (sedes.isPending()) {
           <p class="text-neutral-700" role="status">Cargando las sedes…</p>
         } @else if (!tarjetas().length) {
           <p class="superficie text-neutral-800">
-            Este cliente no tiene sedes. Abra la primera para poder registrar sus equipos.
+            @if (editaCliente()) {
+              Este cliente no tiene sedes. Abra la primera para poder registrar sus equipos.
+            } @else {
+              Este cliente todavía no tiene sedes registradas.
+            }
           </p>
         } @else {
           <ul class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-2">
@@ -244,47 +252,51 @@
               @for (correo of datos.correos; track correo.id) {
                 <li class="flex items-center gap-1 text-sm">
                   <span class="min-w-0 grow break-all">{{ correo.valor }}</span>
-                  <button
-                    class="min-h-tactil min-w-tactil font-semibold underline"
-                    type="button"
-                    [attr.aria-label]="'Quitar ' + correo.valor"
-                    [disabled]="bajaDeCorreo.isPending()"
-                    (click)="quitarCorreo(correo.id!)"
-                  >
-                    Quitar
-                  </button>
+                  @if (editaCliente()) {
+                    <button
+                      class="min-h-tactil min-w-tactil font-semibold underline"
+                      type="button"
+                      [attr.aria-label]="'Quitar ' + correo.valor"
+                      [disabled]="bajaDeCorreo.isPending()"
+                      (click)="quitarCorreo(correo.id!)"
+                    >
+                      Quitar
+                    </button>
+                  }
                 </li>
               }
             </ul>
           }
-          <div class="mt-1 flex gap-1">
-            <label class="sr-only" for="correoNuevo">Añadir un correo</label>
-            <input
-              id="correoNuevo"
-              class="campo min-h-tactil min-w-0 flex-1 text-sm"
-              type="email"
-              inputmode="email"
-              placeholder="Añadir un correo"
-              [formControl]="correoNuevo"
-              [attr.aria-invalid]="correoNuevo.invalid && correoNuevo.touched ? 'true' : null"
-              [attr.aria-describedby]="
-                correoNuevo.invalid && correoNuevo.touched ? 'correoNuevo-error' : null
-              "
-              aria-required="true"
-            />
-            <button
-              class="boton-secundario min-h-tactil"
-              type="button"
-              [disabled]="altaDeCorreo.isPending()"
-              (click)="agregarCorreo()"
-            >
-              Añadir
-            </button>
-          </div>
-          @if (correoNuevo.invalid && correoNuevo.touched) {
-            <p class="mt-1 text-sm font-semibold text-accent-700" id="correoNuevo-error">
-              Escriba un correo con la forma nombre&#64;dominio.
-            </p>
+          @if (editaCliente()) {
+            <div class="mt-1 flex gap-1">
+              <label class="sr-only" for="correoNuevo">Añadir un correo</label>
+              <input
+                id="correoNuevo"
+                class="campo min-h-tactil min-w-0 flex-1 text-sm"
+                type="email"
+                inputmode="email"
+                placeholder="Añadir un correo"
+                [formControl]="correoNuevo"
+                [attr.aria-invalid]="correoNuevo.invalid && correoNuevo.touched ? 'true' : null"
+                [attr.aria-describedby]="
+                  correoNuevo.invalid && correoNuevo.touched ? 'correoNuevo-error' : null
+                "
+                aria-required="true"
+              />
+              <button
+                class="boton-secundario min-h-tactil"
+                type="button"
+                [disabled]="altaDeCorreo.isPending()"
+                (click)="agregarCorreo()"
+              >
+                Añadir
+              </button>
+            </div>
+            @if (correoNuevo.invalid && correoNuevo.touched) {
+              <p class="mt-1 text-sm font-semibold text-accent-700" id="correoNuevo-error">
+                Escriba un correo con la forma nombre&#64;dominio.
+              </p>
+            }
           }
 
           <h3
@@ -299,46 +311,50 @@
               @for (telefono of datos.telefonos; track telefono.id) {
                 <li class="flex items-center gap-1 text-sm tabular-nums">
                   <span class="grow">{{ telefono.valor }}</span>
-                  <button
-                    class="min-h-tactil min-w-tactil font-semibold underline"
-                    type="button"
-                    [attr.aria-label]="'Quitar ' + telefono.valor"
-                    [disabled]="bajaDeTelefono.isPending()"
-                    (click)="quitarTelefono(telefono.id!)"
-                  >
-                    Quitar
-                  </button>
+                  @if (editaCliente()) {
+                    <button
+                      class="min-h-tactil min-w-tactil font-semibold underline"
+                      type="button"
+                      [attr.aria-label]="'Quitar ' + telefono.valor"
+                      [disabled]="bajaDeTelefono.isPending()"
+                      (click)="quitarTelefono(telefono.id!)"
+                    >
+                      Quitar
+                    </button>
+                  }
                 </li>
               }
             </ul>
           }
-          <div class="mt-1 flex gap-1">
-            <label class="sr-only" for="telefonoNuevo">Añadir un teléfono</label>
-            <input
-              id="telefonoNuevo"
-              class="campo min-h-tactil min-w-0 flex-1 text-sm"
-              inputmode="tel"
-              placeholder="Añadir un teléfono"
-              [formControl]="telefonoNuevo"
-              [attr.aria-invalid]="telefonoNuevo.invalid && telefonoNuevo.touched ? 'true' : null"
-              [attr.aria-describedby]="
-                telefonoNuevo.invalid && telefonoNuevo.touched ? 'telefonoNuevo-error' : null
-              "
-              aria-required="true"
-            />
-            <button
-              class="boton-secundario min-h-tactil"
-              type="button"
-              [disabled]="altaDeTelefono.isPending()"
-              (click)="agregarTelefono()"
-            >
-              Añadir
-            </button>
-          </div>
-          @if (telefonoNuevo.invalid && telefonoNuevo.touched) {
-            <p class="mt-1 text-sm font-semibold text-accent-700" id="telefonoNuevo-error">
-              El teléfono es obligatorio.
-            </p>
+          @if (editaCliente()) {
+            <div class="mt-1 flex gap-1">
+              <label class="sr-only" for="telefonoNuevo">Añadir un teléfono</label>
+              <input
+                id="telefonoNuevo"
+                class="campo min-h-tactil min-w-0 flex-1 text-sm"
+                inputmode="tel"
+                placeholder="Añadir un teléfono"
+                [formControl]="telefonoNuevo"
+                [attr.aria-invalid]="telefonoNuevo.invalid && telefonoNuevo.touched ? 'true' : null"
+                [attr.aria-describedby]="
+                  telefonoNuevo.invalid && telefonoNuevo.touched ? 'telefonoNuevo-error' : null
+                "
+                aria-required="true"
+              />
+              <button
+                class="boton-secundario min-h-tactil"
+                type="button"
+                [disabled]="altaDeTelefono.isPending()"
+                (click)="agregarTelefono()"
+              >
+                Añadir
+              </button>
+            </div>
+            @if (telefonoNuevo.invalid && telefonoNuevo.touched) {
+              <p class="mt-1 text-sm font-semibold text-accent-700" id="telefonoNuevo-error">
+                El teléfono es obligatorio.
+              </p>
+            }
           }
         </section>
 

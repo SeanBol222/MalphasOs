@@ -54,6 +54,13 @@ export class DetalleSede {
   private readonly cliente = inject(ClienteApi).detalle(this.idCliente);
   protected readonly nombreDelCliente = computed(() => this.cliente.data()?.razonSocial ?? '');
 
+  /**
+   * Quien edita la sede y quien edita sus áreas, con la autoridad que el servidor exige a cada cosa:
+   * la sede la protege la del cliente, y las áreas tienen la suya. El representante de un cliente solo
+   * lee, y no se le ofrece lo que el servidor le rechazaría (2026-10-26, pedido por el usuario).
+   */
+  protected readonly editaSede = computed(() => this.sesion.puede('client.write'));
+  protected readonly editaAreas = computed(() => this.sesion.puede('service-area.write'));
   protected readonly veEquipos = computed(() => this.sesion.puede('equipment.read'));
   protected readonly registraEquipos = computed(() => this.sesion.puede('equipment.assign'));
   protected readonly veOrdenes = computed(() => this.sesion.puede('work-order.read'));
