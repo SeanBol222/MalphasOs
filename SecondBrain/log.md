@@ -2290,3 +2290,19 @@ primera versión duplicaba un manejador y habría matado la prueba por el arranq
 la regla. Backend **1542** en 118 clases, frontend **752**.
 
 **Tocadas**: [[dominio-orden-trabajo]], el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
+
+## [2026-10-26] ingest | Las fichas del cliente y la sede, de solo lectura para quien no las edita
+
+Lo que la entrada de «lo que ve la cuenta de un cliente» dejó visto y sin tocar. La ficha ofrecía a
+cualquiera «Editar», «Retirar», «Nueva sede» y quitar y añadir correos y teléfonos; ahora cada cosa
+pide la autoridad que el servidor exige —`client.write` para editar, abrir sedes y el contacto,
+`client.delete` para retirar— y, sin `client.write`, una ficha sin sedes ya no le pide al lector que
+abra la primera. Tres mutaciones, tres muertas.
+
+**Y la ficha de la sede, que tenía la misma forma**: «Editar» y «Cerrar sede» piden ahora
+`client.write` —las sedes no tienen autoridad propia—, y renombrar, cerrar y añadir áreas,
+`service-area.write`, que es la que el servidor exige a las áreas. Sin ella, una sede cerrada tampoco
+explica que no se pueden abrir áreas: no podría de todos modos. Ocho mutaciones, ocho muertas.
+Frontend **760**.
+
+**Tocadas**: el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.

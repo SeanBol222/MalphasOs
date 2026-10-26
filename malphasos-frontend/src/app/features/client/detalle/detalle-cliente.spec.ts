@@ -98,7 +98,9 @@ describe('Ficha de un cliente', () => {
   let http: HttpTestingController;
 
   /** Solo client.*: lo que piden las autoridades de más se prueba aparte, en «Las cifras». */
-  function montar(autoridades: readonly string[] = ['client.read', 'client.write']): void {
+  function montar(
+    autoridades: readonly string[] = ['client.read', 'client.write', 'client.delete'],
+  ): void {
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -325,6 +327,58 @@ describe('Ficha de un cliente', () => {
       expect(
         [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
       ).not.toContain('Retirar');
+    });
+  });
+
+  describe('Quien solo lee, como el representante del cliente (2026-10-26)', () => {
+    // No se le ofrece lo que el servidor le rechazaría: editar y el contacto piden client.write, y
+    // retirar, client.delete.
+    async function abrirSoloLectura(sedes: object = SEDES): Promise<void> {
+      TestBed.resetTestingModule();
+      montar(['client.read']);
+      fixture.detectChanges();
+      await responder(URL, CLIENTE);
+      await responder(URL_PAISES, PAISES);
+      await responder(URL_SEDES, sedes);
+      http.match((r) => r.url === URL_RESUMEN_SEDES).forEach((p) => p.flush(RESUMEN_SEDES));
+      await asentar();
+    }
+
+    const botones = () => [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim());
+
+    it('no tiene Editar, Retirar ni Nueva sede', async () => {
+      await abrirSoloLectura();
+
+      expect(raiz().querySelector(`a[href="/clientes/${ID}/editar"]`)).toBeNull();
+      expect(raiz().querySelector(`a[href="/clientes/${ID}/sedes/nueva"]`)).toBeNull();
+      expect(botones()).not.toContain('Retirar');
+    });
+
+    it('ve el contacto y no lo toca: ni quitar ni añadir', async () => {
+      await abrirSoloLectura();
+
+      expect(texto()).toContain('contacto@hospital.co');
+      expect(texto()).toContain('6011234567');
+      expect(botones()).not.toContain('Quitar');
+      expect(botones()).not.toContain('Añadir');
+      expect(raiz().querySelector('#correoNuevo')).toBeNull();
+      expect(raiz().querySelector('#telefonoNuevo')).toBeNull();
+    });
+
+    it('sin sedes no le pide que abra la primera', async () => {
+      await abrirSoloLectura([]);
+
+      expect(texto()).toContain('todavía no tiene sedes registradas');
+      expect(texto()).not.toContain('Abra la primera');
+    });
+
+    it('quien edita sin poder retirar ve Editar y no Retirar', async () => {
+      TestBed.resetTestingModule();
+      montar(['client.read', 'client.write']);
+      await abrir();
+
+      expect(raiz().querySelector(`a[href="/clientes/${ID}/editar"]`)).not.toBeNull();
+      expect(botones()).not.toContain('Retirar');
     });
   });
 

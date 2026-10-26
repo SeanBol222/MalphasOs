@@ -47,6 +47,13 @@ export class DetalleCliente {
   private readonly paises = inject(UbicacionApi).listarPaises();
   private readonly sesion = inject(Sesion);
 
+  /**
+   * Quien edita el cliente y quien lo retira, con la autoridad que el servidor exige a cada cosa. El
+   * representante de un cliente solo lee: no se le ofrece lo que el servidor le rechazaría
+   * (2026-10-26, pedido por el usuario).
+   */
+  protected readonly editaCliente = computed(() => this.sesion.puede('client.write'));
+  protected readonly retiraCliente = computed(() => this.sesion.puede('client.delete'));
   protected readonly veEquipos = computed(() => this.sesion.puede('equipment.read'));
   protected readonly vePersonas = computed(() => this.sesion.puede('person.read'));
   protected readonly registraPersonas = computed(() => this.sesion.puede('person.write'));
