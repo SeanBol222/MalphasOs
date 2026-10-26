@@ -7,7 +7,13 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import {
+  ControlValueAccessor,
+  NG_VALIDATORS,
+  NG_VALUE_ACCESSOR,
+  ValidationErrors,
+  Validator,
+} from '@angular/forms';
 import { anotarEnHistorial, historialDe } from './historial';
 
 /** Una opcion elegible: lo que se guarda y lo que se lee. */
@@ -43,6 +49,14 @@ export interface Opcion {
  * <p>Es un {@code ControlValueAccessor} para que los formularios reactivos lo usen como cualquier otro
  * control, con su {@code formControlName} y sus validadores. Lo contrario habria sido un campo que
  * obliga a tratarlo distinto en cada pantalla.
+ *
+ * <p><b>Y puede ser su propio validador desde el 2026-10-26</b>, con {@code rechazaSinCoincidencia}:
+ * un texto escrito que no es ninguna opcion deja entonces el control invalido,
+ * {@code sinCoincidencias}. En un campo obligatorio ya lo rechaza el {@code required}, porque el valor
+ * queda vacio; en uno <b>opcional</b> no lo rechaza nada, y el formulario se guarda sin el valor que
+ * quien escribio creia haber puesto. Se activa por campo y no para todos porque el pais del alta de un
+ * cliente se guarda asi a proposito —«Wakanda» se avisa y el cliente entra sin pais—, y cambiarlo es
+ * otra decision. Lo pidio el cliente del alta de un representante.
  */
 @Component({
   selector: 'app-buscador',
@@ -50,9 +64,10 @@ export interface Opcion {
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => Buscador), multi: true },
+    { provide: NG_VALIDATORS, useExisting: forwardRef(() => Buscador), multi: true },
   ],
 })
-export class Buscador implements ControlValueAccessor {
+export class Buscador implements ControlValueAccessor, Validator {
   /** El catalogo completo sobre el que se busca. */
   readonly opciones = input.required<readonly Opcion[]>();
 
@@ -75,6 +90,9 @@ export class Buscador implements ControlValueAccessor {
 
   /** Si el campo admite quedarse vacio. */
   readonly opcional = input<boolean>(false);
+
+  /** Si un texto que no es ninguna opcion invalida el control, en vez de dejarlo vacio sin mas. */
+  readonly rechazaSinCoincidencia = input<boolean>(false);
 
   /** Cuantas sugerencias se ensenan al escribir. Mas no caben sin convertir la lista en otra lista. */
   private static readonly MAXIMO_SUGERENCIAS = 10;
@@ -151,6 +169,15 @@ export class Buscador implements ControlValueAccessor {
 
   registerOnTouched(fn: () => void): void {
     this.alTocar = fn;
+  }
+
+  // --- Validator ------------------------------------------------------------
+
+  /** Lo escrito no es ninguna opción: si así se pidió, el campo no puede darse por vacío. */
+  validate(): ValidationErrors | null {
+    return this.rechazaSinCoincidencia() && this.texto().trim() && !this.valor()
+      ? { sinCoincidencias: true }
+      : null;
   }
 
   // --- Interaccion ----------------------------------------------------------
