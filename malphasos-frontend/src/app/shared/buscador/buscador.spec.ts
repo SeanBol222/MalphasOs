@@ -32,6 +32,27 @@ class AnfitrionOpcional {
 }
 
 @Component({
+  selector: 'app-anfitrion-estricto',
+  imports: [ReactiveFormsModule, Buscador],
+  template: `
+    <app-buscador
+      [formControl]="control"
+      campo="paisEstricto"
+      etiqueta="País"
+      historial="pais"
+      [opciones]="PAISES"
+      [opcional]="true"
+      [rechazaSinCoincidencia]="estricto()"
+    />
+  `,
+})
+class AnfitrionEstricto {
+  readonly control = new FormControl('', { nonNullable: true });
+  readonly estricto = signal(true);
+  protected readonly PAISES = PAISES;
+}
+
+@Component({
   selector: 'app-anfitrion',
   imports: [ReactiveFormsModule, Buscador],
   template: `
@@ -270,5 +291,49 @@ describe('Campo de búsqueda', () => {
   afterEach(() => {
     localStorage.clear();
     desinstalar();
+  });
+
+  describe('Un campo opcional que rechaza lo que no existe (2026-10-26)', () => {
+    let estricto: ComponentFixture<AnfitrionEstricto>;
+
+    function escribirEn(valor: string): void {
+      const campo = (estricto.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
+        '#paisEstricto',
+      )!;
+      campo.dispatchEvent(new Event('focus'));
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      estricto.detectChanges();
+    }
+
+    beforeEach(() => {
+      estricto = TestBed.createComponent(AnfitrionEstricto);
+      estricto.detectChanges();
+    });
+
+    it('vacío vale: sigue siendo opcional', () => {
+      expect(estricto.componentInstance.control.valid).toBe(true);
+    });
+
+    it('un texto que no es ninguna opción deja el control inválido', () => {
+      escribirEn('Wakanda');
+
+      expect(estricto.componentInstance.control.errors).toEqual({ sinCoincidencias: true });
+    });
+
+    it('un nombre exacto vale', () => {
+      escribirEn('Perú');
+
+      expect(estricto.componentInstance.control.valid).toBe(true);
+      expect(estricto.componentInstance.control.value).toBe('pe');
+    });
+
+    it('sin pedirlo, lo que no existe se queda vacío y válido, como el país de un cliente', () => {
+      estricto.componentInstance.estricto.set(false);
+      estricto.detectChanges();
+      escribirEn('Wakanda');
+
+      expect(estricto.componentInstance.control.valid).toBe(true);
+    });
   });
 });

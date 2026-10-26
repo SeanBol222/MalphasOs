@@ -4,7 +4,7 @@ description: El manual de marca traducido a decisiones de interfaz: tokens, cont
 tags: [frontend, diseno, marca, accesibilidad, "describe:malphasos"]
 source: Documentation/FrontendDesign/BrandManual/ y DeclaracionDeDisenoFrontend.tex
 estado: estable
-updated: 2026-10-10
+updated: 2026-10-26
 ---
 
 # Sistema de diseño de MalphasOS
@@ -133,6 +133,16 @@ La convención, invertida por decisión del usuario:
 | **Sin escribir nada, solo lo ya usado** en este navegador | Abrir el campo y encontrarse mil opciones no ayuda. El historial vive en `localStorage`, por decisión del usuario: instantáneo, sin consultas, y empieza vacío |
 | **Al escribir, busca en el catálogo completo** | Si solo buscara entre lo usado, el primer cliente de Boyacá no se podría registrar nunca |
 | **No inventa valores** | El backend exige un identificador que exista. Un texto que no case deja el campo vacío y el formulario lo rechaza diciendo por qué |
+
+**Corregido el 2026-10-26: «el formulario lo rechaza» solo era cierto en un campo obligatorio.** Ahí lo
+rechaza el `required`, porque el valor queda vacío. En uno **opcional** no lo rechazaba nada: el
+formulario se guardaba sin el valor que quien escribió creía haber puesto. Desde ese día el campo puede
+ser su propio validador con `[rechazaSinCoincidencia]="true"`, que deja el control con
+`sinCoincidencias`. **Se activa por campo y no para todos**: el país del alta de un cliente se guarda
+así a propósito —«Wakanda» se avisa y el cliente entra sin país, con una prueba que lo fija—, y
+cambiarlo es otra decisión. Lo usa el cliente del alta de un representante o un encargado. Y el campo
+avisa al formulario **en cada tecla**, aunque el valor no cambie: quien reaccione a un cambio de valor
+lo filtra con `distinctUntilChanged`.
 
 **Se compara sin tildes y sin mayúsculas.** Quien teclea «medellin» en un teléfono espera encontrar Medellín, y no hacerlo es la queja más segura de este tipo de campo.
 

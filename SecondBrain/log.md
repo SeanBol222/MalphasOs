@@ -2226,3 +2226,40 @@ hoja pasaron al servidor.
 **Tocadas**: [[hoja-de-vida-formato-impreso]], [[decisiones-tecnicas-malphasos]], [[deuda-tecnica-y-riesgos]]
 —100 filas, 48 tachadas, 52 abiertas— y el `CONVENCIONES.md` de la raíz.
 
+
+## [2026-10-26] ingest | El alta de una persona elige su cliente
+
+El usuario pidió elegir, sin obligar, a qué cliente pertenece un representante o un encargado al
+registrarlo desde «Personas». El representante elige el cliente y se le nombra al crearlo, como ya
+hacía el alta entrada desde la ficha del cliente. **El encargado no cuelga del cliente** —responde por
+una sede o por un área—, así que elige cliente, sede y, si quiere, área; decidido por el usuario entre
+tres caminos, el de «solo el cliente» exigía cambiar el modelo. Con sede, el alta va por
+`POST /managers`, que crea y asigna en una operación: por eso entonces el correo pasa a obligatorio.
+Cada selector solo se ofrece a quien puede usarlo —`client.write` para nombrar, `engineer.assign` para
+asignar—. Nueve mutaciones, nueve muertas.
+
+**Y el representante, además encargado.** El check «También es encargado de un cliente» solo ponía la
+segunda función en la ficha: no ponía a nadie al frente de nada, y decía «de un cliente» cuando un
+encargado responde por una sede o un área. En el representante lo sustituye una sede opcional del
+cliente elegido; elegida la sede, hay que decir si es toda o un área —también en el encargado, donde
+antes «toda la sede» se suponía—. Son tres llamadas sin transacción —alta, nombramiento y
+`POST /managers/assignments`, que ninguna pantalla usaba—, y si la última falla se ofrece reintentar
+solo esa. El ingeniero y el administrador conservan el check. Ocho mutaciones más, ocho muertas, y una
+sobrevivió primero: la prueba de «otro cliente olvida la sede» volvía al vacío, donde la sede vieja no
+se ve aunque siga puesta; ahora cambia a otro cliente.
+
+**Y el cliente, en el buscador.** El desplegable de cliente de las dos altas pasó a `app-buscador`, que
+predice sobre la razón social. Al hacerlo apareció que el buscador **no rechazaba** un texto inventado
+en un campo opcional —lo dejaba vacío y el formulario se guardaba—, contra lo que decía
+[[sistema-de-diseno-malphasos]]: corregido allí, y el campo puede ahora validarse a sí mismo, por
+campo. Cinco mutaciones; sobrevivió `distinctUntilChanged`, y con razón: ninguna prueba volvía a elegir
+el mismo cliente. Ahora una lo hace. Frontend **748**.
+
+**Queda por planear**: que un encargado responda por varias sedes o áreas, que el usuario confirmó que
+pasa. Hoy la llave primaria de `encargado` es la de la persona, así que no cabe.
+
+Por el camino, una representante de los datos de desarrollo sin cuenta en Keycloak respondía 404 a la
+contraseña temporal, con un mensaje que suponía un borrado: el mensaje ahora solo dice que no hay
+cuenta, y la ficha huérfana se retiró en la base de desarrollo.
+
+**Tocadas**: [[sistema-de-diseno-malphasos]], el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.

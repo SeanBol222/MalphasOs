@@ -7,7 +7,7 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Encargado, NuevoEncargado } from '../../core/api/tipos';
+import { AsignacionDeEncargado, Encargado, NuevoEncargado } from '../../core/api/tipos';
 import { PersonaApi } from '../person/persona-api';
 
 /**
@@ -50,6 +50,15 @@ export class EncargadoApi {
     return injectMutation(() => ({
       mutationFn: (encargado: NuevoEncargado) =>
         firstValueFrom(this.http.post<Encargado>(this.url, encargado)),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /** Pone al frente de una sede o de un área a alguien que ya existe como persona. */
+  asignar() {
+    return injectMutation(() => ({
+      mutationFn: (asignacion: AsignacionDeEncargado) =>
+        firstValueFrom(this.http.post<Encargado>(`${this.url}/assignments`, asignacion)),
       onSuccess: () => this.invalidar(),
     }));
   }
