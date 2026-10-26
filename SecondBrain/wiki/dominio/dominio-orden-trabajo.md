@@ -4,7 +4,7 @@ description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatr
 tags: [dominio, work-order, esquema, mantenimiento, "describe:ambos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/workorder/ y malphasos/src/main/resources/db/migration/V6__work_order.sql
 estado: estable
-updated: 2026-10-16
+updated: 2026-10-26
 ---
 
 # Órdenes de trabajo — el módulo completo
@@ -402,6 +402,16 @@ Dos tandas del plan de [[hoja-de-ruta-producto]] tocan este módulo:
 |---|---|---|
 | Ejecutar exige reportes cerrados | `dff120af` · `32673020` | La regla, su puerto y el botón que dice qué falta |
 | El listado rediseñado | `c005aca7` · `da7d7ded` | Filtros, recuentos y el avance de los reportes de cada orden |
+
+### Empezar sin ingeniero o sin equipos dice qué falta (2026-10-26)
+
+Empezar una orden exige ingeniero y al menos un equipo, y las dos negativas **compartían el 409 de
+estado**, `ERR_WORK_ORDER_003`. La pantalla lo traducía como «una orden se inicia estando creada»… a
+quien acababa de pulsar «Iniciar trabajo» en una orden creada sin ingeniero: cierto y sin utilidad. Lo
+reportó el usuario probando. Ahora tienen excepción y código propios —`ERR_WORK_ORDER_010` sin
+ingeniero, `ERR_WORK_ORDER_011` sin equipos—, como ya tenía los reportes abiertos con el 009, y la
+pantalla dice qué asignar. Las dos excepciones heredan de `IllegalStateException`: siguen siendo un
+conflicto de estado, y el advice elige el manejador más específico.
 
 ### Una orden no se ejecuta con reportes abiertos
 

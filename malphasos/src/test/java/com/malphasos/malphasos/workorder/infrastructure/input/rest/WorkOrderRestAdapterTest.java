@@ -19,6 +19,8 @@ import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServic
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReportsException;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEngineerException;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
@@ -214,11 +216,35 @@ class WorkOrderRestAdapterTest {
         // de "datos invalidos" impediria distinguir "lo escribiste mal" de "ahora no se puede".
         UUID id = UUID.randomUUID();
         when(workOrderServicePort.start(any()))
-                .thenThrow(new IllegalStateException("No se puede empezar una orden sin equipos"));
+                .thenThrow(new IllegalStateException("Una orden ya ejecutada no admite empezar"));
 
         mockMvc.perform(patch("/v1/api/work-orders/" + id + "/start"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_003"));
+    }
+
+    @Test
+    @DisplayName("empezar sin ingeniero responde 409 con su propio código, no con el de estado")
+    void empezarSinIngeniero() throws Exception {
+        // Con el código de estado la pantalla le decía a una orden creada que una orden se inicia
+        // estando creada, sin decir que faltaba el ingeniero (2026-10-26).
+        UUID id = UUID.randomUUID();
+        when(workOrderServicePort.start(any())).thenThrow(new WorkOrderWithoutEngineerException());
+
+        mockMvc.perform(patch("/v1/api/work-orders/" + id + "/start"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_010"));
+    }
+
+    @Test
+    @DisplayName("empezar sin equipos responde 409 con su propio código")
+    void empezarSinEquipos() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(workOrderServicePort.start(any())).thenThrow(new WorkOrderWithoutEquipmentException());
+
+        mockMvc.perform(patch("/v1/api/work-orders/" + id + "/start"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_011"));
     }
 
     @Test

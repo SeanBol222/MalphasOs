@@ -1,6 +1,8 @@
 package com.malphasos.malphasos.workorder.domain.workOrder;
 
 import com.malphasos.malphasos.shared.domain.events.AggregateRoot;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEngineerException;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderAssignedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderCreatedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderDeactivatedEvent;
@@ -284,11 +286,10 @@ public class WorkOrder extends AggregateRoot {
         avanzarA(ExecutionState.EN_EJECUCION, "empezar");
 
         if (idIngeniero == null) {
-            throw new IllegalStateException(
-                    "No se puede empezar una orden sin ingeniero asignado");
+            throw new WorkOrderWithoutEngineerException();
         }
         if (equipos.isEmpty()) {
-            throw new IllegalStateException("No se puede empezar una orden sin equipos");
+            throw new WorkOrderWithoutEquipmentException();
         }
 
         this.estadoEjecucion = ExecutionState.EN_EJECUCION;

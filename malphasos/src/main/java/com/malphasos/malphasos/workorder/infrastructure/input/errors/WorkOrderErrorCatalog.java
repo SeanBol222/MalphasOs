@@ -26,7 +26,11 @@ public enum WorkOrderErrorCatalog {
     PERSON_NOT_FOUND("ERR_WORK_ORDER_008", "Person not found"),
     // 409 y código propio: los datos están bien y el estado también; lo que falta es trabajo, y la
     // pantalla tiene que poder decir cuánto. Del 2026-10-14.
-    WORK_ORDER_HAS_OPEN_REPORTS("ERR_WORK_ORDER_009", "Work order has equipment without a finished report");
+    WORK_ORDER_HAS_OPEN_REPORTS("ERR_WORK_ORDER_009", "Work order has equipment without a finished report"),
+    // Lo mismo para empezar, del 2026-10-26: con el código genérico de estado la pantalla decía que
+    // una orden se inicia estando creada, a una orden creada, sin decir que faltaba el ingeniero.
+    WORK_ORDER_WITHOUT_ENGINEER("ERR_WORK_ORDER_010", "Work order has no engineer assigned"),
+    WORK_ORDER_WITHOUT_EQUIPMENT("ERR_WORK_ORDER_011", "Work order has no equipment");
 
     private final String code;
     private final String message;

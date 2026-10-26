@@ -31,7 +31,8 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 
 - Una orden directa por cliente, sede y tipo de servicio, con sus equipos elegidos por área y su
   ingeniero responsable.
-- Se inicia y se ejecuta; **no se ejecuta con reportes abiertos**.
+- Se inicia y se ejecuta; **no se ejecuta con reportes abiertos**, y si falta el ingeniero o los equipos
+  para iniciarla, la pantalla dice cuál de los dos.
 - La agenda del inicio, por semana o por mes, con «solo mis órdenes».
 
 ### Reportes de servicio
