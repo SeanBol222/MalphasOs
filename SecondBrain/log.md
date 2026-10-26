@@ -2263,3 +2263,19 @@ contraseña temporal, con un mensaje que suponía un borrado: el mensaje ahora s
 cuenta, y la ficha huérfana se retiró en la base de desarrollo.
 
 **Tocadas**: [[sistema-de-diseno-malphasos]], el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
+
+## [2026-10-26] ingest | Lo que ve la cuenta de un cliente
+
+El usuario entró con la cuenta de un representante y pidió quitarle tres cosas. **El catálogo**: el menú
+lo ofrecía con `equipment.read`, que el representante tiene para ver sus equipos y su hoja de vida.
+Ahora el destino exige `equipment.write`, la autoridad de quien lo administra; el API lo sigue
+sirviendo con `equipment.read`, porque los nombres de tipo, marca y modelo de sus equipos salen de ahí.
+**«Nuevo cliente»**, que se ofrecía a todos y el servidor rechazaba sin `client.write`. Y **la lista
+vacía**, que le decía «empiece dando de alta el primero»: sin `client.write` una lista vacía no es que
+no haya clientes, es que no le han asignado ninguno, y eso dice ahora. Tres mutaciones, tres muertas.
+Frontend **750**.
+
+**Queda visto y sin tocar**: la ficha del cliente le ofrece «Editar» y «Retirar» y añadir correos y
+teléfonos, sin mirar `client.write`.
+
+**Tocadas**: el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.

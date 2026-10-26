@@ -61,7 +61,8 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 - Ingenieros, administradores, representantes de cliente y encargados. Los que tienen cuenta la reciben
   en Keycloak en el mismo paso.
 - **Cada quien ve lo suyo**: un representante de cliente solo ve los datos de su cliente, y la escalera de
-  permisos separa al SuperUsuario del administrador.
+  permisos separa al SuperUsuario del administrador. No ve el catálogo de la empresa ni «Nuevo
+  cliente», y si todavía no representa a ninguno, la pantalla le dice que espere a que se lo asignen.
 - **El representante se nombra desde la ficha del cliente**, y es lo que decide qué clientes ve; el
   alta entrada desde la ficha lo nombra al terminar. **Desde «Personas» el alta también deja elegir**,
   sin obligar —el cliente se busca escribiendo, y solo se admite uno que exista—: el cliente del
