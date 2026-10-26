@@ -38,6 +38,7 @@ export type CambioDeArea = NuevaArea;
 
 export type Encargado = components['schemas']['ManagerResponse'];
 export type NuevoEncargado = components['schemas']['ManagerRegisterRequest'];
+export type AsignacionDeEncargado = components['schemas']['ManagerAssignRequest'];
 /**
  * Sale del tipo de la PETICION y no del de la respuesta.
  *

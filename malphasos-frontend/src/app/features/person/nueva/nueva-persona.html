@@ -7,7 +7,18 @@
   </p>
 }
 
-@if (sinNombrar()) {
+@if (pendiente() === 'asignar') {
+  <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+    <p class="font-semibold">
+      La persona quedó registrada y nombrada representante, pero no se pudo ponerla al frente de la
+      sede.
+    </p>
+    <p class="mt-1">{{ mensajeDeAsignacion() }}</p>
+    <button class="boton-secundario mt-2 min-h-tactil" type="button" (click)="ponerAlFrente()">
+      Reintentar la asignación
+    </button>
+  </div>
+} @else if (pendiente() === 'nombrar') {
   <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
     <p class="font-semibold">
       La persona quedó registrada, pero no se pudo nombrar representante del cliente.
@@ -91,6 +102,79 @@
     </div>
   </div>
 
+  @if (eligeCliente() || eligeSede()) {
+    <h2 class="titulo-seccion mt-3">Cliente</h2>
+    <p class="text-neutral-700">
+      @if (eligeCliente()) {
+        Opcional. Si lo elige, se le nombra representante de ese cliente al registrarlo y su cuenta
+        verá lo de ese cliente; si no, se le puede nombrar después desde la ficha del cliente.
+      } @else {
+        Opcional. Un encargado responde por una sede de un cliente o por un área de esa sede. Si no
+        lo elige, queda registrado sin nada a cargo.
+      }
+    </p>
+
+    <div class="mt-2">
+      <app-buscador
+        formControlName="clienteElegido"
+        campo="clienteElegido"
+        etiqueta="Cliente"
+        historial="cliente"
+        [opciones]="opcionesDeCliente()"
+        [opcional]="true"
+        [rechazaSinCoincidencia]="true"
+        avisoSinCatalogo="No hay clientes registrados."
+      />
+    </div>
+  }
+
+  @if (clienteDeLaAsignacion()) {
+    <!--
+      La sede es obligatoria en el encargado —el cliente solo no lo asigna— y opcional en el
+      representante, donde elegirla es decir que tambien es encargado.
+    -->
+    @if (eligeSede()) {
+      <label class="mt-2 block font-semibold" for="sede">
+        Sede <span aria-hidden="true">*</span>
+      </label>
+    } @else {
+      <h2 class="titulo-seccion mt-3">También encargado</h2>
+      <p class="text-neutral-700">
+        Opcional. Si además responde por una sede de este cliente o por un área suya, elíjala.
+      </p>
+      <label class="mt-2 block font-semibold" for="sede">Sede</label>
+    }
+    <select
+      class="campo min-h-tactil w-full"
+      id="sede"
+      [attr.aria-required]="eligeSede() ? 'true' : null"
+      formControlName="sede"
+    >
+      <option value="">{{ eligeSede() ? 'Elija una sede' : 'Ninguna' }}</option>
+      @for (opcion of sedesVigentes(); track opcion.id) {
+        <option [value]="opcion.id">{{ opcion.nombre }}</option>
+      }
+    </select>
+
+    @if (haySedeElegida()) {
+      <label class="mt-2 block font-semibold" for="area">
+        De qué se encarga <span aria-hidden="true">*</span>
+      </label>
+      <select
+        class="campo min-h-tactil w-full"
+        id="area"
+        aria-required="true"
+        formControlName="area"
+      >
+        <option value="">Elija</option>
+        <option [value]="todaLaSede">Toda la sede</option>
+        @for (opcion of areasVigentes(); track opcion.id) {
+          <option [value]="opcion.id">Área: {{ opcion.nombre }}</option>
+        }
+      </select>
+    }
+  }
+
   @if (conCuenta()) {
     <!--
       Esta mitad solo existe cuando hay cuenta que crear. El alta de un encargado no la lleva, y no es
@@ -133,7 +217,7 @@
 
   <h2 class="titulo-seccion mt-3">
     Correos
-    @if (conCuenta()) {
+    @if (exigeCorreo()) {
       <span aria-hidden="true">*</span>
     }
   </h2>
@@ -203,10 +287,10 @@
     Añadir un teléfono
   </button>
 
-  @if (conCuenta()) {
+  @if (conCuenta() && clase() !== 'representante') {
     <!--
-      La segunda funcion solo puede ser «encargado»: lo dice el contrato. Es el caso del jefe de
-      servicio del cliente, que es su representante y a la vez responde por una sede.
+      La segunda funcion solo puede ser «encargado»: lo dice el contrato. El representante no lleva
+      este check: lo dice eligiendo sede, arriba, que ademas lo pone al frente de ella.
     -->
     <label class="mt-3 flex min-h-tactil items-center gap-2">
       <input type="checkbox" formControlName="tambienEncargado" />
