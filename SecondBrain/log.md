@@ -2279,3 +2279,14 @@ Frontend **750**.
 teléfonos, sin mirar `client.write`.
 
 **Tocadas**: el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
+
+## [2026-10-26] ingest | Qué falta para empezar una orden
+
+Pulsar «Iniciar trabajo» en una orden sin ingeniero respondía «el estado de la orden no permite esa
+acción; una orden se inicia estando creada» —a una orden creada—. Sin ingeniero y sin equipos
+compartían el 409 de estado, `ERR_WORK_ORDER_003`. Ahora tienen excepción y código propios, 010 y 011,
+y la pantalla dice qué asignar. Cuatro mutaciones, cuatro muertas; dos de ellas se repitieron porque la
+primera versión duplicaba un manejador y habría matado la prueba por el arranque del contexto, no por
+la regla. Backend **1542** en 118 clases, frontend **752**.
+
+**Tocadas**: [[dominio-orden-trabajo]], el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
