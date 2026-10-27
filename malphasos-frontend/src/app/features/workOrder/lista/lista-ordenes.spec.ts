@@ -301,4 +301,128 @@ describe('Listado de órdenes de trabajo', () => {
       'Programar orden',
     );
   });
+
+  describe('Cada columna se ordena, en los dos sentidos (2026-10-27)', () => {
+    const ids = () => filas().map((f) => f.getAttribute('data-orden'));
+    const cabecera = (columna: string) =>
+      raiz().querySelector<HTMLButtonElement>(`[data-ordenar="${columna}"]`)!;
+    const ordenarPor = (columna: string) => {
+      cabecera(columna).click();
+      fixture.detectChanges();
+    };
+    const ariaSort = (columna: string) =>
+      cabecera(columna).closest('th')!.getAttribute('aria-sort');
+
+    it('la fecha se invierte al pulsarla, y la flecha y aria-sort lo dicen', async () => {
+      await abrir([
+        orden({ id: 'o1', fechaMantenimiento: '2026-10-10' }),
+        orden({ id: 'o2', fechaMantenimiento: '2026-10-20' }),
+      ]);
+      // Sin pulsar nada, lo que falta va de lo más próximo a lo más lejano.
+      expect(ids()).toEqual(['o1', 'o2']);
+      expect(ariaSort('fecha')).toBe('ascending');
+      expect(cabecera('fecha').textContent).toContain('▲');
+
+      ordenarPor('fecha');
+
+      expect(ids()).toEqual(['o2', 'o1']);
+      expect(ariaSort('fecha')).toBe('descending');
+      expect(cabecera('fecha').textContent).toContain('▼');
+      expect(ariaSort('estado')).toBe('none');
+      expect(cabecera('estado').textContent).toContain('↕');
+    });
+
+    it('el estado va de lo que pide trabajo a lo anulado, y al revés', async () => {
+      await abrir([
+        orden({ id: 'anulada', fechaMantenimiento: '2026-10-01', estadoActivo: false }),
+        orden({ id: 'hecha', fechaMantenimiento: '2026-10-02', estadoEjecucion: 'EJECUTADA' }),
+        orden({ id: 'creada', fechaMantenimiento: '2026-10-03' }),
+        orden({
+          id: 'en-curso',
+          fechaMantenimiento: '2026-10-04',
+          estadoEjecucion: 'EN_EJECUCION',
+        }),
+      ]);
+      pulsar('Todas');
+
+      ordenarPor('estado');
+      expect(ids()).toEqual(['creada', 'en-curso', 'hecha', 'anulada']);
+
+      ordenarPor('estado');
+      expect(ids()).toEqual(['anulada', 'hecha', 'en-curso', 'creada']);
+    });
+
+    it('el ingeniero, de la A a la Z, con «Sin asignar» al final', async () => {
+      await abrir([
+        orden({ id: 'sin', fechaMantenimiento: '2026-10-01' }),
+        orden({ id: 'con', fechaMantenimiento: '2026-10-02', idIngeniero: ID_INGENIERO }),
+      ]);
+
+      ordenarPor('ingeniero');
+      expect(ids()).toEqual(['con', 'sin']);
+
+      ordenarPor('ingeniero');
+      expect(ids()).toEqual(['sin', 'con']);
+    });
+
+    it('los reportes, del menor avance al mayor', async () => {
+      await abrir(
+        [
+          orden({
+            id: 'mitad',
+            fechaMantenimiento: '2026-10-01',
+            estadoEjecucion: 'EN_EJECUCION',
+            equipos: DOS_EQUIPOS,
+          }),
+          orden({
+            id: 'nada',
+            fechaMantenimiento: '2026-10-02',
+            estadoEjecucion: 'EN_EJECUCION',
+            equipos: DOS_EQUIPOS,
+          }),
+          orden({
+            id: 'todo',
+            fechaMantenimiento: '2026-10-03',
+            estadoEjecucion: 'EN_EJECUCION',
+            equipos: DOS_EQUIPOS,
+          }),
+        ],
+        [
+          { idOrdenTrabajo: 'mitad', cerrados: 1 },
+          { idOrdenTrabajo: 'todo', cerrados: 2 },
+        ],
+      );
+
+      ordenarPor('reportes');
+      expect(ids()).toEqual(['nada', 'mitad', 'todo']);
+    });
+
+    it('a igualdad, por fecha: dos del mismo cliente salen de la más antigua a la más reciente', async () => {
+      await abrir([
+        orden({ id: 'tarde', fechaMantenimiento: '2026-10-20' }),
+        orden({ id: 'pronto', fechaMantenimiento: '2026-10-10' }),
+      ]);
+
+      ordenarPor('cliente');
+      expect(ids()).toEqual(['pronto', 'tarde']);
+      // Invertir el cliente no invierte el desempate.
+      ordenarPor('cliente');
+      expect(ids()).toEqual(['pronto', 'tarde']);
+    });
+
+    it('el orden elegido se mantiene al cambiar de filtro', async () => {
+      await abrir([
+        orden({ id: 'o1', fechaMantenimiento: '2026-09-01', estadoEjecucion: 'EJECUTADA' }),
+        orden({ id: 'o2', fechaMantenimiento: '2026-10-01', estadoEjecucion: 'EJECUTADA' }),
+        // Una por hacer, para que la tabla de «Por hacer» tenga cabeceras que pulsar.
+        orden({ id: 'o3', fechaMantenimiento: '2026-11-01' }),
+      ]);
+      ordenarPor('fecha');
+      ordenarPor('fecha');
+      expect(ariaSort('fecha')).toBe('ascending');
+
+      pulsar('Ejecutadas');
+      expect(ids()).toEqual(['o1', 'o2']);
+    });
+  });
 });

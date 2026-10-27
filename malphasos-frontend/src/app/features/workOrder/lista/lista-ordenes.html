@@ -100,14 +100,34 @@
       </caption>
       <thead>
         <tr>
-          <th scope="col">Fecha</th>
-          <th scope="col">Cliente y sede</th>
-          <th scope="col">Servicio</th>
-          @if (veIngenieros()) {
-            <th scope="col">Ingeniero</th>
+          <!--
+            Cada cabecera ordena por su columna, y la segunda vez invierte el sentido (2026-10-27). La
+            flecha lo dibuja y aria-sort lo dice a un lector de pantalla.
+          -->
+          @for (cabecera of cabeceras(); track cabecera.columna) {
+            <th scope="col" [attr.aria-sort]="ariaSort(cabecera.columna)">
+              <button
+                class="inline-flex min-h-tactil items-center gap-0.5 font-[inherit] underline-offset-2 hover:underline"
+                type="button"
+                [attr.data-ordenar]="cabecera.columna"
+                (click)="ordenarPor(cabecera.columna)"
+              >
+                {{ cabecera.etiqueta }}
+                <span
+                  class="inline-block w-[1em] text-center"
+                  [class.text-neutral-500]="orden().columna !== cabecera.columna"
+                  aria-hidden="true"
+                  >{{
+                    orden().columna !== cabecera.columna
+                      ? '↕'
+                      : orden().sentido === 'asc'
+                        ? '▲'
+                        : '▼'
+                  }}</span
+                >
+              </button>
+            </th>
           }
-          <th scope="col">Reportes</th>
-          <th scope="col">Estado</th>
         </tr>
       </thead>
       <tbody>
