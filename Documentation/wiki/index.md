@@ -42,6 +42,7 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 - [[manual-de-marca]] ⭐ — **La autoridad del sistema visual.** Logotipo, color, tipografía, retícula y tono de voz.
 - [[matriz-de-trazabilidad]] ⭐ — El documento más nuevo y el que centraliza casi todos los defectos conocidos.
 - [[matriz-de-interesados]] — Análisis de interesados (Poder vs. Interés), expectativas, trazabilidad y riesgos.
+- [[diseno-base-de-datos]] — Diagramas PlantUML del esquema para revisar un cambio antes de migrar. El primero, el plan **previsto** de `V41`: un encargado con varias sedes y áreas.
 
 ## Forma: cómo se escribe
 
@@ -64,4 +65,4 @@ Catálogo de contenido. Ver [[CONVENCIONES.md]] para las convenciones. ⭐ marca
 
 ---
 
-**28 notas de contenido** más `CONVENCIONES.md` y `log.md` · última actualización 2026-10-04 · ver [[log.md]] para el historial.
+**29 notas de contenido** más `CONVENCIONES.md` y `log.md` · última actualización 2026-10-27 · ver [[log.md]] para el historial.

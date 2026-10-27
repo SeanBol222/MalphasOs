@@ -259,3 +259,15 @@ seguridad—. Al escribir la de RF-40 dije que el catálogo de patrones no marca
 
 **Tocadas**: [[estado-de-implementacion]], [[rf-firma-digital]], [[rf-reportes-mantenimiento]],
 [[estado-de-la-ers-caducado]], [[index]].
+
+## [2026-10-27] ingest | Los diagramas de la base de datos, y el plan de V41
+
+Entra `Documentation/DatabaseDesign/`, pedido por el usuario para revisar un cambio de esquema antes de
+escribir la migración: un encargado que responde por varias sedes y áreas. Tres diagramas PlantUML
+—la base de hoy completa, el cambio y la base como quedaría—, **generados** desde el esquema vivo de
+desarrollo en `V40` y no dibujados a mano. Lo propuesto va marcado «PROPUESTO» en cada título, porque
+no está implementado. Nota nueva, [[diseno-base-de-datos]].
+
+**Y el pie de [[index]] decía 28 notas «actualizado el 2026-10-04»** con 28 notas reales: el número
+seguía siendo cierto y la fecha no. Ahora son 29, contadas.
+
