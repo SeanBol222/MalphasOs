@@ -44,6 +44,20 @@ function cumple(orden: OrdenDeTrabajo, filtro: Filtro): boolean {
 
 const DIA_DE_LA_SEMANA = new Intl.DateTimeFormat('es-CO', { weekday: 'long' });
 
+/** Las columnas por las que se puede ordenar la tabla (2026-10-27). */
+export type Columna = 'fecha' | 'cliente' | 'servicio' | 'ingeniero' | 'reportes' | 'estado';
+
+/** Ascendente o descendente. */
+export type Sentido = 'asc' | 'desc';
+
+/** El orden del estado cuando se ordena por él: lo que pide trabajo primero, lo anulado al final. */
+const RANGO_DE_ESTADO: Readonly<Record<string, number>> = {
+  CREADA: 0,
+  EN_EJECUCION: 1,
+  EJECUTADA: 2,
+  ANULADA: 3,
+};
+
 /**
  * Las órdenes de trabajo: lo que hay que hacer, lo que se está haciendo y lo que falta para darlo por
  * hecho.
@@ -56,6 +70,11 @@ const DIA_DE_LA_SEMANA = new Intl.DateTimeFormat('es-CO', { weekday: 'long' });
  * orden no se ejecuta con reportes abiertos, y esa columna es la misma cuenta. La compila el servidor
  * en una consulta para todas —{@code GET /reports/progress}—, porque pedir los reportes orden por orden
  * eran N consultas para pintar una tabla.
+ *
+ * <p><b>Cada columna se puede ordenar, en los dos sentidos</b> (2026-10-27, pedido por el usuario):
+ * pulsar su cabecera ordena por ella y volver a pulsarla invierte el sentido, con una flecha que lo
+ * dice. Mientras no se pulse ninguna rige el orden de arriba, por fecha. Se ordena aquí y no en el
+ * servidor porque la lista ya está entera aquí, y los filtros también se aplican aquí.
  *
  * <p>Cliente, sede e ingeniero llegan como identificadores y se cruzan con sus listas, como en el resto
  * del frontend. El ingeniero exige {@code person.read}, que el grupo de clientes no tiene: sin él la
@@ -89,6 +108,57 @@ export class ListaOrdenes {
 
   protected readonly FILTROS = FILTROS;
   protected readonly filtro = signal<Filtro>('POR_HACER');
+
+  /** El orden que eligió quien mira, o nulo mientras no haya pulsado ninguna cabecera. */
+  private readonly ordenElegido = signal<{ columna: Columna; sentido: Sentido } | null>(null);
+
+  /**
+   * El orden que rige: el elegido, o por fecha con el sentido del filtro —lo que falta, de lo más
+   * próximo a lo más lejano; lo hecho, de lo más reciente hacia atrás—.
+   */
+  protected readonly orden = computed(
+    () =>
+      this.ordenElegido() ?? {
+        columna: 'fecha' as Columna,
+        sentido: (this.filtro() === 'POR_HACER' ? 'asc' : 'desc') as Sentido,
+      },
+  );
+
+  /** Pulsar la columna por la que ya se ordena invierte el sentido; otra, la pone ascendente. */
+  protected ordenarPor(columna: Columna): void {
+    const actual = this.orden();
+
+    this.ordenElegido.set(
+      actual.columna === columna
+        ? { columna, sentido: actual.sentido === 'asc' ? 'desc' : 'asc' }
+        : { columna, sentido: 'asc' },
+    );
+  }
+
+  /** Las cabeceras de la tabla, en orden; la del ingeniero solo para quien puede leer personas. */
+  protected readonly cabeceras = computed(() =>
+    (
+      [
+        { columna: 'fecha', etiqueta: 'Fecha' },
+        { columna: 'cliente', etiqueta: 'Cliente y sede' },
+        { columna: 'servicio', etiqueta: 'Servicio' },
+        { columna: 'ingeniero', etiqueta: 'Ingeniero' },
+        { columna: 'reportes', etiqueta: 'Reportes' },
+        { columna: 'estado', etiqueta: 'Estado' },
+      ] as const
+    ).filter((cabecera) => cabecera.columna !== 'ingeniero' || this.veIngenieros()),
+  );
+
+  /** Lo que la cabecera dice a un lector de pantalla: el orden se anuncia, no solo se dibuja. */
+  protected ariaSort(columna: Columna): 'ascending' | 'descending' | 'none' {
+    const actual = this.orden();
+
+    return actual.columna !== columna
+      ? 'none'
+      : actual.sentido === 'asc'
+        ? 'ascending'
+        : 'descending';
+  }
   protected readonly buscador = new FormControl('', { nonNullable: true });
   protected readonly cliente = new FormControl('', { nonNullable: true });
   protected readonly ingeniero = new FormControl('', { nonNullable: true });
@@ -174,14 +244,9 @@ export class ListaOrdenes {
     const clientes = this.nombresDeClientes();
     const sedes = this.nombresDeSedes();
     const personas = this.nombresDePersonas();
-    // Lo que falta hacer, de lo más próximo a lo más lejano; lo hecho, de lo más reciente hacia atrás.
-    const sentido = filtro === 'POR_HACER' ? 1 : -1;
 
     return this.candidatas()
       .filter((orden) => cumple(orden, filtro))
-      .sort(
-        (a, b) => sentido * (a.fechaMantenimiento ?? '').localeCompare(b.fechaMantenimiento ?? ''),
-      )
       .map((orden) => {
         const equipos = orden.equipos?.length ?? 0;
         const cerrados = Math.min(Number(avance.get(orden.id!)?.cerrados ?? 0), equipos);
@@ -220,9 +285,40 @@ export class ListaOrdenes {
               : estado === 'CREADA'
                 ? 'font-bold'
                 : 'font-normal',
+          // Las claves con que se ordena: lo que se ve, no el identificador.
+          clave: {
+            fecha: orden.fechaMantenimiento ?? '',
+            cliente: `${clientes.get(orden.idCliente!) ?? ''} ${sedes.get(orden.idSede!) ?? ''}`,
+            servicio: `${orden.tipoServicio ? ETIQUETA_DE_TIPO_DE_SERVICIO[orden.tipoServicio] : ''} ${orden.periodicidad ? ETIQUETA_DE_PERIODICIDAD[orden.periodicidad] : ''}`,
+            // Sin asignar va al final de la A a la Z: no es un nombre.
+            ingeniero: orden.idIngeniero ? (personas.get(orden.idIngeniero) ?? '') : '\uffff',
+            // El avance; una orden sin equipos, antes que cualquiera con ellos.
+            reportes: equipos ? cerrados / equipos : -1,
+            estado: RANGO_DE_ESTADO[orden.estadoActivo ? (estado ?? '') : 'ANULADA'] ?? 0,
+          },
         };
-      });
+      })
+      .sort((a, b) => this.comparar(a.clave, b.clave));
   });
+
+  /** Compara dos filas por la columna elegida y, a igualdad, por fecha, más antigua primero. */
+  private comparar(
+    a: Record<Columna, string | number>,
+    b: Record<Columna, string | number>,
+  ): number {
+    const { columna, sentido } = this.orden();
+    const valor = (x: string | number, y: string | number) =>
+      typeof x === 'number' && typeof y === 'number'
+        ? x - y
+        : String(x).localeCompare(String(y), 'es', { sensitivity: 'base' });
+    const diferencia = valor(a[columna], b[columna]);
+
+    if (diferencia !== 0) {
+      return sentido === 'asc' ? diferencia : -diferencia;
+    }
+
+    return columna === 'fecha' ? 0 : String(a.fecha).localeCompare(String(b.fecha));
+  }
 
   protected readonly hayError = computed(() => this.ordenes.isError());
   protected readonly mensajeDeError = computed(() => traducirError(this.ordenes.error()));
