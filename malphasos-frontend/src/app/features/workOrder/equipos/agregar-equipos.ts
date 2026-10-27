@@ -13,6 +13,8 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { AreaApi } from '../../client/area-api';
+import { EquipoApi } from '../../equipment/equipo-api';
+import { Sesion } from '../../../core/auth/sesion';
 import { OrdenApi } from '../orden-api';
 import { environment } from '../../../../environments/environment';
 import { EquipoDeCliente } from '../../../core/api/tipos';
@@ -34,6 +36,10 @@ import { traducirError } from '../../../core/errores/traducir';
  * transacción que las envuelva: si la tercera falla, las dos primeras quedan dentro. Se dice cuántos
  * entraron en lugar de dejar la pantalla en un estado que no corresponde a nada — es la misma honestidad
  * que el panel que crea un modelo con sus piezas.
+ *
+ * <p><b>Cada equipo dice qué es, no solo su serie</b> (2026-10-27, pedido por el usuario): tipo y marca,
+ * sacados del listado que compone el servidor. Los equipos de un área solo traen el identificador de su
+ * modelo, y el tipo y la marca están dos eslabones más arriba en el catálogo.
  */
 @Component({
   selector: 'app-agregar-equipos',
@@ -66,6 +72,19 @@ export class AgregarEquipos {
     computed(() => (this.areas.data() ?? []).filter((area) => area.estadoActivo).map((a) => a.id!)),
   );
 
+  /**
+   * Tipo y marca de cada equipo ofrecido, del listado del servidor. Exige {@code equipment.read}: sin
+   * él, cada equipo se ofrece por su serie, como antes.
+   */
+  private readonly sesion = inject(Sesion);
+  private readonly descripciones = inject(EquipoApi).resumenDe(
+    computed(() =>
+      this.sesion.puede('equipment.read')
+        ? (this.equiposPorArea.data() ?? []).flatMap((grupo) => grupo.equipos.map((e) => e.id!))
+        : [],
+    ),
+  );
+
   protected readonly seleccionados = signal<ReadonlySet<string>>(new Set());
   protected readonly enviando = signal(false);
   protected readonly resultado = signal<{ entraron: number; fallaron: number } | null>(null);
@@ -79,6 +98,12 @@ export class AgregarEquipos {
   protected readonly grupos = computed(() => {
     const porArea = this.equiposPorArea.data() ?? [];
     const yaEstan = this.yaEnLaOrden();
+    const descripcion = new Map(
+      (this.descripciones.data()?.filas ?? []).map((fila) => [
+        fila.id,
+        [fila.tipoEquipo, fila.marca].filter(Boolean).join(' · '),
+      ]),
+    );
 
     return (this.areas.data() ?? [])
       .filter((area) => area.estadoActivo)
@@ -87,7 +112,12 @@ export class AgregarEquipos {
         nombre: area.nombre,
         equipos: (porArea.find((grupo) => grupo.idArea === area.id)?.equipos ?? [])
           .filter((equipo) => equipo.estadoActivo && !yaEstan.has(equipo.id!))
-          .map((equipo) => ({ id: equipo.id!, serie: equipo.serie, inventario: equipo.numeroInventario })),
+          .map((equipo) => ({
+            id: equipo.id!,
+            serie: equipo.serie,
+            inventario: equipo.numeroInventario,
+            descripcion: descripcion.get(equipo.id) ?? '',
+          })),
       }));
   });
 

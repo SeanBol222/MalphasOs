@@ -69,8 +69,22 @@
                   [checked]="marcado(equipo.id)"
                   (change)="alternar(equipo.id)"
                 />
-                <span class="font-semibold">{{ equipo.serie }}</span>
-                <span class="text-neutral-700">{{ equipo.inventario || 'sin inventario' }}</span>
+                <!-- Que es, y despues cual: el tipo y la marca, y la serie que lo distingue. -->
+                <span class="min-w-0">
+                  @if (equipo.descripcion) {
+                    <span class="block font-semibold" data-descripcion>{{
+                      equipo.descripcion
+                    }}</span>
+                  }
+                  <span class="block">
+                    <span [class.font-semibold]="!equipo.descripcion"
+                      >Serie {{ equipo.serie }}</span
+                    >
+                    <span class="text-neutral-700">
+                      · {{ equipo.inventario || 'sin inventario' }}</span
+                    >
+                  </span>
+                </span>
               </label>
             </li>
           }
