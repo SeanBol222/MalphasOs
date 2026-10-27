@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
+import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar, responderA } from '../../../../testing/pantalla';
 import {
   AREAS,
@@ -19,6 +20,16 @@ import {
 import { AgregarEquipos } from './agregar-equipos';
 
 const URL = `${URL_ORDENES}/${ID_ORDEN}`;
+const URL_LISTADO = 'http://localhost:8081/v1/api/client-equipments/overview';
+
+/** Lo que el listado del servidor sabe de los dos equipos: su tipo y su marca (2026-10-27). */
+const LISTADO = {
+  filas: [
+    { id: ID_EQUIPO, serie: 'SN-0001', tipoEquipo: 'Báscula', marca: 'Kern' },
+    { id: 'ec2', serie: 'SN-0002', tipoEquipo: 'Tensiómetro', marca: 'Welch Allyn' },
+  ],
+  total: 2,
+};
 
 @Component({ selector: 'app-ficha-falsa', template: '' })
 class FichaFalsa {}
@@ -27,17 +38,20 @@ describe('Añadir equipos a una orden', () => {
   let fixture: ComponentFixture<AgregarEquipos>;
   let http: HttpTestingController;
 
-  beforeEach(() => {
+  function montar(autoridades: readonly string[] = ['work-order.write', 'equipment.read']): void {
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
+        ...proveerSesionFalsa({ autoridades }),
         provideRouter([{ path: 'ordenes/:id', component: FichaFalsa }]),
       ],
     });
     fixture = TestBed.createComponent(AgregarEquipos);
     http = TestBed.inject(HttpTestingController);
     fixture.componentRef.setInput('id', ID_ORDEN);
-  });
+  }
+
+  beforeEach(() => montar());
 
   const raiz = () => fixture.nativeElement as HTMLElement;
   const texto = () => raiz().textContent ?? '';
@@ -48,6 +62,8 @@ describe('Añadir equipos a una orden', () => {
     await responderA(fixture, http, URL, datos);
     await responderA(fixture, http, urlAreasDeSede(ID_SEDE), AREAS);
     http.match(urlEquiposDeArea(ID_AREA)).forEach((peticion) => peticion.flush(equipos));
+    await asentar(fixture);
+    http.match((r) => r.url === URL_LISTADO).forEach((peticion) => peticion.flush(LISTADO));
     await asentar(fixture);
   }
 
@@ -163,4 +179,67 @@ describe('Añadir equipos a una orden', () => {
   });
 
   afterEach(() => http.verify());
+
+  describe('Cada equipo dice qué es (2026-10-27)', () => {
+    it('ofrece cada equipo con su tipo y su marca, y debajo su serie', async () => {
+      await abrir();
+
+      expect(
+        [...raiz().querySelectorAll('[data-descripcion]')].map((e) => e.textContent?.trim()),
+      ).toEqual(['Báscula · Kern', 'Tensiómetro · Welch Allyn']);
+      expect(texto()).toContain('Serie SN-0001');
+    });
+
+    it('pide al listado exactamente los equipos ofrecidos', async () => {
+      fixture.detectChanges();
+      await responderA(fixture, http, URL, orden());
+      await responderA(fixture, http, urlAreasDeSede(ID_SEDE), AREAS);
+      http.match(urlEquiposDeArea(ID_AREA)).forEach((peticion) => peticion.flush(EQUIPOS));
+      await asentar(fixture);
+
+      const peticion = http.expectOne((r) => r.url === URL_LISTADO);
+      expect(peticion.request.params.get('ids')).toBe([ID_EQUIPO, 'ec2'].sort().join(','));
+      peticion.flush(LISTADO);
+      await asentar(fixture);
+    });
+
+    it('con más de cien equipos lo pide en tandas de cien y junta las respuestas', async () => {
+      // El listado del servidor entrega cien por página: antes, del ciento uno en adelante se quedaban
+      // sin tipo ni marca.
+      const muchos = Array.from({ length: 150 }, (_, i) => ({
+        id: `e${String(i).padStart(3, '0')}`,
+        serie: `S-${i}`,
+        idAreaServicio: ID_AREA,
+        estadoActivo: true,
+      }));
+      fixture.detectChanges();
+      await responderA(fixture, http, URL, orden());
+      await responderA(fixture, http, urlAreasDeSede(ID_SEDE), AREAS);
+      http.match(urlEquiposDeArea(ID_AREA)).forEach((peticion) => peticion.flush(muchos));
+      await asentar(fixture);
+
+      const tandas = http.match((r) => r.url === URL_LISTADO);
+      expect(tandas.map((t) => t.request.params.get('ids')!.split(',').length)).toEqual([100, 50]);
+      tandas.forEach((tanda) =>
+        tanda.flush({
+          filas: tanda.request.params
+            .get('ids')!
+            .split(',')
+            .map((id) => ({ id, tipoEquipo: 'Báscula', marca: 'Kern' })),
+        }),
+      );
+      await asentar(fixture);
+
+      expect(raiz().querySelectorAll('[data-descripcion]')).toHaveLength(150);
+    });
+
+    it('sin equipment.read no lo pide, y cada equipo se ofrece por su serie', async () => {
+      TestBed.resetTestingModule();
+      montar(['work-order.write']);
+      await abrir();
+
+      expect(raiz().querySelectorAll('[data-descripcion]')).toHaveLength(0);
+      expect(texto()).toContain('Serie SN-0001');
+    });
+  });
 });

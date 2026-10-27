@@ -163,7 +163,11 @@ export class EquipoApi {
   /**
    * Estos equipos y ningun otro, con todo lo que el listado sabe de cada uno: lo pide la ficha de una
    * orden para su alcance. El servidor no filtra por baja cuando se piden por identificador —un equipo
-   * dado de baja sigue en la orden en la que entro—. Cabe hasta {@code 100}, el maximo de una pagina.
+   * dado de baja sigue en la orden en la que entro—.
+   *
+   * <p><b>En tandas de {@code 100}</b>, el maximo de una pagina, y reunidas en una sola respuesta. Hasta el
+   * 2026-10-27 iba en una peticion, y una orden o una sede con mas de cien equipos se quedaba sin los
+   * datos de los que pasaban de cien; lo destapo pedirlos para elegir los equipos de una sede entera.
    */
   resumenDe(ids: Signal<readonly string[]>) {
     return injectQuery(() => {
@@ -171,16 +175,31 @@ export class EquipoApi {
 
       return {
         queryKey: [...EquipoApi.CLAVE_RESUMEN, { ids: ordenados }],
-        queryFn: () =>
-          firstValueFrom(
-            this.http.get<ResumenDeEquipos>(`${this.api}/client-equipments/overview`, {
-              params: { ids: ordenados.join(','), tamano: 100 },
-            }),
-          ),
+        queryFn: async (): Promise<ResumenDeEquipos> => {
+          const tandas: string[][] = [];
+          for (let i = 0; i < ordenados.length; i += EquipoApi.POR_PAGINA) {
+            tandas.push(ordenados.slice(i, i + EquipoApi.POR_PAGINA));
+          }
+          const paginas = await Promise.all(
+            tandas.map((tanda) =>
+              firstValueFrom(
+                this.http.get<ResumenDeEquipos>(`${this.api}/client-equipments/overview`, {
+                  params: { ids: tanda.join(','), tamano: EquipoApi.POR_PAGINA },
+                }),
+              ),
+            ),
+          );
+          const filas = paginas.flatMap((pagina) => pagina.filas ?? []);
+
+          return { filas, pagina: 0, tamano: filas.length, total: filas.length };
+        },
         enabled: ordenados.length > 0,
       };
     });
   }
+
+  /** El maximo de filas que el listado del servidor entrega por pagina. */
+  static readonly POR_PAGINA = 100;
 
   /**
    * Los equipos en servicio contados por area, de todo el alcance o de un cliente (2026-10-11). Cuelga

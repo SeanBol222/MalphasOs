@@ -2378,3 +2378,18 @@ salir del nombre. Cinco mutaciones, cinco muertas. Frontend **779**.
 
 **Tocadas**: [[dominio-reporte-servicio]], [[decisiones-tecnicas-malphasos]], el `CONVENCIONES.md` de la
 raíz y `CHANGELOG.md`.
+
+## [2026-10-27] ingest | Los equipos de la orden dicen qué son
+
+Al elegir los equipos de una orden cada uno se ofrecía por su serie. El usuario pidió el tipo y la marca:
+se sacan del listado que compone el servidor, `GET /client-equipments/overview` por identificadores, que
+ya los trae —los equipos de un área solo traen el identificador de su modelo—. Sin `equipment.read` se
+ofrecen por su serie, como antes.
+
+**Y destapó un corte en silencio**: esa consulta por identificadores iba en una sola petición, y el
+listado entrega como mucho cien por página. La ficha de una orden con más de cien equipos se quedaba sin
+los datos de los que pasaban de cien. Ahora va en tandas de cien y junta las respuestas, con una prueba de
+150. Cinco mutaciones, cinco muertas. Frontend **783**.
+
+**Tocadas**: el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
+
