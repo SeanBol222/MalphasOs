@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AreaApi } from '../area-api';
@@ -12,6 +13,7 @@ import { nombreCompleto, PersonaApi } from '../../person/persona-api';
 import { Sesion } from '../../../core/auth/sesion';
 import { UbicacionApi } from '../../location/ubicacion-api';
 import { traducirError } from '../../../core/errores/traducir';
+import { TipoDeAsignacion } from '../../../core/api/tipos';
 
 /**
  * Una sede con sus datos, y desde donde se la edita o se la cierra.
@@ -31,6 +33,11 @@ import { traducirError } from '../../../core/errores/traducir';
  * <p><b>Rehecha el 2026-10-11 con el rediseño</b> —la maqueta «A-Sede»—: las áreas son una tabla con
  * sus equipos y su encargado —el propio, o el de la sede si no tiene—, y a un lado los encargados y las
  * órdenes abiertas en la sede. «Nueva orden aquí» lleva al alta con el cliente y la sede ya puestos.
+ *
+ * <p><b>Y desde el 2026-10-27 pone al frente a alguien ya registrado</b>: un encargado responde por
+ * varias sedes y áreas de su cliente (`V41`), y «Registrar encargado» solo creaba a una persona nueva.
+ * Se ofrecen las personas que son encargadas —de tipo o de segunda función— y cuyo cargo actual es todo
+ * de este cliente, porque el servidor rechaza mezclar clientes; y de cada una, solo lo que aún no tiene.
  */
 @Component({
   selector: 'app-detalle-sede',
@@ -92,6 +99,18 @@ export class DetalleSede {
     computed(() => this.sesion.puede('person.read')),
   );
   protected readonly bajaDeEncargado = this.encargadoApi.relevar();
+  protected readonly asignacionExistente = this.encargadoApi.asignar();
+
+  /** Asignar a alguien ya registrado exige elegirlo, y eso exige poder leer personas. */
+  protected readonly asignaRegistrados = computed(
+    () => this.puedeAsignar() && this.sesion.puede('person.read'),
+  );
+
+  /** Las sedes y áreas de este cliente: el cargo de un candidato tiene que caber todo aquí. */
+  private readonly resumenDelCliente = this.api.resumen(
+    this.idCliente,
+    computed(() => this.asignaRegistrados() && !!this.idCliente()),
+  );
 
   private readonly formBuilder = inject(FormBuilder);
 
@@ -104,6 +123,65 @@ export class DetalleSede {
     Validators.maxLength(50),
   ]);
 
+  protected readonly formularioDeAsignacion = this.formBuilder.nonNullable.group({
+    persona: ['', Validators.required],
+    // "HEADQUARTER:<id>" o "SERVICE_AREA:<id>": el tipo viaja pegado a la opcion, como en el alta.
+    destino: ['', Validators.required],
+  });
+  private readonly valoresDeAsignacion = toSignal(this.formularioDeAsignacion.valueChanges, {
+    initialValue: this.formularioDeAsignacion.getRawValue(),
+  });
+
+  /**
+   * A quién se puede poner al frente aquí: las personas activas que son encargadas —de tipo o como
+   * segunda función— y que no estén a cargo de nada de otro cliente.
+   */
+  protected readonly candidatos = computed(() => {
+    const delCliente = new Set(
+      (this.resumenDelCliente.data() ?? []).flatMap((sede) => [
+        sede.id,
+        ...(sede.areas ?? []).map((area) => area.id),
+      ]),
+    );
+    const cargos = new Map(
+      (this.encargados.data() ?? []).map((encargado) => [
+        encargado.idPersona,
+        asignacionesDe(encargado),
+      ]),
+    );
+
+    return (this.personas.data() ?? [])
+      .filter(
+        (persona) =>
+          persona.estadoActivo !== false &&
+          (persona.tipoPersona === 'MANAGER' || persona.segundoTipoPersona === 'MANAGER'),
+      )
+      .filter((persona) =>
+        (cargos.get(persona.identificador) ?? []).every((cargo) =>
+          delCliente.has(cargo.idAsignacion),
+        ),
+      )
+      .map((persona) => ({ id: persona.identificador!, nombre: nombreCompleto(persona) }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  });
+
+  /** De qué se le puede poner al frente: la sede o un área abierta, sin lo que ya tiene. */
+  protected readonly destinosDisponibles = computed(() => {
+    const persona = this.valoresDeAsignacion().persona;
+    const encargado = (this.encargados.data() ?? []).find((e) => e.idPersona === persona);
+    const ya = new Set(
+      (encargado ? asignacionesDe(encargado) : []).map((a) => `${a.tipo}:${a.idAsignacion}`),
+    );
+    const opciones = [
+      { valor: `HEADQUARTER:${this.id()}`, etiqueta: 'Toda la sede' },
+      ...(this.areas.data() ?? [])
+        .filter((area) => area.estadoActivo)
+        .map((area) => ({ valor: `SERVICE_AREA:${area.id}`, etiqueta: `Área: ${area.nombre}` })),
+    ];
+
+    return opciones.filter((opcion) => !ya.has(opcion.valor));
+  });
+
   protected readonly confirmandoCierre = signal(false);
 
   /** El area que se esta renombrando, si hay alguna. Solo una a la vez. */
@@ -115,6 +193,7 @@ export class DetalleSede {
       this.cierre.isError() ||
       this.areas.isError() ||
       this.bajaDeEncargado.isError() ||
+      this.asignacionExistente.isError() ||
       this.altaDeArea.isError() ||
       this.cambioDeArea.isError() ||
       this.cierreDeArea.isError(),
@@ -125,6 +204,7 @@ export class DetalleSede {
         this.cierre.error() ??
         this.areas.error() ??
         this.bajaDeEncargado.error() ??
+        this.asignacionExistente.error() ??
         this.altaDeArea.error() ??
         this.cambioDeArea.error() ??
         this.cierreDeArea.error(),
@@ -282,6 +362,30 @@ export class DetalleSede {
 
   protected cerrarArea(id: string): void {
     this.cierreDeArea.mutate(id);
+  }
+
+  constructor() {
+    // Otra persona tiene otro cargo: lo elegido para la anterior puede no tener sentido.
+    this.formularioDeAsignacion.controls.persona.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.formularioDeAsignacion.controls.destino.setValue(''));
+  }
+
+  /** La pone al frente de lo elegido, sumándolo a lo que ya tiene. */
+  protected asignarRegistrado(): void {
+    if (this.formularioDeAsignacion.invalid) {
+      this.formularioDeAsignacion.markAllAsTouched();
+
+      return;
+    }
+
+    const { persona, destino } = this.formularioDeAsignacion.getRawValue();
+    const [tipo, idAsignacion] = destino.split(':');
+
+    this.asignacionExistente.mutate(
+      { idPersona: persona, tipo: tipo as TipoDeAsignacion, idAsignacion },
+      { onSuccess: () => this.formularioDeAsignacion.reset() },
+    );
   }
 
   /** Lo quita de esa sede o de esa area, y solo de esa. */

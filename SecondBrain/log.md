@@ -2334,3 +2334,18 @@ sin borrado lógico, con razón.
 [[deuda-tecnica-y-riesgos]] —101 filas, 48 tachadas, 53 abiertas—, el `CONVENCIONES.md` de la raíz y
 `CHANGELOG.md`.
 
+## [2026-10-27] ingest | Asignar a un encargado ya registrado
+
+La deuda que `V41` dejó abierta, cerrada unas horas después. La ficha de la sede tiene «Asignar a
+alguien ya registrado»: ofrece a las personas activas que son encargadas —de tipo o como segunda
+función— **cuyo cargo actual es todo de este cliente**, porque el servidor rechaza mezclarlos, y de cada
+una solo lo que aún no tiene a cargo, sin áreas cerradas. Va por `POST /managers/assignments`. Exige
+`engineer.assign` y `person.read`: sin leer personas no hay a quién elegir por su nombre. Siete
+mutaciones, siete muertas. Frontend **769**; deuda **101, 49 y 52**.
+
+Por el camino, el resumen de las sedes del cliente que la ficha pide ahora cuelga de la clave
+`['sedes']`, y cerrar la sede la invalida: la prueba del cierre tuvo que responder también esa recarga,
+porque la mutación espera a tenerla antes de navegar. Es la regla de `onSuccess` que ya está escrita.
+
+**Tocadas**: [[deuda-tecnica-y-riesgos]], el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
+

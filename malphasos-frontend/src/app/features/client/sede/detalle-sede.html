@@ -315,6 +315,66 @@
                 </p>
               }
             }
+
+            @if (asignaRegistrados() && datos.estadoActivo) {
+              <!--
+                Desde V41 un encargado responde por varias sedes y areas de su cliente. Aqui se suma
+                una a quien ya esta registrado; «Registrar encargado» crea a una persona nueva.
+              -->
+              <form
+                class="mt-2 border-t border-neutral-200 pt-1.5"
+                aria-labelledby="titulo-asignar"
+                [formGroup]="formularioDeAsignacion"
+                (ngSubmit)="asignarRegistrado()"
+              >
+                <h3 id="titulo-asignar" class="text-sm font-bold">
+                  Asignar a alguien ya registrado
+                </h3>
+                @if (!candidatos().length) {
+                  <p class="mt-1 text-sm text-neutral-800">
+                    No hay encargados registrados de este cliente que se puedan asignar.
+                  </p>
+                } @else {
+                  <label class="mt-1 block text-sm font-semibold" for="personaAsignada">
+                    Persona <span aria-hidden="true">*</span>
+                  </label>
+                  <select
+                    class="campo min-h-tactil w-full text-sm"
+                    id="personaAsignada"
+                    aria-required="true"
+                    formControlName="persona"
+                  >
+                    <option value="">Elija a quién</option>
+                    @for (candidato of candidatos(); track candidato.id) {
+                      <option [value]="candidato.id">{{ candidato.nombre }}</option>
+                    }
+                  </select>
+
+                  <label class="mt-1 block text-sm font-semibold" for="destinoAsignado">
+                    De qué se encarga <span aria-hidden="true">*</span>
+                  </label>
+                  <select
+                    class="campo min-h-tactil w-full text-sm"
+                    id="destinoAsignado"
+                    aria-required="true"
+                    formControlName="destino"
+                  >
+                    <option value="">Elija</option>
+                    @for (destino of destinosDisponibles(); track destino.valor) {
+                      <option [value]="destino.valor">{{ destino.etiqueta }}</option>
+                    }
+                  </select>
+
+                  <button
+                    class="boton-secundario mt-1.5 min-h-tactil"
+                    type="submit"
+                    [disabled]="asignacionExistente.isPending()"
+                  >
+                    {{ asignacionExistente.isPending() ? 'Asignando…' : 'Asignar' }}
+                  </button>
+                }
+              </form>
+            }
           </section>
         }
 

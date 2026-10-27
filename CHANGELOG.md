@@ -13,7 +13,8 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 
 - Clientes con su NIT, su sigla y sus contactos; sedes con su ciudad; áreas de servicio y sus encargados.
   **Un encargado puede estar a cargo de varias sedes y áreas** de un mismo cliente, y se le releva de
-  cada una por separado. La migración `V41` lleva los encargados que ya existían a la forma nueva.
+  cada una por separado. La migración `V41` lleva los encargados que ya existían a la forma nueva, y la
+  ficha de la sede pone al frente a alguien ya registrado, sumándolo a lo que tiene.
 - Los 249 países y las 1.350 ciudades —los municipios de Colombia y la capital de cada país— vienen
   sembrados, con un buscador que no distingue tildes ni mayúsculas.
 

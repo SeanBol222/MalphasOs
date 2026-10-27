@@ -23,6 +23,9 @@ export const CATALOGO_CLIENT: Readonly<Record<string, string>> = {
   ERR_CLIENT_006: 'Esa ciudad no existe.',
   ERR_CLIENT_007: 'Esa persona no existe o fue retirada.',
   ERR_CLIENT_008: 'Esa sigla ya la tiene otro cliente.',
+  ERR_CLIENT_009: 'Esa persona no estaba a cargo de esa sede o de esa área.',
+  ERR_CLIENT_010:
+    'Esa persona ya está a cargo de sedes o áreas de otro cliente. Un encargado responde por un solo cliente.',
 };
 
 /**
