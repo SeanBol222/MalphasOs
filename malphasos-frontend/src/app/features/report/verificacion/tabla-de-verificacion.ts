@@ -78,6 +78,13 @@ interface Fila {
   readonly idPuntoVerificacion: string | null;
   readonly punto: string;
   readonly secuencia: number;
+  /**
+   * Qué lado vale lo que dice el punto, en una modalidad constante: con patrón constante la pesa
+   * patrón ES el punto —una de 5 kg en el punto 5—, y con equipo constante lo es el equipo. Su casilla
+   * nace con ese valor (2026-10-27): antes nacía en blanco, y había que copiar a mano el punto que
+   * estaba en la misma fila.
+   */
+  readonly fijo?: 'valorPatron' | 'valorEquipo';
 }
 
 /** Las filas de una verificación, con el índice que ocupan en el formulario entero. */
@@ -121,6 +128,10 @@ interface GrupoDeFilas {
  * <p>Se manda la tabla <b>entera</b> y sustituye la anterior: lo que no se envíe queda retirado. Es lo
  * que hace el API, y encaja con cómo se revisa una verificación — se corrige un valor y se entrega la
  * tabla completa.
+ *
+ * <p><b>Se guarda sola desde el 2026-10-27</b>, pedido por el usuario para quitar pasos: al salir de
+ * cada casilla —el evento {@code change}, no cada tecla—, si hay alguna fila con las dos lecturas.
+ * Los patrones ya se guardaban al elegirlos.
  */
 @Component({
   selector: 'app-tabla-de-verificacion',
@@ -252,6 +263,16 @@ export class TablaDeVerificacion {
     }));
   });
 
+  /** Si se guardó lo último que se cambió: para decirlo, ya que no hay botón que lo diga. */
+  protected readonly guardado = signal(false);
+
+  /**
+   * Si hay un guardado en vuelo, y si llegó otro cambio mientras tanto. Propios y no {@code isPending}:
+   * cuando corre {@code onSettled}, la mutación todavía se da por pendiente.
+   */
+  private enVuelo = false;
+  private otraVez = false;
+
   protected readonly hayError = computed(
     () => this.registro.isError() || this.eleccion.isError() || this.retiro.isError(),
   );
@@ -340,6 +361,10 @@ export class TablaDeVerificacion {
 
           if (mantieneAlgoConstante(verificacion.modalidad)) {
             const cuantas = verificacion.cantidadDatos ?? 1;
+            const fijo =
+              verificacion.modalidad === 'PATRON_CONSTANTE'
+                ? ('valorPatron' as const)
+                : ('valorEquipo' as const);
 
             return (verificacion.puntos ?? []).flatMap((punto) =>
               Array.from({ length: cuantas }, (_, indice) => ({
@@ -348,6 +373,7 @@ export class TablaDeVerificacion {
                 // El valor solo, sin unidad: la unidad esta en la cabecera del bloque.
                 punto: String(punto.valor ?? ''),
                 secuencia: indice + 1,
+                fijo,
               })),
             );
           }
@@ -418,16 +444,44 @@ export class TablaDeVerificacion {
     this.formulario.markAsDirty();
   }
 
+  /**
+   * La guarda si hay algo nuevo y alguna fila completa. Si se está guardando otra cosa, la deja para
+   * después: dos peticiones en vuelo podrían llegar al revés, y la tabla que ganaría sería la vieja.
+   */
   protected guardar(): void {
     const lecturas = this.lecturasEscritas();
 
-    if (!lecturas.length) {
+    if (!this.editable() || !this.formulario.dirty || !lecturas.length) {
+      return;
+    }
+    if (this.enVuelo) {
+      this.otraVez = true;
+
       return;
     }
 
+    const enviado = JSON.stringify(this.formulario.getRawValue());
+    this.guardado.set(false);
+    this.enVuelo = true;
+
     this.registro.mutate(
       { id: this.idReporte(), lecturas },
-      { onSuccess: () => this.formulario.markAsPristine() },
+      {
+        onSuccess: () => {
+          // Solo se da por guardado si nadie cambió nada mientras tanto: si no, eso sigue pendiente.
+          if (JSON.stringify(this.formulario.getRawValue()) === enviado) {
+            this.formulario.markAsPristine();
+            this.guardado.set(true);
+          }
+        },
+        onSettled: () => {
+          this.enVuelo = false;
+          if (this.otraVez) {
+            this.otraVez = false;
+            this.guardar();
+          }
+        },
+      },
     );
   }
 
@@ -475,10 +529,19 @@ export class TablaDeVerificacion {
           lectura.secuencia === fila.secuencia,
       );
 
+      // Sin lectura guardada, el lado constante nace con el valor del punto, y se puede corregir. Con
+      // lectura no se mira: el servidor exige los dos valores, de modo que el guardado manda siempre.
+      const delPunto = (lado: 'valorPatron' | 'valorEquipo') =>
+        fila.fijo === lado ? fila.punto : '';
+
       this.casillas.push(
         this.fb.group({
-          valorPatron: this.fb.nonNullable.control(medida?.valorPatron?.toString() ?? ''),
-          valorEquipo: this.fb.nonNullable.control(medida?.valorEquipo?.toString() ?? ''),
+          valorPatron: this.fb.nonNullable.control(
+            medida?.valorPatron?.toString() ?? delPunto('valorPatron'),
+          ),
+          valorEquipo: this.fb.nonNullable.control(
+            medida?.valorEquipo?.toString() ?? delPunto('valorEquipo'),
+          ),
         }),
         { emitEvent: false },
       );
