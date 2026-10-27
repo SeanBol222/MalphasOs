@@ -443,15 +443,9 @@ public class ServiceReportService implements ServiceReportServicePort {
         requireCompleteVerification(reporte);
         requireStandardsForReadings(reporte);
 
-        // Un correctivo exige además la falla y el diagnóstico (2026-10-14). El tipo de servicio lo
-        // dice la orden, no el reporte, así que el cierre que aplica lo elige el servicio.
-        WorkOrder orden = workOrderServicePort.findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted());
-        ReportDocument documento = congelar(reporte);
-        if (orden.getTipoServicio() == ServiceType.CORRECTIVO) {
-            reporte.finishCorrective(documento);
-        } else {
-            reporte.finish(documento);
-        }
+        // Un correctivo exigia ademas la falla y el diagnostico desde el 2026-10-14; desde el 2026-10-27
+        // no, pedido por el usuario, y el cierre es el mismo para los dos tipos de servicio.
+        reporte.finish(congelar(reporte));
 
         return persistAndPublish(reporte);
     }

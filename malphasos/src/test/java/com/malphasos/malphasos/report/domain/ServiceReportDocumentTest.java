@@ -56,16 +56,6 @@ class ServiceReportDocumentTest {
     }
 
     @Test
-    @DisplayName("el cierre del correctivo también lo congela")
-    void correctivo() {
-        ServiceReport reporte = cerrable();
-
-        reporte.finishCorrective(UnDocumento.CUALQUIERA);
-
-        assertThat(reporte.getDocumento()).isEqualTo(UnDocumento.CUALQUIERA);
-    }
-
-    @Test
     @DisplayName("sin documento no se cierra, y el reporte sigue en borrador")
     void sinDocumento() {
         ServiceReport reporte = cerrable();

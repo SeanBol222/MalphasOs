@@ -710,8 +710,8 @@ class ServiceReportServiceTest {
     class AlCerrar {
 
         /**
-         * El cierre consulta la orden para saber si es un correctivo (2026-10-14). Por defecto es un
-         * preventivo; lenient porque varias pruebas fallan antes, en la verificación.
+         * El cierre consultaba la orden para saber si era un correctivo (2026-10-14 al 2026-10-27). Ya
+         * no la necesita; el estubado se queda lenient para las pruebas que la consultan por otra razón.
          */
         @org.junit.jupiter.api.BeforeEach
         void laOrdenEsPreventiva() {
@@ -733,22 +733,12 @@ class ServiceReportServiceTest {
         }
 
         @Test
-        @DisplayName("un correctivo sin falla ni diagnostico no se cierra, aunque tenga lo demas")
-        void correctivoIncompleto() {
+        @DisplayName("un correctivo sin falla ni diagnostico se cierra: desde el 2026-10-27 no se exigen")
+        void correctivoSinFalla() {
+            // Los exigia desde el 2026-10-14; el usuario los quito para no frenar el cierre.
             ServiceReport reporte = unReporteSinVerificacion();
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+            lenient().when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
                     .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EN_EJECUCION, true, EQUIPO));
-
-            assertThatIllegalStateException()
-                    .isThrownBy(() -> service.finish(new FinishServiceReportCommand(reporte.getId())))
-                    .withMessageContaining("falla reportada");
-            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
-        }
-
-        @Test
-        @DisplayName("un preventivo sin falla ni diagnostico se cierra: eso es de un correctivo")
-        void preventivoSinFalla() {
-            ServiceReport reporte = unReporteSinVerificacion();
             estubarGuardado();
 
             service.finish(new FinishServiceReportCommand(reporte.getId()));
@@ -757,12 +747,9 @@ class ServiceReportServiceTest {
         }
 
         @Test
-        @DisplayName("un correctivo con falla y diagnostico se cierra")
-        void correctivoCompleto() {
+        @DisplayName("un preventivo sin falla ni diagnostico se cierra: eso es de un correctivo")
+        void preventivoSinFalla() {
             ServiceReport reporte = unReporteSinVerificacion();
-            reporte.fill("No enciende", "Fusible abierto", null, null, null);
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
-                    .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EN_EJECUCION, true, EQUIPO));
             estubarGuardado();
 
             service.finish(new FinishServiceReportCommand(reporte.getId()));
@@ -1305,7 +1292,6 @@ class ServiceReportServiceTest {
             EquipmentType tipo = unTipo(null, null, List.of());
             estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
             DocumentImage logo = new DocumentImage(PNG, "image/png");
             when(reportDocumentComposer.compose(reporte, tipo))
                     .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, logo, null));
@@ -1325,7 +1311,6 @@ class ServiceReportServiceTest {
             EquipmentType tipo = unTipo(null, null, List.of());
             estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
             DocumentImage firma = new DocumentImage(PNG, "image/png");
             ReportDocument base = UnDocumento.CUALQUIERA;
             ReportDocument conFirma = new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(),

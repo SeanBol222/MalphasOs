@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-16
+updated: 2026-10-27
 ---
 
 # Reportes de servicio — el módulo completo
@@ -37,6 +37,8 @@ orden_trabajo_equipo ──> reporte_servicio ──> dato_verificacion ──> 
 
 > **Desde el 2026-10-14 depende del tipo de servicio**: un correctivo exige además falla y diagnóstico, y
 > todo reporte con lecturas, un patrón vigente. Ver «Los reportes por tipo de servicio», más abajo.
+> **Corregido el 2026-10-27**: el correctivo ya no exige falla ni diagnóstico —lo pidió el usuario—, y
+> el cierre vuelve a ser el mismo para los dos tipos de servicio.
 
 `t_falla_reportada`, `t_diagnostico`, `t_procedimientos`, `t_observaciones` y `t_resultado`. **Los cinco son nulos en `BORRADOR`**: el reporte se abre vacío al llegar al equipo y se llena allí. Al cerrarlo se exigen **dos** —procedimientos y resultado, que son qué se hizo y cómo quedó—; falla y diagnóstico se quedan opcionales incluso al cerrar, porque un preventivo que sale bien no tiene ninguna de las dos.
 
@@ -171,9 +173,30 @@ diagnóstico**: uno que no dice qué falló ni qué se encontró no cuenta qué 
 no se exigen: no siempre se sabe la causa, y no siempre se cambia algo. Es **una decisión de la sesión**,
 anotada para que el usuario la discuta.
 
-**El reporte no sabe de qué tipo de servicio es** —lo dice la orden—, así que el agregado tiene dos
-cierres, `finish()` y `finishCorrective()`, y el servicio elige cuál consultando la orden. Hacerlo un
+**El reporte no sabe de qué tipo de servicio es** —lo dice la orden—, así que el agregado tenía dos
+cierres, `finish()` y `finishCorrective()`, y el servicio elegía cuál consultando la orden. Hacerlo un
 parámetro de `finish` habría puesto en el agregado un dato que no es suyo.
+
+> **Retirado el 2026-10-27**, a petición del usuario: la falla y el diagnóstico frenaban el cierre de
+> un correctivo y no lo pide ningún requisito. `finishCorrective()` desapareció y el servicio ya no
+> consulta la orden al cerrar. Los dos campos siguen en el reporte, se piden en la pantalla con su
+> ayuda de correctivo y se imprimen si se llenan. Era una decisión de la sesión, anotada justamente
+> para que el usuario la discutiera.
+
+### La recepción y la verificación se guardan solas (2026-10-27)
+
+Pedido por el usuario para quitar pasos: los botones «Guardar recepción» y «Guardar verificación» se
+retiraron. Cada una se guarda **al confirmar un cambio** —el evento `change`: marcar un estado, salir de
+un campo, quitar un accesorio—, no en cada tecla ni con un temporizador, y **solo si hay algo que
+mandar**: la recepción, completa; la verificación, con alguna fila con sus dos lecturas. Un cambio que
+llega con un guardado en vuelo **espera a que termine** y se manda después: dos peticiones a la vez
+podrían llegar al revés, y como la tabla se manda entera, ganaría la vieja. Y no se da por guardado lo
+que cambió mientras tanto.
+
+**Con patrón constante, la casilla del patrón nace con el valor del punto**, y con equipo constante la
+del equipo. Lo reportó el usuario —«aparece el punto pero el patrón está en blanco»—: con una pesa patrón
+de 5 kg en el punto 5 la casilla tenía que valer 5, y había que copiarlo a mano en cada fila. Se puede
+corregir, y rellenarla no cuenta como cambio: no guarda nada hasta que se escribe la otra lectura.
 
 **Los repuestos salen en la hoja de vida**: `descripcionDelServicio()` los añade al final —«Repuestos:
 fuente 12 V.»—, porque es lo que alguien busca cuando vuelve a fallar la misma pieza.

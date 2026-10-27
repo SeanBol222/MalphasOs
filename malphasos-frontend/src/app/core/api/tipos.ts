@@ -492,11 +492,7 @@ export const ETIQUETA_DE_RESULTADO: Readonly<Record<ResultadoDeServicio, string>
  * cubre la verificacion metrologica</b>, que el servidor comprueba contra el tipo del equipo y la
  * pantalla no puede saber sin consultarlo.
  */
-export function sePuedeCerrar(
-  reporte: ReporteDeServicio | undefined,
-  esCorrectivo = false,
-  hoy?: string,
-): boolean {
+export function sePuedeCerrar(reporte: ReporteDeServicio | undefined, hoy?: string): boolean {
   if (!reporte || reporte.estado !== 'BORRADOR' || !reporte.estadoActivo || !reporte.resultado) {
     return false;
   }
@@ -506,10 +502,8 @@ export function sePuedeCerrar(
     return false;
   }
 
-  // Desde el 2026-10-14, como en el servidor: un correctivo exige además la falla y el diagnóstico.
-  if (esCorrectivo && (!reporte.fallaReportada?.trim() || !reporte.diagnostico?.trim())) {
-    return false;
-  }
+  // Un correctivo exigia ademas la falla y el diagnostico, del 2026-10-14 al 2026-10-27: el usuario
+  // los quito, en el servidor y aqui. El cierre es el mismo para los dos tipos de servicio.
 
   // Desde el 2026-10-14, como en el servidor: cada verificacion con lecturas exige un patron -por
   // verificacion desde V30-, y ninguno vencido el dia del cierre. Sin `hoy` no se juzga la vigencia:

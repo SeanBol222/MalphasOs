@@ -105,6 +105,15 @@ describe('Tabla de verificación de un reporte', () => {
     fixture.detectChanges();
   }
 
+  /** Sale de la casilla: el change que el navegador manda al confirmarla, y que guarda la tabla. */
+  async function confirmar(control: HTMLInputElement): Promise<void> {
+    control.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    await asentar(fixture);
+  }
+
+  const estado = () => raiz().querySelector('[data-estado-guardado]')?.textContent?.trim();
+
   function pulsar(etiqueta: string): void {
     const boton = [...raiz().querySelectorAll('button')].find((b) =>
       (b.textContent ?? '').includes(etiqueta),
@@ -144,8 +153,50 @@ describe('Tabla de verificación de un reporte', () => {
 
     expect(patron(1).value).toBe('100');
     expect(equipo(1).value).toBe('99.4');
-    // Las otras dos siguen vacías: la tabla no se inventa lo que nadie midió.
+    // Las otras dos no tienen lectura del equipo: la tabla no se inventa lo que nadie midió.
+    expect(equipo(0).value).toBe('');
+  });
+
+  it('con patrón constante, el patrón de cada fila nace con el valor del punto (2026-10-27)', async () => {
+    // Lo reportó el usuario: se veía el punto, 100, y la casilla del patrón estaba en blanco. Con
+    // patrón constante la pesa patrón ES el punto, y había que copiarlo a mano en cada fila.
+    await abrir();
+
+    expect([0, 1, 2].map((i) => patron(i).value)).toEqual(['100', '100', '100']);
+    expect([0, 1, 2].map((i) => equipo(i).value)).toEqual(['', '', '']);
+    // Rellenarla no es un cambio de quien mide: no se guarda nada por eso.
+    http.expectNone(urlVerificacion(ID_REPORTE));
+  });
+
+  it('con equipo constante, lo que nace con el valor del punto es el equipo', async () => {
+    await abrir([], [{ ...TIPOS[0], verificaciones: [DE_TEMPERATURA] }]);
+
+    expect(equipo(0).value).toBe('37');
     expect(patron(0).value).toBe('');
+  });
+
+  it('con patrón y equipo variables no hay punto, y nada nace relleno', async () => {
+    await abrir([], [{ ...TIPOS[0], verificaciones: [VARIABLE] }]);
+
+    expect(patron(0).value).toBe('');
+    expect(equipo(0).value).toBe('');
+  });
+
+  it('se guarda sola al salir de una casilla, sin botón (2026-10-27)', async () => {
+    await abrir();
+
+    expect(
+      [...raiz().querySelectorAll('button')].some((b) =>
+        (b.textContent ?? '').includes('Guardar verificación'),
+      ),
+    ).toBe(false);
+
+    escribir(equipo(0), '101.2');
+    await confirmar(equipo(0));
+
+    http.expectOne(urlVerificacion(ID_REPORTE)).flush({ id: ID_REPORTE, lecturas: [] });
+    await asentar(fixture);
+    expect(estado()).toBe('Guardado.');
   });
 
   it('guardar manda la verificacion, el punto y el número de cada lectura, y no la unidad', async () => {
@@ -154,9 +205,7 @@ describe('Tabla de verificación de un reporte', () => {
     await abrir();
     escribir(patron(0), '100');
     escribir(equipo(0), '101.2');
-
-    pulsar('Guardar verificación');
-    await asentar(fixture);
+    await confirmar(equipo(0));
 
     const peticion = http.expectOne(urlVerificacion(ID_REPORTE));
     expect(peticion.request.method).toBe('PATCH');
@@ -174,23 +223,32 @@ describe('Tabla de verificación de un reporte', () => {
   });
 
   it('una casilla a medias no se manda: el servidor exige las dos lecturas', async () => {
-    await abrir();
+    // Con patrón y equipo variables, para que nada nazca relleno.
+    await abrir([], [{ ...TIPOS[0], verificaciones: [VARIABLE] }]);
     escribir(patron(0), '100');
-    escribir(equipo(1), '99');
+    await confirmar(patron(0));
 
-    const guardar = [...raiz().querySelectorAll('button')].find((b) =>
-      (b.textContent ?? '').includes('Guardar verificación'),
-    )!;
-    expect(guardar.disabled).toBe(true);
+    http.expectNone(urlVerificacion(ID_REPORTE));
+    expect(estado()).toBe('Se guardará sola en cuanto una fila tenga las dos lecturas.');
   });
 
-  it('sin ninguna casilla completa no hay nada que guardar', async () => {
+  it('un cambio mientras se guarda otro se manda después, y no a la vez', async () => {
     await abrir();
+    escribir(equipo(0), '101');
+    await confirmar(equipo(0));
+    escribir(equipo(1), '99');
+    await confirmar(equipo(1));
 
-    const guardar = [...raiz().querySelectorAll('button')].find((b) =>
-      (b.textContent ?? '').includes('Guardar verificación'),
-    )!;
-    expect(guardar.disabled).toBe(true);
+    const primero = http.expectOne(urlVerificacion(ID_REPORTE));
+    expect(primero.request.body.lecturas).toHaveLength(1);
+    primero.flush({ id: ID_REPORTE, lecturas: [] });
+    await asentar(fixture);
+
+    const segundo = http.expectOne(urlVerificacion(ID_REPORTE));
+    expect(segundo.request.body.lecturas).toHaveLength(2);
+    segundo.flush({ id: ID_REPORTE, lecturas: [] });
+    await asentar(fixture);
+    expect(estado()).toBe('Guardado.');
   });
 
   it('un tipo que no se verifica no tiene tabla, y lo dice con su nombre', async () => {
@@ -255,9 +313,7 @@ describe('Tabla de verificación de un reporte', () => {
     await abrir([], [{ ...TIPOS[0], verificaciones: [VARIABLE] }]);
     escribir(patron(0), '1');
     escribir(equipo(0), '1.1');
-
-    pulsar('Guardar verificación');
-    await asentar(fixture);
+    await confirmar(equipo(0));
 
     const peticion = http.expectOne(urlVerificacion(ID_REPORTE));
     expect(peticion.request.body.lecturas).toEqual([

@@ -1,5 +1,14 @@
 <!-- Dentro del bloque 1: es lo primero que se mira del equipo, antes de tocarlo. -->
-<form class="border-b border-neutral-300 p-3" [formGroup]="formulario" (ngSubmit)="guardar()">
+<!--
+  Se guarda sola (2026-10-27): el evento change sube hasta aqui desde cada campo cuando se confirma el
+  cambio -un radio, una casilla, salir de un texto-. Enter tambien guarda, por el submit.
+-->
+<form
+  class="border-b border-neutral-300 p-3"
+  [formGroup]="formulario"
+  (ngSubmit)="guardar()"
+  (change)="guardar()"
+>
   <h3 class="font-bold">Al recibirlo</h3>
 
   @if (hayError()) {
@@ -115,7 +124,8 @@
   </div>
 
   @if (editable()) {
-    @if (formulario.touched && problemas().length) {
+    @if (formulario.dirty && problemas().length) {
+      <!-- Lo que impide guardarla: se guarda sola en cuanto este completa. -->
       <ul class="mt-2 font-semibold text-accent-700" role="alert">
         @for (problema of problemas(); track problema) {
           <li>{{ problema }}</li>
@@ -126,12 +136,15 @@
       <button class="boton-secundario min-h-tactil" type="button" (click)="anadirAccesorio()">
         Añadir accesorio
       </button>
-      <button class="boton-primario min-h-tactil" type="submit" [disabled]="registro.isPending()">
-        {{ registro.isPending() ? 'Guardando…' : 'Guardar recepción' }}
-      </button>
-      @if (formulario.dirty) {
-        <p class="font-semibold" role="status">Hay cambios sin guardar.</p>
-      }
+      <p class="text-neutral-700" role="status" data-estado-guardado>
+        @if (registro.isPending()) {
+          Guardando…
+        } @else if (formulario.dirty && problemas().length) {
+          Se guardará sola cuando esté completa.
+        } @else if (guardado()) {
+          Guardado.
+        }
+      </p>
     </div>
   }
 </form>

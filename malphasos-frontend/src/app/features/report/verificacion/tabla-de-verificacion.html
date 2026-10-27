@@ -35,7 +35,12 @@
       </div>
     }
 
-    <form [formGroup]="formulario" (ngSubmit)="guardar()">
+    <!--
+      Se guarda sola (2026-10-27): el evento change sube hasta aqui desde cada casilla al salir de
+      ella. Los desplegables de patrones guardan por su cuenta; su change tambien llega aqui, y solo
+      guarda la tabla si tenia cambios.
+    -->
+    <form [formGroup]="formulario" (ngSubmit)="guardar()" (change)="guardar()">
       <!--
         Una tabla por verificacion, con la unidad en su cabecera. La unidad va arriba y no en cada
         fila porque es la misma para todas: era lo que obligaba a repetir «mmHg» tantas veces como
@@ -228,22 +233,19 @@
       }
 
       @if (editable()) {
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button
-            class="boton-primario min-h-tactil"
-            type="submit"
-            [disabled]="registro.isPending() || !hayAlgoQueMandar()"
-          >
-            {{ registro.isPending() ? 'Guardando…' : 'Guardar verificación' }}
-          </button>
-
-          @if (formulario.dirty) {
-            <p class="self-center text-neutral-700" role="status">Hay lecturas sin guardar.</p>
+        <p class="mt-3 text-neutral-700" role="status" data-estado-guardado>
+          @if (registro.isPending()) {
+            Guardando…
+          } @else if (formulario.dirty && !hayAlgoQueMandar()) {
+            Se guardará sola en cuanto una fila tenga las dos lecturas.
+          } @else if (guardado()) {
+            Guardado.
           }
-        </div>
+        </p>
         <!-- Se guarda la tabla entera: es lo que hace el API, y hay que decirlo donde se decide. -->
         <p class="mt-1 text-neutral-700">
-          Se guardan todas las tablas juntas: lo que se deje en blanco no queda registrado.
+          Se guarda sola al salir de cada casilla, con todas las tablas juntas: lo que se deje en
+          blanco no queda registrado.
         </p>
       }
     </form>

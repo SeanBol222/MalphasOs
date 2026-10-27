@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-17
+updated: 2026-10-27
 ---
 
 # Hoja de ruta del producto
@@ -475,7 +475,7 @@ empresa puede vivir en el código.
 | Secciones que no aplican | **No se imprimen.** Sin lecturas no hay trazabilidad ni gráfica, y el informe cabe en una hoja |
 | Garantía | **Una marca del correctivo** en la orden; solo un correctivo puede llevarla |
 | Resultado | **Tres valores guardados, dos impresos**: Operativo y Con restricciones son «Apto» —la restricción va en las observaciones—, Fuera de servicio es «No apto» |
-| Falla y diagnóstico | **Opcionales en todo reporte** —ya lo eran—, obligatorios en el correctivo, impresos solo con texto |
+| Falla y diagnóstico | **Opcionales en todo reporte** —ya lo eran—, obligatorios en el correctivo hasta el **2026-10-27**, cuando el usuario los dejó opcionales también ahí; impresos solo con texto |
 | Para cerrar | **Exige además las dos verificaciones al ingreso**. Quién recibe, no |
 | Protocolo | **Con ✓ o N/A por paso**, y la nota del N/A |
 | Placa de inventario | **No se añade**: basta el código interno |

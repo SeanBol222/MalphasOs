@@ -41,6 +41,9 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 ### Reportes de servicio
 
 - Un reporte por equipo de la orden, que lee de la orden lo que no le corresponde escribir.
+- **Menos pasos**: la recepción del equipo y la verificación se guardan solas al cambiarlas, sin botón; con
+  patrón constante, la casilla del patrón ya trae el valor del punto; y un correctivo se cierra sin
+  exigir la falla ni el diagnóstico.
 - El ingreso del equipo, sus accesorios, los pasos del protocolo de un preventivo, la falla, el
   diagnóstico, la causa y los repuestos de un correctivo, y la verificación metrológica contra los
   patrones, con el error y la conformidad de cada lectura.

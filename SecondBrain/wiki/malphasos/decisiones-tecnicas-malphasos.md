@@ -424,9 +424,13 @@ la sesión y quedan para discutir.
 - **Ejecutar una orden exige todos sus reportes vivos cerrados.** La regla vive en `work-order` y el
   dato en `report`, que depende de `work-order`: la orden declara `WorkOrderReportsPort` y `report` lo
   implementa. Inversión de dependencias, no un ciclo. Ver [[dominio-orden-trabajo]].
-- **El correctivo cierra con falla y diagnóstico** *(de la sesión)*; causa y repuestos son opcionales.
-  El agregado tiene dos cierres y **el servicio elige** según la orden, porque el reporte no sabe de qué
-  tipo de servicio es.
+- ~~**El correctivo cierra con falla y diagnóstico**~~ *(de la sesión)*; causa y repuestos son opcionales.
+  El agregado tenía dos cierres y **el servicio elegía** según la orden, porque el reporte no sabe de qué
+  tipo de servicio es. **Retirada el 2026-10-27 por el usuario**: un correctivo se cierra con lo de todo
+  reporte, y la falla y el diagnóstico se piden sin exigirse.
+- **La recepción y la verificación de un reporte se guardan solas** *(del usuario, 2026-10-27)*: al
+  confirmar cada cambio —evento `change`—, sin botón, y en cola si ya hay un guardado en vuelo. Con
+  patrón o equipo constante, su casilla nace con el valor del punto.
 - **Los equipos patrón son un agregado propio, no un `equipo_cliente`**: no se instalan en ningún
   cliente ni tienen hoja de vida.
 - **La tolerancia es opcional** *(de la sesión)* y se expresa en la unidad de su verificación.

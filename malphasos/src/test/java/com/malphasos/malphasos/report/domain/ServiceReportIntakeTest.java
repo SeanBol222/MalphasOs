@@ -225,13 +225,13 @@ class ServiceReportIntakeTest {
         }
 
         @Test
-        @DisplayName("un correctivo tampoco, aunque traiga falla y diagnóstico")
+        @DisplayName("tampoco aunque traiga falla y diagnóstico, que es lo que llena un correctivo")
         void tampocoUnCorrectivo() {
             ServiceReport reporte = unReporteCerrable();
             reporte.fill("No enciende", "Fusible abierto", "Cambio de fusible", null, ServiceResult.OPERATIVO);
 
             assertThatIllegalStateException()
-                    .isThrownBy(() -> reporte.finishCorrective(UnDocumento.CUALQUIERA))
+                    .isThrownBy(() -> reporte.finish(UnDocumento.CUALQUIERA))
                     .withMessageContaining("verificaciones al ingreso");
         }
 

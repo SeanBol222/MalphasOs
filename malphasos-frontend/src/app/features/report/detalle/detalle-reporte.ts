@@ -182,8 +182,9 @@ export class DetalleReporte {
   );
 
   /**
-   * Si es un correctivo, que lo dice la orden y no el reporte (2026-10-14). Cambia qué se pide: la falla
-   * y el diagnóstico pasan a ser obligatorios para cerrar, y aparece la causa.
+   * Si es un correctivo, que lo dice la orden y no el reporte (2026-10-14). Cambia qué se pregunta:
+   * aparece la causa, y los textos de ayuda hablan de la falla. La falla y el diagnóstico fueron
+   * obligatorios para cerrar hasta el 2026-10-27, cuando el usuario los quitó.
    */
   protected readonly esCorrectivo = computed(
     () => this.orden.data()?.tipoServicio === 'CORRECTIVO',
@@ -191,9 +192,7 @@ export class DetalleReporte {
 
   private readonly hoy = fechaIso(inject(HOY)());
 
-  protected readonly cerrable = computed(() =>
-    sePuedeCerrar(this.reporte.data(), this.esCorrectivo(), this.hoy),
-  );
+  protected readonly cerrable = computed(() => sePuedeCerrar(this.reporte.data(), this.hoy));
 
   /** Las lecturas guardadas que se salen de su tolerancia. Las que no tienen tolerancia no cuentan. */
   protected readonly noConformes = computed(
@@ -263,8 +262,6 @@ export class DetalleReporte {
     if (this.esCorrectivo()) {
       return [
         this.requisitoDelIngreso(),
-        { texto: 'Falla reportada', hecho: !!datos?.fallaReportada?.trim() },
-        { texto: 'Diagnóstico', hecho: !!datos?.diagnostico?.trim() },
         { texto: 'Trabajo realizado', hecho: !!datos?.procedimientos?.trim() },
         { texto: 'Resultado', hecho: !!datos?.resultado },
         ...this.requisitoDelPatron(),

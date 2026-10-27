@@ -55,27 +55,69 @@ describe('Recepción del equipo', () => {
     expect(raiz().querySelectorAll('[data-ingreso="fisico"] input[type="radio"]')).toHaveLength(3);
   });
 
+  /** Confirma lo escrito en un campo de texto, como al salir de él: es lo que dispara el guardado. */
+  const confirmar = (id: string) => campo(id).dispatchEvent(new Event('change', { bubbles: true }));
+  const estado = () => raiz().querySelector('[data-estado-guardado]')?.textContent?.trim();
+
+  /** Responde al guardado que esté en vuelo, como lo haría el servidor. */
+  async function responderGuardado(): Promise<unknown> {
+    const peticion = http.expectOne(URL_INGRESO);
+    const cuerpo = peticion.request.body;
+    peticion.flush({ id: ID_REPORTE });
+    await asentar(fixture);
+
+    return cuerpo;
+  }
+
+  it('se guarda sola al quedar completa, sin botón (2026-10-27)', async () => {
+    await abrir();
+
+    expect(boton('Guardar recepción')).toBeUndefined();
+
+    marcar('ingreso-fisico-CONFORME');
+    await asentar(fixture);
+    http.expectNone(URL_INGRESO);
+    expect(estado()).toBe('Se guardará sola cuando esté completa.');
+
+    marcar('ingreso-operativo-CONFORME');
+    await asentar(fixture);
+
+    expect(await responderGuardado()).toEqual({
+      fisico: 'CONFORME',
+      observacionFisico: undefined,
+      operativo: 'CONFORME',
+      observacionOperativo: undefined,
+      accesorios: [],
+    });
+    expect(estado()).toBe('Guardado.');
+  });
+
   it('guarda las dos verificaciones y los accesorios en su orden, recortados', async () => {
     await abrir();
     marcar('ingreso-fisico-NO_CONFORME');
     escribir('ingreso-fisico-observacion', ' Carcasa rayada ');
+    confirmar('ingreso-fisico-observacion');
     marcar('ingreso-operativo-CONFORME');
+    await asentar(fixture);
+    await responderGuardado();
+
     boton('Añadir accesorio').click();
     boton('Añadir accesorio').click();
     await asentar(fixture);
     escribir('accesorio-nombre-0', ' Sonda ');
+    confirmar('accesorio-nombre-0');
+    await asentar(fixture);
+    // Con el segundo sin nombre no se guarda: espera a que esté completa.
+    http.expectNone(URL_INGRESO);
+
     escribir('accesorio-nombre-1', 'Cable');
+    escribir('accesorio-observacion-1', 'Pelado');
     raiz()
       .querySelectorAll<HTMLInputElement>('[data-accesorio="1"] input[type="checkbox"]')[0]
       .click();
-    escribir('accesorio-observacion-1', 'Pelado');
-    await asentar(fixture);
-    boton('Guardar recepción').click();
     await asentar(fixture);
 
-    const peticion = http.expectOne(URL_INGRESO);
-    expect(peticion.request.method).toBe('PATCH');
-    expect(peticion.request.body).toEqual({
+    expect(await responderGuardado()).toEqual({
       fisico: 'NO_CONFORME',
       observacionFisico: 'Carcasa rayada',
       operativo: 'CONFORME',
@@ -85,14 +127,11 @@ describe('Recepción del equipo', () => {
         { nombre: 'Cable', conforme: false, observacion: 'Pelado' },
       ],
     });
-    peticion.flush({ id: ID_REPORTE });
-    await asentar(fixture);
   });
 
   it('sin las dos verificaciones, o no conforme sin observación, no manda nada y dice qué falta', async () => {
     await abrir();
     marcar('ingreso-fisico-NO_CONFORME');
-    boton('Guardar recepción').click();
     await asentar(fixture);
 
     http.expectNone(URL_INGRESO);
@@ -104,13 +143,13 @@ describe('Recepción del equipo', () => {
     await abrir();
     marcar('ingreso-fisico-CONFORME');
     marcar('ingreso-operativo-CONFORME');
+    await asentar(fixture);
+    await responderGuardado();
     boton('Añadir accesorio').click();
     boton('Añadir accesorio').click();
     await asentar(fixture);
     escribir('accesorio-nombre-0', 'Sonda');
     raiz().querySelector<HTMLInputElement>('[data-accesorio="0"] input[type="checkbox"]')!.click();
-    await asentar(fixture);
-    boton('Guardar recepción').click();
     await asentar(fixture);
 
     http.expectNone(URL_INGRESO);
@@ -118,22 +157,42 @@ describe('Recepción del equipo', () => {
     expect(texto()).toContain('El accesorio 2 no tiene nombre');
   });
 
-  it('quitar un accesorio lo saca de lo que se manda', async () => {
+  it('quitar un accesorio lo guarda sin él', async () => {
     await abrir();
     marcar('ingreso-fisico-NO_APLICA');
     marcar('ingreso-operativo-CONFORME');
+    await asentar(fixture);
+    await responderGuardado();
     boton('Añadir accesorio').click();
     await asentar(fixture);
     escribir('accesorio-nombre-0', 'Sonda');
+    confirmar('accesorio-nombre-0');
+    await asentar(fixture);
+    expect(((await responderGuardado()) as { accesorios: unknown[] }).accesorios).toHaveLength(1);
+
     boton('Quitar el accesorio 1').click();
     await asentar(fixture);
-    boton('Guardar recepción').click();
+
+    expect(((await responderGuardado()) as { accesorios: unknown[] }).accesorios).toEqual([]);
+  });
+
+  it('un cambio mientras se guarda otro se manda después, y no a la vez', async () => {
+    await abrir();
+    marcar('ingreso-fisico-CONFORME');
+    marcar('ingreso-operativo-CONFORME');
+    await asentar(fixture);
+    // Llega otro cambio con el primero en vuelo.
+    marcar('ingreso-operativo-NO_APLICA');
     await asentar(fixture);
 
-    const peticion = http.expectOne(URL_INGRESO);
-    expect(peticion.request.body.accesorios).toEqual([]);
-    peticion.flush({ id: ID_REPORTE });
+    const primero = http.expectOne(URL_INGRESO);
+    expect(primero.request.body.operativo).toBe('CONFORME');
+    primero.flush({ id: ID_REPORTE });
     await asentar(fixture);
+
+    // No se da por guardado lo que cambió entretanto: se manda en cuanto termina el primero.
+    expect(((await responderGuardado()) as { operativo: string }).operativo).toBe('NO_APLICA');
+    expect(estado()).toBe('Guardado.');
   });
 
   it('muestra lo guardado, y en un reporte cerrado no se toca', async () => {

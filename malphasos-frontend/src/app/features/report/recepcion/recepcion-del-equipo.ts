@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ReporteApi } from '../reporte-api';
@@ -24,9 +32,14 @@ type Clave = (typeof VERIFICACIONES_AL_INGRESO)[number]['clave'];
  * Cómo llegó el equipo (V31, 2026-10-16): las dos verificaciones al ingreso y los accesorios, que es
  * lo primero que dice el informe impreso después de los datos del cliente y del equipo.
  *
- * <p>Tiene su propio formulario y su botón, como la tabla de verificación, porque se registra en otro
- * momento —al recibir el equipo, antes de tocarlo— y por su propia ruta del API. Los accesorios se
- * mandan todos juntos y sustituyen a los anteriores.
+ * <p>Tiene su propio formulario, como la tabla de verificación, porque se registra en otro momento —al
+ * recibir el equipo, antes de tocarlo— y por su propia ruta del API. Los accesorios se mandan todos
+ * juntos y sustituyen a los anteriores.
+ *
+ * <p><b>Se guarda sola desde el 2026-10-27</b>, pedido por el usuario para quitar pasos: no hay botón.
+ * Cada cambio confirmado —marcar un estado, salir de un campo, quitar un accesorio— la guarda si está
+ * completa; si no, dice qué falta y espera. Se usa el evento {@code change} y no un temporizador: llega
+ * al terminar de escribir en un campo, no en cada tecla, y no deja guardados a medias por el camino.
  *
  * <p><b>«No conforme» exige observación</b>, aquí y en el servidor: sin ella el reporte dice que algo
  * estaba mal y no qué.
@@ -88,6 +101,17 @@ export class RecepcionDelEquipo {
     return problemas;
   });
 
+  /** Si se guardó lo último que se cambió: para decirlo, ya que no hay botón que lo diga. */
+  protected readonly guardado = signal(false);
+
+  /**
+   * Si hay un guardado en vuelo, y si llegó otro cambio mientras tanto. Propios y no {@code isPending}
+   * de la mutación: cuando corre {@code onSettled}, la mutación todavía se da por pendiente, y el
+   * cambio que esperaba se perdía.
+   */
+  private enVuelo = false;
+  private otraVez = false;
+
   protected readonly hayError = computed(() => this.registro.isError());
   protected readonly mensajeDeError = computed(() => traducirError(this.registro.error()));
 
@@ -127,11 +151,19 @@ export class RecepcionDelEquipo {
   protected quitarAccesorio(indice: number): void {
     this.filasDeAccesorios.removeAt(indice);
     this.formulario.markAsDirty();
+    this.guardar();
   }
 
+  /**
+   * La guarda si hay algo nuevo y está completa. Si se está guardando otra cosa, la deja para después:
+   * dos peticiones en vuelo podrían llegar al revés, y la última en llegar ganaría.
+   */
   protected guardar(): void {
-    if (this.problemas().length) {
-      this.formulario.markAllAsTouched();
+    if (!this.editable() || !this.formulario.dirty || this.problemas().length) {
+      return;
+    }
+    if (this.enVuelo) {
+      this.otraVez = true;
 
       return;
     }
@@ -150,9 +182,28 @@ export class RecepcionDelEquipo {
       })),
     };
 
+    const enviado = JSON.stringify(this.formulario.getRawValue());
+    this.guardado.set(false);
+    this.enVuelo = true;
+
     this.registro.mutate(
       { id: this.idReporte(), ingreso },
-      { onSuccess: () => this.formulario.markAsPristine() },
+      {
+        onSuccess: () => {
+          // Solo se da por guardado si nadie cambió nada mientras tanto: si no, eso sigue pendiente.
+          if (JSON.stringify(this.formulario.getRawValue()) === enviado) {
+            this.formulario.markAsPristine();
+            this.guardado.set(true);
+          }
+        },
+        onSettled: () => {
+          this.enVuelo = false;
+          if (this.otraVez) {
+            this.otraVez = false;
+            this.guardar();
+          }
+        },
+      },
     );
   }
 
