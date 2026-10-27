@@ -19,6 +19,7 @@ const URL_ENCARGADOS = 'http://localhost:8081/v1/api/managers';
 const URL_PERSONAS = 'http://localhost:8081/v1/api/persons';
 const URL_CLIENTE = `http://localhost:8081/v1/api/clients/${ID_CLIENTE}`;
 const CLIENTE = { id: ID_CLIENTE, razonSocial: 'Hospital Central', estadoActivo: true };
+const URL_RESUMEN_CLIENTE = 'http://localhost:8081/v1/api/headquarters/summary';
 
 const SEDE = {
   id: ID,
@@ -196,6 +197,9 @@ describe('Ficha de una sede', () => {
       await atenderRefresco(fixture, http, URL_AREAS, AREAS);
       // Cerrar una sede caduca también su cliente, que esta ficha nombra desde el rediseño.
       await atenderRefresco(fixture, http, URL_CLIENTE, CLIENTE);
+      // Y el resumen de las sedes del cliente, que cuelga de la misma clave desde el 2026-10-27.
+      http.match((r) => r.url === URL_RESUMEN_CLIENTE).forEach((p) => p.flush([]));
+      await asentar(fixture);
 
       expect(TestBed.inject(Router).url).toBe(`/clientes/${ID_CLIENTE}`);
     });
@@ -617,10 +621,173 @@ describe('Ficha de una sede', () => {
     });
   });
 
+  describe('Asignar a alguien ya registrado (2026-10-27)', () => {
+    // Desde V41 un encargado responde por varias sedes y areas de su cliente.
+    const PERSONAS_DE_ASIGNAR = [
+      {
+        identificador: 'm1',
+        primerNombre: 'Beatriz',
+        primerApellido: 'Mora',
+        cedula: '1',
+        tipoPersona: 'MANAGER',
+        estadoActivo: true,
+      },
+      // A cargo de una sede de otro cliente: el servidor rechazaria mezclarlos.
+      {
+        identificador: 'm2',
+        primerNombre: 'Carlos',
+        primerApellido: 'Ajeno',
+        cedula: '2',
+        tipoPersona: 'MANAGER',
+        estadoActivo: true,
+      },
+      // Ingeniero y ademas encargado, ya a cargo del area a1 de esta sede.
+      {
+        identificador: 'm3',
+        primerNombre: 'Andrés',
+        primerApellido: 'Pardo',
+        cedula: '3',
+        tipoPersona: 'ENGINEER',
+        segundoTipoPersona: 'MANAGER',
+        estadoActivo: true,
+      },
+      {
+        identificador: 'i1',
+        primerNombre: 'Ingrid',
+        primerApellido: 'Solo',
+        cedula: '4',
+        tipoPersona: 'ENGINEER',
+        estadoActivo: true,
+      },
+      {
+        identificador: 'r1',
+        primerNombre: 'Rosa',
+        primerApellido: 'Retirada',
+        cedula: '5',
+        tipoPersona: 'MANAGER',
+        estadoActivo: false,
+      },
+    ];
+    const ENCARGADOS_DE_ASIGNAR = [
+      { idPersona: 'm2', idsSede: ['sede-ajena'], idsAreaServicio: [], estadoActivo: true },
+      { idPersona: 'm3', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true },
+    ];
+    const RESUMEN = [{ id: ID, idCliente: ID_CLIENTE, areas: [{ id: 'a1' }, { id: 'a2' }] }];
+
+    async function abrirParaAsignar(autoridades: readonly string[] = AUTORIDADES): Promise<void> {
+      TestBed.resetTestingModule();
+      montar(autoridades);
+      fixture.detectChanges();
+      await responderA(fixture, http, URL, SEDE);
+      await asentar(fixture);
+      http.match(URL_CIUDADES).forEach((p) => p.flush(CIUDADES));
+      http.match(URL_AREAS).forEach((p) => p.flush(AREAS));
+      http.match(URL_ENCARGADOS).forEach((p) => p.flush(ENCARGADOS_DE_ASIGNAR));
+      http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS_DE_ASIGNAR));
+      http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+      http.match((r) => r.url === URL_RESUMEN_CLIENTE).forEach((p) => p.flush(RESUMEN));
+      await asentar(fixture);
+    }
+
+    const opciones = (id: string) =>
+      [...raiz().querySelectorAll(`#${id} option`)].map((o) => o.textContent?.trim());
+
+    function elegir(id: string, valor: string): void {
+      const control = raiz().querySelector<HTMLSelectElement>(`#${id}`)!;
+      control.value = valor;
+      control.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    }
+
+    it('ofrece a los encargados activos de este cliente, no a los de otro ni a quien no lo es', async () => {
+      await abrirParaAsignar();
+
+      expect(opciones('personaAsignada')).toEqual([
+        'Elija a quién',
+        'Andrés Pardo',
+        'Beatriz Mora',
+      ]);
+    });
+
+    it('de cada persona, solo lo que aun no tiene a cargo, y ninguna area cerrada', async () => {
+      await abrirParaAsignar();
+
+      elegir('personaAsignada', 'm1');
+      expect(opciones('destinoAsignado')).toEqual(['Elija', 'Toda la sede', 'Área: Urgencias']);
+
+      elegir('personaAsignada', 'm3');
+      expect(opciones('destinoAsignado')).toEqual(['Elija', 'Toda la sede']);
+    });
+
+    it('asignar suma la sede o el area a lo que ya tiene, por su propia ruta', async () => {
+      await abrirParaAsignar();
+      elegir('personaAsignada', 'm1');
+      elegir('destinoAsignado', 'SERVICE_AREA:a1');
+      raiz()
+        .querySelector<HTMLFormElement>('form[aria-labelledby="titulo-asignar"]')!
+        .dispatchEvent(new Event('submit'));
+      await asentar(fixture);
+
+      const peticion = http.expectOne({ method: 'POST', url: `${URL_ENCARGADOS}/assignments` });
+      expect(peticion.request.body).toEqual({
+        idPersona: 'm1',
+        tipo: 'SERVICE_AREA',
+        idAsignacion: 'a1',
+      });
+      peticion.flush({ idPersona: 'm1', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true });
+      await asentar(fixture);
+      http.match(URL_ENCARGADOS).forEach((p) => p.flush(ENCARGADOS_DE_ASIGNAR));
+      http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS_DE_ASIGNAR));
+      await asentar(fixture);
+    });
+
+    it('sin elegir de que se encarga no se manda nada', async () => {
+      await abrirParaAsignar();
+      elegir('personaAsignada', 'm1');
+      raiz()
+        .querySelector<HTMLFormElement>('form[aria-labelledby="titulo-asignar"]')!
+        .dispatchEvent(new Event('submit'));
+      await asentar(fixture);
+
+      http.expectNone(`${URL_ENCARGADOS}/assignments`);
+    });
+
+    it('si el servidor dice que es de otro cliente, se lee traducido', async () => {
+      await abrirParaAsignar();
+      elegir('personaAsignada', 'm1');
+      elegir('destinoAsignado', `HEADQUARTER:${ID}`);
+      raiz()
+        .querySelector<HTMLFormElement>('form[aria-labelledby="titulo-asignar"]')!
+        .dispatchEvent(new Event('submit'));
+      await asentar(fixture);
+      http
+        .expectOne({ method: 'POST', url: `${URL_ENCARGADOS}/assignments` })
+        .flush({ code: 'ERR_CLIENT_010' }, { status: 409, statusText: 'Conflict' });
+      await asentar(fixture);
+
+      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain('un solo cliente');
+    });
+
+    it('sin leer personas no se ofrece: no se podria elegir a nadie por su nombre', async () => {
+      await abrirParaAsignar(AUTORIDADES.filter((a) => a !== 'person.read'));
+
+      expect(raiz().querySelector('#personaAsignada')).toBeNull();
+      expect(texto()).not.toContain('Asignar a alguien ya registrado');
+    });
+
+    it('sin engineer.assign tampoco', async () => {
+      await abrirParaAsignar(AUTORIDADES.filter((a) => a !== 'engineer.assign'));
+
+      expect(texto()).not.toContain('Asignar a alguien ya registrado');
+    });
+  });
+
   afterEach(() => {
     // El nombre del cliente se pide cuando llega la sede y casi ninguna prueba lo mira: se responde
     // aqui para no repetirlo en cada una. Lo que si importa de el tiene su propia prueba.
     http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+    // Lo mismo con el resumen del cliente, que solo pide quien puede asignar encargados ya registrados.
+    http.match((r) => r.url === URL_RESUMEN_CLIENTE).forEach((p) => p.flush([]));
     http.verify();
   });
 });
