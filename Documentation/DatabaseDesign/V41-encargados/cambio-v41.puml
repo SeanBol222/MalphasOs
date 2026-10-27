@@ -1,0 +1,201 @@
+@startuml cambio-v41
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+title V41 — un encargado puede responder por varias sedes y áreas (PROPUESTO)
+
+package "Antes (V40): una persona, una sola asignación" as antes {
+entity "persona" as antes_persona {
+  * k_identificador : uuid <<PK>>
+  --
+  * k_cedula : varchar(10)
+  * n_primer_nombre : varchar(50)
+  n_segundo_nombre : varchar(50)
+  * n_primer_apellido : varchar(50)
+  n_segundo_apellido : varchar(50)
+  * t_tipo_persona : varchar(19)
+  t_segundo_tipo_persona : varchar(19)
+  * b_estado_activo : boolean
+  .. UQ_cedula ..
+}
+entity "cliente" as antes_cliente {
+  * k_id_cliente : uuid <<PK>>
+  --
+  * k_documento : varchar(11)
+  * n_tipo_identificacion : varchar(12)
+  * n_razon_social : varchar(50)
+  k_id_pais : uuid <<FK>>
+  * b_estado_activo : boolean
+  * n_sigla : varchar(6)
+  * i_consecutivo_hoja_vida : int
+  .. UQ_cliente_documento ..
+  .. UQ_cliente_sigla ..
+}
+entity "sede" as antes_sede {
+  * k_id_sede : uuid <<PK>>
+  --
+  * n_nombre_sede : varchar(50)
+  * t_calle : varchar(50)
+  * t_carrera : varchar(50)
+  * t_numero : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * k_id_ciudad : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_sede_identidad_con_cliente ..
+  .. UQ_sede_nombre_por_cliente ..
+}
+entity "area_servicio" as antes_area_servicio {
+  * k_id_area_servicio : uuid <<PK>>
+  --
+  * n_nombre_area : varchar(50)
+  * k_id_sede : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_area_nombre_por_sede ..
+}
+entity "encargado" as antes_encargado <<retirada>> {
+  * k_identificador : uuid <<PK, FK>>
+  --
+  * t_tipo_encargado : varchar(16)
+  k_id_sede : uuid <<FK>>
+  k_id_area_servicio : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+}
+antes_sede }o--|| antes_cliente
+antes_area_servicio }o--|| antes_sede
+antes_encargado }o--o| antes_area_servicio
+antes_encargado }o--|| antes_persona
+antes_encargado }o--o| antes_sede
+
+package "Después (V41): una fila por cada sede y cada área a cargo" as despues {
+entity "persona" as despues_persona {
+  * k_identificador : uuid <<PK>>
+  --
+  * k_cedula : varchar(10)
+  * n_primer_nombre : varchar(50)
+  n_segundo_nombre : varchar(50)
+  * n_primer_apellido : varchar(50)
+  n_segundo_apellido : varchar(50)
+  * t_tipo_persona : varchar(19)
+  t_segundo_tipo_persona : varchar(19)
+  * b_estado_activo : boolean
+  .. UQ_cedula ..
+}
+entity "cliente" as despues_cliente {
+  * k_id_cliente : uuid <<PK>>
+  --
+  * k_documento : varchar(11)
+  * n_tipo_identificacion : varchar(12)
+  * n_razon_social : varchar(50)
+  k_id_pais : uuid <<FK>>
+  * b_estado_activo : boolean
+  * n_sigla : varchar(6)
+  * i_consecutivo_hoja_vida : int
+  .. UQ_cliente_documento ..
+  .. UQ_cliente_sigla ..
+}
+entity "sede" as despues_sede {
+  * k_id_sede : uuid <<PK>>
+  --
+  * n_nombre_sede : varchar(50)
+  * t_calle : varchar(50)
+  * t_carrera : varchar(50)
+  * t_numero : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * k_id_ciudad : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_sede_identidad_con_cliente ..
+  .. UQ_sede_nombre_por_cliente ..
+}
+entity "area_servicio" as despues_area_servicio {
+  * k_id_area_servicio : uuid <<PK>>
+  --
+  * n_nombre_area : varchar(50)
+  * k_id_sede : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_area_nombre_por_sede ..
+}
+entity "encargado_sede" as despues_encargado_sede <<nueva>> {
+  * k_identificador : uuid <<PK, FK>>
+  * k_id_sede : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+entity "encargado_area" as despues_encargado_area <<nueva>> {
+  * k_identificador : uuid <<PK, FK>>
+  * k_id_area_servicio : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+}
+despues_sede }o--|| despues_cliente
+despues_area_servicio }o--|| despues_sede
+despues_encargado_sede }o--|| despues_persona
+despues_encargado_sede }o--|| despues_sede
+despues_encargado_area }o--|| despues_persona
+despues_encargado_area }o--|| despues_area_servicio
+
+antes -[hidden]right-> despues
+
+note bottom of antes_encargado
+  La llave primaria es la persona:
+  **una sola fila por persona**, y por eso
+  una sola sede o una sola área.
+  CHK_encargado_asignacion ata el tipo
+  a la columna llena.
+end note
+note bottom of despues_encargado_sede
+  Llave compuesta (persona, sede): la misma
+  sede no se repite para una persona.
+  Quitar una asignación apaga b_estado_activo;
+  volver a darla lo enciende en la misma fila.
+end note
+note bottom of despues_encargado_area
+  Igual, por (persona, área). El tipo ya no
+  es una columna: lo dice la tabla, así que
+  los dos CHECK de V40 sobran.
+end note
+note as regla
+  **Lo que el esquema no comprueba y queda en el servicio**
+  Todas las asignaciones activas de una persona son
+  del **mismo cliente**: la sede apunta a su cliente y el
+  área llega a él por su sede, en dos tablas distintas.
+  Puede estar a cargo de una sede y de un área de esa
+  misma sede a la vez (decidido por el usuario).
+  Sin fecha de inicio: nada la pide ni la muestra.
+end note
+note as datos
+  **Migración de los datos**
+  HEADQUARTER  → encargado_sede (persona, sede, activo)
+  SERVICE_AREA → encargado_area (persona, área, activo)
+  y después DROP TABLE encargado.
+end note
+@enduml

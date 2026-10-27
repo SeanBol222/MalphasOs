@@ -1,0 +1,262 @@
+accesorio_reporte|k_id_accesorio_reporte|uuid||NO|1
+accesorio_reporte|k_id_reporte_servicio|uuid||NO|2
+accesorio_reporte|i_orden|integer||NO|3
+accesorio_reporte|n_nombre|character varying|120|NO|4
+accesorio_reporte|b_conforme|boolean||NO|5
+accesorio_reporte|t_observacion|character varying|500|YES|6
+accesorio_reporte|b_estado_activo|boolean||NO|7
+area_servicio|k_id_area_servicio|uuid||NO|1
+area_servicio|n_nombre_area|character varying|50|NO|2
+area_servicio|k_id_sede|uuid||NO|3
+area_servicio|b_estado_activo|boolean||NO|4
+ciudad|k_id_ciudad|uuid||NO|1
+ciudad|n_nombre_ciudad|character varying|50|NO|2
+ciudad|k_id_pais|uuid||NO|3
+ciudad|b_estado_activo|boolean||NO|4
+cliente|k_id_cliente|uuid||NO|1
+cliente|k_documento|character varying|11|NO|2
+cliente|n_tipo_identificacion|character varying|12|NO|3
+cliente|n_razon_social|character varying|50|NO|4
+cliente|k_id_pais|uuid||YES|5
+cliente|b_estado_activo|boolean||NO|6
+cliente|n_sigla|character varying|6|NO|7
+cliente|i_consecutivo_hoja_vida|integer||NO|8
+correo_cliente|k_id_correo_cliente|uuid||NO|1
+correo_cliente|n_correo_cliente|character varying|50|NO|2
+correo_cliente|k_id_cliente|uuid||NO|3
+correo_cliente|b_estado_activo|boolean||NO|4
+correo_persona|k_id_correo_persona|uuid||NO|1
+correo_persona|n_correo_persona|character varying|50|NO|2
+correo_persona|k_identificador|uuid||YES|3
+correo_persona|b_estado_activo|boolean||NO|4
+correo_persona|b_principal|boolean||NO|5
+dato_verificacion|k_id_dato_verificacion|uuid||NO|1
+dato_verificacion|k_id_reporte_servicio|uuid||NO|2
+dato_verificacion|k_id_punto_verificacion|uuid||YES|3
+dato_verificacion|i_secuencia|integer||NO|4
+dato_verificacion|d_valor_patron|numeric||NO|5
+dato_verificacion|d_valor_equipo|numeric||NO|6
+dato_verificacion|n_unidad|character varying|20|NO|7
+dato_verificacion|b_estado_activo|boolean||NO|8
+dato_verificacion|k_id_verificacion|uuid||NO|9
+dato_verificacion|d_tolerancia|numeric||YES|10
+empresa|k_id_empresa|uuid||NO|1
+empresa|b_unica|boolean||NO|2
+empresa|n_nombre|character varying|160|NO|3
+empresa|k_nit|character varying|30|YES|4
+empresa|t_direccion|character varying|200|YES|5
+empresa|n_ciudad|character varying|80|YES|6
+empresa|t_telefonos|ARRAY||NO|7
+empresa|t_movil|character varying|30|YES|8
+empresa|t_correo|character varying|120|YES|9
+empresa|t_garantia|character varying|2000|YES|10
+empresa|t_aclaracion|character varying|2000|YES|11
+empresa|k_codigo_hoja_de_vida|character varying|40|YES|12
+empresa|k_codigo_informe|character varying|40|YES|13
+empresa|b_logo|bytea||YES|14
+empresa|t_logo_tipo|character varying|20|YES|15
+encargado|k_identificador|uuid||NO|1
+encargado|t_tipo_encargado|character varying|16|NO|2
+encargado|k_id_sede|uuid||YES|3
+encargado|k_id_area_servicio|uuid||YES|4
+encargado|b_estado_activo|boolean||NO|5
+equipo|k_id_equipo|uuid||NO|1
+equipo|k_id_tipo_equipo|uuid||NO|2
+equipo|k_id_marca|uuid||NO|3
+equipo|b_estado_activo|boolean||NO|4
+equipo_cliente|k_id_equipo_cliente|uuid||NO|1
+equipo_cliente|k_serie|character varying|50|NO|2
+equipo_cliente|n_no_inventario|character varying|50|YES|3
+equipo_cliente|f_fecha_compra|date||YES|4
+equipo_cliente|v_valor_compra|bigint||YES|5
+equipo_cliente|k_id_modelo|uuid||NO|6
+equipo_cliente|k_id_area_servicio|uuid||NO|7
+equipo_cliente|b_estado_activo|boolean||NO|8
+equipo_cliente|n_codigo_interno|character varying|50|YES|9
+equipo_cliente|n_proveedor|character varying|100|YES|10
+equipo_cliente|n_numero_hoja_vida|character varying|20|NO|11
+equipo_patron|k_id_equipo_patron|uuid||NO|1
+equipo_patron|n_nombre|character varying|120|NO|2
+equipo_patron|n_marca|character varying|80|YES|3
+equipo_patron|k_serie|character varying|60|NO|4
+equipo_patron|n_certificado|character varying|80|NO|5
+equipo_patron|f_vencimiento_certificado|date||NO|6
+equipo_patron|b_estado_activo|boolean||NO|7
+equipo_patron|n_modelo|character varying|80|YES|8
+equipo_patron|k_codigo_interno|character varying|40|YES|9
+equipo_patron|t_rango|character varying|120|YES|10
+equipo_patron|t_resolucion|character varying|80|YES|11
+equipo_patron|f_calibracion|date||YES|12
+equipo_patron|n_empresa_calibradora|character varying|120|YES|13
+fabricante|k_id_fabricante|uuid||NO|1
+fabricante|n_nombre_fabricante|character varying|50|NO|2
+fabricante|k_id_pais|uuid||YES|3
+fabricante|b_estado_activo|boolean||NO|4
+firma_persona|k_id_persona|uuid||NO|1
+firma_persona|b_imagen|bytea||NO|2
+firma_persona|f_actualizada|timestamp without time zone||NO|3
+imagen_documento|k_huella|character varying|64|NO|1
+imagen_documento|b_contenido|bytea||NO|2
+imagen_documento|t_tipo|character varying|20|NO|3
+intervencion|k_id_intervencion|uuid||NO|1
+intervencion|k_id_equipo_cliente|uuid||NO|2
+intervencion|k_id_reporte_servicio|uuid||NO|3
+intervencion|f_fecha_servicio|timestamp without time zone||NO|4
+intervencion|t_tipo_servicio|character varying|11|NO|5
+intervencion|t_resultado|character varying|27|NO|6
+intervencion|b_estado_activo|boolean||NO|7
+intervencion|k_id_reemplazada_por|uuid||YES|8
+intervencion|t_descripcion|character varying|500|YES|9
+intervencion|n_responsable|character varying|250|YES|10
+magnitud|k_id_magnitud|uuid||NO|1
+magnitud|n_codigo_magnitud|character varying|30|NO|2
+magnitud|n_nombre_magnitud|character varying|50|NO|3
+magnitud|b_estado_activo|boolean||NO|4
+marca|k_id_marca|uuid||NO|1
+marca|n_nombre_marca|character varying|50|NO|2
+marca|b_estado_activo|boolean||NO|3
+modelo|k_id_modelo|uuid||NO|1
+modelo|n_invima|character varying|50|YES|2
+modelo|k_id_fabricante|uuid||NO|3
+modelo|k_id_equipo|uuid||NO|4
+modelo|b_estado_activo|boolean||NO|5
+modelo|n_nombre_modelo|character varying|50|NO|6
+modelo|n_clase_riesgo|character varying|3|YES|7
+modelo|t_caracteristicas|character varying|250|YES|8
+modelo|n_alimentacion|character varying|50|YES|9
+modelo|i_voltaje|integer||YES|10
+modelo|i_potencia|integer||YES|11
+modelo|d_amperaje|numeric||YES|12
+modelo|i_frecuencia|integer||YES|13
+orden_trabajo|k_id_orden_trabajo|uuid||NO|1
+orden_trabajo|k_id_cliente|uuid||NO|2
+orden_trabajo|k_id_sede|uuid||NO|3
+orden_trabajo|f_fecha_mantenimiento|date||NO|4
+orden_trabajo|n_periodicidad|character varying|10|NO|5
+orden_trabajo|t_tipo_servicio|character varying|11|NO|6
+orden_trabajo|t_estado_ejecucion|character varying|12|NO|7
+orden_trabajo|k_identificador|uuid||YES|8
+orden_trabajo|b_estado_activo|boolean||NO|9
+orden_trabajo|b_garantia|boolean||NO|10
+orden_trabajo_equipo|k_id_orden_trabajo|uuid||NO|1
+orden_trabajo_equipo|k_id_equipo_cliente|uuid||NO|2
+orden_trabajo_equipo|k_id_area_servicio|uuid||NO|3
+orden_trabajo_equipo|b_estado_activo|boolean||NO|4
+pais|k_id_pais|uuid||NO|1
+pais|k_codigo_iso|character varying|3|NO|2
+pais|n_nombre_pais|character varying|50|NO|3
+pais|b_estado_activo|boolean||NO|4
+paso_reporte|k_id_paso_reporte|uuid||NO|1
+paso_reporte|k_id_reporte_servicio|uuid||NO|2
+paso_reporte|i_orden|integer||NO|3
+paso_reporte|k_id_protocolo|uuid||NO|4
+paso_reporte|n_nombre|character varying|120|NO|5
+paso_reporte|t_descripcion|character varying|500|NO|6
+paso_reporte|t_indicacion|character varying|300|YES|7
+paso_reporte|t_estado_paso|character varying|10|NO|8
+paso_reporte|t_nota|character varying|300|YES|9
+paso_reporte|b_estado_activo|boolean||NO|10
+patron_verificacion_reporte|k_id_patron_verificacion_reporte|uuid||NO|1
+patron_verificacion_reporte|k_id_reporte_servicio|uuid||NO|2
+patron_verificacion_reporte|k_id_verificacion|uuid||NO|3
+patron_verificacion_reporte|k_id_equipo_patron|uuid||NO|4
+patron_verificacion_reporte|n_nombre|character varying|120|NO|5
+patron_verificacion_reporte|n_marca|character varying|80|YES|6
+patron_verificacion_reporte|k_serie|character varying|60|NO|7
+patron_verificacion_reporte|n_certificado|character varying|80|NO|8
+patron_verificacion_reporte|f_vencimiento|date||NO|9
+patron_verificacion_reporte|n_modelo|character varying|80|YES|10
+patron_verificacion_reporte|k_codigo_interno|character varying|40|YES|11
+patron_verificacion_reporte|t_rango|character varying|120|YES|12
+patron_verificacion_reporte|t_resolucion|character varying|80|YES|13
+patron_verificacion_reporte|f_calibracion|date||YES|14
+patron_verificacion_reporte|n_empresa_calibradora|character varying|120|YES|15
+patron_verificacion_reporte|b_estado_activo|boolean||NO|16
+persona|k_identificador|uuid||NO|1
+persona|k_cedula|character varying|10|NO|2
+persona|n_primer_nombre|character varying|50|NO|3
+persona|n_segundo_nombre|character varying|50|YES|4
+persona|n_primer_apellido|character varying|50|NO|5
+persona|n_segundo_apellido|character varying|50|YES|6
+persona|t_tipo_persona|character varying|19|NO|7
+persona|t_segundo_tipo_persona|character varying|19|YES|8
+persona|b_estado_activo|boolean||NO|9
+protocolo|k_id_protocolo|uuid||NO|1
+protocolo|n_nombre|character varying|120|NO|2
+protocolo|n_clave|character varying|120|NO|3
+protocolo|t_descripcion|character varying|500|NO|4
+protocolo|b_estado_activo|boolean||NO|5
+protocolo_tipo_equipo|k_id_tipo_equipo|uuid||NO|1
+protocolo_tipo_equipo|k_id_protocolo|uuid||NO|2
+protocolo_tipo_equipo|i_prioridad|smallint||NO|3
+protocolo_tipo_equipo|t_indicacion|character varying|300|YES|4
+protocolo_tipo_equipo|b_estado_activo|boolean||NO|5
+punto_verificacion|k_id_punto_verificacion|uuid||NO|1
+punto_verificacion|k_id_verificacion|uuid||NO|2
+punto_verificacion|d_valor|numeric||NO|3
+punto_verificacion|b_estado_activo|boolean||NO|4
+reporte_servicio|k_id_reporte_servicio|uuid||NO|1
+reporte_servicio|k_id_orden_trabajo|uuid||NO|2
+reporte_servicio|k_id_equipo_cliente|uuid||NO|3
+reporte_servicio|t_estado_reporte|character varying|10|NO|4
+reporte_servicio|t_falla_reportada|character varying|500|YES|5
+reporte_servicio|t_diagnostico|character varying|500|YES|6
+reporte_servicio|t_procedimientos|character varying|500|YES|7
+reporte_servicio|t_observaciones|character varying|500|YES|8
+reporte_servicio|t_resultado|character varying|27|YES|9
+reporte_servicio|t_finalizado|timestamp without time zone||YES|10
+reporte_servicio|b_estado_activo|boolean||NO|11
+reporte_servicio|t_causa|character varying|500|YES|12
+reporte_servicio|t_repuestos|character varying|500|YES|13
+reporte_servicio|t_ingreso_fisico|character varying|20|YES|20
+reporte_servicio|t_ingreso_fisico_observacion|character varying|500|YES|21
+reporte_servicio|t_ingreso_operativo|character varying|20|YES|22
+reporte_servicio|t_ingreso_operativo_observacion|character varying|500|YES|23
+reporte_servicio|n_recibe_nombre|character varying|120|YES|24
+reporte_servicio|k_recibe_cedula|character varying|20|YES|25
+reporte_servicio|n_recibe_cargo|character varying|80|YES|26
+reporte_servicio|t_documento|jsonb||YES|27
+reporte_servicio|b_documento_tardio|boolean||NO|28
+reporte_servicio|k_huella_firma_recibe|character varying|64|YES|29
+reporte_servicio|f_firma_recibe|timestamp without time zone||YES|30
+representante_legal|k_identificador|uuid||NO|1
+representante_legal|k_id_cliente|uuid||NO|2
+representante_legal|b_estado_activo|boolean||NO|3
+sede|k_id_sede|uuid||NO|1
+sede|n_nombre_sede|character varying|50|NO|2
+sede|t_calle|character varying|50|NO|3
+sede|t_carrera|character varying|50|NO|4
+sede|t_numero|character varying|50|NO|5
+sede|k_id_cliente|uuid||NO|6
+sede|k_id_ciudad|uuid||NO|7
+sede|b_estado_activo|boolean||NO|8
+telefono_cliente|k_id_telefono_cliente|uuid||NO|1
+telefono_cliente|n_telefono_cliente|character varying|50|NO|2
+telefono_cliente|k_id_cliente|uuid||NO|3
+telefono_cliente|b_estado_activo|boolean||NO|4
+telefono_persona|k_id_telefono_persona|uuid||NO|1
+telefono_persona|n_telefono_persona|character varying|10|NO|2
+telefono_persona|k_identificador|uuid||YES|3
+telefono_persona|b_estado_activo|boolean||NO|4
+tipo_equipo|k_id_tipo_equipo|uuid||NO|1
+tipo_equipo|n_nombre_tipo_equipo|character varying|50|NO|2
+tipo_equipo|t_definicion_tecnica|character varying|250|NO|3
+tipo_equipo|t_recomendaciones_cuidado|character varying|250|NO|4
+tipo_equipo|t_tecnologia_predominante|character varying|50|NO|5
+tipo_equipo|m_valor_unitario_mantenimiento|bigint||NO|10
+tipo_equipo|b_estado_activo|boolean||NO|11
+tipo_equipo|t_uso|character varying|250|YES|13
+tipo_equipo|t_limpieza_cotidiana|character varying|250|YES|14
+unidad_medida|k_id_unidad_medida|uuid||NO|1
+unidad_medida|k_id_magnitud|uuid||NO|2
+unidad_medida|n_simbolo_unidad|character varying|20|NO|3
+unidad_medida|n_nombre_unidad|character varying|50|NO|4
+unidad_medida|b_estado_activo|boolean||NO|5
+verificacion_tipo_equipo|k_id_verificacion|uuid||NO|1
+verificacion_tipo_equipo|k_id_tipo_equipo|uuid||NO|2
+verificacion_tipo_equipo|k_id_magnitud|uuid||NO|3
+verificacion_tipo_equipo|k_id_unidad_medida|uuid||NO|4
+verificacion_tipo_equipo|n_modalidad_verificacion|character varying|50|NO|5
+verificacion_tipo_equipo|i_cantidad_datos|integer||YES|6
+verificacion_tipo_equipo|b_estado_activo|boolean||NO|7
+verificacion_tipo_equipo|d_tolerancia|numeric||YES|8

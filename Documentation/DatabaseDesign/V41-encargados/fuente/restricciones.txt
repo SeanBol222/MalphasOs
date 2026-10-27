@@ -1,0 +1,111 @@
+flyway_schema_history|flyway_schema_history_pk|p|PRIMARY KEY (installed_rank)|-
+persona|PK_persona|p|PRIMARY KEY (k_identificador)|-
+persona|UQ_cedula|u|UNIQUE (k_cedula)|-
+correo_persona|FK_correo_persona|f|FOREIGN KEY (k_identificador) REFERENCES persona(k_identificador)|persona
+correo_persona|PK_correo_persona|p|PRIMARY KEY (k_id_correo_persona)|-
+correo_persona|EX_correo_principal_por_persona|x|EXCLUDE USING btree (k_identificador WITH =) WHERE (b_principal) DEFERRABLE INITIALLY DEFERRED|-
+telefono_persona|FK_telefono_persona|f|FOREIGN KEY (k_identificador) REFERENCES persona(k_identificador)|persona
+telefono_persona|PK_telefono_persona|p|PRIMARY KEY (k_id_telefono_persona)|-
+pais|PK_pais|p|PRIMARY KEY (k_id_pais)|-
+pais|UQ_pais_codigo_iso|u|UNIQUE (k_codigo_iso)|-
+pais|UQ_pais_nombre|u|UNIQUE (n_nombre_pais)|-
+ciudad|FK_ciudad_pais|f|FOREIGN KEY (k_id_pais) REFERENCES pais(k_id_pais)|pais
+ciudad|PK_ciudad|p|PRIMARY KEY (k_id_ciudad)|-
+ciudad|UQ_ciudad_nombre_por_pais|u|UNIQUE (k_id_pais, n_nombre_ciudad)|-
+cliente|FK_cliente_pais|f|FOREIGN KEY (k_id_pais) REFERENCES pais(k_id_pais)|pais
+cliente|PK_cliente|p|PRIMARY KEY (k_id_cliente)|-
+cliente|UQ_cliente_documento|u|UNIQUE (k_documento)|-
+cliente|UQ_cliente_sigla|u|UNIQUE (n_sigla)|-
+correo_cliente|FK_correo_cliente_cliente|f|FOREIGN KEY (k_id_cliente) REFERENCES cliente(k_id_cliente)|cliente
+correo_cliente|PK_correo_cliente|p|PRIMARY KEY (k_id_correo_cliente)|-
+telefono_cliente|FK_telefono_cliente_cliente|f|FOREIGN KEY (k_id_cliente) REFERENCES cliente(k_id_cliente)|cliente
+telefono_cliente|PK_telefono_cliente|p|PRIMARY KEY (k_id_telefono_cliente)|-
+representante_legal|FK_representante_legal_cliente|f|FOREIGN KEY (k_id_cliente) REFERENCES cliente(k_id_cliente)|cliente
+representante_legal|FK_representante_legal_persona|f|FOREIGN KEY (k_identificador) REFERENCES persona(k_identificador)|persona
+representante_legal|PK_representante_legal|p|PRIMARY KEY (k_identificador, k_id_cliente)|-
+sede|FK_sede_ciudad|f|FOREIGN KEY (k_id_ciudad) REFERENCES ciudad(k_id_ciudad)|ciudad
+sede|FK_sede_cliente|f|FOREIGN KEY (k_id_cliente) REFERENCES cliente(k_id_cliente)|cliente
+sede|PK_sede|p|PRIMARY KEY (k_id_sede)|-
+sede|UQ_sede_identidad_con_cliente|u|UNIQUE (k_id_sede, k_id_cliente)|-
+sede|UQ_sede_nombre_por_cliente|u|UNIQUE (k_id_cliente, n_nombre_sede)|-
+area_servicio|FK_area_servicio_sede|f|FOREIGN KEY (k_id_sede) REFERENCES sede(k_id_sede)|sede
+area_servicio|PK_area_servicio|p|PRIMARY KEY (k_id_area_servicio)|-
+area_servicio|UQ_area_nombre_por_sede|u|UNIQUE (k_id_sede, n_nombre_area)|-
+encargado|FK_encargado_area_servicio|f|FOREIGN KEY (k_id_area_servicio) REFERENCES area_servicio(k_id_area_servicio)|area_servicio
+encargado|FK_encargado_persona|f|FOREIGN KEY (k_identificador) REFERENCES persona(k_identificador)|persona
+encargado|FK_encargado_sede|f|FOREIGN KEY (k_id_sede) REFERENCES sede(k_id_sede)|sede
+encargado|PK_encargado|p|PRIMARY KEY (k_identificador)|-
+fabricante|FK_fabricante_pais|f|FOREIGN KEY (k_id_pais) REFERENCES pais(k_id_pais)|pais
+fabricante|PK_fabricante|p|PRIMARY KEY (k_id_fabricante)|-
+fabricante|UQ_fabricante_nombre|u|UNIQUE (n_nombre_fabricante)|-
+marca|PK_marca|p|PRIMARY KEY (k_id_marca)|-
+marca|UQ_marca_nombre|u|UNIQUE (n_nombre_marca)|-
+tipo_equipo|PK_tipo_equipo|p|PRIMARY KEY (k_id_tipo_equipo)|-
+tipo_equipo|UQ_tipo_equipo_nombre|u|UNIQUE (n_nombre_tipo_equipo)|-
+equipo|FK_equipo_marca|f|FOREIGN KEY (k_id_marca) REFERENCES marca(k_id_marca)|marca
+equipo|FK_equipo_tipo_equipo|f|FOREIGN KEY (k_id_tipo_equipo) REFERENCES tipo_equipo(k_id_tipo_equipo)|tipo_equipo
+equipo|PK_equipo|p|PRIMARY KEY (k_id_equipo)|-
+equipo|UQ_equipo_tipo_marca|u|UNIQUE (k_id_tipo_equipo, k_id_marca)|-
+modelo|FK_modelo_equipo|f|FOREIGN KEY (k_id_equipo) REFERENCES equipo(k_id_equipo)|equipo
+modelo|FK_modelo_fabricante|f|FOREIGN KEY (k_id_fabricante) REFERENCES fabricante(k_id_fabricante)|fabricante
+modelo|PK_modelo|p|PRIMARY KEY (k_id_modelo)|-
+modelo|UQ_modelo_invima|u|UNIQUE (n_invima)|-
+equipo_cliente|FK_equipo_cliente_area_servicio|f|FOREIGN KEY (k_id_area_servicio) REFERENCES area_servicio(k_id_area_servicio)|area_servicio
+equipo_cliente|FK_equipo_cliente_modelo|f|FOREIGN KEY (k_id_modelo) REFERENCES modelo(k_id_modelo)|modelo
+equipo_cliente|PK_equipo_cliente|p|PRIMARY KEY (k_id_equipo_cliente)|-
+equipo_cliente|UQ_equipo_cliente_numero_hoja_vida|u|UNIQUE (n_numero_hoja_vida)|-
+equipo_cliente|UQ_equipo_cliente_serie_por_modelo|u|UNIQUE (k_id_modelo, k_serie)|-
+orden_trabajo|FK_orden_trabajo_cliente|f|FOREIGN KEY (k_id_cliente) REFERENCES cliente(k_id_cliente)|cliente
+orden_trabajo|FK_orden_trabajo_persona|f|FOREIGN KEY (k_identificador) REFERENCES persona(k_identificador)|persona
+orden_trabajo|FK_orden_trabajo_sede_del_cliente|f|FOREIGN KEY (k_id_sede, k_id_cliente) REFERENCES sede(k_id_sede, k_id_cliente)|sede
+orden_trabajo|PK_orden_trabajo|p|PRIMARY KEY (k_id_orden_trabajo)|-
+orden_trabajo_equipo|FK_orden_trabajo_equipo_area_servicio|f|FOREIGN KEY (k_id_area_servicio) REFERENCES area_servicio(k_id_area_servicio)|area_servicio
+orden_trabajo_equipo|FK_orden_trabajo_equipo_equipo_cliente|f|FOREIGN KEY (k_id_equipo_cliente) REFERENCES equipo_cliente(k_id_equipo_cliente)|equipo_cliente
+orden_trabajo_equipo|FK_orden_trabajo_equipo_orden|f|FOREIGN KEY (k_id_orden_trabajo) REFERENCES orden_trabajo(k_id_orden_trabajo)|orden_trabajo
+orden_trabajo_equipo|PK_orden_trabajo_equipo|p|PRIMARY KEY (k_id_orden_trabajo, k_id_equipo_cliente)|-
+reporte_servicio|FK_reporte_servicio_equipo_de_la_orden|f|FOREIGN KEY (k_id_orden_trabajo, k_id_equipo_cliente) REFERENCES orden_trabajo_equipo(k_id_orden_trabajo, k_id_equipo_cliente)|orden_trabajo_equipo
+reporte_servicio|FK_reporte_servicio_firma_recibe|f|FOREIGN KEY (k_huella_firma_recibe) REFERENCES imagen_documento(k_huella)|imagen_documento
+reporte_servicio|PK_reporte_servicio|p|PRIMARY KEY (k_id_reporte_servicio)|-
+dato_verificacion|FK_dato_verificacion_punto_de_su_verificacion|f|FOREIGN KEY (k_id_verificacion, k_id_punto_verificacion) REFERENCES punto_verificacion(k_id_verificacion, k_id_punto_verificacion)|punto_verificacion
+dato_verificacion|FK_dato_verificacion_reporte|f|FOREIGN KEY (k_id_reporte_servicio) REFERENCES reporte_servicio(k_id_reporte_servicio)|reporte_servicio
+dato_verificacion|FK_dato_verificacion_verificacion|f|FOREIGN KEY (k_id_verificacion) REFERENCES verificacion_tipo_equipo(k_id_verificacion)|verificacion_tipo_equipo
+dato_verificacion|PK_dato_verificacion|p|PRIMARY KEY (k_id_dato_verificacion)|-
+magnitud|PK_magnitud|p|PRIMARY KEY (k_id_magnitud)|-
+magnitud|UQ_magnitud_codigo|u|UNIQUE (n_codigo_magnitud)|-
+magnitud|UQ_magnitud_nombre|u|UNIQUE (n_nombre_magnitud)|-
+unidad_medida|FK_unidad_medida_magnitud|f|FOREIGN KEY (k_id_magnitud) REFERENCES magnitud(k_id_magnitud)|magnitud
+unidad_medida|PK_unidad_medida|p|PRIMARY KEY (k_id_unidad_medida)|-
+unidad_medida|UQ_unidad_medida_por_magnitud|u|UNIQUE (k_id_magnitud, k_id_unidad_medida)|-
+unidad_medida|UQ_unidad_medida_simbolo_por_magnitud|u|UNIQUE (k_id_magnitud, n_simbolo_unidad)|-
+verificacion_tipo_equipo|FK_verificacion_tipo_equipo_tipo|f|FOREIGN KEY (k_id_tipo_equipo) REFERENCES tipo_equipo(k_id_tipo_equipo)|tipo_equipo
+verificacion_tipo_equipo|FK_verificacion_tipo_equipo_unidad_de_su_magnitud|f|FOREIGN KEY (k_id_magnitud, k_id_unidad_medida) REFERENCES unidad_medida(k_id_magnitud, k_id_unidad_medida)|unidad_medida
+verificacion_tipo_equipo|PK_verificacion_tipo_equipo|p|PRIMARY KEY (k_id_verificacion)|-
+verificacion_tipo_equipo|UQ_verificacion_por_tipo|u|UNIQUE (k_id_tipo_equipo, k_id_verificacion)|-
+punto_verificacion|FK_punto_verificacion_verificacion|f|FOREIGN KEY (k_id_verificacion) REFERENCES verificacion_tipo_equipo(k_id_verificacion)|verificacion_tipo_equipo
+punto_verificacion|PK_punto_verificacion|p|PRIMARY KEY (k_id_punto_verificacion)|-
+punto_verificacion|UQ_punto_por_verificacion|u|UNIQUE (k_id_verificacion, k_id_punto_verificacion)|-
+intervencion|FK_intervencion_equipo_cliente|f|FOREIGN KEY (k_id_equipo_cliente) REFERENCES equipo_cliente(k_id_equipo_cliente)|equipo_cliente
+intervencion|FK_intervencion_reemplazada_por|f|FOREIGN KEY (k_id_reemplazada_por) REFERENCES intervencion(k_id_intervencion)|intervencion
+intervencion|FK_intervencion_reporte_servicio|f|FOREIGN KEY (k_id_reporte_servicio) REFERENCES reporte_servicio(k_id_reporte_servicio)|reporte_servicio
+intervencion|PK_intervencion|p|PRIMARY KEY (k_id_intervencion)|-
+intervencion|UQ_intervencion_por_reporte|u|UNIQUE (k_id_reporte_servicio)|-
+protocolo|PK_protocolo|p|PRIMARY KEY (k_id_protocolo)|-
+protocolo_tipo_equipo|FK_protocolo_tipo_equipo_protocolo|f|FOREIGN KEY (k_id_protocolo) REFERENCES protocolo(k_id_protocolo)|protocolo
+protocolo_tipo_equipo|FK_protocolo_tipo_equipo_tipo|f|FOREIGN KEY (k_id_tipo_equipo) REFERENCES tipo_equipo(k_id_tipo_equipo)|tipo_equipo
+protocolo_tipo_equipo|PK_protocolo_tipo_equipo|p|PRIMARY KEY (k_id_tipo_equipo, k_id_protocolo)|-
+paso_reporte|FK_paso_reporte_protocolo|f|FOREIGN KEY (k_id_protocolo) REFERENCES protocolo(k_id_protocolo)|protocolo
+paso_reporte|FK_paso_reporte_reporte|f|FOREIGN KEY (k_id_reporte_servicio) REFERENCES reporte_servicio(k_id_reporte_servicio)|reporte_servicio
+paso_reporte|PK_paso_reporte|p|PRIMARY KEY (k_id_paso_reporte)|-
+paso_reporte|UQ_paso_reporte_orden|u|UNIQUE (k_id_reporte_servicio, i_orden)|-
+equipo_patron|PK_equipo_patron|p|PRIMARY KEY (k_id_equipo_patron)|-
+patron_verificacion_reporte|FK_patron_verificacion_reporte_patron|f|FOREIGN KEY (k_id_equipo_patron) REFERENCES equipo_patron(k_id_equipo_patron)|equipo_patron
+patron_verificacion_reporte|FK_patron_verificacion_reporte_reporte|f|FOREIGN KEY (k_id_reporte_servicio) REFERENCES reporte_servicio(k_id_reporte_servicio)|reporte_servicio
+patron_verificacion_reporte|FK_patron_verificacion_reporte_verificacion|f|FOREIGN KEY (k_id_verificacion) REFERENCES verificacion_tipo_equipo(k_id_verificacion)|verificacion_tipo_equipo
+patron_verificacion_reporte|PK_patron_verificacion_reporte|p|PRIMARY KEY (k_id_patron_verificacion_reporte)|-
+accesorio_reporte|FK_accesorio_reporte_reporte|f|FOREIGN KEY (k_id_reporte_servicio) REFERENCES reporte_servicio(k_id_reporte_servicio)|reporte_servicio
+accesorio_reporte|PK_accesorio_reporte|p|PRIMARY KEY (k_id_accesorio_reporte)|-
+empresa|PK_empresa|p|PRIMARY KEY (k_id_empresa)|-
+empresa|UQ_empresa_unica|u|UNIQUE (b_unica)|-
+imagen_documento|PK_imagen_documento|p|PRIMARY KEY (k_huella)|-
+firma_persona|FK_firma_persona_persona|f|FOREIGN KEY (k_id_persona) REFERENCES persona(k_identificador)|persona
+firma_persona|PK_firma_persona|p|PRIMARY KEY (k_id_persona)|-
