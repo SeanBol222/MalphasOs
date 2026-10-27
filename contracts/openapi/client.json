@@ -483,25 +483,28 @@
       "ManagerResponse" : {
         "properties" : {
           "estadoActivo" : {
+            "description" : "Si está a cargo de algo",
             "type" : "boolean"
-          },
-          "idAreaServicio" : {
-            "description" : "Area de la que se encarga, o null si se encarga de una sede",
-            "format" : "uuid",
-            "type" : "string"
           },
           "idPersona" : {
             "format" : "uuid",
             "type" : "string"
           },
-          "idSede" : {
-            "description" : "Sede de la que se encarga, o null si se encarga de un area",
-            "format" : "uuid",
-            "type" : "string"
+          "idsAreaServicio" : {
+            "description" : "Áreas de servicio de las que está a cargo ahora",
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           },
-          "tipo" : {
-            "enum" : [ "HEADQUARTER", "SERVICE_AREA" ],
-            "type" : "string"
+          "idsSede" : {
+            "description" : "Sedes de las que está a cargo ahora",
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -2153,7 +2156,7 @@
     },
     "/v1/api/managers/assignments" : {
       "post" : {
-        "description" : "Para una persona ya registrada en el sistema.",
+        "description" : "Para una persona ya registrada en el sistema. Si ya es encargado, se suma a lo que tiene a cargo, que tiene que ser del mismo cliente.",
         "operationId" : "assignManager",
         "requestBody" : {
           "content" : {
@@ -2223,7 +2226,7 @@
     },
     "/v1/api/managers/{idPersona}" : {
       "delete" : {
-        "description" : "No lo borra: lo deja inactivo.",
+        "description" : "No lo borra: deja inactivas todas sus asignaciones.",
         "operationId" : "deactivateManager",
         "parameters" : [ {
           "in" : "path",
@@ -2279,7 +2282,7 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Relevar a un encargado",
+        "summary" : "Relevar a un encargado de todo",
         "tags" : [ "Manager" ]
       },
       "get" : {
@@ -2348,9 +2351,12 @@
         },
         "summary" : "Obtener el encargado que corresponde a una persona",
         "tags" : [ "Manager" ]
-      },
-      "patch" : {
-        "operationId" : "reassignManager",
+      }
+    },
+    "/v1/api/managers/{idPersona}/headquarters/{idSede}" : {
+      "delete" : {
+        "description" : "Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.",
+        "operationId" : "relieveFromHeadquarter",
         "parameters" : [ {
           "in" : "path",
           "name" : "idPersona",
@@ -2359,27 +2365,18 @@
             "format" : "uuid",
             "type" : "string"
           }
+        }, {
+          "in" : "path",
+          "name" : "idSede",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
         } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ManagerAssignRequest"
-              }
-            }
-          },
-          "required" : true
-        },
         "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ManagerResponse"
-                }
-              }
-            },
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "400" : {
             "content" : {
@@ -2422,7 +2419,77 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Trasladar un encargado a otra sede o area",
+        "summary" : "Relevar a un encargado de una sede",
+        "tags" : [ "Manager" ]
+      }
+    },
+    "/v1/api/managers/{idPersona}/service-areas/{idArea}" : {
+      "delete" : {
+        "description" : "Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.",
+        "operationId" : "relieveFromServiceArea",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "idPersona",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "idArea",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Relevar a un encargado de un area de servicio",
         "tags" : [ "Manager" ]
       }
     },

@@ -3,7 +3,9 @@ package com.malphasos.malphasos.client.infrastructure.input.errors;
 import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.client.infrastructure.input.rest.ClientRestAdapter;
 import com.malphasos.malphasos.client.infrastructure.input.rest.HeadquarterRestAdapter;
@@ -58,6 +60,21 @@ public class ClientControllerAdvice {
     @ExceptionHandler(ManagerNotFoundException.class)
     public ClientErrorResponse handleManagerNotFound(ManagerNotFoundException ex) {
         return ClientErrorResponse.of(ClientErrorCatalog.MANAGER_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(ManagerAssignmentNotFoundException.class)
+    public ClientErrorResponse handleManagerAssignmentNotFound(ManagerAssignmentNotFoundException ex) {
+        return ClientErrorResponse.of(
+                ClientErrorCatalog.MANAGER_ASSIGNMENT_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** Un encargado es de un cliente: todas sus asignaciones activas son del mismo (2026-10-27). */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ManagerOfAnotherClientException.class)
+    public ClientErrorResponse handleManagerOfAnotherClient(ManagerOfAnotherClientException ex) {
+        return ClientErrorResponse.of(
+                ClientErrorCatalog.MANAGER_OF_ANOTHER_CLIENT, List.of(ex.getMessage()));
     }
 
     /** La ciudad de una sede, que vive en el módulo de ubicación. */

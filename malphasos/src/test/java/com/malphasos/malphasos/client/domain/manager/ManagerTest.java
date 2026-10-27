@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.client.domain.manager.events.ManagerAssignedEvent;
 import com.malphasos.malphasos.client.domain.manager.events.ManagerDeactivatedEvent;
-import com.malphasos.malphasos.client.domain.manager.events.ManagerReassignedEvent;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,16 @@ class ManagerTest {
 
     private static final UUID PERSONA = UUID.randomUUID();
     private static final UUID SEDE = UUID.randomUUID();
+    private static final UUID OTRA_SEDE = UUID.randomUUID();
     private static final UUID AREA = UUID.randomUUID();
+
+    /** Un encargado con los eventos de su alta ya recogidos. */
+    private static Manager deLaSede() {
+        Manager encargado = Manager.forHeadquarter(PERSONA, SEDE);
+        encargado.pullEvents();
+
+        return encargado;
+    }
 
     @Test
     @DisplayName("la identidad del encargado es la de la persona, no una propia")
@@ -34,23 +43,22 @@ class ManagerTest {
     }
 
     @Test
-    @DisplayName("un encargado de sede tiene sede y no tiene area")
+    @DisplayName("un encargado de sede tiene esa sede y ningun area")
     void encargadoDeSede() {
         Manager encargado = Manager.forHeadquarter(PERSONA, SEDE);
 
-        assertThat(encargado.getTipo()).isEqualTo(ManagerType.HEADQUARTER);
-        assertThat(encargado.getIdSede()).isEqualTo(SEDE);
-        assertThat(encargado.getIdAreaServicio()).isNull();
+        assertThat(encargado.getIdsSede()).containsExactly(SEDE);
+        assertThat(encargado.getIdsAreaServicio()).isEmpty();
+        assertThat(encargado.isEstadoActivo()).isTrue();
     }
 
     @Test
-    @DisplayName("un encargado de area tiene area y no tiene sede")
+    @DisplayName("un encargado de area tiene esa area y ninguna sede")
     void encargadoDeArea() {
         Manager encargado = Manager.forServiceArea(PERSONA, AREA);
 
-        assertThat(encargado.getTipo()).isEqualTo(ManagerType.SERVICE_AREA);
-        assertThat(encargado.getIdAreaServicio()).isEqualTo(AREA);
-        assertThat(encargado.getIdSede()).isNull();
+        assertThat(encargado.getIdsAreaServicio()).containsExactly(AREA);
+        assertThat(encargado.getIdsSede()).isEmpty();
     }
 
     @Test
@@ -85,58 +93,126 @@ class ManagerTest {
     }
 
     @Test
-    @DisplayName("un encargado de sede puede pasar a serlo de un area")
-    void reasignarCambiandoDeTipo() {
-        Manager encargado = Manager.forHeadquarter(PERSONA, SEDE);
-        encargado.pullEvents();
+    @DisplayName("se suman asignaciones: varias sedes y areas a la vez (V41)")
+    void sumarAsignaciones() {
+        Manager encargado = deLaSede();
 
-        encargado.reassignTo(ManagerType.SERVICE_AREA, AREA);
+        encargado.assignTo(ManagerType.HEADQUARTER, OTRA_SEDE);
+        encargado.assignTo(ManagerType.SERVICE_AREA, AREA);
 
-        assertThat(encargado.getTipo()).isEqualTo(ManagerType.SERVICE_AREA);
-        assertThat(encargado.getIdSede()).isNull();
-        assertThat(encargado.getIdAreaServicio()).isEqualTo(AREA);
-        assertThat(encargado.pullEvents()).singleElement().isInstanceOf(ManagerReassignedEvent.class);
+        assertThat(encargado.getIdsSede()).containsExactly(SEDE, OTRA_SEDE);
+        assertThat(encargado.getIdsAreaServicio()).containsExactly(AREA);
+        assertThat(encargado.pullEvents()).hasSize(2).allMatch(ManagerAssignedEvent.class::isInstance);
     }
 
     @Test
-    @DisplayName("reasignar al mismo sitio no anuncia un cambio que no ocurrio")
-    void reasignarAlMismoSitio() {
-        Manager encargado = Manager.forHeadquarter(PERSONA, SEDE);
-        encargado.pullEvents();
+    @DisplayName("asignar lo que ya tiene no cambia nada ni anuncia nada")
+    void asignarLoQueYaTiene() {
+        Manager encargado = deLaSede();
 
-        encargado.reassignTo(ManagerType.HEADQUARTER, SEDE);
+        encargado.assignTo(ManagerType.HEADQUARTER, SEDE);
 
+        assertThat(encargado.getAsignaciones()).hasSize(1);
         assertThat(encargado.pullEvents()).isEmpty();
     }
 
     @Test
-    @DisplayName("una reasignacion sin destino se rechaza")
-    void reasignarSinDestino() {
-        Manager encargado = Manager.forHeadquarter(PERSONA, SEDE);
+    @DisplayName("la misma sede y el mismo identificador como area son dos cosas distintas")
+    void elTipoDistingue() {
+        Manager encargado = deLaSede();
 
-        assertThatThrownBy(() -> encargado.reassignTo(ManagerType.SERVICE_AREA, null))
-                .isInstanceOf(IllegalArgumentException.class);
+        encargado.assignTo(ManagerType.SERVICE_AREA, SEDE);
+
+        assertThat(encargado.getAsignaciones()).hasSize(2);
     }
 
     @Test
-    @DisplayName("relevar deja el encargado inactivo, y relevar de nuevo no repite el hecho")
-    void relevar() {
-        Manager encargado = Manager.forHeadquarter(PERSONA, SEDE);
+    @DisplayName("relevar de una deja las demas, apaga esa y lo anuncia con su destino")
+    void relevarDeUna() {
+        Manager encargado = deLaSede();
+        encargado.assignTo(ManagerType.SERVICE_AREA, AREA);
+        encargado.pullEvents();
+
+        assertThat(encargado.relieveFrom(ManagerType.HEADQUARTER, SEDE)).isTrue();
+
+        assertThat(encargado.getIdsSede()).isEmpty();
+        assertThat(encargado.getIdsAreaServicio()).containsExactly(AREA);
+        assertThat(encargado.getAsignaciones())
+                .contains(new ManagerAssignment(ManagerType.HEADQUARTER, SEDE, false));
+        assertThat(encargado.pullEvents()).singleElement()
+                .isInstanceOfSatisfying(ManagerDeactivatedEvent.class,
+                        evento -> assertThat(evento.payload().idAsignacion()).isEqualTo(SEDE));
+    }
+
+    @Test
+    @DisplayName("relevar de lo que ya no tenia no repite el hecho; de lo que nunca tuvo, lo dice")
+    void relevarDeLoQueNoTiene() {
+        Manager encargado = deLaSede();
+        encargado.relieveFrom(ManagerType.HEADQUARTER, SEDE);
+        encargado.pullEvents();
+
+        assertThat(encargado.relieveFrom(ManagerType.HEADQUARTER, SEDE)).isTrue();
+        assertThat(encargado.pullEvents()).isEmpty();
+
+        assertThat(encargado.relieveFrom(ManagerType.HEADQUARTER, OTRA_SEDE)).isFalse();
+    }
+
+    @Test
+    @DisplayName("volver a asignar lo relevado lo reactiva sin duplicarlo")
+    void reasignarReactiva() {
+        Manager encargado = deLaSede();
+        encargado.relieveFrom(ManagerType.HEADQUARTER, SEDE);
+        encargado.pullEvents();
+
+        encargado.assignTo(ManagerType.HEADQUARTER, SEDE);
+
+        assertThat(encargado.getAsignaciones())
+                .containsExactly(new ManagerAssignment(ManagerType.HEADQUARTER, SEDE, true));
+        assertThat(encargado.pullEvents()).singleElement().isInstanceOf(ManagerAssignedEvent.class);
+    }
+
+    @Test
+    @DisplayName("relevarlo de todo apaga cada asignacion activa, una vez cada una")
+    void relevarDeTodo() {
+        Manager encargado = deLaSede();
+        encargado.assignTo(ManagerType.SERVICE_AREA, AREA);
         encargado.pullEvents();
 
         encargado.deactivate();
 
         assertThat(encargado.isEstadoActivo()).isFalse();
-        assertThat(encargado.pullEvents()).singleElement().isInstanceOf(ManagerDeactivatedEvent.class);
+        assertThat(encargado.getAsignaciones()).noneMatch(ManagerAssignment::estadoActivo);
+        assertThat(encargado.pullEvents()).hasSize(2).allMatch(ManagerDeactivatedEvent.class::isInstance);
 
         encargado.deactivate();
         assertThat(encargado.pullEvents()).isEmpty();
     }
 
     @Test
+    @DisplayName("las asignaciones se entregan en una copia que no se puede tocar")
+    void copiaInmutable() {
+        Manager encargado = deLaSede();
+
+        assertThatThrownBy(() -> encargado.getAsignaciones().clear())
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    @DisplayName("una asignacion sin destino se rechaza")
+    void asignarSinDestino() {
+        Manager encargado = deLaSede();
+
+        assertThatThrownBy(() -> encargado.assignTo(ManagerType.SERVICE_AREA, null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     @DisplayName("rehidratar no registra nada")
     void rehidratar() {
-        assertThat(Manager.rehydrate(PERSONA, ManagerType.HEADQUARTER, SEDE, true).hasPendingEvents())
-                .isFalse();
+        Manager encargado = Manager.rehydrate(
+                PERSONA, List.of(new ManagerAssignment(ManagerType.HEADQUARTER, SEDE, true)));
+
+        assertThat(encargado.hasPendingEvents()).isFalse();
+        assertThat(encargado.getIdsSede()).containsExactly(SEDE);
     }
 }

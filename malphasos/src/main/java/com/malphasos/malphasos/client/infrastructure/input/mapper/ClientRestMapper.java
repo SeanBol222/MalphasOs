@@ -79,9 +79,8 @@ public class ClientRestMapper {
     public ManagerResponse toResponse(Manager encargado) {
         return ManagerResponse.builder()
                 .idPersona(encargado.getIdPersona())
-                .tipo(encargado.getTipo())
-                .idSede(encargado.getIdSede())
-                .idAreaServicio(encargado.getIdAreaServicio())
+                .idsSede(encargado.getIdsSede())
+                .idsAreaServicio(encargado.getIdsAreaServicio())
                 .estadoActivo(encargado.isEstadoActivo())
                 .build();
     }

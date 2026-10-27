@@ -3,6 +3,7 @@ package com.malphasos.malphasos.client.application.services.manager;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -13,14 +14,17 @@ import com.malphasos.malphasos.client.application.ports.output.ManagerPersistenc
 import com.malphasos.malphasos.client.application.ports.output.ServiceAreaPersistencePort;
 import com.malphasos.malphasos.client.application.services.manager.commands.AssignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.DeactivateManagerCommand;
-import com.malphasos.malphasos.client.application.services.manager.commands.ReassignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.RegisterManagerCommand;
+import com.malphasos.malphasos.client.application.services.manager.commands.RelieveManagerCommand;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
 import com.malphasos.malphasos.client.domain.headquarter.Address;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.domain.manager.Manager;
+import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
 import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationRequest;
@@ -45,6 +49,9 @@ class ManagerServiceTest {
     private static final UUID SEDE = UUID.randomUUID();
     private static final UUID AREA = UUID.randomUUID();
     private static final UUID PERSONA = UUID.randomUUID();
+    private static final UUID CLIENTE = UUID.randomUUID();
+    private static final UUID OTRA_SEDE = UUID.randomUUID();
+    private static final UUID SEDE_DE_OTRO_CLIENTE = UUID.randomUUID();
 
     @Mock private ManagerPersistencePort managerPort;
     @Mock private HeadquarterPersistencePort headquarterPort;
@@ -57,9 +64,19 @@ class ManagerServiceTest {
     }
 
     private void laSedeEsta(boolean activa) {
-        when(headquarterPort.findById(SEDE)).thenReturn(Optional.of(
-                Headquarter.rehydrate(SEDE, "Sede Norte", new Address("10", "20", "30-40"),
-                        UUID.randomUUID(), UUID.randomUUID(), activa)));
+        unaSede(SEDE, CLIENTE, activa);
+    }
+
+    private void unaSede(UUID id, UUID cliente, boolean activa) {
+        when(headquarterPort.findById(id)).thenReturn(Optional.of(
+                Headquarter.rehydrate(id, "Sede " + id, new Address("10", "20", "30-40"),
+                        cliente, UUID.randomUUID(), activa)));
+    }
+
+    /** Un encargado que ya está a cargo de SEDE, del CLIENTE. */
+    private void yaEsEncargadoDeLaSede() {
+        when(managerPort.findByPerson(PERSONA)).thenReturn(Optional.of(Manager.rehydrate(
+                PERSONA, List.of(new ManagerAssignment(ManagerType.HEADQUARTER, SEDE, true)))));
     }
 
     private PersonCommunicationRequest datosDePersona() {
@@ -90,7 +107,7 @@ class ManagerServiceTest {
                 new RegisterManagerCommand(datosDePersona(), ManagerType.HEADQUARTER, SEDE));
 
         assertThat(encargado.getIdPersona()).isEqualTo(PERSONA);
-        assertThat(encargado.getIdSede()).isEqualTo(SEDE);
+        assertThat(encargado.getIdsSede()).containsExactly(SEDE);
         assertThat(despachados())
                 .extracting(evento -> evento.metadata().eventType())
                 .containsExactly("manager.assigned");
@@ -187,30 +204,127 @@ class ManagerServiceTest {
         // ademas como encargado sin duplicarse.
         verify(personPort).findById(PERSONA);
         verify(personPort, never()).save(any());
-        assertThat(encargado.getIdAreaServicio()).isEqualTo(AREA);
+        assertThat(encargado.getIdsAreaServicio()).containsExactly(AREA);
     }
 
     @Test
-    @DisplayName("reasignar publica el traslado")
-    void reasignar() {
-        when(areaPort.findById(AREA))
-                .thenReturn(Optional.of(ServiceArea.rehydrate(AREA, "UCI", SEDE, true)));
-        when(managerPort.findByPerson(PERSONA)).thenReturn(Optional.of(
-                Manager.rehydrate(PERSONA, ManagerType.HEADQUARTER, SEDE, true)));
+    @DisplayName("asignar a quien ya es encargado suma la asignacion a las que tiene (V41)")
+    void asignarSuma() {
+        laSedeEsta(true);
+        unaSede(OTRA_SEDE, CLIENTE, true);
+        yaEsEncargadoDeLaSede();
         when(managerPort.save(any(Manager.class))).thenAnswer(i -> i.getArgument(0));
 
-        service().reassign(new ReassignManagerCommand(PERSONA, ManagerType.SERVICE_AREA, AREA));
+        Manager encargado = service().assign(
+                new AssignManagerCommand(PERSONA, ManagerType.HEADQUARTER, OTRA_SEDE));
 
+        assertThat(encargado.getIdsSede()).containsExactly(SEDE, OTRA_SEDE);
         assertThat(despachados())
                 .extracting(evento -> evento.metadata().eventType())
-                .containsExactly("manager.reassigned");
+                .containsExactly("manager.assigned");
     }
 
     @Test
-    @DisplayName("relevar deja el encargado inactivo y publica el hecho")
+    @DisplayName("un area de otra sede del mismo cliente tambien se suma: el cliente llega por la sede")
+    void asignarAreaDelMismoCliente() {
+        laSedeEsta(true);
+        unaSede(OTRA_SEDE, CLIENTE, true);
+        when(areaPort.findById(AREA))
+                .thenReturn(Optional.of(ServiceArea.rehydrate(AREA, "UCI", OTRA_SEDE, true)));
+        yaEsEncargadoDeLaSede();
+        when(managerPort.save(any(Manager.class))).thenAnswer(i -> i.getArgument(0));
+
+        Manager encargado = service().assign(
+                new AssignManagerCommand(PERSONA, ManagerType.SERVICE_AREA, AREA));
+
+        assertThat(encargado.getIdsAreaServicio()).containsExactly(AREA);
+    }
+
+    @Test
+    @DisplayName("no se suma una sede de otro cliente: un encargado es de un solo cliente")
+    void otroCliente() {
+        laSedeEsta(true);
+        unaSede(SEDE_DE_OTRO_CLIENTE, UUID.randomUUID(), true);
+        yaEsEncargadoDeLaSede();
+
+        assertThatThrownBy(() -> service().assign(new AssignManagerCommand(
+                        PERSONA, ManagerType.HEADQUARTER, SEDE_DE_OTRO_CLIENTE)))
+                .isInstanceOf(ManagerOfAnotherClientException.class);
+
+        verify(managerPort, never()).save(any());
+        verifyNoInteractions(dispatcher);
+    }
+
+    @Test
+    @DisplayName("ni un area cuya sede es de otro cliente")
+    void areaDeOtroCliente() {
+        laSedeEsta(true);
+        unaSede(SEDE_DE_OTRO_CLIENTE, UUID.randomUUID(), true);
+        when(areaPort.findById(AREA)).thenReturn(
+                Optional.of(ServiceArea.rehydrate(AREA, "UCI", SEDE_DE_OTRO_CLIENTE, true)));
+        yaEsEncargadoDeLaSede();
+
+        assertThatThrownBy(() -> service().assign(
+                        new AssignManagerCommand(PERSONA, ManagerType.SERVICE_AREA, AREA)))
+                .isInstanceOf(ManagerOfAnotherClientException.class);
+
+        verify(managerPort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("lo que se le retiro no lo ata: relevado de todo, puede pasar a otro cliente")
+    void loRelevadoNoAta() {
+        unaSede(SEDE_DE_OTRO_CLIENTE, UUID.randomUUID(), true);
+        // La sede vieja es de CLIENTE, otro distinto: si contara, la regla rechazaria. Va con lenient()
+        // porque lo correcto es no consultarla, y esta aqui para que no sea su ausencia lo que falle.
+        lenient().when(headquarterPort.findById(SEDE)).thenReturn(Optional.of(
+                Headquarter.rehydrate(SEDE, "Sede vieja", new Address("10", "20", "30-40"),
+                        CLIENTE, UUID.randomUUID(), true)));
+        when(managerPort.findByPerson(PERSONA)).thenReturn(Optional.of(Manager.rehydrate(
+                PERSONA, List.of(new ManagerAssignment(ManagerType.HEADQUARTER, SEDE, false)))));
+        when(managerPort.save(any(Manager.class))).thenAnswer(i -> i.getArgument(0));
+
+        Manager encargado = service().assign(new AssignManagerCommand(
+                PERSONA, ManagerType.HEADQUARTER, SEDE_DE_OTRO_CLIENTE));
+
+        assertThat(encargado.getIdsSede()).containsExactly(SEDE_DE_OTRO_CLIENTE);
+    }
+
+    @Test
+    @DisplayName("relevar de una sede la apaga, deja las demas y publica el hecho")
+    void relevarDeUna() {
+        when(managerPort.findByPerson(PERSONA)).thenReturn(Optional.of(Manager.rehydrate(PERSONA, List.of(
+                new ManagerAssignment(ManagerType.HEADQUARTER, SEDE, true),
+                new ManagerAssignment(ManagerType.SERVICE_AREA, AREA, true)))));
+        when(managerPort.save(any(Manager.class))).thenAnswer(i -> i.getArgument(0));
+
+        Manager encargado = service().relieve(
+                new RelieveManagerCommand(PERSONA, ManagerType.HEADQUARTER, SEDE));
+
+        assertThat(encargado.getIdsSede()).isEmpty();
+        assertThat(encargado.getIdsAreaServicio()).containsExactly(AREA);
+        assertThat(despachados())
+                .extracting(evento -> evento.metadata().eventType())
+                .containsExactly("manager.deactivated");
+    }
+
+    @Test
+    @DisplayName("relevar de algo de lo que nunca estuvo a cargo es un error propio, no se guarda nada")
+    void relevarDeLoQueNoTiene() {
+        yaEsEncargadoDeLaSede();
+
+        assertThatThrownBy(() -> service().relieve(
+                        new RelieveManagerCommand(PERSONA, ManagerType.HEADQUARTER, OTRA_SEDE)))
+                .isInstanceOf(ManagerAssignmentNotFoundException.class);
+
+        verify(managerPort, never()).save(any());
+        verifyNoInteractions(dispatcher);
+    }
+
+    @Test
+    @DisplayName("relevar de todo deja el encargado inactivo y publica el hecho")
     void relevar() {
-        when(managerPort.findByPerson(PERSONA)).thenReturn(Optional.of(
-                Manager.rehydrate(PERSONA, ManagerType.HEADQUARTER, SEDE, true)));
+        yaEsEncargadoDeLaSede();
         when(managerPort.save(any(Manager.class))).thenAnswer(i -> i.getArgument(0));
 
         service().deactivate(new DeactivateManagerCommand(PERSONA));

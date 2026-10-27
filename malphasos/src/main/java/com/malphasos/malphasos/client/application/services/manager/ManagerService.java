@@ -6,18 +6,23 @@ import com.malphasos.malphasos.client.application.ports.output.ManagerPersistenc
 import com.malphasos.malphasos.client.application.ports.output.ServiceAreaPersistencePort;
 import com.malphasos.malphasos.client.application.services.manager.commands.AssignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.DeactivateManagerCommand;
-import com.malphasos.malphasos.client.application.services.manager.commands.ReassignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.RegisterManagerCommand;
+import com.malphasos.malphasos.client.application.services.manager.commands.RelieveManagerCommand;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
+import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.client.domain.manager.Manager;
+import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
 import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationRequest;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +40,11 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Comprueba en ambos casos que el destino exista y esté activo. Poner a alguien al frente de una
  * sede cerrada sería nombrar responsable de algo que ya no opera, y eso ninguna clave foránea puede
  * impedirlo: comprueba que la fila exista, no que esté activa.
+ *
+ * <p><b>Y desde el 2026-10-27 comprueba el cliente</b>: un encargado está a cargo de varias sedes y
+ * áreas (`V41`), todas del mismo cliente, decidido por el usuario. El esquema no puede comprobarlo —la
+ * sede y el área viven en tablas distintas— y el agregado no sabe de quién es una sede, así que la
+ * regla vive aquí.
  */
 @Service
 @RequiredArgsConstructor
@@ -94,16 +104,29 @@ public class ManagerService implements ManagerServicePort {
         // Lanza PersonNotFoundException si no existe, que el manejador traduce a 404.
         personCommunicationPort.findById(command.idPersona());
 
-        return persistAndPublish(nuevo(command.idPersona(), command.tipo(), command.idAsignacion()));
+        Optional<Manager> existente = managerPersistencePort.findByPerson(command.idPersona());
+
+        if (existente.isEmpty()) {
+            return persistAndPublish(
+                    nuevo(command.idPersona(), command.tipo(), command.idAsignacion()));
+        }
+
+        Manager encargado = existente.get();
+        requireSameClient(encargado, command.tipo(), command.idAsignacion());
+        encargado.assignTo(command.tipo(), command.idAsignacion());
+
+        return persistAndPublish(encargado);
     }
 
     @Override
     @Transactional
-    public Manager reassign(ReassignManagerCommand command) {
-        requireActiveTarget(command.tipo(), command.idAsignacion());
-
+    public Manager relieve(RelieveManagerCommand command) {
         Manager encargado = findByPerson(command.idPersona());
-        encargado.reassignTo(command.tipo(), command.idAsignacion());
+
+        if (!encargado.relieveFrom(command.tipo(), command.idAsignacion())) {
+            throw new ManagerAssignmentNotFoundException(
+                    command.idPersona(), command.tipo(), command.idAsignacion());
+        }
 
         return persistAndPublish(encargado);
     }
@@ -140,6 +163,38 @@ public class ManagerService implements ManagerServicePort {
                 .emailPersonList(peticion.emailPersonList())
                 .phonePersonList(peticion.phonePersonList())
                 .build();
+    }
+
+    /**
+     * Todas las asignaciones activas de un encargado son del mismo cliente.
+     *
+     * <p>Solo cuentan las activas: de lo que se le retiró ya no responde, y no tiene por qué atarlo.
+     * El destino ya se comprobó activo, así que su cliente existe.
+     */
+    private void requireSameClient(Manager encargado, ManagerType tipo, UUID idAsignacion) {
+        UUID nuevo = clienteDe(tipo, idAsignacion);
+
+        encargado.getAsignaciones().stream()
+                .filter(ManagerAssignment::estadoActivo)
+                .map(asignacion -> clienteDe(asignacion.tipo(), asignacion.idAsignacion()))
+                .filter(actual -> !actual.equals(nuevo))
+                .findFirst()
+                .ifPresent(actual -> {
+                    throw new ManagerOfAnotherClientException(encargado.getIdPersona(), actual, nuevo);
+                });
+    }
+
+    /** El cliente de una sede, o el de la sede de un área. */
+    private UUID clienteDe(ManagerType tipo, UUID idAsignacion) {
+        UUID idSede = tipo == ManagerType.HEADQUARTER
+                ? idAsignacion
+                : serviceAreaPersistencePort.findById(idAsignacion)
+                        .orElseThrow(() -> new ServiceAreaNotFoundException(idAsignacion))
+                        .getIdSede();
+
+        return headquarterPersistencePort.findById(idSede)
+                .map(Headquarter::getIdCliente)
+                .orElseThrow(() -> new HeadquarterNotFoundException(idSede));
     }
 
     private void requireActiveTarget(ManagerType tipo, UUID idAsignacion) {

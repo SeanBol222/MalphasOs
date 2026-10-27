@@ -3,57 +3,52 @@ package com.malphasos.malphasos.client.domain.manager;
 import com.malphasos.malphasos.client.domain.manager.events.ManagerAssignedEvent;
 import com.malphasos.malphasos.client.domain.manager.events.ManagerDeactivatedEvent;
 import com.malphasos.malphasos.client.domain.manager.events.ManagerPayload;
-import com.malphasos.malphasos.client.domain.manager.events.ManagerReassignedEvent;
 import com.malphasos.malphasos.shared.domain.events.AggregateRoot;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 /**
- * Persona responsable de una sede o de un área de servicio de un cliente.
+ * Persona responsable de sedes o áreas de servicio de un cliente.
  *
- * <p><b>Su identidad es la de la persona.</b> No hay un identificador propio: en el esquema, la
- * llave primaria de {@code encargado} es a la vez la clave foránea a {@code persona}. Un encargado
- * <i>es</i> una persona con ese rol, no un objeto que la referencia, y por eso no puede haber dos
- * encargados sobre la misma. En el original la relación existía en la base y en el orden en que un
- * método privado hacía dos llamadas, pero el modelo de dominio no la expresaba en ningún sitio.
+ * <p><b>Su identidad es la de la persona.</b> No hay un identificador propio: un encargado <i>es</i>
+ * una persona con ese rol, no un objeto que la referencia. En el original la relación existía en la
+ * base y en el orden en que un método privado hacía dos llamadas, pero el modelo de dominio no la
+ * expresaba en ningún sitio.
  *
- * <p>Se distingue de la representación legal, que sí es de muchos a muchos: una persona puede
- * representar a varios clientes, pero solo puede encargarse de un sitio.
+ * <p><b>Desde el 2026-10-27 está a cargo de varias cosas</b> (`V41`): hasta entonces la llave de
+ * {@code encargado} era la persona, y cada persona podía estar a cargo de una sola sede o de una sola
+ * área. El usuario confirmó que en sus clientes un encargado cubre varias. Cada asignación se da y se
+ * quita por separado, y quitarla no la borra: queda inactiva, y volver a darla la reactiva.
  *
- * <p>La regla que el agregado protege, y que el esquema original no ataba: <b>el tipo declara de
- * qué se encarga y la asignación tiene que respaldarlo</b>. Allí las dos columnas eran anulables
- * sin nada que las relacionara con el tipo, de modo que cabía un encargado de sede sin sede, con
- * área, con las dos o con ninguna.
+ * <p>La regla de que el tipo y el destino casen, que el esquema original no ataba —cabía un encargado
+ * de sede sin sede, con área, con las dos o con ninguna—, la sostiene ahora {@link ManagerAssignment}
+ * por su forma, y en la base, que cada tipo tenga su tabla. La de que todas sean <b>del mismo
+ * cliente</b> la comprueba el servicio: cuál es el cliente de una sede o de un área no lo sabe este
+ * agregado.
  */
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Manager extends AggregateRoot {
 
-    /** Identificador de la persona. Es también el del encargado. */
     @EqualsAndHashCode.Include
     private final UUID idPersona;
 
-    private ManagerType tipo;
+    @Getter(lombok.AccessLevel.NONE)
+    private final List<ManagerAssignment> asignaciones;
 
-    /** Sede o área de la que se encarga, según diga {@link #tipo}. */
-    private UUID idAsignacion;
-
-    private boolean estadoActivo;
-
-    private Manager(UUID idPersona, ManagerType tipo, UUID idAsignacion, boolean estadoActivo) {
+    private Manager(UUID idPersona, List<ManagerAssignment> asignaciones) {
         this.idPersona = idPersona;
-        this.tipo = tipo;
-        this.idAsignacion = idAsignacion;
-        this.estadoActivo = estadoActivo;
+        this.asignaciones = new ArrayList<>(asignaciones);
     }
 
-    /** Pone a una persona al frente de una sede. */
     public static Manager forHeadquarter(UUID idPersona, UUID idSede) {
         return assign(idPersona, ManagerType.HEADQUARTER, idSede);
     }
 
-    /** Pone a una persona al frente de un área de servicio. */
     public static Manager forServiceArea(UUID idPersona, UUID idArea) {
         return assign(idPersona, ManagerType.SERVICE_AREA, idArea);
     }
@@ -62,65 +57,114 @@ public class Manager extends AggregateRoot {
         if (idPersona == null) {
             throw new IllegalArgumentException("Un encargado es una persona: falta su identificador");
         }
-        if (idAsignacion == null) {
-            throw new IllegalArgumentException(
-                    "Un encargado de tipo " + tipo + " necesita la asignacion que le corresponde");
-        }
+        exigirDestino(tipo, idAsignacion);
 
-        Manager encargado = new Manager(idPersona, tipo, idAsignacion, true);
-        encargado.registerEvent(new ManagerAssignedEvent(
-                encargado.metadataFor(ManagerAssignedEvent.TYPE), encargado.payload()));
+        Manager encargado = new Manager(idPersona, List.of());
+        encargado.assignTo(tipo, idAsignacion);
 
         return encargado;
     }
 
-    /** Reconstruye un encargado ya existente desde lo persistido, sin registrar eventos. */
-    public static Manager rehydrate(
-            UUID idPersona, ManagerType tipo, UUID idAsignacion, boolean estadoActivo) {
-
-        return new Manager(idPersona, tipo, idAsignacion, estadoActivo);
+    public static Manager rehydrate(UUID idPersona, List<ManagerAssignment> asignaciones) {
+        return new Manager(idPersona, asignaciones);
     }
 
     /**
-     * Lo pone al frente de otra sede o de otra área.
+     * Lo pone también al frente de esa sede o de esa área.
      *
-     * <p>Cambiar de tipo es válido: un encargado de sede puede pasar a serlo de un área. Lo que no
-     * puede es quedar sin asignación, ni tener una que no corresponda a su tipo.
+     * <p>Si ya lo está, no cambia nada y no emite evento. Si lo estuvo y se le retiró, la asignación
+     * se reactiva en lugar de duplicarse: en la base su llave es el par (persona, destino).
      */
-    public void reassignTo(ManagerType nuevoTipo, UUID nuevaAsignacion) {
-        if (nuevoTipo == null || nuevaAsignacion == null) {
-            throw new IllegalArgumentException("Una reasignacion necesita tipo y destino");
-        }
-        if (nuevoTipo == this.tipo && nuevaAsignacion.equals(this.idAsignacion)) {
+    public void assignTo(ManagerType tipo, UUID idAsignacion) {
+        exigirDestino(tipo, idAsignacion);
+
+        Optional<ManagerAssignment> existente = buscar(tipo, idAsignacion);
+
+        if (existente.filter(ManagerAssignment::estadoActivo).isPresent()) {
             return;
         }
+        existente.ifPresent(asignaciones::remove);
+        asignaciones.add(new ManagerAssignment(tipo, idAsignacion, true));
 
-        this.tipo = nuevoTipo;
-        this.idAsignacion = nuevaAsignacion;
-
-        registerEvent(new ManagerReassignedEvent(
-                metadataFor(ManagerReassignedEvent.TYPE), payload()));
+        registerEvent(new ManagerAssignedEvent(
+                metadataFor(ManagerAssignedEvent.TYPE), new ManagerPayload(tipo, idAsignacion)));
     }
 
-    /** Lo releva del cargo sin borrarlo. Relevar dos veces no emite dos eventos. */
+    /**
+     * Lo releva de esa sede o de esa área, y solo de esa.
+     *
+     * <p>Relevarlo de algo de lo que ya no estaba a cargo no cambia nada. De algo de lo que nunca lo
+     * estuvo es un error de quien llama, y se dice.
+     *
+     * @return si estaba a cargo de eso, activo o no; {@code false} si nunca lo estuvo
+     */
+    public boolean relieveFrom(ManagerType tipo, UUID idAsignacion) {
+        exigirDestino(tipo, idAsignacion);
+
+        Optional<ManagerAssignment> existente = buscar(tipo, idAsignacion);
+
+        if (existente.isEmpty()) {
+            return false;
+        }
+        if (existente.get().estadoActivo()) {
+            relevar(existente.get());
+        }
+
+        return true;
+    }
+
+    /** Lo releva de todo. No lo borra: cada asignación queda inactiva. */
     public void deactivate() {
-        if (!estadoActivo) {
-            return;
-        }
+        List.copyOf(asignaciones).stream().filter(ManagerAssignment::estadoActivo).forEach(this::relevar);
+    }
 
-        this.estadoActivo = false;
+    /** Si está a cargo de algo: con todo retirado sigue existiendo, pero no responde por nada. */
+    public boolean isEstadoActivo() {
+        return asignaciones.stream().anyMatch(ManagerAssignment::estadoActivo);
+    }
+
+    /** Todas sus asignaciones, activas o no, en una copia inmutable. */
+    public List<ManagerAssignment> getAsignaciones() {
+        return List.copyOf(asignaciones);
+    }
+
+    /** Las sedes de las que está a cargo ahora. */
+    public List<UUID> getIdsSede() {
+        return activas(ManagerType.HEADQUARTER);
+    }
+
+    /** Las áreas de las que está a cargo ahora. */
+    public List<UUID> getIdsAreaServicio() {
+        return activas(ManagerType.SERVICE_AREA);
+    }
+
+    private List<UUID> activas(ManagerType tipo) {
+        return asignaciones.stream()
+                .filter(asignacion -> asignacion.estadoActivo() && asignacion.tipo() == tipo)
+                .map(ManagerAssignment::idAsignacion)
+                .toList();
+    }
+
+    private void relevar(ManagerAssignment asignacion) {
+        asignaciones.set(asignaciones.indexOf(asignacion), asignacion.conEstado(false));
+
         registerEvent(new ManagerDeactivatedEvent(
-                metadataFor(ManagerDeactivatedEvent.TYPE), payload()));
+                metadataFor(ManagerDeactivatedEvent.TYPE),
+                new ManagerPayload(asignacion.tipo(), asignacion.idAsignacion())));
     }
 
-    /** La sede de la que se encarga, o {@code null} si se encarga de un área. */
-    public UUID getIdSede() {
-        return tipo == ManagerType.HEADQUARTER ? idAsignacion : null;
+    private Optional<ManagerAssignment> buscar(ManagerType tipo, UUID idAsignacion) {
+        return asignaciones.stream().filter(asignacion -> asignacion.es(tipo, idAsignacion)).findFirst();
     }
 
-    /** El área de la que se encarga, o {@code null} si se encarga de una sede. */
-    public UUID getIdAreaServicio() {
-        return tipo == ManagerType.SERVICE_AREA ? idAsignacion : null;
+    private static void exigirDestino(ManagerType tipo, UUID idAsignacion) {
+        if (tipo == null) {
+            throw new IllegalArgumentException("Un encargado necesita saber de que se encarga");
+        }
+        if (idAsignacion == null) {
+            throw new IllegalArgumentException(
+                    "Un encargado de tipo " + tipo + " necesita la asignacion que le corresponde");
+        }
     }
 
     @Override
@@ -131,9 +175,5 @@ public class Manager extends AggregateRoot {
     @Override
     protected String aggregateId() {
         return idPersona.toString();
-    }
-
-    private ManagerPayload payload() {
-        return new ManagerPayload(tipo, idAsignacion);
     }
 }

@@ -1,45 +1,58 @@
 package com.malphasos.malphasos.client.infrastructure.output.mapper;
 
 import com.malphasos.malphasos.client.domain.manager.Manager;
+import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
 import com.malphasos.malphasos.client.domain.manager.ManagerType;
-import com.malphasos.malphasos.client.infrastructure.output.entities.ManagerEntity;
+import com.malphasos.malphasos.client.infrastructure.output.entities.ManagerHeadquarterEntity;
+import com.malphasos.malphasos.client.infrastructure.output.entities.ManagerServiceAreaEntity;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * Traduce entre el agregado y su fila.
+ * Traduce entre el agregado y sus filas.
  *
- * <p>Es el único mapper del módulo donde las dos formas no se corresponden campo a campo. El
- * agregado guarda <b>una</b> asignación y el tipo dice a qué apunta; la tabla tiene <b>dos</b>
- * columnas de las que solo una vale. Traducir en un sentido es elegir columna según el tipo, y en
- * el otro, quedarse con la que no está vacía.
- *
- * <p>La forma del agregado es la que no admite estados imposibles: en la tabla, sin el {@code CHECK}
- * que las ata al tipo, cabría una fila con las dos columnas llenas.
+ * <p>Las dos formas no se corresponden fila a fila: el agregado es la persona con todas sus
+ * asignaciones, y la base las reparte en dos tablas según el tipo (`V41`, 2026-10-27). Traducir en un
+ * sentido es reunir por persona las filas de las dos; en el otro, mandar cada asignación a la suya.
+ * (Hasta ese día el agregado guardaba una asignación y la tabla tenía dos columnas de las que solo una
+ * valía, y este mapper elegía la columna según el tipo.)
  */
 @Component
 public class ManagerPersistenceMapper {
 
-    public Manager toDomain(ManagerEntity entity) {
-        ManagerType tipo = ManagerType.valueOf(entity.getTipo());
+    /** Un encargado por persona, en el orden en que aparece por primera vez. */
+    public List<Manager> toDomainList(
+            List<ManagerHeadquarterEntity> sedes, List<ManagerServiceAreaEntity> areas) {
 
-        return Manager.rehydrate(
-                entity.getIdPersona(),
-                tipo,
-                tipo == ManagerType.HEADQUARTER ? entity.getIdSede() : entity.getIdAreaServicio(),
-                entity.isEstadoActivo());
+        Map<UUID, List<ManagerAssignment>> porPersona = new LinkedHashMap<>();
+
+        sedes.forEach(fila -> porPersona.computeIfAbsent(fila.getPersona(), p -> new ArrayList<>())
+                .add(new ManagerAssignment(ManagerType.HEADQUARTER, fila.getSede(), fila.isEstadoActivo())));
+        areas.forEach(fila -> porPersona.computeIfAbsent(fila.getPersona(), p -> new ArrayList<>())
+                .add(new ManagerAssignment(ManagerType.SERVICE_AREA, fila.getArea(), fila.isEstadoActivo())));
+
+        return porPersona.entrySet().stream()
+                .map(entrada -> Manager.rehydrate(entrada.getKey(), entrada.getValue()))
+                .toList();
     }
 
-    public List<Manager> toDomainList(List<ManagerEntity> entities) {
-        return entities.stream().map(this::toDomain).toList();
+    public List<ManagerHeadquarterEntity> toHeadquarterEntities(Manager encargado) {
+        return encargado.getAsignaciones().stream()
+                .filter(asignacion -> asignacion.tipo() == ManagerType.HEADQUARTER)
+                .map(asignacion -> new ManagerHeadquarterEntity(
+                        encargado.getIdPersona(), asignacion.idAsignacion(), asignacion.estadoActivo()))
+                .toList();
     }
 
-    public ManagerEntity toEntity(Manager encargado) {
-        return new ManagerEntity(
-                encargado.getIdPersona(),
-                encargado.getTipo().name(),
-                encargado.getIdSede(),
-                encargado.getIdAreaServicio(),
-                encargado.isEstadoActivo());
+    public List<ManagerServiceAreaEntity> toServiceAreaEntities(Manager encargado) {
+        return encargado.getAsignaciones().stream()
+                .filter(asignacion -> asignacion.tipo() == ManagerType.SERVICE_AREA)
+                .map(asignacion -> new ManagerServiceAreaEntity(
+                        encargado.getIdPersona(), asignacion.idAsignacion(), asignacion.estadoActivo()))
+                .toList();
     }
 }
