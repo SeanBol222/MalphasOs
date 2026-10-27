@@ -18,9 +18,14 @@ que se mantiene con el código. Cada carpeta de aquí es **una foto fechada** de
 
 ## La regla que manda aquí
 
-Lo dibujado como cambio es **previsto**, no implementado —ver [[regla-implementado-vs-previsto]]—, y
-los diagramas lo dicen en el título: «PROPUESTO». Cuando la migración entre, esta nota lo dirá con su
-fecha; si el plan cambia antes, se regeneran los diagramas.
+Lo dibujado como cambio es **previsto** mientras no se implemente —ver [[regla-implementado-vs-previsto]]—,
+y los diagramas lo dicen en el título: «PROPUESTO». Cuando la migración entra, esta nota lo dice con su
+fecha, y los diagramas **no se regeneran**: son la foto del plan que se aprobó.
+
+**`V41` está implementada desde el 2026-10-27**, tal como la dibujan los diagramas: las dos tablas, la
+llave compuesta, el paso de los datos y la regla del mismo cliente en el servicio. Lo que el plan dejaba
+para después —que una pantalla ponga a un encargado ya registrado al frente de otra sede— sigue
+pendiente, y está en la deuda técnica de `SecondBrain/`.
 
 ## `V41-encargados/` — un encargado con varias sedes y áreas
 

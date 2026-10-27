@@ -2,8 +2,8 @@ package com.malphasos.malphasos.client.application.ports.input;
 
 import com.malphasos.malphasos.client.application.services.manager.commands.AssignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.DeactivateManagerCommand;
-import com.malphasos.malphasos.client.application.services.manager.commands.ReassignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.RegisterManagerCommand;
+import com.malphasos.malphasos.client.application.services.manager.commands.RelieveManagerCommand;
 import com.malphasos.malphasos.client.domain.manager.Manager;
 import java.util.List;
 import java.util.UUID;
@@ -23,11 +23,15 @@ public interface ManagerServicePort {
     /** Crea la persona y la pone al frente de una sede o de un área. */
     Manager register(RegisterManagerCommand command);
 
-    /** Pone al frente a alguien que ya existe como persona. */
+    /**
+     * Pone al frente a alguien que ya existe como persona. Si ya es encargado, la asignación se suma
+     * a las que tiene, y tiene que ser del mismo cliente que ellas.
+     */
     Manager assign(AssignManagerCommand command);
 
-    Manager reassign(ReassignManagerCommand command);
+    /** Lo releva de una sede o de un área, y solo de esa. */
+    Manager relieve(RelieveManagerCommand command);
 
-    /** Releva al encargado sin borrarlo, conservando el historial. */
+    /** Lo releva de todo sin borrarlo, conservando el historial. */
     void deactivate(DeactivateManagerCommand command);
 }

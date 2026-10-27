@@ -485,6 +485,9 @@ class SecurityIntegrationTest {
             "DELETE, /v1/api/headquarters/" + ID,
             "DELETE, /v1/api/service-areas/" + ID,
             "DELETE, /v1/api/managers/" + ID,
+            // Relevar de una sede o de un area, del 2026-10-27: un encargado tiene varias.
+            "DELETE, /v1/api/managers/" + ID + "/headquarters/" + ID,
+            "DELETE, /v1/api/managers/" + ID + "/service-areas/" + ID,
             "DELETE, /v1/api/brands/" + ID,
             "DELETE, /v1/api/manufacturers/" + ID,
             "DELETE, /v1/api/models/" + ID,
@@ -721,8 +724,14 @@ class SecurityIntegrationTest {
             // endpoint quedaria cerrado para todo el mundo, administrador incluido.
             autorizado(get("/v1/api/managers").with(conRoles("engineer.read")));
             autorizado(delete("/v1/api/managers/" + ID).with(conRoles("engineer.assign")));
+            autorizado(delete("/v1/api/managers/" + ID + "/headquarters/" + ID)
+                    .with(conRoles("engineer.assign")));
+            autorizado(delete("/v1/api/managers/" + ID + "/service-areas/" + ID)
+                    .with(conRoles("engineer.assign")));
 
             prohibido(delete("/v1/api/managers/" + ID).with(conRoles("engineer.write")));
+            prohibido(delete("/v1/api/managers/" + ID + "/headquarters/" + ID)
+                    .with(conRoles("engineer.read")));
         }
     }
 

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.malphasos.malphasos.client.application.ports.output.ManagerPersistencePort;
 import com.malphasos.malphasos.client.application.ports.output.ServiceAreaPersistencePort;
 import com.malphasos.malphasos.client.domain.manager.Manager;
+import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
 import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
@@ -41,11 +42,13 @@ class ServiceAreaResponsibleServiceTest {
     @InjectMocks private ServiceAreaResponsibleService service;
 
     private Manager delArea(UUID persona, boolean activo) {
-        return Manager.rehydrate(persona, ManagerType.SERVICE_AREA, AREA, activo);
+        return Manager.rehydrate(
+                persona, List.of(new ManagerAssignment(ManagerType.SERVICE_AREA, AREA, activo)));
     }
 
     private Manager deLaSede(UUID persona) {
-        return Manager.rehydrate(persona, ManagerType.HEADQUARTER, SEDE, true);
+        return Manager.rehydrate(
+                persona, List.of(new ManagerAssignment(ManagerType.HEADQUARTER, SEDE, true)));
     }
 
     private PersonCommunicationResponse persona(

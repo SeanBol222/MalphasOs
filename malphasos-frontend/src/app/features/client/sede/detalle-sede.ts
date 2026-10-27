@@ -6,7 +6,7 @@ import { ClienteApi } from '../cliente-api';
 import { EquipoApi } from '../../equipment/equipo-api';
 import { OrdenApi } from '../../workOrder/orden-api';
 import { fechaCorta } from '../../../core/fechas';
-import { EncargadoApi } from '../encargado-api';
+import { asignacionesDe, EncargadoApi } from '../encargado-api';
 import { SedeApi } from '../sede-api';
 import { nombreCompleto, PersonaApi } from '../../person/persona-api';
 import { Sesion } from '../../../core/auth/sesion';
@@ -91,7 +91,7 @@ export class DetalleSede {
   private readonly personas = inject(PersonaApi).listar(
     computed(() => this.sesion.puede('person.read')),
   );
-  protected readonly bajaDeEncargado = this.encargadoApi.retirar();
+  protected readonly bajaDeEncargado = this.encargadoApi.relevar();
 
   private readonly formBuilder = inject(FormBuilder);
 
@@ -153,33 +153,39 @@ export class DetalleSede {
    *
    * <p>Se recorta aqui porque el API no ofrece filtrar por sede. Y el nombre se resuelve contra la
    * lista de personas: la respuesta del encargado solo trae identificadores.
+   *
+   * <p><b>Una fila por asignacion, no por persona</b> (2026-10-27): un encargado puede estarlo de la
+   * sede y de varias de sus areas, y quitarlo de una no lo quita de las demas. Solo trae lo activo: de
+   * lo que se le retiro ya no responde.
    */
   protected readonly encargadosDeLaSede = computed(() => {
     const areas = this.areas.data() ?? [];
     const porArea = new Map(areas.map((area) => [area.id, area.nombre]));
     const porPersona = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
 
-    return (this.encargados.data() ?? [])
-      .filter(
-        (encargado) =>
-          encargado.idSede === this.id() ||
-          (encargado.idAreaServicio && porArea.has(encargado.idAreaServicio)),
-      )
-      .map((encargado) => ({
-        idPersona: encargado.idPersona!,
-        idArea: encargado.tipo === 'SERVICE_AREA' ? encargado.idAreaServicio : undefined,
-        estadoActivo: encargado.estadoActivo,
-        // Se dice de que tipo es la asignacion y no solo su nombre: «Urgencias» a secas no
-        // distingue un area de una sede que se llamara igual.
-        aCargoDe:
-          encargado.tipo === 'SERVICE_AREA'
-            ? `Área: ${porArea.get(encargado.idAreaServicio!) ?? 'de esta sede'}`
-            : 'Toda la sede',
-        // Sin la lista de personas -por permisos o porque aun no llego- no se inventa un nombre.
-        nombre: porPersona.has(encargado.idPersona!)
-          ? nombreCompleto(porPersona.get(encargado.idPersona!)!)
-          : '',
-      }));
+    return (this.encargados.data() ?? []).flatMap((encargado) =>
+      asignacionesDe(encargado)
+        .filter(({ tipo, idAsignacion }) =>
+          tipo === 'HEADQUARTER' ? idAsignacion === this.id() : porArea.has(idAsignacion),
+        )
+        .map(({ tipo, idAsignacion }) => ({
+          idPersona: encargado.idPersona!,
+          tipo,
+          idAsignacion,
+          idArea: tipo === 'SERVICE_AREA' ? idAsignacion : undefined,
+          estadoActivo: true,
+          // Se dice de que tipo es la asignacion y no solo su nombre: «Urgencias» a secas no
+          // distingue un area de una sede que se llamara igual.
+          aCargoDe:
+            tipo === 'SERVICE_AREA'
+              ? `Área: ${porArea.get(idAsignacion) ?? 'de esta sede'}`
+              : 'Toda la sede',
+          // Sin la lista de personas -por permisos o porque aun no llego- no se inventa un nombre.
+          nombre: porPersona.has(encargado.idPersona!)
+            ? nombreCompleto(porPersona.get(encargado.idPersona!)!)
+            : '',
+        })),
+    );
   });
 
   /**
@@ -278,8 +284,13 @@ export class DetalleSede {
     this.cierreDeArea.mutate(id);
   }
 
-  protected quitarEncargado(idPersona: string): void {
-    this.bajaDeEncargado.mutate(idPersona);
+  /** Lo quita de esa sede o de esa area, y solo de esa. */
+  protected quitarEncargado(encargado: {
+    idPersona: string;
+    tipo: 'HEADQUARTER' | 'SERVICE_AREA';
+    idAsignacion: string;
+  }): void {
+    this.bajaDeEncargado.mutate(encargado);
   }
 
   protected cerrar(): void {

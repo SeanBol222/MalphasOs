@@ -64,7 +64,8 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM protocolo_tipo_equipo WHERE k_id_protocolo IN (SELECT k_id_protocolo FROM protocolo WHERE n_clave LIKE 'hv prueba %')",
             "DELETE FROM protocolo WHERE n_clave LIKE 'hv prueba %'",
             "DELETE FROM tipo_equipo",
-            "DELETE FROM encargado",
+            "DELETE FROM encargado_sede",
+            "DELETE FROM encargado_area",
             "DELETE FROM area_servicio",
             "DELETE FROM sede",
             "DELETE FROM correo_cliente",
@@ -465,7 +466,7 @@ class InterventionRecordingIntegrationTest {
                 persona, unico());
         // Encargada de la SEDE, no del area: el area no tiene, asi que responde la sede.
         jdbcTemplate.update(
-                "INSERT INTO encargado (k_identificador, t_tipo_encargado, k_id_sede) VALUES (?, 'HEADQUARTER', ?)",
+                "INSERT INTO encargado_sede (k_identificador, k_id_sede) VALUES (?, ?)",
                 persona, contexto.sede());
         jdbcTemplate.update(
                 "INSERT INTO telefono_cliente (k_id_telefono_cliente, n_telefono_cliente, k_id_cliente) VALUES (?, '3001112233', ?)",

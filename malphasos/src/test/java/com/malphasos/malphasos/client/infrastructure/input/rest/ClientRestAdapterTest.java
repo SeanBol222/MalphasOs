@@ -19,6 +19,9 @@ import com.malphasos.malphasos.client.application.ports.input.ManagerServicePort
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
 import com.malphasos.malphasos.client.application.services.headquarter.commands.CreateHeadquarterCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.RegisterManagerCommand;
+import com.malphasos.malphasos.client.application.services.manager.commands.RelieveManagerCommand;
+import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
@@ -26,11 +29,13 @@ import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.client.domain.headquarter.Address;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.domain.manager.Manager;
+import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
 import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ClientCreateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ContactRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.HeadquarterCreateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.HeadquarterUpdateRequest;
+import com.malphasos.malphasos.client.infrastructure.input.model.request.ManagerAssignRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ManagerRegisterRequest;
 import com.malphasos.malphasos.location.domain.exception.CityNotFoundException;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -217,7 +222,8 @@ class ClientRestAdapterTest {
         UUID persona = UUID.randomUUID();
         UUID sede = UUID.randomUUID();
         when(managerServicePort.register(any()))
-                .thenReturn(Manager.rehydrate(persona, ManagerType.HEADQUARTER, sede, true));
+                .thenReturn(Manager.rehydrate(
+                        persona, List.of(new ManagerAssignment(ManagerType.HEADQUARTER, sede, true))));
 
         mockMvc.perform(post("/v1/api/managers")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -227,8 +233,11 @@ class ClientRestAdapterTest {
                                 List.of(new ContactRequest("grace@cliente.com")), List.of()))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.idPersona").value(persona.toString()))
-                .andExpect(jsonPath("$.idSede").value(sede.toString()))
-                .andExpect(jsonPath("$.idAreaServicio").doesNotExist());
+                // Desde V41 lleva las dos listas, y no un tipo con una sola sede o area.
+                .andExpect(jsonPath("$.idsSede[0]").value(sede.toString()))
+                .andExpect(jsonPath("$.idsSede.length()").value(1))
+                .andExpect(jsonPath("$.idsAreaServicio").isEmpty())
+                .andExpect(jsonPath("$.tipo").doesNotExist());
 
         ArgumentCaptor<RegisterManagerCommand> comando =
                 ArgumentCaptor.forClass(RegisterManagerCommand.class);
@@ -237,6 +246,70 @@ class ClientRestAdapterTest {
         // El tipo de persona no viaja desde la peticion: lo fija el servicio.
         assertThat(comando.getValue().persona().tipoPersona()).isNull();
         assertThat(comando.getValue().persona().cedula()).isEqualTo("1010101010");
+    }
+
+    @Test
+    @DisplayName("relevar de una sede llama al sub-recurso con su tipo y su destino, y responde 204")
+    void relevarDeUnaSede() throws Exception {
+        UUID persona = UUID.randomUUID();
+        UUID sede = UUID.randomUUID();
+
+        mockMvc.perform(delete("/v1/api/managers/" + persona + "/headquarters/" + sede))
+                .andExpect(status().isNoContent());
+
+        verify(managerServicePort).relieve(
+                new RelieveManagerCommand(persona, ManagerType.HEADQUARTER, sede));
+    }
+
+    @Test
+    @DisplayName("relevar de un area va a su propio sub-recurso, con su tipo")
+    void relevarDeUnArea() throws Exception {
+        UUID persona = UUID.randomUUID();
+        UUID area = UUID.randomUUID();
+
+        mockMvc.perform(delete("/v1/api/managers/" + persona + "/service-areas/" + area))
+                .andExpect(status().isNoContent());
+
+        verify(managerServicePort).relieve(
+                new RelieveManagerCommand(persona, ManagerType.SERVICE_AREA, area));
+    }
+
+    @Test
+    @DisplayName("relevar de algo que no tenia a cargo es 404 con su propio codigo, no el del encargado")
+    void relevarDeLoQueNoTiene() throws Exception {
+        UUID persona = UUID.randomUUID();
+        UUID sede = UUID.randomUUID();
+        when(managerServicePort.relieve(any())).thenThrow(
+                new ManagerAssignmentNotFoundException(persona, ManagerType.HEADQUARTER, sede));
+
+        mockMvc.perform(delete("/v1/api/managers/" + persona + "/headquarters/" + sede))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ERR_CLIENT_009"));
+    }
+
+    @Test
+    @DisplayName("asignar una sede de otro cliente es un conflicto, 409, con su propio codigo")
+    void asignarDeOtroCliente() throws Exception {
+        UUID persona = UUID.randomUUID();
+        UUID sede = UUID.randomUUID();
+        when(managerServicePort.assign(any())).thenThrow(new ManagerOfAnotherClientException(
+                persona, UUID.randomUUID(), UUID.randomUUID()));
+
+        mockMvc.perform(post("/v1/api/managers/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(
+                                new ManagerAssignRequest(persona, ManagerType.HEADQUARTER, sede))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_CLIENT_010"));
+    }
+
+    @Test
+    @DisplayName("el traslado ya no existe: con varias asignaciones es relevar y asignar")
+    void sinTraslado() throws Exception {
+        mockMvc.perform(patch("/v1/api/managers/" + UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test

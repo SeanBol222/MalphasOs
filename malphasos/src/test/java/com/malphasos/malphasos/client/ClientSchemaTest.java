@@ -25,7 +25,8 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM encargado",
+            "DELETE FROM encargado_sede",
+            "DELETE FROM encargado_area",
             "DELETE FROM area_servicio",
             "DELETE FROM sede",
             "DELETE FROM representante_legal",
@@ -108,28 +109,48 @@ class ClientSchemaTest {
         return id;
     }
 
-    private void insertManager(UUID persona, String tipo, UUID sede, UUID area) {
+    private void insertManagerOfHeadquarter(UUID persona, UUID sede) {
         jdbcTemplate.update(
-                """
-                INSERT INTO encargado (k_identificador, t_tipo_encargado, k_id_sede, k_id_area_servicio)
-                VALUES (?, ?, ?, ?)
-                """,
-                persona, tipo, sede, area);
+                "INSERT INTO encargado_sede (k_identificador, k_id_sede) VALUES (?, ?)", persona, sede);
+    }
+
+    private void insertManagerOfArea(UUID persona, UUID area) {
+        jdbcTemplate.update(
+                "INSERT INTO encargado_area (k_identificador, k_id_area_servicio) VALUES (?, ?)",
+                persona, area);
+    }
+
+    private UUID insertArea(UUID sede, String nombre) {
+        UUID area = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO area_servicio (k_id_area_servicio, n_nombre_area, k_id_sede) VALUES (?, ?, ?)",
+                area, nombre, sede);
+
+        return area;
     }
 
     @Test
-    @DisplayName("las siete tablas del modulo existen tras la migracion")
+    @DisplayName("las ocho tablas del modulo existen tras la migracion, y encargado ya no")
     void migracionCreaLasTablas() {
+        // Eran siete hasta V41, el 2026-10-27: encargado se partio en una tabla por tipo.
         Integer tablas = jdbcTemplate.queryForObject(
                 """
                 SELECT count(*) FROM information_schema.tables
                 WHERE table_schema = 'public'
                   AND table_name IN ('cliente', 'correo_cliente', 'telefono_cliente',
-                                     'representante_legal', 'sede', 'area_servicio', 'encargado')
+                                     'representante_legal', 'sede', 'area_servicio',
+                                     'encargado_sede', 'encargado_area')
+                """,
+                Integer.class);
+        Integer vieja = jdbcTemplate.queryForObject(
+                """
+                SELECT count(*) FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'encargado'
                 """,
                 Integer.class);
 
-        assertThat(tablas).isEqualTo(7);
+        assertThat(tablas).isEqualTo(8);
+        assertThat(vieja).isZero();
     }
 
     @Test
@@ -191,51 +212,78 @@ class ClientSchemaTest {
     }
 
     @Test
-    @DisplayName("un encargado de sede necesita sede y no puede tener area")
-    void encargadoDeSede() {
-        UUID sede = insertHeadquarter(insertClient("NIT_juridico"), insertCity(), "Sede Norte");
+    @DisplayName("una persona puede estar a cargo de varias sedes y varias areas (V41)")
+    void encargadoDeVariasCosas() {
+        UUID cliente = insertClient("NIT_juridico");
+        UUID ciudad = insertCity();
+        UUID norte = insertHeadquarter(cliente, ciudad, "Sede Norte");
+        UUID sur = insertHeadquarter(cliente, ciudad, "Sede Sur");
+        UUID uci = insertArea(norte, "UCI");
+        UUID urgencias = insertArea(sur, "Urgencias");
+        UUID persona = insertPerson();
 
-        assertThatCode(() -> insertManager(insertPerson(), "HEADQUARTER", sede, null))
+        assertThatCode(() -> {
+                    insertManagerOfHeadquarter(persona, norte);
+                    insertManagerOfHeadquarter(persona, sur);
+                    insertManagerOfArea(persona, uci);
+                    insertManagerOfArea(persona, urgencias);
+                })
                 .doesNotThrowAnyException();
-
-        // El original dejaba ambas columnas anulables sin atarlas al tipo.
-        assertThatThrownBy(() -> insertManager(insertPerson(), "HEADQUARTER", null, null))
-                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
-    @DisplayName("un encargado de area necesita area y no puede tener sede")
-    void encargadoDeArea() {
-        UUID sede = insertHeadquarter(insertClient("NIT_juridico"), insertCity(), "Sede Norte");
-        UUID area = UUID.randomUUID();
-        jdbcTemplate.update(
-                "INSERT INTO area_servicio (k_id_area_servicio, n_nombre_area, k_id_sede) VALUES (?, 'UCI', ?)",
-                area, sede);
-
-        assertThatCode(() -> insertManager(insertPerson(), "SERVICE_AREA", null, area))
-                .doesNotThrowAnyException();
-
-        assertThatThrownBy(() -> insertManager(insertPerson(), "SERVICE_AREA", sede, area))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("un encargado es una persona: sin persona no hay encargado")
-    void encargadoExigePersona() {
-        UUID sede = insertHeadquarter(insertClient("NIT_juridico"), insertCity(), "Sede Norte");
-
-        assertThatThrownBy(() -> insertManager(UUID.randomUUID(), "HEADQUARTER", sede, null))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("no puede haber dos encargados sobre la misma persona")
-    void unEncargadoPorPersona() {
+    @DisplayName("la misma sede no se repite para una persona: se reactiva, no se duplica")
+    void sedeRepetida() {
         UUID sede = insertHeadquarter(insertClient("NIT_juridico"), insertCity(), "Sede Norte");
         UUID persona = insertPerson();
-        insertManager(persona, "HEADQUARTER", sede, null);
+        insertManagerOfHeadquarter(persona, sede);
 
-        assertThatThrownBy(() -> insertManager(persona, "HEADQUARTER", sede, null))
+        assertThatThrownBy(() -> insertManagerOfHeadquarter(persona, sede))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("la misma area no se repite para una persona")
+    void areaRepetida() {
+        UUID area = insertArea(
+                insertHeadquarter(insertClient("NIT_juridico"), insertCity(), "Sede Norte"), "UCI");
+        UUID persona = insertPerson();
+        insertManagerOfArea(persona, area);
+
+        assertThatThrownBy(() -> insertManagerOfArea(persona, area))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("varias personas pueden estar a cargo de la misma sede")
+    void variasPersonasEnUnaSede() {
+        UUID sede = insertHeadquarter(insertClient("NIT_juridico"), insertCity(), "Sede Norte");
+        insertManagerOfHeadquarter(insertPerson(), sede);
+
+        assertThatCode(() -> insertManagerOfHeadquarter(insertPerson(), sede))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("un encargado es una persona: sin persona no hay encargado, de sede ni de area")
+    void encargadoExigePersona() {
+        UUID sede = insertHeadquarter(insertClient("NIT_juridico"), insertCity(), "Sede Norte");
+        UUID area = insertArea(sede, "UCI");
+
+        assertThatThrownBy(() -> insertManagerOfHeadquarter(UUID.randomUUID(), sede))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertManagerOfArea(UUID.randomUUID(), area))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("una asignacion apunta a una sede o un area que existen")
+    void asignacionExigeDestino() {
+        UUID persona = insertPerson();
+
+        assertThatThrownBy(() -> insertManagerOfHeadquarter(persona, UUID.randomUUID()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertManagerOfArea(persona, UUID.randomUUID()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -250,7 +298,7 @@ class ClientSchemaTest {
                 "INSERT INTO representante_legal (k_identificador, k_id_cliente) VALUES (?, ?)",
                 persona, uno);
 
-        // A diferencia de encargado, la relacion es de muchos a muchos: la llave es compuesta.
+        // La relacion es de muchos a muchos: la llave es compuesta, como la de encargado_sede.
         assertThatCode(() -> jdbcTemplate.update(
                         "INSERT INTO representante_legal (k_identificador, k_id_cliente) VALUES (?, ?)",
                         persona, otro))

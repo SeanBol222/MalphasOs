@@ -60,7 +60,10 @@ const URL_ENCARGADOS = 'http://localhost:8081/v1/api/managers';
 
 /** Un encargado de la sede de la orden, que es el responsable del cliente en ese sitio. */
 const ENCARGADOS = [
-  { idPersona: 'p2', idSede: ID_SEDE, idAreaServicio: undefined, tipo: 'SEDE', estadoActivo: true },
+  // De otra sede del mismo cliente, y primero en la lista: el responsable es el de la sede de la orden,
+  // no el primero que tenga alguna sede.
+  { idPersona: 'p9', idsSede: ['otra-sede'], idsAreaServicio: [], estadoActivo: true },
+  { idPersona: 'p2', idsSede: ['otra-sede', ID_SEDE], idsAreaServicio: [], estadoActivo: true },
 ];
 
 @Component({ selector: 'app-orden-falsa', template: '' })

@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ClienteApi } from '../../client/cliente-api';
-import { EncargadoApi } from '../../client/encargado-api';
+import { asignacionesDe, EncargadoApi } from '../../client/encargado-api';
 import { SedeApi } from '../../client/sede-api';
 import { normalizar } from '../../../core/texto';
 import { nombreCompleto, PersonaApi } from '../persona-api';
@@ -104,12 +104,15 @@ export class ListaPersonas {
     }
     for (const encargado of this.encargados.data() ?? []) {
       if (!encargado.estadoActivo || !encargado.idPersona) continue;
-      if (encargado.tipo === 'SERVICE_AREA') {
-        const donde = areas.get(encargado.idAreaServicio);
-        anotar(encargado.idPersona, donde?.sede.idCliente, donde?.area.nombre);
-      } else {
-        const sede = sedes.get(encargado.idSede);
-        anotar(encargado.idPersona, sede?.idCliente, sede?.nombre);
+      // Desde el 2026-10-27 esta a cargo de varias cosas: se anotan todas.
+      for (const { tipo, idAsignacion } of asignacionesDe(encargado)) {
+        if (tipo === 'SERVICE_AREA') {
+          const donde = areas.get(idAsignacion);
+          anotar(encargado.idPersona, donde?.sede.idCliente, donde?.area.nombre);
+        } else {
+          const sede = sedes.get(idAsignacion);
+          anotar(encargado.idPersona, sede?.idCliente, sede?.nombre);
+        }
       }
     }
 

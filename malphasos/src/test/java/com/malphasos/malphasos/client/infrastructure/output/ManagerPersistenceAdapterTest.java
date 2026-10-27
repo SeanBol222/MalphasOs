@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.domain.manager.Manager;
+import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
 import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -16,15 +17,19 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
 
 /**
- * Ejercita el adaptador contra un PostgreSQL real. Lo que importa aquí es que el mapeo entre la
- * asignación única del agregado y las dos columnas de la tabla satisfaga el {@code CHECK} que las
- * ata al tipo: es la restricción que el esquema original no tenía.
+ * Ejercita el adaptador contra un PostgreSQL real.
+ *
+ * <p>Desde `V41` (2026-10-27) lo que importa es que un encargado se lea <b>entero</b> desde sus dos
+ * tablas —todas sus sedes y todas sus áreas— y que guardar no borre ni duplique: relevar apaga la fila,
+ * y volver a asignar la enciende. Hasta ese día era que la asignación única del agregado cupiera en el
+ * {@code CHECK} que ataba el tipo a una de dos columnas.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM encargado",
+            "DELETE FROM encargado_sede",
+            "DELETE FROM encargado_area",
             "DELETE FROM area_servicio",
             "DELETE FROM sede",
             "DELETE FROM cliente",
@@ -104,8 +109,14 @@ class ManagerPersistenceAdapterTest {
         return area;
     }
 
+    private boolean activa(String tabla, String columna, UUID persona, UUID destino) {
+        return jdbcTemplate.queryForObject(
+                "SELECT b_estado_activo FROM " + tabla + " WHERE k_identificador = ? AND " + columna + " = ?",
+                Boolean.class, persona, destino);
+    }
+
     @Test
-    @DisplayName("un encargado de sede se guarda con sede y sin area, y el CHECK lo acepta")
+    @DisplayName("un encargado de sede se guarda en encargado_sede y se lee con su sede")
     void encargadoDeSede() {
         UUID persona = unaPersona();
         UUID sede = unaSede();
@@ -113,18 +124,13 @@ class ManagerPersistenceAdapterTest {
         adapter.save(Manager.forHeadquarter(persona, sede));
 
         Manager recuperado = adapter.findByPerson(persona).orElseThrow();
-        assertThat(recuperado.getTipo()).isEqualTo(ManagerType.HEADQUARTER);
-        assertThat(recuperado.getIdSede()).isEqualTo(sede);
-        assertThat(recuperado.getIdAreaServicio()).isNull();
-
-        assertThat(jdbcTemplate.queryForObject(
-                        "SELECT k_id_area_servicio FROM encargado WHERE k_identificador = ?",
-                        UUID.class, persona))
-                .isNull();
+        assertThat(recuperado.getIdsSede()).containsExactly(sede);
+        assertThat(recuperado.getIdsAreaServicio()).isEmpty();
+        assertThat(activa("encargado_sede", "k_id_sede", persona, sede)).isTrue();
     }
 
     @Test
-    @DisplayName("un encargado de area se guarda con area y sin sede")
+    @DisplayName("un encargado de area se guarda en encargado_area")
     void encargadoDeArea() {
         UUID persona = unaPersona();
         UUID area = unArea(unaSede());
@@ -132,66 +138,126 @@ class ManagerPersistenceAdapterTest {
         adapter.save(Manager.forServiceArea(persona, area));
 
         Manager recuperado = adapter.findByPerson(persona).orElseThrow();
-        assertThat(recuperado.getTipo()).isEqualTo(ManagerType.SERVICE_AREA);
-        assertThat(recuperado.getIdAreaServicio()).isEqualTo(area);
-        assertThat(recuperado.getIdSede()).isNull();
+        assertThat(recuperado.getIdsAreaServicio()).containsExactly(area);
+        assertThat(recuperado.getIdsSede()).isEmpty();
     }
 
     @Test
-    @DisplayName("la identidad del encargado es la de la persona: no hay columna propia")
-    void identidadCompartida() {
+    @DisplayName("se lee entero: todas sus sedes y todas sus areas, de las dos tablas")
+    void variasAsignaciones() {
         UUID persona = unaPersona();
-        adapter.save(Manager.forHeadquarter(persona, unaSede()));
+        UUID norte = unaSede();
+        UUID sur = unaSede();
+        UUID uci = unArea(norte);
 
-        assertThat(jdbcTemplate.queryForObject(
-                        "SELECT count(*) FROM encargado WHERE k_identificador = ?",
-                        Integer.class, persona))
-                .isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("trasladar de sede a area cambia las dos columnas a la vez")
-    void trasladar() {
-        UUID persona = unaPersona();
-        UUID sede = unaSede();
-        UUID area = unArea(sede);
-
-        adapter.save(Manager.forHeadquarter(persona, sede));
-
-        Manager encargado = adapter.findByPerson(persona).orElseThrow();
-        encargado.reassignTo(ManagerType.SERVICE_AREA, area);
+        Manager encargado = Manager.forHeadquarter(persona, norte);
+        encargado.assignTo(ManagerType.HEADQUARTER, sur);
+        encargado.assignTo(ManagerType.SERVICE_AREA, uci);
         adapter.save(encargado);
 
-        // Si el mapeo dejara la sede puesta al cambiar de tipo, el CHECK rechazaria la fila.
         Manager recuperado = adapter.findByPerson(persona).orElseThrow();
-        assertThat(recuperado.getIdSede()).isNull();
-        assertThat(recuperado.getIdAreaServicio()).isEqualTo(area);
+        assertThat(recuperado.getIdsSede()).containsExactlyInAnyOrder(norte, sur);
+        assertThat(recuperado.getIdsAreaServicio()).containsExactly(uci);
     }
 
     @Test
-    @DisplayName("los encargados se recuperan por su sede")
+    @DisplayName("una persona sin asignaciones no es encargada")
+    void sinAsignaciones() {
+        assertThat(adapter.findByPerson(unaPersona())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("relevar de una conserva la fila apagada y deja las demas como estaban")
+    void relevarDeUna() {
+        UUID persona = unaPersona();
+        UUID norte = unaSede();
+        UUID sur = unaSede();
+        Manager encargado = Manager.forHeadquarter(persona, norte);
+        encargado.assignTo(ManagerType.HEADQUARTER, sur);
+        adapter.save(encargado);
+
+        Manager leido = adapter.findByPerson(persona).orElseThrow();
+        leido.relieveFrom(ManagerType.HEADQUARTER, norte);
+        adapter.save(leido);
+
+        assertThat(activa("encargado_sede", "k_id_sede", persona, norte)).isFalse();
+        assertThat(activa("encargado_sede", "k_id_sede", persona, sur)).isTrue();
+        assertThat(adapter.findByPerson(persona).orElseThrow().getAsignaciones())
+                .containsExactlyInAnyOrder(
+                        new ManagerAssignment(ManagerType.HEADQUARTER, norte, false),
+                        new ManagerAssignment(ManagerType.HEADQUARTER, sur, true));
+    }
+
+    @Test
+    @DisplayName("volver a asignar reactiva la misma fila: la llave no deja duplicarla")
+    void reasignarReactiva() {
+        UUID persona = unaPersona();
+        UUID sede = unaSede();
+        adapter.save(Manager.forHeadquarter(persona, sede));
+        Manager relevado = adapter.findByPerson(persona).orElseThrow();
+        relevado.deactivate();
+        adapter.save(relevado);
+
+        Manager otraVez = adapter.findByPerson(persona).orElseThrow();
+        otraVez.assignTo(ManagerType.HEADQUARTER, sede);
+        adapter.save(otraVez);
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM encargado_sede WHERE k_identificador = ?",
+                        Integer.class, persona))
+                .isEqualTo(1);
+        assertThat(activa("encargado_sede", "k_id_sede", persona, sede)).isTrue();
+    }
+
+    @Test
+    @DisplayName("por sede devuelve a quienes la tienen activa, enteros, y no a los relevados")
     void porSede() {
         UUID sede = unaSede();
+        UUID otra = unaSede();
+        UUID activa = unaPersona();
+        Manager conDos = Manager.forHeadquarter(activa, sede);
+        conDos.assignTo(ManagerType.HEADQUARTER, otra);
+        adapter.save(conDos);
         adapter.save(Manager.forHeadquarter(unaPersona(), sede));
-        adapter.save(Manager.forHeadquarter(unaPersona(), sede));
-
-        assertThat(adapter.findByHeadquarter(sede)).hasSize(2);
-    }
-
-    @Test
-    @DisplayName("relevar conserva la fila con el estado en falso")
-    void relevarConservaLaFila() {
-        UUID persona = unaPersona();
-        adapter.save(Manager.forHeadquarter(persona, unaSede()));
-
-        Manager encargado = adapter.findByPerson(persona).orElseThrow();
+        UUID relevada = unaPersona();
+        Manager encargado = Manager.forHeadquarter(relevada, sede);
         encargado.deactivate();
         adapter.save(encargado);
 
-        assertThat(jdbcTemplate.queryForObject(
-                        "SELECT b_estado_activo FROM encargado WHERE k_identificador = ?",
-                        Boolean.class, persona))
-                .isFalse();
-        assertThat(adapter.findByPerson(persona)).isPresent();
+        assertThat(adapter.findByHeadquarter(sede))
+                .extracting(Manager::getIdPersona)
+                .hasSize(2)
+                .doesNotContain(relevada);
+        // Entero: la otra sede viene con el.
+        assertThat(adapter.findByHeadquarter(sede).stream()
+                        .filter(m -> m.getIdPersona().equals(activa))
+                        .findFirst().orElseThrow().getIdsSede())
+                .containsExactlyInAnyOrder(sede, otra);
+    }
+
+    @Test
+    @DisplayName("por area devuelve a quienes la tienen activa")
+    void porArea() {
+        UUID area = unArea(unaSede());
+        adapter.save(Manager.forServiceArea(unaPersona(), area));
+        UUID relevada = unaPersona();
+        Manager encargado = Manager.forServiceArea(relevada, area);
+        encargado.deactivate();
+        adapter.save(encargado);
+
+        assertThat(adapter.findByServiceArea(area)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("findAll reune por persona las filas de las dos tablas")
+    void todos() {
+        UUID persona = unaPersona();
+        UUID sede = unaSede();
+        Manager encargado = Manager.forHeadquarter(persona, sede);
+        encargado.assignTo(ManagerType.SERVICE_AREA, unArea(sede));
+        adapter.save(encargado);
+        adapter.save(Manager.forHeadquarter(unaPersona(), unaSede()));
+
+        assertThat(adapter.findAll()).hasSize(2);
     }
 }

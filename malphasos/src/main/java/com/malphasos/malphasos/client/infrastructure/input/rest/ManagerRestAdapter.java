@@ -3,8 +3,9 @@ package com.malphasos.malphasos.client.infrastructure.input.rest;
 import com.malphasos.malphasos.client.application.ports.input.ManagerServicePort;
 import com.malphasos.malphasos.client.application.services.manager.commands.AssignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.DeactivateManagerCommand;
-import com.malphasos.malphasos.client.application.services.manager.commands.ReassignManagerCommand;
 import com.malphasos.malphasos.client.application.services.manager.commands.RegisterManagerCommand;
+import com.malphasos.malphasos.client.application.services.manager.commands.RelieveManagerCommand;
+import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import com.malphasos.malphasos.client.infrastructure.input.mapper.ClientRestMapper;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ContactRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ManagerAssignRequest;
@@ -25,7 +26,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,13 +44,17 @@ import org.springframework.web.bind.annotation.RestController;
  * solo tenía la primera, de modo que un ingeniero de la empresa no podía figurar además como
  * encargado sin duplicarse.
  *
+ * <p><b>Desde el 2026-10-27 un encargado está a cargo de varias sedes y áreas</b> (`V41`), todas del
+ * mismo cliente. {@code POST /managers/assignments} suma una a las que ya tiene, y se le releva de cada
+ * una por separado, en su sub-recurso. El traslado se retiró: era relevar de una y asignar otra.
+ *
  * <p><b>Sobre las autoridades {@code engineer.*}.</b> No es un error que un controlador llamado
  * {@code Manager} exija permisos llamados {@code engineer}: son tres nombres para lo mismo. El
  * realm de Keycloak lo llama {@code engineer}, el código {@code manager} y la ERS «profesional
  * responsable». Se usa el vocabulario del realm porque es el que la documentación de despliegue ya
  * recoge, y renombrarlo obligaría a tocar el realm, los grupos y los tokens ya emitidos. Leer un
- * encargado exige {@code engineer.read}; ponerlo, trasladarlo o relevarlo, {@code engineer.assign},
- * porque las tres son la misma decisión: quién queda al frente de qué.
+ * encargado exige {@code engineer.read}; ponerlo o relevarlo, {@code engineer.assign}, porque las
+ * dos son la misma decisión: quién queda al frente de qué.
  */
 @RestController
 @RequiredArgsConstructor
@@ -95,7 +99,8 @@ public class ManagerRestAdapter {
 
     @Operation(
             summary = "Poner al frente a alguien que ya existe",
-            description = "Para una persona ya registrada en el sistema.")
+            description = "Para una persona ya registrada en el sistema. Si ya es encargado, se suma a "
+                    + "lo que tiene a cargo, que tiene que ser del mismo cliente.")
     @PreAuthorize("hasAuthority('engineer.assign')")
     @PostMapping("/assignments")
     public ResponseEntity<ManagerResponse> assignManager(
@@ -108,17 +113,34 @@ public class ManagerRestAdapter {
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
-    @Operation(summary = "Trasladar un encargado a otra sede o area")
-    @PreAuthorize("hasAuthority('engineer.assign')")
-    @PatchMapping("/{idPersona}")
-    public ManagerResponse reassignManager(
-            @PathVariable UUID idPersona, @Valid @RequestBody ManagerAssignRequest request) {
+    // El traslado —PATCH /{idPersona}— se retiró el 2026-10-27: con varias asignaciones, trasladar es
+    // relevar de una y asignar otra, y las dos operaciones existen por separado.
 
-        return clientRestMapper.toResponse(managerServicePort.reassign(
-                new ReassignManagerCommand(idPersona, request.tipo(), request.idAsignacion())));
+    @Operation(
+            summary = "Relevar a un encargado de una sede",
+            description = "Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.")
+    @PreAuthorize("hasAuthority('engineer.assign')")
+    @DeleteMapping("/{idPersona}/headquarters/{idSede}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void relieveFromHeadquarter(@PathVariable UUID idPersona, @PathVariable UUID idSede) {
+        managerServicePort.relieve(
+                new RelieveManagerCommand(idPersona, ManagerType.HEADQUARTER, idSede));
     }
 
-    @Operation(summary = "Relevar a un encargado", description = "No lo borra: lo deja inactivo.")
+    @Operation(
+            summary = "Relevar a un encargado de un area de servicio",
+            description = "Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.")
+    @PreAuthorize("hasAuthority('engineer.assign')")
+    @DeleteMapping("/{idPersona}/service-areas/{idArea}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void relieveFromServiceArea(@PathVariable UUID idPersona, @PathVariable UUID idArea) {
+        managerServicePort.relieve(
+                new RelieveManagerCommand(idPersona, ManagerType.SERVICE_AREA, idArea));
+    }
+
+    @Operation(
+            summary = "Relevar a un encargado de todo",
+            description = "No lo borra: deja inactivas todas sus asignaciones.")
     @PreAuthorize("hasAuthority('engineer.assign')")
     @DeleteMapping("/{idPersona}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

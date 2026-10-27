@@ -94,10 +94,11 @@ const SEDES = [
   },
 ];
 const ENCARGADOS = [
-  { idPersona: 'p4', idAreaServicio: 'a1', tipo: 'SERVICE_AREA', estadoActivo: true },
-  { idPersona: 'p5', idSede: 's1', tipo: 'HEADQUARTER', estadoActivo: true },
-  // Retirada: la representante ya no responde de la sede, y no debe decirlo.
-  { idPersona: 'p3', idSede: 's1', tipo: 'HEADQUARTER', estadoActivo: false },
+  { idPersona: 'p4', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true },
+  { idPersona: 'p5', idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
+  // Retirada: la representante ya no responde de la sede, y no debe decirlo. Desde V41 la respuesta
+  // solo trae lo activo, asi que llega sin nada a cargo.
+  { idPersona: 'p3', idsSede: [], idsAreaServicio: [], estadoActivo: false },
 ];
 
 /** Un administrador: ve todo y registra a la gente del cliente, no a la de la casa. */
@@ -175,6 +176,23 @@ describe('Listado de personas', () => {
       'Encargado del cliente · Sede principal',
       'Clínica del Norte',
     ]);
+  });
+
+  it('quien esta a cargo de varias cosas las dice todas (V41)', async () => {
+    // Desde el 2026-10-27 un encargado responde por varias sedes y areas del mismo cliente.
+    montar();
+    fixture.detectChanges();
+    await asentar(fixture);
+    http
+      .match(URL_ENCARGADOS)
+      .forEach((p) =>
+        p.flush([
+          { idPersona: 'p4', idsSede: ['s1'], idsAreaServicio: ['a1'], estadoActivo: true },
+        ]),
+      );
+    await abrir();
+
+    expect(celdas('p4')[2]).toBe('Encargado del cliente · Sede principal, Laboratorio');
   });
 
   it('las iniciales de la casa van en tinta y las del cliente en papel', async () => {

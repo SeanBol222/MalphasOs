@@ -381,8 +381,9 @@ export class DetalleReporte {
    * <p>Se filtra de la lista completa de encargados porque <b>el API no publica «los encargados de una
    * sede»</b>: `GET /v1/api/managers` devuelve todos. Está anotado como deuda, y aquí se nota.
    *
-   * <p>Solo los de sede, no los de área: un encargado lo es de una cosa o de la otra, y quien responde
-   * por el sitio donde se firma el servicio es el de la sede.
+   * <p>Solo los de sede, no los de área: quien responde por el sitio donde se firma el servicio es el
+   * de la sede. Desde el 2026-10-27 un encargado puede estarlo de varias sedes, y basta con que esta
+   * sea una de ellas.
    */
   protected readonly encargado = computed(() => {
     const idSede = this.orden.data()?.idSede;
@@ -392,7 +393,7 @@ export class DetalleReporte {
     }
 
     const suyo = (this.encargados.data() ?? []).find(
-      (encargado) => encargado.idSede === idSede && encargado.estadoActivo,
+      (encargado) => !!encargado.idsSede?.includes(idSede) && encargado.estadoActivo,
     );
 
     return suyo?.idPersona ? this.nombreDe(suyo.idPersona) : '';
