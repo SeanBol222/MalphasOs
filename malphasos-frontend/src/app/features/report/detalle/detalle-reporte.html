@@ -156,16 +156,11 @@
             />
             <div class="grid gap-2 p-3 md:grid-cols-2">
               <!--
-                En un correctivo la falla y el diagnóstico son obligatorios para cerrar (2026-10-14): un
-                correctivo que no dice qué falló ni qué se encontró no cuenta qué se corrigió.
+                La falla y el diagnóstico fueron obligatorios en un correctivo del 2026-10-14 al
+                2026-10-27: el usuario los quitó. Se piden, pero no impiden cerrar.
               -->
               <div>
-                <label class="block font-bold" for="fallaReportada">
-                  Falla reportada
-                  @if (esCorrectivo()) {
-                    <span class="text-accent-700" aria-hidden="true">*</span>
-                  }
-                </label>
+                <label class="block font-bold" for="fallaReportada"> Falla reportada </label>
                 <p class="text-sm text-neutral-700">
                   {{
                     esCorrectivo()
@@ -178,17 +173,11 @@
                   id="fallaReportada"
                   rows="3"
                   maxlength="500"
-                  [attr.aria-required]="esCorrectivo() ? 'true' : null"
                   formControlName="fallaReportada"
                 ></textarea>
               </div>
               <div>
-                <label class="block font-bold" for="diagnostico">
-                  Diagnóstico
-                  @if (esCorrectivo()) {
-                    <span class="text-accent-700" aria-hidden="true">*</span>
-                  }
-                </label>
+                <label class="block font-bold" for="diagnostico"> Diagnóstico </label>
                 <p class="text-sm text-neutral-700">
                   {{
                     esCorrectivo()
@@ -201,7 +190,6 @@
                   id="diagnostico"
                   rows="3"
                   maxlength="500"
-                  [attr.aria-required]="esCorrectivo() ? 'true' : null"
                   formControlName="diagnostico"
                 ></textarea>
               </div>
@@ -584,9 +572,9 @@
               marcados y el resultado, guardados. Si el equipo se verifica, el servidor exige además
               la verificación completa y un patrón vigente.
             } @else if (esCorrectivo()) {
-              Para cerrarlo hacen falta las verificaciones al ingreso, la falla reportada, el
-              diagnóstico, el trabajo realizado y el resultado, guardados. Si el equipo se verifica,
-              el servidor exige además la verificación completa y un patrón vigente.
+              Para cerrarlo hacen falta las verificaciones al ingreso, el trabajo realizado y el
+              resultado, guardados. Si el equipo se verifica, el servidor exige además la
+              verificación completa y un patrón vigente.
             } @else {
               Para cerrarlo hacen falta las verificaciones al ingreso, los procedimientos y el
               resultado, guardados. Si el equipo se verifica, el servidor exige además la

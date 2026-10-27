@@ -823,29 +823,10 @@ public class ServiceReport extends AggregateRoot {
                 metadataFor(ServiceReportFinishedEvent.TYPE), payload()));
     }
 
-    /**
-     * Cierra el reporte de un correctivo: además de lo de todo reporte, exige la falla reportada y el
-     * diagnóstico (decidido el 2026-10-14). Un correctivo que no dice qué falló ni qué se encontró no
-     * cuenta qué se corrigió. Causa y repuestos no se exigen: no siempre se sabe la causa, y no
-     * siempre se cambia algo.
-     *
-     * <p>Es un método aparte y no un parámetro de {@link #finish()} porque el reporte no sabe de qué tipo
-     * de servicio es —lo dice la orden—: quien lo cierra elige cuál de los dos cierres aplica.
-     */
-    public void finishCorrective(ReportDocument documento) {
-        exigirModificable("cerrar el reporte");
-
-        if (fallaReportada == null) {
-            throw new IllegalStateException(
-                    "No se puede cerrar un correctivo sin la falla reportada: es lo que se vino a corregir");
-        }
-        if (diagnostico == null) {
-            throw new IllegalStateException(
-                    "No se puede cerrar un correctivo sin diagnostico: es lo que se encontro");
-        }
-
-        finish(documento);
-    }
+    // Aqui vivia finishCorrective, que exigia la falla reportada y el diagnostico para cerrar un
+    // correctivo (2026-10-14). Se retiro el 2026-10-27, pedido por el usuario: los dos campos siguen en
+    // el reporte y se imprimen si se llenan, pero no impiden cerrar. Un correctivo se cierra con lo de
+    // todo reporte.
 
     /**
      * Congela el documento de un reporte que se cerró antes de que el informe se congelara (V37,

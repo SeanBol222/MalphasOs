@@ -737,45 +737,17 @@ class ServiceReportTest {
         }
 
         @Test
-        @DisplayName("un correctivo sin falla reportada no se cierra")
-        void correctivoSinFalla() {
+        @DisplayName("sin falla ni diagnostico se cierra: desde el 2026-10-27 no los exige ningun cierre")
+        void sinFallaNiDiagnostico() {
+            // Un correctivo los exigia desde el 2026-10-14, con su propio cierre; el usuario los quito.
             ServiceReport reporte = unReporteCerrable();
-            reporte.fill(null, "Sensor descalibrado", null, null, null);
+            reporte.fill(null, null, null, null, null);
 
-            assertThatIllegalStateException().isThrownBy(() -> reporte.finishCorrective(UnDocumento.CUALQUIERA))
-                    .withMessageContaining("falla reportada");
-            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
-        }
-
-        @Test
-        @DisplayName("un correctivo sin diagnostico no se cierra")
-        void correctivoSinDiagnostico() {
-            ServiceReport reporte = unReporteCerrable();
-            reporte.fill("No enciende", null, null, null, null);
-
-            assertThatIllegalStateException().isThrownBy(() -> reporte.finishCorrective(UnDocumento.CUALQUIERA))
-                    .withMessageContaining("diagnostico");
-        }
-
-        @Test
-        @DisplayName("un correctivo con falla y diagnostico se cierra sin causa ni repuestos")
-        void correctivoCompleto() {
-            ServiceReport reporte = unReporteCerrable();
-            reporte.fill("No enciende", "Fusible abierto", null, null, null);
-
-            reporte.finishCorrective(UnDocumento.CUALQUIERA);
+            reporte.finish(UnDocumento.CUALQUIERA);
 
             assertThat(reporte.getEstado()).isEqualTo(ReportState.FINALIZADO);
-        }
-
-        @Test
-        @DisplayName("un correctivo sigue exigiendo lo de todo reporte: sin resultado no se cierra")
-        void correctivoSinResultado() {
-            ServiceReport reporte = unReporte();
-            reporte.fill("No enciende", "Fusible abierto", "Cambio de fusible", null, null);
-
-            assertThatIllegalStateException().isThrownBy(() -> reporte.finishCorrective(UnDocumento.CUALQUIERA))
-                    .withMessageContaining("resultado");
+            assertThat(reporte.getFallaReportada()).isNull();
+            assertThat(reporte.getDiagnostico()).isNull();
         }
 
         @Test

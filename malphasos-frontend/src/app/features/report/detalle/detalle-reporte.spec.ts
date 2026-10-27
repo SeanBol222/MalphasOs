@@ -307,11 +307,12 @@ describe('Ficha de un reporte de servicio', () => {
         (b) => b.textContent?.trim() === 'Cerrar reporte',
       ) as HTMLButtonElement;
 
-    it('pide la falla y el diagnóstico como obligatorios, y ofrece la causa', async () => {
+    it('pide la falla y el diagnóstico sin hacerlos obligatorios, y ofrece la causa', async () => {
+      // Fueron obligatorios del 2026-10-14 al 2026-10-27: el usuario los quito.
       await abrir(reporte(), CORRECTIVO);
 
-      expect(campo('fallaReportada').getAttribute('aria-required')).toBe('true');
-      expect(campo('diagnostico').getAttribute('aria-required')).toBe('true');
+      expect(campo('fallaReportada').getAttribute('aria-required')).toBeNull();
+      expect(campo('diagnostico').getAttribute('aria-required')).toBeNull();
       expect(raiz().querySelector('#causa')).not.toBeNull();
       expect(raiz().querySelector('label[for="procedimientos"]')?.textContent).toContain(
         'Trabajo realizado',
@@ -325,12 +326,20 @@ describe('Ficha de un reporte de servicio', () => {
       expect(raiz().querySelector('#causa')).toBeNull();
     });
 
-    it('sin falla ni diagnóstico no se puede cerrar, aunque tenga trabajo y resultado', async () => {
+    it('sin falla ni diagnóstico se puede cerrar, con trabajo y resultado (2026-10-27)', async () => {
       await abrir(reporteCerrable(), CORRECTIVO);
 
-      expect(botonCerrar().disabled).toBe(true);
-      expect(texto()).toContain('Falla reportada');
-      expect(texto()).toContain('hacen falta las verificaciones al ingreso, la falla reportada');
+      expect(botonCerrar().disabled).toBe(false);
+    });
+
+    it('la lista de lo que falta no pide la falla ni el diagnóstico', async () => {
+      await abrir(reporte(), CORRECTIVO);
+
+      expect(texto()).not.toContain('la falla reportada, el');
+      expect(texto()).toContain('hacen falta las verificaciones al ingreso, el trabajo realizado');
+      expect([...raiz().querySelectorAll('li')].map((li) => li.textContent?.trim())).not.toContain(
+        'Diagnóstico',
+      );
     });
 
     it('con falla y diagnóstico guardados se puede cerrar', async () => {
