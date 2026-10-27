@@ -29,6 +29,11 @@ import { LienzoDeFirma } from '../../../shared/lienzo-de-firma/lienzo-de-firma';
  * —muchas veces el equipo se entrega después—, y una sola vez. Por eso los campos se pueden escribir en un
  * reporte cerrado mientras no esté firmado: firmar registra quién firma. La casilla es RF-21: la misma
  * firma en los reportes de la orden que aún no tengan.
+ *
+ * <p><b>Se guarda sola desde el 2026-10-27</b>, como la recepción y la verificación: «Guardar entrega»
+ * se retiró, y los datos se guardan al salir de cada campo si hay nombre —o si los tres quedan en
+ * blanco, que es borrar—. Solo en un borrador sin firmar, que es cuando registrar sin firma tiene
+ * sentido. Firmar sigue siendo un botón: es una decisión explícita, y manda los datos con la firma.
  */
 @Component({
   selector: 'app-entrega-del-equipo',
@@ -51,6 +56,13 @@ export class EntregaDelEquipo {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(ReporteApi);
   protected readonly registro = this.api.registrarEntrega();
+
+  /** Si se guardó lo último que se cambió: para decirlo, ya que no hay botón que lo diga. */
+  protected readonly guardado = signal(false);
+
+  /** Un guardado en vuelo, y otro cambio que llegó mientras tanto: ver la recepción. */
+  private enVuelo = false;
+  private otraVez = false;
   protected readonly firmado = this.api.firmarRecibido();
 
   protected readonly formulario = this.fb.nonNullable.group({ nombre: '', cedula: '', cargo: '' });
@@ -113,22 +125,51 @@ export class EntregaDelEquipo {
     });
   }
 
+  /**
+   * La guarda si hay algo nuevo y dice quién recibió. Si se está guardando otra cosa, la deja para
+   * después: dos peticiones en vuelo podrían llegar al revés.
+   */
   protected guardar(): void {
-    if (this.faltaElNombre()) {
-      this.formulario.markAllAsTouched();
+    if (!this.registrable() || !this.formulario.dirty || this.faltaElNombre()) {
+      return;
+    }
+    if (this.enVuelo) {
+      this.otraVez = true;
 
       return;
     }
 
-    const { nombre, cedula, cargo } = this.formulario.getRawValue();
+    const valor = this.formulario.getRawValue();
+    const enviado = JSON.stringify(valor);
     const texto = (t: string) => t.trim() || undefined;
+    this.guardado.set(false);
+    this.enVuelo = true;
 
     this.registro.mutate(
       {
         id: this.idReporte(),
-        recibe: { nombre: texto(nombre), cedula: texto(cedula), cargo: texto(cargo) },
+        recibe: {
+          nombre: texto(valor.nombre),
+          cedula: texto(valor.cedula),
+          cargo: texto(valor.cargo),
+        },
       },
-      { onSuccess: () => this.formulario.markAsPristine() },
+      {
+        onSuccess: () => {
+          // Solo se da por guardado si nadie cambió nada mientras tanto: si no, eso sigue pendiente.
+          if (JSON.stringify(this.formulario.getRawValue()) === enviado) {
+            this.formulario.markAsPristine();
+            this.guardado.set(true);
+          }
+        },
+        onSettled: () => {
+          this.enVuelo = false;
+          if (this.otraVez) {
+            this.otraVez = false;
+            this.guardar();
+          }
+        },
+      },
     );
   }
 

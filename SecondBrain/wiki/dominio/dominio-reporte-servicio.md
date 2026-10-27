@@ -183,10 +183,12 @@ parámetro de `finish` habría puesto en el agregado un dato que no es suyo.
 > ayuda de correctivo y se imprimen si se llenan. Era una decisión de la sesión, anotada justamente
 > para que el usuario la discutiera.
 
-### La recepción y la verificación se guardan solas (2026-10-27)
+### La recepción, la verificación y la entrega se guardan solas (2026-10-27)
 
 Pedido por el usuario para quitar pasos: los botones «Guardar recepción» y «Guardar verificación» se
-retiraron. Cada una se guarda **al confirmar un cambio** —el evento `change`: marcar un estado, salir de
+retiraron, y unas horas después «Guardar entrega» —quién recibe, sin firmar—, que se guarda sola si hay
+nombre, y solo en un borrador sin firmar: en uno cerrado lo escrito va con la firma, que **sigue siendo
+un botón** porque firmar es una decisión explícita. Cada una se guarda **al confirmar un cambio** —el evento `change`: marcar un estado, salir de
 un campo, quitar un accesorio—, no en cada tecla ni con un temporizador, y **solo si hay algo que
 mandar**: la recepción, completa; la verificación, con alguna fila con sus dos lecturas. Un cambio que
 llega con un guardado en vuelo **espera a que termine** y se manda después: dos peticiones a la vez

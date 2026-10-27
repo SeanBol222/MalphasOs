@@ -38,13 +38,33 @@ describe('Entrega del equipo', () => {
     campo(id).value = valor;
     campo(id).dispatchEvent(new Event('input'));
   };
+  // Ya no hay botón (2026-10-27): se busca para comprobar que no está.
   const guardar = () =>
     [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Guardar entrega');
+  /** Sale del campo: el change que el navegador manda al confirmarlo, y que guarda la entrega. */
+  async function confirmar(id: string): Promise<void> {
+    campo(id).dispatchEvent(new Event('change', { bubbles: true }));
+    await asentar(fixture);
+  }
+  const estado = () => raiz().querySelector('[data-estado-guardado]')?.textContent?.trim();
 
   async function abrir(): Promise<void> {
     fixture.detectChanges();
     await asentar(fixture);
   }
+
+  it('se guarda sola al salir de un campo, sin botón (2026-10-27)', async () => {
+    await abrir();
+
+    expect(guardar()).toBeUndefined();
+
+    escribir('recibeNombre', 'Ana Pérez');
+    await confirmar('recibeNombre');
+
+    http.expectOne(URL_ENTREGA).flush({ id: ID_REPORTE });
+    await asentar(fixture);
+    expect(estado()).toBe('Guardado.');
+  });
 
   it('guarda nombre, cédula y cargo recortados', async () => {
     await abrir();
@@ -52,8 +72,7 @@ describe('Entrega del equipo', () => {
     escribir('recibeCedula', '52123456');
     escribir('recibeCargo', ' Jefe de enfermería ');
     await asentar(fixture);
-    guardar()!.click();
-    await asentar(fixture);
+    await confirmar('recibeCargo');
 
     const peticion = http.expectOne(URL_ENTREGA);
     expect(peticion.request.method).toBe('PATCH');
@@ -70,8 +89,7 @@ describe('Entrega del equipo', () => {
     await abrir();
     escribir('recibeCedula', '52123456');
     await asentar(fixture);
-    guardar()!.click();
-    await asentar(fixture);
+    await confirmar('recibeCedula');
 
     http.expectNone(URL_ENTREGA);
     expect(raiz().textContent).toContain('Falta el nombre');
@@ -82,8 +100,7 @@ describe('Entrega del equipo', () => {
     await abrir();
     escribir('recibeNombre', '  ');
     await asentar(fixture);
-    guardar()!.click();
-    await asentar(fixture);
+    await confirmar('recibeNombre');
 
     const peticion = http.expectOne(URL_ENTREGA);
     expect(peticion.request.body).toEqual({
@@ -93,6 +110,34 @@ describe('Entrega del equipo', () => {
     });
     peticion.flush({ id: ID_REPORTE });
     await asentar(fixture);
+  });
+
+  it('un cambio mientras se guarda otro se manda después, y no a la vez', async () => {
+    await abrir();
+    escribir('recibeNombre', 'Ana Pérez');
+    await confirmar('recibeNombre');
+    escribir('recibeCargo', 'Jefe');
+    await confirmar('recibeCargo');
+
+    const primero = http.expectOne(URL_ENTREGA);
+    expect(primero.request.body.cargo).toBeUndefined();
+    primero.flush({ id: ID_REPORTE });
+    await asentar(fixture);
+
+    const segundo = http.expectOne(URL_ENTREGA);
+    expect(segundo.request.body.cargo).toBe('Jefe');
+    segundo.flush({ id: ID_REPORTE });
+    await asentar(fixture);
+    expect(estado()).toBe('Guardado.');
+  });
+
+  it('en un reporte cerrado sin firma no se guarda solo: lo escrito va con la firma', async () => {
+    fixture.componentRef.setInput('editable', false);
+    await abrir();
+    escribir('recibeNombre', 'Ana Pérez');
+    await confirmar('recibeNombre');
+
+    http.expectNone(URL_ENTREGA);
   });
 
   it('en un reporte cerrado y firmado muestra lo guardado sin dejar tocarlo', async () => {
@@ -177,6 +222,9 @@ describe('Entrega del equipo', () => {
       await abrir();
       escribir('recibeNombre', 'Ana Pérez');
       raiz().querySelector<HTMLInputElement>('[data-aplicar-orden]')!.click();
+      // Su change sube al formulario, y con el nombre escrito el borrador guarda la entrega (2026-10-27).
+      await asentar(fixture);
+      http.expectOne(URL_ENTREGA).flush({ id: ID_REPORTE });
       dibujar(PNG);
       await asentar(fixture);
       firmar()!.click();
