@@ -37,6 +37,7 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 - Se inicia y se ejecuta; **no se ejecuta con reportes abiertos**, y si falta el ingeniero o los equipos
   para iniciarla, la pantalla dice cuál de los dos.
 - La agenda del inicio, por semana o por mes, con «solo mis órdenes».
+- El listado de órdenes se ordena por cualquier columna, pulsando su cabecera, en los dos sentidos.
 
 ### Reportes de servicio
 

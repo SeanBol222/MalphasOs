@@ -2405,3 +2405,14 @@ mutaciones muertas; una sobrevivió primero porque ninguna prueba encogía la ta
 
 **Tocadas**: [[dominio-reporte-servicio]] y el `CONVENCIONES.md` de la raíz.
 
+## [2026-10-27] ingest | El listado de órdenes se ordena por cualquier columna
+
+Pedido por el usuario. Cada cabecera es un botón: ordena por su columna y, la segunda vez, invierte el
+sentido, con una flecha y `aria-sort`. Ascendente es lo esperable en cada una —la fecha de la más
+antigua a la más reciente, los nombres de la A a la Z con «Sin asignar» al final, los reportes del menor
+avance al mayor, el estado de lo que pide trabajo a lo anulado— y a igualdad desempata la fecha. Mientras
+no se pulse nada rige el orden de antes, por fecha según el filtro. Se ordena en la pantalla porque la
+lista ya está entera ahí, como sus filtros. Siete mutaciones, siete muertas. Frontend **791**.
+
+**Tocadas**: el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
+
