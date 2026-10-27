@@ -428,7 +428,7 @@ la sesión y quedan para discutir.
   El agregado tenía dos cierres y **el servicio elegía** según la orden, porque el reporte no sabe de qué
   tipo de servicio es. **Retirada el 2026-10-27 por el usuario**: un correctivo se cierra con lo de todo
   reporte, y la falla y el diagnóstico se piden sin exigirse.
-- **La recepción y la verificación de un reporte se guardan solas** *(del usuario, 2026-10-27)*: al
+- **La recepción, la verificación y la entrega de un reporte se guardan solas** *(del usuario, 2026-10-27)*: al
   confirmar cada cambio —evento `change`—, sin botón, y en cola si ya hay un guardado en vuelo. Con
   patrón o equipo constante, su casilla nace con el valor del punto.
 - **Los equipos patrón son un agregado propio, no un `equipo_cliente`**: no se instalan en ningún

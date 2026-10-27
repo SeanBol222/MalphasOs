@@ -2367,3 +2367,14 @@ del cierre que ya no existe—, frontend **776**.
 **Tocadas**: [[dominio-reporte-servicio]], [[decisiones-tecnicas-malphasos]], [[hoja-de-ruta-producto]],
 el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
 
+## [2026-10-27] ingest | La entrega también se guarda sola
+
+El usuario preguntó para qué servía «Guardar entrega»: registra quién recibe sin firmar, para cuando
+firma en papel o se entrega después. Firmar ya manda los mismos datos, así que el botón era un paso de
+más; se retiró como los de la recepción y la verificación. Se guarda al salir de cada campo si hay nombre,
+y solo en un borrador sin firmar. Una prueba de la firma tuvo que responder el guardado que dispara
+marcar la casilla de la orden —su `change` sube al formulario—, que en uso real ya habría ocurrido al
+salir del nombre. Cinco mutaciones, cinco muertas. Frontend **779**.
+
+**Tocadas**: [[dominio-reporte-servicio]], [[decisiones-tecnicas-malphasos]], el `CONVENCIONES.md` de la
+raíz y `CHANGELOG.md`.
