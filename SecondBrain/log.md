@@ -2393,3 +2393,15 @@ los datos de los que pasaban de cien. Ahora va en tandas de cien y junta las res
 
 **Tocadas**: el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
 
+## [2026-10-27] fix | La tabla de verificación perdía lo escrito tras guardarse
+
+El usuario vio que, al pasar de una fila a otra, el error y la conformidad de la siguiente dejaban de
+calcularse, y propuso guardar solo al cerrar el reporte. Se reprodujo antes de decidir: no era el
+guardado sino lo que viene después. La ficha recarga el reporte, la tabla se rehace, y rehacerla vaciaba
+el `FormArray` y creaba grupos nuevos, mientras las casillas de la pantalla seguían atadas a los viejos.
+Ahora reutiliza los que hay y solo cambia sus valores. Se conservó el guardado automático, decidido por
+el usuario tras ver por qué. Dos pruebas nuevas —la del fallo y la de la tabla que encoge—, dos
+mutaciones muertas; una sobrevivió primero porque ninguna prueba encogía la tabla. Frontend **785**.
+
+**Tocadas**: [[dominio-reporte-servicio]] y el `CONVENCIONES.md` de la raíz.
+

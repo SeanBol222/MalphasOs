@@ -195,6 +195,13 @@ llega con un guardado en vuelo **espera a que termine** y se manda después: dos
 podrían llegar al revés, y como la tabla se manda entera, ganaría la vieja. Y no se da por guardado lo
 que cambió mientras tanto.
 
+**Y rehacer la tabla reutiliza sus casillas** (corregido el mismo día). Tras guardarse una fila, la
+ficha recarga el reporte y la tabla se rehace con lo guardado; antes eso vaciaba el formulario y creaba
+casillas nuevas, y las que se veían en pantalla seguían atadas a las viejas. Lo que se escribía en la
+fila siguiente no contaba: su error y su conformidad se quedaban en «—». Lo reportó el usuario, y
+proponía guardar solo al cerrar; se eligió arreglar la causa, porque guardar al cerrar pierde lo medido
+si se sale sin cerrar. El fallo existía también con el botón, solo que aparecía después de pulsarlo.
+
 **Con patrón constante, la casilla del patrón nace con el valor del punto**, y con equipo constante la
 del equipo. Lo reportó el usuario —«aparece el punto pero el patrón está en blanco»—: con una pesa patrón
 de 5 kg en el punto 5 la casilla tenía que valer 5, y había que copiarlo a mano en cada fila. Se puede
