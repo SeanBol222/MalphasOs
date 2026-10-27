@@ -2349,3 +2349,21 @@ porque la mutación espera a tenerla antes de navegar. Es la regla de `onSuccess
 
 **Tocadas**: [[deuda-tecnica-y-riesgos]], el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
 
+## [2026-10-27] ingest | El reporte, con menos pasos
+
+Tres cosas que pidió el usuario probando un reporte. **La falla y el diagnóstico dejan de ser
+obligatorios** para cerrar un correctivo: `finishCorrective()` desaparece y el servicio ya no consulta
+la orden al cerrar; era una decisión de la sesión del 2026-10-14, anotada para que el usuario la
+discutiera, y la discutió. **La recepción y la verificación se guardan solas**, al confirmar cada
+cambio, en cola si hay otro en vuelo. Y **con patrón constante la casilla del patrón nace con el valor
+del punto**: el usuario veía el punto y el patrón en blanco.
+
+La primera versión del guardado en cola perdía el segundo cambio: dentro de `onSettled` la mutación de
+TanStack todavía se da por pendiente, y la repetición se descartaba. Lo cazó la prueba de dos cambios
+seguidos; el estado en vuelo es ahora propio. Diecisiete mutaciones: dieciséis muertas y una equivalente,
+que se retiró —una guarda que el `??` ya hacía inalcanzable—. Backend **1561** —cinco pruebas menos, las
+del cierre que ya no existe—, frontend **776**.
+
+**Tocadas**: [[dominio-reporte-servicio]], [[decisiones-tecnicas-malphasos]], [[hoja-de-ruta-producto]],
+el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
+
