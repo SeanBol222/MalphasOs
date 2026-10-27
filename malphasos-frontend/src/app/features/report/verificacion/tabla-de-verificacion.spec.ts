@@ -232,6 +232,79 @@ describe('Tabla de verificación de un reporte', () => {
     expect(estado()).toBe('Se guardará sola en cuanto una fila tenga las dos lecturas.');
   });
 
+  it('tras guardarse una fila y recargarse la tabla, la siguiente sigue calculando el error', async () => {
+    // Lo reportó el usuario el 2026-10-27: al rehacerse la tabla con lo guardado se creaban casillas
+    // nuevas, y lo que se escribía en la siguiente fila iba a una que ya no contaba. Error y conformidad
+    // se quedaban en «—».
+    await abrir(
+      [],
+      [{ ...TIPOS[0], verificaciones: [{ ...TIPOS[0].verificaciones[0], tolerancia: 0.5 }] }],
+    );
+    escribir(equipo(0), '100.2');
+    await confirmar(equipo(0));
+    http.expectOne(urlVerificacion(ID_REPORTE)).flush({ id: ID_REPORTE, lecturas: [] });
+    await asentar(fixture);
+    // La ficha recarga el reporte y le pasa a la tabla las lecturas guardadas.
+    fixture.componentRef.setInput('lecturas', [
+      {
+        id: 'd1',
+        idVerificacion: ID_VERIFICACION,
+        idPuntoVerificacion: ID_PUNTO,
+        secuencia: 1,
+        valorPatron: 100,
+        valorEquipo: 100.2,
+        unidad: 'mmHg',
+        tolerancia: 0.5,
+      },
+    ]);
+    await asentar(fixture);
+
+    escribir(equipo(1), '101');
+    await asentar(fixture);
+
+    const errores = [...raiz().querySelectorAll('[data-error]')].map((e) => e.textContent?.trim());
+    const conformes = [...raiz().querySelectorAll('[data-conforme]')].map((e) =>
+      e.textContent?.trim(),
+    );
+    expect(errores.slice(0, 2)).toEqual(['+0,2', '+1']);
+    expect(conformes.slice(0, 2)).toEqual(['Sí', 'No']);
+
+    // Y lo escrito llega al guardado.
+    await confirmar(equipo(1));
+    const segundo = http.expectOne(urlVerificacion(ID_REPORTE));
+    expect(segundo.request.body.lecturas).toHaveLength(2);
+    segundo.flush({ id: ID_REPORTE, lecturas: [] });
+    await asentar(fixture);
+  });
+
+  it('si al recargarse hay menos filas, las casillas que sobran se van', async () => {
+    // Con patrón y equipo variables las filas son las lecturas tomadas: si se guardaron menos, la
+    // tabla encoge, y una casilla de más se mandaría sin fila que la explique.
+    const lectura = (secuencia: number) => ({
+      id: `d${secuencia}`,
+      idVerificacion: ID_VERIFICACION,
+      secuencia,
+      valorPatron: 1,
+      valorEquipo: 1.1,
+      unidad: 'mmHg',
+    });
+    await abrir([lectura(1), lectura(2)], [{ ...TIPOS[0], verificaciones: [VARIABLE] }]);
+    expect(filas()).toHaveLength(2);
+
+    fixture.componentRef.setInput('lecturas', [lectura(1)]);
+    await asentar(fixture);
+    expect(filas()).toHaveLength(1);
+
+    escribir(equipo(0), '1.2');
+    await confirmar(equipo(0));
+    const peticion = http.expectOne(urlVerificacion(ID_REPORTE));
+    expect(peticion.request.body.lecturas).toEqual([
+      { idVerificacion: ID_VERIFICACION, secuencia: 1, valorPatron: 1, valorEquipo: 1.2 },
+    ]);
+    peticion.flush({ id: ID_REPORTE, lecturas: [] });
+    await asentar(fixture);
+  });
+
   it('un cambio mientras se guarda otro se manda después, y no a la vez', async () => {
     await abrir();
     escribir(equipo(0), '101');

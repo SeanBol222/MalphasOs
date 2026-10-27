@@ -515,11 +515,24 @@ export class TablaDeVerificacion {
     });
   }
 
+  /**
+   * Pone en la tabla las filas que el tipo dicta, con lo ya medido.
+   *
+   * <p><b>Reutiliza las casillas que ya existen y solo cambia sus valores</b> (2026-10-27). Antes las
+   * vaciaba y creaba otras, y las que se ven en pantalla seguían atadas a las viejas: tras guardar una
+   * fila —la ficha recarga el reporte y la tabla se rehace—, lo que se escribía en la siguiente iba a
+   * una casilla que ya no estaba en el formulario, y su error y su conformidad se quedaban en «—». Lo
+   * reportó el usuario al guardarse sola la tabla, y pasaba igual con el botón. Solo se crean o se
+   * quitan las que sobran o faltan.
+   */
   private rehacer(filas: readonly Fila[], medidas: readonly LecturaDeVerificacion[]): void {
     this.filas.set(filas);
-    this.casillas.clear({ emitEvent: false });
 
-    for (const fila of filas) {
+    while (this.casillas.length > filas.length) {
+      this.casillas.removeAt(this.casillas.length - 1, { emitEvent: false });
+    }
+
+    filas.forEach((fila, indice) => {
       // La verificacion entra en la comparacion, y sin ella esto seria falso: la lectura 1 sin punto
       // de temperatura y la 1 sin punto de humedad casarian con la misma fila.
       const medida = medidas.find(
@@ -533,21 +546,25 @@ export class TablaDeVerificacion {
       // lectura no se mira: el servidor exige los dos valores, de modo que el guardado manda siempre.
       const delPunto = (lado: 'valorPatron' | 'valorEquipo') =>
         fila.fijo === lado ? fila.punto : '';
+      const valor = {
+        valorPatron: medida?.valorPatron?.toString() ?? delPunto('valorPatron'),
+        valorEquipo: medida?.valorEquipo?.toString() ?? delPunto('valorEquipo'),
+      };
 
-      this.casillas.push(
-        this.fb.group({
-          valorPatron: this.fb.nonNullable.control(
-            medida?.valorPatron?.toString() ?? delPunto('valorPatron'),
-          ),
-          valorEquipo: this.fb.nonNullable.control(
-            medida?.valorEquipo?.toString() ?? delPunto('valorEquipo'),
-          ),
-        }),
-        { emitEvent: false },
-      );
-    }
+      if (indice < this.casillas.length) {
+        this.casillas.at(indice).setValue(valor, { emitEvent: false });
+      } else {
+        this.casillas.push(
+          this.fb.group({
+            valorPatron: this.fb.nonNullable.control(valor.valorPatron),
+            valorEquipo: this.fb.nonNullable.control(valor.valorEquipo),
+          }),
+          { emitEvent: false },
+        );
+      }
+    });
 
-    // Y se vuelve a aplicar el estado: las casillas acaban de nacer y lo hacen activas.
+    // Y se vuelve a aplicar el estado: las casillas nuevas nacen activas.
     this.aplicarEstado(this.editable());
   }
 
