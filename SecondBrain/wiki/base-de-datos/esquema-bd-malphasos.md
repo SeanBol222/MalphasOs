@@ -1,10 +1,10 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 33 tablas, 46 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 37 tablas, 49 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-10-16
+updated: 2026-10-27
 ---
 
 # El esquema de MalphasOS, hoy
@@ -78,17 +78,33 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-16
+## Las cifras, medidas el 2026-10-27
 
 | | |
 |---|---|
-| Migraciones aplicadas | **32** (`V1`…`V32`) |
-| Tablas de dominio | **33** |
-| Llaves foráneas | **46**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **68** |
+| Migraciones aplicadas | **41** (`V1`…`V41`) |
+| Tablas de dominio | **37** |
+| Llaves foráneas | **49**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **77** |
+| Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
-| Índices únicos **parciales** | **9** |
-| Tablas con borrado lógico | **33 de 33** — universal, sin excepción, otra vez desde `V23` |
+| Índices únicos **parciales** | **10** |
+| Tablas con borrado lógico | **34 de 37** — ya no es universal: `empresa`, `firma_persona` e `imagen_documento` no lo llevan |
+
+> **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
+> `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
+> nueve migraciones y nadie volvió a contar. Las cifras de entonces no se desglosan aquí migración por
+> migración —sería reconstruirlas, no medirlas—; lo medido es el total de hoy y el paso de `V41`:
+>
+> - `V41`, **un encargado con varias sedes y áreas**: sale `encargado` —una tabla, tres foráneas, dos
+>   `CHECK`— y entran `encargado_sede` y `encargado_area`, con dos foráneas cada una y **llave
+>   compuesta**. Son **+1 tabla, +1 foránea, −2 `CHECK`**: los dos `CHECK` ataban el tipo a la columna
+>   llena, y el tipo ahora es la tabla. Ver la sección de `client`.
+>
+> **Y una afirmación de esta tabla era falsa desde `V36`**: decía «borrado lógico en 33 de 33,
+> universal, sin excepción». Las tres tablas de la versión 1.0.0 no lo llevan, y con razón: `empresa` es
+> una sola fila que se edita, la firma de una persona se sustituye, y una imagen de documento se guarda
+> una vez por su huella y nunca se retira. Corregido el 2026-10-27.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -314,7 +330,7 @@ los contactos del cliente—, y corregirlo exige su propia migración. (Eran **d
 que deja uno solo por persona —ver la sección de los índices parciales para por qué no es un índice—.
 El valor no lo rellena la migración sino un conciliador al arrancar, que le pregunta a Keycloak.)
 
-## `client` — 7 tablas
+## `client` — 8 tablas
 
 ```mermaid
 erDiagram
@@ -323,8 +339,8 @@ erDiagram
     cliente ||--o{ correo_cliente : "tiene"
     cliente ||--o{ telefono_cliente : "tiene"
     sede ||--o{ area_servicio : "divide en"
-    sede ||--o{ encargado : "tiene"
-    area_servicio ||--o{ encargado : "tiene"
+    sede ||--o{ encargado_sede : "tiene"
+    area_servicio ||--o{ encargado_area : "tiene"
     cliente {
         uuid k_id_cliente PK
         varchar k_documento UK "NO se llama n_nit: puede no ser un NIT"
@@ -348,17 +364,32 @@ erDiagram
         varchar n_nombre_area
         boolean b_estado_activo
     }
-    encargado {
-        uuid k_identificador PK, FK "SIN id propio: el encargado ES la persona"
-        varchar t_tipo_encargado
-        uuid k_id_sede FK "una de las dos"
-        uuid k_id_area_servicio FK "o la otra"
+    encargado_sede {
+        uuid k_identificador PK, FK "la persona"
+        uuid k_id_sede PK, FK "llave compuesta, desde V41"
+        boolean b_estado_activo
+    }
+    encargado_area {
+        uuid k_identificador PK, FK "la persona"
+        uuid k_id_area_servicio PK, FK "llave compuesta, desde V41"
         boolean b_estado_activo
     }
 ```
 
-**Un encargado lo es de una sede o de un área, nunca de las dos ni de ninguna**, y eso lo impone un
-`CHECK` y no una convención.
+**Desde `V41`, el 2026-10-27, un encargado responde por varias sedes y áreas.** Hasta entonces la tabla
+era una, `encargado`, con la persona como llave primaria —**una fila por persona**, y por eso una sola
+sede o una sola área— y un `CHECK` que obligaba a que el tipo casara con la columna llena. El usuario
+confirmó que en sus clientes un encargado cubre varias, y eligió **dos tablas puente** sobre los
+diagramas de `Documentation/DatabaseDesign/V41-encargados/`. El `CHECK` sobró: el tipo es la tabla.
+
+**Lo que el esquema no comprueba, y vive en el servicio**: que todas las asignaciones activas de una
+persona sean **del mismo cliente**. La sede apunta a su cliente y el área llega a él por su sede, en dos
+tablas distintas. Estar a cargo de una sede y de un área de esa misma sede a la vez sí se permite.
+
+**Y `V41` es la primera migración con una prueba que migra hasta una versión**:
+`ManagerAssignmentsMigrationTest` lleva un esquema aparte hasta `V40`, siembra un encargado de cada
+tipo —uno relevado— y aplica `V41`. Hasta entonces lo que una migración hacía con los datos se
+comprobaba a mano sobre la base de desarrollo, y la de desarrollo no tenía ningún encargado.
 
 ## `equipment` — 14 tablas
 

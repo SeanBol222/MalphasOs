@@ -271,3 +271,10 @@ no está implementado. Nota nueva, [[diseno-base-de-datos]].
 **Y el pie de [[index]] decía 28 notas «actualizado el 2026-10-04»** con 28 notas reales: el número
 seguía siendo cierto y la fecha no. Ahora son 29, contadas.
 
+## [2026-10-27] ingest | V41 implementada
+
+El plan de [[diseno-base-de-datos]] se construyó el mismo día, sin cambios sobre lo dibujado. La nota lo
+dice con su fecha, y los diagramas se quedan como estaban: son la foto del plan aprobado, y su título
+«PROPUESTO» es el de ese momento. Ningún documento oficial cambia: ningún requisito de la ERS describe
+cuántas sedes puede tener a cargo un encargado.
+

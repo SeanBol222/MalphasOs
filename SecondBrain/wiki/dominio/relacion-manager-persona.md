@@ -4,10 +4,17 @@ description: Un encargado ES una persona, por clave primaria compartida — conf
 tags: [dominio, backend, deuda-de-diseno, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/domain/model/manager_model/, DataBase/v4/initdb/A_Sigma_DB_V4.sql
 estado: inconsistente
-updated: 2026-08-30
+updated: 2026-10-27
 ---
 
 # `Manager` y `Person` son el mismo humano, y el dominio no lo dice
+
+> **Desde el 2026-10-27 la llave ya no es solo la persona** (`V41`). Lo que esta nota cuenta de la tabla
+> `encargado` —una fila por persona, «no puede haber dos encargados sobre la misma»— describe el
+> original y MalphasOS hasta ese día. Ahora una persona está a cargo de varias sedes y áreas, en
+> `encargado_sede` y `encargado_area`, con llave compuesta como `representante_legal`. **La identidad no
+> cambió**: el encargado sigue siendo la persona, y el agregado `Manager` se direcciona por ella. Ver
+> [[esquema-bd-malphasos]] y [[decisiones-tecnicas-malphasos]].
 
 > **Corregida el 2026-08-29.** Hasta esa fecha esta nota (llamada entonces `relacion-cliente-persona-ambiguedad`) sostenía que la relación entre `Manager` y `Person` era una **ambigüedad de diseño sin resolver**, y que la existencia del vínculo era "posible pero no confirmada". **Es falso.** La relación está decidida e implementada en tres capas; lo único que falta es que el modelo de dominio la exprese. El error vino de revisar solo los archivos de dominio, donde efectivamente no aparece. La conclusión práctica cambia por completo: no hay una decisión de diseño que tomar antes de migrar `client`, hay una relación que hacer explícita.
 
@@ -69,6 +76,10 @@ ALTER TABLE representante_legal ADD CONSTRAINT "PK_representante_legal"
 | Llave primaria | `k_identificador` sola | `(k_identificador, k_id_cliente)` |
 | Relación con persona | **uno a uno** — el encargado *es* la persona | **muchos a muchos** — la persona *participa* |
 | Consecuencia | No puede haber dos encargados sobre la misma persona | La misma persona aparece tantas veces como clientes represente |
+
+(Esta tabla compara `encargado` **hasta `V41`**. Desde el 2026-10-27 las dos tablas que la sustituyen
+tienen la misma forma que `representante_legal`: llave compuesta, la persona tantas veces como sedes o
+áreas tenga a cargo.)
 
 La diferencia importa al modelar: `encargado` se expresa con `@MapsId` sobre `Person`, y `representante_legal` no puede, porque su identidad no es la de la persona.
 

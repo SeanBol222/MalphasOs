@@ -2306,3 +2306,31 @@ explica que no se pueden abrir áreas: no podría de todos modos. Ocho mutacione
 Frontend **760**.
 
 **Tocadas**: el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
+
+## [2026-10-27] ingest | Un encargado con varias sedes y áreas (V41)
+
+Planeado desde la base de datos con diagramas PlantUML que el usuario revisó —en
+`Documentation/DatabaseDesign/V41-encargados/`— y construido el mismo día. `encargado`, con la persona
+como llave, se parte en `encargado_sede` y `encargado_area`, con llave compuesta; el agregado `Manager`
+pasa a ser la persona con sus asignaciones; el servicio comprueba que todas las activas sean del mismo
+cliente; el API suma asignaciones por `POST /managers/assignments`, releva de cada una en su sub-recurso
+y **retira el traslado**. Cuatro pantallas leían la forma vieja de la respuesta y se adaptaron.
+
+**La primera prueba que migra hasta una versión**: `ManagerAssignmentsMigrationTest` lleva un esquema
+aparte hasta `V40`, siembra encargados y aplica `V41`. Antes eso se miraba a mano sobre la base de
+desarrollo, que hoy no tiene ningún encargado.
+
+Ocho mutaciones en el backend y siete en el frontend. Tres sobrevivieron o murieron mal y se corrigieron
+las pruebas: una prueba de la regla del cliente fallaba por una sede sin estubar y no por la regla —la
+lección de «estubar el camino que rechazaría», otra vez—, el reporte no tenía un encargado de otra sede,
+y el listado de personas no tenía a nadie con dos cosas a cargo. Backend **1566** en 119 clases,
+frontend **762**.
+
+**Y [[esquema-bd-malphasos]] llevaba caducada desde `V36`**: decía 33 tablas sobre `V32` y que el
+borrado lógico era universal. Recontada: 37 tablas, 49 foráneas, 77 `CHECK`, 10 parciales, y tres tablas
+sin borrado lógico, con razón.
+
+**Tocadas**: [[esquema-bd-malphasos]], [[decisiones-tecnicas-malphasos]], [[relacion-manager-persona]],
+[[deuda-tecnica-y-riesgos]] —101 filas, 48 tachadas, 53 abiertas—, el `CONVENCIONES.md` de la raíz y
+`CHANGELOG.md`.
+

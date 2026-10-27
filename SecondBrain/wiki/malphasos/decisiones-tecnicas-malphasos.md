@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-10-04
+updated: 2026-10-27
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -157,7 +157,8 @@ Migrado desde el original con correcciones, no como copia literal. Ver [[manejo-
 |---|---|---|
 | Fronteras de agregados | **Cuatro agregados pequeños** que se referencian por identificador | Cargar un cliente no arrastra sus sedes, áreas y encargados, y dos personas editando sedes distintas no compiten por la misma fila. Coincide con lo que el esquema ya modelaba. El coste: ninguna transacción abarca cliente y sede a la vez |
 | Representación legal | **Dentro del agregado `Client`**, como conjunto de identificadores de persona | "Quién representa a este cliente" es una pregunta sobre el cliente, y la lista es pequeña y acotada |
-| Identidad del encargado | **Llave primaria de la persona**, sin `@OneToOne` ni `@MapsId` hacia la entidad de personas | La identidad compartida la garantizan la PK y la clave foránea del esquema. La anotación habría sido la única relación JPA entre módulos del proyecto, cuando las otras cuatro entidades referencian por identificador |
+| Identidad del encargado | **Llave primaria de la persona**, sin `@OneToOne` ni `@MapsId` hacia la entidad de personas | La identidad compartida la garantizan la PK y la clave foránea del esquema. La anotación habría sido la única relación JPA entre módulos del proyecto, cuando las otras cuatro entidades referencian por identificador. **Revisada el 2026-10-27**: la identidad sigue siendo la persona, pero ya no es la llave de una sola fila —ver la fila siguiente— |
+| Un encargado con varias sedes y áreas | **Dos tablas puente**, `encargado_sede` y `encargado_area`, con llave compuesta (persona, destino) —`V41`, 2026-10-27— | El usuario confirmó que en sus clientes un encargado cubre varias, y eligió esta forma sobre los diagramas de `Documentation/DatabaseDesign/V41-encargados/` frente a una fila por asignación con identificador propio. El tipo pasa a ser la tabla, y los dos `CHECK` que lo ataban a una columna sobran. **Todas las asignaciones activas, del mismo cliente** —regla del servicio, porque el esquema no la puede comprobar entre dos tablas—; **se puede estar a cargo de una sede y de un área suya a la vez**; **sin fecha de inicio**. El traslado (`PATCH /managers/{id}`) se retiró: con varias asignaciones es relevar de una y asignar otra |
 | Alta de encargado | **Dos caminos**: `register` crea la persona, `assign` parte de alguien que ya existe | El original siempre creaba una persona nueva, de modo que un ingeniero de la empresa no podía figurar además como encargado sin duplicarse |
 | Orden dentro de `register` | **Validar el destino antes de crear la persona** | Al revés, un fallo en la validación dejaría una persona huérfana sin encargado que la justifique |
 | Rutas REST | Lo que no existe sin otro **cuelga de su ruta** | Contactos y representantes van bajo `/clients/{id}`; una sede se abre bajo el cliente pero luego se direcciona sola, porque tiene identidad propia |
