@@ -7,8 +7,33 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AsignacionDeEncargado, Encargado, NuevoEncargado } from '../../core/api/tipos';
+import {
+  AsignacionDeEncargado,
+  Encargado,
+  NuevoEncargado,
+  TipoDeAsignacion,
+} from '../../core/api/tipos';
 import { PersonaApi } from '../person/persona-api';
+
+/** Una sede o un área de la que un encargado está a cargo. */
+export interface AsignacionActiva {
+  readonly tipo: TipoDeAsignacion;
+  readonly idAsignacion: string;
+}
+
+/**
+ * Lo que un encargado tiene a cargo, sedes primero. Desde el 2026-10-27 (`V41`) son varias cosas, y la
+ * respuesta trae dos listas en lugar de un tipo con una sede o un área.
+ */
+export function asignacionesDe(encargado: Encargado): AsignacionActiva[] {
+  return [
+    ...(encargado.idsSede ?? []).map((id) => ({ tipo: 'HEADQUARTER' as const, idAsignacion: id })),
+    ...(encargado.idsAreaServicio ?? []).map((id) => ({
+      tipo: 'SERVICE_AREA' as const,
+      idAsignacion: id,
+    })),
+  ];
+}
 
 /**
  * La unica puerta al servidor para el agregado encargado.
@@ -64,15 +89,20 @@ export class EncargadoApi {
   }
 
   /**
-   * Retira al encargado.
+   * Releva al encargado de una sede o de un área, y solo de esa: sigue a cargo de lo demás.
    *
-   * <p>La ruta lleva el identificador de la <b>persona</b> y no uno propio del encargado, porque el
-   * encargado no tiene identidad aparte: es una persona con una asignacion.
+   * <p>Sustituye, el 2026-10-27, al retiro de todo: con varias asignaciones, quitar a alguien de una
+   * sede no puede quitarlo de las otras. La ruta lleva el identificador de la <b>persona</b>, porque el
+   * encargado no tiene identidad aparte.
    */
-  retirar() {
+  relevar() {
     return injectMutation(() => ({
-      mutationFn: (idPersona: string) =>
-        firstValueFrom(this.http.delete<void>(`${this.url}/${idPersona}`)),
+      mutationFn: ({ idPersona, tipo, idAsignacion }: { idPersona: string } & AsignacionActiva) =>
+        firstValueFrom(
+          this.http.delete<void>(
+            `${this.url}/${idPersona}/${tipo === 'HEADQUARTER' ? 'headquarters' : 'service-areas'}/${idAsignacion}`,
+          ),
+        ),
       onSuccess: () => this.invalidar(),
     }));
   }

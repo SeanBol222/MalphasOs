@@ -278,7 +278,7 @@ export interface paths {
         put?: never;
         /**
          * Poner al frente a alguien que ya existe
-         * @description Para una persona ya registrada en el sistema.
+         * @description Para una persona ya registrada en el sistema. Si ya es encargado, se suma a lo que tiene a cargo, que tiene que ser del mismo cliente.
          */
         post: operations["assignManager"];
         delete?: never;
@@ -299,14 +299,53 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Relevar a un encargado
-         * @description No lo borra: lo deja inactivo.
+         * Relevar a un encargado de todo
+         * @description No lo borra: deja inactivas todas sus asignaciones.
          */
         delete: operations["deactivateManager"];
         options?: never;
         head?: never;
-        /** Trasladar un encargado a otra sede o area */
-        patch: operations["reassignManager"];
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/managers/{idPersona}/headquarters/{idSede}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Relevar a un encargado de una sede
+         * @description Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.
+         */
+        delete: operations["relieveFromHeadquarter"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/managers/{idPersona}/service-areas/{idArea}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Relevar a un encargado de un area de servicio
+         * @description Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.
+         */
+        delete: operations["relieveFromServiceArea"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/api/service-areas/{idAreaServicio}/equipments": {
@@ -559,21 +598,14 @@ export interface components {
             tipo: "HEADQUARTER" | "SERVICE_AREA";
         };
         ManagerResponse: {
+            /** @description Si está a cargo de algo */
             estadoActivo?: boolean;
-            /**
-             * Format: uuid
-             * @description Area de la que se encarga, o null si se encarga de una sede
-             */
-            idAreaServicio?: string;
             /** Format: uuid */
             idPersona?: string;
-            /**
-             * Format: uuid
-             * @description Sede de la que se encarga, o null si se encarga de un area
-             */
-            idSede?: string;
-            /** @enum {string} */
-            tipo?: "HEADQUARTER" | "SERVICE_AREA";
+            /** @description Áreas de servicio de las que está a cargo ahora */
+            idsAreaServicio?: string[];
+            /** @description Sedes de las que está a cargo ahora */
+            idsSede?: string[];
         };
         ServiceAreaCreateRequest: {
             /** @example UCI */
@@ -2077,29 +2109,81 @@ export interface operations {
             };
         };
     };
-    reassignManager: {
+    relieveFromHeadquarter: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 idPersona: string;
+                idSede: string;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ManagerAssignRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ManagerResponse"];
+                    "*/*": components["schemas"]["ClientErrorResponse"];
                 };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    relieveFromServiceArea: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idPersona: string;
+                idArea: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {
@@ -2196,6 +2280,15 @@ export interface operations {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
                 };
             };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
         };
     };
     register: {
@@ -2256,6 +2349,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
                 };
             };
         };

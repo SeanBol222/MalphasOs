@@ -291,9 +291,14 @@
                       <button
                         class="min-h-tactil px-1 font-semibold underline"
                         type="button"
-                        [attr.aria-label]="'Quitar a ' + (encargado.nombre || 'este encargado')"
+                        [attr.aria-label]="
+                          'Quitar a ' +
+                          (encargado.nombre || 'este encargado') +
+                          ' de ' +
+                          encargado.aCargoDe
+                        "
                         [disabled]="bajaDeEncargado.isPending()"
-                        (click)="quitarEncargado(encargado.idPersona)"
+                        (click)="quitarEncargado(encargado)"
                       >
                         Quitar
                       </button>

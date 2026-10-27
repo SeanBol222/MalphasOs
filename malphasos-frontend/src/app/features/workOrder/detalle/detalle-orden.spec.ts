@@ -66,8 +66,8 @@ const RESUMEN = {
 };
 
 const ENCARGADOS = [
-  { idPersona: 'p2', idSede: ID_SEDE, tipo: 'HEADQUARTER', estadoActivo: true },
-  { idPersona: 'p2', idAreaServicio: 'a9', tipo: 'SERVICE_AREA', estadoActivo: true },
+  // Desde V41 una sola persona puede estar a cargo de la sede y de un area: una fila, dos listas.
+  { idPersona: 'p2', idsSede: [ID_SEDE], idsAreaServicio: ['a9'], estadoActivo: true },
 ];
 
 /** Todas las autoridades que esta pantalla mira: un administrador. */

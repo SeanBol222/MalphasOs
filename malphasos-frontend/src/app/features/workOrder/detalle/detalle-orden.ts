@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ClienteApi } from '../../client/cliente-api';
-import { EncargadoApi } from '../../client/encargado-api';
+import { asignacionesDe, EncargadoApi } from '../../client/encargado-api';
 import { SedeApi } from '../../client/sede-api';
 import { EquipoApi } from '../../equipment/equipo-api';
 import { OrdenApi } from '../orden-api';
@@ -248,23 +248,24 @@ export class DetalleOrden {
     const idsDeArea = new Set((datos?.equipos ?? []).map((equipo) => equipo.idAreaServicio));
     const porPersona = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
 
-    return (this.encargados.data() ?? [])
-      .filter(
-        (encargado) =>
-          encargado.estadoActivo &&
-          (encargado.idSede === datos?.idSede ||
-            (!!encargado.idAreaServicio && idsDeArea.has(encargado.idAreaServicio))),
-      )
-      .map((encargado) => ({
-        id: encargado.idPersona!,
-        nombre: porPersona.has(encargado.idPersona!)
-          ? nombreCompleto(porPersona.get(encargado.idPersona!)!)
-          : 'Nombre no disponible',
-        aCargoDe:
-          encargado.tipo === 'SERVICE_AREA'
-            ? (nombresDeArea.get(encargado.idAreaServicio) ?? 'Un área de la orden')
-            : 'Toda la sede',
-      }));
+    // Una fila por cada cosa de la que responde en este sitio: desde el 2026-10-27 un encargado puede
+    // estarlo de la sede y de varias areas a la vez.
+    return (this.encargados.data() ?? []).flatMap((encargado) =>
+      asignacionesDe(encargado)
+        .filter(({ tipo, idAsignacion }) =>
+          tipo === 'HEADQUARTER' ? idAsignacion === datos?.idSede : idsDeArea.has(idAsignacion),
+        )
+        .map(({ tipo, idAsignacion }) => ({
+          id: encargado.idPersona!,
+          nombre: porPersona.has(encargado.idPersona!)
+            ? nombreCompleto(porPersona.get(encargado.idPersona!)!)
+            : 'Nombre no disponible',
+          aCargoDe:
+            tipo === 'SERVICE_AREA'
+              ? (nombresDeArea.get(idAsignacion) ?? 'Un área de la orden')
+              : 'Toda la sede',
+        })),
+    );
   });
 
   protected readonly hayError = computed(

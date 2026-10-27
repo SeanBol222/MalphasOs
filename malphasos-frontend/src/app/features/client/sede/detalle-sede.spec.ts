@@ -38,11 +38,12 @@ const AREAS = [
   { id: 'a2', nombre: 'Bodega vieja', idSede: ID, estadoActivo: false },
 ];
 
+// Desde el 2026-10-27 (V41) cada encargado trae lo que tiene a cargo en dos listas.
 const ENCARGADOS = [
-  { idPersona: 'p1', idSede: ID, tipo: 'HEADQUARTER', estadoActivo: true },
-  { idPersona: 'p2', idAreaServicio: 'a1', tipo: 'SERVICE_AREA', estadoActivo: true },
+  { idPersona: 'p1', idsSede: [ID], idsAreaServicio: [], estadoActivo: true },
+  { idPersona: 'p2', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true },
   // De otra sede: esta pantalla no debe ensenarlo, y el API no ofrece filtrar por sede.
-  { idPersona: 'p3', idSede: 'otra-sede', tipo: 'HEADQUARTER', estadoActivo: true },
+  { idPersona: 'p3', idsSede: ['otra-sede'], idsAreaServicio: [], estadoActivo: true },
 ];
 
 const PERSONAS = [
@@ -229,7 +230,7 @@ describe('Ficha de una sede', () => {
       expect(encargados.filter((t) => t?.includes('Toda la sede'))).toHaveLength(1);
     });
 
-    it('quitar a un encargado usa el identificador de la persona, que es su ruta', async () => {
+    it('quitar a un encargado de la sede lo releva de la sede, y solo de ella', async () => {
       await abrir();
       const quitar = [...raiz().querySelectorAll('button')].filter(
         (b) => b.textContent?.trim() === 'Quitar',
@@ -237,10 +238,47 @@ describe('Ficha de una sede', () => {
       quitar[0].click();
       await asentar(fixture);
 
-      http.expectOne({ method: 'DELETE', url: `${URL_ENCARGADOS}/p1` }).flush(null);
+      // Desde V41 no se retira a la persona entera: tiene otras cosas a cargo.
+      http
+        .expectOne({ method: 'DELETE', url: `${URL_ENCARGADOS}/p1/headquarters/${ID}` })
+        .flush(null);
       await asentar(fixture);
       await atenderRefresco(fixture, http, URL_ENCARGADOS, ENCARGADOS);
       await atenderRefresco(fixture, http, URL_PERSONAS, PERSONAS);
+    });
+
+    it('quien esta a cargo de la sede y de un area sale dos veces, y se quita de cada una aparte', async () => {
+      TestBed.resetTestingModule();
+      montar();
+      fixture.detectChanges();
+      await responderA(fixture, http, URL, SEDE);
+      await responderA(fixture, http, URL_CIUDADES, CIUDADES);
+      await responderA(fixture, http, URL_AREAS, AREAS);
+      await responderA(fixture, http, URL_ENCARGADOS, [
+        { idPersona: 'p1', idsSede: [ID], idsAreaServicio: ['a1'], estadoActivo: true },
+      ]);
+      await responderA(fixture, http, URL_PERSONAS, PERSONAS);
+      http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+      await asentar(fixture);
+
+      const quitar = [...raiz().querySelectorAll<HTMLButtonElement>('button')].filter(
+        (b) => b.textContent?.trim() === 'Quitar',
+      );
+      expect(quitar.map((b) => b.getAttribute('aria-label'))).toEqual([
+        'Quitar a Ana María Ruiz de Toda la sede',
+        'Quitar a Ana María Ruiz de Área: Urgencias',
+      ]);
+
+      quitar[1].click();
+      await asentar(fixture);
+
+      http
+        .expectOne({ method: 'DELETE', url: `${URL_ENCARGADOS}/p1/service-areas/a1` })
+        .flush(null);
+      await asentar(fixture);
+      http.match(URL_ENCARGADOS).forEach((p) => p.flush([]));
+      http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS));
+      await asentar(fixture);
     });
 
     it('si un nombre no se pudo consultar, lo dice en vez de inventarselo', async () => {
