@@ -368,12 +368,11 @@ entity "paso_reporte" as paso_reporte <<cambia>> {
   * k_id_paso_reporte : uuid <<PK>>
   --
   * k_id_reporte_servicio : uuid <<FK>>
-  * i_orden : int
   * k_id_protocolo : uuid <<FK>>
   * t_estado_paso : varchar(10)
   t_nota : varchar(300)
   * b_estado_activo : boolean
-  .. UQ_paso_reporte_orden ..
+  .. UQ_paso_reporte_protocolo ..
 }
 entity "accesorio_reporte" as accesorio_reporte {
   * k_id_accesorio_reporte : uuid <<PK>>

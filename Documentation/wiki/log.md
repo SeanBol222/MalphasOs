@@ -314,3 +314,9 @@ El usuario propuso quitar `orden_trabajo_equipo` y que el reporte una la orden c
 de [[diseno-base-de-datos]] lo recoge con sus cuatro reglas y lo mete en `V46`; los diagramas de
 `refactor-3fn/` se regeneraron y la propuesta final baja a 36 tablas. Cuando se construya, RF-09 —un
 reporte por equipo de la orden— pasa a cumplirse por construcción, y la ERS no necesita cambiar.
+
+## [2026-10-27] ingest | La posición de un paso del reporte también era copia
+
+`paso_reporte.i_orden` copiaba la prioridad del protocolo en el tipo. Sale en `V47` con las otras copias
+del reporte, y su regla única pasa de «no repetir posición» a «no repetir protocolo». Recogido en el
+análisis de [[diseno-base-de-datos]], con los diagramas regenerados.

@@ -190,7 +190,10 @@ def cambiar(columnas, pk, fks, unicas):
                      'k_codigo_interno', 't_rango', 't_resolucion', 'f_calibracion',
                      'n_empresa_calibradora'])
     quitar_columnas('dato_verificacion', ['n_unidad', 'd_tolerancia'])
-    quitar_columnas('paso_reporte', ['n_nombre', 't_descripcion', 't_indicacion'])
+    # Y su posicion, que tambien era copia de la prioridad del tipo: un reporte no repite protocolo.
+    quitar_columnas('paso_reporte', ['n_nombre', 't_descripcion', 't_indicacion', 'i_orden'])
+    unicas['paso_reporte'] = [u for u in unicas.get('paso_reporte', []) if u != 'UQ_paso_reporte_orden']
+    unicas['paso_reporte'].append('UQ_paso_reporte_protocolo')
 
     # B5: sin intervencion: la hoja de vida lee el documento de los reportes cerrados.
     for tabla in ('intervencion',):
