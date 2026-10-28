@@ -332,3 +332,8 @@ construyó, sin identificador ni borrado lógico.
 
 La ciudad de la empresa sale del catálogo. El análisis de [[diseno-base-de-datos]] lo marca en C2.
 Ningún documento oficial cambia: ningún requisito de la ERS describe la ciudad de la empresa.
+
+## [2026-10-27] ingest | V45 construida
+
+El logo de la empresa y las firmas se guardan por huella en `imagen_documento`. El análisis de
+[[diseno-base-de-datos]] lo marca en C1. Ningún documento oficial cambia.

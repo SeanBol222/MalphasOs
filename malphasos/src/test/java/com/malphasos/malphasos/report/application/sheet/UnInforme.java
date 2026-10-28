@@ -1,7 +1,6 @@
 package com.malphasos.malphasos.report.application.sheet;
 
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
-import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
@@ -14,6 +13,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationStandard;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

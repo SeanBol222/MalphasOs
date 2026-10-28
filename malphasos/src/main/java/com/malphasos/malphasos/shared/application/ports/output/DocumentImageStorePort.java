@@ -1,6 +1,6 @@
-package com.malphasos.malphasos.report.application.ports.output;
+package com.malphasos.malphasos.shared.application.ports.output;
 
-import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
 import java.util.Optional;
 
 /**

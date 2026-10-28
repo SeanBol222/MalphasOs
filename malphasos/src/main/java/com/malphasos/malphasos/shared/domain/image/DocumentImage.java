@@ -1,4 +1,4 @@
-package com.malphasos.malphasos.report.domain.serviceReport;
+package com.malphasos.malphasos.shared.domain.image;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

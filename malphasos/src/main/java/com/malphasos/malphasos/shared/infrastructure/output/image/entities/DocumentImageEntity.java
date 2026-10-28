@@ -1,4 +1,4 @@
-package com.malphasos.malphasos.report.infrastructure.output.entities;
+package com.malphasos.malphasos.shared.infrastructure.output.image.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

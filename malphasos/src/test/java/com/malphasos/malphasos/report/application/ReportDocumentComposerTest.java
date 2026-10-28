@@ -24,10 +24,10 @@ import com.malphasos.malphasos.person.application.ports.input.PersonCommunicatio
 import com.malphasos.malphasos.person.application.ports.input.PersonSignatureServicePort;
 import com.malphasos.malphasos.person.domain.person.PersonSignature;
 import com.malphasos.malphasos.report.application.services.serviceReport.ReportDocumentComposer;
-import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;

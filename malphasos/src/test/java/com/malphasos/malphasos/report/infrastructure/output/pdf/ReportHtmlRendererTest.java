@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.malphasos.malphasos.report.application.services.serviceReport.sheet.ReportSheetComposer;
 import com.malphasos.malphasos.report.application.sheet.UnInforme;
-import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
@@ -14,6 +13,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationStandard;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;

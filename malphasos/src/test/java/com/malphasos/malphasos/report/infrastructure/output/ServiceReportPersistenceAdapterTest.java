@@ -24,7 +24,8 @@ import com.malphasos.malphasos.equipment.infrastructure.output.MetrologyCatalogP
 import com.malphasos.malphasos.equipment.infrastructure.output.ModelPersistenceAdapter;
 import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
-import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
+import com.malphasos.malphasos.shared.infrastructure.output.image.DocumentImageStoreAdapter;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.ReceiptSignature;
