@@ -320,3 +320,10 @@ reporte por equipo de la orden— pasa a cumplirse por construcción, y la ERS n
 `paso_reporte.i_orden` copiaba la prioridad del protocolo en el tipo. Sale en `V47` con las otras copias
 del reporte, y su regla única pasa de «no repetir posición» a «no repetir protocolo». Recogido en el
 análisis de [[diseno-base-de-datos]], con los diagramas regenerados.
+
+## [2026-10-27] ingest | El plan de la refactorización, renumerado al construirlo
+
+El `V43` del análisis de [[diseno-base-de-datos]] juntaba los teléfonos, la ciudad y las imágenes de la
+empresa, y se partió en tres al construirlo —`V43`, `V44` y `V45`—: el plan va ahora de `V42` a `V50`.
+`V42` y `V43` están construidas. El diagrama de la propuesta final dibuja `telefono_empresa` como se
+construyó, sin identificador ni borrado lógico.

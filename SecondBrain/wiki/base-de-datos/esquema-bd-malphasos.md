@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 37 tablas, 49 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 38 tablas, 50 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -82,15 +82,15 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **42** (`V1`…`V42`) |
-| Tablas de dominio | **37** |
-| Llaves foráneas | **49**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **77** |
+| Migraciones aplicadas | **43** (`V1`…`V43`) |
+| Tablas de dominio | **38** |
+| Llaves foráneas | **50**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **79** |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **10** |
 | Foráneas sin ningún índice que las encabece | **3**, las que la refactorización va a quitar — desde `V42`; eran **13** |
-| Tablas con borrado lógico | **34 de 37** — ya no es universal: `empresa`, `firma_persona` e `imagen_documento` no lo llevan |
+| Tablas con borrado lógico | **34 de 38** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
 > `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
@@ -114,6 +114,11 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   `reporte_servicio.t_finalizado` es `f_finalizado` y `firma_persona.k_id_persona` es
 >   `k_identificador`—. Que toda foránea tenga su índice lo exige desde ese día
 >   `ForeignKeyIndexContractTest`, con las tres que se van como excepciones con nombre.
+> - `V43`, **los teléfonos de la empresa en su tabla**: `empresa.t_telefonos` era un arreglo, la única
+>   columna así del esquema. Entra `telefono_empresa` —**+1 tabla, +1 foránea, +2 `CHECK`**—, sin
+>   identificador propio ni borrado lógico porque es una lista de valores que se reescribe entera. Ver
+>   la sección de `company`, que **esta nota no tenía**: `empresa` entró con `V36`, el 2026-10-17, y
+>   nadie la dibujó. Corregido el 2026-10-27.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -241,6 +246,7 @@ graph TD
     equipment["equipment<br/>catalogo + catalogo metrologico"]
     workorder["work-order<br/>orden_trabajo + su alcance"]
     report["report<br/>reporte_servicio + lecturas"]
+    company["company<br/>empresa + sus telefonos"]
 
     client -->|pais, ciudad| location
     client -->|representante, encargado| person
@@ -261,6 +267,42 @@ apunta a `equipment` —la verificación y el punto de cada lectura— y `equipm
 oyente que la escribe vive en `report` y entra por un puerto que `equipment` publica. El ciclo existe
 solo en la base, donde la foránea es lo que garantiza que una línea del historial no apunte a un reporte
 inexistente. Quitarla rompería el ciclo y perdería esa garantía. Ver [[hoja-de-vida]].
+
+## `company` — 2 tablas
+
+La empresa que presta el servicio, que es el membrete de los documentos (`V36`). **Una sola fila**: lo
+impone `b_unica`, siempre verdadera y única. No apunta a ningún otro módulo y nadie la apunta: el informe
+**copia** sus datos al congelarse, en su documento.
+
+```mermaid
+erDiagram
+    empresa ||--o{ telefono_empresa : "tiene"
+    empresa {
+        uuid k_id_empresa PK
+        boolean b_unica "siempre true, y unica: una sola fila"
+        varchar n_nombre
+        varchar k_nit
+        varchar t_direccion
+        varchar n_ciudad "texto libre"
+        varchar t_movil "aparte de los fijos"
+        varchar t_correo
+        varchar t_garantia
+        varchar t_aclaracion
+        varchar k_codigo_hoja_de_vida
+        varchar k_codigo_informe
+        bytea b_logo "PNG, JPG o SVG, hasta 512 KB"
+        varchar t_logo_tipo
+    }
+    telefono_empresa {
+        uuid k_id_empresa PK
+        integer i_orden PK "desde 0, el orden en que se imprimen"
+        varchar n_telefono_empresa
+    }
+```
+
+**`telefono_empresa` es una lista de valores, no una tabla de entidades** (`V43`): el formulario manda la
+lista entera, así que la llave es (empresa, posición) y no lleva identificador ni borrado lógico. Hasta
+`V43` era un arreglo en `empresa.t_telefonos`.
 
 ## `location` — 2 tablas
 

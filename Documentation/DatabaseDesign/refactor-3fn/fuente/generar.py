@@ -10,7 +10,7 @@ cambia y por que esta en ../analisis-2026-10-27.md.
 
 Escribe:
   esquema-actual.puml        la base de hoy, con lo que cambia en rojo
-  esquema-final.puml         la base despues de la refactorizacion, V42 a V48 (PROPUESTO)
+  esquema-final.puml         la base despues de la refactorizacion, V42 a V50 (PROPUESTO)
 """
 import re
 import sys
@@ -140,12 +140,12 @@ def cambiar(columnas, pk, fks, unicas):
     columnas['empresa'] += [('k_id_ciudad', 'uuid', True), ('k_huella_logo', 'varchar(64)', True)]
     fks += [('empresa', 'FK_empresa_ciudad', ['k_id_ciudad'], 'ciudad'),
             ('empresa', 'FK_empresa_logo', ['k_huella_logo'], 'imagen_documento')]
-    columnas['telefono_empresa'] = [('k_id_telefono_empresa', 'uuid', False),
-                                    ('k_id_empresa', 'uuid', False),
-                                    ('n_telefono_empresa', 'varchar(30)', False),
+    # Construida en V43 como lista de valores: la llave es (empresa, posicion), sin identificador ni
+    # borrado logico, porque el formulario la reescribe entera.
+    columnas['telefono_empresa'] = [('k_id_empresa', 'uuid', False),
                                     ('i_orden', 'integer', False),
-                                    ('b_estado_activo', 'boolean', False)]
-    pk['telefono_empresa'] = ['k_id_telefono_empresa']
+                                    ('n_telefono_empresa', 'varchar(30)', False)]
+    pk['telefono_empresa'] = ['k_id_empresa', 'i_orden']
     fks += [('telefono_empresa', 'FK_telefono_empresa_empresa', ['k_id_empresa'], 'empresa')]
 
     # C1: la firma de una persona, por huella.
@@ -359,12 +359,12 @@ endlegend"""
                                       '  <color:#AE1800>rojo</color>: tabla que la refactorización cambia o retira\nendlegend'))
     (SALIDA / 'esquema-actual.puml').write_text(actual)
 
-    # La propuesta final, V42 a V48. El recibido no cambia el esquema: se queda en el reporte (V39), y
+    # La propuesta final, V42 a V50. El recibido no cambia el esquema: se queda en el reporte (V39), y
     # firmar varios a la vez -toda la orden o un area- es cosa del servicio y de la pantalla.
     c2, p2, f2, u2 = cambiar(columnas, pk, fks, unicas)
     marcas_finales = {t: 'cambia' for t in CAMBIAN if t in c2}
     marcas_finales['telefono_empresa'] = 'nueva'
-    final = completo('MalphasOS — propuesta final, V42 a V48 (PROPUESTO, 36 tablas)', 'esquema-final',
+    final = completo('MalphasOS — propuesta final, V42 a V50 (PROPUESTO, 36 tablas)', 'esquema-final',
                      c2, p2, f2, u2, marcas_finales,
                      leyenda.replace('endlegend',
                                      '  <color:#AE1800>rojo</color>: tabla cambiada · <color:#1F6B35>verde</color>: nueva\nendlegend'))
