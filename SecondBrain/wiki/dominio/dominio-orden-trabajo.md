@@ -250,9 +250,9 @@ Lo que lo permitió: la lista de siete reglas se escribió en la tanda 1 **sin c
 
 De paso apareció que `equipoDeOtroCliente` —anterior a este arreglo— monta un mundo que no puede existir: un área **en la sede de la orden** pero **de otro cliente**. Sigue en verde porque la guarda de cliente salta primero, pero lo que pincha no es alcanzable por el API. No se tocó; queda anotado.
 
-### El ingeniero puede tener dos tipos
+### ~~El ingeniero puede tener dos tipos~~
 
-`requireActiveEngineer` acepta que **cualquiera de los dos** tipos de la persona sea `ENGINEER`. El modelo permite `tipoPersona` y `segundoTipoPersona`, de modo que alguien que es a la vez ingeniero y encargado sigue pudiendo ejecutar un mantenimiento. Ver [[relacion-manager-persona]].
+~~`requireActiveEngineer` acepta que **cualquiera de los dos** tipos de la persona sea `ENGINEER`. El modelo permite `tipoPersona` y `segundoTipoPersona`, de modo que alguien que es a la vez ingeniero y encargado sigue pudiendo ejecutar un mantenimiento.~~ **Corregido el 2026-10-27**: era código muerto desde el principio —el `CHECK` del esquema solo admitía `MANAGER` como segundo tipo, así que el segundo tipo nunca podía ser `ENGINEER`— y se retiró con el segundo tipo en `V46`. `requireActiveEngineer` mira solo `tipoPersona`. Ver [[relacion-manager-persona]] y [[dominio-persona-identidad]].
 
 ### La persistencia concilia, no reemplaza
 

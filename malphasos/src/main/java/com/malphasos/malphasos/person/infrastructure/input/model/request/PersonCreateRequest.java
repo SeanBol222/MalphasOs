@@ -50,9 +50,6 @@ public record PersonCreateRequest(
         @NotNull(message = "El tipo de persona es obligatorio")
         PersonType tipoPersona,
 
-        @Schema(description = "Funcion secundaria, solo MANAGER", example = "MANAGER")
-        PersonType segundoTipoPersona,
-
         List<@Valid EmailPersonCreateRequest> emailPersonList,
         List<@Valid PhonePersonCreateRequest> phonePersonList) {
 }

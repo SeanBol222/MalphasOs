@@ -32,7 +32,9 @@ public enum ClientErrorCatalog {
     // cargo es un 404 propio, y no el del encargado: la persona sí es encargada.
     MANAGER_ASSIGNMENT_NOT_FOUND("ERR_CLIENT_009", "Manager is not in charge of that site or area"),
     // Un conflicto y no datos invalidos: la sede existe, pero es de otro cliente.
-    MANAGER_OF_ANOTHER_CLIENT("ERR_CLIENT_010", "Manager is already in charge for another client");
+    MANAGER_OF_ANOTHER_CLIENT("ERR_CLIENT_010", "Manager is already in charge for another client"),
+    // V46: solo encargados y representantes responden por una sede o un area. Un conflicto, como el anterior.
+    MANAGER_PERSON_TYPE("ERR_CLIENT_011", "That person cannot be in charge of a site or area");
 
     private final String code;
     private final String message;

@@ -22,7 +22,6 @@ public record PersonResponse(
         String primerApellido,
         String segundoApellido,
         PersonType tipoPersona,
-        PersonType segundoTipoPersona,
         boolean estadoActivo,
         List<EmailPersonResponse> emailPersonList,
         List<PhonePersonResponse> phonePersonList) {

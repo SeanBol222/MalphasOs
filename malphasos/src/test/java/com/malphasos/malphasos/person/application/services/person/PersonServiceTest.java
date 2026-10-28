@@ -230,30 +230,6 @@ class PersonServiceTest {
     }
 
     @Test
-    @DisplayName("el segundo tipo de persona llega a la persona creada")
-    void secondTypeIsNotLost() {
-        // En el original este dato viajaba en la peticion pero nunca se trasladaba al modelo.
-        when(identityPort.createUser(any(), any())).thenReturn(UUID.randomUUID().toString());
-        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        PersonUseCaseRequest request = PersonUseCaseRequest.builder()
-                .cedula("1234567890")
-                .primerNombre("Ada")
-                .primerApellido("Lovelace")
-                .segundoTipoPersona(PersonType.MANAGER)
-                .nombreUsuario("ada")
-                .password("secreto")
-                .emailPersonList(List.of(
-                        EmailPersonUseCaseRequest.builder().correoPersona("ada@malphasos.local").build()))
-                .phonePersonList(List.of())
-                .build();
-
-        Person created = service().registerCeoClient(request);
-
-        assertThat(created.getSegundoTipoPersona()).isEqualTo(PersonType.MANAGER);
-    }
-
-    @Test
     @DisplayName("si la persistencia falla se elimina el usuario recien creado")
     void userIsRemovedWhenPersistenceFails() {
         String userId = UUID.randomUUID().toString();
@@ -500,29 +476,6 @@ class PersonServiceTest {
     }
 
     @Test
-    @DisplayName("con una combinacion de tipos invalida, actualizar no llama a Keycloak")
-    void updateWithInvalidTypesNeverCallsIdentityPort() {
-        UUID id = UUID.randomUUID();
-        Person existing = Person.builder()
-                .identificador(id)
-                .tipoPersona(PersonType.ENGINEER)
-                .estadoActivo(true)
-                .build();
-        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
-
-        Person changes = Person.builder()
-                .tipoPersona(PersonType.ENGINEER)
-                .segundoTipoPersona(PersonType.MANAGER)
-                .build();
-
-        assertThatThrownBy(() -> service().update(id, changes))
-                .isInstanceOf(IllegalArgumentException.class);
-
-        verify(identityPort, never()).updateUserProfile(any(), any());
-        verify(persistencePort, never()).save(any());
-    }
-
-    @Test
     @DisplayName("actualizar una persona sin cuenta en Keycloak persiste igual")
     void updatePersistsEvenWithoutAnIdentityAccount() {
         UUID id = UUID.randomUUID();
@@ -548,28 +501,6 @@ class PersonServiceTest {
 
         assertThat(updated.getPrimerNombre()).isEqualTo("Grace");
         verify(persistencePort).save(any());
-    }
-
-    @Test
-    @DisplayName("actualizar con una combinacion de tipos invalida no persiste nada")
-    void updateWithInvalidTypesDoesNotPersist() {
-        UUID id = UUID.randomUUID();
-        Person existing = Person.builder()
-                .identificador(id)
-                .tipoPersona(PersonType.ENGINEER)
-                .estadoActivo(true)
-                .build();
-        when(persistencePort.findById(id)).thenReturn(Optional.of(existing));
-
-        Person changes = Person.builder()
-                .tipoPersona(PersonType.ENGINEER)
-                .segundoTipoPersona(PersonType.MANAGER)
-                .build();
-
-        assertThatThrownBy(() -> service().update(id, changes))
-                .isInstanceOf(IllegalArgumentException.class);
-
-        verify(persistencePort, never()).save(any());
     }
 
     // ------------------------------------------------------------------------

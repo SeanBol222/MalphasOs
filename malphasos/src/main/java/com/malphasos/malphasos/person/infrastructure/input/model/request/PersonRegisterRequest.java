@@ -1,6 +1,5 @@
 package com.malphasos.malphasos.person.infrastructure.input.model.request;
 
-import com.malphasos.malphasos.person.domain.person.PersonType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -43,9 +42,6 @@ public record PersonRegisterRequest(
         @Schema(description = "Segundo apellido, opcional", example = "Gomez")
         @Size(max = 50)
         String segundoApellido,
-
-        @Schema(description = "Funcion secundaria, solo MANAGER", example = "MANAGER")
-        PersonType segundoTipoPersona,
 
         @Schema(description = "Nombre de usuario en el proveedor de identidad", example = "juan.perez")
         @NotBlank(message = "El nombre de usuario es obligatorio")

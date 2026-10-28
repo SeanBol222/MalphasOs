@@ -116,12 +116,6 @@
             "minLength" : 0,
             "type" : "string"
           },
-          "segundoTipoPersona" : {
-            "description" : "Funcion secundaria, solo MANAGER",
-            "enum" : [ "ENGINEER", "MANAGER", "CEO_CLIENT", "ADMIN", "SUPER_ADMIN" ],
-            "example" : "MANAGER",
-            "type" : "string"
-          },
           "tipoPersona" : {
             "description" : "Funcion principal de la persona",
             "enum" : [ "ENGINEER", "MANAGER", "CEO_CLIENT", "ADMIN", "SUPER_ADMIN" ],
@@ -216,12 +210,6 @@
             "maxLength" : 50,
             "minLength" : 0,
             "type" : "string"
-          },
-          "segundoTipoPersona" : {
-            "description" : "Funcion secundaria, solo MANAGER",
-            "enum" : [ "ENGINEER", "MANAGER", "CEO_CLIENT", "ADMIN", "SUPER_ADMIN" ],
-            "example" : "MANAGER",
-            "type" : "string"
           }
         },
         "required" : [ "cedula", "emailPersonList", "nombreUsuario", "password", "primerApellido", "primerNombre" ],
@@ -261,10 +249,6 @@
             "type" : "string"
           },
           "segundoNombre" : {
-            "type" : "string"
-          },
-          "segundoTipoPersona" : {
-            "enum" : [ "ENGINEER", "MANAGER", "CEO_CLIENT", "ADMIN", "SUPER_ADMIN" ],
             "type" : "string"
           },
           "tipoPersona" : {
@@ -335,12 +319,6 @@
             "example" : "Carlos",
             "maxLength" : 50,
             "minLength" : 0,
-            "type" : "string"
-          },
-          "segundoTipoPersona" : {
-            "description" : "Funcion secundaria, solo MANAGER",
-            "enum" : [ "ENGINEER", "MANAGER", "CEO_CLIENT", "ADMIN", "SUPER_ADMIN" ],
-            "example" : "MANAGER",
             "type" : "string"
           },
           "tipoPersona" : {

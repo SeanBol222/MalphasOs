@@ -22,6 +22,7 @@ import com.malphasos.malphasos.client.application.services.manager.commands.Regi
 import com.malphasos.malphasos.client.application.services.manager.commands.RelieveManagerCommand;
 import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
+import com.malphasos.malphasos.client.domain.exception.ManagerPersonTypeException;
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
@@ -38,6 +39,7 @@ import com.malphasos.malphasos.client.infrastructure.input.model.request.Headqua
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ManagerAssignRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ManagerRegisterRequest;
 import com.malphasos.malphasos.location.domain.exception.CityNotFoundException;
+import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.List;
 import java.util.Set;
@@ -301,6 +303,21 @@ class ClientRestAdapterTest {
                                 new ManagerAssignRequest(persona, ManagerType.HEADQUARTER, sede))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ERR_CLIENT_010"));
+    }
+
+    @Test
+    @DisplayName("poner a cargo a quien no es encargado ni representante es un conflicto, 409, con su codigo (V46)")
+    void asignarAQuienNoPuede() throws Exception {
+        UUID persona = UUID.randomUUID();
+        when(managerServicePort.assign(any()))
+                .thenThrow(new ManagerPersonTypeException(persona, PersonType.ENGINEER));
+
+        mockMvc.perform(post("/v1/api/managers/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(
+                                new ManagerAssignRequest(persona, ManagerType.HEADQUARTER, UUID.randomUUID()))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_CLIENT_011"));
     }
 
     @Test

@@ -16,10 +16,6 @@ import lombok.Builder;
  *
  * <p>Vive en la capa de aplicación, no en infraestructura: es parte del contrato que este módulo
  * publica hacia los demás, y el puerto que lo usa no puede depender de un detalle de entrega.
- *
- * @param segundoTipoPersona función secundaria, opcional. El original no lo transportaba, de modo
- *     que a través de este puerto era imposible registrar al representante legal de un cliente que
- *     además es encargado de una sede, una combinación que el esquema sí admite.
  */
 @Builder
 public record PersonCommunicationRequest(
@@ -29,7 +25,6 @@ public record PersonCommunicationRequest(
         String primerApellido,
         String segundoApellido,
         PersonType tipoPersona,
-        PersonType segundoTipoPersona,
         List<EmailPersonUseCaseRequest> emailPersonList,
         List<PhonePersonUseCaseRequest> phonePersonList) {
 }

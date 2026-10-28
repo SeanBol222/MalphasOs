@@ -402,8 +402,7 @@ public class WorkOrderService implements WorkOrderServicePort {
             throw new IllegalArgumentException(
                     "No se asigna una orden a una persona retirada: " + idIngeniero);
         }
-        if (persona.tipoPersona() != PersonType.ENGINEER
-                && persona.segundoTipoPersona() != PersonType.ENGINEER) {
+        if (persona.tipoPersona() != PersonType.ENGINEER) {
             throw new IllegalArgumentException(
                     "Solo un ingeniero ejecuta un mantenimiento, y " + idIngeniero + " no lo es");
         }

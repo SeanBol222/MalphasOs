@@ -36,14 +36,14 @@ class PersonSchemaTest {
         return String.valueOf(System.nanoTime() % 10_000_000_000L);
     }
 
-    private void insertPerson(String cedula, String type, String segundoTipo) {
+    private void insertPerson(String cedula, String type) {
         jdbcTemplate.update(
                 """
                 INSERT INTO persona (k_identificador, k_cedula, n_primer_nombre, n_primer_apellido,
-                                     t_tipo_persona, t_segundo_tipo_persona)
-                VALUES (?, ?, 'Ada', 'Lovelace', ?, ?)
+                                     t_tipo_persona)
+                VALUES (?, ?, 'Ada', 'Lovelace', ?)
                 """,
-                UUID.randomUUID(), cedula, type, segundoTipo);
+                UUID.randomUUID(), cedula, type);
     }
 
     @Test
@@ -84,7 +84,7 @@ class PersonSchemaTest {
         // restriccion de la base aceptaba cinco. Si alguien agrega un valor en un solo lado, este
         // test lo detecta.
         for (PersonType type : PersonType.values()) {
-            assertThatCode(() -> insertPerson(uniqueNationalId(), type.name(), null))
+            assertThatCode(() -> insertPerson(uniqueNationalId(), type.name()))
                     .withFailMessage("La base rechazo el tipo %s, presente en el enum", type)
                     .doesNotThrowAnyException();
         }
@@ -93,27 +93,27 @@ class PersonSchemaTest {
     @Test
     @DisplayName("la cedula es unica")
     void nationalIdIsUnique() {
-        insertPerson("1111111111", "ENGINEER", null);
+        insertPerson("1111111111", "ENGINEER");
 
-        assertThatThrownBy(() -> insertPerson("1111111111", "ADMIN", null))
+        assertThatThrownBy(() -> insertPerson("1111111111", "ADMIN"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("se rechaza un tipo de persona fuera del catalogo")
     void invalidPersonTypeIsRejected() {
-        assertThatThrownBy(() -> insertPerson("2222222222", "PRESIDENTE", null))
+        assertThatThrownBy(() -> insertPerson("2222222222", "PRESIDENTE"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
-    @DisplayName("el segundo rol solo admite MANAGER o nulo")
-    void secondPersonTypeOnlyAllowsManager() {
-        assertThatCode(() -> insertPerson("3333333333", "CEO_CLIENT", "MANAGER"))
-                .doesNotThrowAnyException();
-
-        assertThatThrownBy(() -> insertPerson("4444444444", "CEO_CLIENT", "ENGINEER"))
-                .isInstanceOf(DataIntegrityViolationException.class);
+    @DisplayName("ya no hay segundo tipo: es encargado quien tiene asignaciones (V46)")
+    void sinSegundoTipo() {
+        assertThat(jdbcTemplate.queryForList(
+                        "SELECT column_name FROM information_schema.columns WHERE table_name = 'persona'"
+                                + " AND column_name = 't_segundo_tipo_persona'",
+                        String.class))
+                .isEmpty();
     }
 
     @Test

@@ -68,7 +68,6 @@ public class PersonService implements PersonServicePort {
     public Person save(Person person) {
 
         requireWithoutAccess(person);
-        person.validateRoles();
 
         person.setIdentificador(UUID.randomUUID());
         person.setEstadoActivo(true);
@@ -134,7 +133,6 @@ public class PersonService implements PersonServicePort {
 
         try {
             Person person = personFrom(request, tipoPersona, UUID.fromString(userId));
-            person.validateRoles();
 
             return personPersistencePort.save(person);
 
@@ -193,9 +191,7 @@ public class PersonService implements PersonServicePort {
                     existing.setPrimerApellido(person.getPrimerApellido());
                     existing.setSegundoApellido(person.getSegundoApellido());
                     existing.setTipoPersona(person.getTipoPersona());
-                    existing.setSegundoTipoPersona(person.getSegundoTipoPersona());
 
-                    existing.validateRoles();
                     propagateProfile(existing);
                     propagateGroup(existing, tipoAnterior);
 
@@ -513,8 +509,6 @@ public class PersonService implements PersonServicePort {
                 .primerApellido(request.primerApellido())
                 .segundoApellido(request.segundoApellido())
                 .tipoPersona(tipoPersona)
-                // El original recibia este dato en la peticion y nunca lo trasladaba a la persona.
-                .segundoTipoPersona(request.segundoTipoPersona())
                 .estadoActivo(true)
                 .emailPersonList(correosDeLaCuenta(request))
                 .phonePersonList(listaOVacia(request.phonePersonList()).stream()

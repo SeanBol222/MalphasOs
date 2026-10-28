@@ -82,10 +82,10 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **45** (`V1`…`V45`) |
+| Migraciones aplicadas | **46** (`V1`…`V46`) |
 | Tablas de dominio | **38** |
 | Llaves foráneas | **53**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **77** |
+| Restricciones `CHECK` propias | **76** |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **10** |
@@ -129,6 +129,9 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   imagen se borra al cambiarla, porque un informe congelado puede apuntarla. Ver las secciones de
 >   `person` y `shared`, que **esta nota no tenía**: `firma_persona` e `imagen_documento` entraron con
 >   `V37` y `V38`, el 2026-10-17, y nadie las dibujó. Corregido el 2026-10-27.
+> - `V46`, **sin segundo tipo de persona**: `persona.t_segundo_tipo_persona` y su `CHECK` salen —**−1
+>   `CHECK`**—. Es encargado quien tiene asignaciones; y si alguien que no es encargado ni representante
+>   las tuviera, la migración se detiene diciendo cuántos.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -391,7 +394,6 @@ erDiagram
         varchar n_primer_apellido
         varchar n_segundo_apellido
         varchar t_tipo_persona "ENGINEER, MANAGER, CEO_CLIENT, ADMIN, SUPER_ADMIN"
-        varchar t_segundo_tipo_persona "solo MANAGER, lo impone un CHECK"
         boolean b_estado_activo
     }
     correo_persona {

@@ -173,20 +173,4 @@ class ReadScopeResolverTest {
 
         verify(personCommunicationPort).findById(yo);
     }
-
-    @Test
-    @DisplayName("un representante que tambien es encargado sigue siendo representante")
-    void elSegundoTipoNoCambiaElAlcance() {
-        UUID yo = UUID.randomUUID();
-        when(personCommunicationPort.findById(yo))
-                .thenReturn(PersonCommunicationResponse.builder()
-                        .identificador(yo)
-                        .tipoPersona(PersonType.CEO_CLIENT)
-                        .segundoTipoPersona(PersonType.MANAGER)
-                        .estadoActivo(true)
-                        .build());
-        when(clientOwnershipPort.clientsRepresentedBy(yo)).thenReturn(Set.of());
-
-        assertThat(resolver.scopeFor(conSub(yo.toString())).coversEverything()).isFalse();
-    }
 }

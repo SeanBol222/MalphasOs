@@ -177,9 +177,6 @@ export class NuevaPersona {
     segundoApellido: '',
     nombreUsuario: '',
     password: '',
-    // Tambien encargado: el modelo admite una segunda funcion y el contrato solo acepta MANAGER ahi.
-    // Solo en el ingeniero y el administrador: el representante lo dice eligiendo sede.
-    tambienEncargado: false,
     // Vacios, el alta es la de siempre.
     clienteElegido: '',
     sede: '',
@@ -397,9 +394,6 @@ export class NuevaPersona {
         .map((t) => (t.telefonoPersona ?? '').trim())
         .filter(Boolean)
         .map((telefonoPersona) => ({ telefonoPersona })),
-      segundoTipoPersona: this.esTambienEncargado(v.tambienEncargado)
-        ? ('MANAGER' as const)
-        : undefined,
     };
 
     const alVolver = { onSuccess: () => void this.router.navigate(['/personas']) };
@@ -451,14 +445,6 @@ export class NuevaPersona {
         });
         break;
     }
-  }
-
-  /**
-   * La segunda función: en el ingeniero y el administrador la dice el check; en el representante,
-   * haber elegido sede, que es lo que de verdad lo hace encargado.
-   */
-  private esTambienEncargado(marcado: boolean): boolean {
-    return this.clase() === 'representante' ? this.asignacionElegida() !== null : marcado;
   }
 
   /**

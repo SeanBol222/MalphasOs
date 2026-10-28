@@ -69,11 +69,25 @@ export class ListaPersonas {
   private readonly texto = toSignal(this.buscador.valueChanges, { initialValue: '' });
 
   /** Cuántas personas hay de cada función, para los botones del filtro. */
+  /**
+   * Quién tiene alguna sede o área a cargo. Desde V46 eso es lo que hace a alguien encargado además de
+   * su tipo: un representante a cargo de un área se ve y se filtra también como encargado.
+   */
+  private readonly aCargo = computed(
+    () =>
+      new Set(
+        (this.encargados.data() ?? [])
+          .filter((e) => e.estadoActivo && !!e.idPersona && asignacionesDe(e).length > 0)
+          .map((e) => e.idPersona!),
+      ),
+  );
+
   protected readonly cuantas = computed(() => {
     const personas = this.personas.data() ?? [];
+    const aCargo = this.aCargo();
 
     return Object.fromEntries(
-      FILTROS.map((f) => [f.clave, personas.filter((p) => cumple(p, f.clave)).length]),
+      FILTROS.map((f) => [f.clave, personas.filter((p) => cumple(p, f.clave, aCargo)).length]),
     ) as Record<Filtro, number>;
   });
 
@@ -122,9 +136,10 @@ export class ListaPersonas {
   protected readonly filas = computed(() => {
     const buscado = normalizar(this.texto());
     const delCliente = this.delCliente();
+    const aCargo = this.aCargo();
 
     return (this.personas.data() ?? [])
-      .filter((persona) => cumple(persona, this.filtro()))
+      .filter((persona) => cumple(persona, this.filtro(), aCargo))
       .filter(
         (persona) =>
           !buscado ||
@@ -143,11 +158,10 @@ export class ListaPersonas {
           deLaCasa,
           correo: (persona.emailPersonList ?? []).find((c) => c.estadoActivo)?.correoPersona ?? '',
           cedula: persona.cedula ?? '—',
-          // Una persona puede tener dos funciones —el modelo lo permite— y las dos se muestran: alguien
-          // que es ingeniero y encargado a la vez no es un caso raro, es el jefe de servicio del cliente.
+          // Un representante a cargo de una sede o un área es además encargado, y las dos funciones se
+          // muestran. Desde V46 lo segundo no lo dice un segundo tipo sino que tenga algo a cargo.
           oficios:
-            [persona.tipoPersona, persona.segundoTipoPersona]
-              .filter((t): t is TipoDePersona => !!t)
+            oficiosDe(persona, aCargo)
               .map((t) => ETIQUETA_DE_TIPO_DE_PERSONA[t])
               .join(' · ') + (aCargoDe.length ? ` · ${aCargoDe.join(', ')}` : ''),
           cliente: deLaCasa ? 'De la casa' : [...(cliente?.clientes ?? [])].join(' · ') || '—',
@@ -174,14 +188,18 @@ const FILTROS: readonly { clave: Filtro; etiqueta: string; tipos: readonly TipoD
   { clave: 'ENCARGADOS', etiqueta: 'Encargados', tipos: ['MANAGER'] },
 ];
 
-function cumple(persona: Persona, filtro: Filtro): boolean {
+function cumple(persona: Persona, filtro: Filtro, aCargo: ReadonlySet<string>): boolean {
   const tipos = FILTROS.find((f) => f.clave === filtro)!.tipos;
 
-  return (
-    !tipos.length ||
-    tipos.includes(persona.tipoPersona as TipoDePersona) ||
-    tipos.includes(persona.segundoTipoPersona as TipoDePersona)
-  );
+  return !tipos.length || oficiosDe(persona, aCargo).some((t) => tipos.includes(t));
+}
+
+/** Su tipo, y encargado además si tiene algo a cargo y no lo es ya por tipo. */
+function oficiosDe(persona: Persona, aCargo: ReadonlySet<string>): TipoDePersona[] {
+  const tipo = persona.tipoPersona as TipoDePersona | undefined;
+  if (!tipo) return [];
+
+  return tipo !== 'MANAGER' && aCargo.has(persona.identificador ?? '') ? [tipo, 'MANAGER'] : [tipo];
 }
 
 function esDeLaCasa(persona: Persona): boolean {

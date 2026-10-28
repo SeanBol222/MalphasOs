@@ -41,8 +41,5 @@ public record PersonUpdateRequest(
         // valores que admite la base. Al ser un enum, el valor invalido se rechaza al deserializar.
         @Schema(description = "Funcion principal", example = "CEO_CLIENT")
         @NotNull(message = "El tipo de persona es obligatorio")
-        PersonType tipoPersona,
-
-        @Schema(description = "Funcion secundaria, solo MANAGER", example = "MANAGER")
-        PersonType segundoTipoPersona) {
+        PersonType tipoPersona) {
 }

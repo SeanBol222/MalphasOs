@@ -641,14 +641,23 @@ describe('Ficha de una sede', () => {
         tipoPersona: 'MANAGER',
         estadoActivo: true,
       },
-      // Ingeniero y ademas encargado, ya a cargo del area a1 de esta sede.
+      // Representante de este cliente, ya a cargo del area a1 de esta sede: desde V46 un representante
+      // puede estar a cargo, y es encargado por tener asignaciones, no por un segundo tipo.
       {
         identificador: 'm3',
         primerNombre: 'Andrés',
         primerApellido: 'Pardo',
         cedula: '3',
-        tipoPersona: 'ENGINEER',
-        segundoTipoPersona: 'MANAGER',
+        tipoPersona: 'CEO_CLIENT',
+        estadoActivo: true,
+      },
+      // Representante de otro cliente: no se ofrece aquí.
+      {
+        identificador: 'x1',
+        primerNombre: 'Xavier',
+        primerApellido: 'Otro',
+        cedula: '6',
+        tipoPersona: 'CEO_CLIENT',
         estadoActivo: true,
       },
       {
@@ -684,7 +693,7 @@ describe('Ficha de una sede', () => {
       http.match(URL_AREAS).forEach((p) => p.flush(AREAS));
       http.match(URL_ENCARGADOS).forEach((p) => p.flush(ENCARGADOS_DE_ASIGNAR));
       http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS_DE_ASIGNAR));
-      http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
+      http.match(URL_CLIENTE).forEach((p) => p.flush({ ...CLIENTE, representantes: ['m3'] }));
       http.match((r) => r.url === URL_RESUMEN_CLIENTE).forEach((p) => p.flush(RESUMEN));
       await asentar(fixture);
     }
@@ -699,7 +708,7 @@ describe('Ficha de una sede', () => {
       fixture.detectChanges();
     }
 
-    it('ofrece a los encargados activos de este cliente, no a los de otro ni a quien no lo es', async () => {
+    it('ofrece a los encargados activos y a los representantes de este cliente, no a los de otro ni a quien no lo es', async () => {
       await abrirParaAsignar();
 
       expect(opciones('personaAsignada')).toEqual([

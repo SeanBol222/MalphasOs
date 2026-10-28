@@ -106,13 +106,40 @@ describe('Ficha de una persona', () => {
   }
 
   it('enseña el nombre, la cédula, la función y el estado', async () => {
-    await abrir(persona({ segundoTipoPersona: 'CEO_CLIENT' }));
+    await abrir();
 
     expect(texto()).toContain('Grace Hopper');
     expect(texto()).toContain('1010101010');
     expect(texto()).toContain('Encargado del cliente');
-    expect(texto()).toContain('Representante del cliente');
     expect(texto()).toContain('Activa');
+  });
+
+  describe('un representante a cargo de algo es además encargado (V46)', () => {
+    const URL_ENCARGADOS = 'http://localhost:8081/v1/api/managers';
+
+    async function abrirRepresentante(encargados: object[]): Promise<void> {
+      TestBed.resetTestingModule();
+      montar(['person.read', 'person.write', 'engineer.read']);
+      await abrir(persona({ tipoPersona: 'CEO_CLIENT' }));
+      await responderA(fixture, http, URL_ENCARGADOS, encargados);
+    }
+
+    it('con una sede a cargo dice las dos funciones', async () => {
+      await abrirRepresentante([
+        { idPersona: ID, idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
+      ]);
+
+      expect(texto()).toContain('Representante del cliente · Encargado del cliente');
+    });
+
+    it('sin nada a cargo es solo representante', async () => {
+      await abrirRepresentante([
+        { idPersona: 'otra', idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
+      ]);
+
+      expect(texto()).toContain('Representante del cliente');
+      expect(texto()).not.toContain('Encargado del cliente');
+    });
   });
 
   it('solo pinta los correos y teléfonos vigentes', async () => {
@@ -172,7 +199,7 @@ describe('Ficha de una persona', () => {
 
   it('guardar manda la persona entera, incluido el tipo que no se tocó', async () => {
     // Es un PUT: lo que no viaje se pierde. El tipo va tal como estaba.
-    await abrir(persona({ tipoPersona: 'ENGINEER', segundoTipoPersona: 'MANAGER' }));
+    await abrir(persona({ tipoPersona: 'ENGINEER' }));
     pulsar('Editar datos');
     escribir('primerNombre', 'Grace Brewster');
 
@@ -184,7 +211,6 @@ describe('Ficha de una persona', () => {
     expect(peticion.request.body.primerNombre).toBe('Grace Brewster');
     expect(peticion.request.body.cedula).toBe('1010101010');
     expect(peticion.request.body.tipoPersona).toBe('ENGINEER');
-    expect(peticion.request.body.segundoTipoPersona).toBe('MANAGER');
     peticion.flush(persona());
     await asentar(fixture);
     http.match(`${URL}/${ID}`).forEach((p) => p.flush(persona()));

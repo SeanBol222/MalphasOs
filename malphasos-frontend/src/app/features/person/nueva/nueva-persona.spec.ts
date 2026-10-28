@@ -131,9 +131,6 @@ describe('Alta de una persona', () => {
     expect(peticion.request.body.tipoPersona).toBeUndefined();
     expect(peticion.request.body.nombreUsuario).toBe('ghopper');
     expect(peticion.request.body.emailPersonList).toEqual([{ correoPersona: 'grace@armada.mil' }]);
-    // Y la segunda funcion NO viaja si no se marco la casilla. Sin esta linea, mandarla siempre
-    // convertia a todo el mundo en encargado de un cliente sin que ninguna prueba se enterara.
-    expect(peticion.request.body.segundoTipoPersona).toBeUndefined();
     peticion.flush({ identificador: 'p9' });
     await asentar(fixture);
   });
@@ -195,23 +192,14 @@ describe('Alta de una persona', () => {
     await asentar(fixture);
   });
 
-  it('marcar «también es encargado» viaja como la segunda función', async () => {
+  it('el alta de un ingeniero no ofrece ponerlo a cargo de un cliente (V46)', async () => {
+    // Desde V46 solo encargados y representantes responden por una sede o un área, y la casilla
+    // «También es encargado» ponía un segundo tipo que ya no existe.
     montar('ingeniero');
-    rellenarLoComun();
-    escribir('nombreUsuario', 'ingeniera');
-    escribir('password', 'contrasena-de-12');
-    escribir('correo-0', 'ingeniera@empresa.co');
-    const casilla = raiz().querySelector<HTMLInputElement>('input[type="checkbox"]')!;
-    casilla.click();
     fixture.detectChanges();
 
-    enviar();
-    await asentar(fixture);
-
-    const peticion = http.expectOne(`${URL}/engineers`);
-    expect(peticion.request.body.segundoTipoPersona).toBe('MANAGER');
-    peticion.flush({ identificador: 'p9' });
-    await asentar(fixture);
+    expect(raiz().textContent).not.toContain('También es encargado');
+    expect(raiz().querySelector('input[type="checkbox"]')).toBeNull();
   });
 
   it('un nombre de usuario repetido se explica con el mensaje del catálogo', async () => {
@@ -636,7 +624,7 @@ describe('Alta de una persona', () => {
       expect(raiz().querySelector('#sede')).not.toBeNull();
     });
 
-    it('sin sede es solo representante: ni segunda función ni asignación', async () => {
+    it('sin sede es solo representante: sin asignación', async () => {
       await abrir();
       http.expectOne(URL_SEDES).flush(SEDES);
       const viaje = vi.spyOn(TestBed.inject(Router), 'navigate');
@@ -644,7 +632,6 @@ describe('Alta de una persona', () => {
       await asentar(fixture);
 
       const alta = http.expectOne(`${URL}/ceo-clients`);
-      expect(alta.request.body.segundoTipoPersona).toBeUndefined();
       alta.flush({ identificador: 'p9' });
       await asentar(fixture);
       http.expectOne(`${URL_CLIENTE}/representatives/p9`).flush({ id: ID_CLIENTE });
@@ -673,8 +660,6 @@ describe('Alta de una persona', () => {
       enviar();
       await asentar(fixture);
       const alta = http.expectOne(`${URL}/ceo-clients`);
-      // La segunda función la pone haber elegido sede, no un check.
-      expect(alta.request.body.segundoTipoPersona).toBe('MANAGER');
       alta.flush({ identificador: 'p9' });
       await asentar(fixture);
       http.expectOne(`${URL_CLIENTE}/representatives/p9`).flush({ id: ID_CLIENTE });

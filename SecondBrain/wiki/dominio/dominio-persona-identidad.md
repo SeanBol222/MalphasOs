@@ -11,7 +11,7 @@ updated: 2026-09-09
 
 ## Modelo de dominio
 
-`Person` (cédula, nombres, apellidos, `tipoPersona`, `segundoTipoPersona`) + `EmailPerson`/`PhonePerson` propios. Sin import cruzado con `Client`/`Manager` en los modelos de dominio, aunque **un encargado sí es una persona** en el esquema y en el flujo de creación (ver [[relacion-manager-persona]]).
+`Person` (cédula, nombres, apellidos, `tipoPersona`) + `EmailPerson`/`PhonePerson` propios. (Llevaba además `segundoTipoPersona` hasta `V46`, el 2026-10-27; ver abajo.) Sin import cruzado con `Client`/`Manager` en los modelos de dominio, aunque **un encargado sí es una persona** en el esquema y en el flujo de creación (ver [[relacion-manager-persona]]).
 
 ## Casos de uso REST
 
@@ -70,7 +70,7 @@ Sigue **sin** hacer, y no por olvido: **no existe `enableUser`**, porque no hay 
 
 **`MANAGER` no es un cabo suelto.** Su razón está escrita: *«un encargado puede existir como contacto de una sede sin acceder nunca a la aplicación»*. Y no se pide por el API: lo fija `ManagerService` al registrar a alguien como encargado de una sede o de un área —*«el tipo de persona lo fija este servicio, no quien llama»*—.
 
-Es además **el único segundo tipo válido**, impuesto en tres capas: una constante del agregado, un `CHECK` del esquema y una prueba de regresión. Eso es lo que permite que **un ingeniero sea además encargado**, que es lo que `WorkOrderService` contempla al aceptar que cualquiera de los dos tipos sea `ENGINEER`.
+~~Es además **el único segundo tipo válido**, impuesto en tres capas: una constante del agregado, un `CHECK` del esquema y una prueba de regresión. Eso es lo que permite que **un ingeniero sea además encargado**, que es lo que `WorkOrderService` contempla al aceptar que cualquiera de los dos tipos sea `ENGINEER`.~~ **Corregido el 2026-10-27: el segundo tipo ya no existe** (`V46`). Desde `V41` ser encargado ya lo decían `encargado_sede` y `encargado_area`, y las dos fuentes podían contradecirse —en desarrollo había un representante marcado como encargado sin nada a cargo—. Ahora **es encargado quien tiene asignaciones**, y el usuario decidió quién puede tenerlas: **los encargados y los representantes del cliente**, nadie más. `ManagerService.assign` lo comprueba —`ERR_CLIENT_011`, un 409— y hasta entonces aceptaba a cualquier persona. La frase tachada además era falsa a medias: el `CHECK` solo admitía `MANAGER` como segundo tipo, de modo que la rama de `WorkOrderService` que miraba un segundo tipo `ENGINEER` era código muerto.
 
 **`SUPER_ADMIN` sí era un cabo suelto**, y ahora es una decisión. `RoleType` dice que el alta *«quedó sin implementar en el original»*; desde el 2026-09-13 esa ausencia es deliberada: el super usuario se crea entrando a Keycloak, y por eso `super.admin.full` no cuelga de ningún grupo. Ver [[modelo-de-permisos]] para la escalera completa.
 
