@@ -66,7 +66,9 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 ### La empresa y las personas
 
 - Los datos de la empresa que presta el servicio —membrete, logo, garantía, códigos de formato— se editan
-  desde la aplicación; MalphasOS no lleva los de ninguna en su código.
+  desde la aplicación; MalphasOS no lleva los de ninguna en su código. **Su ciudad se elige del catálogo**,
+  con el mismo buscador que las sedes; la migración `V44` enlaza la que ya estaba escrita y, si no casa
+  con una sola ciudad, se detiene diciendo cuál.
 - Ingenieros, administradores, representantes de cliente y encargados. Los que tienen cuenta la reciben
   en Keycloak en el mismo paso.
 - **Cada quien ve lo suyo**: un representante de cliente solo ve los datos de su cliente, y la escalera de
