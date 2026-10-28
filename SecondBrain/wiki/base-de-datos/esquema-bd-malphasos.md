@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 38 tablas, 53 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 38 tablas, 52 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -82,9 +82,9 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **46** (`V1`…`V46`) |
+| Migraciones aplicadas | **47** (`V1`…`V47`) |
 | Tablas de dominio | **38** |
-| Llaves foráneas | **53**, de las cuales **4 compuestas** |
+| Llaves foráneas | **52**, de las cuales **3 compuestas** |
 | Restricciones `CHECK` propias | **76** |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
@@ -132,6 +132,10 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 > - `V46`, **sin segundo tipo de persona**: `persona.t_segundo_tipo_persona` y su `CHECK` salen —**−1
 >   `CHECK`**—. Es encargado quien tiene asignaciones; y si alguien que no es encargado ni representante
 >   las tuviera, la migración se detiene diciendo cuántos.
+> - `V47`, **la orden llega a su cliente por la sede**: sale `orden_trabajo.k_id_cliente` con su foránea,
+>   la compuesta (sede, cliente) y la restricción única de `sede` que solo existía para ella —**−1
+>   foránea neta, −1 compuesta, −1 única**—. El código sigue leyendo el cliente de la orden, a través de
+>   su sede, con un `@Formula`.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -701,8 +705,7 @@ erDiagram
     orden_trabajo ||--o{ orden_trabajo_equipo : "incluye"
     orden_trabajo {
         uuid k_id_orden_trabajo PK
-        uuid k_id_cliente FK
-        uuid k_id_sede FK "el par va junto a sede"
+        uuid k_id_sede FK "y por ella su cliente, desde V47"
         uuid k_id_ingeniero FK "anulable; se llamaba k_identificador hasta V42"
         date f_fecha_mantenimiento
         varchar n_periodicidad
@@ -829,19 +832,20 @@ los del día en que se abrió el reporte. Pero aquí **sí** hay foránea al pro
 anterior: un protocolo nunca se borra, solo se retira, así que la foránea dice de cuál salió el paso sin
 congelar nada. Ver [[dominio-reporte-servicio]].
 
-## Las 4 foráneas compuestas, que son reglas y no adornos
+## Las 3 foráneas compuestas, que son reglas y no adornos
 
 Una foránea compuesta impone en el esquema algo que con dos foráneas sueltas quedaría abierto. Son
-cuatro y cada una tapa un estado que de otro modo se podría escribir:
+tres y cada una tapa un estado que de otro modo se podría escribir. (Eran **cuatro** hasta `V47`, el
+2026-10-28: la de la orden con su cliente impedía una orden en una sede de otro cliente, y dejó de hacer
+falta cuando la orden dejó de guardar su cliente —ya no hay dos datos que puedan contradecirse—.)
 
 | Tabla | El par | Lo que impide |
 |---|---|---|
-| `orden_trabajo` | (sede, cliente) → `sede` | Una orden en una sede **de otro cliente** |
 | `reporte_servicio` | (orden, equipo) → `orden_trabajo_equipo` | Un reporte de un equipo **que la orden no incluyó** |
 | `verificacion_tipo_equipo` | (magnitud, unidad) → `unidad_medida` | Medir temperatura **en %HR** |
 | `dato_verificacion` | (verificación, punto) → `punto_verificacion` | Una lectura en un punto **de otra verificación** |
 
-**Y las cuatro admiten el caso nulo sin una regla extra**: una foránea compuesta con alguna columna
+**Y las tres admiten el caso nulo sin una regla extra**: una foránea compuesta con alguna columna
 nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
 lectura sin punto pasa y la que trae punto queda atada.
 

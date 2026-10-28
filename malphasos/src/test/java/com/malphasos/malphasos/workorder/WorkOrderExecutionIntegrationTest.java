@@ -112,11 +112,11 @@ class WorkOrderExecutionIntegrationTest {
         UUID orden = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede, f_fecha_mantenimiento,
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede, f_fecha_mantenimiento,
                                            n_periodicidad, t_tipo_servicio, t_estado_ejecucion)
-                VALUES (?, ?, ?, ?, 'MENSUAL', 'CORRECTIVO', 'EN_EJECUCION')
+                VALUES (?, ?, ?, 'MENSUAL', 'CORRECTIVO', 'EN_EJECUCION')
                 """,
-                orden, cliente, sede, LocalDate.now());
+                orden, sede, LocalDate.now());
         for (UUID unidad : new UUID[] {uno, dos}) {
             jdbcTemplate.update(
                     "INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio) VALUES (?, ?, ?)",

@@ -582,7 +582,7 @@ Se construye **antes de congelar el informe**, porque lo congelado copia la empr
 nuevo, `company`, con `V36`, y la pantalla «Empresa». **Anula** «sin nombre la aplicación no arranca» del
 2026-10-16.
 
-## La refactorización del esquema, `V42` a `V50` (decidida el 2026-10-27)
+## La refactorización del esquema, `V42` a `V51` (decidida el 2026-10-27)
 
 Pedida por el usuario antes de construir nada más sobre la base: «veo demasiados ciclos, redundancias y de
 todo». El análisis, sus decisiones y el plan están en `Documentation/DatabaseDesign/analisis-2026-10-27.md`,
@@ -598,18 +598,21 @@ el bloqueo del traslado de un equipo que está en una orden viva.
 | `V44` | La ciudad de la empresa, del catálogo | **Construida el 2026-10-27** |
 | `V45` | El logo de la empresa y las firmas, por huella en `imagen_documento` | **Construida el 2026-10-27** |
 | `V46` | Sin segundo tipo de persona | **Construida el 2026-10-27** |
-| `V47` | La orden llega al cliente por la sede, y la verificación a la magnitud por la unidad | Pendiente |
-| `V48` | La orden se congela al ejecutarse, y sin tabla puente entre la orden y el equipo | Pendiente |
-| `V49` | El reporte cerrado vive en su documento, sin copias del catálogo | Pendiente |
-| `V50` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | Pendiente |
+| `V47` | La orden llega a su cliente por la sede | **Construida el 2026-10-28** |
+| `V48` | La verificación llega a su magnitud por la unidad | Pendiente |
+| `V49` | La orden se congela al ejecutarse, y sin tabla puente entre la orden y el equipo | Pendiente |
+| `V50` | El reporte cerrado vive en su documento, sin copias del catálogo | Pendiente |
+| `V51` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | Pendiente |
 
 **Renumerada el 2026-10-27**: el plan tenía siete, `V42` a `V48`, y el `V43` de entonces juntaba los
 teléfonos, la ciudad y las imágenes de la empresa. Se partió en tres al construirlo porque tocan tres
 sitios distintos —la persistencia, la pantalla de la empresa, y `company`, `person` y `report` a la
-vez— y en un solo commit no se revisaban.
+vez— y en un solo commit no se revisaban. **Y otra vez el 2026-10-28**: el `V47` que juntaba la orden por
+la sede y la verificación por la unidad se partió en dos, porque son dos módulos, y el plan llega a
+`V51`.
 
 **Y el recibido** —firmar un reporte, un área o la orden entera— no pide migración: se queda en el reporte,
-como desde `V39`, y es trabajo de servicio y de pantalla después de `V48`.
+como desde `V39`, y es trabajo de servicio y de pantalla después de `V49`.
 
 ## El orden propuesto
 

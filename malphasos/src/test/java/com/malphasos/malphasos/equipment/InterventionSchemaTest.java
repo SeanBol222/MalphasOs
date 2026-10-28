@@ -149,11 +149,11 @@ class InterventionSchemaTest {
         UUID orden = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                            f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio)
-                VALUES (?, ?, ?, ?, 'MENSUAL', ?)
+                VALUES (?, ?, ?, 'MENSUAL', ?)
                 """,
-                orden, cliente, sede, LocalDate.now(), tipoServicio);
+                orden, sede, LocalDate.now(), tipoServicio);
 
         jdbcTemplate.update(
                 """
