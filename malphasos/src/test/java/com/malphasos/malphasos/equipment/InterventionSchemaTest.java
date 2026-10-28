@@ -166,7 +166,7 @@ class InterventionSchemaTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
-                                              t_estado_reporte, t_procedimientos, t_resultado, t_finalizado)
+                                              t_estado_reporte, t_procedimientos, t_resultado, f_finalizado)
                 VALUES (?, ?, ?, 'FINALIZADO', 'Se hizo lo previsto', ?, ?)
                 """,
                 reporte, orden, unidad, resultado, LocalDateTime.now());
@@ -318,11 +318,11 @@ class InterventionSchemaTest {
 
     private void ejecutarV18() throws Exception {
         // Del fichero que se despliega, por la misma razon que ejecutarV13.
-        jdbcTemplate.execute(new String(
+        jdbcTemplate.execute(conLosNombresDeHoy(new String(
                 new ClassPathResource("db/migration/V18__backfill_intervention_description.sql")
                         .getInputStream()
                         .readAllBytes(),
-                StandardCharsets.UTF_8));
+                StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -340,7 +340,7 @@ class InterventionSchemaTest {
                 ingeniero, String.valueOf(System.nanoTime() % 10_000_000_000L));
         jdbcTemplate.update(
                 """
-                UPDATE orden_trabajo SET k_identificador = ?
+                UPDATE orden_trabajo SET k_id_ingeniero = ?
                 WHERE k_id_orden_trabajo = (
                     SELECT k_id_orden_trabajo FROM reporte_servicio WHERE k_id_reporte_servicio = ?)
                 """,
@@ -386,7 +386,26 @@ class InterventionSchemaTest {
                         .getInputStream()
                         .readAllBytes(),
                 StandardCharsets.UTF_8);
-        jdbcTemplate.execute(sql);
+        jdbcTemplate.execute(conLosNombresDeHoy(sql));
+    }
+
+    /**
+     * El guion desplegado, con los dos nombres que V42 cambio despues (2026-10-27).
+     *
+     * <p>Estas pruebas vuelven a ejecutar V13, V14 y V18 sobre el esquema de hoy, no sobre el de su
+     * version, y V42 renombro dos columnas que usan. Lo correcto seria migrar un esquema aparte hasta su
+     * version, como hace la prueba de V41; no se hace porque intervencion entera desaparece en V48, y con
+     * ella estas pruebas. Se traduce lo justo, y si un guion no trae el nombre que se espera la prueba
+     * falla en vez de ejecutar otra cosa.
+     */
+    private static String conLosNombresDeHoy(String sql) {
+        String traducido = sql
+                .replace("r.t_finalizado", "r.f_finalizado")
+                .replace("o.k_identificador", "o.k_id_ingeniero");
+        if (traducido.equals(sql)) {
+            throw new IllegalStateException("El guion no usa ninguno de los nombres que V42 cambio");
+        }
+        return traducido;
     }
 
     @Test
@@ -446,7 +465,7 @@ class InterventionSchemaTest {
         jdbcTemplate.update(
                 """
                 UPDATE reporte_servicio
-                SET t_estado_reporte = 'BORRADOR', t_finalizado = NULL
+                SET t_estado_reporte = 'BORRADOR', f_finalizado = NULL
                 WHERE k_id_reporte_servicio = ?
                 """,
                 contexto.reporte());
@@ -507,7 +526,7 @@ class InterventionSchemaTest {
                         .readAllBytes(),
                 StandardCharsets.UTF_8);
         // Solo el UPDATE de reconciliacion: los ALTER ya se aplicaron al arrancar y no se repiten.
-        jdbcTemplate.execute(sql.substring(sql.indexOf("WITH grupo AS")));
+        jdbcTemplate.execute(conLosNombresDeHoy(sql.substring(sql.indexOf("WITH grupo AS"))));
     }
 
     @Test
@@ -526,7 +545,7 @@ class InterventionSchemaTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
-                                              t_estado_reporte, t_procedimientos, t_resultado, t_finalizado)
+                                              t_estado_reporte, t_procedimientos, t_resultado, f_finalizado)
                 VALUES (?, ?, ?, 'FINALIZADO', 'Corregido', 'OPERATIVO', ?)
                 """,
                 segundo, orden, primero.equipo(), LocalDateTime.now());

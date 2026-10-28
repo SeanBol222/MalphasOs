@@ -48,7 +48,7 @@ class PersonSignaturePersistenceTest {
         almacen.save(persona, new PersonSignature(otra, HOY.plusDays(1)));
 
         assertThat(almacen.find(persona)).contains(new PersonSignature(otra, HOY.plusDays(1)));
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM firma_persona WHERE k_id_persona = ?", Integer.class,
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM firma_persona WHERE k_identificador = ?", Integer.class,
                 persona)).isEqualTo(1);
     }
 

@@ -294,7 +294,7 @@ class ServiceReportSchemaTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
-                                              t_estado_reporte, t_procedimientos, t_resultado, t_finalizado)
+                                              t_estado_reporte, t_procedimientos, t_resultado, f_finalizado)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 id, orden, equipo, estado, procedimientos, resultado, finalizado);
@@ -372,7 +372,7 @@ class ServiceReportSchemaTest {
         String cierre = jdbcTemplate.queryForObject(
                 """
                 SELECT is_nullable FROM information_schema.columns
-                WHERE table_name = 'reporte_servicio' AND column_name = 't_finalizado'
+                WHERE table_name = 'reporte_servicio' AND column_name = 'f_finalizado'
                 """,
                 String.class);
         assertThat(cierre).isEqualTo("YES");

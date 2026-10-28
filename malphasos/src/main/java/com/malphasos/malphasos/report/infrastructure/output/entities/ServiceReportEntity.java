@@ -94,7 +94,7 @@ public class ServiceReportEntity {
     private String resultado;
 
     /** Cuándo se cerró. Nulo mientras el reporte está en borrador. */
-    @Column(name = "t_finalizado")
+    @Column(name = "f_finalizado")
     private LocalDateTime finalizado;
 
     @Column(name = "b_estado_activo", nullable = false)

@@ -115,4 +115,18 @@ class PersonSchemaTest {
         assertThatThrownBy(() -> insertPerson("4444444444", "CEO_CLIENT", "ENGINEER"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
+
+    @Test
+    @DisplayName("un correo o un telefono de persona sin dueno se rechaza (V42)")
+    void contactWithoutOwnerIsRejected() {
+        // Era anulable desde V2, heredado del original: un correo sin dueno no lo encuentra nadie.
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "INSERT INTO correo_persona (k_id_correo_persona, n_correo_persona) VALUES (?, ?)",
+                        UUID.randomUUID(), "huerfano@example.com"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "INSERT INTO telefono_persona (k_id_telefono_persona, n_telefono_persona) VALUES (?, ?)",
+                        UUID.randomUUID(), "3000000000"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
 }
