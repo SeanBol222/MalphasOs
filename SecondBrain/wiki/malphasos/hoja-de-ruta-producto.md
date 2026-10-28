@@ -582,6 +582,28 @@ Se construye **antes de congelar el informe**, porque lo congelado copia la empr
 nuevo, `company`, con `V36`, y la pantalla «Empresa». **Anula** «sin nombre la aplicación no arranca» del
 2026-10-16.
 
+## La refactorización del esquema, `V42` a `V48` (decidida el 2026-10-27)
+
+Pedida por el usuario antes de construir nada más sobre la base: «veo demasiados ciclos, redundancias y de
+todo». El análisis, sus decisiones y el plan están en `Documentation/DatabaseDesign/analisis-2026-10-27.md`,
+con el esquema de hoy y el final dibujados en `Documentation/DatabaseDesign/refactor-3fn/`. **No mueve el
+marcador de requisitos**: cambia cómo se guardan los datos, no lo que el sistema hace, salvo cuatro reglas
+de la orden nuevas —el borrador nace al añadir el equipo, ejecutar exige un reporte cerrado por equipo— y
+el bloqueo del traslado de un equipo que está en una orden viva.
+
+| Migración | Qué | Estado |
+|---|---|---|
+| `V42` | Índices de las foráneas, dueños obligatorios y tres nombres que engañaban | **Construida el 2026-10-27** |
+| `V43` | Los teléfonos, la ciudad y el logo de la empresa, y las firmas, por huella | Pendiente |
+| `V44` | Sin segundo tipo de persona | Pendiente |
+| `V45` | La orden llega al cliente por la sede, y la verificación a la magnitud por la unidad | Pendiente |
+| `V46` | La orden se congela al ejecutarse, y sin tabla puente entre la orden y el equipo | Pendiente |
+| `V47` | El reporte cerrado vive en su documento, sin copias del catálogo | Pendiente |
+| `V48` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | Pendiente |
+
+**Y el recibido** —firmar un reporte, un área o la orden entera— no pide migración: se queda en el reporte,
+como desde `V39`, y es trabajo de servicio y de pantalla después de `V46`.
+
 ## El orden propuesto
 
 | # | Bloque | Desbloquea | Estado de sus dependencias |

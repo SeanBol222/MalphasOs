@@ -2416,3 +2416,21 @@ lista ya está entera ahí, como sus filtros. Siete mutaciones, siete muertas. F
 
 **Tocadas**: el `CONVENCIONES.md` de la raíz y `CHANGELOG.md`.
 
+## [2026-10-27] ingest | V42: índices, dueños obligatorios y tres nombres
+
+Primera de las siete migraciones de la refactorización del esquema, decidida por el usuario sobre el
+análisis de `Documentation/DatabaseDesign/`. No cambia el modelo: nueve índices cubren diez de las trece
+foráneas que no tenían ninguno —las otras tres se quitan en migraciones siguientes—, el dueño de los
+correos y teléfonos de una persona pasa a ser obligatorio —cierra una deuda abierta desde `V2`—, y
+`orden_trabajo.k_identificador`, `reporte_servicio.t_finalizado` y `firma_persona.k_id_persona` pasan a
+llamarse `k_id_ingeniero`, `f_finalizado` y `k_identificador`.
+
+**Lo que conviene recordar**: el criterio de «foránea con índice» cuenta los índices parciales sobre las
+filas activas, porque aquí nunca se borra una fila y el índice solo sirve para leer. Sin ese criterio
+salían quince y no trece. Desde hoy lo exige `ForeignKeyIndexContractTest`, con las tres que se van como
+excepciones con nombre y la obligación de que sigan existiendo: una excepción que ya no hace falta tiene
+que salir de la lista. Y **las pruebas que vuelven a ejecutar `V13`, `V14` y `V18` sobre el esquema de hoy
+se rompieron con los nombres nuevos**: traducen ahora lo justo, porque migrar un esquema aparte hasta su
+versión no compensa para pruebas que desaparecen en `V48`. Tres mutaciones, las tres muertas.
+
+Ver [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]] y [[hoja-de-ruta-producto]].

@@ -82,13 +82,14 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **41** (`V1`…`V41`) |
+| Migraciones aplicadas | **42** (`V1`…`V42`) |
 | Tablas de dominio | **37** |
 | Llaves foráneas | **49**, de las cuales **4 compuestas** |
 | Restricciones `CHECK` propias | **77** |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **10** |
+| Foráneas sin ningún índice que las encabece | **3**, las que la refactorización va a quitar — desde `V42`; eran **13** |
 | Tablas con borrado lógico | **34 de 37** — ya no es universal: `empresa`, `firma_persona` e `imagen_documento` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
@@ -105,6 +106,14 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 > universal, sin excepción». Las tres tablas de la versión 1.0.0 no lo llevan, y con razón: `empresa` es
 > una sola fila que se edita, la firma de una persona se sustituye, y una imagen de documento se guarda
 > una vez por su huella y nunca se retira. Corregido el 2026-10-27.
+>
+> - `V42`, **la primera de la refactorización** —ver `Documentation/DatabaseDesign/analisis-2026-10-27.md`—,
+>   **no cambia las cifras de arriba** salvo una fila nueva: nueve índices para diez de las trece foráneas
+>   que no tenían ninguno, los dueños de `correo_persona` y `telefono_persona` obligatorios, y tres
+>   nombres que engañaban —`orden_trabajo.k_identificador` es `k_id_ingeniero`,
+>   `reporte_servicio.t_finalizado` es `f_finalizado` y `firma_persona.k_id_persona` es
+>   `k_identificador`—. Que toda foránea tenga su índice lo exige desde ese día
+>   `ForeignKeyIndexContractTest`, con las tres que se van como excepciones con nombre.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -310,21 +319,22 @@ erDiagram
     }
     correo_persona {
         uuid k_id_correo_persona PK
-        uuid k_identificador FK "ANULABLE - deuda"
+        uuid k_identificador FK "obligatorio desde V42"
         varchar n_correo_persona
         boolean b_estado_activo
         boolean b_principal "el de la cuenta de Keycloak, desde V40"
     }
     telefono_persona {
         uuid k_id_telefono_persona PK
-        uuid k_identificador FK "ANULABLE - deuda"
+        uuid k_identificador FK "obligatorio desde V42"
         varchar n_telefono_persona
         boolean b_estado_activo
     }
 ```
 
-**Una deuda propia vive aquí**: el dueño es **anulable** en las dos tablas hijas —al contrario que en
-los contactos del cliente—, y corregirlo exige su propia migración. (Eran **dos** hasta el
+~~**Una deuda propia vive aquí**: el dueño es **anulable** en las dos tablas hijas —al contrario que en
+los contactos del cliente—, y corregirlo exige su propia migración.~~ **Cerrada el 2026-10-27 por
+`V42`**, que lo hace obligatorio; en desarrollo no había ninguna fila sin dueño. (Eran **dos** hasta el
 **2026-10-17**: la otra era que **ningún correo estaba marcado como principal**, y la cerró `V40` con
 `b_principal`, un `CHECK` que impide un principal retirado y una **restricción de exclusión diferida**
 que deja uno solo por persona —ver la sección de los índices parciales para por qué no es un índice—.
@@ -605,7 +615,7 @@ erDiagram
         uuid k_id_orden_trabajo PK
         uuid k_id_cliente FK
         uuid k_id_sede FK "el par va junto a sede"
-        uuid k_identificador FK "el ingeniero, anulable"
+        uuid k_id_ingeniero FK "anulable; se llamaba k_identificador hasta V42"
         date f_fecha_mantenimiento
         varchar n_periodicidad
         varchar t_tipo_servicio
@@ -690,7 +700,7 @@ erDiagram
         varchar k_recibe_cedula "sin nombre, nada"
         varchar n_recibe_cargo
         varchar t_resultado
-        timestamp t_finalizado
+        timestamp f_finalizado
         boolean b_estado_activo
     }
     dato_verificacion {
