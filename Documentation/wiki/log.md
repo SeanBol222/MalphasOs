@@ -337,3 +337,10 @@ Ningún documento oficial cambia: ningún requisito de la ERS describe la ciudad
 
 El logo de la empresa y las firmas se guardan por huella en `imagen_documento`. El análisis de
 [[diseno-base-de-datos]] lo marca en C1. Ningún documento oficial cambia.
+
+## [2026-10-28] ingest | V46 construida
+
+El segundo tipo de persona sale; es encargado quien tiene asignaciones, y solo pueden tenerlas
+encargados y representantes del cliente. El análisis de [[diseno-base-de-datos]] lo marca en A2. Ningún
+documento oficial cambia todavía, aunque el glosario de la ERS que describa al encargado tendrá que
+decirlo.

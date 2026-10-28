@@ -2487,3 +2487,23 @@ tres imágenes. Cuatro mutaciones, las cuatro muertas.
 
 Y la nota del esquema **no dibujaba `firma_persona` ni `imagen_documento`** desde `V37` y `V38`: ahora
 tiene las secciones de `person` con la firma y de `shared`. Ver [[esquema-bd-malphasos]].
+
+## [2026-10-28] ingest | V46: sin segundo tipo de persona
+
+Quinta migración de la refactorización. `persona.t_segundo_tipo_persona` solo podía ser `MANAGER` y
+decía «además es encargado», algo que desde `V41` ya decían las asignaciones: dos fuentes que se
+contradecían —en desarrollo, un representante marcado como encargado sin nada a cargo—. Sale la columna
+y **es encargado quien tiene asignaciones**.
+
+**Dos decisiones del usuario**, preguntadas antes de construir: solo **encargados y representantes del
+cliente** pueden estar a cargo —`ManagerService.assign` lo comprueba con `ERR_CLIENT_011`, y hasta hoy
+aceptaba a cualquiera, también a un ingeniero—, y en el listado y la ficha de personas **se ve por sus
+asignaciones**. La ficha de la sede ofrece ahora a los representantes de ese cliente. El alta de un
+ingeniero o un administrador pierde la casilla «También es encargado».
+
+**Lo que conviene recordar**: la nota de órdenes de trabajo afirmaba que un ingeniero «por su segundo
+tipo» podía ejecutar, y era código muerto desde el principio: el `CHECK` solo admitía `MANAGER`. Una
+afirmación del wiki que describía el código sin mirar el esquema que lo hacía imposible. Corregida en
+[[dominio-orden-trabajo]] y [[dominio-persona-identidad]]. Y **el arnés de mutaciones había desaparecido**
+del directorio temporal con el cambio de día: se reescribió con su comprobación de que deja el árbol como
+estaba. Nueve mutaciones, nueve muertas.

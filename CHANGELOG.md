@@ -76,6 +76,11 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
   cliente», y si todavía no representa a ninguno, la pantalla le dice que espere a que se lo asignen.
   Las fichas de su cliente y de sus sedes son de solo lectura: sin editar, retirar ni cerrar, sin abrir
   sedes ni áreas y sin tocar el contacto.
+- **Solo un encargado o un representante del cliente puede estar a cargo de una sede o un área**, y que
+  alguien es encargado lo dicen sus asignaciones: un representante a cargo de un área se ve y se filtra
+  también como encargado, y se le puede poner al frente desde la ficha de la sede. El alta de un ingeniero
+  o un administrador ya no ofrece «También es encargado de un cliente». La migración `V46` quita el
+  segundo tipo de persona y se detiene si alguien de otro tipo tuviera algo a cargo.
 - **El representante se nombra desde la ficha del cliente**, y es lo que decide qué clientes ve; el
   alta entrada desde la ficha lo nombra al terminar. **Desde «Personas» el alta también deja elegir**,
   sin obligar —el cliente se busca escribiendo, y solo se admite uno que exista—: el cliente del
