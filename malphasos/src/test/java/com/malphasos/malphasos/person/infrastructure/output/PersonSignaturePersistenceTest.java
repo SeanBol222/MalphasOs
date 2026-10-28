@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.person.domain.person.PersonSignature;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +51,19 @@ class PersonSignaturePersistenceTest {
         assertThat(almacen.find(persona)).contains(new PersonSignature(otra, HOY.plusDays(1)));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM firma_persona WHERE k_identificador = ?", Integer.class,
                 persona)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("la imagen va al almacén común y la fila guarda su huella (V45)")
+    void porHuella() {
+        UUID persona = unaPersona();
+        almacen.save(persona, new PersonSignature(PNG, HOY));
+
+        String huella = new DocumentImage(PNG, "image/png").huella();
+        assertThat(jdbc.queryForObject("SELECT k_huella FROM firma_persona WHERE k_identificador = ?", String.class,
+                persona)).isEqualTo(huella);
+        assertThat(jdbc.queryForObject("SELECT t_tipo FROM imagen_documento WHERE k_huella = ?", String.class,
+                huella)).isEqualTo("image/png");
     }
 
     @Test

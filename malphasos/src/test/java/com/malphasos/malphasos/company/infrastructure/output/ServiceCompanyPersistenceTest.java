@@ -8,6 +8,7 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -148,18 +149,51 @@ class ServiceCompanyPersistenceTest {
     }
 
     @Test
-    @DisplayName("la base impide un logo sin tipo, o con un tipo que no es imagen")
-    void logoConSuTipo() {
+    @DisplayName("la base impide un logo que no está en el almacén de imágenes (V45)")
+    void logoDelAlmacen() {
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO empresa (k_id_empresa, n_nombre) VALUES (?, 'E')", id);
 
-        assertThatThrownBy(() -> jdbc.update("UPDATE empresa SET b_logo = ? WHERE k_id_empresa = ?", PNG, id))
-                .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> jdbc.update(
-                        "UPDATE empresa SET b_logo = ?, t_logo_tipo = 'text/html' WHERE k_id_empresa = ?", PNG, id))
+                        "UPDATE empresa SET k_huella_logo = ? WHERE k_id_empresa = ?", "a".repeat(64), id))
                 .isInstanceOf(DataIntegrityViolationException.class);
-        assertThat(jdbc.update(
-                "UPDATE empresa SET b_logo = ?, t_logo_tipo = 'image/png' WHERE k_id_empresa = ?", PNG, id))
+    }
+
+    @Test
+    @DisplayName("cambiar de logo no borra el anterior, que un informe congelado puede estar apuntando (V45)")
+    void elLogoAnteriorSeQueda() {
+        byte[] otro = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 8};
+        ServiceCompany empresa = ServiceCompany.configure(datos("Ejemplo"));
+        empresa.changeLogo(CompanyLogo.of(PNG));
+        almacen.save(empresa);
+
+        ServiceCompany leida = almacen.find().orElseThrow();
+        leida.changeLogo(CompanyLogo.of(otro));
+        almacen.save(leida);
+
+        assertThat(almacen.find().orElseThrow().logo()).contains(CompanyLogo.of(otro));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM imagen_documento WHERE k_huella IN (?, ?)",
+                        Integer.class, huella(PNG), huella(otro)))
+                .isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("el mismo logo se guarda una vez, aunque ya lo tuviera el almacén (V45)")
+    void unaVezPorHuella() {
+        ServiceCompany empresa = ServiceCompany.configure(datos("Ejemplo"));
+        empresa.changeLogo(CompanyLogo.of(PNG));
+        almacen.save(empresa);
+        ServiceCompany leida = almacen.find().orElseThrow();
+        leida.update(datos("Otro nombre"));
+        almacen.save(leida);
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM imagen_documento WHERE k_huella = ?",
+                        Integer.class, huella(PNG)))
                 .isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT k_huella_logo FROM empresa", String.class)).isEqualTo(huella(PNG));
+    }
+
+    private static String huella(byte[] bytes) {
+        return new DocumentImage(bytes, "image/png").huella();
     }
 }

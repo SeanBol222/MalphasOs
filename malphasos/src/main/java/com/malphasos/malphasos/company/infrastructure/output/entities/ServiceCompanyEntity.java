@@ -73,9 +73,7 @@ public class ServiceCompanyEntity {
     @Column(name = "k_codigo_informe")
     private String codigoInforme;
 
-    @Column(name = "b_logo")
-    private byte[] logo;
-
-    @Column(name = "t_logo_tipo")
-    private String logoTipo;
+    /** El logo, en {@code imagen_documento} por su huella desde V45; nulo si no tiene. */
+    @Column(name = "k_huella_logo")
+    private String huellaLogo;
 }

@@ -11,7 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** La firma de una persona (V38). */
+/** La firma de una persona (V38): desde V45, la huella de su imagen en {@code imagen_documento}. */
 @Getter
 @Setter
 @Entity
@@ -24,8 +24,8 @@ public class PersonSignatureEntity {
     @Column(name = "k_identificador", nullable = false)
     private UUID idPersona;
 
-    @Column(name = "b_imagen", nullable = false)
-    private byte[] imagen;
+    @Column(name = "k_huella", nullable = false)
+    private String huella;
 
     @Column(name = "f_actualizada", nullable = false)
     private LocalDateTime actualizada;
