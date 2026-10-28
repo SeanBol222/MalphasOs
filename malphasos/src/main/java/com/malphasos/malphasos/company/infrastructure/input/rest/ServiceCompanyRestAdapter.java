@@ -54,7 +54,7 @@ public class ServiceCompanyRestAdapter {
     @PatchMapping
     public ServiceCompanyResponse save(@Valid @RequestBody ServiceCompanyRequest request) {
         return ServiceCompanyResponse.from(serviceCompanyServicePort.save(new SaveServiceCompanyCommand(
-                request.nombre(), request.nit(), request.direccion(), request.ciudad(), request.telefonos(),
+                request.nombre(), request.nit(), request.direccion(), request.idCiudad(), request.telefonos(),
                 request.movil(), request.correo(), request.garantia(), request.aclaracion(),
                 request.codigoHojaDeVida(), request.codigoInforme())));
     }

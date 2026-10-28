@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.application.services.lifeSheet;
 
 import com.malphasos.malphasos.company.application.ports.input.ServiceCompanyServicePort;
+import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheetPdf;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetPdfServicePort;
@@ -10,6 +11,7 @@ import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,8 +66,10 @@ public class LifeSheetPdfService implements LifeSheetPdfServicePort {
     public LifeSheetPdf pdf(UUID idEquipoCliente, ReadScope alcance) {
         LifeSheet hoja = lifeSheetServicePort.findByEquipment(idEquipoCliente, alcance);
 
+        Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
         byte[] contenido = lifeSheetPdfPort.render(LifeSheetPrintComposer.compose(
-                hoja, serviceCompanyServicePort.find(), LocalDate.now(reloj)));
+                hoja, empresa, empresa.map(serviceCompanyServicePort::cityName).orElse(null),
+                LocalDate.now(reloj)));
 
         String numero = hoja.identificacion().numeroHojaVida();
         return new LifeSheetPdf(

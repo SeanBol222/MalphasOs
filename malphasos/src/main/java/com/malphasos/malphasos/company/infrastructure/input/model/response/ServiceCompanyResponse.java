@@ -14,7 +14,7 @@ public record ServiceCompanyResponse(
         String nombre,
         String nit,
         String direccion,
-        String ciudad,
+        @Schema(description = "La ciudad, del catalogo; nula si no tiene") UUID idCiudad,
         @Schema(description = "Telefonos fijos; vacia si no tiene") List<String> telefonos,
         String movil,
         String correo,
@@ -28,7 +28,7 @@ public record ServiceCompanyResponse(
         CompanyDetails datos = empresa.getDatos();
 
         return new ServiceCompanyResponse(empresa.getId(), datos.nombre(), datos.nit(), datos.direccion(),
-                datos.ciudad(), datos.telefonos(), datos.movil(), datos.correo(), datos.garantia(),
+                datos.idCiudad(), datos.telefonos(), datos.movil(), datos.correo(), datos.garantia(),
                 datos.aclaracion(), datos.codigoHojaDeVida(), datos.codigoInforme(),
                 empresa.logo().map(CompanyLogo::dataUri).orElse(null));
     }

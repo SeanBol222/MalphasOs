@@ -69,7 +69,7 @@ public class ReportDocumentComposer {
                 cliente(hoja.identificacion()),
                 equipo(hoja.identificacion(), hoja.tecnica()),
                 tipo.getVerificaciones().stream().map(ReportDocumentComposer::verificacion).toList(),
-                empresa.map(e -> empresa(e.getDatos(), logo)).orElse(null),
+                empresa.map(e -> empresa(e.getDatos(), serviceCompanyServicePort.cityName(e), logo)).orElse(null),
                 orden.getIdIngeniero() == null
                         ? null
                         : personCommunicationPort.findById(orden.getIdIngeniero()).nombreCompleto(),
@@ -108,8 +108,8 @@ public class ReportDocumentComposer {
                         .toList());
     }
 
-    private static ReportDocument.Empresa empresa(CompanyDetails datos, DocumentImage logo) {
-        return new ReportDocument.Empresa(datos.nombre(), datos.nit(), datos.direccion(), datos.ciudad(),
+    private static ReportDocument.Empresa empresa(CompanyDetails datos, String ciudad, DocumentImage logo) {
+        return new ReportDocument.Empresa(datos.nombre(), datos.nit(), datos.direccion(), ciudad,
                 datos.movil(), datos.garantia(), datos.aclaracion(), datos.codigoInforme(),
                 logo == null ? null : logo.huella());
     }

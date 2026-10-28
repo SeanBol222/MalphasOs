@@ -3,10 +3,19 @@ import { HttpTestingController } from '@angular/common/http/testing';
 import { QueryClient } from '@tanstack/angular-query-experimental';
 import { proveerApiSimulado } from '../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../testing/keycloak-falso';
-import { asentar, atenderRefresco, responderA } from '../../../testing/pantalla';
+import { asentar, atenderRefresco, elegirEnBuscador, responderA } from '../../../testing/pantalla';
 import { Empresa, telefonosDe } from './empresa';
 
 const URL = 'http://localhost:8081/v1/api/company';
+const URL_CIUDADES = 'http://localhost:8081/v1/api/cities';
+const BOGOTA = 'c0000000-0000-0000-0000-000000000001';
+const LIMA = 'c0000000-0000-0000-0000-000000000002';
+
+/** El catálogo de ciudades, del que sale la de la empresa desde V44. */
+const CIUDADES = [
+  { id: BOGOTA, nombre: 'Bogotá', idPais: 'co', estadoActivo: true },
+  { id: LIMA, nombre: 'Lima', idPais: 'pe', estadoActivo: true },
+];
 
 /** Una empresa inventada: MalphasOS no lleva datos de ninguna empresa real, tampoco en sus pruebas. */
 const EMPRESA = {
@@ -56,6 +65,7 @@ describe('Empresa', () => {
         { status: 404, statusText: 'Not Found' },
       );
     }
+    await responderA(fixture, http, URL_CIUDADES, CIUDADES);
   }
 
   it('llena el formulario con lo guardado, los teléfonos separados por comas', async () => {
@@ -69,11 +79,27 @@ describe('Empresa', () => {
     );
   });
 
+  it('la ciudad sale del catálogo: se ve por su nombre y se guarda por su identificador (V44)', async () => {
+    montar();
+    await abrir({ ...EMPRESA, idCiudad: BOGOTA });
+
+    expect(campo('ciudad').value).toBe('Bogotá');
+
+    await elegirEnBuscador(fixture, 'empresa-ciudad', 'Lima');
+    boton('Guardar datos')!.click();
+    await asentar(fixture);
+
+    const guardado = http.expectOne({ method: 'PATCH', url: URL });
+    expect(guardado.request.body.idCiudad).toBe(LIMA);
+    guardado.flush({ ...EMPRESA, idCiudad: LIMA });
+    await asentar(fixture);
+    await atenderRefresco(fixture, http, URL, { ...EMPRESA, idCiudad: LIMA });
+  });
+
   it('guardar manda todo recortado, los teléfonos como lista y lo vacío ausente', async () => {
     montar();
     await abrir();
     escribir('telefonos', ' 601 1 , , 601 2 ');
-    escribir('ciudad', '   ');
     const garantia = raiz().querySelector<HTMLTextAreaElement>('#empresa-garantia')!;
     garantia.value = '  Nueva política de garantía.  ';
     garantia.dispatchEvent(new Event('input'));

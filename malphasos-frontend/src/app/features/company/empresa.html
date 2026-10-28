@@ -58,12 +58,14 @@
             />
           </div>
           <div>
-            <label class="block font-semibold" for="empresa-ciudad">Ciudad</label>
-            <input
-              id="empresa-ciudad"
-              class="campo mt-1 min-h-tactil w-full"
-              maxlength="80"
-              [formControl]="formulario.controls.ciudad"
+            <app-buscador
+              campo="empresa-ciudad"
+              etiqueta="Ciudad"
+              historial="ciudad"
+              [opcional]="true"
+              avisoSinCatalogo="No se pudo cargar la lista de ciudades. Puede guardar sin ciudad y elegirla después."
+              [opciones]="opcionesDeCiudad()"
+              [formControl]="formulario.controls.idCiudad"
             />
           </div>
           <div>

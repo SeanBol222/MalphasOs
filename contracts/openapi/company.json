@@ -51,12 +51,6 @@
             "minLength" : 0,
             "type" : "string"
           },
-          "ciudad" : {
-            "description" : "Opcional",
-            "maxLength" : 80,
-            "minLength" : 0,
-            "type" : "string"
-          },
           "codigoHojaDeVida" : {
             "description" : "Opcional: el codigo del formato de la hoja de vida",
             "example" : "FT-001",
@@ -88,6 +82,11 @@
             "description" : "Opcional: el texto de garantia que cierra el informe",
             "maxLength" : 2000,
             "minLength" : 0,
+            "type" : "string"
+          },
+          "idCiudad" : {
+            "description" : "Opcional: la ciudad, del catalogo de ubicaciones",
+            "format" : "uuid",
             "type" : "string"
           },
           "movil" : {
@@ -129,9 +128,6 @@
           "aclaracion" : {
             "type" : "string"
           },
-          "ciudad" : {
-            "type" : "string"
-          },
           "codigoHojaDeVida" : {
             "type" : "string"
           },
@@ -148,6 +144,11 @@
             "type" : "string"
           },
           "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idCiudad" : {
+            "description" : "La ciudad, del catalogo; nula si no tiene",
             "format" : "uuid",
             "type" : "string"
           },

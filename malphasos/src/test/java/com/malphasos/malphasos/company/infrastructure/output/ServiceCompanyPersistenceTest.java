@@ -3,6 +3,7 @@ package com.malphasos.malphasos.company.infrastructure.output;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
@@ -35,8 +36,28 @@ class ServiceCompanyPersistenceTest {
     @Autowired private ServiceCompanyPersistenceAdapter almacen;
     @Autowired private JdbcTemplate jdbc;
 
-    private static CompanyDetails datos(String nombre) {
-        return new CompanyDetails(nombre, "900.000.000-0", "Carrera 1", "Ciudad", List.of("601 1", "601 2"),
+    private UUID ciudad;
+
+    /**
+     * La ciudad de la empresa es una foránea desde V44, y la prueba crea la suya: el catálogo sembrado no
+     * sirve, porque otras clases vacían {@code ciudad} al terminar. Una por prueba, y la misma en todas
+     * las llamadas de esa prueba, que comparan datos construidos dos veces.
+     */
+    private UUID ciudad() {
+        if (ciudad == null) {
+            UUID pais = UUID.randomUUID();
+            jdbc.update("INSERT INTO pais (k_id_pais, k_codigo_iso, n_nombre_pais) VALUES (?, ?, ?)",
+                    pais, CodigoIsoLibre.en(jdbc), "País " + pais);
+            ciudad = UUID.randomUUID();
+            jdbc.update("INSERT INTO ciudad (k_id_ciudad, n_nombre_ciudad, k_id_pais) VALUES (?, ?, ?)",
+                    ciudad, "Ciudad " + ciudad.toString().substring(0, 8), pais);
+        }
+
+        return ciudad;
+    }
+
+    private CompanyDetails datos(String nombre) {
+        return new CompanyDetails(nombre, "900.000.000-0", "Carrera 1", ciudad(), List.of("601 1", "601 2"),
                 "300", "a@b.example", "Garantía", "Aclaración", "FT-1", "FT-2");
     }
 
@@ -85,13 +106,24 @@ class ServiceCompanyPersistenceTest {
 
         ServiceCompany leida = almacen.find().orElseThrow();
         CompanyDetails antes = leida.getDatos();
-        leida.update(new CompanyDetails(antes.nombre(), antes.nit(), antes.direccion(), antes.ciudad(),
+        leida.update(new CompanyDetails(antes.nombre(), antes.nit(), antes.direccion(), antes.idCiudad(),
                 List.of("601 2"), antes.movil(), antes.correo(), antes.garantia(), antes.aclaracion(),
                 antes.codigoHojaDeVida(), antes.codigoInforme()));
         almacen.save(leida);
 
         assertThat(almacen.find().orElseThrow().getDatos().telefonos()).containsExactly("601 2");
         assertThat(jdbc.queryForList("SELECT i_orden FROM telefono_empresa", Integer.class)).containsExactly(0);
+    }
+
+    @Test
+    @DisplayName("la base impide una ciudad que no está en el catálogo (V44)")
+    void ciudadDelCatalogo() {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO empresa (k_id_empresa, n_nombre) VALUES (?, 'E')", id);
+
+        assertThatThrownBy(() -> jdbc.update(
+                        "UPDATE empresa SET k_id_ciudad = ? WHERE k_id_empresa = ?", UUID.randomUUID(), id))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

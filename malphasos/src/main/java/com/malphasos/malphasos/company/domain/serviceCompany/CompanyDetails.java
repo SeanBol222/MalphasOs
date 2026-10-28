@@ -2,6 +2,7 @@ package com.malphasos.malphasos.company.domain.serviceCompany;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Lo que se escribe de la empresa: sus datos de contacto y los textos de sus documentos (2026-10-17).
@@ -9,13 +10,15 @@ import java.util.Objects;
  *
  * <p>Se recorta todo, y lo que queda en blanco es que no hay: un NIT de espacios no es un NIT.
  *
+ * @param idCiudad la ciudad, del catálogo (V44); nula si no se ha dicho. Que exista lo comprueba el
+ *     servicio, que es quien conoce el catálogo
  * @param telefonos fijos; nunca nula. Sin los que estén en blanco, en el orden en que llegan
  */
 public record CompanyDetails(
         String nombre,
         String nit,
         String direccion,
-        String ciudad,
+        UUID idCiudad,
         List<String> telefonos,
         String movil,
         String correo,
@@ -27,7 +30,6 @@ public record CompanyDetails(
     static final int LARGO_NOMBRE = 160;
     static final int LARGO_NIT = 30;
     static final int LARGO_DIRECCION = 200;
-    static final int LARGO_CIUDAD = 80;
     static final int LARGO_TELEFONO = 30;
     static final int MAXIMO_TELEFONOS = 5;
     static final int LARGO_CORREO = 120;
@@ -41,7 +43,6 @@ public record CompanyDetails(
         nombre = acotado(nombre.trim(), "nombre", LARGO_NOMBRE);
         nit = opcional(nit, "NIT", LARGO_NIT);
         direccion = opcional(direccion, "dirección", LARGO_DIRECCION);
-        ciudad = opcional(ciudad, "ciudad", LARGO_CIUDAD);
         telefonos = telefonos == null ? List.of() : telefonos.stream()
                 .filter(Objects::nonNull)
                 .map(String::trim)

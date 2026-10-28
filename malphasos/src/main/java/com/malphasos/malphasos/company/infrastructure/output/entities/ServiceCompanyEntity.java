@@ -42,8 +42,8 @@ public class ServiceCompanyEntity {
     @Column(name = "t_direccion")
     private String direccion;
 
-    @Column(name = "n_ciudad")
-    private String ciudad;
+    @Column(name = "k_id_ciudad")
+    private UUID idCiudad;
 
     /**
      * Los teléfonos fijos, en su tabla desde V43: una lista de valores que se reescribe entera, con su

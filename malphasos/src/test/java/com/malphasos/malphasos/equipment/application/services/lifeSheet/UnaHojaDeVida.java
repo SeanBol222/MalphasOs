@@ -27,6 +27,8 @@ public class UnaHojaDeVida {
 
     public static final UUID ID = UUID.fromString("5046e506-439a-4d38-a31c-bc70f408a496");
     public static final LocalDate HOY = LocalDate.of(2026, 10, 18);
+    /** La empresa guarda su ciudad por identificador desde V44; esto es lo que el servicio resuelve. */
+    public static final String CIUDAD_DE_LA_EMPRESA = "Ciudad de Ejemplo";
 
     private boolean activo = true;
     private int pasos = 2;
@@ -89,13 +91,14 @@ public class UnaHojaDeVida {
     }
 
     public LifeSheetPrint impresa() {
-        return LifeSheetPrintComposer.compose(hoja(), empresa, HOY);
+        return LifeSheetPrintComposer.compose(
+                hoja(), empresa, empresa.isPresent() ? CIUDAD_DE_LA_EMPRESA : null, HOY);
     }
 
     private static ServiceCompany empresa(CompanyLogo logo) {
         return ServiceCompany.rehydrate(UUID.randomUUID(),
                 new CompanyDetails("Servicios Biomédicos de Ejemplo S.A.S.", "900.000.000-0", "Carrera 1 N.º 2-3",
-                        "Ciudad de Ejemplo", List.of("601 111 1111"), "300 000 0000", "contacto@empresa.example",
+                        UUID.randomUUID(), List.of("601 111 1111"), "300 000 0000", "contacto@empresa.example",
                         null, null, "FT-HV-01", null),
                 logo);
     }
