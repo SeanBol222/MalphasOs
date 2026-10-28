@@ -57,7 +57,7 @@ entity "orden_trabajo" as orden_trabajo <<cambia>> {
   * b_estado_activo : boolean
   * b_garantia : boolean
 }
-entity "orden_trabajo_equipo" as orden_trabajo_equipo <<cambia>> {
+entity "orden_trabajo_equipo" as orden_trabajo_equipo <<retirada>> {
   * k_id_orden_trabajo : uuid <<PK, FK>>
   * k_id_equipo_cliente : uuid <<PK, FK>>
   --

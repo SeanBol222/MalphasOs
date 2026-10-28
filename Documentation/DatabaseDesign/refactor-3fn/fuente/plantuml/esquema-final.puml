@@ -40,7 +40,7 @@ skinparam padding 6
 skinparam defaultFontSize 15
 skinparam packageStyle rectangle
 
-title MalphasOS — propuesta final, V42 a V48 (PROPUESTO, 37 tablas)
+title MalphasOS — propuesta final, V42 a V48 (PROPUESTO, 36 tablas)
 
 package "person — personas" {
 entity "persona" as persona <<cambia>> {
@@ -323,12 +323,6 @@ entity "orden_trabajo" as orden_trabajo <<cambia>> {
   t_documento : jsonb
   * b_documento_tardio : boolean
 }
-entity "orden_trabajo_equipo" as orden_trabajo_equipo <<cambia>> {
-  * k_id_orden_trabajo : uuid <<PK, FK>>
-  * k_id_equipo_cliente : uuid <<PK, FK>>
-  --
-  * b_estado_activo : boolean
-}
 }
 
 package "report — reportes de servicio" {
@@ -454,9 +448,6 @@ modelo }o--|| fabricante
 equipo_cliente }o--|| area_servicio
 equipo_cliente }o--|| modelo
 orden_trabajo }o--o| persona
-orden_trabajo_equipo }o--|| equipo_cliente
-orden_trabajo_equipo }o--|| orden_trabajo
-reporte_servicio }o--|| orden_trabajo_equipo : k_id_orden_trabajo, k_id_equipo_cliente
 reporte_servicio }o--o| imagen_documento
 dato_verificacion }o--o| punto_verificacion : k_id_verificacion, k_id_punto_verificacion
 dato_verificacion }o--|| reporte_servicio
@@ -483,6 +474,8 @@ telefono_empresa }o--|| empresa
 firma_persona }o--|| imagen_documento
 orden_trabajo }o--|| sede
 verificacion_tipo_equipo }o--|| unidad_medida
+reporte_servicio }o--|| orden_trabajo
+reporte_servicio }o--|| equipo_cliente
 
 legend right
   **Cómo leerlo**

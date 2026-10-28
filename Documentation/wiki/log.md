@@ -307,3 +307,10 @@ persona, sin relación con el área, y que se firma un reporte, un área o la or
 columnas de `V39`. El plan baja a siete migraciones, `V42` a `V48`, y `refactor-3fn/` a dos carpetas. Ver
 [[diseno-base-de-datos]]. Cuando se construya, RF-21 —la réplica de la firma a la orden— gana la opción
 del área, y la ERS lo tendrá que decir.
+
+## [2026-10-27] ingest | Sin tabla puente entre la orden y el equipo
+
+El usuario propuso quitar `orden_trabajo_equipo` y que el reporte una la orden con el equipo. El análisis
+de [[diseno-base-de-datos]] lo recoge con sus cuatro reglas y lo mete en `V46`; los diagramas de
+`refactor-3fn/` se regeneraron y la propuesta final baja a 36 tablas. Cuando se construya, RF-09 —un
+reporte por equipo de la orden— pasa a cumplirse por construcción, y la ERS no necesita cambiar.

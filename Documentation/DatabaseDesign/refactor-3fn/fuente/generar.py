@@ -113,7 +113,7 @@ def renombrar(columnas, fks, tabla, viejo, nuevo):
 
 
 def cambiar(columnas, pk, fks, unicas):
-    """La refactorizacion del analisis del 2026-10-27: A1-A4, B1-B3, B5, B6 y C1-C5."""
+    """La refactorizacion del analisis del 2026-10-27: A1-A4, B1-B3, B5, B6, C1-C5 y sin el puente."""
     columnas = {t: list(c) for t, c in columnas.items()}
     pk, fks, unicas = dict(pk), list(fks), {t: list(u) for t, u in unicas.items()}
 
@@ -171,10 +171,16 @@ def cambiar(columnas, pk, fks, unicas):
     unicas['unidad_medida'] = [u for u in unicas.get('unidad_medida', [])
                                if u != 'UQ_unidad_medida_por_magnitud']
 
-    # B6: sin el area en la orden. Un equipo en una orden sin ejecutar no se traslada, y al
-    # ejecutarla la orden se congela en su documento, con el area de cada equipo.
-    quitar_columnas('orden_trabajo_equipo', ['k_id_area_servicio'])
-    quitar_fk('FK_orden_trabajo_equipo_area_servicio')
+    # B6 y el puente: sin orden_trabajo_equipo. Un equipo esta en una orden si tiene un reporte activo
+    # en ella, y el reporte apunta a la orden y al equipo por separado. Su area -B6- no se guarda: un
+    # equipo en una orden sin ejecutar no se traslada, y al ejecutarla la orden se congela en su
+    # documento, con el area de cada equipo.
+    del columnas['orden_trabajo_equipo'], pk['orden_trabajo_equipo']
+    unicas.pop('orden_trabajo_equipo', None)
+    fks = [f for f in fks if f[0] != 'orden_trabajo_equipo' and f[3] != 'orden_trabajo_equipo']
+    fks += [('reporte_servicio', 'FK_reporte_servicio_orden', ['k_id_orden_trabajo'], 'orden_trabajo'),
+            ('reporte_servicio', 'FK_reporte_servicio_equipo_cliente', ['k_id_equipo_cliente'],
+             'equipo_cliente')]
     columnas['orden_trabajo'] += [('t_documento', 'jsonb', True),
                                   ('b_documento_tardio', 'boolean', False)]
 
@@ -343,6 +349,7 @@ endlegend"""
 
     marcas = {t: 'cambia' for t in CAMBIAN}
     marcas['intervencion'] = 'retirada'
+    marcas['orden_trabajo_equipo'] = 'retirada'
     actual = completo('MalphasOS — esquema actual (V41, 37 tablas)', 'esquema-actual',
                       columnas, pk, fks, unicas, marcas,
                       leyenda.replace('endlegend',
@@ -354,7 +361,7 @@ endlegend"""
     c2, p2, f2, u2 = cambiar(columnas, pk, fks, unicas)
     marcas_finales = {t: 'cambia' for t in CAMBIAN if t in c2}
     marcas_finales['telefono_empresa'] = 'nueva'
-    final = completo('MalphasOS — propuesta final, V42 a V48 (PROPUESTO, 37 tablas)', 'esquema-final',
+    final = completo('MalphasOS — propuesta final, V42 a V48 (PROPUESTO, 36 tablas)', 'esquema-final',
                      c2, p2, f2, u2, marcas_finales,
                      leyenda.replace('endlegend',
                                      '  <color:#AE1800>rojo</color>: tabla cambiada · <color:#1F6B35>verde</color>: nueva\nendlegend'))

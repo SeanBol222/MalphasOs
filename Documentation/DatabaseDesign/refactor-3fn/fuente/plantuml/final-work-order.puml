@@ -58,14 +58,6 @@ entity "orden_trabajo" as orden_trabajo <<cambia>> {
   t_documento : jsonb
   * b_documento_tardio : boolean
 }
-entity "orden_trabajo_equipo" as orden_trabajo_equipo <<cambia>> {
-  * k_id_orden_trabajo : uuid <<PK, FK>>
-  * k_id_equipo_cliente : uuid <<PK, FK>>
-  --
-  * b_estado_activo : boolean
-}
-}
-entity "equipo_cliente" as equipo_cliente <<otro modulo>> {
 }
 entity "persona" as persona <<otro modulo>> {
 }
@@ -74,10 +66,8 @@ entity "reporte_servicio" as reporte_servicio <<otro modulo>> {
 entity "sede" as sede <<otro modulo>> {
 }
 orden_trabajo }o--o| persona
-orden_trabajo_equipo }o--|| equipo_cliente
-orden_trabajo_equipo }o--|| orden_trabajo
-reporte_servicio }o--|| orden_trabajo_equipo : k_id_orden_trabajo, k_id_equipo_cliente
 orden_trabajo }o--|| sede
+reporte_servicio }o--|| orden_trabajo
 skinparam class<<otro modulo>> {
   BackgroundColor #EDEBEA
   BorderColor #9A9795

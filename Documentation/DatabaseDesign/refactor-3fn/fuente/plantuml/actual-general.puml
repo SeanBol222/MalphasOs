@@ -82,7 +82,7 @@ package "equipment — equipos y catálogo" {
 }
 package "work-order — órdenes de trabajo" {
   entity "orden_trabajo" as orden_trabajo <<cambia>>
-  entity "orden_trabajo_equipo" as orden_trabajo_equipo <<cambia>>
+  entity "orden_trabajo_equipo" as orden_trabajo_equipo <<retirada>>
 }
 package "report — reportes de servicio" {
   entity "reporte_servicio" as reporte_servicio <<cambia>>
