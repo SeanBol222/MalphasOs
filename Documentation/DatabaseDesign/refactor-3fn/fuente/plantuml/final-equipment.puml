@@ -1,0 +1,222 @@
+@startuml final-equipment
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<cambia>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+skinparam nodesep 70
+skinparam ranksep 90
+skinparam padding 4
+skinparam defaultFontSize 15
+
+title Propuesta final (PROPUESTO) — equipment — equipos y catálogo
+
+package "equipment — equipos y catálogo" {
+entity "tipo_equipo" as tipo_equipo {
+  * k_id_tipo_equipo : uuid <<PK>>
+  --
+  * n_nombre_tipo_equipo : varchar(50)
+  * t_definicion_tecnica : varchar(250)
+  * t_recomendaciones_cuidado : varchar(250)
+  * t_tecnologia_predominante : varchar(50)
+  * m_valor_unitario_mantenimiento : bigint
+  * b_estado_activo : boolean
+  t_uso : varchar(250)
+  t_limpieza_cotidiana : varchar(250)
+  .. UQ_tipo_equipo_nombre ..
+}
+entity "marca" as marca {
+  * k_id_marca : uuid <<PK>>
+  --
+  * n_nombre_marca : varchar(50)
+  * b_estado_activo : boolean
+  .. UQ_marca_nombre ..
+}
+entity "fabricante" as fabricante {
+  * k_id_fabricante : uuid <<PK>>
+  --
+  * n_nombre_fabricante : varchar(50)
+  k_id_pais : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_fabricante_nombre ..
+}
+entity "equipo" as equipo {
+  * k_id_equipo : uuid <<PK>>
+  --
+  * k_id_tipo_equipo : uuid <<FK>>
+  * k_id_marca : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_equipo_tipo_marca ..
+}
+entity "modelo" as modelo {
+  * k_id_modelo : uuid <<PK>>
+  --
+  n_invima : varchar(50)
+  * k_id_fabricante : uuid <<FK>>
+  * k_id_equipo : uuid <<FK>>
+  * b_estado_activo : boolean
+  * n_nombre_modelo : varchar(50)
+  n_clase_riesgo : varchar(3)
+  t_caracteristicas : varchar(250)
+  n_alimentacion : varchar(50)
+  i_voltaje : int
+  i_potencia : int
+  d_amperaje : numeric
+  i_frecuencia : int
+  .. UQ_modelo_invima ..
+}
+entity "equipo_cliente" as equipo_cliente {
+  * k_id_equipo_cliente : uuid <<PK>>
+  --
+  * k_serie : varchar(50)
+  n_no_inventario : varchar(50)
+  f_fecha_compra : date
+  v_valor_compra : bigint
+  * k_id_modelo : uuid <<FK>>
+  * k_id_area_servicio : uuid <<FK>>
+  * b_estado_activo : boolean
+  n_codigo_interno : varchar(50)
+  n_proveedor : varchar(100)
+  * n_numero_hoja_vida : varchar(20)
+  .. UQ_equipo_cliente_numero_hoja_vida ..
+  .. UQ_equipo_cliente_serie_por_modelo ..
+}
+entity "magnitud" as magnitud {
+  * k_id_magnitud : uuid <<PK>>
+  --
+  * n_codigo_magnitud : varchar(30)
+  * n_nombre_magnitud : varchar(50)
+  * b_estado_activo : boolean
+  .. UQ_magnitud_codigo ..
+  .. UQ_magnitud_nombre ..
+}
+entity "unidad_medida" as unidad_medida <<cambia>> {
+  * k_id_unidad_medida : uuid <<PK>>
+  --
+  * k_id_magnitud : uuid <<FK>>
+  * n_simbolo_unidad : varchar(20)
+  * n_nombre_unidad : varchar(50)
+  * b_estado_activo : boolean
+  .. UQ_unidad_medida_simbolo_por_magnitud ..
+}
+entity "verificacion_tipo_equipo" as verificacion_tipo_equipo <<cambia>> {
+  * k_id_verificacion : uuid <<PK>>
+  --
+  * k_id_tipo_equipo : uuid <<FK>>
+  * k_id_unidad_medida : uuid <<FK>>
+  * n_modalidad_verificacion : varchar(50)
+  i_cantidad_datos : int
+  * b_estado_activo : boolean
+  d_tolerancia : numeric
+  .. UQ_verificacion_por_tipo ..
+}
+entity "punto_verificacion" as punto_verificacion {
+  * k_id_punto_verificacion : uuid <<PK>>
+  --
+  * k_id_verificacion : uuid <<FK>>
+  * d_valor : numeric
+  * b_estado_activo : boolean
+  .. UQ_punto_por_verificacion ..
+}
+entity "protocolo" as protocolo {
+  * k_id_protocolo : uuid <<PK>>
+  --
+  * n_nombre : varchar(120)
+  * n_clave : varchar(120)
+  * t_descripcion : varchar(500)
+  * b_estado_activo : boolean
+}
+entity "protocolo_tipo_equipo" as protocolo_tipo_equipo {
+  * k_id_tipo_equipo : uuid <<PK, FK>>
+  * k_id_protocolo : uuid <<PK, FK>>
+  --
+  * i_prioridad : smallint
+  t_indicacion : varchar(300)
+  * b_estado_activo : boolean
+}
+entity "equipo_patron" as equipo_patron {
+  * k_id_equipo_patron : uuid <<PK>>
+  --
+  * n_nombre : varchar(120)
+  n_marca : varchar(80)
+  * k_serie : varchar(60)
+  * n_certificado : varchar(80)
+  * f_vencimiento_certificado : date
+  * b_estado_activo : boolean
+  n_modelo : varchar(80)
+  k_codigo_interno : varchar(40)
+  t_rango : varchar(120)
+  t_resolucion : varchar(80)
+  f_calibracion : date
+  n_empresa_calibradora : varchar(120)
+}
+}
+entity "area_servicio" as area_servicio <<otro modulo>> {
+}
+entity "dato_verificacion" as dato_verificacion <<otro modulo>> {
+}
+entity "orden_trabajo_equipo" as orden_trabajo_equipo <<otro modulo>> {
+}
+entity "pais" as pais <<otro modulo>> {
+}
+entity "paso_reporte" as paso_reporte <<otro modulo>> {
+}
+entity "patron_verificacion_reporte" as patron_verificacion_reporte <<otro modulo>> {
+}
+fabricante }o--o| pais
+equipo }o--|| marca
+equipo }o--|| tipo_equipo
+modelo }o--|| equipo
+modelo }o--|| fabricante
+equipo_cliente }o--|| area_servicio
+equipo_cliente }o--|| modelo
+orden_trabajo_equipo }o--|| equipo_cliente
+dato_verificacion }o--o| punto_verificacion : k_id_verificacion, k_id_punto_verificacion
+dato_verificacion }o--|| verificacion_tipo_equipo
+unidad_medida }o--|| magnitud
+verificacion_tipo_equipo }o--|| tipo_equipo
+punto_verificacion }o--|| verificacion_tipo_equipo
+protocolo_tipo_equipo }o--|| protocolo
+protocolo_tipo_equipo }o--|| tipo_equipo
+paso_reporte }o--|| protocolo
+patron_verificacion_reporte }o--|| equipo_patron
+patron_verificacion_reporte }o--|| verificacion_tipo_equipo
+verificacion_tipo_equipo }o--|| unidad_medida
+skinparam class<<otro modulo>> {
+  BackgroundColor #EDEBEA
+  BorderColor #9A9795
+  FontColor #6B6866
+}
+@enduml

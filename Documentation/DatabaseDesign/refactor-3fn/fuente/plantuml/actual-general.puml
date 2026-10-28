@@ -1,0 +1,147 @@
+@startuml actual-general
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<cambia>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+skinparam nodesep 70
+skinparam ranksep 90
+skinparam padding 4
+skinparam defaultFontSize 15
+
+left to right direction
+title Esquema actual (V41) — vista general
+
+package "person — personas" {
+  entity "persona" as persona <<cambia>>
+  entity "correo_persona" as correo_persona <<cambia>>
+  entity "telefono_persona" as telefono_persona <<cambia>>
+  entity "firma_persona" as firma_persona <<cambia>>
+}
+package "location — ubicación" {
+  entity "pais" as pais
+  entity "ciudad" as ciudad
+}
+package "client — clientes" {
+  entity "cliente" as cliente
+  entity "correo_cliente" as correo_cliente
+  entity "telefono_cliente" as telefono_cliente
+  entity "representante_legal" as representante_legal
+  entity "sede" as sede <<cambia>>
+  entity "area_servicio" as area_servicio
+  entity "encargado_sede" as encargado_sede
+  entity "encargado_area" as encargado_area
+}
+package "equipment — equipos y catálogo" {
+  entity "tipo_equipo" as tipo_equipo
+  entity "marca" as marca
+  entity "fabricante" as fabricante
+  entity "equipo" as equipo
+  entity "modelo" as modelo
+  entity "equipo_cliente" as equipo_cliente
+  entity "magnitud" as magnitud
+  entity "unidad_medida" as unidad_medida <<cambia>>
+  entity "verificacion_tipo_equipo" as verificacion_tipo_equipo <<cambia>>
+  entity "punto_verificacion" as punto_verificacion
+  entity "protocolo" as protocolo
+  entity "protocolo_tipo_equipo" as protocolo_tipo_equipo
+  entity "equipo_patron" as equipo_patron
+  entity "intervencion" as intervencion <<retirada>>
+}
+package "work-order — órdenes de trabajo" {
+  entity "orden_trabajo" as orden_trabajo <<cambia>>
+  entity "orden_trabajo_equipo" as orden_trabajo_equipo <<cambia>>
+}
+package "report — reportes de servicio" {
+  entity "reporte_servicio" as reporte_servicio <<cambia>>
+  entity "dato_verificacion" as dato_verificacion <<cambia>>
+  entity "paso_reporte" as paso_reporte <<cambia>>
+  entity "accesorio_reporte" as accesorio_reporte
+  entity "patron_verificacion_reporte" as patron_verificacion_reporte <<cambia>>
+}
+package "company — empresa y documentos" {
+  entity "empresa" as empresa <<cambia>>
+  entity "imagen_documento" as imagen_documento
+}
+correo_persona }o--|| persona
+telefono_persona }o--|| persona
+ciudad }o--|| pais
+cliente }o--|| pais
+correo_cliente }o--|| cliente
+telefono_cliente }o--|| cliente
+representante_legal }o--|| cliente
+representante_legal }o--|| persona
+sede }o--|| ciudad
+sede }o--|| cliente
+area_servicio }o--|| sede
+fabricante }o--|| pais
+equipo }o--|| marca
+equipo }o--|| tipo_equipo
+modelo }o--|| equipo
+modelo }o--|| fabricante
+equipo_cliente }o--|| area_servicio
+equipo_cliente }o--|| modelo
+orden_trabajo }o--|| cliente
+orden_trabajo }o--|| persona
+orden_trabajo }o--|| sede
+orden_trabajo_equipo }o--|| area_servicio
+orden_trabajo_equipo }o--|| equipo_cliente
+orden_trabajo_equipo }o--|| orden_trabajo
+reporte_servicio }o--|| orden_trabajo_equipo
+reporte_servicio }o--|| imagen_documento
+dato_verificacion }o--|| punto_verificacion
+dato_verificacion }o--|| reporte_servicio
+dato_verificacion }o--|| verificacion_tipo_equipo
+unidad_medida }o--|| magnitud
+verificacion_tipo_equipo }o--|| tipo_equipo
+verificacion_tipo_equipo }o--|| unidad_medida
+punto_verificacion }o--|| verificacion_tipo_equipo
+intervencion }o--|| equipo_cliente
+intervencion }o--|| reporte_servicio
+protocolo_tipo_equipo }o--|| protocolo
+protocolo_tipo_equipo }o--|| tipo_equipo
+paso_reporte }o--|| protocolo
+paso_reporte }o--|| reporte_servicio
+patron_verificacion_reporte }o--|| equipo_patron
+patron_verificacion_reporte }o--|| reporte_servicio
+patron_verificacion_reporte }o--|| verificacion_tipo_equipo
+accesorio_reporte }o--|| reporte_servicio
+firma_persona }o--|| persona
+encargado_sede }o--|| persona
+encargado_sede }o--|| sede
+encargado_area }o--|| area_servicio
+encargado_area }o--|| persona
+hide members
+@enduml

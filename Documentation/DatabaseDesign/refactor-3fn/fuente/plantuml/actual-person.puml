@@ -1,0 +1,103 @@
+@startuml actual-person
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<cambia>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+skinparam nodesep 70
+skinparam ranksep 90
+skinparam padding 4
+skinparam defaultFontSize 15
+
+title Esquema actual (V41) — person — personas
+
+package "person — personas" {
+entity "persona" as persona <<cambia>> {
+  * k_identificador : uuid <<PK>>
+  --
+  * k_cedula : varchar(10)
+  * n_primer_nombre : varchar(50)
+  n_segundo_nombre : varchar(50)
+  * n_primer_apellido : varchar(50)
+  n_segundo_apellido : varchar(50)
+  * t_tipo_persona : varchar(19)
+  t_segundo_tipo_persona : varchar(19)
+  * b_estado_activo : boolean
+  .. UQ_cedula ..
+}
+entity "correo_persona" as correo_persona <<cambia>> {
+  * k_id_correo_persona : uuid <<PK>>
+  --
+  * n_correo_persona : varchar(50)
+  k_identificador : uuid <<FK>>
+  * b_estado_activo : boolean
+  * b_principal : boolean
+  .. EX_correo_principal_por_persona ..
+}
+entity "telefono_persona" as telefono_persona <<cambia>> {
+  * k_id_telefono_persona : uuid <<PK>>
+  --
+  * n_telefono_persona : varchar(10)
+  k_identificador : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+entity "firma_persona" as firma_persona <<cambia>> {
+  * k_id_persona : uuid <<PK, FK>>
+  --
+  * b_imagen : bytea
+  * f_actualizada : timestamp
+}
+}
+entity "encargado_area" as encargado_area <<otro modulo>> {
+}
+entity "encargado_sede" as encargado_sede <<otro modulo>> {
+}
+entity "orden_trabajo" as orden_trabajo <<otro modulo>> {
+}
+entity "representante_legal" as representante_legal <<otro modulo>> {
+}
+correo_persona }o--o| persona
+telefono_persona }o--o| persona
+representante_legal }o--|| persona
+orden_trabajo }o--o| persona
+firma_persona }o--|| persona
+encargado_sede }o--|| persona
+encargado_area }o--|| persona
+skinparam class<<otro modulo>> {
+  BackgroundColor #EDEBEA
+  BorderColor #9A9795
+  FontColor #6B6866
+}
+@enduml
