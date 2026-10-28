@@ -1,8 +1,8 @@
 package com.malphasos.malphasos.report.application.model;
 
-import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
 
 /**
  * El informe de un reporte, listo para imprimirse (2026-10-17): el reporte, lo que imprime de los demás

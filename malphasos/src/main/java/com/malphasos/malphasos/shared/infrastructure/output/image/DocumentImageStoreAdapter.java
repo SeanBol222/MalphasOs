@@ -1,9 +1,9 @@
-package com.malphasos.malphasos.report.infrastructure.output;
+package com.malphasos.malphasos.shared.infrastructure.output.image;
 
-import com.malphasos.malphasos.report.application.ports.output.DocumentImageStorePort;
-import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
-import com.malphasos.malphasos.report.infrastructure.output.entities.DocumentImageEntity;
-import com.malphasos.malphasos.report.infrastructure.output.repository.DocumentImageRepository;
+import com.malphasos.malphasos.shared.application.ports.output.DocumentImageStorePort;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
+import com.malphasos.malphasos.shared.infrastructure.output.image.entities.DocumentImageEntity;
+import com.malphasos.malphasos.shared.infrastructure.output.image.repository.DocumentImageRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

@@ -1,9 +1,9 @@
-package com.malphasos.malphasos.report.domain;
+package com.malphasos.malphasos.shared.domain.image;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
-import com.malphasos.malphasos.report.domain.serviceReport.DocumentImage;
+import com.malphasos.malphasos.shared.domain.image.DocumentImage;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import org.junit.jupiter.api.DisplayName;
