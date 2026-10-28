@@ -15,6 +15,9 @@ import com.malphasos.malphasos.company.application.services.serviceCompany.comma
 import com.malphasos.malphasos.company.domain.exception.ServiceCompanyNotConfiguredException;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
+import com.malphasos.malphasos.location.application.ports.input.CityServicePort;
+import com.malphasos.malphasos.location.domain.city.City;
+import com.malphasos.malphasos.location.domain.exception.CityNotFoundException;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +38,7 @@ class ServiceCompanyServiceTest {
 
     @Mock private ServiceCompanyPersistencePort persistencia;
     @Mock private EventDispatcherPort eventos;
+    @Mock private CityServicePort ciudades;
 
     @InjectMocks private ServiceCompanyService servicio;
 
@@ -72,6 +76,31 @@ class ServiceCompanyServiceTest {
 
         assertThat(guardada.getId()).isEqualTo(empresa.getId());
         assertThat(guardada.getDatos().garantia()).isEqualTo("Nueva");
+    }
+
+    @Test
+    @DisplayName("guardar con una ciudad que no está en el catálogo falla antes de guardar nada (V44)")
+    void ciudadQueNoExiste() {
+        UUID ciudad = UUID.randomUUID();
+        when(ciudades.findById(ciudad)).thenThrow(new CityNotFoundException(ciudad));
+
+        assertThatThrownBy(() -> servicio.save(new SaveServiceCompanyCommand("Ejemplo", null, null, ciudad,
+                        List.of(), null, null, null, null, null, null)))
+                .isInstanceOf(CityNotFoundException.class);
+        verify(persistencia, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("el nombre de su ciudad sale del catálogo, y sin ciudad no se pregunta (V44)")
+    void nombreDeLaCiudad() {
+        City bogota = City.rehydrate(UUID.randomUUID(), "Bogotá", UUID.randomUUID(), true);
+        when(ciudades.findById(bogota.getId())).thenReturn(bogota);
+
+        assertThat(servicio.cityName(ServiceCompany.rehydrate(UUID.randomUUID(),
+                new CompanyDetails("Ejemplo", null, null, bogota.getId(), List.of(), null, null, null, null, null,
+                        null),
+                null))).isEqualTo("Bogotá");
+        assertThat(servicio.cityName(existente())).isNull();
     }
 
     @Test

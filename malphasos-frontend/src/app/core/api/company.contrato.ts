@@ -73,8 +73,6 @@ export interface components {
         ServiceCompanyRequest: {
             /** @description Opcional: la aclaracion del proceso del informe */
             aclaracion?: string;
-            /** @description Opcional */
-            ciudad?: string;
             /**
              * @description Opcional: el codigo del formato de la hoja de vida
              * @example FT-001
@@ -94,6 +92,11 @@ export interface components {
             direccion?: string;
             /** @description Opcional: el texto de garantia que cierra el informe */
             garantia?: string;
+            /**
+             * Format: uuid
+             * @description Opcional: la ciudad, del catalogo de ubicaciones
+             */
+            idCiudad?: string;
             /** @description Opcional */
             movil?: string;
             /**
@@ -108,7 +111,6 @@ export interface components {
         };
         ServiceCompanyResponse: {
             aclaracion?: string;
-            ciudad?: string;
             codigoHojaDeVida?: string;
             codigoInforme?: string;
             correo?: string;
@@ -116,6 +118,11 @@ export interface components {
             garantia?: string;
             /** Format: uuid */
             id?: string;
+            /**
+             * Format: uuid
+             * @description La ciudad, del catalogo; nula si no tiene
+             */
+            idCiudad?: string;
             /** @description El logo como data: URI; nulo si no hay */
             logo?: string;
             movil?: string;

@@ -137,18 +137,20 @@ public class LifeSheetRestAdapter {
                 new LifeSheetResponse.Fabricante(
                         hoja.fabricante().nombre(), hoja.fabricante().pais()),
                 hoja.servicioTecnico().stream().map(LifeSheetRestAdapter::toResponse).toList(),
-                serviceCompanyServicePort.find().map(LifeSheetRestAdapter::toResponse).orElse(null));
+                serviceCompanyServicePort.find()
+                        .map(empresa -> toResponse(empresa, serviceCompanyServicePort.cityName(empresa)))
+                        .orElse(null));
     }
 
     /** Sin empresa configurada el membrete viaja nulo, y el documento sale sin él. */
-    private static LifeSheetResponse.Empresa toResponse(ServiceCompany empresa) {
+    private static LifeSheetResponse.Empresa toResponse(ServiceCompany empresa, String ciudad) {
         CompanyDetails datos = empresa.getDatos();
 
         return new LifeSheetResponse.Empresa(
                 datos.nombre(),
                 datos.nit(),
                 datos.direccion(),
-                datos.ciudad(),
+                ciudad,
                 datos.telefonos(),
                 datos.movil(),
                 datos.correo(),

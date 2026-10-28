@@ -11,6 +11,8 @@ import com.malphasos.malphasos.company.application.ports.input.ServiceCompanySer
 import com.malphasos.malphasos.company.application.services.serviceCompany.commands.SeedServiceCompanyCommand;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
+import com.malphasos.malphasos.location.application.ports.input.CityServicePort;
+import com.malphasos.malphasos.location.domain.city.City;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -29,17 +31,34 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ServiceCompanySeederTest {
 
     @Mock private ServiceCompanyServicePort servicio;
+    @Mock private CityServicePort ciudades;
 
     @TempDir Path directorio;
 
     private ServiceCompanySeeder sembrador(String nombre, String logo) {
+        return sembrador(nombre, logo, null);
+    }
+
+    private ServiceCompanySeeder sembrador(String nombre, String logo, String ciudad) {
         ServiceCompanyProperties archivo = new ServiceCompanyProperties();
         archivo.setDirectorio(directorio.toString());
         archivo.setNombre(nombre);
+        archivo.setCiudad(ciudad);
         archivo.setGarantia("Garantía del archivo");
         archivo.setLogo(logo);
 
-        return new ServiceCompanySeeder(archivo, servicio);
+        return new ServiceCompanySeeder(archivo, servicio, ciudades);
+    }
+
+    private static City ciudad(String nombre) {
+        return City.rehydrate(UUID.randomUUID(), nombre, UUID.randomUUID(), true);
+    }
+
+    private SeedServiceCompanyCommand sembrada() {
+        ArgumentCaptor<SeedServiceCompanyCommand> comando = ArgumentCaptor.forClass(SeedServiceCompanyCommand.class);
+        verify(servicio).seed(comando.capture());
+
+        return comando.getValue();
     }
 
     @Test
@@ -77,6 +96,29 @@ class ServiceCompanySeederTest {
         assertThat(comando.getValue().datos().nombre()).isEqualTo("Del archivo");
         assertThat(comando.getValue().datos().garantia()).isEqualTo("Garantía del archivo");
         assertThat(comando.getValue().logo()).isEqualTo(png);
+    }
+
+    @Test
+    @DisplayName("la ciudad del archivo se busca en el catálogo sin tildes, mayúsculas ni espacios (V44)")
+    void ciudadDelCatalogo() {
+        City bogota = ciudad("Bogotá");
+        when(servicio.find()).thenReturn(Optional.empty());
+        when(ciudades.findAll()).thenReturn(List.of(ciudad("Lima"), bogota));
+
+        sembrador("Del archivo", null, "  BOGOTA ").run(null);
+
+        assertThat(sembrada().datos().idCiudad()).isEqualTo(bogota.getId());
+    }
+
+    @Test
+    @DisplayName("una ciudad que no está, o que está dos veces, siembra la empresa sin ciudad en vez de no arrancar")
+    void ciudadQueNoCasa() {
+        when(servicio.find()).thenReturn(Optional.empty());
+        when(ciudades.findAll()).thenReturn(List.of(ciudad("San José"), ciudad("San Jose")));
+
+        sembrador("Del archivo", null, "San José").run(null);
+
+        assertThat(sembrada().datos().idCiudad()).isNull();
     }
 
     @Test

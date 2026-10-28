@@ -20,6 +20,7 @@ import com.malphasos.malphasos.company.domain.exception.ServiceCompanyNotConfigu
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyDetails;
 import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
+import com.malphasos.malphasos.location.domain.exception.CityNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -97,6 +98,23 @@ class ServiceCompanyRestAdapterTest {
         assertThat(comando.getValue().garantia()).isEqualTo("La garantía");
         assertThat(comando.getValue().telefonos()).containsExactly("601 1");
         assertThat(comando.getValue().codigoInforme()).isEqualTo("FT-2");
+    }
+
+    @Test
+    @DisplayName("PATCH con una ciudad que no existe responde 404 con su propio código (V44)")
+    void ciudadQueNoExiste() throws Exception {
+        UUID ciudad = UUID.randomUUID();
+        when(servicio.save(any())).thenThrow(new CityNotFoundException(ciudad));
+
+        mockMvc.perform(patch(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nombre": "Ejemplo S.A.S.", "idCiudad": "%s"}
+                        """.formatted(ciudad)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ERR_COMPANY_003"));
+
+        ArgumentCaptor<SaveServiceCompanyCommand> comando = ArgumentCaptor.forClass(SaveServiceCompanyCommand.class);
+        verify(servicio).save(comando.capture());
+        assertThat(comando.getValue().idCiudad()).isEqualTo(ciudad);
     }
 
     @Test

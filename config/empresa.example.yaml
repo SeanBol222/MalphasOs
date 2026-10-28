@@ -16,7 +16,9 @@ app:
     nombre: Servicios Biomédicos de Ejemplo S.A.S.
     nit: 900.000.000-0
     direccion: Carrera 1 N.º 2-3
-    ciudad: Ciudad de Ejemplo
+    # El nombre de una ciudad del catálogo, como lo escribiría la pantalla: no distingue tildes ni
+    # mayúsculas. Si no casa con una sola, la empresa se siembra sin ciudad y el arranque lo avisa.
+    ciudad: Bogotá
     # Teléfonos fijos, si los hay.
     telefonos: []
     movil: 300 000 0000

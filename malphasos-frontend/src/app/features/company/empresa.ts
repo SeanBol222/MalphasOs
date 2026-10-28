@@ -10,6 +10,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Sesion } from '../../core/auth/sesion';
 import { traducirError } from '../../core/errores/traducir';
 import { Empresa as DatosGuardados } from '../../core/api/tipos';
+import { Buscador, opcionesDe } from '../../shared/buscador/buscador';
+import { UbicacionApi } from '../location/ubicacion-api';
 import { EmpresaApi } from './empresa-api';
 
 /** Lo que se escribe en un campo opcional: recortado, y en blanco es que falta. */
@@ -36,10 +38,13 @@ export function telefonosDe(texto: string): string[] {
  * <p>Sin empresa configurada —una instalación nueva sin archivo— el formulario sale vacío y lo dice: los
  * documentos se imprimen sin membrete hasta que alguien la guarde. El logo se pone después de guardar
  * los datos, porque el servidor lo cuelga de la empresa.
+ *
+ * <p>La ciudad sale del catálogo desde el 2026-10-27 (V44), con el buscador de las sedes: era texto
+ * libre, y «Bogota» y «Bogotá D.C.» eran dos ciudades que nada comprobaba.
  */
 @Component({
   selector: 'app-empresa',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, Buscador],
   templateUrl: './empresa.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -49,6 +54,8 @@ export class Empresa {
   private readonly sesion = inject(Sesion);
 
   protected readonly empresa = this.api.consultar();
+  private readonly ciudades = inject(UbicacionApi).listarCiudades();
+  protected readonly opcionesDeCiudad = computed(() => opcionesDe(this.ciudades.data()));
   protected readonly guardado = this.api.guardar();
   protected readonly subida = this.api.subirLogo();
   protected readonly retiroDelLogo = this.api.quitarLogo();
@@ -64,7 +71,7 @@ export class Empresa {
     nombre: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(160)]],
     nit: ['', [Validators.maxLength(30)]],
     direccion: ['', [Validators.maxLength(200)]],
-    ciudad: ['', [Validators.maxLength(80)]],
+    idCiudad: [''],
     telefonos: [''],
     movil: ['', [Validators.maxLength(30)]],
     correo: ['', [Validators.maxLength(120)]],
@@ -126,7 +133,7 @@ export class Empresa {
         nombre: valores.nombre.trim(),
         nit: opcional(valores.nit),
         direccion: opcional(valores.direccion),
-        ciudad: opcional(valores.ciudad),
+        idCiudad: valores.idCiudad || undefined,
         telefonos: telefonosDe(valores.telefonos),
         movil: opcional(valores.movil),
         correo: opcional(valores.correo),
@@ -163,7 +170,7 @@ export class Empresa {
         nombre: datos.nombre ?? '',
         nit: datos.nit ?? '',
         direccion: datos.direccion ?? '',
-        ciudad: datos.ciudad ?? '',
+        idCiudad: datos.idCiudad ?? '',
         telefonos: (datos.telefonos ?? []).join(', '),
         movil: datos.movil ?? '',
         correo: datos.correo ?? '',

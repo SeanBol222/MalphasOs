@@ -113,10 +113,13 @@ class ReportDocumentComposerTest {
         when(personCommunicationPort.findById(INGENIERO)).thenReturn(ingeniero());
         when(personSignatureServicePort.find(INGENIERO)).thenReturn(Optional.empty());
         CompanyLogo logo = CompanyLogo.of(PNG);
-        when(serviceCompanyServicePort.find()).thenReturn(Optional.of(ServiceCompany.rehydrate(UUID.randomUUID(),
-                new CompanyDetails("Ejemplo S.A.S.", "900", "Carrera 1", "Ciudad", List.of(), "300", null,
+        ServiceCompany empresa = ServiceCompany.rehydrate(UUID.randomUUID(),
+                new CompanyDetails("Ejemplo S.A.S.", "900", "Carrera 1", UUID.randomUUID(), List.of(), "300", null,
                         "La garantía", "La aclaración", "FT-1", "FT-2"),
-                logo)));
+                logo);
+        when(serviceCompanyServicePort.find()).thenReturn(Optional.of(empresa));
+        // La empresa guarda su ciudad por identificador desde V44, y el documento lleva el nombre.
+        when(serviceCompanyServicePort.cityName(empresa)).thenReturn("Ciudad");
         EquipmentType tipo = tipo();
 
         ReportDocumentComposer.Composed compuesto = composer.compose(reporte, tipo);

@@ -38,7 +38,7 @@ public class ServiceCompanyPersistenceAdapter implements ServiceCompanyPersisten
         Optional<CompanyLogo> logo = empresa.logo();
 
         return toDomain(serviceCompanyRepository.save(new ServiceCompanyEntity(
-                empresa.getId(), true, datos.nombre(), datos.nit(), datos.direccion(), datos.ciudad(),
+                empresa.getId(), true, datos.nombre(), datos.nit(), datos.direccion(), datos.idCiudad(),
                 new ArrayList<>(datos.telefonos()), datos.movil(), datos.correo(), datos.garantia(),
                 datos.aclaracion(), datos.codigoHojaDeVida(), datos.codigoInforme(),
                 logo.map(CompanyLogo::contenido).orElse(null), logo.map(CompanyLogo::tipo).orElse(null))));
@@ -47,7 +47,7 @@ public class ServiceCompanyPersistenceAdapter implements ServiceCompanyPersisten
     private static ServiceCompany toDomain(ServiceCompanyEntity entity) {
         return ServiceCompany.rehydrate(
                 entity.getId(),
-                new CompanyDetails(entity.getNombre(), entity.getNit(), entity.getDireccion(), entity.getCiudad(),
+                new CompanyDetails(entity.getNombre(), entity.getNit(), entity.getDireccion(), entity.getIdCiudad(),
                         entity.getTelefonos(), entity.getMovil(), entity.getCorreo(), entity.getGarantia(),
                         entity.getAclaracion(), entity.getCodigoHojaDeVida(), entity.getCodigoInforme()),
                 entity.getLogo() == null ? null : new CompanyLogo(entity.getLogo(), entity.getLogoTipo()));

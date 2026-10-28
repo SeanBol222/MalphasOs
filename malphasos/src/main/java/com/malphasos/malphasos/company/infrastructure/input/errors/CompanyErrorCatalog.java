@@ -11,7 +11,8 @@ import lombok.Getter;
 @Getter
 public enum CompanyErrorCatalog {
     COMPANY_NOT_CONFIGURED("ERR_COMPANY_001", "The service company has not been configured"),
-    INVALID_COMPANY_DATA("ERR_COMPANY_002", "Invalid service company data");
+    INVALID_COMPANY_DATA("ERR_COMPANY_002", "Invalid service company data"),
+    CITY_NOT_FOUND("ERR_COMPANY_003", "The city of the service company does not exist");
 
     private final String code;
     private final String message;

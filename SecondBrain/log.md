@@ -2450,3 +2450,21 @@ aplica. Tres mutaciones —numerar desde 1, no recortar, quitar el `CHECK`—, l
 `empresa` entró con `V36`, el 2026-10-17, y ahora tiene su sección; y el plan de la refactorización se
 renumeró: el `V43` que juntaba teléfonos, ciudad e imágenes de la empresa se partió en tres, y el plan
 va de `V42` a `V50`. Ver [[hoja-de-ruta-producto]].
+
+## [2026-10-27] ingest | V44: la ciudad de la empresa, del catálogo
+
+Tercera migración de la refactorización y la primera que cambia el API y una pantalla: `empresa.n_ciudad`,
+texto libre, pasa a `k_id_ciudad` con su foránea. **`company` depende ahora de `location`**, sin ciclo
+porque `location` no depende de nadie. La empresa guarda el identificador, y quien imprime —la hoja de
+vida en PDF, su API y el informe congelado— pide el nombre con `ServiceCompanyServicePort.cityName`. La
+pantalla de la empresa usa el buscador de las sedes, opcional; el seeder busca por nombre la ciudad del
+archivo de arranque y, si no casa con una, siembra sin ciudad y lo avisa en vez de no arrancar.
+
+**La migración se detiene si la ciudad escrita no casa con una sola del catálogo**, con su nombre en el
+mensaje: la decisión de `V10`. En desarrollo casó con Bogotá.
+
+**Lo que conviene recordar**: una mutación sobrevivió —quitar la normalización de tildes del lado de la
+empresa— porque la prueba escribía «bogota» sin tilde y esa rama no hacía falta. Se reescribió con
+«  BOGOTÁ », de modo que cada normalización es necesaria, y murieron las cinco. Y una prueba de
+persistencia suponía el catálogo sembrado, que otras clases vacían al terminar: pasaba sola y fallaba en la
+batería. Ahora crea su ciudad, como el resto. Ver [[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].

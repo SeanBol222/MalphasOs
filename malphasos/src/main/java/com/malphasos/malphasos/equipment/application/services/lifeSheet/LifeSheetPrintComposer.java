@@ -43,13 +43,16 @@ public final class LifeSheetPrintComposer {
     }
 
     /**
+     * @param ciudadDeLaEmpresa el nombre de su ciudad, que la empresa guarda por su identificador (V44);
+     *     nulo si no tiene
      * @param hoy la fecha de actualización, que es la de impresión: decidido el 2026-10-05
      */
-    public static LifeSheetPrint compose(LifeSheet hoja, Optional<ServiceCompany> empresa, LocalDate hoy) {
+    public static LifeSheetPrint compose(
+            LifeSheet hoja, Optional<ServiceCompany> empresa, String ciudadDeLaEmpresa, LocalDate hoy) {
         LifeSheet.Identificacion id = hoja.identificacion();
         LifeSheet.Tecnica tecnica = hoja.tecnica();
         TechnicalSheet ficha = tecnica.fichaTecnica() == null ? TechnicalSheet.EMPTY : tecnica.fichaTecnica();
-        LifeSheetPrint.Empresa membrete = empresa.map(LifeSheetPrintComposer::membrete)
+        LifeSheetPrint.Empresa membrete = empresa.map(e -> membrete(e, ciudadDeLaEmpresa))
                 .orElse(LifeSheetPrint.Empresa.NINGUNA);
         String nombreDeLaEmpresa = empresa.map(e -> e.getDatos().nombre()).orElse(null);
 
@@ -117,7 +120,7 @@ public final class LifeSheetPrintComposer {
                         "Actualizada el " + fecha(hoy)));
     }
 
-    private static LifeSheetPrint.Empresa membrete(ServiceCompany empresa) {
+    private static LifeSheetPrint.Empresa membrete(ServiceCompany empresa, String ciudad) {
         CompanyDetails datos = empresa.getDatos();
         List<String> telefonos = new ArrayList<>(datos.telefonos() == null ? List.of() : datos.telefonos());
         if (datos.movil() != null && !datos.movil().isBlank()) {
@@ -127,7 +130,7 @@ public final class LifeSheetPrintComposer {
         return new LifeSheetPrint.Empresa(
                 Objects.toString(datos.nombre(), ""),
                 empresa.logo().map(CompanyLogo::dataUri).orElse(null),
-                unidos(", ", datos.direccion(), datos.ciudad()),
+                unidos(", ", datos.direccion(), ciudad),
                 String.join(" · ", telefonos),
                 Objects.toString(datos.correo(), ""));
     }

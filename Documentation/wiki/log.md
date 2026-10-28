@@ -327,3 +327,8 @@ El `V43` del análisis de [[diseno-base-de-datos]] juntaba los teléfonos, la ci
 empresa, y se partió en tres al construirlo —`V43`, `V44` y `V45`—: el plan va ahora de `V42` a `V50`.
 `V42` y `V43` están construidas. El diagrama de la propuesta final dibuja `telefono_empresa` como se
 construyó, sin identificador ni borrado lógico.
+
+## [2026-10-27] ingest | V44 construida
+
+La ciudad de la empresa sale del catálogo. El análisis de [[diseno-base-de-datos]] lo marca en C2.
+Ningún documento oficial cambia: ningún requisito de la ERS describe la ciudad de la empresa.

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.UUID;
 
 /** Los datos de la empresa: van todos, porque así se corrigen. Lo que no venga queda vacío. */
 @Schema(name = "ServiceCompanyRequest")
@@ -18,9 +19,8 @@ public record ServiceCompanyRequest(
         @Schema(description = "Opcional")
         @Size(max = 200, message = "La direccion no puede pasar de 200 caracteres")
         String direccion,
-        @Schema(description = "Opcional")
-        @Size(max = 80, message = "La ciudad no puede pasar de 80 caracteres")
-        String ciudad,
+        @Schema(description = "Opcional: la ciudad, del catalogo de ubicaciones")
+        UUID idCiudad,
         @Schema(description = "Telefonos fijos, como se imprimen; hasta cinco")
         @Size(max = 5, message = "La empresa tiene como mucho cinco telefonos fijos")
         List<@Size(max = 30, message = "Un telefono no puede pasar de 30 caracteres") String> telefonos,

@@ -15,7 +15,18 @@ public interface ServiceCompanyServicePort {
     /** La empresa, o vacío si todavía no se ha configurado. */
     Optional<ServiceCompany> find();
 
-    /** Guarda sus datos: la configura si no existía y la corrige si sí. */
+    /**
+     * El nombre de la ciudad de la empresa, para el membrete (V44); nulo si no tiene. La empresa guarda
+     * la ciudad por su identificador, y quien imprime necesita el nombre.
+     */
+    String cityName(ServiceCompany empresa);
+
+    /**
+     * Guarda sus datos: la configura si no existía y la corrige si sí.
+     *
+     * @throws com.malphasos.malphasos.location.domain.exception.CityNotFoundException si la ciudad no
+     *     existe
+     */
     ServiceCompany save(SaveServiceCompanyCommand command);
 
     /** Pone o cambia el logo. Exige la empresa ya configurada. */

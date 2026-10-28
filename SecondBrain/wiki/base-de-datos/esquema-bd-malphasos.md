@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 38 tablas, 50 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 38 tablas, 51 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -82,9 +82,9 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **43** (`V1`…`V43`) |
+| Migraciones aplicadas | **44** (`V1`…`V44`) |
 | Tablas de dominio | **38** |
-| Llaves foráneas | **50**, de las cuales **4 compuestas** |
+| Llaves foráneas | **51**, de las cuales **4 compuestas** |
 | Restricciones `CHECK` propias | **79** |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
@@ -119,6 +119,10 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   identificador propio ni borrado lógico porque es una lista de valores que se reescribe entera. Ver
 >   la sección de `company`, que **esta nota no tenía**: `empresa` entró con `V36`, el 2026-10-17, y
 >   nadie la dibujó. Corregido el 2026-10-27.
+> - `V44`, **la ciudad de la empresa, del catálogo**: `n_ciudad` era texto libre y pasa a `k_id_ciudad`,
+>   con su foránea y su índice —**+1 foránea**; el `CHECK` de los textos se rehace sin la ciudad y el
+>   total no cambia—. La que estaba escrita se enlaza por nombre, sin tildes ni mayúsculas, y si no casa
+>   con una sola ciudad la migración **se detiene diciendo cuál**: la decisión de `V10`.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -248,6 +252,8 @@ graph TD
     report["report<br/>reporte_servicio + lecturas"]
     company["company<br/>empresa + sus telefonos"]
 
+    company -->|ciudad| location
+
     client -->|pais, ciudad| location
     client -->|representante, encargado| person
     equipment -->|pais del fabricante| location
@@ -271,8 +277,9 @@ inexistente. Quitarla rompería el ciclo y perdería esa garantía. Ver [[hoja-d
 ## `company` — 2 tablas
 
 La empresa que presta el servicio, que es el membrete de los documentos (`V36`). **Una sola fila**: lo
-impone `b_unica`, siempre verdadera y única. No apunta a ningún otro módulo y nadie la apunta: el informe
-**copia** sus datos al congelarse, en su documento.
+impone `b_unica`, siempre verdadera y única. Desde `V44` apunta a `location` por su ciudad; nadie la
+apunta a ella: el informe **copia** sus datos al congelarse, en su documento, con el nombre de la ciudad y
+no su identificador.
 
 ```mermaid
 erDiagram
@@ -283,7 +290,7 @@ erDiagram
         varchar n_nombre
         varchar k_nit
         varchar t_direccion
-        varchar n_ciudad "texto libre"
+        uuid k_id_ciudad FK "del catalogo desde V44; era texto libre"
         varchar t_movil "aparte de los fijos"
         varchar t_correo
         varchar t_garantia
