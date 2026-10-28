@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 38 tablas, 51 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 38 tablas, 53 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -82,10 +82,10 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **44** (`V1`…`V44`) |
+| Migraciones aplicadas | **45** (`V1`…`V45`) |
 | Tablas de dominio | **38** |
-| Llaves foráneas | **51**, de las cuales **4 compuestas** |
-| Restricciones `CHECK` propias | **79** |
+| Llaves foráneas | **53**, de las cuales **4 compuestas** |
+| Restricciones `CHECK` propias | **77** |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **10** |
@@ -123,6 +123,12 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   con su foránea y su índice —**+1 foránea**; el `CHECK` de los textos se rehace sin la ciudad y el
 >   total no cambia—. La que estaba escrita se enlaza por nombre, sin tildes ni mayúsculas, y si no casa
 >   con una sola ciudad la migración **se detiene diciendo cuál**: la decisión de `V10`.
+> - `V45`, **el logo y las firmas, por huella**: `empresa.b_logo` con su tipo y `firma_persona.b_imagen`
+>   pasan a `imagen_documento`, una vez por versión, y sus filas guardan la huella —**+2 foráneas, −2
+>   `CHECK`**: el del logo con su tipo y el del tamaño de la firma, que comprueba el dominio—. Ninguna
+>   imagen se borra al cambiarla, porque un informe congelado puede apuntarla. Ver las secciones de
+>   `person` y `shared`, que **esta nota no tenía**: `firma_persona` e `imagen_documento` entraron con
+>   `V37` y `V38`, el 2026-10-17, y nadie las dibujó. Corregido el 2026-10-27.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -251,8 +257,12 @@ graph TD
     workorder["work-order<br/>orden_trabajo + su alcance"]
     report["report<br/>reporte_servicio + lecturas"]
     company["company<br/>empresa + sus telefonos"]
+    shared["shared<br/>imagen_documento"]
 
     company -->|ciudad| location
+    company -->|logo| shared
+    person -->|firma| shared
+    report -->|logo y firmas congeladas| shared
 
     client -->|pais, ciudad| location
     client -->|representante, encargado| person
@@ -297,8 +307,7 @@ erDiagram
         varchar t_aclaracion
         varchar k_codigo_hoja_de_vida
         varchar k_codigo_informe
-        bytea b_logo "PNG, JPG o SVG, hasta 512 KB"
-        varchar t_logo_tipo
+        varchar k_huella_logo FK "imagen_documento, desde V45"
     }
     telefono_empresa {
         uuid k_id_empresa PK
@@ -310,6 +319,24 @@ erDiagram
 **`telefono_empresa` es una lista de valores, no una tabla de entidades** (`V43`): el formulario manda la
 lista entera, así que la llave es (empresa, posición) y no lleva identificador ni borrado lógico. Hasta
 `V43` era un arreglo en `empresa.t_telefonos`.
+
+## `shared` — 1 tabla
+
+```mermaid
+erDiagram
+    imagen_documento {
+        varchar k_huella PK "SHA-256 de los bytes, en hexadecimal"
+        bytea b_contenido "hasta 512 KB"
+        varchar t_tipo "image/png, image/jpeg o image/svg+xml"
+    }
+```
+
+**El almacén de imágenes**, una vez por versión y por su huella: el logo de la empresa, la firma de cada
+persona, y lo que un informe congela —el logo, la firma del ingeniero y la de quien recibe—. Nació en
+`V37` para los logos de los informes, se renombró en `V38` al llegar las firmas, y **desde `V45` es de
+todos**: la empresa y la firma de una persona lo apuntan, y en el código se movió del módulo `report` a
+`shared`, porque `company` y `person` no pueden depender de `report`. **Una imagen no se borra nunca**:
+cambiar de logo deja la anterior, que un informe congelado puede estar apuntando.
 
 ## `location` — 2 tablas
 
@@ -349,12 +376,13 @@ se repiten entre departamentos colombianos —cuatro La Unión, cuatro Villanuev
 
 Ver [[dominio-ubicacion]].
 
-## `person` — 3 tablas
+## `person` — 4 tablas
 
 ```mermaid
 erDiagram
     persona ||--o{ correo_persona : "tiene"
     persona ||--o{ telefono_persona : "tiene"
+    persona ||--o| firma_persona : "firma, si es de la casa"
     persona {
         uuid k_identificador PK "subrogada, NO el documento"
         varchar k_cedula UK "el documento, con su propia unicidad"
@@ -379,7 +407,16 @@ erDiagram
         varchar n_telefono_persona
         boolean b_estado_activo
     }
+    firma_persona {
+        uuid k_identificador PK "y FK: una por persona; se llamaba k_id_persona hasta V42"
+        varchar k_huella FK "imagen_documento, desde V45"
+        timestamp f_actualizada
+    }
 ```
+
+**`firma_persona`** (`V38`) es la firma de un ingeniero o un administrador, dibujada una vez: cada
+informe que cierra la copia. No lleva borrado lógico, porque guardar otra la sustituye. Desde `V45` la
+imagen vive en `imagen_documento` y la fila guarda su huella.
 
 ~~**Una deuda propia vive aquí**: el dueño es **anulable** en las dos tablas hijas —al contrario que en
 los contactos del cliente—, y corregirlo exige su propia migración.~~ **Cerrada el 2026-10-27 por

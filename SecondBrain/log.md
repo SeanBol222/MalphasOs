@@ -2468,3 +2468,22 @@ empresa— porque la prueba escribía «bogota» sin tilde y esa rama no hacía 
 «  BOGOTÁ », de modo que cada normalización es necesaria, y murieron las cinco. Y una prueba de
 persistencia suponía el catálogo sembrado, que otras clases vacían al terminar: pasaba sola y fallaba en la
 batería. Ahora crea su ciudad, como el resto. Ver [[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].
+
+## [2026-10-27] ingest | V45: el logo y las firmas, por huella
+
+Cuarta migración de la refactorización. Había tres formas de guardar una imagen y queda una:
+`empresa.b_logo` y `firma_persona.b_imagen` pasan a `imagen_documento`, una vez por versión, y sus filas
+guardan la huella SHA-256. Ninguna imagen se borra al cambiarla: un informe congelado puede apuntarla.
+
+**Antes hubo que mover el almacén**: `imagen_documento` y su puerto vivían en `report`, y `company` y
+`person` no pueden depender de `report`, que ya depende de los dos. Pasó a `shared` con `git mv`, en un
+commit propio y con la batería en verde antes de tocar nada más.
+
+**Lo que conviene recordar**: la migración calcula la huella en SQL —`encode(sha256(...), 'hex')`— y el
+código en Java, y si no coincidieran un logo ya congelado se guardaría dos veces y la empresa apuntaría a
+una imagen que el código no encontraría. La prueba de la migración siembra ese logo en el almacén antes
+de migrar y comprueba que queda uno. En desarrollo pasó justo eso: el logo ya estaba, y siguieron siendo
+tres imágenes. Cuatro mutaciones, las cuatro muertas.
+
+Y la nota del esquema **no dibujaba `firma_persona` ni `imagen_documento`** desde `V37` y `V38`: ahora
+tiene las secciones de `person` con la firma y de `shared`. Ver [[esquema-bd-malphasos]].

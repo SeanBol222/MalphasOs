@@ -596,7 +596,7 @@ el bloqueo del traslado de un equipo que está en una orden viva.
 | `V42` | Índices de las foráneas, dueños obligatorios y tres nombres que engañaban | **Construida el 2026-10-27** |
 | `V43` | Los teléfonos de la empresa en su tabla | **Construida el 2026-10-27** |
 | `V44` | La ciudad de la empresa, del catálogo | **Construida el 2026-10-27** |
-| `V45` | El logo de la empresa y las firmas, por huella en `imagen_documento` | Pendiente |
+| `V45` | El logo de la empresa y las firmas, por huella en `imagen_documento` | **Construida el 2026-10-27** |
 | `V46` | Sin segundo tipo de persona | Pendiente |
 | `V47` | La orden llega al cliente por la sede, y la verificación a la magnitud por la unidad | Pendiente |
 | `V48` | La orden se congela al ejecutarse, y sin tabla puente entre la orden y el equipo | Pendiente |
