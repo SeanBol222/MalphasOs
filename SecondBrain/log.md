@@ -2434,3 +2434,19 @@ se rompieron con los nombres nuevos**: traducen ahora lo justo, porque migrar un
 versión no compensa para pruebas que desaparecen en `V48`. Tres mutaciones, las tres muertas.
 
 Ver [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]] y [[hoja-de-ruta-producto]].
+
+## [2026-10-27] ingest | V43: los teléfonos de la empresa en su tabla
+
+Segunda migración de la refactorización. `empresa.t_telefonos`, la única columna con un arreglo del
+esquema, pasa a `telefono_empresa`: **una lista de valores con llave (empresa, posición)**, sin
+identificador ni borrado lógico, porque el formulario de la empresa la reescribe entera. Solo cambia la
+persistencia —una `@ElementCollection` con `@OrderColumn`—, y el adaptador abre su transacción porque la
+colección es perezosa: la convención aplicada antes de que doliera.
+
+Lleva la segunda prueba del proyecto que migra un esquema aparte hasta la versión anterior, siembra y
+aplica. Tres mutaciones —numerar desde 1, no recortar, quitar el `CHECK`—, las tres muertas.
+
+**Dos correcciones de paso**: [[esquema-bd-malphasos]] **no dibujaba el módulo `company`** desde que
+`empresa` entró con `V36`, el 2026-10-17, y ahora tiene su sección; y el plan de la refactorización se
+renumeró: el `V43` que juntaba teléfonos, ciudad e imágenes de la empresa se partió en tres, y el plan
+va de `V42` a `V50`. Ver [[hoja-de-ruta-producto]].

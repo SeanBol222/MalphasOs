@@ -40,7 +40,7 @@ skinparam padding 6
 skinparam defaultFontSize 15
 skinparam packageStyle rectangle
 
-title MalphasOS — propuesta final, V42 a V48 (PROPUESTO, 36 tablas)
+title MalphasOS — propuesta final, V42 a V50 (PROPUESTO, 36 tablas)
 
 package "person — personas" {
 entity "persona" as persona <<cambia>> {
@@ -413,12 +413,10 @@ entity "empresa" as empresa <<cambia>> {
   .. UQ_empresa_unica ..
 }
 entity "telefono_empresa" as telefono_empresa <<nueva>> {
-  * k_id_telefono_empresa : uuid <<PK>>
+  * k_id_empresa : uuid <<PK, FK>>
+  * i_orden : integer <<PK>>
   --
-  * k_id_empresa : uuid <<FK>>
   * n_telefono_empresa : varchar(30)
-  * i_orden : integer
-  * b_estado_activo : boolean
 }
 entity "imagen_documento" as imagen_documento {
   * k_huella : varchar(64) <<PK>>
