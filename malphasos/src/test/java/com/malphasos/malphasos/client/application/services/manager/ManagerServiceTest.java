@@ -21,6 +21,7 @@ import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundExcept
 import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
+import com.malphasos.malphasos.client.domain.exception.ManagerPersonTypeException;
 import com.malphasos.malphasos.client.domain.headquarter.Address;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.domain.manager.Manager;
@@ -28,6 +29,7 @@ import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
 import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationRequest;
+import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
@@ -77,6 +79,15 @@ class ManagerServiceTest {
     private void yaEsEncargadoDeLaSede() {
         when(managerPort.findByPerson(PERSONA)).thenReturn(Optional.of(Manager.rehydrate(
                 PERSONA, List.of(new ManagerAssignment(ManagerType.HEADQUARTER, SEDE, true)))));
+    }
+
+    /** La persona que se asigna, del tipo dado: desde V46 el tipo decide si puede estar a cargo. */
+    private void laPersonaEs(PersonType tipo) {
+        when(personPort.findById(PERSONA)).thenReturn(PersonCommunicationResponse.builder()
+                .identificador(PERSONA)
+                .tipoPersona(tipo)
+                .estadoActivo(true)
+                .build());
     }
 
     private PersonCommunicationRequest datosDePersona() {
@@ -193,6 +204,7 @@ class ManagerServiceTest {
     @Test
     @DisplayName("asignar a alguien que ya existe no crea otra persona")
     void asignarPersonaExistente() {
+        laPersonaEs(PersonType.MANAGER);
         when(areaPort.findById(AREA))
                 .thenReturn(Optional.of(ServiceArea.rehydrate(AREA, "UCI", SEDE, true)));
         when(managerPort.save(any(Manager.class))).thenAnswer(i -> i.getArgument(0));
@@ -208,8 +220,36 @@ class ManagerServiceTest {
     }
 
     @Test
+    @DisplayName("un representante del cliente tambien puede estar a cargo (V46)")
+    void representanteACargo() {
+        laPersonaEs(PersonType.CEO_CLIENT);
+        laSedeEsta(true);
+        when(managerPort.save(any(Manager.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertThat(service().assign(new AssignManagerCommand(PERSONA, ManagerType.HEADQUARTER, SEDE)).getIdsSede())
+                .containsExactly(SEDE);
+    }
+
+    @Test
+    @DisplayName("un ingeniero no puede estar a cargo de una sede: solo encargados y representantes (V46)")
+    void ingenieroNoACargo() {
+        laPersonaEs(PersonType.ENGINEER);
+        laSedeEsta(true);
+        // Lo que aceptaria la asignacion si la regla no estuviera: que sea esto lo que falte no puede ser
+        // la razon del rechazo.
+        lenient().when(managerPort.save(any(Manager.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertThatThrownBy(() -> service().assign(new AssignManagerCommand(PERSONA, ManagerType.HEADQUARTER, SEDE)))
+                .isInstanceOf(ManagerPersonTypeException.class);
+
+        verify(managerPort, never()).save(any());
+        verifyNoInteractions(dispatcher);
+    }
+
+    @Test
     @DisplayName("asignar a quien ya es encargado suma la asignacion a las que tiene (V41)")
     void asignarSuma() {
+        laPersonaEs(PersonType.MANAGER);
         laSedeEsta(true);
         unaSede(OTRA_SEDE, CLIENTE, true);
         yaEsEncargadoDeLaSede();
@@ -227,6 +267,7 @@ class ManagerServiceTest {
     @Test
     @DisplayName("un area de otra sede del mismo cliente tambien se suma: el cliente llega por la sede")
     void asignarAreaDelMismoCliente() {
+        laPersonaEs(PersonType.MANAGER);
         laSedeEsta(true);
         unaSede(OTRA_SEDE, CLIENTE, true);
         when(areaPort.findById(AREA))
@@ -243,6 +284,7 @@ class ManagerServiceTest {
     @Test
     @DisplayName("no se suma una sede de otro cliente: un encargado es de un solo cliente")
     void otroCliente() {
+        laPersonaEs(PersonType.MANAGER);
         laSedeEsta(true);
         unaSede(SEDE_DE_OTRO_CLIENTE, UUID.randomUUID(), true);
         yaEsEncargadoDeLaSede();
@@ -258,6 +300,7 @@ class ManagerServiceTest {
     @Test
     @DisplayName("ni un area cuya sede es de otro cliente")
     void areaDeOtroCliente() {
+        laPersonaEs(PersonType.MANAGER);
         laSedeEsta(true);
         unaSede(SEDE_DE_OTRO_CLIENTE, UUID.randomUUID(), true);
         when(areaPort.findById(AREA)).thenReturn(
@@ -274,6 +317,7 @@ class ManagerServiceTest {
     @Test
     @DisplayName("lo que se le retiro no lo ata: relevado de todo, puede pasar a otro cliente")
     void loRelevadoNoAta() {
+        laPersonaEs(PersonType.MANAGER);
         unaSede(SEDE_DE_OTRO_CLIENTE, UUID.randomUUID(), true);
         // La sede vieja es de CLIENTE, otro distinto: si contara, la regla rechazaria. Va con lenient()
         // porque lo correcto es no consultarla, y esta aqui para que no sea su ausencia lo que falle.

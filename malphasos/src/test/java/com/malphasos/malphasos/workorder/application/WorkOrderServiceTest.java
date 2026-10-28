@@ -112,10 +112,9 @@ class WorkOrderServiceTest {
                 activa);
     }
 
-    private static PersonCommunicationResponse unaPersona(PersonType tipo, PersonType segundo,
-            boolean activa) {
+    private static PersonCommunicationResponse unaPersona(PersonType tipo, boolean activa) {
         return new PersonCommunicationResponse(INGENIERO, "1010101010", "Grace", null, "Hopper",
-                null, tipo, segundo, activa, List.of(), List.of());
+                null, tipo, activa, List.of(), List.of());
     }
 
     /** El almacén devuelve lo que le dan: aquí no se prueba la persistencia. */
@@ -362,20 +361,7 @@ class WorkOrderServiceTest {
         void ingenieroActivo() {
             laOrdenExiste();
             when(personCommunicationPort.findById(INGENIERO))
-                    .thenReturn(unaPersona(PersonType.ENGINEER, null, true));
-            elAlmacenGuardaYDevuelve();
-
-            assertThat(service.assign(elComando()).getIdIngeniero()).isEqualTo(INGENIERO);
-        }
-
-        @Test
-        @DisplayName("quien es ingeniero por su segundo tipo tambien puede")
-        void ingenieroPorSegundoTipo() {
-            // Una persona puede tener dos tipos: quien es encargado y ademas ingeniero sigue
-            // pudiendo ejecutar un mantenimiento. Excluirlo seria un criterio administrativo.
-            laOrdenExiste();
-            when(personCommunicationPort.findById(INGENIERO))
-                    .thenReturn(unaPersona(PersonType.MANAGER, PersonType.ENGINEER, true));
+                    .thenReturn(unaPersona(PersonType.ENGINEER, true));
             elAlmacenGuardaYDevuelve();
 
             assertThat(service.assign(elComando()).getIdIngeniero()).isEqualTo(INGENIERO);
@@ -386,7 +372,7 @@ class WorkOrderServiceTest {
         void noEsIngeniero() {
             laOrdenExiste();
             when(personCommunicationPort.findById(INGENIERO))
-                    .thenReturn(unaPersona(PersonType.MANAGER, null, true));
+                    .thenReturn(unaPersona(PersonType.MANAGER, true));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.assign(elComando()))
                     .withMessageContaining("no lo es");
@@ -399,7 +385,7 @@ class WorkOrderServiceTest {
         void personaRetirada() {
             laOrdenExiste();
             when(personCommunicationPort.findById(INGENIERO))
-                    .thenReturn(unaPersona(PersonType.ENGINEER, null, false));
+                    .thenReturn(unaPersona(PersonType.ENGINEER, false));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.assign(elComando()))
                     .withMessageContaining("retirada");

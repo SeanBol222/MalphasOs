@@ -133,10 +133,12 @@ export class DetalleSede {
   });
 
   /**
-   * A quién se puede poner al frente aquí: las personas activas que son encargadas —de tipo o como
-   * segunda función— y que no estén a cargo de nada de otro cliente.
+   * A quién se puede poner al frente aquí: las personas activas que son encargadas y los representantes
+   * de este cliente —desde V46, los únicos que pueden estar a cargo de una sede o un área—, que no estén
+   * a cargo de nada de otro cliente.
    */
   protected readonly candidatos = computed(() => {
+    const representantes = new Set(this.cliente.data()?.representantes ?? []);
     const delCliente = new Set(
       (this.resumenDelCliente.data() ?? []).flatMap((sede) => [
         sede.id,
@@ -154,7 +156,9 @@ export class DetalleSede {
       .filter(
         (persona) =>
           persona.estadoActivo !== false &&
-          (persona.tipoPersona === 'MANAGER' || persona.segundoTipoPersona === 'MANAGER'),
+          (persona.tipoPersona === 'MANAGER' ||
+            (persona.tipoPersona === 'CEO_CLIENT' &&
+              representantes.has(persona.identificador ?? ''))),
       )
       .filter((persona) =>
         (cargos.get(persona.identificador) ?? []).every((cargo) =>

@@ -97,7 +97,7 @@ class ReportDocumentComposerTest {
     }
 
     private static PersonCommunicationResponse ingeniero() {
-        return new PersonCommunicationResponse(INGENIERO, "1", "Ana", null, "Pérez", "Gómez", null, null, true,
+        return new PersonCommunicationResponse(INGENIERO, "1", "Ana", null, "Pérez", "Gómez", null, true,
                 List.of(), List.of());
     }
 

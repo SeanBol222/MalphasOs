@@ -328,12 +328,6 @@ export interface components {
              */
             segundoNombre?: string;
             /**
-             * @description Funcion secundaria, solo MANAGER
-             * @example MANAGER
-             * @enum {string}
-             */
-            segundoTipoPersona?: "ENGINEER" | "MANAGER" | "CEO_CLIENT" | "ADMIN" | "SUPER_ADMIN";
-            /**
              * @description Funcion principal de la persona
              * @example MANAGER
              * @enum {string}
@@ -387,12 +381,6 @@ export interface components {
              * @example Carlos
              */
             segundoNombre?: string;
-            /**
-             * @description Funcion secundaria, solo MANAGER
-             * @example MANAGER
-             * @enum {string}
-             */
-            segundoTipoPersona?: "ENGINEER" | "MANAGER" | "CEO_CLIENT" | "ADMIN" | "SUPER_ADMIN";
         };
         PersonResponse: {
             cedula?: string;
@@ -405,8 +393,6 @@ export interface components {
             primerNombre?: string;
             segundoApellido?: string;
             segundoNombre?: string;
-            /** @enum {string} */
-            segundoTipoPersona?: "ENGINEER" | "MANAGER" | "CEO_CLIENT" | "ADMIN" | "SUPER_ADMIN";
             /** @enum {string} */
             tipoPersona?: "ENGINEER" | "MANAGER" | "CEO_CLIENT" | "ADMIN" | "SUPER_ADMIN";
         };
@@ -452,12 +438,6 @@ export interface components {
              * @example Carlos
              */
             segundoNombre?: string;
-            /**
-             * @description Funcion secundaria, solo MANAGER
-             * @example MANAGER
-             * @enum {string}
-             */
-            segundoTipoPersona?: "ENGINEER" | "MANAGER" | "CEO_CLIENT" | "ADMIN" | "SUPER_ADMIN";
             /**
              * @description Funcion principal
              * @example CEO_CLIENT

@@ -69,20 +69,20 @@ const PERSONAS = [
     tipoPersona: 'SUPER_ADMIN',
     estadoActivo: true,
   },
-  // Ingeniero y además encargado: el modelo admite dos funciones, y cuenta en los dos filtros.
+  // Representante y además a cargo de una sede: desde V46 es encargado por tener algo a cargo, no por
+  // un segundo tipo, y cuenta en los dos filtros.
   {
     identificador: 'p7',
     primerNombre: 'Andrés',
     primerApellido: 'Pardo',
     cedula: '1020774512',
-    tipoPersona: 'ENGINEER',
-    segundoTipoPersona: 'MANAGER',
+    tipoPersona: 'CEO_CLIENT',
     estadoActivo: true,
   },
 ];
 
 const CLIENTES = [
-  { id: 'c1', razonSocial: 'Clínica del Norte', representantes: ['p3'], estadoActivo: true },
+  { id: 'c1', razonSocial: 'Clínica del Norte', representantes: ['p3', 'p7'], estadoActivo: true },
 ];
 const SEDES = [
   {
@@ -96,6 +96,7 @@ const SEDES = [
 const ENCARGADOS = [
   { idPersona: 'p4', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true },
   { idPersona: 'p5', idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
+  { idPersona: 'p7', idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
   // Retirada: la representante ya no responde de la sede, y no debe decirlo. Desde V41 la respuesta
   // solo trae lo activo, asi que llega sin nada a cargo.
   { idPersona: 'p3', idsSede: [], idsAreaServicio: [], estadoActivo: false },
@@ -222,9 +223,9 @@ describe('Listado de personas', () => {
         [...raiz().querySelectorAll('[role="group"] button')].map((b) => b.textContent?.trim()),
       ).toEqual([
         'Todas · 7',
-        'Ingenieros · 2',
+        'Ingenieros · 1',
         'Administradores · 2',
-        'Representantes · 1',
+        'Representantes · 2',
         'Encargados · 3',
       ]);
     });
@@ -236,7 +237,9 @@ describe('Listado de personas', () => {
       await asentar(fixture);
 
       expect(ids()).toEqual(['p4', 'p5', 'p7']);
-      expect(celdas('p7')[2]).toBe('Ingeniero · Encargado del cliente');
+      expect(celdas('p7')[2]).toBe(
+        'Representante del cliente · Encargado del cliente · Sede principal',
+      );
       expect(boton('Encargados').getAttribute('aria-pressed')).toBe('true');
     });
 

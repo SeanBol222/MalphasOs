@@ -287,17 +287,6 @@
     Añadir un teléfono
   </button>
 
-  @if (conCuenta() && clase() !== 'representante') {
-    <!--
-      La segunda funcion solo puede ser «encargado»: lo dice el contrato. El representante no lleva
-      este check: lo dice eligiendo sede, arriba, que ademas lo pone al frente de ella.
-    -->
-    <label class="mt-3 flex min-h-tactil items-center gap-2">
-      <input type="checkbox" formControlName="tambienEncargado" />
-      <span class="font-semibold">También es encargado de un cliente</span>
-    </label>
-  }
-
   <div class="mt-3 flex flex-wrap gap-2">
     <button
       class="boton-primario min-h-tactil"

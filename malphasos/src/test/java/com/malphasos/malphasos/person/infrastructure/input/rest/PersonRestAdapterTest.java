@@ -218,17 +218,15 @@ class PersonRestAdapterTest {
     }
 
     @Test
-    @DisplayName("una combinacion de tipos invalida responde 400 y no 500")
-    void invalidTypeCombinationReturnsBadRequest() throws Exception {
-        when(personServicePort.save(any()))
-                .thenThrow(new IllegalArgumentException("Una persona de tipo ENGINEER no puede tener un segundo tipo"));
+    @DisplayName("un dato que el dominio rechaza responde 400 y no 500")
+    void invalidDataReturnsBadRequest() throws Exception {
+        when(personServicePort.save(any())).thenThrow(new IllegalArgumentException("Dato rechazado por el dominio"));
 
         PersonCreateRequest request = PersonCreateRequest.builder()
                 .cedula("1234567890")
                 .primerNombre("Ada")
                 .primerApellido("Lovelace")
                 .tipoPersona(PersonType.ENGINEER)
-                .segundoTipoPersona(PersonType.MANAGER)
                 .emailPersonList(List.of())
                 .phonePersonList(List.of())
                 .build();

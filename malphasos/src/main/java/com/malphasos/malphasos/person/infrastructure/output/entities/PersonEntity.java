@@ -64,10 +64,6 @@ public class PersonEntity {
     @Column(name = "t_tipo_persona", nullable = false)
     private PersonType tipoPersona;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "t_segundo_tipo_persona")
-    private PersonType segundoTipoPersona;
-
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo = true;
 

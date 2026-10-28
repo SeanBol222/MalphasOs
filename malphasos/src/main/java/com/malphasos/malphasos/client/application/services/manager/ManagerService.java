@@ -12,12 +12,14 @@ import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundExcept
 import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
-import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
+import com.malphasos.malphasos.client.domain.exception.ManagerPersonTypeException;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
+import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
 import com.malphasos.malphasos.client.domain.manager.Manager;
 import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
 import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationRequest;
+import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
@@ -102,7 +104,7 @@ public class ManagerService implements ManagerServicePort {
     public Manager assign(AssignManagerCommand command) {
         requireActiveTarget(command.tipo(), command.idAsignacion());
         // Lanza PersonNotFoundException si no existe, que el manejador traduce a 404.
-        personCommunicationPort.findById(command.idPersona());
+        requireCanBeInCharge(personCommunicationPort.findById(command.idPersona()));
 
         Optional<Manager> existente = managerPersistencePort.findByPerson(command.idPersona());
 
@@ -146,6 +148,18 @@ public class ManagerService implements ManagerServicePort {
                 : Manager.forServiceArea(idPersona, idAsignacion);
     }
 
+    /**
+     * Solo un encargado o un representante del cliente responde por una sede o un área (V46).
+     *
+     * <p>Hasta V46 lo decía también un segundo tipo de persona, y las dos fuentes podían contradecirse;
+     * ahora ser encargado es tener asignaciones, y esto es lo que decide quién puede tenerlas.
+     */
+    private static void requireCanBeInCharge(PersonCommunicationResponse persona) {
+        if (persona.tipoPersona() != PersonType.MANAGER && persona.tipoPersona() != PersonType.CEO_CLIENT) {
+            throw new ManagerPersonTypeException(persona.identificador(), persona.tipoPersona());
+        }
+    }
+
     /** El tipo de persona lo fija este servicio, no quien llama: aquí se registra un encargado. */
     private PersonCommunicationRequest conTipoManager(PersonCommunicationRequest peticion) {
         if (peticion == null) {
@@ -159,7 +173,6 @@ public class ManagerService implements ManagerServicePort {
                 .primerApellido(peticion.primerApellido())
                 .segundoApellido(peticion.segundoApellido())
                 .tipoPersona(PersonType.MANAGER)
-                .segundoTipoPersona(peticion.segundoTipoPersona())
                 .emailPersonList(peticion.emailPersonList())
                 .phonePersonList(peticion.phonePersonList())
                 .build();
