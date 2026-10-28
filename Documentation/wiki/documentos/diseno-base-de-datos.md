@@ -71,8 +71,10 @@ copias del reporte (B1, B2 y B3) se sustituyen por su **documento congelado al c
 desde `V37`; el área de cada equipo en la orden (B6) se quita **bloqueando el traslado** de un equipo que
 está en una orden sin ejecutar; y **la orden se congela al ejecutarse**, en su propio documento. La hoja
 de vida sigue leyendo en vivo todo menos el historial, que sale del documento de cada reporte cerrado.
-Son **siete** migraciones, `V42` a `V48` —eran seis, `V42` a `V47`, y fueron ocho unas horas, mientras el
-recibido por orden iba a ser `V49`—. **El recibido se queda en el reporte**, ver abajo.
+Son **diez** migraciones, `V42` a `V51`, y `V42` a `V48` están construidas el 2026-10-28. (Decía
+**siete**, `V42` a `V48`, hasta que al construirlas se partieron dos: la de la empresa en tres y la de la
+orden y la verificación en dos. Eran seis, `V42` a `V47`, y fueron ocho unas horas, mientras el recibido
+por orden iba a ser `V49`.) **El recibido se queda en el reporte**, ver abajo.
 
 **Una corrección dentro del propio análisis**: un borrador decía que siete de los trece ciclos sin
 dirección desaparecían. Recalculado, el número apenas baja —de 13 a 12 con B6 fuera; antes de quitarla

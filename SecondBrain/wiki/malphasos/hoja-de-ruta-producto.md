@@ -599,7 +599,7 @@ el bloqueo del traslado de un equipo que está en una orden viva.
 | `V45` | El logo de la empresa y las firmas, por huella en `imagen_documento` | **Construida el 2026-10-27** |
 | `V46` | Sin segundo tipo de persona | **Construida el 2026-10-27** |
 | `V47` | La orden llega a su cliente por la sede | **Construida el 2026-10-28** |
-| `V48` | La verificación llega a su magnitud por la unidad | Pendiente |
+| `V48` | La verificación llega a su magnitud por la unidad | **Construida el 2026-10-28** |
 | `V49` | La orden se congela al ejecutarse, y sin tabla puente entre la orden y el equipo | Pendiente |
 | `V50` | El reporte cerrado vive en su documento, sin copias del catálogo | Pendiente |
 | `V51` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | Pendiente |

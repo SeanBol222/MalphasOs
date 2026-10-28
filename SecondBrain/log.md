@@ -2524,3 +2524,23 @@ las pruebas del adaptador, no se supuso; y una mutación del `@Formula` muere en
 pensado —una excepción que ya no hace falta tiene que salir de su lista—, y es la primera vez que esa
 regla de la prueba se ejerce. Y el plan se renumeró: el `V47` que juntaba la orden y la verificación se
 partió en dos, y llega a `V51`. Ver [[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].
+
+## [2026-10-28] ingest | V48: la verificación llega a su magnitud por la unidad
+
+Séptima migración de la refactorización. `verificacion_tipo_equipo.k_id_magnitud` dependía de la unidad
+—tercera forma normal— y la foránea compuesta (magnitud, unidad) impedía que se contradijeran. Salen la
+columna, la compuesta, el índice único parcial «una magnitud activa por tipo» y la restricción única de
+`unidad_medida` que solo servía a la compuesta; entra una foránea simple a la unidad con su índice. Las
+compuestas pasan de **tres a dos**, y los índices únicos parciales de **diez a nueve**.
+
+**La regla de una magnitud por tipo queda solo en el agregado**, `EquipmentType.exigirMagnitudesDistintas`,
+que ya la imponía y tenía su prueba; una mutación que la apaga muere. Se puede confiar en él porque las
+verificaciones se guardan siempre con su tipo, enteras: no hay camino que escriba una suelta.
+
+**Lo que conviene recordar**: al quitar la magnitud de la entidad hice que el mapper construyera la unidad
+con su magnitud entera, creyendo que el tipo recién guardado la leería de ahí. Una mutación que la dejaba
+sin nombre **sobrevivió**, y no por falta de pruebas: el guardado hace `merge`, y lo que devuelve es la
+unidad leída de la base. El cambio no hacía falta y se deshizo. Y dos correcciones de paso: `WorkOrderService`
+seguía citando la foránea compuesta que `V47` quitó, y [[esquema-bd-malphasos]] listaba nueve índices
+parciales cuando eran diez —faltaba el de `V35`—. Ver [[dominio-equipo-mantenimiento]] y
+[[hoja-de-ruta-producto]].

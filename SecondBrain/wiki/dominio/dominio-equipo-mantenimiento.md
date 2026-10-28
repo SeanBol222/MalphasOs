@@ -3,7 +3,7 @@ name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
 tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
-updated: 2026-10-16
+updated: 2026-10-28
 ---
 
 # Dominio Equipo y Mantenimiento Preventivo (`equipment_hexagon`)
@@ -195,9 +195,13 @@ países de `V7`. Queda como deuda en [[deuda-tecnica-y-riesgos]], no como olvido
 - **La unidad pertenece a la magnitud.** La foránea de una verificación apunta al par
   `(magnitud, unidad)` **a la vez**, de modo que elegir %HR para una verificación de temperatura es
   **imposible de escribir**, no solo de rechazar. Es la primera foránea compuesta de este módulo.
+  **Desde `V48`, el 2026-10-28, de otra forma**: la verificación ya no guarda la magnitud, que es la de
+  su unidad, y sin dos datos no hay nada que pueda contradecirse. Sale la compuesta.
 - **Un tipo no declara dos veces la misma magnitud.** Índice único parcial sobre
   `(tipo, magnitud) WHERE b_estado_activo`. Dos verificaciones de temperatura en el mismo aparato son
-  la misma escrita dos veces, y nada diría cuál vale.
+  la misma escrita dos veces, y nada diría cuál vale. **Desde `V48` ya no lo hace cumplir el esquema**:
+  el índice necesitaba la magnitud en la tabla. Lo impone solo el agregado `EquipmentType`, que ya lo
+  hacía y guarda todas las verificaciones de un tipo a la vez.
 - **El punto pertenece a su verificación.** `V9` decía que el esquema no puede exigir que un punto sea
   del tipo del equipo reportado —son cuatro saltos hasta `tipo_equipo`— y eso sigue siendo verdad; pero
   que el punto sea de **su** verificación es un solo salto, y una foránea compuesta lo impone.
