@@ -170,7 +170,7 @@ class ServiceReportPersistenceAdapterTest {
      * Un tipo verificable en un punto, para tener una verificación y un punto reales a los que apuntar.
      *
      * <p>La magnitud y la unidad se <b>leen del catálogo sembrado por {@code V10}</b>: no se pueden
-     * inventar, porque el esquema ata el par (magnitud, unidad) con una foránea compuesta.
+     * inventar, porque el esquema exige que la unidad exista y la magnitud es la de la unidad.
      */
     private EquipmentType unTipoVerificable() {
         Magnitude presion = metrologyAdapter.findAllMagnitudes().stream()

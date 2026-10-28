@@ -95,9 +95,9 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
      * un conflicto de integridad genérico de PostgreSQL en vez de «esa magnitud no existe».
      *
      * <p><b>Tres reglas cruzadas nuevas</b>, y la tercera es la que no es evidente: que la unidad exista
-     * no basta, tiene que ser una unidad <i>de esa</i> magnitud. El esquema lo garantiza con una foránea
-     * compuesta al par (magnitud, unidad), de modo que esto no es la única defensa; es la que da el
-     * mensaje. Ver {@link UnitOutsideMagnitudeException} para por qué lleva código propio.
+     * no basta, tiene que ser una unidad <i>de esa</i> magnitud. Desde {@code V48} la verificación solo
+     * guarda la unidad, y su magnitud es la de esa unidad: lo que esto evita es guardar otra magnitud de
+     * la que se pidió, y es lo que da el mensaje. Ver {@link UnitOutsideMagnitudeException} para por qué lleva código propio.
      */
     private List<TypeVerification> verificacionesDe(List<TypeVerificationCommand> verificaciones) {
         if (verificaciones == null) {

@@ -350,3 +350,9 @@ decirlo.
 La orden llega a su cliente por la sede (A3 del análisis de [[diseno-base-de-datos]]). El `V47` del plan
 juntaba esto con la verificación por la unidad, y se partió: la verificación es `V48`, y las tres
 últimas pasan a `V49`–`V51`. Ningún documento oficial cambia.
+
+## [2026-10-28] ingest | V48 construida
+
+La verificación llega a su magnitud por la unidad (A4 del análisis de [[diseno-base-de-datos]]). La nota
+decía que el plan eran **siete** migraciones, `V42` a `V48`: caducó al partirse dos de ellas, y se corrige
+a diez, `V42` a `V51`, con siete construidas. Ningún documento oficial cambia.

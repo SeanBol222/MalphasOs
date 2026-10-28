@@ -78,18 +78,18 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V48`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **47** (`V1`…`V47`) |
+| Migraciones aplicadas | **48** (`V1`…`V48`) |
 | Tablas de dominio | **38** |
-| Llaves foráneas | **52**, de las cuales **3 compuestas** |
+| Llaves foráneas | **52**, de las cuales **2 compuestas** |
 | Restricciones `CHECK` propias | **76** |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
-| Índices únicos **parciales** | **10** |
-| Foráneas sin ningún índice que las encabece | **3**, las que la refactorización va a quitar — desde `V42`; eran **13** |
+| Índices únicos **parciales** | **9** — eran **10** hasta `V48` |
+| Foráneas sin ningún índice que las encabece | **1**, la de `intervencion`, que `V51` quita — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
 | Tablas con borrado lógico | **34 de 38** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
@@ -136,6 +136,11 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   la compuesta (sede, cliente) y la restricción única de `sede` que solo existía para ella —**−1
 >   foránea neta, −1 compuesta, −1 única**—. El código sigue leyendo el cliente de la orden, a través de
 >   su sede, con un `@Formula`.
+> - `V48`, **la verificación llega a su magnitud por la unidad**: sale `verificacion_tipo_equipo.k_id_magnitud`
+>   con la compuesta (magnitud, unidad), el índice único parcial «una magnitud activa por tipo» y la
+>   restricción única de `unidad_medida` que solo existía para la compuesta; entra una foránea simple a la
+>   unidad, con su índice —**−1 compuesta, −1 única, −1 parcial**, las foráneas se quedan en 52—. La
+>   regla de una magnitud por tipo queda solo en el agregado `EquipmentType`, que ya la imponía.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -599,8 +604,7 @@ erDiagram
     verificacion_tipo_equipo {
         uuid k_id_verificacion PK
         uuid k_id_tipo_equipo FK
-        uuid k_id_magnitud FK "el par va junto"
-        uuid k_id_unidad_medida FK "a unidad_medida"
+        uuid k_id_unidad_medida FK "y por ella su magnitud, desde V48"
         varchar n_modalidad_verificacion
         integer i_cantidad_datos "nulo si la modalidad es variable"
         numeric d_tolerancia "en la unidad, anulable - V26"
@@ -832,31 +836,35 @@ los del día en que se abrió el reporte. Pero aquí **sí** hay foránea al pro
 anterior: un protocolo nunca se borra, solo se retira, así que la foránea dice de cuál salió el paso sin
 congelar nada. Ver [[dominio-reporte-servicio]].
 
-## Las 3 foráneas compuestas, que son reglas y no adornos
+## Las 2 foráneas compuestas, que son reglas y no adornos
 
 Una foránea compuesta impone en el esquema algo que con dos foráneas sueltas quedaría abierto. Son
-tres y cada una tapa un estado que de otro modo se podría escribir. (Eran **cuatro** hasta `V47`, el
+dos y cada una tapa un estado que de otro modo se podría escribir. (Eran **cuatro** hasta `V47`, el
 2026-10-28: la de la orden con su cliente impedía una orden en una sede de otro cliente, y dejó de hacer
-falta cuando la orden dejó de guardar su cliente —ya no hay dos datos que puedan contradecirse—.)
+falta cuando la orden dejó de guardar su cliente —ya no hay dos datos que puedan contradecirse—. Y
+**tres** hasta `V48`, ese mismo día: la de la verificación con su magnitud impedía medir temperatura en
+%HR, y salió por lo mismo: la verificación guarda solo la unidad, y la magnitud es la suya.)
 
 | Tabla | El par | Lo que impide |
 |---|---|---|
 | `reporte_servicio` | (orden, equipo) → `orden_trabajo_equipo` | Un reporte de un equipo **que la orden no incluyó** |
-| `verificacion_tipo_equipo` | (magnitud, unidad) → `unidad_medida` | Medir temperatura **en %HR** |
 | `dato_verificacion` | (verificación, punto) → `punto_verificacion` | Una lectura en un punto **de otra verificación** |
 
-**Y las tres admiten el caso nulo sin una regla extra**: una foránea compuesta con alguna columna
+**Y las dos admiten el caso nulo sin una regla extra**: una foránea compuesta con alguna columna
 nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
 lectura sin punto pasa y la que trae punto queda atada.
 
 ## Los 9 índices únicos parciales, y por qué son parciales
 
-`UQ_reporte_servicio_activo`, `UQ_verificacion_magnitud_activa_por_tipo`,
-`UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo`, desde `V11`
+`UQ_reporte_servicio_activo`, `UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo`, desde `V11`
 `UQ_modelo_nombre_activo_por_equipo`, desde `V21` `UQ_protocolo_clave_activo` y
-`UQ_protocolo_tipo_equipo_prioridad_activa`, desde `V25` `UQ_equipo_patron_serie_activo` y desde `V30`
-`UQ_patron_verificacion_reporte_activo`. (Decía **cinco**: cierto hasta el **2026-10-10**; **siete**
-hasta el **2026-10-14**, y **ocho** hasta el **2026-10-16**.) **`UQ_reporte_servicio_numero`, de `V28`,
+`UQ_protocolo_tipo_equipo_prioridad_activa`, desde `V25` `UQ_equipo_patron_serie_activo`, desde `V30`
+`UQ_patron_verificacion_reporte_activo` y desde `V35` `UQ_equipo_patron_codigo_interno_activo`.
+(Decía **cinco**: cierto hasta el **2026-10-10**; **siete** hasta el **2026-10-14**, y **ocho** hasta el
+**2026-10-16**. **Corregido el 2026-10-28**: la lista nombraba nueve y no traía el de `V35`, de modo que
+eran diez desde el 2026-10-17, como ya decía la tabla de cifras. Vuelven a ser nueve con `V48`, que quitó
+`UQ_verificacion_magnitud_activa_por_tipo` con la magnitud de la verificación: esa regla vive ahora solo
+en el agregado.) **`UQ_reporte_servicio_numero`, de `V28`,
 no está en la lista y no es un olvido**: es único y no parcial, porque un número impreso no se recicla.
 Los nueve llevan `WHERE b_estado_activo`, y la razón es la misma
 en todos: **aquí nada se borra**. Una restricción normal impediría volver a dar de alta algo que se

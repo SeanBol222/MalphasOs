@@ -88,7 +88,7 @@ public record TypeVerification(
         }
         if (!unidad.esDeLaMagnitud(magnitud.id())) {
             // Ultima defensa, no la primera: el servicio lo comprueba antes para dar un mensaje con
-            // codigo propio, y el esquema lo impone con una foranea compuesta. Aqui esta para que el
+            // codigo propio, y desde V48 el esquema guarda solo la unidad. Aqui esta para que el
             // objeto no pueda existir en ese estado ni siquiera dentro de una prueba.
             throw new IllegalArgumentException(
                     "La unidad " + unidad.simbolo() + " no es de la magnitud " + magnitud.nombre());

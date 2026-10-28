@@ -11,7 +11,7 @@ import java.util.UUID;
  * <p>La magnitud y la unidad llegan <b>por identificador</b>, como toda referencia que cruza un
  * agregado. Que la unidad pertenezca a la magnitud lo comprueba el servicio antes de guardar, para que
  * el llamante reciba «esa unidad no es de esa magnitud» en vez de un conflicto de integridad genérico
- * — aunque el esquema lo garantice también con una foránea compuesta.
+ * — desde {@code V48} el esquema solo guarda la unidad, y la magnitud es la suya.
  *
  * <p>Sin identificador propio, por lo mismo que {@link VerificationPointCommand}: se manda la lista
  * entera y las anteriores se retiran.

@@ -25,12 +25,8 @@ import org.hibernate.annotations.BatchSize;
  * <p>Cuelga de su tipo y no tiene vida propia: no hay repositorio ni adaptador para ella, se guarda y
  * se lee con el tipo. Es la misma forma que los contactos de un cliente.
  *
- * <p><b>Dos {@code @ManyToOne} para una sola foránea compuesta.</b> El esquema ata el par
- * {@code (k_id_magnitud, k_id_unidad_medida)} a {@code unidad_medida} con una única restricción, que es
- * lo que impide elegir una unidad de otra magnitud. JPA no necesita saberlo: cada relación mapea su
- * columna y la base comprueba la pareja. Y <b>no hay foránea suelta hacia {@code magnitud}</b> porque
- * no hace falta: si el par existe en {@code unidad_medida}, y esa tabla ya apunta a {@code magnitud},
- * la magnitud es válida por transitividad.
+ * <p><b>La magnitud no tiene columna desde V48</b>: es la de la unidad, que la lleva. Hasta entonces se
+ * guardaban las dos, atadas por una foránea compuesta para que no se contradijeran.
  */
 @Getter
 @Setter
@@ -47,10 +43,6 @@ public class TypeVerificationEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "k_id_tipo_equipo", nullable = false)
     private EquipmentTypeEntity tipoEquipo;
-
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "k_id_magnitud", nullable = false)
-    private MagnitudeEntity magnitud;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "k_id_unidad_medida", nullable = false)
