@@ -1,9 +1,11 @@
 """Genera los tres diagramas PlantUML del plan de encargados a partir del esquema vivo (V40).
 
 Uso, desde Documentation/DatabaseDesign/V41-encargados:
-    python3 fuente/generar.py .
-    java -jar <plantuml.jar> -tsvg *.puml
+    python3 fuente/generar.py fuente/plantuml
+    java -jar <plantuml.jar> -tsvg -o ../.. fuente/plantuml/*.puml
     for f in *.svg; do rsvg-convert -f pdf -o "${f%.svg}.pdf" "$f"; done
+
+Los .puml van a fuente/plantuml/ y los .svg y .pdf quedan arriba, solos (ordenado el 2026-10-27).
 
 Los volcados se sacaron de la base de desarrollo en V40, el 2026-10-27, con:
     columnas.txt      information_schema.columns de las tablas de public, sin flyway_schema_history
