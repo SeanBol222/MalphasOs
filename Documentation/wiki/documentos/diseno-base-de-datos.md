@@ -82,6 +82,13 @@ redundancia. Lo que mide redundancia, las foráneas que repiten un camino, baja 
 carpetas de `refactor-3fn/` son ahora dos: `1-hoy/` y `2-final/`; la intermedia sobraba al dejar de haber
 recibido por orden.
 
+**Y sin tabla puente entre la orden y el equipo**, también a propuesta del usuario: el reporte ya tenía
+un solo reporte activo por (orden, equipo), que es la llave de `orden_trabajo_equipo`, así que un equipo
+está en una orden si y solo si tiene en ella un reporte activo. Con cuatro reglas aceptadas por el
+usuario —el borrador nace al añadir el equipo, quitarlo es retirar su reporte, ejecutar exige un reporte
+cerrado por equipo y la sustitución sigue igual—, y dentro de `V46`. La propuesta final queda en **36**
+tablas.
+
 ## `V42-recibido-por-orden/` — se firma el recibido por sede o por área (DESCARTADO el 2026-10-27)
 
 > **Descartado el 2026-10-27.** El usuario decidió que quien recibe no tiene que estar registrado ni

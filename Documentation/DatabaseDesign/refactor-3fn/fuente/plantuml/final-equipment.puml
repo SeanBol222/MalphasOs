@@ -187,13 +187,13 @@ entity "area_servicio" as area_servicio <<otro modulo>> {
 }
 entity "dato_verificacion" as dato_verificacion <<otro modulo>> {
 }
-entity "orden_trabajo_equipo" as orden_trabajo_equipo <<otro modulo>> {
-}
 entity "pais" as pais <<otro modulo>> {
 }
 entity "paso_reporte" as paso_reporte <<otro modulo>> {
 }
 entity "patron_verificacion_reporte" as patron_verificacion_reporte <<otro modulo>> {
+}
+entity "reporte_servicio" as reporte_servicio <<otro modulo>> {
 }
 fabricante }o--o| pais
 equipo }o--|| marca
@@ -202,7 +202,6 @@ modelo }o--|| equipo
 modelo }o--|| fabricante
 equipo_cliente }o--|| area_servicio
 equipo_cliente }o--|| modelo
-orden_trabajo_equipo }o--|| equipo_cliente
 dato_verificacion }o--o| punto_verificacion : k_id_verificacion, k_id_punto_verificacion
 dato_verificacion }o--|| verificacion_tipo_equipo
 unidad_medida }o--|| magnitud
@@ -214,6 +213,7 @@ paso_reporte }o--|| protocolo
 patron_verificacion_reporte }o--|| equipo_patron
 patron_verificacion_reporte }o--|| verificacion_tipo_equipo
 verificacion_tipo_equipo }o--|| unidad_medida
+reporte_servicio }o--|| equipo_cliente
 skinparam class<<otro modulo>> {
   BackgroundColor #EDEBEA
   BorderColor #9A9795

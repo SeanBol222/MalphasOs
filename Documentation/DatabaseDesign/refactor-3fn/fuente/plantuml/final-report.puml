@@ -86,12 +86,11 @@ entity "paso_reporte" as paso_reporte <<cambia>> {
   * k_id_paso_reporte : uuid <<PK>>
   --
   * k_id_reporte_servicio : uuid <<FK>>
-  * i_orden : int
   * k_id_protocolo : uuid <<FK>>
   * t_estado_paso : varchar(10)
   t_nota : varchar(300)
   * b_estado_activo : boolean
-  .. UQ_paso_reporte_orden ..
+  .. UQ_paso_reporte_protocolo ..
 }
 entity "accesorio_reporte" as accesorio_reporte {
   * k_id_accesorio_reporte : uuid <<PK>>
@@ -112,11 +111,13 @@ entity "patron_verificacion_reporte" as patron_verificacion_reporte <<cambia>> {
   * b_estado_activo : boolean
 }
 }
+entity "equipo_cliente" as equipo_cliente <<otro modulo>> {
+}
 entity "equipo_patron" as equipo_patron <<otro modulo>> {
 }
 entity "imagen_documento" as imagen_documento <<otro modulo>> {
 }
-entity "orden_trabajo_equipo" as orden_trabajo_equipo <<otro modulo>> {
+entity "orden_trabajo" as orden_trabajo <<otro modulo>> {
 }
 entity "protocolo" as protocolo <<otro modulo>> {
 }
@@ -124,7 +125,6 @@ entity "punto_verificacion" as punto_verificacion <<otro modulo>> {
 }
 entity "verificacion_tipo_equipo" as verificacion_tipo_equipo <<otro modulo>> {
 }
-reporte_servicio }o--|| orden_trabajo_equipo : k_id_orden_trabajo, k_id_equipo_cliente
 reporte_servicio }o--o| imagen_documento
 dato_verificacion }o--o| punto_verificacion : k_id_verificacion, k_id_punto_verificacion
 dato_verificacion }o--|| reporte_servicio
@@ -135,6 +135,8 @@ patron_verificacion_reporte }o--|| equipo_patron
 patron_verificacion_reporte }o--|| reporte_servicio
 patron_verificacion_reporte }o--|| verificacion_tipo_equipo
 accesorio_reporte }o--|| reporte_servicio
+reporte_servicio }o--|| orden_trabajo
+reporte_servicio }o--|| equipo_cliente
 skinparam class<<otro modulo>> {
   BackgroundColor #EDEBEA
   BorderColor #9A9795

@@ -81,7 +81,6 @@ package "equipment — equipos y catálogo" {
 }
 package "work-order — órdenes de trabajo" {
   entity "orden_trabajo" as orden_trabajo <<cambia>>
-  entity "orden_trabajo_equipo" as orden_trabajo_equipo <<cambia>>
 }
 package "report — reportes de servicio" {
   entity "reporte_servicio" as reporte_servicio <<cambia>>
@@ -114,9 +113,6 @@ modelo }o--|| fabricante
 equipo_cliente }o--|| area_servicio
 equipo_cliente }o--|| modelo
 orden_trabajo }o--|| persona
-orden_trabajo_equipo }o--|| equipo_cliente
-orden_trabajo_equipo }o--|| orden_trabajo
-reporte_servicio }o--|| orden_trabajo_equipo
 reporte_servicio }o--|| imagen_documento
 dato_verificacion }o--|| punto_verificacion
 dato_verificacion }o--|| reporte_servicio
@@ -143,5 +139,7 @@ telefono_empresa }o--|| empresa
 firma_persona }o--|| imagen_documento
 orden_trabajo }o--|| sede
 verificacion_tipo_equipo }o--|| unidad_medida
+reporte_servicio }o--|| orden_trabajo
+reporte_servicio }o--|| equipo_cliente
 hide members
 @enduml
