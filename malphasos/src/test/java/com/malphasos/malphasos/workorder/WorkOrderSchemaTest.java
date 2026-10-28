@@ -274,7 +274,7 @@ class WorkOrderSchemaTest {
         String nulabilidadIngeniero = jdbcTemplate.queryForObject(
                 """
                 SELECT is_nullable FROM information_schema.columns
-                WHERE table_name = 'orden_trabajo' AND column_name = 'k_identificador'
+                WHERE table_name = 'orden_trabajo' AND column_name = 'k_id_ingeniero'
                 """,
                 String.class);
         assertThat(nulabilidadIngeniero).isEqualTo("YES");
@@ -305,7 +305,7 @@ class WorkOrderSchemaTest {
         UUID orden = insertMinimalWorkOrder(cliente, sede);
 
         UUID identificador = jdbcTemplate.queryForObject(
-                "SELECT k_identificador FROM orden_trabajo WHERE k_id_orden_trabajo = ?",
+                "SELECT k_id_ingeniero FROM orden_trabajo WHERE k_id_orden_trabajo = ?",
                 UUID.class, orden);
         assertThat(identificador).isNull();
     }
@@ -594,7 +594,7 @@ class WorkOrderSchemaTest {
                         """
                         INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
                                                    f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
-                                                   k_identificador)
+                                                   k_id_ingeniero)
                         VALUES (?, ?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
                         """,
                         id, cliente, sede, LocalDate.now(), UUID.randomUUID()))
@@ -613,7 +613,7 @@ class WorkOrderSchemaTest {
                         """
                         INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
                                                    f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
-                                                   k_identificador)
+                                                   k_id_ingeniero)
                         VALUES (?, ?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
                         """,
                         id, cliente, sede, LocalDate.now(), ingeniero))

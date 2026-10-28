@@ -130,7 +130,7 @@ class WorkOrderExecutionIntegrationTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
-                                              t_estado_reporte, t_resultado, t_finalizado, b_estado_activo)
+                                              t_estado_reporte, t_resultado, f_finalizado, b_estado_activo)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 UUID.randomUUID(), orden, equipo,

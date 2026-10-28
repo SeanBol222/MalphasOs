@@ -21,7 +21,7 @@ import lombok.Setter;
 public class PersonSignatureEntity {
 
     @Id
-    @Column(name = "k_id_persona", nullable = false)
+    @Column(name = "k_identificador", nullable = false)
     private UUID idPersona;
 
     @Column(name = "b_imagen", nullable = false)

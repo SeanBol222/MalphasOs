@@ -59,7 +59,7 @@ public class WorkOrderEntity {
     private String estadoEjecucion;
 
     /** Ingeniero asignado. Nulo mientras la orden está creada pero sin asignar. */
-    @Column(name = "k_identificador")
+    @Column(name = "k_id_ingeniero")
     private UUID idIngeniero;
 
     @Column(name = "b_estado_activo", nullable = false)
