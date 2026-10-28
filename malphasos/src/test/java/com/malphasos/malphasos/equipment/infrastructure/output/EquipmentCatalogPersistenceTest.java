@@ -33,7 +33,8 @@ import org.springframework.test.context.jdbc.Sql;
  * magnitud activa), y Hibernate vacía los {@code INSERT} antes que los {@code UPDATE}. Eso es
  * exactamente la trampa que el módulo de reportes pagó el 2026-09-27, y aquí había quedado latente: el
  * mismo problema existía ya con el índice de los puntos y <b>ninguna prueba lo ejercía</b>, porque todas
- * las reconfiguraciones de la batería cambiaban el valor del punto y el índice es parcial.
+ * las reconfiguraciones de la batería cambiaban el valor del punto y el índice es parcial. ({@code V48}
+ * quitó el índice de la magnitud con la columna; las pruebas de reconfiguración se quedan.)
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)

@@ -6,9 +6,9 @@ import java.util.UUID;
  * Unidad en la que se expresa una magnitud: °C para temperatura, %HR para humedad relativa.
  *
  * <p><b>Pertenece a una magnitud, y eso no es una conveniencia de la interfaz.</b> Es lo que permite
- * ofrecer solo las unidades que tienen sentido, y lo que el esquema aprovecha: la foránea de una
- * verificación apunta al par (magnitud, unidad) a la vez, de modo que elegir %HR para una
- * verificación de temperatura es imposible de escribir y no solo de rechazar.
+ * ofrecer solo las unidades que tienen sentido, y lo que el esquema aprovecha: desde {@code V48} una
+ * verificación guarda solo su unidad y la magnitud es la de esa unidad, de modo que elegir %HR para
+ * una verificación de temperatura es imposible de escribir y no solo de rechazar.
  *
  * <p><b>El símbolo es único dentro de su magnitud, no en toda la tabla.</b> La siembra de {@code V10}
  * lo demuestra: {@code %} es a la vez humedad relativa y concentración. Una unicidad global habría

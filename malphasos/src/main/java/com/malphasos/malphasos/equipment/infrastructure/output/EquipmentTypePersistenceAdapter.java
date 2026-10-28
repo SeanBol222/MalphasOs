@@ -46,7 +46,8 @@ public class EquipmentTypePersistenceAdapter implements EquipmentTypePersistence
      *
      * <p>En resumen: Hibernate vacía los {@code INSERT} antes que los {@code UPDATE}, de modo que al
      * redeclarar la verificación de una magnitud la fila retirada y su sustituta están activas a la vez
-     * y el índice único parcial salta. La primera pasada actualiza lo que ya está —incluida la retirada—,
+     * y el índice único parcial saltaba —hasta {@code V48}, que lo quitó con la magnitud; las dos
+     * pasadas se quedan porque no cuestan y el orden sigue siendo el correcto—. La primera pasada actualiza lo que ya está —incluida la retirada—,
      * el {@code saveAndFlush} la manda a la base, y solo entonces se insertan las nuevas.
      *
      * <p>Es la misma forma que {@code ServiceReportPersistenceAdapter}, que pagó esta trampa primero.

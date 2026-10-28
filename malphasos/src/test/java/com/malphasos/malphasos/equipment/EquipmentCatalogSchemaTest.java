@@ -82,13 +82,7 @@ class EquipmentCatalogSchemaTest {
         return id;
     }
 
-    /** La magnitud sembrada por {@code V10} con ese código. No se inventa: el esquema la exige real. */
-    private UUID magnitud(String codigo) {
-        return jdbcTemplate.queryForObject(
-                "SELECT k_id_magnitud FROM magnitud WHERE n_codigo_magnitud = ?", UUID.class, codigo);
-    }
-
-    /** Una unidad de esa magnitud. El par (magnitud, unidad) es lo que la foránea compuesta exige. */
+    /** Una unidad sembrada por {@code V10}, buscada por su magnitud y su símbolo: no se inventa. */
     private UUID unidad(String codigoMagnitud, String simbolo) {
         return jdbcTemplate.queryForObject(
                 """
@@ -102,23 +96,15 @@ class EquipmentCatalogSchemaTest {
     private UUID insertVerification(
             UUID tipo, String codigoMagnitud, String simbolo, String modalidad, Integer cantidad) {
 
-        return insertVerification(tipo, codigoMagnitud, simbolo, modalidad, cantidad, true);
-    }
-
-    private UUID insertVerification(UUID tipo, String codigoMagnitud, String simbolo,
-            String modalidad, Integer cantidad, boolean activa) {
-
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
                 INSERT INTO verificacion_tipo_equipo (k_id_verificacion, k_id_tipo_equipo,
-                                                      k_id_magnitud, k_id_unidad_medida,
-                                                      n_modalidad_verificacion, i_cantidad_datos,
-                                                      b_estado_activo)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                                                      k_id_unidad_medida, n_modalidad_verificacion,
+                                                      i_cantidad_datos)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                id, tipo, magnitud(codigoMagnitud), unidad(codigoMagnitud, simbolo), modalidad,
-                cantidad, activa);
+                id, tipo, unidad(codigoMagnitud, simbolo), modalidad, cantidad);
 
         return id;
     }
@@ -198,39 +184,61 @@ class EquipmentCatalogSchemaTest {
     }
 
     @Test
-    @DisplayName("una unidad de otra magnitud no se puede declarar: lo impide la foranea compuesta")
-    void unidadDeOtraMagnitud() {
-        // Es la regla que el esquema SI puede expresar, y la expresa: la foranea apunta al par
-        // (magnitud, unidad) a la vez, de modo que %HR para temperatura es imposible de escribir.
+    @DisplayName("una verificacion no guarda su magnitud: es la de su unidad")
+    void laMagnitudEsLaDeLaUnidad() {
+        // Hasta V48 se guardaban las dos, atadas por una foranea compuesta para que %HR no pudiera ir
+        // con temperatura. Sin la columna no hay nada con que la unidad pueda contradecirse.
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT count(*) FROM information_schema.columns
+                        WHERE table_schema = current_schema()
+                          AND table_name = 'verificacion_tipo_equipo' AND column_name = 'k_id_magnitud'
+                        """,
+                        Integer.class))
+                .isZero();
+
+        UUID tipo = insertType();
+        UUID verificacion = insertVerification(tipo, "humedad_relativa", "%HR", "patron_constante", 3);
+
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT m.n_codigo_magnitud
+                        FROM verificacion_tipo_equipo v
+                                 JOIN unidad_medida u USING (k_id_unidad_medida)
+                                 JOIN magnitud m USING (k_id_magnitud)
+                        WHERE v.k_id_verificacion = ?
+                        """,
+                        String.class, verificacion))
+                .isEqualTo("humedad_relativa");
+    }
+
+    @Test
+    @DisplayName("una unidad que no existe no se puede declarar")
+    void unidadInexistente() {
         UUID tipo = insertType();
 
         assertThatThrownBy(() -> jdbcTemplate.update(
                         """
                         INSERT INTO verificacion_tipo_equipo (k_id_verificacion, k_id_tipo_equipo,
-                                                              k_id_magnitud, k_id_unidad_medida,
+                                                              k_id_unidad_medida,
                                                               n_modalidad_verificacion,
                                                               i_cantidad_datos)
-                        VALUES (?, ?, ?, ?, 'patron_constante', 3)
+                        VALUES (?, ?, ?, 'patron_constante', 3)
                         """,
-                        UUID.randomUUID(), tipo, magnitud("temperatura"),
-                        unidad("humedad_relativa", "%HR")))
+                        UUID.randomUUID(), tipo, UUID.randomUUID()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
-    @DisplayName("un tipo no declara dos veces la misma magnitud, pero una retirada no estorba")
-    void magnitudUnicaPorTipo() {
+    @DisplayName("la misma magnitud dos veces en un tipo ya no la impide el esquema, sino el agregado")
+    void magnitudRepetidaLaImpideElAgregado() {
+        // Desde V48. El indice unico necesitaba la magnitud en la tabla; la regla vive en
+        // EquipmentType, y la prueba de que se cumple esta en CatalogAggregatesTest. Esta fija que el
+        // esquema ya no la duplica, para que nadie crea que tiene dos defensas.
         UUID tipo = insertType();
         insertVerification(tipo, "presion", "mmHg", "patron_constante", 3);
 
-        assertThatThrownBy(() -> insertVerification(tipo, "presion", "kPa", "equipo_constante", 1))
-                .describedAs("la misma magnitud, otra unidad, las dos activas")
-                .isInstanceOf(DataIntegrityViolationException.class);
-
-        // El indice es parcial: una retirada deja volver a declarar su magnitud, que es lo que permite
-        // reconfigurar sin borrar nada.
-        insertVerification(tipo, "temperatura", "°C", "patron_constante", 3, false);
-        assertThatCode(() -> insertVerification(tipo, "temperatura", "K", "equipo_constante", 1))
+        assertThatCode(() -> insertVerification(tipo, "presion", "kPa", "equipo_constante", 1))
                 .doesNotThrowAnyException();
     }
 

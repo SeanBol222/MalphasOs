@@ -40,9 +40,10 @@ import org.springframework.transaction.annotation.Transactional;
  * Orquesta las órdenes de trabajo.
  *
  * <p>Aquí viven las <b>reglas</b> que ni el esquema ni el agregado pueden defender, porque
- * todas exigen preguntar a otro módulo. El esquema solo sostiene una de las cruzadas —que la sede
- * sea del cliente, con una clave foránea compuesta—; el agregado solo decide con lo que la propia
- * orden tiene delante.
+ * todas exigen preguntar a otro módulo. El esquema sostenía una de las cruzadas —que la sede fuera
+ * del cliente, con una clave foránea compuesta— hasta {@code V47}, que dejó de guardar el cliente en la
+ * orden: desde entonces es el de su sede y no se puede contradecir. El agregado solo decide con lo que
+ * la propia orden tiene delante.
  *
  * <p>Este es el módulo con más vecinos del proyecto: consulta a {@code client} por el cliente, la
  * sede y el área, a {@code equipment} por cada unidad, y a {@code person} por el ingeniero. Nadie
@@ -162,9 +163,9 @@ public class WorkOrderService implements WorkOrderServicePort {
     /**
      * Programa un mantenimiento tras comprobar que el destinatario existe y opera.
      *
-     * <p>Que la sede sea de ese cliente lo garantiza además una clave foránea compuesta, pero se
-     * comprueba aquí igualmente: así el llamante recibe «esa sede no es de ese cliente» en vez de
-     * un conflicto de integridad que no le dice cuál de las dos referencias falla.
+     * <p>Que la sede sea de ese cliente se comprueba aquí y solo aquí desde {@code V47}: la orden ya
+     * no guarda el cliente, que es el de su sede, así que una sede de otro cliente no daría un
+     * conflicto sino una orden de otro cliente distinto del pedido.
      */
     @Override
     @Transactional

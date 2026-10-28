@@ -83,7 +83,7 @@ public class EquipmentCatalogPersistenceMapper {
     public TypeVerification toDomain(TypeVerificationEntity entity) {
         return TypeVerification.rehydrate(
                 entity.getId(),
-                toDomain(entity.getMagnitud()),
+                toDomain(entity.getUnidad().getMagnitud()),
                 toDomain(entity.getUnidad()),
                 VerificationMode.desdeEsquema(entity.getModalidad()),
                 entity.getCantidadDatos(),
@@ -107,7 +107,9 @@ public class EquipmentCatalogPersistenceMapper {
      * vieja pasa a inactiva, la nueva nace activa— las dos están activas en ese instante y el índice
      * único parcial {@code UQ_verificacion_magnitud_activa_por_tipo} salta. Se vio fallar: las dos
      * pruebas de reconfiguración de {@code EquipmentCatalogPersistenceTest} caen con
-     * {@code duplicate key} si esto se hace de una sola pasada.
+     * {@code duplicate key} si esto se hace de una sola pasada. <b>{@code V48} quitó ese índice</b>
+     * junto con la magnitud de la tabla, y la regla quedó en el agregado; las dos pasadas se quedan,
+     * porque no cuestan y no hay por qué volver a depender del orden de Hibernate.
      *
      * <p><b>Y es la misma trampa que el módulo de reportes pagó el 2026-09-27</b>, que aquí estaba
      * latente desde el 2026-09-26: el índice de los puntos tenía el mismo problema y <b>ninguna prueba
@@ -197,7 +199,6 @@ public class EquipmentCatalogPersistenceMapper {
         TypeVerificationEntity entity = new TypeVerificationEntity(
                 verificacion.id(),
                 tipoEquipo,
-                toEntity(verificacion.magnitud()),
                 toEntity(verificacion.unidad()),
                 verificacion.modalidad().valorEnEsquema(),
                 verificacion.cantidadDatos(),
@@ -253,15 +254,12 @@ public class EquipmentCatalogPersistenceMapper {
     }
 
     /**
-     * El catálogo <b>no se escribe nunca</b>: estas dos existen solo para rellenar la llave foránea de
-     * una verificación. Hibernate no las persiste —{@code @ManyToOne} no cascadea— y solo lee su
-     * identificador para la columna.
+     * El catálogo <b>no se escribe nunca</b>: esto existe solo para rellenar la llave foránea de una
+     * verificación. Hibernate no la persiste —{@code @ManyToOne} no cascadea— y solo lee su
+     * identificador para la columna. (Eran dos, la unidad y la magnitud, hasta que {@code V48} dejó a la
+     * verificación sin la suya. Lo que el guardado devuelve es la unidad que el {@code merge} lee de la
+     * base, con su magnitud entera: una mutación que dejaba esta sin nombre sobrevivió por eso.)
      */
-    private MagnitudeEntity toEntity(Magnitude magnitud) {
-        return new MagnitudeEntity(
-                magnitud.id(), magnitud.codigo(), magnitud.nombre(), magnitud.estadoActivo());
-    }
-
     private MeasurementUnitEntity toEntity(MeasurementUnit unidad) {
         MagnitudeEntity magnitud = new MagnitudeEntity();
         magnitud.setId(unidad.magnitudId());

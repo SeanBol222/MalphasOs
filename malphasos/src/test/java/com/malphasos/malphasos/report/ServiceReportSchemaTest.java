@@ -154,8 +154,8 @@ class ServiceReportSchemaTest {
     /**
      * Una verificación con su tipo de equipo detrás, y el punto que le cuelga.
      *
-     * <p>La magnitud y la unidad se <b>leen del catálogo sembrado por {@code V10}</b>: no se pueden
-     * inventar, porque el esquema ata el par (magnitud, unidad) con una foránea compuesta.
+     * <p>La unidad se <b>lee del catálogo sembrado por {@code V10}</b>, buscada por su magnitud: no se
+     * puede inventar, porque el esquema exige que exista.
      */
     private Verificacion insertVerification(String codigoMagnitud, String simbolo, String valor) {
         UUID tipo = insertType();
@@ -163,9 +163,9 @@ class ServiceReportSchemaTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO verificacion_tipo_equipo (k_id_verificacion, k_id_tipo_equipo,
-                                                      k_id_magnitud, k_id_unidad_medida,
+                                                      k_id_unidad_medida,
                                                       n_modalidad_verificacion, i_cantidad_datos)
-                SELECT ?, ?, m.k_id_magnitud, u.k_id_unidad_medida, 'patron_constante', 3
+                SELECT ?, ?, u.k_id_unidad_medida, 'patron_constante', 3
                 FROM magnitud m JOIN unidad_medida u USING (k_id_magnitud)
                 WHERE m.n_codigo_magnitud = ? AND u.n_simbolo_unidad = ?
                 """,

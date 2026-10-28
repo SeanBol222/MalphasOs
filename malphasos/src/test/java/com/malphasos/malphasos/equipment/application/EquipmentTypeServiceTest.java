@@ -123,8 +123,8 @@ class EquipmentTypeServiceTest {
     @DisplayName("una unidad de OTRA magnitud se rechaza: medir temperatura en mmHg no se escribe")
     void unidadDeOtraMagnitud() {
         // ESTA ES LA QUE NINGUNA PRUEBA EJERCIA. Desactivar esta guarda dejaba la bateria entera en
-        // verde: 842 pruebas, cero fallos. El esquema lo impide tambien, con una foranea compuesta al
-        // par (magnitud, unidad), pero el esquema devuelve un conflicto de integridad generico; esta
+        // verde: 842 pruebas, cero fallos. Hasta V48 el esquema lo impedia tambien, con una foranea
+        // compuesta al par (magnitud, unidad), pero devolvia un conflicto de integridad generico; esta
         // guarda es la que da un 409 con codigo propio.
         when(catalogPort.findMagnitudeById(ID_TEMPERATURA)).thenReturn(Optional.of(TEMPERATURA));
         when(catalogPort.findUnitById(MMHG.id())).thenReturn(Optional.of(MMHG));

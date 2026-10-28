@@ -278,8 +278,10 @@ public class EquipmentType extends AggregateRoot {
      * Ninguna magnitud dos veces, y es la única regla de verificación que vive en el tipo.
      *
      * <p>Dos verificaciones de temperatura en el mismo aparato son la misma verificación escrita dos
-     * veces: la segunda contradice a la primera sin que nada avise de cuál vale. El esquema lo impone
-     * también, con un índice único parcial, y tenerlo en los dos sitios es deliberado.
+     * veces: la segunda contradice a la primera sin que nada avise de cuál vale. <b>Solo vive aquí desde
+     * {@code V48}</b>: el esquema lo imponía con un índice único parcial, que necesitaba la magnitud en la
+     * tabla, y la magnitud es la de la unidad. Las verificaciones se guardan siempre con su tipo, de modo
+     * que no hay camino que las escriba sin pasar por aquí.
      */
     private static List<TypeVerification> exigirMagnitudesDistintas(
             List<TypeVerification> verificaciones) {

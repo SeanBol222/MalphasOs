@@ -252,8 +252,8 @@ class CatalogAggregatesTest {
             @Test
             @DisplayName("una unidad de otra magnitud no se puede ni construir")
             void unidadDeOtraMagnitud() {
-                // Ultima defensa: el servicio lo comprueba antes con codigo de error propio y el esquema
-                // lo impone con una foranea compuesta. Aqui es para que el objeto no exista ni en una
+                // Ultima defensa: el servicio lo comprueba antes con codigo de error propio, y desde V48
+                // el esquema solo guarda la unidad. Aqui es para que el objeto no exista ni en una
                 // prueba.
                 assertThatThrownBy(() -> TypeVerification.of(TEMPERATURA, PORCIENTO,
                                 VerificationMode.PATRON_CONSTANTE, 3, List.of(punto("100"))))
