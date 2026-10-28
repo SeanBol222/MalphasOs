@@ -236,11 +236,11 @@ class ServiceReportSchemaTest {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                            f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio)
-                VALUES (?, ?, ?, ?, 'MENSUAL', 'PREVENTIVO')
+                VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO')
                 """,
-                id, cliente, sede, LocalDate.now());
+                id, sede, LocalDate.now());
 
         return id;
     }

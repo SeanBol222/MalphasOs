@@ -14,6 +14,7 @@ import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 
 /**
  * Representación JPA de una orden de trabajo.
@@ -37,7 +38,12 @@ public class WorkOrderEntity {
     @Column(name = "k_id_orden_trabajo", nullable = false)
     private UUID id;
 
-    @Column(name = "k_id_cliente", nullable = false)
+    /**
+     * El cliente, que desde V47 no se guarda: lo dice la sede, y guardarlo aquí era tenerlo dos veces.
+     * Se lee de ella con una subconsulta, y por eso las consultas por cliente siguen funcionando. Al
+     * construir una orden nueva el valor se pone en memoria, y no se escribe.
+     */
+    @Formula("(SELECT s.k_id_cliente FROM sede s WHERE s.k_id_sede = k_id_sede)")
     private UUID idCliente;
 
     @Column(name = "k_id_sede", nullable = false)

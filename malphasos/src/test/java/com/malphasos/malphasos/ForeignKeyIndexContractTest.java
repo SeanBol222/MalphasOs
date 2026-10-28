@@ -29,11 +29,11 @@ class ForeignKeyIndexContractTest {
     /**
      * Las que se quitan o se sustituyen en las migraciones siguientes de la refactorización, y por eso
      * V42 no las indexa. Cada migración que quita una la saca de aquí, y la prueba exige que sigan
-     * existiendo: una excepción que ya no hace falta tiene que desaparecer de la lista.
+     * existiendo: una excepción que ya no hace falta tiene que desaparecer de la lista. (La compuesta de
+     * la orden con su cliente salió con V47, y la prueba lo exigió fallando hasta quitarla de aquí.)
      */
     private static final Set<String> SE_RETIRAN = Set.of(
             "intervencion.FK_intervencion_reemplazada_por",
-            "orden_trabajo.FK_orden_trabajo_sede_del_cliente",
             "verificacion_tipo_equipo.FK_verificacion_tipo_equipo_unidad_de_su_magnitud");
 
     @Autowired private JdbcTemplate jdbcTemplate;

@@ -157,11 +157,11 @@ class EquipmentOverviewIntegrationTest {
         UUID orden = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede, f_fecha_mantenimiento,
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede, f_fecha_mantenimiento,
                                            n_periodicidad, t_tipo_servicio)
-                VALUES (?, ?, ?, ?, 'MENSUAL', 'PREVENTIVO')
+                VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO')
                 """,
-                orden, lugar.cliente(), lugar.sede(), LocalDate.now());
+                orden, lugar.sede(), LocalDate.now());
         jdbcTemplate.update(
                 "INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio) VALUES (?, ?, ?)",
                 orden, unidad, lugar.area());

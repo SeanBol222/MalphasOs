@@ -196,11 +196,11 @@ class WorkOrderSchemaTest {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                            f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio)
-                VALUES (?, ?, ?, ?, 'MENSUAL', 'PREVENTIVO')
+                VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO')
                 """,
-                id, cliente, sede, LocalDate.now());
+                id, sede, LocalDate.now());
 
         return id;
     }
@@ -209,12 +209,12 @@ class WorkOrderSchemaTest {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                            f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
                                            t_estado_ejecucion)
-                VALUES (?, ?, ?, ?, ?, ?, 'CREADA')
+                VALUES (?, ?, ?, ?, ?, 'CREADA')
                 """,
-                id, cliente, sede, LocalDate.now(), periodicidad, tipoServicio);
+                id, sede, LocalDate.now(), periodicidad, tipoServicio);
 
         return id;
     }
@@ -223,12 +223,12 @@ class WorkOrderSchemaTest {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
-                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                            f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
                                            t_estado_ejecucion)
-                VALUES (?, ?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
+                VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
                 """,
-                id, cliente, sede, LocalDate.now(), estadoEjecucion);
+                id, sede, LocalDate.now(), estadoEjecucion);
 
         return id;
     }
@@ -263,13 +263,13 @@ class WorkOrderSchemaTest {
                 """
                 SELECT count(*) FROM information_schema.columns
                 WHERE table_name = 'orden_trabajo'
-                  AND column_name IN ('k_id_orden_trabajo', 'k_id_cliente', 'k_id_sede',
+                  AND column_name IN ('k_id_orden_trabajo', 'k_id_sede',
                                       'f_fecha_mantenimiento', 'n_periodicidad', 't_tipo_servicio',
                                       't_estado_ejecucion', 'b_estado_activo')
                   AND is_nullable = 'NO'
                 """,
                 Integer.class);
-        assertThat(obligatorias).isEqualTo(8);
+        assertThat(obligatorias).isEqualTo(7);
 
         String nulabilidadIngeniero = jdbcTemplate.queryForObject(
                 """
@@ -352,11 +352,11 @@ class WorkOrderSchemaTest {
     private void insertWorkOrderWithWarranty(UUID id, UUID cliente, UUID sede, String tipoServicio) {
         jdbcTemplate.update(
                 """
-                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                            f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio, b_garantia)
-                VALUES (?, ?, ?, ?, 'MENSUAL', ?, true)
+                VALUES (?, ?, ?, 'MENSUAL', ?, true)
                 """,
-                id, cliente, sede, LocalDate.now(), tipoServicio);
+                id, sede, LocalDate.now(), tipoServicio);
     }
 
     @Test
@@ -479,14 +479,21 @@ class WorkOrderSchemaTest {
     }
 
     @Test
-    @DisplayName("una orden con una sede que existe pero es de otro cliente falla por la FK compuesta")
-    void ordenConSedeDeOtroClienteFalla() {
-        UUID clienteA = insertClient();
-        insertHeadquarter(clienteA);
-        UUID clienteB = insertClient();
-        UUID sedeDeB = insertHeadquarter(clienteB);
+    @DisplayName("la orden no guarda su cliente: lo dice su sede, y no puede contradecirla (V47)")
+    void sinClienteGuardado() {
+        // Hasta V47 la orden guardaba cliente y sede, y una foranea compuesta impedia que se
+        // contradijeran. Ahora el cliente solo existe una vez, en la sede.
+        assertThat(jdbcTemplate.queryForList(
+                        "SELECT column_name FROM information_schema.columns WHERE table_name = 'orden_trabajo'"
+                                + " AND column_name = 'k_id_cliente'",
+                        String.class))
+                .isEmpty();
+    }
 
-        assertThatThrownBy(() -> insertMinimalWorkOrder(clienteA, sedeDeB))
+    @Test
+    @DisplayName("una orden con una sede que no existe falla por la FK de la sede")
+    void ordenConSedeInexistenteFalla() {
+        assertThatThrownBy(() -> insertMinimalWorkOrder(insertClient(), UUID.randomUUID()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -592,12 +599,12 @@ class WorkOrderSchemaTest {
 
         assertThatThrownBy(() -> jdbcTemplate.update(
                         """
-                        INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                        INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                                    f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
                                                    k_id_ingeniero)
-                        VALUES (?, ?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
+                        VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
                         """,
-                        id, cliente, sede, LocalDate.now(), UUID.randomUUID()))
+                        id, sede, LocalDate.now(), UUID.randomUUID()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -611,12 +618,12 @@ class WorkOrderSchemaTest {
 
         assertThatCode(() -> jdbcTemplate.update(
                         """
-                        INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_cliente, k_id_sede,
+                        INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                                    f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
                                                    k_id_ingeniero)
-                        VALUES (?, ?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
+                        VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
                         """,
-                        id, cliente, sede, LocalDate.now(), ingeniero))
+                        id, sede, LocalDate.now(), ingeniero))
                 .doesNotThrowAnyException();
     }
 }
