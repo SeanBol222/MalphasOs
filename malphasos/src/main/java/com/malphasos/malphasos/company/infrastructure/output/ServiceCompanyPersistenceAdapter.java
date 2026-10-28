@@ -10,8 +10,15 @@ import java.util.ArrayList;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-/** Implementa el almacén de la empresa sobre JPA, con el mapeo a mano como en todo agregado. */
+/**
+ * Implementa el almacén de la empresa sobre JPA, con el mapeo a mano como en todo agregado.
+ *
+ * <p>Desde V43 los teléfonos son una colección perezosa, así que los dos métodos abren su transacción:
+ * sin ella el mapeo solo funciona si el llamante ya abrió una, que es una dependencia que el tipo no
+ * declara.
+ */
 @Component
 @RequiredArgsConstructor
 public class ServiceCompanyPersistenceAdapter implements ServiceCompanyPersistencePort {
@@ -19,11 +26,13 @@ public class ServiceCompanyPersistenceAdapter implements ServiceCompanyPersisten
     private final ServiceCompanyRepository serviceCompanyRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<ServiceCompany> find() {
         return serviceCompanyRepository.findFirstBy().map(ServiceCompanyPersistenceAdapter::toDomain);
     }
 
     @Override
+    @Transactional
     public ServiceCompany save(ServiceCompany empresa) {
         CompanyDetails datos = empresa.getDatos();
         Optional<CompanyLogo> logo = empresa.logo();

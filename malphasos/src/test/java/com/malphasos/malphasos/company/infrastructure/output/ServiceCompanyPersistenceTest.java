@@ -24,8 +24,10 @@ import org.springframework.test.context.jdbc.Sql;
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@Sql(statements = "DELETE FROM empresa", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-@Sql(statements = "DELETE FROM empresa", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+@Sql(statements = {"DELETE FROM telefono_empresa", "DELETE FROM empresa"},
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(statements = {"DELETE FROM telefono_empresa", "DELETE FROM empresa"},
+        executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class ServiceCompanyPersistenceTest {
 
     private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 7};
@@ -73,6 +75,35 @@ class ServiceCompanyPersistenceTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM empresa", Integer.class)).isEqualTo(1);
         assertThat(almacen.find().orElseThrow().getDatos().nombre()).isEqualTo("Otro nombre");
         assertThat(almacen.find().orElseThrow().logo()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("los teléfonos se reescriben enteros: menos, y en otro orden (V43)")
+    void telefonosReescritos() {
+        ServiceCompany empresa = ServiceCompany.configure(datos("Ejemplo"));
+        almacen.save(empresa);
+
+        ServiceCompany leida = almacen.find().orElseThrow();
+        CompanyDetails antes = leida.getDatos();
+        leida.update(new CompanyDetails(antes.nombre(), antes.nit(), antes.direccion(), antes.ciudad(),
+                List.of("601 2"), antes.movil(), antes.correo(), antes.garantia(), antes.aclaracion(),
+                antes.codigoHojaDeVida(), antes.codigoInforme()));
+        almacen.save(leida);
+
+        assertThat(almacen.find().orElseThrow().getDatos().telefonos()).containsExactly("601 2");
+        assertThat(jdbc.queryForList("SELECT i_orden FROM telefono_empresa", Integer.class)).containsExactly(0);
+    }
+
+    @Test
+    @DisplayName("la base impide un teléfono de la empresa en blanco (V43)")
+    void telefonoEnBlanco() {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO empresa (k_id_empresa, n_nombre) VALUES (?, 'E')", id);
+
+        assertThatThrownBy(() -> jdbc.update(
+                        "INSERT INTO telefono_empresa (k_id_empresa, i_orden, n_telefono_empresa) VALUES (?, 0, ' ')",
+                        id))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
