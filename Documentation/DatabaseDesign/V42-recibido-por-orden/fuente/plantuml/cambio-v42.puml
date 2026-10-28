@@ -1,0 +1,256 @@
+@startuml cambio-v42
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<cambia>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+title V42 — se firma el recibido por sede o por área, no por reporte (PROPUESTO)
+
+package "Antes (V41): cada reporte guarda quién lo recibió y su firma" as antes {
+entity "orden_trabajo" as antes_orden_trabajo {
+  * k_id_orden_trabajo : uuid <<PK>>
+  --
+  * k_id_cliente : uuid <<FK>>
+  * k_id_sede : uuid <<FK>>
+  * f_fecha_mantenimiento : date
+  * n_periodicidad : varchar(10)
+  * t_tipo_servicio : varchar(11)
+  * t_estado_ejecucion : varchar(12)
+  k_identificador : uuid <<FK>>
+  * b_estado_activo : boolean
+  * b_garantia : boolean
+}
+entity "orden_trabajo_equipo" as antes_orden_trabajo_equipo {
+  * k_id_orden_trabajo : uuid <<PK, FK>>
+  * k_id_equipo_cliente : uuid <<PK, FK>>
+  --
+  * k_id_area_servicio : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+entity "sede" as antes_sede {
+  * k_id_sede : uuid <<PK>>
+  --
+  * n_nombre_sede : varchar(50)
+  * t_calle : varchar(50)
+  * t_carrera : varchar(50)
+  * t_numero : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * k_id_ciudad : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_sede_identidad_con_cliente ..
+  .. UQ_sede_nombre_por_cliente ..
+}
+entity "area_servicio" as antes_area_servicio {
+  * k_id_area_servicio : uuid <<PK>>
+  --
+  * n_nombre_area : varchar(50)
+  * k_id_sede : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_area_nombre_por_sede ..
+}
+entity "imagen_documento" as antes_imagen_documento {
+  * k_huella : varchar(64) <<PK>>
+  --
+  * b_contenido : bytea
+  * t_tipo : varchar(20)
+}
+entity "reporte_servicio" as antes_reporte_servicio <<cambia>> {
+  * k_id_reporte_servicio : uuid <<PK>>
+  --
+  * k_id_orden_trabajo : uuid <<FK>>
+  * k_id_equipo_cliente : uuid <<FK>>
+  * t_estado_reporte : varchar(10)
+  t_falla_reportada : varchar(500)
+  t_diagnostico : varchar(500)
+  t_procedimientos : varchar(500)
+  t_observaciones : varchar(500)
+  t_resultado : varchar(27)
+  t_finalizado : timestamp
+  * b_estado_activo : boolean
+  t_causa : varchar(500)
+  t_repuestos : varchar(500)
+  t_ingreso_fisico : varchar(20)
+  t_ingreso_fisico_observacion : varchar(500)
+  t_ingreso_operativo : varchar(20)
+  t_ingreso_operativo_observacion : varchar(500)
+  n_recibe_nombre : varchar(120)
+  k_recibe_cedula : varchar(20)
+  n_recibe_cargo : varchar(80)
+  t_documento : jsonb
+  * b_documento_tardio : boolean
+  k_huella_firma_recibe : varchar(64) <<FK>>
+  f_firma_recibe : timestamp
+}
+}
+antes_area_servicio }o--|| antes_sede
+antes_orden_trabajo }o--|| antes_sede : k_id_sede, k_id_cliente
+antes_orden_trabajo_equipo }o--|| antes_area_servicio
+antes_orden_trabajo_equipo }o--|| antes_orden_trabajo
+antes_reporte_servicio }o--|| antes_orden_trabajo_equipo : k_id_orden_trabajo, k_id_equipo_cliente
+antes_reporte_servicio }o--o| antes_imagen_documento
+
+package "Después (V42): el recibido es de la orden, entera o por área" as despues {
+entity "orden_trabajo" as despues_orden_trabajo {
+  * k_id_orden_trabajo : uuid <<PK>>
+  --
+  * k_id_cliente : uuid <<FK>>
+  * k_id_sede : uuid <<FK>>
+  * f_fecha_mantenimiento : date
+  * n_periodicidad : varchar(10)
+  * t_tipo_servicio : varchar(11)
+  * t_estado_ejecucion : varchar(12)
+  k_identificador : uuid <<FK>>
+  * b_estado_activo : boolean
+  * b_garantia : boolean
+  .. UQ_orden_trabajo_identidad_con_sede ..
+}
+entity "orden_trabajo_equipo" as despues_orden_trabajo_equipo {
+  * k_id_orden_trabajo : uuid <<PK, FK>>
+  * k_id_equipo_cliente : uuid <<PK, FK>>
+  --
+  * k_id_area_servicio : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+entity "sede" as despues_sede {
+  * k_id_sede : uuid <<PK>>
+  --
+  * n_nombre_sede : varchar(50)
+  * t_calle : varchar(50)
+  * t_carrera : varchar(50)
+  * t_numero : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * k_id_ciudad : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_sede_identidad_con_cliente ..
+  .. UQ_sede_nombre_por_cliente ..
+}
+entity "area_servicio" as despues_area_servicio {
+  * k_id_area_servicio : uuid <<PK>>
+  --
+  * n_nombre_area : varchar(50)
+  * k_id_sede : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_area_nombre_por_sede ..
+  .. UQ_area_servicio_identidad_con_sede ..
+}
+entity "imagen_documento" as despues_imagen_documento {
+  * k_huella : varchar(64) <<PK>>
+  --
+  * b_contenido : bytea
+  * t_tipo : varchar(20)
+}
+entity "reporte_servicio" as despues_reporte_servicio {
+  * k_id_reporte_servicio : uuid <<PK>>
+  --
+  * k_id_orden_trabajo : uuid <<FK>>
+  * k_id_equipo_cliente : uuid <<FK>>
+  * t_estado_reporte : varchar(10)
+  t_falla_reportada : varchar(500)
+  t_diagnostico : varchar(500)
+  t_procedimientos : varchar(500)
+  t_observaciones : varchar(500)
+  t_resultado : varchar(27)
+  t_finalizado : timestamp
+  * b_estado_activo : boolean
+  t_causa : varchar(500)
+  t_repuestos : varchar(500)
+  t_ingreso_fisico : varchar(20)
+  t_ingreso_fisico_observacion : varchar(500)
+  t_ingreso_operativo : varchar(20)
+  t_ingreso_operativo_observacion : varchar(500)
+  t_documento : jsonb
+  * b_documento_tardio : boolean
+}
+entity "recibido_orden" as despues_recibido_orden <<nueva>> {
+  * k_id_recibido : uuid <<PK>>
+  --
+  * k_id_orden_trabajo : uuid <<FK>>
+  * k_id_sede : uuid <<FK>>
+  k_id_area_servicio : uuid <<FK>>
+  * n_nombre : varchar(120)
+  k_cedula : varchar(20)
+  n_cargo : varchar(80)
+  k_huella_firma : varchar(64) <<FK>>
+  f_firma : timestamp
+  * b_estado_activo : boolean
+  .. UQ_recibido_orden_alcance_activo ..
+}
+}
+despues_area_servicio }o--|| despues_sede
+despues_orden_trabajo }o--|| despues_sede : k_id_sede, k_id_cliente
+despues_orden_trabajo_equipo }o--|| despues_area_servicio
+despues_orden_trabajo_equipo }o--|| despues_orden_trabajo
+despues_reporte_servicio }o--|| despues_orden_trabajo_equipo : k_id_orden_trabajo, k_id_equipo_cliente
+despues_recibido_orden }o--|| despues_orden_trabajo : k_id_orden_trabajo, k_id_sede
+despues_recibido_orden }o--o| despues_area_servicio : k_id_area_servicio, k_id_sede
+despues_recibido_orden }o--o| despues_imagen_documento
+
+antes -[hidden]right-> despues
+
+note bottom of antes_reporte_servicio
+  Cinco columnas de quien recibe en cada
+  reporte: n_recibe_nombre, k_recibe_cedula,
+  n_recibe_cargo, k_huella_firma_recibe y
+  f_firma_recibe. Se firma reporte por reporte;
+  la casilla de la orden solo copia la firma a
+  los reportes que ya existen.
+end note
+note bottom of despues_recibido_orden
+  Sin área: el recibido de toda la sede, es decir,
+  de la orden entera. Con área: el de esa área.
+  Una fila activa por alcance:
+  UQ (orden, área) NULLS NOT DISTINCT.
+  Las dos foráneas compuestas atan el área a la
+  sede de la orden. Firma y fecha van juntas, y
+  una firma no se cambia ni se retira.
+end note
+note as regla
+  **Cómo toma su recibido cada equipo**
+  Primero el de su área, si lo hay; si no, el de la
+  sede. Sirve también para los reportes que se abran
+  después de firmar: el recibido no se copia, se lee.
+  Ya no se firma un reporte suelto (decidido por el
+  usuario), y el reporte solo muestra el que le toca.
+end note
+note as datos
+  **Migración de los datos**
+  Cada reporte activo con recibido pasa a la orden:
+  sin área si todos los de la orden coinciden, por
+  área si coinciden dentro de cada área. Si dos no
+  coinciden en la misma área, la migración se
+  detiene y dice cuáles. Después se quitan las cinco
+  columnas, sus dos CHECK y su foránea.
+end note
+@enduml

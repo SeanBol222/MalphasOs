@@ -278,3 +278,32 @@ dice con su fecha, y los diagramas se quedan como estaban: son la foto del plan 
 «PROPUESTO» es el de ese momento. Ningún documento oficial cambia: ningún requisito de la ERS describe
 cuántas sedes puede tener a cargo un encargado.
 
+## [2026-10-27] ingest | El plan de V42: el recibido por sede o por área
+
+Segunda carpeta de [[diseno-base-de-datos]], `V42-recibido-por-orden/`, generada igual que la de `V41`
+desde el esquema vivo, ahora en `V41`. Marca el cambio como «PROPUESTO». Ningún documento oficial cambia
+todavía; cuando se construya, RF-18 y RF-21 —la firma de quien recibe y su réplica a la orden— cambian de
+forma, y la ERS lo tendrá que decir.
+
+## [2026-10-27] ingest | El análisis del esquema y la refactorización a 3FN
+
+Entran `DatabaseDesign/analisis-2026-10-27.md` y `DatabaseDesign/refactor-3fn/`. El usuario pidió revisar
+la base antes de seguir: tercera forma normal y los menos ciclos posible. Sus decisiones y el orden de las
+seis migraciones están en el análisis; el recibido por orden pasa de `V42` a `V47`. Ver
+[[diseno-base-de-datos]], que recoge también la corrección del recuento de ciclos.
+
+## [2026-10-27] ingest | El documento congelado sustituye a las copias
+
+Decidido por el usuario sobre el análisis de [[diseno-base-de-datos]]: las copias del reporte se
+sustituyen por su documento congelado al cerrar, el área de cada equipo en la orden se quita bloqueando
+el traslado mientras la orden viva, y la orden se congela al ejecutarse. El plan pasa de seis migraciones
+a ocho, `V42` a `V49`, y el recibido por orden de `V47` a `V49`. Los diagramas de `refactor-3fn/` se
+regeneraron. Ningún documento oficial cambia todavía.
+
+## [2026-10-27] ingest | El recibido se queda en el reporte
+
+El plan de `V42-recibido-por-orden/` queda descartado: el usuario decidió que quien recibe es cualquier
+persona, sin relación con el área, y que se firma un reporte, un área o la orden entera sobre las mismas
+columnas de `V39`. El plan baja a siete migraciones, `V42` a `V48`, y `refactor-3fn/` a dos carpetas. Ver
+[[diseno-base-de-datos]]. Cuando se construya, RF-21 —la réplica de la firma a la orden— gana la opción
+del área, y la ERS lo tendrá que decir.

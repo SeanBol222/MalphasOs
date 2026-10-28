@@ -1,0 +1,142 @@
+@startuml final-client
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<cambia>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+skinparam nodesep 70
+skinparam ranksep 90
+skinparam padding 4
+skinparam defaultFontSize 15
+
+title Propuesta final (PROPUESTO) — client — clientes
+
+package "client — clientes" {
+entity "cliente" as cliente {
+  * k_id_cliente : uuid <<PK>>
+  --
+  * k_documento : varchar(11)
+  * n_tipo_identificacion : varchar(12)
+  * n_razon_social : varchar(50)
+  k_id_pais : uuid <<FK>>
+  * b_estado_activo : boolean
+  * n_sigla : varchar(6)
+  * i_consecutivo_hoja_vida : int
+  .. UQ_cliente_documento ..
+  .. UQ_cliente_sigla ..
+}
+entity "correo_cliente" as correo_cliente {
+  * k_id_correo_cliente : uuid <<PK>>
+  --
+  * n_correo_cliente : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+entity "telefono_cliente" as telefono_cliente {
+  * k_id_telefono_cliente : uuid <<PK>>
+  --
+  * n_telefono_cliente : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+entity "representante_legal" as representante_legal {
+  * k_identificador : uuid <<PK, FK>>
+  * k_id_cliente : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+entity "sede" as sede <<cambia>> {
+  * k_id_sede : uuid <<PK>>
+  --
+  * n_nombre_sede : varchar(50)
+  * t_calle : varchar(50)
+  * t_carrera : varchar(50)
+  * t_numero : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * k_id_ciudad : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_sede_nombre_por_cliente ..
+}
+entity "area_servicio" as area_servicio {
+  * k_id_area_servicio : uuid <<PK>>
+  --
+  * n_nombre_area : varchar(50)
+  * k_id_sede : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_area_nombre_por_sede ..
+}
+entity "encargado_sede" as encargado_sede {
+  * k_identificador : uuid <<PK, FK>>
+  * k_id_sede : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+entity "encargado_area" as encargado_area {
+  * k_identificador : uuid <<PK, FK>>
+  * k_id_area_servicio : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+}
+entity "ciudad" as ciudad <<otro modulo>> {
+}
+entity "equipo_cliente" as equipo_cliente <<otro modulo>> {
+}
+entity "orden_trabajo" as orden_trabajo <<otro modulo>> {
+}
+entity "pais" as pais <<otro modulo>> {
+}
+entity "persona" as persona <<otro modulo>> {
+}
+cliente }o--o| pais
+correo_cliente }o--|| cliente
+telefono_cliente }o--|| cliente
+representante_legal }o--|| cliente
+representante_legal }o--|| persona
+sede }o--|| ciudad
+sede }o--|| cliente
+area_servicio }o--|| sede
+equipo_cliente }o--|| area_servicio
+encargado_sede }o--|| persona
+encargado_sede }o--|| sede
+encargado_area }o--|| area_servicio
+encargado_area }o--|| persona
+orden_trabajo }o--|| sede
+skinparam class<<otro modulo>> {
+  BackgroundColor #EDEBEA
+  BorderColor #9A9795
+  FontColor #6B6866
+}
+@enduml

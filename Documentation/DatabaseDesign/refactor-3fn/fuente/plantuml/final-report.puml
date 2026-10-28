@@ -1,0 +1,143 @@
+@startuml final-report
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<cambia>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+skinparam nodesep 70
+skinparam ranksep 90
+skinparam padding 4
+skinparam defaultFontSize 15
+
+title Propuesta final (PROPUESTO) — report — reportes de servicio
+
+package "report — reportes de servicio" {
+entity "reporte_servicio" as reporte_servicio <<cambia>> {
+  * k_id_reporte_servicio : uuid <<PK>>
+  --
+  * k_id_orden_trabajo : uuid <<FK>>
+  * k_id_equipo_cliente : uuid <<FK>>
+  * t_estado_reporte : varchar(10)
+  t_falla_reportada : varchar(500)
+  t_diagnostico : varchar(500)
+  t_procedimientos : varchar(500)
+  t_observaciones : varchar(500)
+  t_resultado : varchar(27)
+  f_finalizado : timestamp
+  * b_estado_activo : boolean
+  t_causa : varchar(500)
+  t_repuestos : varchar(500)
+  t_ingreso_fisico : varchar(20)
+  t_ingreso_fisico_observacion : varchar(500)
+  t_ingreso_operativo : varchar(20)
+  t_ingreso_operativo_observacion : varchar(500)
+  n_recibe_nombre : varchar(120)
+  k_recibe_cedula : varchar(20)
+  n_recibe_cargo : varchar(80)
+  t_documento : jsonb
+  * b_documento_tardio : boolean
+  k_huella_firma_recibe : varchar(64) <<FK>>
+  f_firma_recibe : timestamp
+}
+entity "dato_verificacion" as dato_verificacion <<cambia>> {
+  * k_id_dato_verificacion : uuid <<PK>>
+  --
+  * k_id_reporte_servicio : uuid <<FK>>
+  k_id_punto_verificacion : uuid <<FK>>
+  * i_secuencia : int
+  * d_valor_patron : numeric
+  * d_valor_equipo : numeric
+  * b_estado_activo : boolean
+  * k_id_verificacion : uuid <<FK>>
+}
+entity "paso_reporte" as paso_reporte <<cambia>> {
+  * k_id_paso_reporte : uuid <<PK>>
+  --
+  * k_id_reporte_servicio : uuid <<FK>>
+  * i_orden : int
+  * k_id_protocolo : uuid <<FK>>
+  * t_estado_paso : varchar(10)
+  t_nota : varchar(300)
+  * b_estado_activo : boolean
+  .. UQ_paso_reporte_orden ..
+}
+entity "accesorio_reporte" as accesorio_reporte {
+  * k_id_accesorio_reporte : uuid <<PK>>
+  --
+  * k_id_reporte_servicio : uuid <<FK>>
+  * i_orden : int
+  * n_nombre : varchar(120)
+  * b_conforme : boolean
+  t_observacion : varchar(500)
+  * b_estado_activo : boolean
+}
+entity "patron_verificacion_reporte" as patron_verificacion_reporte <<cambia>> {
+  * k_id_patron_verificacion_reporte : uuid <<PK>>
+  --
+  * k_id_reporte_servicio : uuid <<FK>>
+  * k_id_verificacion : uuid <<FK>>
+  * k_id_equipo_patron : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+}
+entity "equipo_patron" as equipo_patron <<otro modulo>> {
+}
+entity "imagen_documento" as imagen_documento <<otro modulo>> {
+}
+entity "orden_trabajo_equipo" as orden_trabajo_equipo <<otro modulo>> {
+}
+entity "protocolo" as protocolo <<otro modulo>> {
+}
+entity "punto_verificacion" as punto_verificacion <<otro modulo>> {
+}
+entity "verificacion_tipo_equipo" as verificacion_tipo_equipo <<otro modulo>> {
+}
+reporte_servicio }o--|| orden_trabajo_equipo : k_id_orden_trabajo, k_id_equipo_cliente
+reporte_servicio }o--o| imagen_documento
+dato_verificacion }o--o| punto_verificacion : k_id_verificacion, k_id_punto_verificacion
+dato_verificacion }o--|| reporte_servicio
+dato_verificacion }o--|| verificacion_tipo_equipo
+paso_reporte }o--|| protocolo
+paso_reporte }o--|| reporte_servicio
+patron_verificacion_reporte }o--|| equipo_patron
+patron_verificacion_reporte }o--|| reporte_servicio
+patron_verificacion_reporte }o--|| verificacion_tipo_equipo
+accesorio_reporte }o--|| reporte_servicio
+skinparam class<<otro modulo>> {
+  BackgroundColor #EDEBEA
+  BorderColor #9A9795
+  FontColor #6B6866
+}
+@enduml

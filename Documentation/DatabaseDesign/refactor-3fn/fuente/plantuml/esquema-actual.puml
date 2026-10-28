@@ -1,0 +1,522 @@
+@startuml esquema-actual
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<cambia>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+title MalphasOS — esquema actual (V41, 37 tablas)
+
+package "person — personas" {
+entity "persona" as persona <<cambia>> {
+  * k_identificador : uuid <<PK>>
+  --
+  * k_cedula : varchar(10)
+  * n_primer_nombre : varchar(50)
+  n_segundo_nombre : varchar(50)
+  * n_primer_apellido : varchar(50)
+  n_segundo_apellido : varchar(50)
+  * t_tipo_persona : varchar(19)
+  t_segundo_tipo_persona : varchar(19)
+  * b_estado_activo : boolean
+  .. UQ_cedula ..
+}
+entity "correo_persona" as correo_persona <<cambia>> {
+  * k_id_correo_persona : uuid <<PK>>
+  --
+  * n_correo_persona : varchar(50)
+  k_identificador : uuid <<FK>>
+  * b_estado_activo : boolean
+  * b_principal : boolean
+  .. EX_correo_principal_por_persona ..
+}
+entity "telefono_persona" as telefono_persona <<cambia>> {
+  * k_id_telefono_persona : uuid <<PK>>
+  --
+  * n_telefono_persona : varchar(10)
+  k_identificador : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+entity "firma_persona" as firma_persona <<cambia>> {
+  * k_id_persona : uuid <<PK, FK>>
+  --
+  * b_imagen : bytea
+  * f_actualizada : timestamp
+}
+}
+
+package "location — ubicación" {
+entity "pais" as pais {
+  * k_id_pais : uuid <<PK>>
+  --
+  * k_codigo_iso : varchar(3)
+  * n_nombre_pais : varchar(50)
+  * b_estado_activo : boolean
+  .. UQ_pais_codigo_iso ..
+  .. UQ_pais_nombre ..
+}
+entity "ciudad" as ciudad {
+  * k_id_ciudad : uuid <<PK>>
+  --
+  * n_nombre_ciudad : varchar(50)
+  * k_id_pais : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_ciudad_nombre_por_pais ..
+}
+}
+
+package "client — clientes" {
+entity "cliente" as cliente {
+  * k_id_cliente : uuid <<PK>>
+  --
+  * k_documento : varchar(11)
+  * n_tipo_identificacion : varchar(12)
+  * n_razon_social : varchar(50)
+  k_id_pais : uuid <<FK>>
+  * b_estado_activo : boolean
+  * n_sigla : varchar(6)
+  * i_consecutivo_hoja_vida : int
+  .. UQ_cliente_documento ..
+  .. UQ_cliente_sigla ..
+}
+entity "correo_cliente" as correo_cliente {
+  * k_id_correo_cliente : uuid <<PK>>
+  --
+  * n_correo_cliente : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+entity "telefono_cliente" as telefono_cliente {
+  * k_id_telefono_cliente : uuid <<PK>>
+  --
+  * n_telefono_cliente : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+entity "representante_legal" as representante_legal {
+  * k_identificador : uuid <<PK, FK>>
+  * k_id_cliente : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+entity "sede" as sede <<cambia>> {
+  * k_id_sede : uuid <<PK>>
+  --
+  * n_nombre_sede : varchar(50)
+  * t_calle : varchar(50)
+  * t_carrera : varchar(50)
+  * t_numero : varchar(50)
+  * k_id_cliente : uuid <<FK>>
+  * k_id_ciudad : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_sede_identidad_con_cliente ..
+  .. UQ_sede_nombre_por_cliente ..
+}
+entity "area_servicio" as area_servicio {
+  * k_id_area_servicio : uuid <<PK>>
+  --
+  * n_nombre_area : varchar(50)
+  * k_id_sede : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_area_nombre_por_sede ..
+}
+entity "encargado_sede" as encargado_sede {
+  * k_identificador : uuid <<PK, FK>>
+  * k_id_sede : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+entity "encargado_area" as encargado_area {
+  * k_identificador : uuid <<PK, FK>>
+  * k_id_area_servicio : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+}
+
+package "equipment — equipos y catálogo" {
+entity "tipo_equipo" as tipo_equipo {
+  * k_id_tipo_equipo : uuid <<PK>>
+  --
+  * n_nombre_tipo_equipo : varchar(50)
+  * t_definicion_tecnica : varchar(250)
+  * t_recomendaciones_cuidado : varchar(250)
+  * t_tecnologia_predominante : varchar(50)
+  * m_valor_unitario_mantenimiento : bigint
+  * b_estado_activo : boolean
+  t_uso : varchar(250)
+  t_limpieza_cotidiana : varchar(250)
+  .. UQ_tipo_equipo_nombre ..
+}
+entity "marca" as marca {
+  * k_id_marca : uuid <<PK>>
+  --
+  * n_nombre_marca : varchar(50)
+  * b_estado_activo : boolean
+  .. UQ_marca_nombre ..
+}
+entity "fabricante" as fabricante {
+  * k_id_fabricante : uuid <<PK>>
+  --
+  * n_nombre_fabricante : varchar(50)
+  k_id_pais : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_fabricante_nombre ..
+}
+entity "equipo" as equipo {
+  * k_id_equipo : uuid <<PK>>
+  --
+  * k_id_tipo_equipo : uuid <<FK>>
+  * k_id_marca : uuid <<FK>>
+  * b_estado_activo : boolean
+  .. UQ_equipo_tipo_marca ..
+}
+entity "modelo" as modelo {
+  * k_id_modelo : uuid <<PK>>
+  --
+  n_invima : varchar(50)
+  * k_id_fabricante : uuid <<FK>>
+  * k_id_equipo : uuid <<FK>>
+  * b_estado_activo : boolean
+  * n_nombre_modelo : varchar(50)
+  n_clase_riesgo : varchar(3)
+  t_caracteristicas : varchar(250)
+  n_alimentacion : varchar(50)
+  i_voltaje : int
+  i_potencia : int
+  d_amperaje : numeric
+  i_frecuencia : int
+  .. UQ_modelo_invima ..
+}
+entity "equipo_cliente" as equipo_cliente {
+  * k_id_equipo_cliente : uuid <<PK>>
+  --
+  * k_serie : varchar(50)
+  n_no_inventario : varchar(50)
+  f_fecha_compra : date
+  v_valor_compra : bigint
+  * k_id_modelo : uuid <<FK>>
+  * k_id_area_servicio : uuid <<FK>>
+  * b_estado_activo : boolean
+  n_codigo_interno : varchar(50)
+  n_proveedor : varchar(100)
+  * n_numero_hoja_vida : varchar(20)
+  .. UQ_equipo_cliente_numero_hoja_vida ..
+  .. UQ_equipo_cliente_serie_por_modelo ..
+}
+entity "magnitud" as magnitud {
+  * k_id_magnitud : uuid <<PK>>
+  --
+  * n_codigo_magnitud : varchar(30)
+  * n_nombre_magnitud : varchar(50)
+  * b_estado_activo : boolean
+  .. UQ_magnitud_codigo ..
+  .. UQ_magnitud_nombre ..
+}
+entity "unidad_medida" as unidad_medida <<cambia>> {
+  * k_id_unidad_medida : uuid <<PK>>
+  --
+  * k_id_magnitud : uuid <<FK>>
+  * n_simbolo_unidad : varchar(20)
+  * n_nombre_unidad : varchar(50)
+  * b_estado_activo : boolean
+  .. UQ_unidad_medida_por_magnitud ..
+  .. UQ_unidad_medida_simbolo_por_magnitud ..
+}
+entity "verificacion_tipo_equipo" as verificacion_tipo_equipo <<cambia>> {
+  * k_id_verificacion : uuid <<PK>>
+  --
+  * k_id_tipo_equipo : uuid <<FK>>
+  * k_id_magnitud : uuid <<FK>>
+  * k_id_unidad_medida : uuid <<FK>>
+  * n_modalidad_verificacion : varchar(50)
+  i_cantidad_datos : int
+  * b_estado_activo : boolean
+  d_tolerancia : numeric
+  .. UQ_verificacion_por_tipo ..
+}
+entity "punto_verificacion" as punto_verificacion {
+  * k_id_punto_verificacion : uuid <<PK>>
+  --
+  * k_id_verificacion : uuid <<FK>>
+  * d_valor : numeric
+  * b_estado_activo : boolean
+  .. UQ_punto_por_verificacion ..
+}
+entity "protocolo" as protocolo {
+  * k_id_protocolo : uuid <<PK>>
+  --
+  * n_nombre : varchar(120)
+  * n_clave : varchar(120)
+  * t_descripcion : varchar(500)
+  * b_estado_activo : boolean
+}
+entity "protocolo_tipo_equipo" as protocolo_tipo_equipo {
+  * k_id_tipo_equipo : uuid <<PK, FK>>
+  * k_id_protocolo : uuid <<PK, FK>>
+  --
+  * i_prioridad : smallint
+  t_indicacion : varchar(300)
+  * b_estado_activo : boolean
+}
+entity "equipo_patron" as equipo_patron {
+  * k_id_equipo_patron : uuid <<PK>>
+  --
+  * n_nombre : varchar(120)
+  n_marca : varchar(80)
+  * k_serie : varchar(60)
+  * n_certificado : varchar(80)
+  * f_vencimiento_certificado : date
+  * b_estado_activo : boolean
+  n_modelo : varchar(80)
+  k_codigo_interno : varchar(40)
+  t_rango : varchar(120)
+  t_resolucion : varchar(80)
+  f_calibracion : date
+  n_empresa_calibradora : varchar(120)
+}
+entity "intervencion" as intervencion <<retirada>> {
+  * k_id_intervencion : uuid <<PK>>
+  --
+  * k_id_equipo_cliente : uuid <<FK>>
+  * k_id_reporte_servicio : uuid <<FK>>
+  * f_fecha_servicio : timestamp
+  * t_tipo_servicio : varchar(11)
+  * t_resultado : varchar(27)
+  * b_estado_activo : boolean
+  k_id_reemplazada_por : uuid <<FK>>
+  t_descripcion : varchar(500)
+  n_responsable : varchar(250)
+  .. UQ_intervencion_por_reporte ..
+}
+}
+
+package "work-order — órdenes de trabajo" {
+entity "orden_trabajo" as orden_trabajo <<cambia>> {
+  * k_id_orden_trabajo : uuid <<PK>>
+  --
+  * k_id_cliente : uuid <<FK>>
+  * k_id_sede : uuid <<FK>>
+  * f_fecha_mantenimiento : date
+  * n_periodicidad : varchar(10)
+  * t_tipo_servicio : varchar(11)
+  * t_estado_ejecucion : varchar(12)
+  k_identificador : uuid <<FK>>
+  * b_estado_activo : boolean
+  * b_garantia : boolean
+}
+entity "orden_trabajo_equipo" as orden_trabajo_equipo <<cambia>> {
+  * k_id_orden_trabajo : uuid <<PK, FK>>
+  * k_id_equipo_cliente : uuid <<PK, FK>>
+  --
+  * k_id_area_servicio : uuid <<FK>>
+  * b_estado_activo : boolean
+}
+}
+
+package "report — reportes de servicio" {
+entity "reporte_servicio" as reporte_servicio <<cambia>> {
+  * k_id_reporte_servicio : uuid <<PK>>
+  --
+  * k_id_orden_trabajo : uuid <<FK>>
+  * k_id_equipo_cliente : uuid <<FK>>
+  * t_estado_reporte : varchar(10)
+  t_falla_reportada : varchar(500)
+  t_diagnostico : varchar(500)
+  t_procedimientos : varchar(500)
+  t_observaciones : varchar(500)
+  t_resultado : varchar(27)
+  t_finalizado : timestamp
+  * b_estado_activo : boolean
+  t_causa : varchar(500)
+  t_repuestos : varchar(500)
+  t_ingreso_fisico : varchar(20)
+  t_ingreso_fisico_observacion : varchar(500)
+  t_ingreso_operativo : varchar(20)
+  t_ingreso_operativo_observacion : varchar(500)
+  n_recibe_nombre : varchar(120)
+  k_recibe_cedula : varchar(20)
+  n_recibe_cargo : varchar(80)
+  t_documento : jsonb
+  * b_documento_tardio : boolean
+  k_huella_firma_recibe : varchar(64) <<FK>>
+  f_firma_recibe : timestamp
+}
+entity "dato_verificacion" as dato_verificacion <<cambia>> {
+  * k_id_dato_verificacion : uuid <<PK>>
+  --
+  * k_id_reporte_servicio : uuid <<FK>>
+  k_id_punto_verificacion : uuid <<FK>>
+  * i_secuencia : int
+  * d_valor_patron : numeric
+  * d_valor_equipo : numeric
+  * n_unidad : varchar(20)
+  * b_estado_activo : boolean
+  * k_id_verificacion : uuid <<FK>>
+  d_tolerancia : numeric
+}
+entity "paso_reporte" as paso_reporte <<cambia>> {
+  * k_id_paso_reporte : uuid <<PK>>
+  --
+  * k_id_reporte_servicio : uuid <<FK>>
+  * i_orden : int
+  * k_id_protocolo : uuid <<FK>>
+  * n_nombre : varchar(120)
+  * t_descripcion : varchar(500)
+  t_indicacion : varchar(300)
+  * t_estado_paso : varchar(10)
+  t_nota : varchar(300)
+  * b_estado_activo : boolean
+  .. UQ_paso_reporte_orden ..
+}
+entity "accesorio_reporte" as accesorio_reporte {
+  * k_id_accesorio_reporte : uuid <<PK>>
+  --
+  * k_id_reporte_servicio : uuid <<FK>>
+  * i_orden : int
+  * n_nombre : varchar(120)
+  * b_conforme : boolean
+  t_observacion : varchar(500)
+  * b_estado_activo : boolean
+}
+entity "patron_verificacion_reporte" as patron_verificacion_reporte <<cambia>> {
+  * k_id_patron_verificacion_reporte : uuid <<PK>>
+  --
+  * k_id_reporte_servicio : uuid <<FK>>
+  * k_id_verificacion : uuid <<FK>>
+  * k_id_equipo_patron : uuid <<FK>>
+  * n_nombre : varchar(120)
+  n_marca : varchar(80)
+  * k_serie : varchar(60)
+  * n_certificado : varchar(80)
+  * f_vencimiento : date
+  n_modelo : varchar(80)
+  k_codigo_interno : varchar(40)
+  t_rango : varchar(120)
+  t_resolucion : varchar(80)
+  f_calibracion : date
+  n_empresa_calibradora : varchar(120)
+  * b_estado_activo : boolean
+}
+}
+
+package "company — empresa y documentos" {
+entity "empresa" as empresa <<cambia>> {
+  * k_id_empresa : uuid <<PK>>
+  --
+  * b_unica : boolean
+  * n_nombre : varchar(160)
+  k_nit : varchar(30)
+  t_direccion : varchar(200)
+  n_ciudad : varchar(80)
+  * t_telefonos : ARRAY
+  t_movil : varchar(30)
+  t_correo : varchar(120)
+  t_garantia : varchar(2000)
+  t_aclaracion : varchar(2000)
+  k_codigo_hoja_de_vida : varchar(40)
+  k_codigo_informe : varchar(40)
+  b_logo : bytea
+  t_logo_tipo : varchar(20)
+  .. UQ_empresa_unica ..
+}
+entity "imagen_documento" as imagen_documento {
+  * k_huella : varchar(64) <<PK>>
+  --
+  * b_contenido : bytea
+  * t_tipo : varchar(20)
+}
+}
+
+correo_persona }o--o| persona
+telefono_persona }o--o| persona
+ciudad }o--|| pais
+cliente }o--o| pais
+correo_cliente }o--|| cliente
+telefono_cliente }o--|| cliente
+representante_legal }o--|| cliente
+representante_legal }o--|| persona
+sede }o--|| ciudad
+sede }o--|| cliente
+area_servicio }o--|| sede
+fabricante }o--o| pais
+equipo }o--|| marca
+equipo }o--|| tipo_equipo
+modelo }o--|| equipo
+modelo }o--|| fabricante
+equipo_cliente }o--|| area_servicio
+equipo_cliente }o--|| modelo
+orden_trabajo }o--|| cliente
+orden_trabajo }o--o| persona
+orden_trabajo }o--|| sede : k_id_sede, k_id_cliente
+orden_trabajo_equipo }o--|| area_servicio
+orden_trabajo_equipo }o--|| equipo_cliente
+orden_trabajo_equipo }o--|| orden_trabajo
+reporte_servicio }o--|| orden_trabajo_equipo : k_id_orden_trabajo, k_id_equipo_cliente
+reporte_servicio }o--o| imagen_documento
+dato_verificacion }o--o| punto_verificacion : k_id_verificacion, k_id_punto_verificacion
+dato_verificacion }o--|| reporte_servicio
+dato_verificacion }o--|| verificacion_tipo_equipo
+unidad_medida }o--|| magnitud
+verificacion_tipo_equipo }o--|| tipo_equipo
+verificacion_tipo_equipo }o--|| unidad_medida : k_id_magnitud, k_id_unidad_medida
+punto_verificacion }o--|| verificacion_tipo_equipo
+intervencion }o--|| equipo_cliente
+intervencion }o--o| intervencion
+intervencion }o--|| reporte_servicio
+protocolo_tipo_equipo }o--|| protocolo
+protocolo_tipo_equipo }o--|| tipo_equipo
+paso_reporte }o--|| protocolo
+paso_reporte }o--|| reporte_servicio
+patron_verificacion_reporte }o--|| equipo_patron
+patron_verificacion_reporte }o--|| reporte_servicio
+patron_verificacion_reporte }o--|| verificacion_tipo_equipo
+accesorio_reporte }o--|| reporte_servicio
+firma_persona }o--|| persona
+encargado_sede }o--|| persona
+encargado_sede }o--|| sede
+encargado_area }o--|| area_servicio
+encargado_area }o--|| persona
+
+legend right
+  **Cómo leerlo**
+  Punto negro: columna obligatoria (NOT NULL)
+  «PK» llave primaria · «FK» foránea
+  Línea punteada con nombre: restricción única o de exclusión
+  Pata de gallo hacia la tabla que apunta; doble raya: foránea
+  obligatoria; círculo: anulable. Las compuestas llevan sus columnas
+  Índices únicos parciales y foráneas sin índice: ver el análisis
+  <color:#AE1800>rojo</color>: tabla que la refactorización cambia o retira
+endlegend
+@enduml

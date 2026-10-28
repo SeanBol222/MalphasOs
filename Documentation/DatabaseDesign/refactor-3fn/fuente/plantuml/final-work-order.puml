@@ -1,0 +1,86 @@
+@startuml final-work-order
+!pragma layout smetana
+skinparam backgroundColor #F3F2F2
+skinparam defaultFontName Archivo
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundCorner 0
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B6866
+  ArrowColor #6B6866
+  HeaderBackgroundColor #FFFFFF
+}
+skinparam package {
+  BackgroundColor #FBFAFA
+  BorderColor #9A9795
+  FontColor #2B2928
+}
+skinparam class<<retirada>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<cambia>> {
+  BackgroundColor #F6D9D3
+  BorderColor #AE1800
+  HeaderBackgroundColor #F6D9D3
+  FontColor #AE1800
+}
+skinparam class<<nueva>> {
+  BackgroundColor #E3F0E6
+  BorderColor #1F6B35
+  HeaderBackgroundColor #E3F0E6
+}
+hide circle
+hide methods
+
+skinparam nodesep 70
+skinparam ranksep 90
+skinparam padding 4
+skinparam defaultFontSize 15
+
+title Propuesta final (PROPUESTO) — work-order — órdenes de trabajo
+
+package "work-order — órdenes de trabajo" {
+entity "orden_trabajo" as orden_trabajo <<cambia>> {
+  * k_id_orden_trabajo : uuid <<PK>>
+  --
+  * k_id_sede : uuid <<FK>>
+  * f_fecha_mantenimiento : date
+  * n_periodicidad : varchar(10)
+  * t_tipo_servicio : varchar(11)
+  * t_estado_ejecucion : varchar(12)
+  k_id_ingeniero : uuid <<FK>>
+  * b_estado_activo : boolean
+  * b_garantia : boolean
+  t_documento : jsonb
+  * b_documento_tardio : boolean
+}
+entity "orden_trabajo_equipo" as orden_trabajo_equipo <<cambia>> {
+  * k_id_orden_trabajo : uuid <<PK, FK>>
+  * k_id_equipo_cliente : uuid <<PK, FK>>
+  --
+  * b_estado_activo : boolean
+}
+}
+entity "equipo_cliente" as equipo_cliente <<otro modulo>> {
+}
+entity "persona" as persona <<otro modulo>> {
+}
+entity "reporte_servicio" as reporte_servicio <<otro modulo>> {
+}
+entity "sede" as sede <<otro modulo>> {
+}
+orden_trabajo }o--o| persona
+orden_trabajo_equipo }o--|| equipo_cliente
+orden_trabajo_equipo }o--|| orden_trabajo
+reporte_servicio }o--|| orden_trabajo_equipo : k_id_orden_trabajo, k_id_equipo_cliente
+orden_trabajo }o--|| sede
+skinparam class<<otro modulo>> {
+  BackgroundColor #EDEBEA
+  BorderColor #9A9795
+  FontColor #6B6866
+}
+@enduml
