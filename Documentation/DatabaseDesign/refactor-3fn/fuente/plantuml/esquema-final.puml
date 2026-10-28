@@ -40,7 +40,7 @@ skinparam padding 6
 skinparam defaultFontSize 15
 skinparam packageStyle rectangle
 
-title MalphasOS — propuesta final, V42 a V50 (PROPUESTO, 36 tablas)
+title MalphasOS — propuesta final, V42 a V51 (PROPUESTO, 36 tablas)
 
 package "person — personas" {
 entity "persona" as persona <<cambia>> {

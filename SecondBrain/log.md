@@ -2507,3 +2507,20 @@ afirmación del wiki que describía el código sin mirar el esquema que lo hací
 [[dominio-orden-trabajo]] y [[dominio-persona-identidad]]. Y **el arnés de mutaciones había desaparecido**
 del directorio temporal con el cambio de día: se reescribió con su comprobación de que deja el árbol como
 estaba. Nueve mutaciones, nueve muertas.
+
+## [2026-10-28] ingest | V47: la orden llega a su cliente por la sede
+
+Sexta migración de la refactorización. `orden_trabajo.k_id_cliente` dependía de la sede —tercera forma
+normal— y una foránea compuesta (sede, cliente) impedía que se contradijeran. Salen la columna, las dos
+foráneas que la usaban y la restricción única de `sede` que solo existía para la compuesta: las
+compuestas del esquema pasan de **cuatro a tres**.
+
+**El dominio y el API no cambian**: una orden sigue siendo de un cliente. La entidad lo lee de la sede con
+un `@Formula`, de solo lectura, y las consultas derivadas por cliente siguen funcionando porque Hibernate
+las traduce a la subconsulta. Que una orden nueva devuelva su cliente después del `merge` se comprobó con
+las pruebas del adaptador, no se supuso; y una mutación del `@Formula` muere en cuatro.
+
+**Lo que conviene recordar**: `ForeignKeyIndexContractTest` falló al quitar la foránea, como estaba
+pensado —una excepción que ya no hace falta tiene que salir de su lista—, y es la primera vez que esa
+regla de la prueba se ejerce. Y el plan se renumeró: el `V47` que juntaba la orden y la verificación se
+partió en dos, y llega a `V51`. Ver [[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].

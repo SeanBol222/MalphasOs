@@ -344,3 +344,9 @@ El segundo tipo de persona sale; es encargado quien tiene asignaciones, y solo p
 encargados y representantes del cliente. El análisis de [[diseno-base-de-datos]] lo marca en A2. Ningún
 documento oficial cambia todavía, aunque el glosario de la ERS que describa al encargado tendrá que
 decirlo.
+
+## [2026-10-28] ingest | V47 construida, y el plan hasta V51
+
+La orden llega a su cliente por la sede (A3 del análisis de [[diseno-base-de-datos]]). El `V47` del plan
+juntaba esto con la verificación por la unidad, y se partió: la verificación es `V48`, y las tres
+últimas pasan a `V49`–`V51`. Ningún documento oficial cambia.
