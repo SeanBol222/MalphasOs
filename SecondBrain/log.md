@@ -2544,3 +2544,26 @@ unidad leída de la base. El cambio no hacía falta y se deshizo. Y dos correcci
 seguía citando la foránea compuesta que `V47` quitó, y [[esquema-bd-malphasos]] listaba nueve índices
 parciales cuando eran diez —faltaba el de `V35`—. Ver [[dominio-equipo-mantenimiento]] y
 [[hoja-de-ruta-producto]].
+
+## [2026-10-28] ingest | V49: la orden se congela al ejecutarse
+
+Octava migración de la refactorización, y la primera de las que congelan en vez de normalizar. Al
+ejecutar una orden, `WorkOrderDocumentComposer` compone su documento —cabecera, cliente, sede, ingeniero y
+cada equipo con su área y el número de su reporte— y la ficha se lee de él desde entonces. Las órdenes ya
+ejecutadas se congelan en SQL dentro de la propia migración, con el área del puente, y quedan como
+tardías. Un `CHECK` exige el documento a toda ejecutada.
+
+**Se partió el plan otra vez**: el `V49` previsto juntaba esto con quitar la tabla puente. Son `V49` y
+`V50`, y el plan llega a `V52`. Al mirar el puente aparecieron **dos decisiones que el usuario tomó el
+mismo día**: sustituir un reporte cerrado es un botón «Sustituir» que lo retira y abre su borrador en un
+paso —sin el puente, hacerlo en dos dejaría el equipo fuera de la orden entre uno y otro—, y se puede
+sustituir con la orden ya ejecutada sin que su documento cambie; la ficha lo avisa.
+
+**Lo que conviene recordar**: el documento tiene dos autores, Java y el SQL de la migración, y la prueba
+que los compara **ejecuta la sentencia leída del archivo de la migración**, no una copia. Encontró el sitio
+donde los dos podían diferir sin que nadie lo viera —el orden de los equipos: por bytes o por idioma—, y
+la primera versión de la prueba dejaba sobrevivir a «no ordenar» porque los equipos ya entraban en orden;
+se invirtió el orden de inserción. Y una trampa nueva de las pruebas de migración: los triggers de `V19`
+y `V20` buscan sus tablas sin esquema, así que sembrar el esquema de prueba exige una conexión con su
+`search_path`, y esa conexión **hay que devolverla al pool como estaba**. Ver [[dominio-orden-trabajo]],
+[[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].

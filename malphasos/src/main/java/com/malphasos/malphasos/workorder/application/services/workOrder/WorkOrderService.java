@@ -65,6 +65,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     private final PersonCommunicationPort personCommunicationPort;
     private final EventDispatcherPort eventDispatcherPort;
     private final WorkOrderReportsPort workOrderReportsPort;
+    private final WorkOrderDocumentComposer workOrderDocumentComposer;
 
     // ---------------------------------------------------------------------------
     // Consultas
@@ -286,7 +287,8 @@ public class WorkOrderService implements WorkOrderServicePort {
     public WorkOrder execute(ExecuteWorkOrderCommand command) {
         WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
         exigirReportesCerrados(orden);
-        orden.execute();
+        // Se compone solo si ejecutar es posible: si no, el agregado dice por que, sin leer nada de fuera.
+        orden.execute(ejecutable(orden) ? workOrderDocumentComposer.compose(orden) : null);
 
         return persistAndPublish(orden);
     }
@@ -302,7 +304,7 @@ public class WorkOrderService implements WorkOrderServicePort {
      * de una orden sin empezar daría un mensaje que manda a hacer algo que tampoco se puede.
      */
     private void exigirReportesCerrados(WorkOrder orden) {
-        if (orden.getEstadoEjecucion() != ExecutionState.EN_EJECUCION || !orden.isEstadoActivo()) {
+        if (!ejecutable(orden)) {
             return;
         }
 
@@ -315,6 +317,11 @@ public class WorkOrderService implements WorkOrderServicePort {
         if (pendientes > 0) {
             throw new WorkOrderHasOpenReportsException(orden.getId(), (int) pendientes);
         }
+    }
+
+    /** Si el agregado dejaría ejecutarla: activa y en ejecución. */
+    private static boolean ejecutable(WorkOrder orden) {
+        return orden.getEstadoEjecucion() == ExecutionState.EN_EJECUCION && orden.isEstadoActivo();
     }
 
     /**

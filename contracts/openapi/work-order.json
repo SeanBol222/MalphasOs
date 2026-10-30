@@ -22,6 +22,107 @@
         },
         "type" : "object"
       },
+      "WorkOrderDocumentClient" : {
+        "properties" : {
+          "documento" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "WorkOrderDocumentEquipment" : {
+        "properties" : {
+          "area" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "marca" : {
+            "type" : "string"
+          },
+          "modelo" : {
+            "type" : "string"
+          },
+          "numeroHojaVida" : {
+            "type" : "string"
+          },
+          "numeroReporte" : {
+            "description" : "El numero de su reporte vigente al ejecutarse; nulo si no tenia",
+            "type" : "string"
+          },
+          "serie" : {
+            "type" : "string"
+          },
+          "tipo" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "WorkOrderDocumentResponse" : {
+        "properties" : {
+          "cliente" : {
+            "$ref" : "#/components/schemas/WorkOrderDocumentClient"
+          },
+          "equipos" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorkOrderDocumentEquipment"
+            },
+            "type" : "array"
+          },
+          "fechaEjecucion" : {
+            "description" : "Nula si la orden se congelo despues de ejecutarse",
+            "format" : "date",
+            "type" : "string"
+          },
+          "fechaMantenimiento" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "garantia" : {
+            "type" : "boolean"
+          },
+          "ingeniero" : {
+            "type" : "string"
+          },
+          "numero" : {
+            "type" : "string"
+          },
+          "periodicidad" : {
+            "type" : "string"
+          },
+          "sede" : {
+            "$ref" : "#/components/schemas/WorkOrderDocumentSite"
+          },
+          "tipoServicio" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "WorkOrderDocumentSite" : {
+        "properties" : {
+          "ciudad" : {
+            "type" : "string"
+          },
+          "direccion" : {
+            "type" : "string"
+          },
+          "nombre" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "WorkOrderEquipmentRequest" : {
         "properties" : {
           "idEquipoCliente" : {
@@ -69,6 +170,14 @@
       },
       "WorkOrderResponse" : {
         "properties" : {
+          "documento" : {
+            "$ref" : "#/components/schemas/WorkOrderDocumentResponse",
+            "description" : "Lo que la orden era al ejecutarse (V49). Nulo mientras no se ha ejecutado"
+          },
+          "documentoTardio" : {
+            "description" : "El documento se compuso despues de ejecutarla, con los datos de ese dia",
+            "type" : "boolean"
+          },
           "equipos" : {
             "items" : {
               "$ref" : "#/components/schemas/WorkOrderEquipmentResponse"

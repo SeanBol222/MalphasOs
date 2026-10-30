@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.workorder.application.ports.output;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,4 +17,10 @@ public interface WorkOrderReportsPort {
 
     /** Los equipos de la orden cuyo reporte vigente está cerrado. Los retirados no cuentan. */
     Set<UUID> equipmentWithFinishedReport(UUID idOrdenTrabajo);
+
+    /**
+     * El número del reporte vigente de cada equipo de la orden, cerrado o no, por equipo. Lo lleva el
+     * documento con que la orden se congela al ejecutarse (V49).
+     */
+    Map<UUID, String> activeReportNumbers(UUID idOrdenTrabajo);
 }

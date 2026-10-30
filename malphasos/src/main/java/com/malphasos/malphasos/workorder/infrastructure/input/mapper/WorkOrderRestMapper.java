@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.workorder.infrastructure.input.mapper;
 
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.workorder.infrastructure.input.model.response.WorkOrderDocumentResponse;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.response.WorkOrderEquipmentResponse;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.response.WorkOrderResponse;
 import java.util.List;
@@ -34,6 +35,8 @@ public class WorkOrderRestMapper {
                 .idIngeniero(orden.getIdIngeniero())
                 .equipos(equipos)
                 .estadoActivo(orden.isEstadoActivo())
+                .documento(orden.getDocumento() == null ? null : WorkOrderDocumentResponse.from(orden.getDocumento()))
+                .documentoTardio(orden.isDocumentoTardio())
                 .build();
     }
 

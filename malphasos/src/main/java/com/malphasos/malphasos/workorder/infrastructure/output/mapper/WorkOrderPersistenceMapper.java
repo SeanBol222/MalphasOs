@@ -5,6 +5,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
 import com.malphasos.malphasos.workorder.infrastructure.output.entities.WorkOrderEntity;
 import com.malphasos.malphasos.workorder.infrastructure.output.entities.WorkOrderEquipmentEntity;
 import java.util.LinkedHashMap;
@@ -15,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Traduce entre la orden y sus filas.
@@ -26,6 +28,12 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class WorkOrderPersistenceMapper {
+
+    /**
+     * Para la orden congelada (V49). Propio y no el de Spring, como el del informe: lo que se guarda no
+     * puede cambiar de forma porque alguien configure la serialización del API.
+     */
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     public WorkOrder toDomain(WorkOrderEntity entity) {
         // Solo los equipos activos: el agregado responde "sobre qué se trabaja en esta orden", y
@@ -46,7 +54,9 @@ public class WorkOrderPersistenceMapper {
                 ExecutionState.valueOf(entity.getEstadoEjecucion()),
                 entity.getIdIngeniero(),
                 equipos,
-                entity.isEstadoActivo());
+                entity.isEstadoActivo(),
+                entity.getDocumento() == null ? null : JSON.readValue(entity.getDocumento(), WorkOrderDocument.class),
+                entity.isDocumentoTardio());
     }
 
     public List<WorkOrder> toDomainList(List<WorkOrderEntity> entities) {
@@ -73,6 +83,8 @@ public class WorkOrderPersistenceMapper {
         entity.setEstadoEjecucion(orden.getEstadoEjecucion().name());
         entity.setIdIngeniero(orden.getIdIngeniero());
         entity.setEstadoActivo(orden.isEstadoActivo());
+        entity.setDocumento(orden.getDocumento() == null ? null : JSON.writeValueAsString(orden.getDocumento()));
+        entity.setDocumentoTardio(orden.isDocumentoTardio());
 
         sincronizarEquipos(orden, entity);
 

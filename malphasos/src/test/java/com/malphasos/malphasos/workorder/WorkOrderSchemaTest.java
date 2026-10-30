@@ -219,16 +219,22 @@ class WorkOrderSchemaTest {
         return id;
     }
 
+    /** Una ejecutada lleva su documento desde V49; las demás, ninguno. */
     private UUID insertWorkOrderWithState(UUID cliente, UUID sede, String estadoEjecucion) {
+        return insertWorkOrderWithDocument(sede, estadoEjecucion,
+                "EJECUTADA".equals(estadoEjecucion) ? "{}" : null, false);
+    }
+
+    private UUID insertWorkOrderWithDocument(UUID sede, String estadoEjecucion, String documento, boolean tardio) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
                 """
                 INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
                                            f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
-                                           t_estado_ejecucion)
-                VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?)
+                                           t_estado_ejecucion, t_documento, b_documento_tardio)
+                VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO', ?, ?::jsonb, ?)
                 """,
-                id, sede, LocalDate.now(), estadoEjecucion);
+                id, sede, LocalDate.now(), estadoEjecucion, documento, tardio);
 
         return id;
     }
@@ -464,6 +470,24 @@ class WorkOrderSchemaTest {
         UUID sede = insertHeadquarter(cliente);
 
         assertThatCode(() -> insertWorkOrderWithState(cliente, sede, estado))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("una orden ejecutada lleva su documento, y una sin ejecutar no lleva ninguno (V49)")
+    void soloLaEjecutadaLlevaDocumento() {
+        UUID sede = insertHeadquarter(insertClient());
+
+        assertThatThrownBy(() -> insertWorkOrderWithDocument(sede, "EJECUTADA", null, false))
+                .describedAs("ejecutada sin documento: se leeria en vivo sin que nada lo avisara")
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertWorkOrderWithDocument(sede, "EN_EJECUCION", "{}", false))
+                .describedAs("en ejecucion con documento: dos fuentes a la vez")
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertWorkOrderWithDocument(sede, "CREADA", null, true))
+                .describedAs("tardio sin haberse congelado")
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatCode(() -> insertWorkOrderWithDocument(sede, "EJECUTADA", "{}", true))
                 .doesNotThrowAnyException();
     }
 

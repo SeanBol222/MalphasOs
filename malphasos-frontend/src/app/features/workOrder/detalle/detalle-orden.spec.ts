@@ -663,4 +663,90 @@ describe('Ficha de una orden de trabajo', () => {
       desinstalarAlmacenamiento();
     }
   });
+
+  describe('Una orden ejecutada se lee de su documento (V49)', () => {
+    /** Con nombres distintos de los vivos: si la ficha leyera en vivo, la prueba lo vería. */
+    function documento(cambios: object = {}) {
+      return {
+        version: 1,
+        numero: '4F2A9C',
+        tipoServicio: 'PREVENTIVO',
+        garantia: false,
+        periodicidad: 'TRIMESTRAL',
+        fechaMantenimiento: '2026-10-15',
+        fechaEjecucion: '2026-10-20',
+        cliente: { nombre: 'Clínica del día', documento: '900' },
+        sede: { nombre: 'Sede del día', direccion: 'Calle 1 # 2 - 3', ciudad: 'Bogotá' },
+        ingeniero: 'Ingeniera del día',
+        equipos: [
+          {
+            id: ID_EQUIPO,
+            area: 'Área de entonces',
+            tipo: 'Monitor',
+            marca: 'Mindray',
+            modelo: 'iMEC 10',
+            serie: 'SN-0001',
+            numeroHojaVida: 'HV-HCE-0001',
+            numeroReporte: 'AAA111',
+          },
+        ],
+        ...cambios,
+      };
+    }
+
+    function ejecutada(cambios: object = {}, tardio = false) {
+      return {
+        ...orden({
+          estadoEjecucion: 'EJECUTADA',
+          idIngeniero: ID_INGENIERO,
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+        }),
+        documento: documento(cambios),
+        documentoTardio: tardio,
+      };
+    }
+
+    it('cliente, sede, ingeniero y el área de cada equipo son los del día en que se ejecutó', async () => {
+      await abrir(ejecutada(), [
+        reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO', numero: 'AAA111' }),
+      ]);
+
+      expect(texto()).toContain('Clínica del día — Sede del día');
+      expect(texto()).toContain('Ingeniera del día');
+      const grupo = raiz().querySelector('[aria-label="Área de entonces"]');
+      expect(grupo?.textContent).toContain('Monitor Mindray iMEC 10');
+      // El área viva del listado de equipos es «Urgencias»: no se usa.
+      expect(raiz().querySelector('[aria-label="Urgencias"]')).toBeNull();
+      expect(raiz().querySelector('[data-congelada]')?.textContent).toContain(
+        'Congelada al ejecutarse',
+      );
+      expect(texto()).not.toContain('se sustituyó');
+    });
+
+    it('si su reporte se sustituyó después, lo dice y enlaza al vigente', async () => {
+      await abrir(ejecutada(), [
+        reporte({ idEquipoCliente: ID_EQUIPO, estado: 'BORRADOR', numero: 'BBB222' }),
+      ]);
+
+      const fila = raiz().querySelector(`[data-equipo="${ID_EQUIPO}"]`)!;
+      expect(fila.textContent).toContain('Su reporte se sustituyó después de ejecutarla');
+      expect(fila.querySelector('a')?.getAttribute('href')).toBe(`/reportes/${ID_REPORTE}`);
+    });
+
+    it('una congelada después lo dice, para que nadie la lea como la del día', async () => {
+      await abrir(ejecutada({ fechaEjecucion: null }, true), [
+        reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO', numero: 'AAA111' }),
+      ]);
+
+      expect(raiz().querySelector('[data-congelada]')?.textContent).toContain(
+        'Congelada después de ejecutarse',
+      );
+    });
+
+    it('una orden sin ejecutar no dice que esté congelada', async () => {
+      await abrir(orden({ estadoEjecucion: 'EN_EJECUCION' }));
+
+      expect(raiz().querySelector('[data-congelada]')).toBeNull();
+    });
+  });
 });

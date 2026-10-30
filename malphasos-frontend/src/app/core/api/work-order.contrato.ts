@@ -160,6 +160,46 @@ export interface components {
             /** Format: date-time */
             timestamp?: string;
         };
+        WorkOrderDocumentClient: {
+            documento?: string;
+            nombre?: string;
+        };
+        WorkOrderDocumentEquipment: {
+            area?: string;
+            /** Format: uuid */
+            id?: string;
+            marca?: string;
+            modelo?: string;
+            numeroHojaVida?: string;
+            /** @description El numero de su reporte vigente al ejecutarse; nulo si no tenia */
+            numeroReporte?: string;
+            serie?: string;
+            tipo?: string;
+        };
+        WorkOrderDocumentResponse: {
+            cliente?: components["schemas"]["WorkOrderDocumentClient"];
+            equipos?: components["schemas"]["WorkOrderDocumentEquipment"][];
+            /**
+             * Format: date
+             * @description Nula si la orden se congelo despues de ejecutarse
+             */
+            fechaEjecucion?: string;
+            /** Format: date */
+            fechaMantenimiento?: string;
+            garantia?: boolean;
+            ingeniero?: string;
+            numero?: string;
+            periodicidad?: string;
+            sede?: components["schemas"]["WorkOrderDocumentSite"];
+            tipoServicio?: string;
+            /** Format: int32 */
+            version?: number;
+        };
+        WorkOrderDocumentSite: {
+            ciudad?: string;
+            direccion?: string;
+            nombre?: string;
+        };
         WorkOrderEquipmentRequest: {
             /** Format: uuid */
             idEquipoCliente: string;
@@ -181,6 +221,10 @@ export interface components {
             timestamp?: string;
         };
         WorkOrderResponse: {
+            /** @description Lo que la orden era al ejecutarse (V49). Nulo mientras no se ha ejecutado */
+            documento?: components["schemas"]["WorkOrderDocumentResponse"];
+            /** @description El documento se compuso despues de ejecutarla, con los datos de ese dia */
+            documentoTardio?: boolean;
             equipos?: components["schemas"]["WorkOrderEquipmentResponse"][];
             estadoActivo?: boolean;
             /** @enum {string} */
