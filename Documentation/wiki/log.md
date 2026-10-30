@@ -364,3 +364,12 @@ La orden se congela al ejecutarse (B6 y «la orden también se congela» del an�
 puente es `V50`, y las dos últimas pasan a `V51` y `V52`. El análisis recoge además dos decisiones del
 usuario: el botón «Sustituir» y que se puede sustituir con la orden ejecutada. Ningún documento oficial
 cambia.
+
+## [2026-10-28] ingest | V50 construida
+
+Sin tabla puente entre la orden y el equipo: un equipo está en una orden si y solo si tiene en ella un
+reporte activo. El análisis de [[diseno-base-de-datos]] recoge cómo quedó al construirlo: retirar un
+borrador es quitar su equipo de la orden, un cerrado solo se sustituye, el borrador no se escribe hasta
+que la orden empieza y el traslado solo se bloquea si el área cambia. Ningún documento oficial cambia, y
+ningún requisito se mueve: RF-09 sigue diciendo «un reporte por cada equipo seleccionado», que ahora es
+literal.

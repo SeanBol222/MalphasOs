@@ -1,10 +1,10 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 38 tablas, 52 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 37 tablas, 50 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # El esquema de MalphasOS, hoy
@@ -78,19 +78,19 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V49`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V50`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **49** (`V1`…`V49`) |
-| Tablas de dominio | **38** |
-| Llaves foráneas | **52**, de las cuales **2 compuestas** |
+| Migraciones aplicadas | **50** (`V1`…`V50`) |
+| Tablas de dominio | **37** — eran **38** hasta `V50` |
+| Llaves foráneas | **50**, de las cuales **1 compuesta** — eran **52** y **2** hasta `V50` |
 | Restricciones `CHECK` propias | **77** — eran **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **9** — eran **10** hasta `V48` |
 | Foráneas sin ningún índice que las encabece | **1**, la de `intervencion`, que `V51` quita — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
-| Tablas con borrado lógico | **34 de 38** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
+| Tablas con borrado lógico | **33 de 37** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
 > `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
@@ -146,6 +146,12 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   —**+1 `CHECK`**—. Las ya ejecutadas se congelan en SQL dentro de la misma migración, con el área que
 >   guardó el puente, y quedan como tardías. Es la primera migración con un **gemelo en Java**
 >   comprobado: una prueba ejecuta su sentencia y la compara con lo que compone `WorkOrderDocumentComposer`.
+> - `V50`, **sin tabla puente**: sale `orden_trabajo_equipo` —una tabla y sus tres foráneas, la del área
+>   incluida— y con ella la compuesta del reporte contra el puente, que cambia por dos simples a la orden y
+>   al equipo, cuyos índices ya existían —**−1 tabla, −2 foráneas netas, −1 compuesta**—. Un equipo está en
+>   una orden si y solo si tiene en ella un reporte activo, así que antes de quitarla la migración da su
+>   borrador a cada equipo del puente sin reporte: en desarrollo fueron cinco, con sus pasos del protocolo
+>   los preventivos. Se recontó con el guion de abajo, que **falló** hasta quitar el puente del diagrama.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -707,11 +713,10 @@ erDiagram
   del tipo y se reactivan con su prioridad nueva, en la misma transacción. Es la tercera vez que un
   índice parcial obliga a imponer el orden en el adaptador.
 
-## `work-order` — 2 tablas
+## `work-order` — 1 tabla
 
 ```mermaid
 erDiagram
-    orden_trabajo ||--o{ orden_trabajo_equipo : "incluye"
     orden_trabajo {
         uuid k_id_orden_trabajo PK
         uuid k_id_sede FK "y por ella su cliente, desde V47"
@@ -724,22 +729,20 @@ erDiagram
         jsonb t_documento "la orden al ejecutarse, V49; nulo antes"
         boolean b_documento_tardio "congelada despues, por V49"
     }
-    orden_trabajo_equipo {
-        uuid k_id_orden_trabajo PK, FK
-        uuid k_id_equipo_cliente PK, FK
-        uuid k_id_area_servicio FK
-        boolean b_estado_activo
-    }
 ```
 
-**`orden_trabajo_equipo` se identifica por el par**, sin identificador propio: un equipo está en una
-orden o no está, y no hay nada que decir dos veces sobre eso.
+**Sus equipos no tienen tabla desde `V50`**: un equipo está en una orden si y solo si tiene en ella un
+reporte activo, y el reporte apunta a la orden y al equipo. Hasta entonces los guardaba
+`orden_trabajo_equipo`, identificada por el par y con el área en que estaba cada equipo al seleccionarlo;
+el área la guarda ahora el documento de la orden al ejecutarse, y mientras no se ejecuta sus equipos no se
+trasladan —regla del servicio—.
 
 ## `report` — 5 tablas
 
 ```mermaid
 erDiagram
-    orden_trabajo_equipo ||--o{ reporte_servicio : "se reporta en"
+    orden_trabajo ||--o{ reporte_servicio : "pone sus equipos, desde V50"
+    equipo_cliente ||--o{ reporte_servicio : "se reporta en"
     reporte_servicio ||--o{ dato_verificacion : "registra"
     reporte_servicio ||--o{ paso_reporte : "lleva, desde V22"
     reporte_servicio ||--o{ patron_verificacion_reporte : "se midio contra, desde V30"
@@ -785,8 +788,8 @@ erDiagram
     }
     reporte_servicio {
         uuid k_id_reporte_servicio PK
-        uuid k_id_orden_trabajo FK "el par va junto a"
-        uuid k_id_equipo_cliente FK "orden_trabajo_equipo"
+        uuid k_id_orden_trabajo FK "UK parcial con el equipo: uno activo"
+        uuid k_id_equipo_cliente FK "simple desde V50"
         varchar t_estado_reporte
         varchar t_falla_reportada
         varchar t_diagnostico
@@ -843,10 +846,13 @@ los del día en que se abrió el reporte. Pero aquí **sí** hay foránea al pro
 anterior: un protocolo nunca se borra, solo se retira, así que la foránea dice de cuál salió el paso sin
 congelar nada. Ver [[dominio-reporte-servicio]].
 
-## Las 2 foráneas compuestas, que son reglas y no adornos
+## La foránea compuesta, que es una regla y no un adorno
 
-Una foránea compuesta impone en el esquema algo que con dos foráneas sueltas quedaría abierto. Son
-dos y cada una tapa un estado que de otro modo se podría escribir. (Eran **cuatro** hasta `V47`, el
+Una foránea compuesta impone en el esquema algo que con dos foráneas sueltas quedaría abierto. Queda
+una, y tapa un estado que de otro modo se podría escribir. (Eran **dos** hasta `V50`, el 2026-10-28: la
+del reporte contra el puente impedía un reporte de un equipo que la orden no incluyó, y salió con el
+puente: desde entonces es el reporte el que incluye al equipo, y que sea de la sede de la orden lo
+comprueba el servicio al añadirlo.) (Eran **cuatro** hasta `V47`, el
 2026-10-28: la de la orden con su cliente impedía una orden en una sede de otro cliente, y dejó de hacer
 falta cuando la orden dejó de guardar su cliente —ya no hay dos datos que puedan contradecirse—. Y
 **tres** hasta `V48`, ese mismo día: la de la verificación con su magnitud impedía medir temperatura en
@@ -854,10 +860,9 @@ falta cuando la orden dejó de guardar su cliente —ya no hay dos datos que pue
 
 | Tabla | El par | Lo que impide |
 |---|---|---|
-| `reporte_servicio` | (orden, equipo) → `orden_trabajo_equipo` | Un reporte de un equipo **que la orden no incluyó** |
 | `dato_verificacion` | (verificación, punto) → `punto_verificacion` | Una lectura en un punto **de otra verificación** |
 
-**Y las dos admiten el caso nulo sin una regla extra**: una foránea compuesta con alguna columna
+**Y admite el caso nulo sin una regla extra**: una foránea compuesta con alguna columna
 nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
 lectura sin punto pasa y la que trae punto queda atada.
 

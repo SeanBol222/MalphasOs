@@ -466,8 +466,10 @@ ejecuta sin documento, y el esquema lo exige a toda ejecutada.
 
 **Y tiene un gemelo en SQL**: `V49` congeló las órdenes que ya estaban ejecutadas —con el área del puente,
 que aún existe, y marcadas como tardías, sin fecha de ejecución—. Los dos escriben la misma forma, y
-`WorkOrderFrozenDocumentTest` **ejecuta la sentencia de la propia migración**, leída del archivo, y la
-compara con lo que compone Java. Los datos de la prueba están elegidos para que cada diferencia conocida
+`WorkOrderFrozenDocumentTest` **ejecutaba la sentencia de la propia migración**, leída del archivo, y la
+comparaba con lo que compone Java. (Desde `V50`, que quitó el puente que esa sentencia lee, **aplica la
+migración de verdad**: siembra los mismos datos con los mismos identificadores en la base principal, donde
+Java ejecuta la orden, y en un esquema aparte migrado hasta `V48`, donde corre `V49`; y compara.) Los datos de la prueba están elegidos para que cada diferencia conocida
 salte: un área con tilde —por bytes va después de la «Z», por el idioma antes, y por eso los dos ordenan
 por bytes—, espacios en la dirección y un segundo nombre en blanco. Cinco mutaciones —quitar el orden,
 ordenar por idioma, otra dirección, el SQL sin recortar, el área de hoy en vez de la del puente— mueren.
@@ -478,6 +480,42 @@ el número de entonces, y la ficha dice «Su reporte se sustituyó después de e
 
 En desarrollo, una de las dos ejecutadas quedó con la lista de equipos vacía, y es fiel: se ejecutó sin
 ningún equipo en el puente, antes de que ejecutar exigiera los reportes cerrados.
+
+## Sin tabla puente (2026-10-28, `V50`)
+
+Propuesto por el usuario con el análisis del esquema: `orden_trabajo_equipo` y `reporte_servicio` guardaban
+el mismo hecho —«este equipo está en esta orden»— y podían contradecirse; en desarrollo, cinco equipos
+estaban en una orden sin reporte. Desde `V50` **un equipo está en una orden si y solo si tiene en ella un
+reporte activo**, y el agregado ya no guarda equipos: `SelectedEquipment` y los dos eventos de equipos —sin
+consumidor, como los otros cinco— salieron con la tabla.
+
+| Antes | Desde `V50` |
+|---|---|
+| Añadir un equipo era una fila del puente con su área | Es **abrir su borrador**, con los pasos del protocolo si es preventivo, aunque la orden esté creada |
+| Un reporte se abría aparte, con la orden empezada | **No se abre**: nace al añadir el equipo. Lo que espera a que la orden empiece es **escribir** en él |
+| Quitar un equipo apagaba su fila | Es **retirar su borrador**; uno con el reporte cerrado no sale |
+| Corregir un cerrado era retirarlo y abrir otro | Es **«Sustituir»**, un solo paso: sin el puente, en dos el equipo quedaba fuera de la orden entre uno y otro |
+| Ejecutar contaba los equipos del puente sin reporte cerrado | Cuenta los reportes activos en borrador |
+| El área de cada equipo la congelaba el puente | Es la de hoy: **mientras la orden no se ejecuta, sus equipos no se trasladan**. Al ejecutarla, su documento la guarda |
+
+**Las cuatro reglas las aceptó el usuario** y están en `Documentation/DatabaseDesign/analisis-2026-10-27.md`,
+con las dos decisiones del 2026-10-28: un botón «Sustituir», y que se pueda sustituir con la orden ya
+ejecutada sin que su documento cambie.
+
+**Dos inversiones de dependencias más.** `WorkOrderReportsPort`, que ya existía para la regla de ejecutar,
+pasó de contestar preguntas a abrir y retirar borradores y a decir qué equipos tiene cada orden —una
+consulta para todo un listado—. Y `equipment` declara `WorkOrderAttendancePort` para el traslado, que
+contesta `report` con una consulta a su propia tabla cruzada con `orden_trabajo`: preguntárselo al servicio
+de órdenes cerraría un ciclo entre beans, porque ese servicio depende de `equipment`. Por la misma razón el
+borrador lo abre `ServiceReportDrafts` y no el servicio de reportes, que depende del de órdenes.
+
+**La respuesta de una orden cambió**: cada equipo lleva su reporte en vez de su área. El área la da el
+listado de equipos, y la de una orden ejecutada, su documento.
+
+**El relleno**: cada equipo del puente sin reporte activo recibió su borrador —ninguno en una orden
+ejecutada, que ya está congelada, y sí en una cancelada, para que siga diciendo qué equipos tenía—, y el
+borrador de un equipo que ya se había sacado de la orden se retiró, mientras su cerrado se conserva. Lo
+prueba `WorkOrderWithoutBridgeMigrationTest`, con un caso por regla.
 
 ## Lo que falta
 

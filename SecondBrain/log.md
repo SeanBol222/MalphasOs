@@ -2567,3 +2567,30 @@ se invirtió el orden de inserción. Y una trampa nueva de las pruebas de migrac
 y `V20` buscan sus tablas sin esquema, así que sembrar el esquema de prueba exige una conexión con su
 `search_path`, y esa conexión **hay que devolverla al pool como estaba**. Ver [[dominio-orden-trabajo]],
 [[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].
+
+## [2026-10-28] ingest | V50: sin tabla puente entre la orden y el equipo
+
+Novena migración de la refactorización. `orden_trabajo_equipo` y `reporte_servicio` guardaban el mismo
+hecho y podían contradecirse —en desarrollo, cinco equipos estaban en una orden sin reporte—; desde `V50`
+**un equipo está en una orden si y solo si tiene en ella un reporte activo**. Añadir un equipo abre su
+borrador, quitarlo lo retira, un cerrado se corrige con «Sustituir» en un solo paso, ejecutar exige que
+ningún reporte activo siga en borrador y un equipo en una orden sin ejecutar no se traslada. La migración
+dio su borrador a los cinco, con los pasos del protocolo los preventivos, y quitó la tabla: 37 tablas, 50
+foráneas, una sola compuesta.
+
+**Cuatro decisiones de detalle**, dentro de lo aprobado y escritas en el análisis: un cerrado no se
+retira por su cuenta, el borrador no se escribe hasta que la orden empieza —lo comprueban las nueve
+escrituras del reporte, y una prueba las recorre todas—, el traslado solo se frena si el área cambia, y el
+borrador lo abre una pieza propia de `report`, `ServiceReportDrafts`.
+
+**Lo que conviene recordar**: tres ciclos entre beans que el diseño tuvo que esquivar, y los tres por la
+misma razón —quien contesta un puerto invertido no puede usar el servicio del módulo que pregunta—. Por eso
+el borrador no lo abre el servicio de reportes, y el traslado se contesta con una consulta a la tabla de
+reportes cruzada con la de órdenes, no preguntando al servicio de órdenes. Y la prueba gemela de `V49`
+dejó de poder ejecutar la sentencia de su relleno, que lee el puente: ahora **aplica la migración de
+verdad** sobre un esquema en `V48` con los mismos datos y los mismos identificadores que la base
+principal, y compara. Al hacerlo apareció que otras pruebas borran países sembrados por `V7`, de modo
+que un código ISO libre en una base no lo está en la otra. 27 mutaciones del backend y 13 del frontend,
+todas muertas; dos de ellas obligaron a escribir la comprobación de que retirar y quitar caducan también
+la caché del otro módulo. Ver [[dominio-orden-trabajo]], [[dominio-reporte-servicio]],
+[[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].
