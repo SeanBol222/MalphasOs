@@ -90,7 +90,7 @@ class ServiceReportDocumentTest {
         reporte.finish(UnDocumento.CUALQUIERA);
         ReportDocument otro = new ReportDocument(ReportDocument.VERSION, UnDocumento.CUALQUIERA.orden(),
                 UnDocumento.CUALQUIERA.cliente(), UnDocumento.CUALQUIERA.equipo(), List.of(), null, "Otra persona",
-                null);
+                null, List.of(), List.of());
 
         assertThatIllegalStateException().isThrownBy(() -> reporte.freezeLate(otro));
         assertThat(reporte.getDocumento()).isEqualTo(UnDocumento.CUALQUIERA);

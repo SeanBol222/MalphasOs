@@ -96,16 +96,20 @@ export class DetalleReporte {
   /** Los pasos del protocolo, en su orden. Vacia en un correctivo o en un reporte anterior a ellos. */
   protected readonly pasos = computed(() => this.reporte.data()?.pasos ?? []);
 
-  /** El paso al que se le esta escribiendo la nota de «no aplica», y lo escrito. */
-  protected readonly notaEnCurso = signal<{ orden: number; texto: string } | null>(null);
+  /**
+   * El paso al que se le esta escribiendo la nota de «no aplica», por su protocolo, y lo escrito. Desde V51
+   * un paso se nombra por su protocolo: su posicion es la del catalogo, y un paso que el tipo ya no tiene
+   * no la tiene.
+   */
+  protected readonly notaEnCurso = signal<{ idProtocolo: string; texto: string } | null>(null);
 
   /** Hecho y pendiente se alternan con la casilla; un «no aplica» se deshace con ella tambien. */
   protected alternarHecho(paso: PasoDeReporte): void {
-    this.marcar(paso.orden!, paso.estado === 'HECHO' ? 'PENDIENTE' : 'HECHO');
+    this.marcar(paso.idProtocolo!, paso.estado === 'HECHO' ? 'PENDIENTE' : 'HECHO');
   }
 
   protected empezarNoAplica(paso: PasoDeReporte): void {
-    this.notaEnCurso.set({ orden: paso.orden!, texto: paso.nota ?? '' });
+    this.notaEnCurso.set({ idProtocolo: paso.idProtocolo!, texto: paso.nota ?? '' });
   }
 
   /**
@@ -119,17 +123,19 @@ export class DetalleReporte {
       return;
     }
 
-    this.marcar(enCurso.orden, 'NO_APLICA', enCurso.texto.trim(), () => this.notaEnCurso.set(null));
+    this.marcar(enCurso.idProtocolo, 'NO_APLICA', enCurso.texto.trim(), () =>
+      this.notaEnCurso.set(null),
+    );
   }
 
   private marcar(
-    orden: number,
+    idProtocolo: string,
     estado: EstadoDePaso,
     nota?: string,
     alTerminar?: () => void,
   ): void {
     this.marca.mutate(
-      { id: this.id(), orden, marca: { estado, ...(nota ? { nota } : {}) } },
+      { id: this.id(), idProtocolo, marca: { estado, ...(nota ? { nota } : {}) } },
       { onSuccess: () => alTerminar?.() },
     );
   }

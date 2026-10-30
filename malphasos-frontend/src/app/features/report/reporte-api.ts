@@ -226,7 +226,8 @@ export class ReporteApi {
 
   /** Cierra el reporte. Desde aqui ya no cambia: corregirlo es sustituirlo. */
   /**
-   * Marca un paso del protocolo: hecho, no aplica —con nota— o pendiente otra vez.
+   * Marca un paso del protocolo: hecho, no aplica —con nota— o pendiente otra vez. El paso se nombra por su
+   * protocolo desde V51, que un reporte no repite.
    *
    * <p>Cada casilla se guarda al pulsarla, asi que esto se llama mucho. Por eso no invalida y recarga:
    * pone en la cache la respuesta, que ya es el reporte entero con el paso marcado. Recargar en cada
@@ -234,9 +235,17 @@ export class ReporteApi {
    */
   marcarPaso() {
     return injectMutation(() => ({
-      mutationFn: ({ id, orden, marca }: { id: string; orden: number; marca: MarcaDePaso }) =>
+      mutationFn: ({
+        id,
+        idProtocolo,
+        marca,
+      }: {
+        id: string;
+        idProtocolo: string;
+        marca: MarcaDePaso;
+      }) =>
         firstValueFrom(
-          this.http.patch<ReporteDeServicio>(`${this.url}/${id}/steps/${orden}`, marca),
+          this.http.patch<ReporteDeServicio>(`${this.url}/${id}/steps/${idProtocolo}`, marca),
         ),
       onSuccess: (reporte: ReporteDeServicio) =>
         this.queryClient.setQueryData(ReporteApi.claveDetalle(reporte.id!), reporte),

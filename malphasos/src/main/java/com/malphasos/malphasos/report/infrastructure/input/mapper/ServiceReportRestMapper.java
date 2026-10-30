@@ -1,6 +1,10 @@
 package com.malphasos.malphasos.report.infrastructure.input.mapper;
 
+import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
+import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.HandoverResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.IntakeCheckResponse;
@@ -9,32 +13,47 @@ import com.malphasos.malphasos.report.infrastructure.input.model.response.Report
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ServiceReportResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.UsedReferenceStandardResponse;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.VerificationReadingResponse;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
  * Traduce el agregado a la respuesta del API, solo en esa dirección.
  *
  * <p>A mano y no con MapStruct: las lecturas que salen son <b>las vigentes</b>, no todas las que el
- * agregado guarda, y esa no es una correspondencia de campos que un generador pueda adivinar.
+ * agregado guarda, y esa no es una correspondencia de campos que un generador pueda adivinar. Y desde V51
+ * junta dos fuentes: el reporte, con lo que es suyo, y su catálogo —{@link ReportCatalog}—, con lo que dice
+ * de sus pasos, verificaciones y patrones sin guardarlo.
  */
 @Component
 public class ServiceReportRestMapper {
 
-    public ServiceReportResponse toResponse(ServiceReport reporte) {
+    public ServiceReportResponse toResponse(ServiceReport reporte, ReportCatalog catalogo) {
         List<VerificationReadingResponse> lecturas = reporte.lecturasActivas().stream()
-                .map(lectura -> new VerificationReadingResponse(
-                        lectura.id(),
-                        lectura.idVerificacion(),
-                        lectura.idPuntoVerificacion(),
-                        lectura.secuencia(),
-                        lectura.valorPatron(),
-                        lectura.valorEquipo(),
-                        lectura.unidad(),
-                        lectura.tolerancia(),
-                        lectura.error(),
-                        lectura.conforme()))
+                .map(lectura -> {
+                    ReportDocument.Verificacion verificacion = catalogo.verificacion(lectura.idVerificacion())
+                            .orElse(null);
+                    java.math.BigDecimal tolerancia = verificacion == null ? null : verificacion.tolerancia();
+
+                    return new VerificationReadingResponse(
+                            lectura.id(),
+                            lectura.idVerificacion(),
+                            lectura.idPuntoVerificacion(),
+                            lectura.secuencia(),
+                            lectura.valorPatron(),
+                            lectura.valorEquipo(),
+                            verificacion == null ? null : verificacion.unidad(),
+                            tolerancia,
+                            lectura.error(),
+                            lectura.conforme(tolerancia));
+                })
                 .toList();
+        Map<UUID, Integer> posicion = new java.util.HashMap<>();
+        for (int i = 0; i < catalogo.pasos().size(); i++) {
+            posicion.put(catalogo.pasos().get(i).idProtocolo(), i);
+        }
 
         return ServiceReportResponse.builder()
                 .id(reporte.getId())
@@ -49,20 +68,10 @@ public class ServiceReportRestMapper {
                 .causa(reporte.getCausa())
                 .repuestos(reporte.getRepuestos())
                 .patrones(reporte.patronesActivos().stream()
-                        .map(usado -> new UsedReferenceStandardResponse(
-                                usado.idVerificacion(),
-                                usado.patron().id(),
-                                usado.patron().nombre(),
-                                usado.patron().marca(),
-                                usado.patron().serie(),
-                                usado.patron().certificado(),
-                                usado.patron().vencimiento(),
-                                usado.patron().modelo(),
-                                usado.patron().codigoInterno(),
-                                usado.patron().rango(),
-                                usado.patron().resolucion(),
-                                usado.patron().fechaCalibracion(),
-                                usado.patron().empresaCalibradora()))
+                        .map(usado -> patron(usado.idVerificacion(),
+                                catalogo.patron(usado.idVerificacion(), usado.idEquipoPatron()).orElseThrow(() ->
+                                        new IllegalStateException("El catalogo del reporte " + reporte.numero()
+                                                + " no trae la ficha del patron " + usado.idEquipoPatron()))))
                         .toList())
                 .ingresoFisico(ingreso(reporte.getIngresoFisico()))
                 .ingresoOperativo(ingreso(reporte.getIngresoOperativo()))
@@ -79,14 +88,20 @@ public class ServiceReportRestMapper {
                 .finalizado(reporte.getFinalizado())
                 .lecturas(lecturas)
                 .pasos(reporte.getPasos().stream()
-                        .map(paso -> new ReportStepResponse(
-                                paso.orden(),
-                                paso.idProtocolo(),
-                                paso.nombre(),
-                                paso.descripcion(),
-                                paso.indicacion(),
-                                paso.estado(),
-                                paso.nota()))
+                        .sorted(Comparator.comparing((ReportStep paso) ->
+                                posicion.getOrDefault(paso.idProtocolo(), Integer.MAX_VALUE)))
+                        .map(paso -> {
+                            ReportDocument.Paso texto = catalogo.paso(paso.idProtocolo()).orElse(null);
+
+                            return new ReportStepResponse(
+                                    texto == null ? null : texto.orden(),
+                                    paso.idProtocolo(),
+                                    texto == null ? null : texto.nombre(),
+                                    texto == null ? null : texto.descripcion(),
+                                    texto == null ? null : texto.indicacion(),
+                                    paso.estado(),
+                                    paso.nota());
+                        })
                         .toList())
                 .estadoActivo(reporte.isEstadoActivo())
                 .build();
@@ -96,7 +111,9 @@ public class ServiceReportRestMapper {
         return verificacion == null ? null : new IntakeCheckResponse(verificacion.estado(), verificacion.observacion());
     }
 
-    public List<ServiceReportResponse> toList(List<ServiceReport> reportes) {
-        return reportes.stream().map(this::toResponse).toList();
+    private static UsedReferenceStandardResponse patron(UUID idVerificacion, UsedReferenceStandard ficha) {
+        return new UsedReferenceStandardResponse(idVerificacion, ficha.id(), ficha.nombre(), ficha.marca(),
+                ficha.serie(), ficha.certificado(), ficha.vencimiento(), ficha.modelo(), ficha.codigoInterno(),
+                ficha.rango(), ficha.resolucion(), ficha.fechaCalibracion(), ficha.empresaCalibradora());
     }
 }

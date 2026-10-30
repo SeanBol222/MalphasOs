@@ -421,6 +421,7 @@
             "type" : "string"
           },
           "idProtocolo" : {
+            "description" : "Es el que se usa para marcarlo: un reporte no repite protocolo",
             "format" : "uuid",
             "type" : "string"
           },
@@ -436,7 +437,7 @@
             "type" : "string"
           },
           "orden" : {
-            "description" : "1 el primero. Es el que se usa para marcarlo",
+            "description" : "1 el primero: la prioridad del protocolo en el tipo. Nulo si el tipo ya no lo tiene, y entonces va al final",
             "format" : "int32",
             "type" : "integer"
           }
@@ -1825,9 +1826,9 @@
         "tags" : [ "ServiceReport" ]
       }
     },
-    "/v1/api/reports/{id}/steps/{orden}" : {
+    "/v1/api/reports/{id}/steps/{idProtocolo}" : {
       "patch" : {
-        "description" : "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.",
+        "description" : "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El paso se nombra por su protocolo, que un reporte no repite. Solo en un borrador.",
         "operationId" : "markStep",
         "parameters" : [ {
           "in" : "path",
@@ -1839,11 +1840,11 @@
           }
         }, {
           "in" : "path",
-          "name" : "orden",
+          "name" : "idProtocolo",
           "required" : true,
           "schema" : {
-            "format" : "int32",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "requestBody" : {

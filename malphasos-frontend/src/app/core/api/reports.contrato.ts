@@ -209,7 +209,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/api/reports/{id}/steps/{orden}": {
+    "/v1/api/reports/{id}/steps/{idProtocolo}": {
         parameters: {
             query?: never;
             header?: never;
@@ -224,7 +224,7 @@ export interface paths {
         head?: never;
         /**
          * Marcar un paso del protocolo
-         * @description HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del paso dentro del reporte. Solo en un borrador.
+         * @description HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El paso se nombra por su protocolo, que un reporte no repite. Solo en un borrador.
          */
         patch: operations["markStep"];
         trace?: never;
@@ -456,7 +456,10 @@ export interface components {
             descripcion?: string;
             /** @enum {string} */
             estado?: "PENDIENTE" | "HECHO" | "NO_APLICA";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Es el que se usa para marcarlo: un reporte no repite protocolo
+             */
             idProtocolo?: string;
             /** @description Lo propio del tipo del equipo. Nula si no hay */
             indicacion?: string;
@@ -465,7 +468,7 @@ export interface components {
             nota?: string;
             /**
              * Format: int32
-             * @description 1 el primero. Es el que se usa para marcarlo
+             * @description 1 el primero: la prioridad del protocolo en el tipo. Nulo si el tipo ya no lo tiene, y entonces va al final
              */
             orden?: number;
         };
@@ -1486,7 +1489,7 @@ export interface operations {
             header?: never;
             path: {
                 id: string;
-                orden: number;
+                idProtocolo: string;
             };
             cookie?: never;
         };

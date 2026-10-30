@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.report.application.ports.input;
 
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
+import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
@@ -48,6 +49,12 @@ public interface ServiceReportServicePort {
      *     existe o si queda fuera del alcance
      */
     ServiceReport findById(UUID id, ReadScope alcance);
+
+    /**
+     * Lo que el reporte dice de sus pasos, verificaciones y patrones y no guarda en sus filas (V51): del
+     * documento si está cerrado, del catálogo si es borrador. Se pide de un reporte ya leído con su alcance.
+     */
+    ReportCatalog catalogOf(ServiceReport reporte);
 
     /**
      * El avance de los reportes de cada orden del alcance que tenga alguno vivo: lo que el listado de

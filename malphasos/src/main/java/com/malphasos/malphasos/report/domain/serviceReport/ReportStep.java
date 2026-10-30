@@ -3,39 +3,27 @@ package com.malphasos.malphasos.report.domain.serviceReport;
 import java.util.UUID;
 
 /**
- * Un protocolo del preventivo copiado en el reporte, y si se hizo.
+ * Un paso del protocolo en el reporte, y si se hizo.
  *
- * <p><b>Es una copia, no una referencia</b>: nombre, descripción e indicación son los que el protocolo
- * tenía el día que se abrió el reporte. Editar el protocolo después no cambia lo que dice un reporte
- * viejo, decidido por el usuario el 2026-10-10. {@code idProtocolo} se guarda solo para saber de cuál
- * salió.
+ * <p><b>Guarda solo lo que es del reporte</b> desde {@code V51} (2026-10-28): de qué protocolo salió, en qué
+ * estado quedó y la nota. Hasta entonces copiaba también el nombre, la descripción, la indicación y la
+ * posición que el protocolo tenía al abrir el reporte. Decidido por el usuario con el análisis del esquema:
+ * mientras el reporte es borrador todo eso se lee en vivo del protocolo y del tipo, y al cerrarse queda en
+ * su documento. Un reporte no repite protocolo, como un tipo tampoco: por eso el protocolo lo identifica.
  *
  * <p>No es un agregado: no tiene vida fuera de su reporte, y se marca a través de él.
- *
- * @param orden la prioridad que el protocolo tenía en el tipo del equipo, 1 el primero
  */
-public record ReportStep(
-        UUID id,
-        int orden,
-        UUID idProtocolo,
-        String nombre,
-        String descripcion,
-        String indicacion,
-        StepState estado,
-        String nota) {
+public record ReportStep(UUID id, UUID idProtocolo, StepState estado, String nota) {
 
     static final int LARGO_NOTA = 300;
 
-    /** Un paso recién copiado del protocolo: pendiente y sin nota. */
-    public static ReportStep copied(int orden, UUID idProtocolo, String nombre, String descripcion, String indicacion) {
-        if (orden < 1 || idProtocolo == null || nombre == null || nombre.isBlank()
-                || descripcion == null || descripcion.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Un paso del protocolo necesita su orden, su protocolo, su nombre y su descripción");
+    /** Un paso de un protocolo, pendiente y sin nota: como nace al abrir el borrador. */
+    public static ReportStep pending(UUID idProtocolo) {
+        if (idProtocolo == null) {
+            throw new IllegalArgumentException("Un paso del protocolo necesita su protocolo");
         }
 
-        return new ReportStep(UUID.randomUUID(), orden, idProtocolo, nombre, descripcion,
-                indicacion == null || indicacion.isBlank() ? null : indicacion, StepState.PENDIENTE, null);
+        return new ReportStep(UUID.randomUUID(), idProtocolo, StepState.PENDIENTE, null);
     }
 
     /**
@@ -48,16 +36,15 @@ public record ReportStep(
         }
 
         String nota = nuevaNota == null || nuevaNota.isBlank() ? null : nuevaNota.trim();
-
         if (nota != null && nota.length() > LARGO_NOTA) {
             throw new IllegalArgumentException("La nota de un paso tiene como mucho " + LARGO_NOTA + " caracteres");
         }
         if (nuevoEstado == StepState.NO_APLICA && nota == null) {
             throw new IllegalArgumentException(
-                    "Para marcar «" + nombre + "» como que no aplica hay que decir por qué en la nota");
+                    "Para marcar un paso como que no aplica hay que decir por qué en la nota");
         }
 
-        return new ReportStep(id, orden, idProtocolo, nombre, descripcion, indicacion, nuevoEstado, nota);
+        return new ReportStep(id, idProtocolo, nuevoEstado, nota);
     }
 
     public boolean marcado() {

@@ -117,14 +117,27 @@ class ServiceReportFinishedListenerTest {
         // Decidido por el usuario el 2026-10-10. Antes de V22 la linea copiaba el texto a secas, y con
         // pasos ese texto es opcional: la linea habria podido quedar vacia.
         laOrdenEsDeTipo(ServiceType.PREVENTIVO);
+        // Desde V51 los nombres salen del documento con que se cerró; las filas solo dicen qué se marcó.
+        UUID limpieza = UUID.randomUUID();
+        UUID bateria = UUID.randomUUID();
+        com.malphasos.malphasos.report.domain.serviceReport.ReportDocument d =
+                com.malphasos.malphasos.report.UnDocumento.CUALQUIERA;
+        com.malphasos.malphasos.report.domain.serviceReport.ReportDocument documento =
+                new com.malphasos.malphasos.report.domain.serviceReport.ReportDocument(d.version(), d.orden(),
+                        d.cliente(), d.equipo(), d.verificaciones(), d.empresa(), d.ingeniero(),
+                        d.huellaFirmaIngeniero(), java.util.List.of(
+                                new com.malphasos.malphasos.report.domain.serviceReport.ReportDocument.Paso(
+                                        limpieza, 1, "Limpieza", "D", null),
+                                new com.malphasos.malphasos.report.domain.serviceReport.ReportDocument.Paso(
+                                        bateria, 2, "Batería", "D", null)),
+                        java.util.List.of());
         ServiceReport conPasos = ServiceReport.rehydrate(REPORTE, ORDEN, EQUIPO, ReportState.FINALIZADO,
-                null, null, "Cambio de pila", null, ServiceResult.OPERATIVO, CERRADO, java.util.List.of(),
+                null, null, "Cambio de pila", null, null, null, java.util.List.of(), null, null, java.util.List.of(),
+                null, ServiceResult.OPERATIVO, CERRADO, java.util.List.of(),
                 java.util.List.of(
-                        new ReportStep(UUID.randomUUID(), 1, UUID.randomUUID(), "Limpieza", "D", null,
-                                StepState.HECHO, null),
-                        new ReportStep(UUID.randomUUID(), 2, UUID.randomUUID(), "Batería", "D", null,
-                                StepState.NO_APLICA, "No tiene")),
-                true);
+                        new ReportStep(UUID.randomUUID(), limpieza, StepState.HECHO, null),
+                        new ReportStep(UUID.randomUUID(), bateria, StepState.NO_APLICA, "No tiene")),
+                true, documento, false, null);
         when(serviceReportServicePort.findById(REPORTE, ReadScope.unrestricted())).thenReturn(conPasos);
 
         listener.onReportFinished(elCierre(ServiceResult.OPERATIVO));

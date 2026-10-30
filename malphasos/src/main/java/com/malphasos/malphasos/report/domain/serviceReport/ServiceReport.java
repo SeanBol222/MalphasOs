@@ -165,10 +165,10 @@ public class ServiceReport extends AggregateRoot {
         if (lecturas != null) {
             this.lecturas.addAll(lecturas);
         }
+        // Sin orden propio desde V51: la posición de cada paso es la de su protocolo en el tipo, y la dice
+        // el catálogo en un borrador y el documento en uno cerrado.
         if (pasos != null) {
-            pasos.stream()
-                    .sorted((a, b) -> Integer.compare(a.orden(), b.orden()))
-                    .forEach(this.pasos::add);
+            this.pasos.addAll(pasos);
         }
     }
 
@@ -198,13 +198,14 @@ public class ServiceReport extends AggregateRoot {
      * del protocolo que se le den —los del preventivo del tipo del equipo— pendientes y en su orden.
      *
      * <p>Qué pasos le tocan lo decide el servicio, que es quien sabe el tipo de servicio de la orden y
-     * el tipo del equipo. Aquí solo se exige que no se repita un orden.
+     * el tipo del equipo. Aquí solo se exige que no se repita un protocolo: es lo que identifica un paso
+     * desde V51, y lo mismo que impide el índice único de la tabla.
      */
     public static ServiceReport open(UUID idOrdenTrabajo, UUID idEquipoCliente, List<ReportStep> pasos) {
         List<ReportStep> copiados = pasos == null ? List.of() : List.copyOf(pasos);
 
-        if (copiados.stream().map(ReportStep::orden).distinct().count() != copiados.size()) {
-            throw new IllegalArgumentException("Dos pasos del protocolo no pueden tener el mismo orden");
+        if (copiados.stream().map(ReportStep::idProtocolo).distinct().count() != copiados.size()) {
+            throw new IllegalArgumentException("Un reporte no repite un protocolo entre sus pasos");
         }
 
         ServiceReport reporte = new ServiceReport(
@@ -610,35 +611,36 @@ public class ServiceReport extends AggregateRoot {
     }
 
     /**
-     * Pone un patrón en una verificación del reporte (V30). Si ya estaba, refresca la copia con lo que
-     * el catálogo dice hoy —renovar un certificado a mitad de servicio es justo el caso—; si estaba y se
-     * quitó, lo reactiva. Ponerlo otra vez con lo mismo copiado no emite evento.
+     * Pone un patrón en una verificación del reporte (V30). Si estaba y se quitó, lo reactiva; ponerlo otra
+     * vez cuando ya está no emite evento. Su ficha no se guarda aquí desde V51: en un borrador se lee del
+     * catálogo —renovar un certificado a mitad de servicio se ve sin volver a elegirlo—, y al cerrar queda
+     * en el documento.
      *
      * <p>Que la verificación sea del tipo de este equipo lo comprueba el servicio, que es quien sabe el
      * tipo. Y aquí no se comprueba que esté vigente, a propósito: se comprueba al cerrar, contra el día
      * del cierre, que es el del servicio. Un patrón vigente al elegirlo puede vencer antes de que el
      * reporte se cierre, y al revés no importa.
      */
-    public void useReferenceStandard(UUID idVerificacion, UsedReferenceStandard patron) {
+    public void useReferenceStandard(UUID idVerificacion, UUID idEquipoPatron) {
         exigirModificable("elegir un patron");
 
         if (idVerificacion == null) {
             throw new IllegalArgumentException("Hay que decir en que verificacion se uso el patron");
         }
-        if (patron == null) {
+        if (idEquipoPatron == null) {
             throw new IllegalArgumentException("Hay que decir que patron se uso");
         }
 
-        int indice = indiceDe(idVerificacion, patron.id());
+        int indice = indiceDe(idVerificacion, idEquipoPatron);
 
         if (indice < 0) {
-            patrones.add(VerificationStandard.of(idVerificacion, patron));
+            patrones.add(VerificationStandard.of(idVerificacion, idEquipoPatron));
         } else {
             VerificationStandard actual = patrones.get(indice);
-            if (actual.estadoActivo() && actual.patron().equals(patron)) {
+            if (actual.estadoActivo()) {
                 return;
             }
-            patrones.set(indice, actual.withPatron(patron));
+            patrones.set(indice, actual.reactivated());
         }
 
         registerEvent(new ServiceReportStandardChosenEvent(
@@ -693,7 +695,7 @@ public class ServiceReport extends AggregateRoot {
     // Los pasos del protocolo: RF-13
     // ---------------------------------------------------------------------------
 
-    /** Los pasos del protocolo, en su orden, como copia inmutable. */
+    /** Los pasos del protocolo, en el orden en que se abrieron, como copia inmutable. Su posición la dice el catálogo o el documento. */
     public List<ReportStep> getPasos() {
         return List.copyOf(pasos);
     }
@@ -704,17 +706,17 @@ public class ServiceReport extends AggregateRoot {
      * <p>De uno en uno y no la lista entera, porque en pantalla cada casilla se guarda al pulsarla. Un
      * cambio que no cambia nada no emite evento.
      */
-    public void markStep(int orden, StepState estado, String nota) {
+    public void markStep(UUID idProtocolo, StepState estado, String nota) {
         exigirModificable("marcar un paso del protocolo");
 
         int indice = -1;
         for (int i = 0; i < pasos.size(); i++) {
-            if (pasos.get(i).orden() == orden) {
+            if (pasos.get(i).idProtocolo().equals(idProtocolo)) {
                 indice = i;
             }
         }
         if (indice < 0) {
-            throw new IllegalArgumentException("Este reporte no tiene un paso " + orden + " en su protocolo");
+            throw new IllegalArgumentException("Este reporte no tiene un paso del protocolo " + idProtocolo);
         }
 
         ReportStep marcado = pasos.get(indice).marked(estado, nota);
@@ -735,12 +737,18 @@ public class ServiceReport extends AggregateRoot {
      * el trabajo adicional que se escribió a mano. Los que no aplicaron no salen: no se hicieron. Sin
      * pasos es el texto escrito, como antes de V22. Si no cabe en la columna de la hoja de vida se
      * recorta con puntos suspensivos; el reporte conserva el detalle entero.
+     *
+     * <p>Desde V51 los nombres y su orden salen del documento, que es como se llama la hoja de vida al
+     * cerrar: un borrador no tiene documento, y su descripción es solo el texto escrito.
      */
     public String descripcionDelServicio() {
-        List<String> hechos = pasos.stream()
-                .filter(paso -> paso.estado() == StepState.HECHO)
-                .map(ReportStep::nombre)
-                .toList();
+        List<String> hechos = documento == null
+                ? List.of()
+                : documento.pasos().stream()
+                        .filter(paso -> pasos.stream().anyMatch(fila ->
+                                fila.idProtocolo().equals(paso.idProtocolo()) && fila.estado() == StepState.HECHO))
+                        .map(ReportDocument.Paso::nombre)
+                        .toList();
 
         String descripcion;
         if (hechos.isEmpty()) {
@@ -814,7 +822,7 @@ public class ServiceReport extends AggregateRoot {
         }
 
         LocalDateTime ahora = LocalDateTime.now();
-        exigirPatrones(ahora.toLocalDate());
+        exigirPatrones(ahora.toLocalDate(), documento);
 
         this.estado = ReportState.FINALIZADO;
         this.finalizado = ahora;
@@ -915,8 +923,11 @@ public class ServiceReport extends AggregateRoot {
      * contra qué patrón se tomaron, porque unas lecturas sin patrón no dicen contra qué se compararon. Y
      * ninguno puede tener el certificado vencido el día del servicio, tenga lecturas su verificación o
      * no: el informe los imprime todos, y uno vencido no certifica nada.
+     *
+     * <p>El vencimiento sale del documento que se congela (V51), que lo leyó del catálogo al cerrar: un
+     * patrón elegido vencido y renovado en el catálogo después cierra sin volver a elegirlo.
      */
-    private void exigirPatrones(LocalDate dia) {
+    private void exigirPatrones(LocalDate dia, ReportDocument documento) {
         List<VerificationStandard> activos = patronesActivos();
         Set<UUID> medidas = new LinkedHashSet<>();
         lecturasActivas().forEach(lectura -> medidas.add(lectura.idVerificacion()));
@@ -928,7 +939,9 @@ public class ServiceReport extends AggregateRoot {
             }
         }
         for (VerificationStandard usado : activos) {
-            UsedReferenceStandard patron = usado.patron();
+            UsedReferenceStandard patron = documento.patron(usado.idVerificacion(), usado.idEquipoPatron())
+                    .orElseThrow(() -> new IllegalStateException("El documento del cierre no trae la ficha del"
+                            + " patron " + usado.idEquipoPatron() + ": no se puede saber si estaba vigente"));
             if (!patron.vigenteEl(dia)) {
                 throw new IllegalStateException("No se puede cerrar el reporte: el certificado del patron "
                         + patron.nombre() + " (" + patron.certificado() + ") vencio el " + patron.vencimiento());

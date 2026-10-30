@@ -4,10 +4,19 @@ description: Cuando una columna guarda donde estaba algo y no donde esta, la cla
 tags: [patron, esquema, integridad-referencial, postgresql, historico, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/V6__work_order.sql
 estado: estable
-updated: 2026-09-12
+updated: 2026-10-28
 ---
 
 # Congelar una referencia histórica, y la clave foránea que no hay que añadir
+
+> **Desde `V50` y `V51` (2026-10-28) el proyecto ya no congela así.** La tabla del ejemplo,
+> `orden_trabajo_equipo`, salió con `V50`, y las copias congeladas en las filas del reporte —unidad,
+> tolerancia, ficha del patrón, texto de los pasos— con `V51`. Decidido por el usuario con el análisis del
+> esquema: **lo congelado vive en un documento**, compuesto al cerrarse el reporte (`V37`, crecido en `V51`)
+> o al ejecutarse la orden (`V49`), y mientras no se cierra todo se lee en vivo. Una sola fuente para cada
+> momento, en vez de copias en columnas que conviven con el original. **Lo que esta nota explica sigue
+> valiendo** donde aún se guarde una referencia histórica en una columna —la intervención de la hoja de
+> vida, hasta `V52`—: la foránea compuesta que parece faltar impediría el cambio legítimo.
 
 ## El caso concreto
 

@@ -56,6 +56,7 @@ import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -82,6 +83,20 @@ class ServiceReportRestAdapterTest {
     @Autowired private JsonMapper jsonMapper;
 
     @MockitoBean private ServiceReportServicePort serviceReportServicePort;
+
+    /**
+     * Lo que un reporte dice de sus pasos, verificaciones y patrones sin guardarlo (V51). Vacío por defecto;
+     * las pruebas que lo leen lo estuban con lo suyo.
+     */
+    @org.junit.jupiter.api.BeforeEach
+    void sinCatalogo() {
+        when(serviceReportServicePort.catalogOf(any())).thenReturn(catalogo(List.of(), List.of(), List.of()));
+    }
+
+    private static ReportCatalog catalogo(List<ReportDocument.Paso> pasos, List<ReportDocument.Verificacion> verificaciones,
+            List<ReportDocument.Patron> patrones) {
+        return new ReportCatalog(pasos, verificaciones, patrones);
+    }
 
     private static ServiceReport unReporte() {
         return ServiceReport.open(ORDEN, EQUIPO);
@@ -163,8 +178,11 @@ class ServiceReportRestAdapterTest {
         UUID verificacion = UUID.randomUUID();
         ServiceReport reporte = unReporte();
         reporte.recordVerification(List.of(VerificationReading.of(
-                verificacion, punto, 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                verificacion, punto, 1, new BigDecimal("50"), new BigDecimal("50.2"))));
         when(serviceReportServicePort.recordVerification(any())).thenReturn(reporte);
+        // La unidad es de la verificacion desde V51, y la dice el catalogo del reporte.
+        when(serviceReportServicePort.catalogOf(reporte)).thenReturn(catalogo(List.of(), List.of(
+                new ReportDocument.Verificacion(verificacion, "Presión", "mmHg", 1, null, List.of())), List.of()));
 
         mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/verification")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -190,15 +208,18 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
-    @DisplayName("poner un patron lleva reporte, verificacion y patron al servicio, y la respuesta trae lo copiado")
+    @DisplayName("poner un patron lleva reporte, verificacion y patron al servicio, y la respuesta trae su ficha")
     void ponerPatron() throws Exception {
         UUID patron = UUID.randomUUID();
         UUID verificacion = UUID.randomUUID();
         ServiceReport reporte = unReporte();
-        reporte.useReferenceStandard(verificacion, new UsedReferenceStandard(patron, "Juego de pesas", null,
-                "KF1-1", "CAL-2026-0412", LocalDate.of(2027, 4, 30), "MS-F1", "BB-PAT-003", "1 mg a 2 kg",
-                "0,1 mg", LocalDate.of(2026, 4, 30), "Metrologia Andina"));
+        reporte.useReferenceStandard(verificacion, patron);
         when(serviceReportServicePort.useReferenceStandard(any())).thenReturn(reporte);
+        // La ficha no la guarda el reporte desde V51: la dice su catálogo.
+        when(serviceReportServicePort.catalogOf(reporte)).thenReturn(catalogo(List.of(), List.of(), List.of(
+                new ReportDocument.Patron(verificacion, new UsedReferenceStandard(patron, "Juego de pesas", null,
+                        "KF1-1", "CAL-2026-0412", LocalDate.of(2027, 4, 30), "MS-F1", "BB-PAT-003", "1 mg a 2 kg",
+                        "0,1 mg", LocalDate.of(2026, 4, 30), "Metrologia Andina")))));
 
         mockMvc.perform(post(rutaDePatrones(reporte.getId(), verificacion))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -226,7 +247,7 @@ class ServiceReportRestAdapterTest {
         UsedReferenceStandard quitado = new UsedReferenceStandard(UUID.randomUUID(), "Viejo", null, "V-1", "C",
                 LocalDate.of(2027, 1, 1));
         ServiceReport reporte = unReporte();
-        reporte.useReferenceStandard(verificacion, quitado);
+        reporte.useReferenceStandard(verificacion, quitado.id());
         reporte.removeReferenceStandard(verificacion, quitado.id());
         when(serviceReportServicePort.findById(any(), any())).thenReturn(reporte);
 
@@ -502,16 +523,21 @@ class ServiceReportRestAdapterTest {
     @Test
     @DisplayName("cada lectura sale con su tolerancia, su error y si es conforme")
     void conformidadEnLaRespuesta() throws Exception {
+        UUID presion = UUID.randomUUID();
+        UUID temperatura = UUID.randomUUID();
         ServiceReport reporte = unReporte();
         reporte.recordVerification(List.of(
-                VerificationReading.of(UUID.randomUUID(), UUID.randomUUID(), 1, new BigDecimal("50"),
-                        new BigDecimal("50.7"), "mmHg", new BigDecimal("0.5")),
-                VerificationReading.of(UUID.randomUUID(), null, 1, new BigDecimal("37"),
-                        new BigDecimal("36.9"), "°C")));
+                VerificationReading.of(presion, UUID.randomUUID(), 1, new BigDecimal("50"), new BigDecimal("50.7")),
+                VerificationReading.of(temperatura, null, 1, new BigDecimal("37"), new BigDecimal("36.9"))));
         when(serviceReportServicePort.findById(any(), any())).thenReturn(reporte);
+        // La unidad y la tolerancia son de la verificación desde V51, no de la lectura.
+        when(serviceReportServicePort.catalogOf(reporte)).thenReturn(catalogo(List.of(), List.of(
+                new ReportDocument.Verificacion(presion, "Presión", "mmHg", 1, new BigDecimal("0.5"), List.of()),
+                new ReportDocument.Verificacion(temperatura, "Temperatura", "°C", null, null, List.of())), List.of()));
 
         mockMvc.perform(get("/v1/api/reports/" + reporte.getId()))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lecturas[0].unidad").value("mmHg"))
                 .andExpect(jsonPath("$.lecturas[0].tolerancia").value(0.5))
                 .andExpect(jsonPath("$.lecturas[0].error").value(0.7))
                 .andExpect(jsonPath("$.lecturas[0].conforme").value(false))
@@ -572,7 +598,7 @@ class ServiceReportRestAdapterTest {
         ReportDocument documento = new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(),
                 List.of(), new ReportDocument.Empresa("Ejemplo S.A.S.", null, null, null, null, "La garantía",
                         null, "FT-2", logo.huella()),
-                "Ana Pérez", firma.huella());
+                "Ana Pérez", firma.huella(), List.of(), List.of());
         DocumentImage firmaRecibe =
                 new DocumentImage(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 3}, "image/png");
         when(serviceReportServicePort.document(eq(reporte.getId()), any()))
@@ -647,32 +673,56 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
-    @DisplayName("marcar un paso llega al servicio con su orden, su estado y su nota, y los pasos salen en la respuesta")
+    @DisplayName("marcar un paso llega al servicio con su protocolo, su estado y su nota, y los pasos salen en la respuesta")
     void marcarPaso() throws Exception {
-        ServiceReport reporte = ServiceReport.open(UUID.randomUUID(), UUID.randomUUID(), List.of(
-                ReportStep.copied(1, UUID.randomUUID(), "Batería", "Revisar la batería.", null)));
-        reporte.markStep(1, StepState.NO_APLICA, "No tiene");
+        UUID protocolo = UUID.randomUUID();
+        ServiceReport reporte = ServiceReport.open(UUID.randomUUID(), UUID.randomUUID(),
+                List.of(ReportStep.pending(protocolo)));
+        reporte.markStep(protocolo, StepState.NO_APLICA, "No tiene");
         when(serviceReportServicePort.markStep(any())).thenReturn(reporte);
+        when(serviceReportServicePort.catalogOf(reporte)).thenReturn(catalogo(List.of(
+                new ReportDocument.Paso(protocolo, 1, "Batería", "Revisar la batería.", null)), List.of(), List.of()));
 
-        mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/steps/1")
+        mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/steps/" + protocolo)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"estado\": \"NO_APLICA\", \"nota\": \"No tiene\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pasos[0].nombre").value("Batería"))
+                .andExpect(jsonPath("$.pasos[0].orden").value(1))
                 .andExpect(jsonPath("$.pasos[0].estado").value("NO_APLICA"))
                 .andExpect(jsonPath("$.pasos[0].nota").value("No tiene"));
 
         ArgumentCaptor<MarkReportStepCommand> comando = ArgumentCaptor.forClass(MarkReportStepCommand.class);
         verify(serviceReportServicePort).markStep(comando.capture());
-        assertThat(comando.getValue().orden()).isEqualTo(1);
+        assertThat(comando.getValue().idProtocolo()).isEqualTo(protocolo);
         assertThat(comando.getValue().estado()).isEqualTo(StepState.NO_APLICA);
         assertThat(comando.getValue().nota()).isEqualTo("No tiene");
     }
 
     @Test
+    @DisplayName("los pasos salen en el orden de su catalogo, no en el de sus filas, con su texto (V51)")
+    void pasosEnElOrdenDelCatalogo() throws Exception {
+        UUID limpieza = UUID.randomUUID();
+        UUID electrico = UUID.randomUUID();
+        ServiceReport reporte = ServiceReport.open(UUID.randomUUID(), UUID.randomUUID(),
+                List.of(ReportStep.pending(electrico), ReportStep.pending(limpieza)));
+        when(serviceReportServicePort.findById(any(), any())).thenReturn(reporte);
+        when(serviceReportServicePort.catalogOf(reporte)).thenReturn(catalogo(List.of(
+                new ReportDocument.Paso(limpieza, 1, "Limpieza", "Paño.", "Con guantes"),
+                new ReportDocument.Paso(electrico, 2, "Eléctrico", "Multímetro.", null)), List.of(), List.of()));
+
+        mockMvc.perform(get("/v1/api/reports/" + reporte.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pasos[0].nombre").value("Limpieza"))
+                .andExpect(jsonPath("$.pasos[0].indicacion").value("Con guantes"))
+                .andExpect(jsonPath("$.pasos[1].idProtocolo").value(electrico.toString()))
+                .andExpect(jsonPath("$.pasos[1].orden").value(2));
+    }
+
+    @Test
     @DisplayName("marcar un paso sin estado responde 400 sin llegar al servicio")
     void marcarPasoSinEstado() throws Exception {
-        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/steps/1")
+        mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/steps/" + UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nota\": \"Algo\"}"))
                 .andExpect(status().isBadRequest());

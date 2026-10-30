@@ -6,7 +6,9 @@ import java.util.UUID;
 /**
  * Un patrón contra el que se tomaron las lecturas de un reporte, <b>tal como estaba ese día</b>.
  *
- * <p>Es una copia y no una referencia viva, desde V27 (2026-10-14): renovar el certificado de un patrón
+ * <p>Desde {@code V51} (2026-10-28) es la ficha que lleva el documento de un reporte cerrado —y la que se
+ * compone en vivo del catálogo para un borrador—, no una columna del reporte. Antes era la copia que el
+ * reporte guardaba en sus filas, desde V27 (2026-10-14): renovar el certificado de un patrón
  * en el catálogo cambia su fila, y un reporte ya firmado tiene que seguir diciendo contra qué
  * certificado se midió. Guarda también el identificador, para poder llegar al patrón de hoy.
  *

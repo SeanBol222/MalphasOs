@@ -246,7 +246,7 @@
                 </span>
               </div>
               <ol class="list-none" aria-label="Pasos del protocolo">
-                @for (paso of pasos(); track paso.orden) {
+                @for (paso of pasos(); track paso.idProtocolo) {
                   <li
                     class="flex flex-wrap items-start gap-2 border-b border-neutral-200 px-3 py-2"
                     [attr.data-paso]="paso.orden"
@@ -279,7 +279,9 @@
 
                     <div class="min-w-0 flex-[1_1_18rem]">
                       <p class="flex items-baseline gap-1">
-                        <span class="text-sm text-neutral-700 tabular-nums">{{ paso.orden }}</span>
+                        <span class="text-sm text-neutral-700 tabular-nums">{{
+                          paso.orden ?? '—'
+                        }}</span>
                         <span
                           class="font-bold"
                           [class.line-through]="paso.estado === 'NO_APLICA'"
@@ -297,29 +299,32 @@
                           <span class="font-semibold">Para este tipo:</span> {{ paso.indicacion }}
                         </p>
                       }
-                      @if (paso.nota && notaEnCurso()?.orden !== paso.orden) {
+                      @if (paso.nota && notaEnCurso()?.idProtocolo !== paso.idProtocolo) {
                         <p class="mt-0.5 text-sm">
                           <span class="font-semibold">Nota:</span> {{ paso.nota }}
                         </p>
                       }
 
-                      @if (notaEnCurso()?.orden === paso.orden) {
+                      @if (notaEnCurso()?.idProtocolo === paso.idProtocolo) {
                         <div class="mt-1 flex flex-wrap items-end gap-1.5">
                           <div class="min-w-0 flex-[1_1_14rem]">
-                            <label class="block text-sm font-semibold" [for]="'nota-' + paso.orden">
+                            <label
+                              class="block text-sm font-semibold"
+                              [for]="'nota-' + paso.idProtocolo"
+                            >
                               Por qué no aplica
                               <span class="text-accent-700" aria-hidden="true">*</span>
                             </label>
                             <input
                               class="campo mt-0.5 min-h-tactil w-full"
-                              [id]="'nota-' + paso.orden"
+                              [id]="'nota-' + paso.idProtocolo"
                               type="text"
                               maxlength="300"
                               aria-required="true"
                               [value]="notaEnCurso()!.texto"
                               (input)="
                                 notaEnCurso.set({
-                                  orden: paso.orden!,
+                                  idProtocolo: paso.idProtocolo!,
                                   texto: $any($event.target).value,
                                 })
                               "
@@ -348,7 +353,7 @@
                     @if (
                       editable() &&
                       paso.estado !== 'NO_APLICA' &&
-                      notaEnCurso()?.orden !== paso.orden
+                      notaEnCurso()?.idProtocolo !== paso.idProtocolo
                     ) {
                       <button
                         class="boton-secundario min-h-tactil"

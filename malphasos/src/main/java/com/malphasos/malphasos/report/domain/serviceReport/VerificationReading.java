@@ -26,14 +26,13 @@ import java.util.UUID;
  *
  * <p><b>Se guardan las dos lecturas, incluso la del lado que debería ser constante.</b> Lo constante
  * lo es por cómo se monta el ensayo, no por decreto: si el patrón marcó 50,2 donde el punto dice 50,
- * el reporte tiene que decir 50,2. Y la unidad viaja con la lectura, no se consulta del punto, porque
- * el punto se retira cuando el tipo se reconfigura y un reporte viejo tiene que seguir imprimiéndose
- * igual.
+ * el reporte tiene que decir 50,2.
  *
- * <p><b>La tolerancia viaja con la lectura desde V27 (2026-10-14)</b>, por la misma razón que la
- * unidad: si el tipo cambia su tolerancia mañana, un reporte cerrado no puede pasar de conforme a no
- * conforme. Por eso la regla de conformidad vive aquí y no en el tipo de equipo. Nula si la
- * verificación no tenía tolerancia, y en las lecturas anteriores a V27.
+ * <p><b>La unidad y la tolerancia no viajan con la lectura desde {@code V51}</b> (2026-10-28). Las copió
+ * desde el 2026-10-03 y el 2026-10-14 para que un reporte cerrado no cambiara si el tipo se reconfiguraba;
+ * desde {@code V51} eso lo garantiza el documento del reporte, que las guarda por verificación al cerrar.
+ * Mientras es borrador se leen en vivo del tipo. Por eso la conformidad recibe la tolerancia: la regla vive
+ * aquí, y el dato, en quien sabe de qué momento se habla.
  */
 public record VerificationReading(
         UUID id,
@@ -42,9 +41,7 @@ public record VerificationReading(
         int secuencia,
         BigDecimal valorPatron,
         BigDecimal valorEquipo,
-        String unidad,
-        boolean estadoActivo,
-        BigDecimal tolerancia) {
+        boolean estadoActivo) {
 
     /** Cuántos decimales guarda la columna. Más allá, dos lecturas distintas serían la misma en la base. */
     private static final int DECIMALES = 4;
@@ -66,13 +63,6 @@ public record VerificationReading(
             throw new IllegalArgumentException(
                     "Una lectura necesita el valor del patron y el del equipo: el reporte imprime los dos");
         }
-        if (unidad == null || unidad.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Una lectura necesita su unidad: un numero sin unidad no se puede imprimir");
-        }
-        if (tolerancia != null && tolerancia.signum() <= 0) {
-            throw new IllegalArgumentException("La tolerancia de una lectura tiene que ser mayor que cero");
-        }
     }
 
     /** Lo que se apartó el equipo del patrón, con su signo: positivo si el equipo marca de más. */
@@ -83,8 +73,11 @@ public record VerificationReading(
     /**
      * Si la lectura está dentro de la tolerancia: {@code |equipo − patrón| ≤ tolerancia}. El borde
      * cuenta como conforme —«±0,5» admite 0,5—. Nulo sin tolerancia: no se sabe, y no se inventa.
+     *
+     * @param tolerancia la de su verificación: la del documento en un reporte cerrado, la del tipo en un
+     *     borrador
      */
-    public Boolean conforme() {
+    public Boolean conforme(BigDecimal tolerancia) {
         if (tolerancia == null) {
             return null;
         }
@@ -98,21 +91,7 @@ public record VerificationReading(
             UUID idPuntoVerificacion,
             int secuencia,
             BigDecimal valorPatron,
-            BigDecimal valorEquipo,
-            String unidad) {
-
-        return of(idVerificacion, idPuntoVerificacion, secuencia, valorPatron, valorEquipo, unidad, null);
-    }
-
-    /** Lo mismo, con la tolerancia de la verificación copiada (V27). */
-    public static VerificationReading of(
-            UUID idVerificacion,
-            UUID idPuntoVerificacion,
-            int secuencia,
-            BigDecimal valorPatron,
-            BigDecimal valorEquipo,
-            String unidad,
-            BigDecimal tolerancia) {
+            BigDecimal valorEquipo) {
 
         return new VerificationReading(
                 UUID.randomUUID(),
@@ -121,9 +100,7 @@ public record VerificationReading(
                 secuencia,
                 normalizar(valorPatron),
                 normalizar(valorEquipo),
-                unidad == null ? null : unidad.trim(),
-                true,
-                tolerancia);
+                true);
     }
 
     /** Una lectura que vuelve de la base, con su estado tal como está guardado. */
@@ -134,24 +111,7 @@ public record VerificationReading(
             int secuencia,
             BigDecimal valorPatron,
             BigDecimal valorEquipo,
-            String unidad,
             boolean estadoActivo) {
-
-        return rehydrate(id, idVerificacion, idPuntoVerificacion, secuencia, valorPatron, valorEquipo, unidad,
-                estadoActivo, null);
-    }
-
-    /** Lo mismo, con la tolerancia de V27. */
-    public static VerificationReading rehydrate(
-            UUID id,
-            UUID idVerificacion,
-            UUID idPuntoVerificacion,
-            int secuencia,
-            BigDecimal valorPatron,
-            BigDecimal valorEquipo,
-            String unidad,
-            boolean estadoActivo,
-            BigDecimal tolerancia) {
 
         return new VerificationReading(
                 id,
@@ -160,16 +120,13 @@ public record VerificationReading(
                 secuencia,
                 normalizar(valorPatron),
                 normalizar(valorEquipo),
-                unidad,
-                estadoActivo,
-                tolerancia);
+                estadoActivo);
     }
 
     /** La misma lectura, retirada. */
     public VerificationReading deactivated() {
         return new VerificationReading(
-                id, idVerificacion, idPuntoVerificacion, secuencia, valorPatron, valorEquipo, unidad,
-                false, tolerancia);
+                id, idVerificacion, idPuntoVerificacion, secuencia, valorPatron, valorEquipo, false);
     }
 
     /**
@@ -196,25 +153,15 @@ public record VerificationReading(
      * <p>Es lo que permite que registrar dos veces la misma verificación no cuente como un cambio.
      *
      * <p>Compara los valores por magnitud <b>numérica</b> y no con {@code equals}, que en
-     * {@code BigDecimal} diría que {@code 50} y {@code 50.0000} son distintos. <b>Hoy esa precaución
-     * no cambia ningún resultado y conviene saberlo</b>: tanto {@link #of} como {@link #rehydrate}
-     * normalizan a la escala de la columna, de modo que dos lecturas iguales llegan aquí con la misma
-     * escala. Se comprobó sustituyendo {@code compareTo} por {@code equals} y la batería siguió verde.
-     * Se conserva porque es lo correcto si algún día se deja de normalizar, no porque haya una prueba
-     * que lo exija.
-     *
-     * <p><b>La tolerancia cuenta</b> (V27): si el tipo la cambió y el ingeniero vuelve a mandar las mismas
-     * lecturas, tienen que registrarse de nuevo con la tolerancia de hoy, o el reporte seguiría diciendo
-     * conforme con un criterio que ya no es el del tipo.
+     * {@code BigDecimal} diría que {@code 50} y {@code 50.0000} son distintos. Hoy esa precaución no cambia
+     * ningún resultado, porque {@link #of} y {@link #rehydrate} normalizan a la escala de la columna; se
+     * conserva porque es lo correcto si algún día se deja de normalizar. (Comparaba también la unidad y la
+     * tolerancia copiadas, hasta que {@code V51} las quitó de la lectura.)
      */
     public boolean diceLoMismoQue(VerificationReading otra) {
         return ocupaElMismoSitioQue(otra)
-                && unidad.equalsIgnoreCase(otra.unidad)
                 && valorPatron.compareTo(otra.valorPatron) == 0
-                && valorEquipo.compareTo(otra.valorEquipo) == 0
-                && (tolerancia == null
-                        ? otra.tolerancia == null
-                        : otra.tolerancia != null && tolerancia.compareTo(otra.tolerancia) == 0);
+                && valorEquipo.compareTo(otra.valorEquipo) == 0;
     }
 
     private static BigDecimal normalizar(BigDecimal valor) {

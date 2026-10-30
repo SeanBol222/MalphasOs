@@ -4,9 +4,9 @@ import com.malphasos.malphasos.report.domain.serviceReport.StepState;
 import java.util.UUID;
 
 /**
- * Marcar un paso del protocolo de un reporte. {@code orden} es el del paso dentro del reporte, el mismo
- * que la prioridad que el protocolo tenía en el tipo al abrirlo. La nota es obligatoria con
+ * Marcar un paso del protocolo de un reporte, por el protocolo del que salió: un reporte no lo repite.
+ * Hasta V51 era por su orden, que el reporte copiaba al abrirse. La nota es obligatoria con
  * {@code NO_APLICA}.
  */
-public record MarkReportStepCommand(UUID id, int orden, StepState estado, String nota) {
+public record MarkReportStepCommand(UUID id, UUID idProtocolo, StepState estado, String nota) {
 }

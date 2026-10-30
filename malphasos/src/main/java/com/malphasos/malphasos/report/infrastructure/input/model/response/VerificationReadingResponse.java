@@ -10,9 +10,9 @@ import java.util.UUID;
  * <p>Trae la verificación a la que pertenece: es lo que permite agrupar la tabla por magnitud, y lo
  * único que distingue dos lecturas sin punto de magnitudes distintas.
  *
- * <p>La unidad es la que se congeló al tomar la lectura, no la que el tipo declara hoy: reconfigurar un
- * tipo no debe cambiar un reporte ya firmado. Lo mismo la tolerancia, desde V27, y con ella la
- * conformidad: se calculan con la que valía al tomarla.
+ * <p>La unidad y la tolerancia, y con ella la conformidad, son las de su verificación: del documento si el
+ * reporte está cerrado, de modo que reconfigurar un tipo no cambia un reporte ya firmado, y del tipo hoy si
+ * es borrador (V51). Hasta V51 se copiaban en cada lectura al tomarla.
  */
 @Schema(name = "VerificationReadingResponse")
 public record VerificationReadingResponse(

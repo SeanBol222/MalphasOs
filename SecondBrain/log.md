@@ -2594,3 +2594,21 @@ que un código ISO libre en una base no lo está en la otra. 27 mutaciones del b
 todas muertas; dos de ellas obligaron a escribir la comprobación de que retirar y quitar caducan también
 la caché del otro módulo. Ver [[dominio-orden-trabajo]], [[dominio-reporte-servicio]],
 [[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].
+
+## [2026-10-28] ingest | V51: el reporte cerrado vive en su documento
+
+Décima migración de la refactorización. **Una sola fuente para cada momento**: de un borrador, el texto y
+la posición de cada paso, la unidad y la tolerancia de cada verificación y la ficha de cada patrón se leen
+en vivo del catálogo; de uno cerrado, de su documento, que crece a la versión 2 con todo eso. Salen 17
+columnas copiadas, cuatro `CHECK` y la única de la posición del paso, y entra `UQ_paso_reporte_protocolo`:
+un paso se nombra por su protocolo, también en el API. El documento del único reporte cerrado de
+desarrollo quedó en la versión 2, con sus tres pasos y su patrón.
+
+**Lo que conviene recordar**: la prueba gemela del relleno pasó a la primera y dos mutaciones
+sobrevivieron —quitar el `ORDER BY` de los pasos o de los patrones— porque PostgreSQL resolvía la consulta
+con los índices únicos de esas tablas, que ya devolvían las filas en orden. **Un orden que da el plan de
+ejecución no es un orden**: la prueba migra ahora con los recorridos por índice apagados, y las dos
+mueren. Con ellas, 20 mutaciones del backend y 2 del frontend, todas muertas. Y un detalle de las pruebas
+de la batería completa: otras clases borran los países y las ciudades sembrados, así que una prueba que
+necesita una ciudad en la base principal se la crea si no queda ninguna. Ver [[dominio-reporte-servicio]],
+[[esquema-bd-malphasos]], [[congelar-una-referencia-historica]] y [[hoja-de-ruta-producto]].

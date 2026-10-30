@@ -426,9 +426,15 @@ describe('Ficha de un reporte de servicio', () => {
       raiz().querySelector<HTMLButtonElement>(`li[data-paso="${orden}"] button[role="checkbox"]`)!;
     const panel = () => raiz().querySelector('aside')!.textContent ?? '';
 
-    /** Responde el PATCH de un paso con el reporte entero, como hace el servidor. */
+    /**
+     * Responde el PATCH de un paso con el reporte entero, como hace el servidor. Desde V51 la ruta nombra el
+     * protocolo del paso, no su posición: aquí el de la posición N es «prN».
+     */
     async function responderPaso(orden: number, devuelto: object): Promise<{ estado: string; nota?: string }> {
-      const peticion = http.expectOne({ method: 'PATCH', url: `${urlReporte(ID_REPORTE)}/steps/${orden}` });
+      const peticion = http.expectOne({
+        method: 'PATCH',
+        url: `${urlReporte(ID_REPORTE)}/steps/pr${orden}`,
+      });
       const cuerpo = peticion.request.body;
       peticion.flush(devuelto);
       await asentar(fixture);
@@ -476,7 +482,7 @@ describe('Ficha de un reporte de servicio', () => {
       const marcar = [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Marcar no aplica')!;
       expect(marcar.disabled).toBe(true);
 
-      const nota = raiz().querySelector<HTMLInputElement>('#nota-1')!;
+      const nota = raiz().querySelector<HTMLInputElement>('#nota-pr1')!;
       nota.value = ' El equipo no tiene batería ';
       nota.dispatchEvent(new Event('input'));
       await asentar(fixture);

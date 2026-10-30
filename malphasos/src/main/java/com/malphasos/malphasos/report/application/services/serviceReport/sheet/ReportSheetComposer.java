@@ -12,6 +12,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
@@ -82,7 +83,7 @@ public final class ReportSheetComposer {
                 ? reporte.getFinalizado().toLocalDate()
                 : orden.fechaProgramada();
         String resultado = reporte.getResultado() == null ? "Sin registrar" : APTITUD.get(reporte.getResultado());
-        String verificacion = verificacion(lecturas);
+        String verificacion = verificacion(lecturas, documento);
         String supervisor = unidos(cliente.responsables());
         Handover recibe = reporte.getRecibe();
 
@@ -112,7 +113,7 @@ public final class ReportSheetComposer {
                         alimentacion(equipo)),
                 casillas(orden, lecturas),
                 ingreso(reporte),
-                pasos(reporte),
+                pasos(reporte, documento),
                 relato(reporte),
                 empresa == null ? null : vacioANulo(empresa.aclaracion()),
                 reporte.getObservaciones() == null ? "Ninguna." : reporte.getObservaciones(),
@@ -145,19 +146,27 @@ public final class ReportSheetComposer {
     }
 
     /**
-     * «4 de 5 conformes». Solo cuentan las lecturas con tolerancia: sin ella no se sabe, y no se inventa.
+     * «4 de 5 conformes». Solo cuentan las lecturas con tolerancia: sin ella no se sabe, y no se inventa. La
+     * tolerancia es la de su verificación en el documento (V51).
      */
-    static String verificacion(List<VerificationReading> lecturas) {
+    static String verificacion(List<VerificationReading> lecturas, ReportDocument documento) {
         if (lecturas.isEmpty()) {
             return "Sin verificación";
         }
-        List<VerificationReading> juzgadas = lecturas.stream().filter(l -> l.conforme() != null).toList();
+        List<Boolean> juzgadas = lecturas.stream()
+                .map(lectura -> lectura.conforme(toleranciaDe(documento, lectura.idVerificacion())))
+                .filter(Objects::nonNull)
+                .toList();
         if (juzgadas.isEmpty()) {
             return lecturas.size() + (lecturas.size() == 1 ? " lectura" : " lecturas");
         }
 
-        return juzgadas.stream().filter(VerificationReading::conforme).count() + " de " + juzgadas.size()
+        return juzgadas.stream().filter(Boolean::booleanValue).count() + " de " + juzgadas.size()
                 + " conformes";
+    }
+
+    private static BigDecimal toleranciaDe(ReportDocument documento, UUID idVerificacion) {
+        return documento.verificacion(idVerificacion).map(ReportDocument.Verificacion::tolerancia).orElse(null);
     }
 
     /** «Termohigrómetro · Genérico Digital · Serie T-9 · HV-CDN-0014». */
@@ -224,13 +233,24 @@ public final class ReportSheetComposer {
         return new ReportSheet.FilaDeIngreso(texto, estado, oRaya(verificacion.observacion()), false);
     }
 
-    /** Los pasos del protocolo: ✓ hecho, «N/A» con su nota si no aplicó, en blanco si quedó pendiente. */
-    private static List<ReportSheet.Paso> pasos(ServiceReport reporte) {
-        return reporte.getPasos().stream()
-                .map(paso -> new ReportSheet.Paso(
-                        paso.estado() == StepState.HECHO ? "✓" : paso.estado() == StepState.NO_APLICA ? "N/A" : "",
-                        paso.nombre(),
-                        paso.estado() == StepState.NO_APLICA ? paso.nota() : null))
+    /**
+     * Los pasos del protocolo: ✓ hecho, «N/A» con su nota si no aplicó, en blanco si quedó pendiente. En el
+     * orden y con el nombre del documento (V51); el estado y la nota, del reporte.
+     */
+    private static List<ReportSheet.Paso> pasos(ServiceReport reporte, ReportDocument documento) {
+        Map<UUID, ReportStep> porProtocolo = new LinkedHashMap<>();
+        reporte.getPasos().forEach(paso -> porProtocolo.put(paso.idProtocolo(), paso));
+
+        return documento.pasos().stream()
+                .filter(texto -> porProtocolo.containsKey(texto.idProtocolo()))
+                .map(texto -> {
+                    ReportStep paso = porProtocolo.get(texto.idProtocolo());
+
+                    return new ReportSheet.Paso(
+                            paso.estado() == StepState.HECHO ? "✓" : paso.estado() == StepState.NO_APLICA ? "N/A" : "",
+                            texto.nombre(),
+                            paso.estado() == StepState.NO_APLICA ? paso.nota() : null);
+                })
                 .toList();
     }
 
@@ -249,15 +269,16 @@ public final class ReportSheetComposer {
 
     /**
      * La trazabilidad: cada patrón una vez, aunque se usara en dos verificaciones, con las magnitudes en que
-     * se usó. Con la ficha que se copió al ponerlo en el reporte (V30), no la de hoy.
+     * se usó. Con la ficha del documento (V51): la del día del cierre en uno cerrado, la de hoy en un borrador.
      */
     private static List<ReportSheet.Patron> trazabilidad(ServiceReport reporte, ReportDocument documento) {
         Map<UUID, UsedReferenceStandard> porPatron = new LinkedHashMap<>();
         Map<UUID, List<String>> magnitudes = new LinkedHashMap<>();
 
         for (VerificationStandard usado : reporte.patronesActivos()) {
-            porPatron.putIfAbsent(usado.patron().id(), usado.patron());
-            magnitudes.computeIfAbsent(usado.patron().id(), id -> new ArrayList<>())
+            documento.patron(usado.idVerificacion(), usado.idEquipoPatron())
+                    .ifPresent(ficha -> porPatron.putIfAbsent(ficha.id(), ficha));
+            magnitudes.computeIfAbsent(usado.idEquipoPatron(), id -> new ArrayList<>())
                     .add(magnitudDe(documento, usado.idVerificacion()));
         }
 
@@ -291,8 +312,9 @@ public final class ReportSheetComposer {
      * patrones. Las lecturas se ordenan por punto y número; sin punto, por número —X1, X2—, que es como las
      * nombran los informes de la empresa.
      *
-     * <p>El error y la conformidad son los de la lectura, y la tolerancia la que se copió en ella: si el tipo
-     * la cambió después, el informe no cambia de veredicto.
+     * <p>El error es el de la lectura, y la tolerancia la de su verificación en el documento: en un reporte
+     * cerrado, la del día del cierre, de modo que si el tipo la cambió después el informe no cambia de
+     * veredicto (V51; hasta entonces se copiaba en cada lectura).
      */
     private static List<ReportSheet.Medida> medidas(ServiceReport reporte, ReportDocument documento) {
         List<VerificationReading> lecturas = reporte.lecturasActivas();
@@ -302,13 +324,14 @@ public final class ReportSheetComposer {
 
         return ids.stream()
                 .sorted(Comparator.comparingInt(id -> indiceOFinal(declaradas, id)))
-                .map(id -> medida(reporte, lecturas, declaradas.stream()
+                .map(id -> medida(reporte, documento, lecturas, declaradas.stream()
                         .filter(verificacion -> verificacion.id().equals(id)).findFirst().orElse(null), id))
                 .toList();
     }
 
     private static ReportSheet.Medida medida(
-            ServiceReport reporte, List<VerificationReading> todas, ReportDocument.Verificacion declarada, UUID id) {
+            ServiceReport reporte, ReportDocument documento, List<VerificationReading> todas,
+            ReportDocument.Verificacion declarada, UUID id) {
 
         Map<UUID, BigDecimal> puntos = new LinkedHashMap<>();
         if (declarada != null) {
@@ -323,14 +346,15 @@ public final class ReportSheetComposer {
                 .sorted(porPunto.thenComparingInt(VerificationReading::secuencia))
                 .toList();
 
-        String unidad = declarada != null && declarada.unidad() != null
-                ? declarada.unidad()
-                : suyas.isEmpty() || suyas.getFirst().unidad() == null ? "" : suyas.getFirst().unidad();
-        BigDecimal tolerancia = suyas.stream().map(VerificationReading::tolerancia).filter(Objects::nonNull)
-                .findFirst().orElse(null);
+        // La unidad y la tolerancia son las de la verificación en el documento (V51): hasta entonces venían
+        // copiadas en cada lectura.
+        String unidad = declarada != null && declarada.unidad() != null ? declarada.unidad() : "";
+        BigDecimal tolerancia = declarada == null ? null : declarada.tolerancia();
         boolean variasPorPunto = declarada != null && declarada.cantidadDatos() != null
                 && declarada.cantidadDatos() > 1;
-        List<VerificationReading> juzgadas = suyas.stream().filter(lectura -> lectura.conforme() != null).toList();
+        List<VerificationReading> juzgadas = suyas.stream()
+                .filter(lectura -> lectura.conforme(tolerancia) != null)
+                .toList();
 
         List<ReportSheet.Fila> filas = suyas.stream()
                 .map(lectura -> new ReportSheet.Fila(
@@ -341,8 +365,8 @@ public final class ReportSheetComposer {
                         numero(lectura.valorPatron()),
                         numero(lectura.valorEquipo()),
                         conSigno(lectura.error()),
-                        lectura.conforme() == null ? SIN_DATO : lectura.conforme() ? "Sí" : "No",
-                        Boolean.FALSE.equals(lectura.conforme())))
+                        lectura.conforme(tolerancia) == null ? SIN_DATO : lectura.conforme(tolerancia) ? "Sí" : "No",
+                        Boolean.FALSE.equals(lectura.conforme(tolerancia))))
                 .toList();
 
         return new ReportSheet.Medida(
@@ -352,14 +376,15 @@ public final class ReportSheetComposer {
                 filas,
                 juzgadas.isEmpty()
                         ? suyas.size() + " lecturas, sin tolerancia con que juzgarlas"
-                        : juzgadas.stream().filter(VerificationReading::conforme).count() + " de " + juzgadas.size()
-                                + " lecturas conformes",
+                        : juzgadas.stream().filter(lectura -> lectura.conforme(tolerancia)).count() + " de "
+                                + juzgadas.size() + " lecturas conformes",
                 reporte.patronesActivos().stream()
                         .filter(usado -> usado.idVerificacion().equals(id))
-                        .map(usado -> usado.patron().nombre())
+                        .map(usado -> documento.patron(id, usado.idEquipoPatron())
+                                .map(UsedReferenceStandard::nombre).orElse(""))
                         .collect(Collectors.joining(" · ")),
                 ErrorChart.of(suyas.stream()
-                        .map(lectura -> new ErrorChart.Lectura(lectura.error(), lectura.conforme()))
+                        .map(lectura -> new ErrorChart.Lectura(lectura.error(), lectura.conforme(tolerancia)))
                         .toList(), tolerancia),
                 tolerancia == null
                         ? "Error de cada lectura (equipo − patrón). Sin tolerancia declarada: no hay banda."

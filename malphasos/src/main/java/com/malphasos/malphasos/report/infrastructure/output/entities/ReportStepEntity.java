@@ -13,7 +13,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Un paso del protocolo copiado en un reporte.
+ * Un paso del protocolo en un reporte: de qué protocolo, en qué estado y su nota. Desde V51 no copia
+ * nada del protocolo; su texto lo dice el catálogo o el documento.
  *
  * <p>El protocolo de origen se guarda como identificador aunque la tabla tenga su foránea, por lo mismo
  * que el punto de una lectura: mapearlo como relación ataría la persistencia de los reportes a la del
@@ -34,20 +35,8 @@ public class ReportStepEntity {
     @JoinColumn(name = "k_id_reporte_servicio", nullable = false)
     private ServiceReportEntity reporte;
 
-    @Column(name = "i_orden", nullable = false)
-    private int orden;
-
     @Column(name = "k_id_protocolo", nullable = false)
     private UUID idProtocolo;
-
-    @Column(name = "n_nombre", nullable = false)
-    private String nombre;
-
-    @Column(name = "t_descripcion", nullable = false)
-    private String descripcion;
-
-    @Column(name = "t_indicacion")
-    private String indicacion;
 
     @Column(name = "t_estado_paso", nullable = false)
     private String estado;

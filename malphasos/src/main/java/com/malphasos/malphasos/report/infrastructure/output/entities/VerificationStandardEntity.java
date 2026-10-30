@@ -7,7 +7,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,39 +37,6 @@ public class VerificationStandardEntity {
 
     @Column(name = "k_id_equipo_patron", nullable = false)
     private UUID idEquipoPatron;
-
-    @Column(name = "n_nombre", nullable = false)
-    private String nombre;
-
-    @Column(name = "n_marca")
-    private String marca;
-
-    @Column(name = "k_serie", nullable = false)
-    private String serie;
-
-    @Column(name = "n_certificado", nullable = false)
-    private String certificado;
-
-    @Column(name = "f_vencimiento", nullable = false)
-    private LocalDate vencimiento;
-
-    @Column(name = "n_modelo")
-    private String modelo;
-
-    @Column(name = "k_codigo_interno")
-    private String codigoInterno;
-
-    @Column(name = "t_rango")
-    private String rango;
-
-    @Column(name = "t_resolucion")
-    private String resolucion;
-
-    @Column(name = "f_calibracion")
-    private LocalDate fechaCalibracion;
-
-    @Column(name = "n_empresa_calibradora")
-    private String empresaCalibradora;
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;

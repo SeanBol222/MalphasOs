@@ -12,10 +12,10 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
-import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandardSheet;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
+import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.shared.application.ports.output.DocumentImageStorePort;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfPort;
@@ -42,7 +42,6 @@ import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
-import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -353,20 +352,7 @@ public class ServiceReportService implements ServiceReportServicePort {
                     + ") esta retirado: no se pueden tomar lecturas con el");
         }
 
-        ReferenceStandardSheet ficha = patron.getFicha();
-        reporte.useReferenceStandard(command.idVerificacion(), new UsedReferenceStandard(
-                patron.getId(),
-                patron.getNombre(),
-                patron.getMarca(),
-                patron.getSerie(),
-                patron.getCertificado(),
-                patron.getVencimientoCertificado(),
-                ficha.modelo(),
-                ficha.codigoInterno(),
-                ficha.rango(),
-                ficha.resolucion(),
-                ficha.fechaCalibracion(),
-                ficha.empresaCalibradora()));
+        reporte.useReferenceStandard(command.idVerificacion(), patron.getId());
 
         return persistAndPublish(reporte);
     }
@@ -388,7 +374,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Transactional
     public ServiceReport markStep(MarkReportStepCommand command) {
         ServiceReport reporte = paraEscribir(command.id());
-        reporte.markStep(command.orden(), command.estado(), command.nota());
+        reporte.markStep(command.idProtocolo(), command.estado(), command.nota());
 
         return persistAndPublish(reporte);
     }
@@ -417,6 +403,19 @@ public class ServiceReportService implements ServiceReportServicePort {
         reporte.finish(congelar(reporte));
 
         return persistAndPublish(reporte);
+    }
+
+    /**
+     * Lo que el reporte dice de sus pasos, verificaciones y patrones y no guarda (V51): de su documento si
+     * está cerrado, del catálogo de hoy si es borrador. Sin restricción: se pide de un reporte que ya pasó
+     * por su lectura acotada.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ReportCatalog catalogOf(ServiceReport reporte) {
+        return reporte.getDocumento() != null
+                ? ReportCatalog.of(reporte.getDocumento())
+                : reportDocumentComposer.catalog(reporte, tipoDelEquipo(reporte.getIdEquipoCliente()));
     }
 
     @Override
@@ -622,8 +621,7 @@ public class ServiceReportService implements ServiceReportServicePort {
         }
 
         return VerificationReading.of(verificacion.id(), null, lectura.secuencia(),
-                lectura.valorPatron(), lectura.valorEquipo(), verificacion.unidad().simbolo(),
-                verificacion.tolerancia());
+                lectura.valorPatron(), lectura.valorEquipo());
     }
 
     /** Con una modalidad constante toda lectura se toma en un punto declarado de esa verificación. */
@@ -652,10 +650,10 @@ public class ServiceReportService implements ServiceReportServicePort {
                     + " lecturas por punto, y se recibio la numero " + lectura.secuencia());
         }
 
-        // La unidad sale de la verificacion, no del comando: asi no puede contradecirla.
+        // La unidad no viaja en el comando ni en la lectura: es la de la verificacion, desde V51 leida del
+        // tipo mientras el reporte es borrador y del documento al cerrarlo.
         return VerificationReading.of(verificacion.id(), punto.id(), lectura.secuencia(),
-                lectura.valorPatron(), lectura.valorEquipo(), verificacion.unidad().simbolo(),
-                verificacion.tolerancia());
+                lectura.valorPatron(), lectura.valorEquipo());
     }
 
     /**

@@ -270,12 +270,18 @@ class ServiceReportPersistenceAdapterTest {
                             "Ciudad", "Urgencias", List.of("Ana", "Luis"), List.of("601 1"), List.of()),
                     new ReportDocument.Equipo("Báscula", "Kern", "MS-200", "SN-1", "HV-CDN-0001", null, "BAS-3",
                             "Electrónica", "Pesar", "IIA", "AC", 110, 20, new BigDecimal("0.50"), 60),
-                    List.of(new ReportDocument.Verificacion(VERIFICACION, "Masa", "kg", 3,
+                    List.of(new ReportDocument.Verificacion(VERIFICACION, "Masa", "kg", 3, new BigDecimal("0.0500"),
                             List.of(new ReportDocument.Punto(PUNTO, new BigDecimal("10.5000"))))),
                     new ReportDocument.Empresa("Ejemplo S.A.S.", null, null, null, null, "Garantía", null, "FT-2",
                             "a".repeat(64)),
                     "Ana Pérez",
-                    "b".repeat(64));
+                    "b".repeat(64),
+                    List.of(new ReportDocument.Paso(UUID.fromString("0e0e0e0e-0000-4000-8000-0000000000aa"), 1,
+                            "Limpieza", "Paño.", "Con guantes")),
+                    List.of(new ReportDocument.Patron(VERIFICACION, new UsedReferenceStandard(
+                            UUID.fromString("0e0e0e0e-0000-4000-8000-0000000000bb"), "Juego de pesas", "Kern", "KF1-1",
+                            "CAL-1", LocalDate.of(2027, 4, 30), "MS-F1", "BB-PAT-003", "1 mg a 2 kg", "0,1 mg",
+                            LocalDate.of(2026, 4, 30), "Metrologia Andina"))));
         }
 
         private ServiceReport cerrado(ReportDocument documento) {
@@ -504,15 +510,15 @@ class ServiceReportPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("las lecturas vuelven con su punto, su numero, sus dos valores y su unidad")
+        @DisplayName("las lecturas vuelven con su punto, su numero y sus dos valores")
         void lasLecturasVuelvenCompletas() {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(
                     VerificationReading.of(alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"),
-                            new BigDecimal("50.2"), "mmHg"),
+                            new BigDecimal("50.2")),
                     VerificationReading.of(alcance.verificacion(), alcance.punto(), 2, new BigDecimal("50"),
-                            new BigDecimal("49.8"), "mmHg")));
+                            new BigDecimal("49.8"))));
             adapter.save(reporte);
 
             ServiceReport recuperado = adapter.findById(reporte.getId()).orElseThrow();
@@ -525,8 +531,6 @@ class ServiceReportPersistenceAdapterTest {
                     .extracting(VerificationReading::valorEquipo)
                     .containsExactlyInAnyOrder(
                             new BigDecimal("50.2000"), new BigDecimal("49.8000"));
-            assertThat(recuperado.lecturasActivas())
-                    .extracting(VerificationReading::unidad).containsOnly("mmHg");
         }
 
         @Test
@@ -536,7 +540,7 @@ class ServiceReportPersistenceAdapterTest {
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(VerificationReading.of(
                     alcance.verificacion(), null, 1,
-                    new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
+                    new BigDecimal("1"), new BigDecimal("1.1"))));
             adapter.save(reporte);
 
             assertThat(adapter.findById(reporte.getId()).orElseThrow()
@@ -546,7 +550,7 @@ class ServiceReportPersistenceAdapterTest {
     }
 
     @Nested
-    @DisplayName("Los patrones de cada verificacion (V30) y la tolerancia (V27)")
+    @DisplayName("Los patrones de cada verificacion (V30)")
     class ElPatron {
 
         private UUID unPatronEnElCatalogo() {
@@ -566,30 +570,20 @@ class ServiceReportPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("los patrones vuelven con lo que se copio, ficha incluida, aunque el catalogo cambie despues")
-        void vuelvenCopiados() {
+        @DisplayName("los patrones vuelven por su verificacion y su identificador: la ficha no es del reporte (V51)")
+        void vuelvenPorSuIdentificador() {
             Alcance alcance = unAlcance();
             UUID pesas = unPatronEnElCatalogo();
             UUID termometro = unPatronEnElCatalogo();
-            UsedReferenceStandard conFicha = new UsedReferenceStandard(pesas, "Juego de pesas", "Kern", "KF1-1",
-                    "CAL-2026-0412", LocalDate.of(2027, 4, 30), "MS-F1", "BB-PAT-003", "1 mg a 2 kg", "0,1 mg",
-                    LocalDate.of(2026, 4, 30), "Metrologia Andina");
-            // Sin marca y sin ficha: lo de un patron hecho en casa, o copiado antes de V30.
-            UsedReferenceStandard sinFicha = new UsedReferenceStandard(termometro, "Termometro", null, "T-9",
-                    "CAL-9", LocalDate.of(2027, 1, 1));
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
-            reporte.useReferenceStandard(alcance.verificacion(), conFicha);
-            reporte.useReferenceStandard(alcance.verificacion(), sinFicha);
+            reporte.useReferenceStandard(alcance.verificacion(), pesas);
+            reporte.useReferenceStandard(alcance.verificacion(), termometro);
             adapter.save(reporte);
 
-            // Se renueva el certificado en el catalogo: el reporte no se entera, y no debe.
-            jdbcTemplate.update("UPDATE equipo_patron SET n_certificado = 'CAL-2027-0001',"
-                    + " f_vencimiento_certificado = '2028-04-30' WHERE k_id_equipo_patron = ?", pesas);
-
             assertThat(adapter.findById(reporte.getId()).orElseThrow().patronesActivos())
-                    .extracting(VerificationStandard::idVerificacion, VerificationStandard::patron)
+                    .extracting(VerificationStandard::idVerificacion, VerificationStandard::idEquipoPatron)
                     .containsExactlyInAnyOrder(
-                            tuple(alcance.verificacion(), conFicha), tuple(alcance.verificacion(), sinFicha));
+                            tuple(alcance.verificacion(), pesas), tuple(alcance.verificacion(), termometro));
         }
 
         @Test
@@ -606,14 +600,13 @@ class ServiceReportPersistenceAdapterTest {
         @DisplayName("quitar uno retira su fila sin borrarla, y volver a ponerlo reactiva la misma")
         void quitarYVolver() {
             Alcance alcance = unAlcance();
-            UsedReferenceStandard patron = new UsedReferenceStandard(unPatronEnElCatalogo(), "Juego de pesas",
-                    "Kern", "KF1-1", "CAL-1", LocalDate.of(2027, 4, 30));
+            UUID patron = unPatronEnElCatalogo();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.useReferenceStandard(alcance.verificacion(), patron);
             adapter.save(reporte);
 
             ServiceReport leido = adapter.findById(reporte.getId()).orElseThrow();
-            leido.removeReferenceStandard(alcance.verificacion(), patron.id());
+            leido.removeReferenceStandard(alcance.verificacion(), patron);
             adapter.save(leido);
             assertThat(filasDePatron(reporte.getId(), false)).isEqualTo(1);
             assertThat(adapter.findById(reporte.getId()).orElseThrow().patronesActivos()).isEmpty();
@@ -631,13 +624,11 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             UUID idPatron = unPatronEnElCatalogo();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
-            reporte.useReferenceStandard(alcance.verificacion(), new UsedReferenceStandard(idPatron, "Pesas",
-                    null, "S", "C", LocalDate.of(2027, 1, 1)));
+            reporte.useReferenceStandard(alcance.verificacion(), idPatron);
             adapter.save(reporte);
             String otra = "INSERT INTO patron_verificacion_reporte (k_id_patron_verificacion_reporte,"
-                    + " k_id_reporte_servicio, k_id_verificacion, k_id_equipo_patron, n_nombre, k_serie,"
-                    + " n_certificado, f_vencimiento, b_estado_activo) VALUES (?, ?, ?, ?, 'Pesas', 'S', 'C',"
-                    + " '2027-01-01', ?)";
+                    + " k_id_reporte_servicio, k_id_verificacion, k_id_equipo_patron, b_estado_activo)"
+                    + " VALUES (?, ?, ?, ?, ?)";
 
             assertThatThrownBy(() -> jdbcTemplate.update(
                             otra, UUID.randomUUID(), reporte.getId(), alcance.verificacion(), idPatron, true))
@@ -645,30 +636,6 @@ class ServiceReportPersistenceAdapterTest {
             // Retirada si cabe: el indice es parcial, y las retiradas son historia.
             assertThat(jdbcTemplate.update(
                     otra, UUID.randomUUID(), reporte.getId(), alcance.verificacion(), idPatron, false)).isEqualTo(1);
-        }
-
-        @Test
-        @DisplayName("la tolerancia de cada lectura va y vuelve, y sin ella vuelve nula")
-        void laToleranciaVuelve() {
-            Alcance alcance = unAlcance();
-            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
-            reporte.recordVerification(List.of(
-                    VerificationReading.of(alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"),
-                            new BigDecimal("50.7"), "mmHg", new BigDecimal("0.5")),
-                    VerificationReading.of(alcance.verificacion(), alcance.punto(), 2, new BigDecimal("50"),
-                            new BigDecimal("50.1"), "mmHg")));
-            adapter.save(reporte);
-
-            List<VerificationReading> recuperadas = adapter.findById(reporte.getId()).orElseThrow()
-                    .lecturasActivas();
-
-            VerificationReading primera = recuperadas.stream().filter(l -> l.secuencia() == 1).findFirst()
-                    .orElseThrow();
-            VerificationReading segunda = recuperadas.stream().filter(l -> l.secuencia() == 2).findFirst()
-                    .orElseThrow();
-            assertThat(primera.tolerancia()).isEqualByComparingTo("0.5");
-            assertThat(primera.conforme()).isFalse();
-            assertThat(segunda.tolerancia()).isNull();
         }
     }
 
@@ -839,7 +806,7 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(VerificationReading.of(
-                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"))));
             adapter.save(reporte);
 
             adapter.save(reporte);
@@ -853,11 +820,11 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(VerificationReading.of(
-                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"))));
             adapter.save(reporte);
 
             reporte.recordVerification(List.of(VerificationReading.of(
-                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("51.9"), "mmHg")));
+                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("51.9"))));
             adapter.save(reporte);
 
             // Dos filas: la corregida sigue ahi, retirada. Aqui nada se borra.
@@ -897,7 +864,7 @@ class ServiceReportPersistenceAdapterTest {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             reporte.recordVerification(List.of(VerificationReading.of(
-                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("50.2"))));
             adapter.save(reporte);
 
             reporte.deactivate();
@@ -981,31 +948,33 @@ class ServiceReportPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("se guardan al abrir, con lo copiado, y vuelven en su orden")
+        @DisplayName("se guardan al abrir, uno por protocolo, y vuelven pendientes (V51: sin texto ni posicion)")
         void idaYVuelta() {
             Alcance alcance = unAlcance();
+            UUID electrico = unProtocolo("Eléctrico");
+            UUID limpieza = unProtocolo("Limpieza");
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo(), List.of(
-                    ReportStep.copied(2, unProtocolo("Eléctrico"), "Eléctrico", "Multímetro.", null),
-                    ReportStep.copied(1, unProtocolo("Limpieza"), "Limpieza", "Paño.", "Con guantes")));
+                    ReportStep.pending(electrico), ReportStep.pending(limpieza)));
             adapter.save(reporte);
 
             assertThat(adapter.findById(reporte.getId()).orElseThrow().getPasos())
-                    .extracting(ReportStep::orden, ReportStep::nombre, ReportStep::indicacion, ReportStep::estado)
-                    .containsExactly(
-                            org.assertj.core.groups.Tuple.tuple(1, "Limpieza", "Con guantes", StepState.PENDIENTE),
-                            org.assertj.core.groups.Tuple.tuple(2, "Eléctrico", null, StepState.PENDIENTE));
+                    .extracting(ReportStep::idProtocolo, ReportStep::estado)
+                    .containsExactlyInAnyOrder(
+                            org.assertj.core.groups.Tuple.tuple(electrico, StepState.PENDIENTE),
+                            org.assertj.core.groups.Tuple.tuple(limpieza, StepState.PENDIENTE));
         }
 
         @Test
         @DisplayName("marcar un paso se guarda sobre la misma fila, sin duplicarla")
         void marcarPersiste() {
             Alcance alcance = unAlcance();
+            UUID bateria = unProtocolo("Batería");
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo(), List.of(
-                    ReportStep.copied(1, unProtocolo("Batería"), "Batería", "Revisar.", null)));
+                    ReportStep.pending(bateria)));
             adapter.save(reporte);
 
             ServiceReport leido = adapter.findById(reporte.getId()).orElseThrow();
-            leido.markStep(1, StepState.NO_APLICA, "No tiene batería");
+            leido.markStep(bateria, StepState.NO_APLICA, "No tiene batería");
             adapter.save(leido);
 
             assertThat(jdbcTemplate.queryForObject(
@@ -1019,24 +988,27 @@ class ServiceReportPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("la base tampoco deja un «no aplica» sin nota, ni dos pasos con el mismo orden")
+        @DisplayName("la base tampoco deja un «no aplica» sin nota, ni dos pasos activos del mismo protocolo (V51)")
         void restricciones() {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
             adapter.save(reporte);
             UUID protocolo = unProtocolo("Limpieza");
-            String insertar = "INSERT INTO paso_reporte (k_id_paso_reporte, k_id_reporte_servicio, i_orden,"
-                    + " k_id_protocolo, n_nombre, t_descripcion, t_estado_paso, t_nota)"
-                    + " VALUES (?, ?, ?, ?, 'Limpieza', 'D', ?, ?)";
+            String insertar = "INSERT INTO paso_reporte (k_id_paso_reporte, k_id_reporte_servicio, k_id_protocolo,"
+                    + " t_estado_paso, t_nota, b_estado_activo) VALUES (?, ?, ?, ?, ?, ?)";
 
             assertThatThrownBy(() -> jdbcTemplate.update(insertar,
-                            UUID.randomUUID(), reporte.getId(), 1, protocolo, "NO_APLICA", null))
+                            UUID.randomUUID(), reporte.getId(), protocolo, "NO_APLICA", null, true))
                     .isInstanceOf(DataIntegrityViolationException.class);
 
-            jdbcTemplate.update(insertar, UUID.randomUUID(), reporte.getId(), 1, protocolo, "HECHO", null);
+            jdbcTemplate.update(insertar, UUID.randomUUID(), reporte.getId(), protocolo, "HECHO", null, true);
             assertThatThrownBy(() -> jdbcTemplate.update(insertar,
-                            UUID.randomUUID(), reporte.getId(), 1, protocolo, "HECHO", null))
-                    .isInstanceOf(DataIntegrityViolationException.class);
+                            UUID.randomUUID(), reporte.getId(), protocolo, "HECHO", null, true))
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining("UQ_paso_reporte_protocolo");
+            // Retirado sí cabe: el índice es parcial, como el resto de los del reporte.
+            assertThat(jdbcTemplate.update(insertar,
+                    UUID.randomUUID(), reporte.getId(), protocolo, "HECHO", null, false)).isEqualTo(1);
         }
     }
 }
