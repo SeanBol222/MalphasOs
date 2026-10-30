@@ -138,13 +138,14 @@
             <div class="h-1 bg-ink" [style.width.%]="avance()"></div>
           </div>
 
-          @if (!sePuedeReportar() && datos.estadoActivo) {
+          @if (sinEmpezar()) {
             <!--
               Es la regla del servidor, no una decision de esta pantalla: un reporte cuenta lo que se
-              hizo, y en una orden que nadie ha empezado no se ha hecho nada.
+              hizo, y en una orden que nadie ha empezado no se ha hecho nada. Cada equipo ya tiene su
+              borrador desde que se anadio (V50); lo que espera es poder escribirse.
             -->
             <p class="text-neutral-800">
-              Los reportes se abren cuando la orden empieza: primero hay que iniciar el trabajo.
+              Los reportes se llenan cuando la orden empieza: primero hay que iniciar el trabajo.
             </p>
           }
 
@@ -190,20 +191,18 @@
                           class="boton-secundario flex min-h-tactil items-center text-sm"
                           [routerLink]="['/reportes', equipo.idReporte]"
                         >
-                          {{ equipo.cerrado ? 'Ver reporte' : 'Continuar' }}
+                          {{
+                            equipo.cerrado
+                              ? 'Ver reporte'
+                              : sinEmpezar()
+                                ? 'Ver borrador'
+                                : 'Continuar'
+                          }}
                         </a>
-                      } @else if (puedeReportar() && sePuedeReportar()) {
-                        <button
-                          class="boton-secundario min-h-tactil text-sm"
-                          type="button"
-                          [disabled]="apertura.isPending()"
-                          (click)="abrirReporte(equipo.id)"
-                        >
-                          Abrir reporte
-                        </button>
                       }
 
-                      @if (puedeEscribir() && datos.estadoActivo) {
+                      <!-- Uno con el reporte cerrado no sale de la orden: su reporte se sustituye. -->
+                      @if (puedeEscribir() && cambiaDeEquipos() && !equipo.cerrado) {
                         <button
                           class="min-h-tactil px-1 text-sm font-semibold underline"
                           type="button"

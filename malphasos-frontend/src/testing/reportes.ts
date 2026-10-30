@@ -13,7 +13,6 @@ const API = 'http://localhost:8081/v1/api';
 
 export const URL_REPORTES = `${API}/reports`;
 export const urlReporte = (id: string) => `${URL_REPORTES}/${id}`;
-export const urlAbrirReporte = (idOrden: string) => `${URL_REPORTES}/work-orders/${idOrden}`;
 export const urlCerrarReporte = (id: string) => `${URL_REPORTES}/${id}/finish`;
 export const urlVerificacion = (id: string) => `${URL_REPORTES}/${id}/verification`;
 

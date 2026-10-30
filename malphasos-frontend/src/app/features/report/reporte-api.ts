@@ -149,22 +149,16 @@ export class ReporteApi {
     }));
   }
 
-  /** Abre el reporte de un equipo de una orden. Nace en borrador y vacio. */
-  abrir() {
+  /**
+   * Sustituye un reporte cerrado: lo retira y abre el borrador del mismo equipo en un solo paso, y
+   * devuelve ese borrador (V50). Es la única forma de corregir uno cerrado, también con la orden
+   * ejecutada. Un reporte ya no se abre por su cuenta: nace al añadir el equipo a la orden.
+   */
+  sustituir() {
     return injectMutation(() => ({
-      mutationFn: ({
-        idOrdenTrabajo,
-        idEquipoCliente,
-      }: {
-        idOrdenTrabajo: string;
-        idEquipoCliente: string;
-      }) =>
-        firstValueFrom(
-          this.http.post<ReporteDeServicio>(`${this.url}/work-orders/${idOrdenTrabajo}`, {
-            idEquipoCliente,
-          }),
-        ),
-      onSuccess: () => this.invalidar(),
+      mutationFn: (id: string) =>
+        firstValueFrom(this.http.post<ReporteDeServicio>(`${this.url}/${id}/replace`, {})),
+      onSuccess: () => this.invalidarConLaOrden(),
     }));
   }
 
@@ -230,7 +224,7 @@ export class ReporteApi {
     }));
   }
 
-  /** Cierra el reporte. Desde aqui ya no cambia: corregirlo es retirarlo y abrir otro. */
+  /** Cierra el reporte. Desde aqui ya no cambia: corregirlo es sustituirlo. */
   /**
    * Marca un paso del protocolo: hecho, no aplica —con nota— o pendiente otra vez.
    *
@@ -294,15 +288,15 @@ export class ReporteApi {
   }
 
   /**
-   * Retira el reporte.
+   * Retira un borrador, y con él su equipo sale de la orden (V50).
    *
    * <p>Se llama retirar y no borrar porque es lo que ocurre: la fila queda con su historia y sus
-   * lecturas. Es ademas la unica salida de un reporte cerrado con un error.
+   * lecturas. Un reporte cerrado no se retira: se sustituye.
    */
   retirar() {
     return injectMutation(() => ({
       mutationFn: (id: string) => firstValueFrom(this.http.delete<void>(`${this.url}/${id}`)),
-      onSuccess: () => this.invalidar(),
+      onSuccess: () => this.invalidarConLaOrden(),
     }));
   }
 
@@ -323,5 +317,11 @@ export class ReporteApi {
     void this.queryClient.invalidateQueries({ queryKey: ['hoja-de-vida'] });
     // Y cambia el ultimo servicio del equipo, que el listado de equipos ensena desde el 2026-10-11.
     void this.queryClient.invalidateQueries({ queryKey: ['equipos-de-cliente', 'resumen'] });
+  }
+
+  /** Retirar y sustituir cambian los equipos de la orden, que desde V50 son sus reportes. */
+  private invalidarConLaOrden(): void {
+    this.invalidar();
+    void this.queryClient.invalidateQueries({ queryKey: ['ordenes'] });
   }
 }

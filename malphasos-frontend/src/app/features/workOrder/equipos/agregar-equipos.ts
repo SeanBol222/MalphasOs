@@ -172,8 +172,8 @@ export class AgregarEquipos {
   /**
    * Suma los seleccionados, uno por llamada.
    *
-   * <p>En serie y no en paralelo: el backend reconcilia el alcance de la orden en cada alta, y mandarlas a
-   * la vez sería pedirle que resuelva carreras que nadie necesita.
+   * <p>En serie y no en paralelo: cada alta abre el borrador de su equipo (V50) y elige su número entre
+   * los libres, y mandarlas a la vez sería pedirle que resuelva carreras que nadie necesita.
    */
   protected async agregar(): Promise<void> {
     const elegidos = [...this.seleccionados()];
