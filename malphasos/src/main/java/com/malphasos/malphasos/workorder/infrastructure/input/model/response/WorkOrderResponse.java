@@ -26,5 +26,9 @@ public record WorkOrderResponse(
         @Schema(description = "Nulo mientras la orden esta creada pero sin asignar")
         UUID idIngeniero,
         List<WorkOrderEquipmentResponse> equipos,
-        boolean estadoActivo) {
+        boolean estadoActivo,
+        @Schema(description = "Lo que la orden era al ejecutarse (V49). Nulo mientras no se ha ejecutado")
+        WorkOrderDocumentResponse documento,
+        @Schema(description = "El documento se compuso despues de ejecutarla, con los datos de ese dia")
+        boolean documentoTardio) {
 }

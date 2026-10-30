@@ -79,6 +79,12 @@ public class WorkOrder extends AggregateRoot {
 
     private boolean estadoActivo;
 
+    /** Lo que la orden era al ejecutarse (V49). Nulo mientras no se ha ejecutado. */
+    private WorkOrderDocument documento;
+
+    /** El documento se compuso después de ejecutarla: las órdenes ejecutadas antes de V49. */
+    private final boolean documentoTardio;
+
     private WorkOrder(
             UUID id,
             UUID idCliente,
@@ -90,7 +96,9 @@ public class WorkOrder extends AggregateRoot {
             ExecutionState estadoEjecucion,
             UUID idIngeniero,
             Collection<SelectedEquipment> equipos,
-            boolean estadoActivo) {
+            boolean estadoActivo,
+            WorkOrderDocument documento,
+            boolean documentoTardio) {
 
         this.id = id;
         this.idCliente = idCliente;
@@ -103,6 +111,8 @@ public class WorkOrder extends AggregateRoot {
         this.idIngeniero = idIngeniero;
         this.equipos = new LinkedHashSet<>(equipos);
         this.estadoActivo = estadoActivo;
+        this.documento = documento;
+        this.documentoTardio = documentoTardio;
     }
 
     /**
@@ -147,7 +157,9 @@ public class WorkOrder extends AggregateRoot {
                 ExecutionState.CREADA,
                 null,
                 Set.of(),
-                true);
+                true,
+                null,
+                false);
 
         orden.registerEvent(new WorkOrderCreatedEvent(
                 orden.metadataFor(WorkOrderCreatedEvent.TYPE), orden.payload()));
@@ -184,8 +196,28 @@ public class WorkOrder extends AggregateRoot {
             Collection<SelectedEquipment> equipos,
             boolean estadoActivo) {
 
+        return rehydrate(id, idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio, garantia,
+                estadoEjecucion, idIngeniero, equipos, estadoActivo, null, false);
+    }
+
+    /** Con su documento, si ya se ejecutó (V49). */
+    public static WorkOrder rehydrate(
+            UUID id,
+            UUID idCliente,
+            UUID idSede,
+            LocalDate fechaMantenimiento,
+            Periodicity periodicidad,
+            ServiceType tipoServicio,
+            boolean garantia,
+            ExecutionState estadoEjecucion,
+            UUID idIngeniero,
+            Collection<SelectedEquipment> equipos,
+            boolean estadoActivo,
+            WorkOrderDocument documento,
+            boolean documentoTardio) {
+
         return new WorkOrder(id, idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio,
-                garantia, estadoEjecucion, idIngeniero, equipos, estadoActivo);
+                garantia, estadoEjecucion, idIngeniero, equipos, estadoActivo, documento, documentoTardio);
     }
 
     public static final int LARGO_NUMERO = 6;
@@ -297,10 +329,21 @@ public class WorkOrder extends AggregateRoot {
                 metadataFor(WorkOrderStartedEvent.TYPE), payload()));
     }
 
-    /** Da el trabajo por terminado. Desde aquí la orden ya no cambia. */
-    public void execute() {
+    /**
+     * Da el trabajo por terminado, congelando lo que la orden es ahora. Desde aquí la orden ya no cambia,
+     * y se lee de su documento (V49).
+     *
+     * <p>El estado se comprueba antes que el documento: a una orden que no puede ejecutarse se le dice
+     * por qué no, no que le falta algo que tampoco serviría.
+     */
+    public void execute(WorkOrderDocument documento) {
         avanzarA(ExecutionState.EJECUTADA, "dar por ejecutada");
 
+        if (documento == null) {
+            throw new IllegalArgumentException("Una orden se ejecuta congelando su documento");
+        }
+
+        this.documento = documento;
         this.estadoEjecucion = ExecutionState.EJECUTADA;
         registerEvent(new WorkOrderExecutedEvent(
                 metadataFor(WorkOrderExecutedEvent.TYPE), payload()));

@@ -15,6 +15,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderAssignedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderCreatedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderDeactivatedEvent;
@@ -41,6 +42,12 @@ class WorkOrderTest {
 
     private static final UUID CLIENTE = UUID.randomUUID();
     private static final UUID SEDE = UUID.randomUUID();
+
+    /** Lo que se congela al ejecutar. Su contenido lo prueba el compositor; aquí basta con que exista. */
+    private static final WorkOrderDocument DOCUMENTO = new WorkOrderDocument(
+            WorkOrderDocument.VERSION, "ABC123", "PREVENTIVO", false, "MENSUAL", LocalDate.of(2026, 10, 28),
+            LocalDate.of(2026, 10, 28), new WorkOrderDocument.Cliente("Hospital", "900"),
+            new WorkOrderDocument.Sede("Norte", "Calle 1 # 2 - 3", "Bogota"), "Ana Perez", List.of());
     private static final UUID INGENIERO = UUID.randomUUID();
     private static final LocalDate MANANA = LocalDate.now().plusDays(1);
 
@@ -401,8 +408,34 @@ class WorkOrderTest {
         void noSeSaltaElPasoIntermedio() {
             WorkOrder orden = unaOrdenArrancable();
 
-            assertThatIllegalStateException().isThrownBy(orden::execute)
+            assertThatIllegalStateException().isThrownBy(() -> orden.execute(DOCUMENTO))
                     .withMessageContaining("EN_EJECUCION");
+        }
+
+        @Test
+        @DisplayName("ejecutar congela el documento, y sin documento no se ejecuta")
+        void ejecutarCongelaElDocumento() {
+            WorkOrder orden = unaOrdenArrancable();
+            orden.start();
+
+            assertThatIllegalArgumentException().isThrownBy(() -> orden.execute(null))
+                    .withMessageContaining("documento");
+            assertThat(orden.getEstadoEjecucion()).isEqualTo(ExecutionState.EN_EJECUCION);
+
+            orden.execute(DOCUMENTO);
+
+            assertThat(orden.getDocumento()).isSameAs(DOCUMENTO);
+            assertThat(orden.isDocumentoTardio()).isFalse();
+        }
+
+        @Test
+        @DisplayName("a una orden que no se puede ejecutar se le dice por que, no que le falta el documento")
+        void elEstadoAntesQueElDocumento() {
+            WorkOrder orden = unaOrdenArrancable();
+
+            assertThatIllegalStateException().isThrownBy(() -> orden.execute(null))
+                    .withMessageContaining("EN_EJECUCION");
+            assertThat(orden.getDocumento()).isNull();
         }
 
         @Test
@@ -410,11 +443,11 @@ class WorkOrderTest {
         void ejecutadaEsFinal() {
             WorkOrder orden = unaOrdenArrancable();
             orden.start();
-            orden.execute();
+            orden.execute(DOCUMENTO);
 
             assertThatIllegalStateException().isThrownBy(orden::start)
                     .withMessageContaining("ya ejecutada");
-            assertThatIllegalStateException().isThrownBy(orden::execute)
+            assertThatIllegalStateException().isThrownBy(() -> orden.execute(DOCUMENTO))
                     .withMessageContaining("ya ejecutada");
         }
 
@@ -436,7 +469,7 @@ class WorkOrderTest {
         void ejecutadaNoAdmiteCambios() {
             WorkOrder orden = unaOrdenArrancable();
             orden.start();
-            orden.execute();
+            orden.execute(DOCUMENTO);
 
             assertThatIllegalStateException()
                     .isThrownBy(() -> orden.addEquipment(UUID.randomUUID(), UUID.randomUUID()));
@@ -482,7 +515,7 @@ class WorkOrderTest {
             // no reescribe lo que ocurrio.
             WorkOrder orden = unaOrdenArrancable();
             orden.start();
-            orden.execute();
+            orden.execute(DOCUMENTO);
             orden.pullEvents();
 
             orden.cancel();
@@ -558,7 +591,7 @@ class WorkOrderTest {
         void llevanElIdentificador() {
             WorkOrder orden = unaOrdenArrancable();
             orden.start();
-            orden.execute();
+            orden.execute(DOCUMENTO);
 
             List<DomainEvent<? extends Payload>> eventos = orden.pullEvents();
 

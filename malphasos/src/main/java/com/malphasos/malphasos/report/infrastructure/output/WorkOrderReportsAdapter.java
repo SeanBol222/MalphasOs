@@ -4,6 +4,7 @@ import com.malphasos.malphasos.report.application.ports.output.ServiceReportPers
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,5 +33,14 @@ public class WorkOrderReportsAdapter implements WorkOrderReportsPort {
                 .filter(reporte -> reporte.getEstado() == ReportState.FINALIZADO)
                 .map(ServiceReport::getIdEquipoCliente)
                 .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, String> activeReportNumbers(UUID idOrdenTrabajo) {
+        // El indice unico parcial deja un solo reporte activo por equipo y orden, asi que no hay choque.
+        return serviceReportPersistencePort.findByWorkOrder(idOrdenTrabajo).stream()
+                .filter(ServiceReport::isEstadoActivo)
+                .collect(Collectors.toUnmodifiableMap(ServiceReport::getIdEquipoCliente, ServiceReport::numero));
     }
 }

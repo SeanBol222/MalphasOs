@@ -15,6 +15,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * Representación JPA de una orden de trabajo.
@@ -70,6 +72,14 @@ public class WorkOrderEntity {
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
+
+    /** La orden congelada al ejecutarse, en JSON (V49). Lo escribe y lo lee el mapper. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "t_documento")
+    private String documento;
+
+    @Column(name = "b_documento_tardio", nullable = false)
+    private boolean documentoTardio;
 
     @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<WorkOrderEquipmentEntity> equipos = new ArrayList<>();

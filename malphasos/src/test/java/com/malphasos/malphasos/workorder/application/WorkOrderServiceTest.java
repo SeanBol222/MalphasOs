@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,6 +27,7 @@ import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderPersistencePort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
+import com.malphasos.malphasos.workorder.application.services.workOrder.WorkOrderDocumentComposer;
 import com.malphasos.malphasos.workorder.application.services.workOrder.WorkOrderService;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AssignWorkOrderCommand;
@@ -38,6 +40,7 @@ import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -78,6 +81,7 @@ class WorkOrderServiceTest {
     @Mock private PersonCommunicationPort personCommunicationPort;
     @Mock private EventDispatcherPort eventDispatcherPort;
     @Mock private WorkOrderReportsPort workOrderReportsPort;
+    @Mock private WorkOrderDocumentComposer workOrderDocumentComposer;
 
     @InjectMocks private WorkOrderService service;
 
@@ -461,10 +465,15 @@ class WorkOrderServiceTest {
             WorkOrder enEjecucion = enEjecucionCon(EQUIPO, OTRO_EQUIPO);
             when(workOrderReportsPort.equipmentWithFinishedReport(enEjecucion.getId()))
                     .thenReturn(Set.of(EQUIPO, OTRO_EQUIPO));
+            WorkOrderDocument documento = mock(WorkOrderDocument.class);
+            when(workOrderDocumentComposer.compose(enEjecucion)).thenReturn(documento);
             elAlmacenGuardaYDevuelve();
 
-            assertThat(service.execute(new ExecuteWorkOrderCommand(enEjecucion.getId())).getEstadoEjecucion())
-                    .isEqualTo(ExecutionState.EJECUTADA);
+            WorkOrder ejecutada = service.execute(new ExecuteWorkOrderCommand(enEjecucion.getId()));
+
+            assertThat(ejecutada.getEstadoEjecucion()).isEqualTo(ExecutionState.EJECUTADA);
+            // Lo que se guarda lleva lo que se congelo (V49): sin el, la base rechazaria la fila.
+            assertThat(ejecutada.getDocumento()).isSameAs(documento);
         }
 
         @Test
@@ -478,6 +487,7 @@ class WorkOrderServiceTest {
                     .hasMessageContaining("1 equipo sin reporte cerrado")
                     .satisfies(e -> assertThat(((WorkOrderHasOpenReportsException) e).getPendientes()).isEqualTo(1));
             verify(workOrderPersistencePort, never()).save(any());
+            verify(workOrderDocumentComposer, never()).compose(any());
         }
 
         @Test
@@ -502,6 +512,8 @@ class WorkOrderServiceTest {
             assertThatThrownBy(() -> service.execute(new ExecuteWorkOrderCommand(orden.getId())))
                     .isInstanceOf(IllegalStateException.class);
             verify(workOrderReportsPort, never()).equipmentWithFinishedReport(any());
+            // Ni compone el documento: leer seis modulos para una orden que no se puede ejecutar sobra.
+            verify(workOrderDocumentComposer, never()).compose(any());
         }
     }
 
