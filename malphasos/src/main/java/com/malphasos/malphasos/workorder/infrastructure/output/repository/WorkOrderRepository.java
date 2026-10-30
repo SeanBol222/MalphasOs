@@ -39,18 +39,4 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrderEntity, UUID
 
     List<WorkOrderEntity> findByFechaMantenimientoBetweenAndIdIngenieroAndIdClienteInOrderByFechaMantenimientoAsc(
             LocalDate desde, LocalDate hasta, UUID idIngeniero, Collection<UUID> idsClientes);
-
-    /**
-     * Las órdenes que incluyen un equipo, contando solo las filas del puente que siguen activas.
-     *
-     * <p>Se escribe a mano porque la derivación por nombre no puede expresar la condición sobre la
-     * fila intermedia: un equipo retirado del alcance dejó de estar en esa orden, aunque su fila
-     * siga ahí como historial.
-     */
-    @Query("""
-            select distinct o from WorkOrderEntity o
-            join o.equipos e
-            where e.equipoCliente = :idEquipoCliente and e.estadoActivo = true
-            """)
-    List<WorkOrderEntity> findByEquipment(UUID idEquipoCliente);
 }

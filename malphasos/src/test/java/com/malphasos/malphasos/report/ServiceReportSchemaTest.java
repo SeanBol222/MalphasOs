@@ -30,9 +30,10 @@ import org.springframework.test.context.jdbc.Sql;
  * proyecto ya pagó una vez:
  *
  * <ul>
- *   <li>{@link #reporteDeUnEquipoAjenoALaOrdenFalla()} ejercita la llave foránea <b>compuesta</b>
- *       contra el puente. Con dos foráneas sueltas esa inserción pasaría, y el reporte hablaría de un
- *       equipo que la orden nunca incluyó.
+ *   <li>{@link #reporteDeUnaOrdenOEquipoInexistenteFalla()} ejercita las dos foráneas del reporte. Hasta
+ *       {@code V50} era una sola, <b>compuesta</b> contra la tabla puente, que impedía reportar un equipo
+ *       que la orden no incluía; sin puente es el reporte el que pone el equipo en la orden, y que ese
+ *       equipo sea de la sede de la orden lo comprueba el servicio al añadirlo.
  *   <li>{@link #borradorConFechaDeFinalizacionFalla()} ejercita la rama {@code ELSE} del
  *       {@code CHECK} de cierre: un borrador no puede traer fecha de cierre.
  * </ul>
@@ -42,7 +43,8 @@ import org.springframework.test.context.jdbc.Sql;
  *
  * <ol>
  *   <li>Cambiar la foránea compuesta por dos sueltas —una a {@code orden_trabajo} y otra a
- *       {@code equipo_cliente}—: falla {@code reporteDeUnEquipoAjenoALaOrdenFalla}.
+ *       {@code equipo_cliente}—: fallaba {@code reporteDeUnEquipoAjenoALaOrdenFalla}. Es lo que
+ *       {@code V50} hizo a propósito, y esa prueba salió con ella.
  *   <li>Quitar {@code NULLS NOT DISTINCT} del índice único de lecturas: falla
  *       {@code secuenciaRepetidaSinPuntoFalla}.
  *   <li>Sustituir el {@code CASE} del cierre por dos ramas unidas por {@code OR}: <b>no falla
@@ -59,7 +61,6 @@ import org.springframework.test.context.jdbc.Sql;
         statements = {
             "DELETE FROM dato_verificacion",
             "DELETE FROM reporte_servicio",
-            "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
             "DELETE FROM modelo",
@@ -246,9 +247,9 @@ class ServiceReportSchemaTest {
     }
 
     /**
-     * Un equipo dentro del alcance de una orden, que es el único destino que el reporte admite.
+     * Una orden y un equipo de su sede, a los que se les puede abrir reporte.
      *
-     * @return el par (orden, equipo cliente) al que se le puede abrir reporte
+     * @return el par (orden, equipo cliente)
      */
     private UUID[] insertEquipmentInOrder() {
         UUID cliente = insertClient();
@@ -256,13 +257,6 @@ class ServiceReportSchemaTest {
         UUID area = insertServiceArea(sede);
         UUID equipo = insertClientEquipment(area);
         UUID orden = insertWorkOrder(cliente, sede);
-
-        jdbcTemplate.update(
-                """
-                INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio)
-                VALUES (?, ?, ?)
-                """,
-                orden, equipo, area);
 
         return new UUID[] {orden, equipo};
     }
@@ -412,15 +406,16 @@ class ServiceReportSchemaTest {
     }
 
     @Test
-    @DisplayName("un reporte de un equipo que la orden no incluye falla: la foranea es compuesta")
-    void reporteDeUnEquipoAjenoALaOrdenFalla() {
+    @DisplayName("un reporte de una orden o de un equipo que no existen falla: sus dos foraneas (V50)")
+    void reporteDeUnaOrdenOEquipoInexistenteFalla() {
         UUID[] alcance = insertEquipmentInOrder();
-        // Un equipo real, de otro cliente, que no esta en el alcance de esta orden. Con dos foraneas
-        // sueltas -- una a orden_trabajo y otra a equipo_cliente -- esta insercion pasaria.
-        UUID ajeno = insertClientEquipment(insertServiceArea(insertHeadquarter(insertClient())));
 
-        assertThatThrownBy(() -> insertDraft(alcance[0], ajeno))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertDraft(UUID.randomUUID(), alcance[1]))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("FK_reporte_servicio_orden");
+        assertThatThrownBy(() -> insertDraft(alcance[0], UUID.randomUUID()))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("FK_reporte_servicio_equipo_cliente");
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.workorder.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +28,9 @@ import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderPersistencePort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
+import com.malphasos.malphasos.workorder.application.services.workOrder.commands.StartWorkOrderCommand;
+import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.WorkOrderDocumentComposer;
 import com.malphasos.malphasos.workorder.application.services.workOrder.WorkOrderService;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
@@ -37,7 +41,6 @@ import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReport
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
-import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
@@ -217,7 +220,7 @@ class WorkOrderServiceTest {
             assertThatIllegalArgumentException().isThrownBy(() -> service.schedule(elComando()))
                     .withMessageContaining("cerrada");
 
-            verify(workOrderPersistencePort, never()).save(any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
         }
 
         @Test
@@ -244,23 +247,38 @@ class WorkOrderServiceTest {
             return new AddEquipmentToWorkOrderCommand(orden.getId(), EQUIPO);
         }
 
-        @Test
-        @DisplayName("el area que se congela la averigua el servicio, no la declara el llamante")
-        void elAreaSaleDelEquipoYNoDelComando() {
-            // Es la regla mas importante de esta capa: el comando no tiene sitio para un area, de
-            // modo que nadie puede declarar una donde el equipo no esta.
-            laOrdenExiste();
+        private void unEquipoQueCabe() {
             when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, true));
             when(serviceAreaServicePort.findById(AREA, ReadScope.unrestricted())).thenReturn(unArea(true));
             when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(CLIENTE);
-            elAlmacenGuardaYDevuelve();
+        }
 
-            WorkOrder conEquipo = service.addEquipment(elComando());
+        @Test
+        @DisplayName("anadir un equipo es abrir su borrador, con el tipo de servicio de la orden (V50)")
+        void abreSuBorrador() {
+            laOrdenExiste();
+            unEquipoQueCabe();
 
-            assertThat(conEquipo.getEquipos()).singleElement()
-                    .extracting(SelectedEquipment::getIdEquipoCliente,
-                            SelectedEquipment::getIdAreaServicio)
-                    .containsExactly(EQUIPO, AREA);
+            service.addEquipment(elComando());
+
+            verify(workOrderReportsPort).openDraft(orden.getId(), ServiceType.PREVENTIVO, EQUIPO);
+            // La orden no cambia: no se guarda ni emite nada. El hecho es el reporte, y lo publica su modulo.
+            verify(workOrderPersistencePort, never()).save(any());
+            verify(eventDispatcherPort, never()).dispatch(any());
+        }
+
+        @Test
+        @DisplayName("una orden ejecutada ya no recibe equipos, y no se abre ningun borrador")
+        void ejecutadaNoRecibe() {
+            WorkOrder ejecutada = WorkOrder.rehydrate(orden.getId(), CLIENTE, SEDE, MANANA, Periodicity.ANUAL,
+                    ServiceType.PREVENTIVO, ExecutionState.EJECUTADA, INGENIERO, true);
+            when(workOrderPersistencePort.findById(orden.getId())).thenReturn(Optional.of(ejecutada));
+            unEquipoQueCabe();
+
+            assertThatIllegalStateException().isThrownBy(() -> service.addEquipment(elComando()))
+                    .withMessageContaining("ya ejecutada");
+
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
         }
 
         @Test
@@ -272,7 +290,7 @@ class WorkOrderServiceTest {
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("dada de baja");
 
-            verify(workOrderPersistencePort, never()).save(any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
         }
 
         @Test
@@ -299,7 +317,7 @@ class WorkOrderServiceTest {
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("es del cliente");
 
-            verify(workOrderPersistencePort, never()).save(any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
         }
 
         @Test
@@ -317,7 +335,7 @@ class WorkOrderServiceTest {
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("se presta en la sede");
 
-            verify(workOrderPersistencePort, never()).save(any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
         }
 
         @Test
@@ -336,7 +354,7 @@ class WorkOrderServiceTest {
                     .withMessageContaining("es del cliente")
                     .withMessageNotContaining("se presta en la sede");
 
-            verify(workOrderPersistencePort, never()).save(any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
         }
 
         @Test
@@ -348,6 +366,74 @@ class WorkOrderServiceTest {
                     .isThrownBy(() -> service.addEquipment(elComando()));
 
             verify(clientEquipmentServicePort, never()).findById(any(), any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Al sacar un equipo")
+    class AlSacarUnEquipo {
+
+        private RemoveEquipmentFromWorkOrderCommand elComando() {
+            return new RemoveEquipmentFromWorkOrderCommand(orden.getId(), EQUIPO);
+        }
+
+        @Test
+        @DisplayName("sacar un equipo es retirar su borrador (V50)")
+        void retiraSuBorrador() {
+            laOrdenExiste();
+
+            service.removeEquipment(elComando());
+
+            verify(workOrderReportsPort).retireDraft(orden.getId(), EQUIPO);
+            verify(workOrderPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("de una orden ejecutada no sale ningun equipo, y no se toca su reporte")
+        void ejecutadaNoSuelta() {
+            WorkOrder ejecutada = WorkOrder.rehydrate(orden.getId(), CLIENTE, SEDE, MANANA, Periodicity.ANUAL,
+                    ServiceType.PREVENTIVO, ExecutionState.EJECUTADA, INGENIERO, true);
+            when(workOrderPersistencePort.findById(orden.getId())).thenReturn(Optional.of(ejecutada));
+
+            assertThatIllegalStateException().isThrownBy(() -> service.removeEquipment(elComando()))
+                    .withMessageContaining("ya ejecutada");
+
+            verify(workOrderReportsPort, never()).retireDraft(any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Al empezar")
+    class AlEmpezar {
+
+        private WorkOrder conIngeniero() {
+            WorkOrder asignada = WorkOrder.rehydrate(orden.getId(), CLIENTE, SEDE, MANANA, Periodicity.ANUAL,
+                    ServiceType.PREVENTIVO, ExecutionState.CREADA, INGENIERO, true);
+            when(workOrderPersistencePort.findById(orden.getId())).thenReturn(Optional.of(asignada));
+            return asignada;
+        }
+
+        @Test
+        @DisplayName("los equipos que cuenta son sus reportes activos (V50)")
+        void cuentaSusReportes() {
+            conIngeniero();
+            when(workOrderReportsPort.activeReports(orden.getId()))
+                    .thenReturn(List.of(new WorkOrderReportsPort.ActiveReport(UUID.randomUUID(), EQUIPO, "ABC123", false)));
+            elAlmacenGuardaYDevuelve();
+
+            assertThat(service.start(new StartWorkOrderCommand(orden.getId())).getEstadoEjecucion())
+                    .isEqualTo(ExecutionState.EN_EJECUCION);
+        }
+
+        @Test
+        @DisplayName("sin reportes no hay equipos, y no empieza")
+        void sinReportesNoEmpieza() {
+            conIngeniero();
+            when(workOrderReportsPort.activeReports(orden.getId())).thenReturn(List.of());
+
+            assertThatThrownBy(() -> service.start(new StartWorkOrderCommand(orden.getId())))
+                    .isInstanceOf(WorkOrderWithoutEquipmentException.class);
             verify(workOrderPersistencePort, never()).save(any());
         }
     }
@@ -413,7 +499,7 @@ class WorkOrderServiceTest {
                 WorkOrder recibida = invocacion.getArgument(0);
                 return WorkOrder.rehydrate(recibida.getId(), CLIENTE, SEDE, MANANA,
                         Periodicity.ANUAL, ServiceType.PREVENTIVO,
-                        recibida.getEstadoEjecucion(), null, Set.of(), true);
+                        recibida.getEstadoEjecucion(), null, true);
             });
 
             service.schedule(new ScheduleWorkOrderCommand(
@@ -426,12 +512,9 @@ class WorkOrderServiceTest {
         @DisplayName("una operacion que no cambia nada no publica nada")
         void loQueNoCambiaNoSePublica() {
             laOrdenExiste();
-            elAlmacenGuardaYDevuelve();
 
-            // Retirar un equipo que no esta en el alcance.
-            service.removeEquipment(
-                    new com.malphasos.malphasos.workorder.application.services.workOrder.commands
-                            .RemoveEquipmentFromWorkOrderCommand(orden.getId(), UUID.randomUUID()));
+            // Retirar un equipo que no esta en la orden: el puerto no hace nada, y el servicio tampoco.
+            service.removeEquipment(new RemoveEquipmentFromWorkOrderCommand(orden.getId(), UUID.randomUUID()));
 
             verify(eventDispatcherPort, never()).dispatch(any());
         }
@@ -447,24 +530,23 @@ class WorkOrderServiceTest {
 
         private static final UUID OTRO_EQUIPO = UUID.randomUUID();
 
-        private WorkOrder enEjecucionCon(UUID... equipos) {
-            Set<SelectedEquipment> alcance = new java.util.HashSet<>();
-            for (UUID equipo : equipos) {
-                alcance.add(SelectedEquipment.of(equipo, AREA));
-            }
+        private WorkOrder enEjecucion() {
             WorkOrder enEjecucion = WorkOrder.rehydrate(UUID.randomUUID(), CLIENTE, SEDE, MANANA,
-                    Periodicity.ANUAL, ServiceType.PREVENTIVO, ExecutionState.EN_EJECUCION, INGENIERO,
-                    alcance, true);
+                    Periodicity.ANUAL, ServiceType.PREVENTIVO, ExecutionState.EN_EJECUCION, INGENIERO, true);
             when(workOrderPersistencePort.findById(enEjecucion.getId())).thenReturn(Optional.of(enEjecucion));
             return enEjecucion;
+        }
+
+        private static WorkOrderReportsPort.ActiveReport reporte(UUID equipo, boolean cerrado) {
+            return new WorkOrderReportsPort.ActiveReport(UUID.randomUUID(), equipo, "ABC123", cerrado);
         }
 
         @Test
         @DisplayName("con todos los reportes cerrados se ejecuta")
         void todosCerrados() {
-            WorkOrder enEjecucion = enEjecucionCon(EQUIPO, OTRO_EQUIPO);
-            when(workOrderReportsPort.equipmentWithFinishedReport(enEjecucion.getId()))
-                    .thenReturn(Set.of(EQUIPO, OTRO_EQUIPO));
+            WorkOrder enEjecucion = enEjecucion();
+            when(workOrderReportsPort.activeReports(enEjecucion.getId()))
+                    .thenReturn(List.of(reporte(EQUIPO, true), reporte(OTRO_EQUIPO, true)));
             WorkOrderDocument documento = mock(WorkOrderDocument.class);
             when(workOrderDocumentComposer.compose(enEjecucion)).thenReturn(documento);
             elAlmacenGuardaYDevuelve();
@@ -477,10 +559,11 @@ class WorkOrderServiceTest {
         }
 
         @Test
-        @DisplayName("con un equipo sin reporte cerrado no se ejecuta, y dice cuántos faltan")
+        @DisplayName("con un equipo con el reporte en borrador no se ejecuta, y dice cuántos faltan")
         void faltaUno() {
-            WorkOrder enEjecucion = enEjecucionCon(EQUIPO, OTRO_EQUIPO);
-            when(workOrderReportsPort.equipmentWithFinishedReport(enEjecucion.getId())).thenReturn(Set.of(EQUIPO));
+            WorkOrder enEjecucion = enEjecucion();
+            when(workOrderReportsPort.activeReports(enEjecucion.getId()))
+                    .thenReturn(List.of(reporte(EQUIPO, true), reporte(OTRO_EQUIPO, false)));
 
             assertThatThrownBy(() -> service.execute(new ExecuteWorkOrderCommand(enEjecucion.getId())))
                     .isInstanceOf(WorkOrderHasOpenReportsException.class)
@@ -491,27 +574,16 @@ class WorkOrderServiceTest {
         }
 
         @Test
-        @DisplayName("un reporte cerrado de un equipo que ya no está en la orden no cuenta por otro")
-        void cerradoAjeno() {
-            WorkOrder enEjecucion = enEjecucionCon(EQUIPO);
-            when(workOrderReportsPort.equipmentWithFinishedReport(enEjecucion.getId()))
-                    .thenReturn(Set.of(OTRO_EQUIPO));
-
-            assertThatThrownBy(() -> service.execute(new ExecuteWorkOrderCommand(enEjecucion.getId())))
-                    .isInstanceOf(WorkOrderHasOpenReportsException.class);
-        }
-
-        @Test
         @DisplayName("una orden sin empezar responde con su estado, sin preguntar por los reportes")
         void sinEmpezar() {
             laOrdenExiste();
             // Si los reportes se miraran primero, esto diría «faltan reportes» de una orden que ni
-            // siquiera puede tenerlos todavía. Se estubaría el camino equivocado sin el lenient.
-            lenient().when(workOrderReportsPort.equipmentWithFinishedReport(any())).thenReturn(Set.of());
+            // siquiera puede tener uno escrito todavía. Se estubaría el camino equivocado sin el lenient.
+            lenient().when(workOrderReportsPort.activeReports(any(UUID.class))).thenReturn(List.of());
 
             assertThatThrownBy(() -> service.execute(new ExecuteWorkOrderCommand(orden.getId())))
                     .isInstanceOf(IllegalStateException.class);
-            verify(workOrderReportsPort, never()).equipmentWithFinishedReport(any());
+            verify(workOrderReportsPort, never()).activeReports(any(UUID.class));
             // Ni compone el documento: leer seis modulos para una orden que no se puede ejecutar sobra.
             verify(workOrderDocumentComposer, never()).compose(any());
         }
@@ -520,6 +592,17 @@ class WorkOrderServiceTest {
     @Nested
     @DisplayName("Las consultas comprueban que la referencia existe")
     class LasConsultas {
+
+        @Test
+        @DisplayName("las ordenes de un equipo son las que le tienen un reporte activo (V50)")
+        void porEquipo() {
+            UUID otraOrden = UUID.randomUUID();
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, true));
+            when(workOrderReportsPort.workOrdersOf(EQUIPO)).thenReturn(Set.of(orden.getId(), otraOrden));
+            when(workOrderPersistencePort.findAllById(Set.of(orden.getId(), otraOrden))).thenReturn(List.of(orden));
+
+            assertThat(service.findByEquipment(EQUIPO, ReadScope.unrestricted())).containsExactly(orden);
+        }
 
         @Test
         @DisplayName("buscar por cliente valida el cliente antes de mirar el almacen")

@@ -34,10 +34,13 @@ import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.model.ReportSheet;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.ReportDocumentComposer;
+import com.malphasos.malphasos.report.application.services.serviceReport.ServiceReportDrafts;
 import com.malphasos.malphasos.report.application.services.serviceReport.ServiceReportService;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
-import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReplaceServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
@@ -69,9 +72,9 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
+import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
-import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -81,6 +84,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -121,16 +125,17 @@ class ServiceReportServiceTest {
     @Mock private ReportDocumentComposer reportDocumentComposer;
     @Mock private DocumentImageStorePort documentImageStorePort;
     @Mock private ReportPdfPort reportPdfPort;
+    @Mock private ServiceReportDrafts serviceReportDrafts;
 
     @InjectMocks private ServiceReportService service;
 
     // ---- Dobles de los otros modulos ----
 
-    private static WorkOrder unaOrden(ExecutionState estado, boolean activa, UUID... equipos) {
-        return unaOrden(ServiceType.PREVENTIVO, estado, activa, equipos);
+    private static WorkOrder unaOrden(ExecutionState estado, boolean activa) {
+        return unaOrden(ServiceType.PREVENTIVO, estado, activa);
     }
 
-    private static WorkOrder unaOrden(ServiceType servicio, ExecutionState estado, boolean activa, UUID... equipos) {
+    private static WorkOrder unaOrden(ServiceType servicio, ExecutionState estado, boolean activa) {
         return WorkOrder.rehydrate(
                 ORDEN,
                 UUID.randomUUID(),
@@ -140,15 +145,21 @@ class ServiceReportServiceTest {
                 servicio,
                 estado,
                 UUID.randomUUID(),
-                java.util.Arrays.stream(equipos)
-                        .map(equipo -> SelectedEquipment.of(equipo, AREA))
-                        .toList(),
                 activa);
     }
 
-    /** La orden en la que todo se puede reportar: empezada, activa y con el equipo dentro. */
+    /** La orden en la que todo se puede reportar: empezada y activa. */
     private static WorkOrder unaOrdenEnEjecucion() {
-        return unaOrden(ExecutionState.EN_EJECUCION, true, EQUIPO);
+        return unaOrden(ExecutionState.EN_EJECUCION, true);
+    }
+
+    /**
+     * Desde V50 toda escritura mira la orden del reporte: tiene que haber empezado. Por defecto lo está, y
+     * con {@code lenient} porque las lecturas no la miran; las pruebas de esa regla la cambian.
+     */
+    @BeforeEach
+    void laOrdenHaEmpezado() {
+        lenient().when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
     }
 
     private static final UUID ID_PRESION = UUID.randomUUID();
@@ -232,174 +243,182 @@ class ServiceReportServiceTest {
         when(serviceReportPersistencePort.findById(reporte.getId())).thenReturn(Optional.of(reporte));
     }
 
+    /**
+     * Un reporte cuenta lo que se hizo (V50): desde que el borrador nace al añadir el equipo, aunque la
+     * orden no haya empezado, la regla que se comprobaba al abrirlo pasa a <b>cada escritura</b>. Se prueban
+     * todas, porque basta con que una se salte la comprobación para escribir en una orden sin empezar.
+     */
     @Nested
-    @DisplayName("Al abrir un reporte")
-    class AlAbrir {
+    @DisplayName("Al escribir, la orden tiene que haber empezado")
+    class LaOrdenHaDeHaberEmpezado {
 
-        @Test
-        @DisplayName("si el numero ya lo tiene otro reporte, elige otro identificador y no publica el descartado")
-        void numeroTomado() {
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
-            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
-                    .thenReturn(Optional.empty());
-            estubarProtocolos();
-            estubarGuardado();
-            java.util.List<String> consultados = new java.util.ArrayList<>();
-            when(serviceReportPersistencePort.numberTaken(any())).thenAnswer(llamada -> {
-                consultados.add(llamada.getArgument(0));
-                return consultados.size() == 1;
-            });
-
-            ServiceReport reporte = service.open(new OpenServiceReportCommand(ORDEN, EQUIPO));
-
-            assertThat(consultados).hasSize(2);
-            assertThat(reporte.numero()).isEqualTo(consultados.get(1)).isNotEqualTo(consultados.get(0));
-            // Un solo evento: el del reporte guardado. El descartado no ocurrio.
-            verify(eventDispatcherPort).dispatch(any());
+        private List<org.assertj.core.api.ThrowableAssert.ThrowingCallable> todasLasEscrituras(UUID id) {
+            return List.of(
+                    () -> service.fill(new FillServiceReportCommand(id, null, null, "Limpieza", null, null, null,
+                            ServiceResult.OPERATIVO)),
+                    () -> service.recordVerification(new RecordVerificationCommand(id, List.of())),
+                    () -> service.recordIntake(new RecordIntakeCommand(id, IntakeState.CONFORME, null,
+                            IntakeState.CONFORME, null, List.of())),
+                    () -> service.recordHandover(new RecordHandoverCommand(id, "Ana", null, null)),
+                    () -> service.signReceipt(new SignReceiptCommand(id, "Ana", null, null, new byte[] {1}, false)),
+                    () -> service.useReferenceStandard(new UseReferenceStandardCommand(id, UUID.randomUUID(),
+                            UUID.randomUUID())),
+                    () -> service.removeReferenceStandard(new RemoveReferenceStandardCommand(id, UUID.randomUUID(),
+                            UUID.randomUUID())),
+                    () -> service.markStep(new MarkReportStepCommand(id, 1, StepState.HECHO, null)),
+                    () -> service.finish(new FinishServiceReportCommand(id)));
         }
 
         @Test
-        @DisplayName("si nunca encuentra un numero libre, se rinde sin guardar nada")
-        void sinNumeroLibre() {
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
-            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
-                    .thenReturn(Optional.empty());
-            estubarProtocolos();
-            when(serviceReportPersistencePort.numberTaken(any())).thenReturn(true);
+        @DisplayName("ninguna de las nueve escrituras entra en un borrador de una orden sin empezar")
+        void ningunaSinEmpezar() {
+            ServiceReport borrador = unReporte();
+            estubarReporte(borrador);
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+                    .thenReturn(unaOrden(ExecutionState.CREADA, true));
 
-            assertThatIllegalStateException()
-                    .isThrownBy(() -> service.open(new OpenServiceReportCommand(ORDEN, EQUIPO)))
-                    .withMessageContaining("numero de reporte libre");
-            verify(serviceReportPersistencePort, org.mockito.Mockito.times(10)).numberTaken(any());
+            for (var escritura : todasLasEscrituras(borrador.getId())) {
+                assertThatIllegalStateException().isThrownBy(escritura).withMessageContaining("no ha empezado");
+            }
             verify(serviceReportPersistencePort, never()).save(any());
         }
 
         @Test
-        @DisplayName("lo abre si la orden esta en ejecucion y el equipo esta en su alcance")
-        void abreElReporte() {
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
-            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
-                    .thenReturn(Optional.empty());
-            estubarProtocolos();
-            estubarGuardado();
-
-            ServiceReport reporte = service.open(new OpenServiceReportCommand(ORDEN, EQUIPO));
-
-            assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
-            assertThat(reporte.getIdOrdenTrabajo()).isEqualTo(ORDEN);
-            verify(eventDispatcherPort).dispatch(any());
-        }
-
-        @Test
-        @DisplayName("en un preventivo copia los protocolos del tipo como pasos pendientes, en su orden")
-        void copiaLosPasos() {
-            // RF-13: se cargan solos. Se copian el nombre, la descripcion y la indicacion de ese dia.
-            Protocol limpieza = Protocol.create("Limpieza", "Paño humedecido.");
-            Protocol electrico = Protocol.create("Eléctrico", "Multímetro.");
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
-            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
-                    .thenReturn(Optional.empty());
-            estubarProtocolos(
-                    new AssignedProtocolDetail(limpieza, 1, "Con guantes"),
-                    new AssignedProtocolDetail(electrico, 2, null));
-            estubarGuardado();
-
-            ServiceReport reporte = service.open(new OpenServiceReportCommand(ORDEN, EQUIPO));
-
-            assertThat(reporte.getPasos())
-                    .extracting(ReportStep::orden, ReportStep::nombre, ReportStep::indicacion, ReportStep::estado)
-                    .containsExactly(
-                            org.assertj.core.groups.Tuple.tuple(1, "Limpieza", "Con guantes", StepState.PENDIENTE),
-                            org.assertj.core.groups.Tuple.tuple(2, "Eléctrico", null, StepState.PENDIENTE));
-        }
-
-        @Test
-        @DisplayName("en un correctivo no copia pasos, ni siquiera pregunta por ellos")
-        void correctivoSinPasos() {
-            // Decidido por el usuario: un correctivo es una reparacion distinta cada vez. Los protocolos
-            // se dejan estubados para que, si la regla faltara, la prueba caiga por tener pasos.
+        @DisplayName("ni en una de una orden cancelada")
+        void ningunaCancelada() {
+            ServiceReport borrador = unReporte();
+            estubarReporte(borrador);
             when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
-                    .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EN_EJECUCION, true, EQUIPO));
-            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
-                    .thenReturn(Optional.empty());
-            org.mockito.Mockito.lenient().when(protocolServicePort.protocolsOf(any()))
-                    .thenReturn(List.of(new AssignedProtocolDetail(Protocol.create("Limpieza", "x"), 1, null)));
-            org.mockito.Mockito.lenient().when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted()))
-                    .thenReturn(ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, AREA, null, null, null, null, null, null, true));
-            org.mockito.Mockito.lenient().when(modelServicePort.findById(MODELO)).thenReturn(
-                    Model.rehydrate(MODELO, "IdeaPad 3", null, UUID.randomUUID(), EQUIPO_CATALOGO, TechnicalSheet.EMPTY, true));
-            org.mockito.Mockito.lenient().when(equipmentServicePort.findById(EQUIPO_CATALOGO)).thenReturn(
-                    Equipment.rehydrate(EQUIPO_CATALOGO, TIPO, UUID.randomUUID(), true));
-            org.mockito.Mockito.lenient().when(equipmentTypeServicePort.findById(TIPO))
-                    .thenReturn(unTipo(null, null, List.of()));
-            estubarGuardado();
+                    .thenReturn(unaOrden(ExecutionState.EN_EJECUCION, false));
 
-            ServiceReport reporte = service.open(new OpenServiceReportCommand(ORDEN, EQUIPO));
-
-            assertThat(reporte.getPasos()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("una orden todavia creada no admite reportes: no se ha hecho nada")
-        void rechazaUnaOrdenSinEmpezar() {
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
-                    .thenReturn(unaOrden(ExecutionState.CREADA, true, EQUIPO));
-
-            assertThatIllegalStateException()
-                    .isThrownBy(() -> service.open(new OpenServiceReportCommand(ORDEN, EQUIPO)))
-                    .withMessageContaining("no ha empezado");
+            for (var escritura : todasLasEscrituras(borrador.getId())) {
+                assertThatIllegalStateException().isThrownBy(escritura).withMessageContaining("cancelada");
+            }
             verify(serviceReportPersistencePort, never()).save(any());
         }
 
         @Test
-        @DisplayName("una orden ya ejecutada si admite reportes: aqui se registra despues de ir")
-        void admiteUnaOrdenYaEjecutada() {
+        @DisplayName("una orden ya ejecutada si admite escribir: el sustituto de un cerrado se rellena despues")
+        void ejecutadaAdmite() {
+            ServiceReport borrador = unReporte();
+            estubarReporte(borrador);
             when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
-                    .thenReturn(unaOrden(ExecutionState.EJECUTADA, true, EQUIPO));
-            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
-                    .thenReturn(Optional.empty());
-            estubarProtocolos();
+                    .thenReturn(unaOrden(ExecutionState.EJECUTADA, true));
             estubarGuardado();
 
-            assertThatCode(() -> service.open(new OpenServiceReportCommand(ORDEN, EQUIPO)))
+            assertThatCode(() -> service.recordHandover(new RecordHandoverCommand(borrador.getId(), "Ana", null, null)))
                     .doesNotThrowAnyException();
         }
+    }
 
-        @Test
-        @DisplayName("una orden cancelada no admite reportes")
-        void rechazaUnaOrdenCancelada() {
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
-                    .thenReturn(unaOrden(ExecutionState.EN_EJECUCION, false, EQUIPO));
+    /** Sustituir un reporte cerrado: retirarlo y abrir el borrador del mismo equipo en un paso (V50). */
+    @Nested
+    @DisplayName("Al sustituir un reporte cerrado")
+    class AlSustituir {
 
-            assertThatIllegalStateException()
-                    .isThrownBy(() -> service.open(new OpenServiceReportCommand(ORDEN, EQUIPO)))
-                    .withMessageContaining("cancelada");
+        private ServiceReport unCerrado() {
+            ServiceReport reporte = unReporte();
+            reporte.fill(null, null, "Limpieza", null, null, null, ServiceResult.OPERATIVO);
+            reporte.finish(UnDocumento.CUALQUIERA);
+            reporte.pullEvents();
+            estubarReporte(reporte);
+            return reporte;
         }
 
         @Test
-        @DisplayName("un equipo fuera del alcance vivo se rechaza, aunque la base lo admitiera")
-        void rechazaUnEquipoFueraDelAlcance() {
-            // La foranea compuesta del esquema solo ve que la fila del puente existe; que siga activa
-            // no lo puede comprobar, y un equipo retirado del alcance dejo de estar en la orden.
+        @DisplayName("retira el cerrado y abre el borrador del mismo equipo, con el tipo de servicio de la orden")
+        void retiraYAbre() {
+            ServiceReport cerrado = unCerrado();
+            ServiceReport borrador = ServiceReport.open(ORDEN, EQUIPO);
             when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
-                    .thenReturn(unaOrden(ExecutionState.EN_EJECUCION, true, UUID.randomUUID()));
+                    .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EJECUTADA, true));
+            estubarGuardado();
+            when(serviceReportDrafts.open(ORDEN, ServiceType.CORRECTIVO, EQUIPO)).thenReturn(borrador);
 
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> service.open(new OpenServiceReportCommand(ORDEN, EQUIPO)))
-                    .withMessageContaining("no esta en el alcance");
+            assertThat(service.replace(new ReplaceServiceReportCommand(cerrado.getId()))).isSameAs(borrador);
+
+            // Retirado y guardado antes de abrir el borrador: si no, el indice unico parcial veria dos activos.
+            var orden = org.mockito.Mockito.inOrder(serviceReportPersistencePort, serviceReportDrafts);
+            orden.verify(serviceReportPersistencePort).save(cerrado);
+            orden.verify(serviceReportDrafts).open(ORDEN, ServiceType.CORRECTIVO, EQUIPO);
+            assertThat(cerrado.isEstadoActivo()).isFalse();
+        }
+
+        @Test
+        @DisplayName("un borrador no se sustituye: se corrige escribiendo en el")
+        void borradorNo() {
+            ServiceReport borrador = unReporte();
+            estubarReporte(borrador);
+
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> service.replace(new ReplaceServiceReportCommand(borrador.getId())))
+                    .withMessageContaining("borrador");
+            verify(serviceReportDrafts, never()).open(any(), any(), any());
             verify(serviceReportPersistencePort, never()).save(any());
         }
 
         @Test
-        @DisplayName("un equipo que ya tiene reporte vivo no abre otro: lo dice antes que el indice")
-        void rechazaUnSegundoReporte() {
-            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted())).thenReturn(unaOrdenEnEjecucion());
-            when(serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(ORDEN, EQUIPO))
-                    .thenReturn(Optional.of(unReporte()));
+        @DisplayName("ni uno ya retirado, ni uno de una orden cancelada")
+        void retiradoOCanceladaNo() {
+            ServiceReport retirado = unCerrado();
+            retirado.deactivate();
 
             assertThatIllegalStateException()
-                    .isThrownBy(() -> service.open(new OpenServiceReportCommand(ORDEN, EQUIPO)))
-                    .withMessageContaining("ya tiene el reporte");
+                    .isThrownBy(() -> service.replace(new ReplaceServiceReportCommand(retirado.getId())))
+                    .withMessageContaining("retirado");
+
+            ServiceReport cerrado = unCerrado();
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+                    .thenReturn(unaOrden(ExecutionState.EJECUTADA, false));
+
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> service.replace(new ReplaceServiceReportCommand(cerrado.getId())))
+                    .withMessageContaining("cancelada");
+            verify(serviceReportDrafts, never()).open(any(), any(), any());
+        }
+    }
+
+    /** Retirar un borrador es sacar su equipo de la orden (V50); un cerrado no se retira. */
+    @Nested
+    @DisplayName("Al retirar un reporte")
+    class AlRetirar {
+
+        @Test
+        @DisplayName("un borrador sale con su equipo: lo hace el servicio de ordenes, con su regla")
+        void borradorSacaElEquipo() {
+            ServiceReport borrador = unReporte();
+            estubarReporte(borrador);
+
+            service.discard(new DiscardServiceReportCommand(borrador.getId()));
+
+            verify(workOrderServicePort).removeEquipment(new RemoveEquipmentFromWorkOrderCommand(ORDEN, EQUIPO));
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("un cerrado no se retira, se sustituye")
+        void cerradoNo() {
+            ServiceReport cerrado = unReporte();
+            cerrado.fill(null, null, "Limpieza", null, null, null, ServiceResult.OPERATIVO);
+            cerrado.finish(UnDocumento.CUALQUIERA);
+            estubarReporte(cerrado);
+
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> service.discard(new DiscardServiceReportCommand(cerrado.getId())))
+                    .withMessageContaining("se sustituye");
+            verify(workOrderServicePort, never()).removeEquipment(any());
+        }
+
+        @Test
+        @DisplayName("retirar uno ya retirado no hace nada")
+        void retiradoNoHaceNada() {
+            ServiceReport retirado = unReporte();
+            retirado.deactivate();
+            estubarReporte(retirado);
+
+            service.discard(new DiscardServiceReportCommand(retirado.getId()));
+
+            verify(workOrderServicePort, never()).removeEquipment(any());
         }
     }
 
@@ -738,7 +757,7 @@ class ServiceReportServiceTest {
             // Los exigia desde el 2026-10-14; el usuario los quito para no frenar el cierre.
             ServiceReport reporte = unReporteSinVerificacion();
             lenient().when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
-                    .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EN_EJECUCION, true, EQUIPO));
+                    .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EN_EJECUCION, true));
             estubarGuardado();
 
             service.finish(new FinishServiceReportCommand(reporte.getId()));

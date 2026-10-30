@@ -55,9 +55,10 @@ class EquipmentOwnershipFilteringTest {
     @Mock private ServiceAreaServicePort areaService;
     @Mock private ClientOwnershipPort ownershipPort;
     @Mock private EventDispatcherPort dispatcher;
+    @Mock private com.malphasos.malphasos.equipment.application.ports.output.WorkOrderAttendancePort workOrderAttendance;
 
     private ClientEquipmentService service() {
-        return new ClientEquipmentService(unitPort, modelService, areaService, ownershipPort, dispatcher);
+        return new ClientEquipmentService(unitPort, modelService, areaService, ownershipPort, dispatcher, workOrderAttendance);
     }
 
     private ClientEquipment unaUnidad(UUID id, UUID idArea) {

@@ -23,6 +23,8 @@ import org.springframework.test.context.jdbc.Sql;
 /**
  * Ejecutar una orden exige todos sus reportes cerrados (2026-10-14), de extremo a extremo: el servicio
  * de órdenes pregunta por un puerto suyo y contesta el adaptador de {@code report}, contra la base real.
+ * Desde {@code V50} los equipos de la orden son sus reportes activos: «todos cerrados» es que ninguno
+ * activo siga en borrador.
  * La prueba del servicio usa un doble del puerto; esta es la que dice que el adaptador cuenta bien.
  */
 @SpringBootTest
@@ -33,7 +35,6 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM paso_reporte",
             "DELETE FROM dato_verificacion",
             "DELETE FROM reporte_servicio",
-            "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
             "DELETE FROM modelo",
@@ -117,12 +118,6 @@ class WorkOrderExecutionIntegrationTest {
                 VALUES (?, ?, ?, 'MENSUAL', 'CORRECTIVO', 'EN_EJECUCION')
                 """,
                 orden, sede, LocalDate.now());
-        for (UUID unidad : new UUID[] {uno, dos}) {
-            jdbcTemplate.update(
-                    "INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio) VALUES (?, ?, ?)",
-                    orden, unidad, area);
-        }
-
         return new Orden(orden, uno, dos);
     }
 
@@ -158,27 +153,29 @@ class WorkOrderExecutionIntegrationTest {
     }
 
     @Test
-    @DisplayName("un borrador, un equipo sin reporte o un cerrado ya retirado cuentan como pendientes")
-    void pendientes() {
+    @DisplayName("un borrador cuenta como pendiente, y lo dice")
+    void unBorradorEsPendiente() {
         Orden orden = unaOrdenConDosEquipos();
         unReporte(orden.id(), orden.uno(), false, true);
-        // Cerrado pero retirado: el equipo vuelve a estar sin reporte, como dice la ficha de la orden.
-        unReporte(orden.id(), orden.dos(), true, false);
-
-        assertThatThrownBy(() -> servicio.execute(new ExecuteWorkOrderCommand(orden.id())))
-                .isInstanceOf(WorkOrderHasOpenReportsException.class)
-                .hasMessageContaining("2 equipos sin reporte cerrado");
-        assertThat(estadoDe(orden.id())).isEqualTo(ExecutionState.EN_EJECUCION);
-    }
-
-    @Test
-    @DisplayName("un equipo sin ningún reporte basta para que no se ejecute")
-    void sinReporte() {
-        Orden orden = unaOrdenConDosEquipos();
-        unReporte(orden.id(), orden.uno(), true, true);
+        unReporte(orden.id(), orden.dos(), true, true);
 
         assertThatThrownBy(() -> servicio.execute(new ExecuteWorkOrderCommand(orden.id())))
                 .isInstanceOf(WorkOrderHasOpenReportsException.class)
                 .hasMessageContaining("1 equipo sin reporte cerrado");
+        assertThat(estadoDe(orden.id())).isEqualTo(ExecutionState.EN_EJECUCION);
+    }
+
+    @Test
+    @DisplayName("un equipo cuyo reporte se retiro salio de la orden, y no la detiene (V50)")
+    void unRetiradoSalioDeLaOrden() {
+        // Sin tabla puente, un equipo esta en una orden si y solo si tiene en ella un reporte activo: el
+        // del segundo esta retirado, asi que ya no es de la orden, y basta con el cerrado del primero.
+        Orden orden = unaOrdenConDosEquipos();
+        unReporte(orden.id(), orden.uno(), true, true);
+        unReporte(orden.id(), orden.dos(), true, false);
+
+        servicio.execute(new ExecuteWorkOrderCommand(orden.id()));
+
+        assertThat(estadoDe(orden.id())).isEqualTo(ExecutionState.EJECUTADA);
     }
 }

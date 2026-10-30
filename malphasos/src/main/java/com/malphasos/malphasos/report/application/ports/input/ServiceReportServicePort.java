@@ -7,8 +7,8 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
-import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReplaceServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
@@ -54,8 +54,6 @@ public interface ServiceReportServicePort {
      * órdenes enseña en cada fila. Una orden sin reportes no aparece; para quien lee, son cero.
      */
     List<WorkOrderReportProgress> progressByWorkOrder(ReadScope alcance);
-
-    ServiceReport open(OpenServiceReportCommand command);
 
     ServiceReport fill(FillServiceReportCommand command);
 
@@ -104,5 +102,14 @@ public interface ServiceReportServicePort {
      */
     int freezeClosedWithoutDocument();
 
+    /**
+     * Sustituye un reporte cerrado: lo retira y abre el borrador del mismo equipo (V50). Es la única forma
+     * de corregir uno cerrado, también con la orden ejecutada.
+     *
+     * @return el borrador nuevo
+     */
+    ServiceReport replace(ReplaceServiceReportCommand command);
+
+    /** Retira un borrador, que es sacar su equipo de la orden (V50). Uno cerrado no se retira: se sustituye. */
     void discard(DiscardServiceReportCommand command);
 }

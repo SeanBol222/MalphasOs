@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.report.infrastructure.output.repository;
 
 import com.malphasos.malphasos.report.infrastructure.output.entities.ServiceReportEntity;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,6 +13,43 @@ public interface ServiceReportRepository extends JpaRepository<ServiceReportEnti
     List<ServiceReportEntity> findByIdOrdenTrabajo(UUID idOrdenTrabajo);
 
     List<ServiceReportEntity> findByIdEquipoCliente(UUID idEquipoCliente);
+
+    /** Los reportes activos de varias órdenes, solo con lo que los identifica (V50). */
+    @Query("""
+            SELECT r.id AS id, r.idOrdenTrabajo AS idOrdenTrabajo, r.idEquipoCliente AS idEquipoCliente,
+                   r.estado AS estado
+            FROM ServiceReportEntity r
+            WHERE r.estadoActivo = true AND r.idOrdenTrabajo IN :idsOrdenes
+            """)
+    List<SummaryRow> findActiveSummaries(Collection<UUID> idsOrdenes);
+
+    /** Una fila de {@link #findActiveSummaries}. */
+    interface SummaryRow {
+        UUID getId();
+
+        UUID getIdOrdenTrabajo();
+
+        UUID getIdEquipoCliente();
+
+        String getEstado();
+    }
+
+    /**
+     * Si el equipo tiene un reporte activo en una orden viva sin ejecutar (V50). Nativa y con la orden en
+     * el join: el estado de la orden es de {@code work-order}, y preguntárselo a su servicio cerraría un
+     * ciclo entre beans —quien pregunta es {@code equipment}, del que depende el servicio de órdenes—. La
+     * tabla sí se puede leer: el reporte apunta a ella con su foránea.
+     */
+    @Query(value = """
+            SELECT EXISTS (SELECT 1
+                           FROM reporte_servicio r
+                                    JOIN orden_trabajo o ON o.k_id_orden_trabajo = r.k_id_orden_trabajo
+                           WHERE r.k_id_equipo_cliente = :idEquipoCliente
+                             AND r.b_estado_activo
+                             AND o.b_estado_activo
+                             AND o.t_estado_ejecucion <> 'EJECUTADA')
+            """, nativeQuery = true)
+    boolean inUnexecutedWorkOrder(UUID idEquipoCliente);
 
     /** Los cerrados sin informe congelado: los que se cerraron antes de V37. */
     List<ServiceReportEntity> findByEstadoAndDocumentoIsNull(String estado);

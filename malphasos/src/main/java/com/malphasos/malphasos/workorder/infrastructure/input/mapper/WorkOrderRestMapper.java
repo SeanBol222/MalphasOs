@@ -1,25 +1,27 @@
 package com.malphasos.malphasos.workorder.infrastructure.input.mapper;
 
+import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.response.WorkOrderDocumentResponse;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.response.WorkOrderEquipmentResponse;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.response.WorkOrderResponse;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
  * Traduce el agregado a la respuesta del API, solo en esa dirección.
  *
- * <p>A mano y no con MapStruct porque el alcance no es una lista de campos: el agregado guarda un
- * conjunto cuya identidad es el equipo, y la respuesta expone una lista con el par completo.
+ * <p>A mano y no con MapStruct porque la respuesta junta dos fuentes: la orden y, desde {@code V50}, sus
+ * reportes activos, que son sus equipos. Quien llama los pide aparte y se los pasa.
  */
 @Component
 public class WorkOrderRestMapper {
 
-    public WorkOrderResponse toResponse(WorkOrder orden) {
-        List<WorkOrderEquipmentResponse> equipos = orden.getEquipos().stream()
-                .map(equipo -> new WorkOrderEquipmentResponse(
-                        equipo.getIdEquipoCliente(), equipo.getIdAreaServicio()))
+    public WorkOrderResponse toResponse(WorkOrder orden, List<WorkOrderReportsPort.ActiveReport> reportes) {
+        List<WorkOrderEquipmentResponse> equipos = reportes.stream()
+                .map(reporte -> new WorkOrderEquipmentResponse(reporte.idEquipoCliente(), reporte.idReporte()))
                 .toList();
 
         return WorkOrderResponse.builder()
@@ -40,7 +42,11 @@ public class WorkOrderRestMapper {
                 .build();
     }
 
-    public List<WorkOrderResponse> toList(List<WorkOrder> ordenes) {
-        return ordenes.stream().map(this::toResponse).toList();
+    public List<WorkOrderResponse> toList(
+            List<WorkOrder> ordenes, Map<UUID, List<WorkOrderReportsPort.ActiveReport>> reportes) {
+
+        return ordenes.stream()
+                .map(orden -> toResponse(orden, reportes.getOrDefault(orden.getId(), List.of())))
+                .toList();
     }
 }

@@ -25,7 +25,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
-import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReplaceServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
@@ -39,7 +39,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
-import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
@@ -47,9 +47,8 @@ import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
+import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
-import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
-import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -68,9 +67,12 @@ import org.springframework.transaction.annotation.Transactional;
  * Orquesta los reportes de servicio.
  *
  * <p>Aquí viven las <b>reglas cruzadas</b> que ni el esquema ni el agregado pueden defender. El
- * esquema sostiene una sola —que el equipo esté en el alcance de la orden, con una clave foránea
- * compuesta contra el puente—, y ni siquiera esa por completo: no puede ver si esa fila del puente
- * sigue activa. El agregado solo decide con lo que el propio reporte tiene delante.
+ * agregado solo decide con lo que el propio reporte tiene delante.
+ *
+ * <p><b>Desde {@code V50} un reporte es también lo que pone a su equipo en la orden</b>: no hay tabla
+ * puente, y un equipo está en una orden si y solo si tiene en ella un reporte activo. Por eso aquí no se
+ * abre ningún reporte —el borrador nace al añadir el equipo, en {@link ServiceReportDrafts}—, retirar un
+ * borrador es sacar el equipo de la orden, y uno cerrado no se retira: se sustituye.
  *
  * <p><b>Este módulo consulta a la orden de trabajo, y es el primero que lo hace.</b> Hasta ahora
  * {@code work-order} era el módulo con más vecinos y nadie lo consultaba a él. Sigue sin haber
@@ -79,6 +81,8 @@ import org.springframework.transaction.annotation.Transactional;
  * <p><b>Para saber cómo se verifica un equipo hay que caminar cuatro eslabones</b> —unidad → modelo →
  * equipo del catálogo → tipo—, porque así es la cadena del catálogo. Se camina en
  * {@link #tipoDelEquipo(UUID)} y en un solo sitio, para que el coste esté a la vista y no repartido.
+ * (Hay un segundo desde {@code V50}: {@link ServiceReportDrafts} recorre los tres primeros para copiar
+ * los protocolos al abrir un borrador, y no puede depender de este servicio.)
  */
 @Service
 @RequiredArgsConstructor
@@ -96,6 +100,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final ReportDocumentComposer reportDocumentComposer;
     private final DocumentImageStorePort documentImageStorePort;
     private final ReportPdfPort reportPdfPort;
+    private final ServiceReportDrafts serviceReportDrafts;
 
     // ---------------------------------------------------------------------------
     // Consultas
@@ -164,82 +169,48 @@ public class ServiceReportService implements ServiceReportServicePort {
     }
 
     // ---------------------------------------------------------------------------
-    // Alta
+    // Sustitución
     // ---------------------------------------------------------------------------
 
     /**
-     * Abre el reporte de un equipo de una orden, tras comprobar las tres cosas que el esquema no
-     * puede.
+     * Sustituye un reporte cerrado: lo retira y abre el borrador del mismo equipo en la misma orden, en un
+     * solo paso (decidido por el usuario el 2026-10-28, con {@code V50}).
      *
-     * <p><b>Que la orden haya empezado</b>: un reporte cuenta lo que se hizo, y en una orden todavía
-     * en {@code CREADA} no se ha hecho nada. <b>Que el equipo siga en el alcance</b>: la clave
-     * foránea confirma que la fila del puente existe, no que siga activa, y un equipo retirado del
-     * alcance dejó de estar en esa orden. <b>Que no haya ya un reporte vivo</b>: lo impide también el
-     * índice único parcial, pero comprobarlo aquí convierte un conflicto de integridad en una frase.
+     * <p>En un solo paso porque sin la tabla puente el equipo está en la orden por su reporte: retirar y
+     * abrir en dos llamadas lo dejaría fuera de la orden entre una y otra. Es la única forma de corregir un
+     * reporte cerrado, como desde {@code V14}: al cerrarse, la línea del sustituto reemplaza a la del
+     * sustituido en la hoja de vida.
      *
-     * <p>Una orden ya {@code EJECUTADA} sí admite abrir reportes, y es deliberado: en este negocio se
-     * va a la sede y se registra después. Lo que no se admite es reportar antes de empezar.
+     * <p><b>Se puede con la orden ya ejecutada</b>, también decidido ese día: en este negocio se corrige
+     * después. El documento de la orden no cambia —dice el número del reporte que había al ejecutarla—, y
+     * su ficha avisa de que ese equipo se sustituyó después.
+     *
+     * @return el borrador nuevo
      */
     @Override
     @Transactional
-    public ServiceReport open(OpenServiceReportCommand command) {
-        WorkOrder orden = workOrderServicePort.findById(command.idOrdenTrabajo(), ReadScope.unrestricted());
+    public ServiceReport replace(ReplaceServiceReportCommand command) {
+        ServiceReport cerrado = findById(command.id(), ReadScope.unrestricted());
 
-        requireStartedOrder(orden);
-        requireEquipmentInScopeOf(orden, command.idEquipoCliente());
-        requireNoOpenReport(command.idOrdenTrabajo(), command.idEquipoCliente());
-
-        List<ReportStep> pasos = pasosDelProtocolo(orden, command.idEquipoCliente());
-
-        return persistAndPublish(conNumeroLibre(
-                () -> ServiceReport.open(command.idOrdenTrabajo(), command.idEquipoCliente(), pasos)));
-    }
-
-    /** Cuántas veces se intenta un identificador nuevo antes de rendirse. Con 16,7 millones, sobra. */
-    static final int INTENTOS_DE_NUMERO = 10;
-
-    /**
-     * Un reporte cuyo número —los seis primeros caracteres del id— no tenga ya otro (V28).
-     *
-     * <p>Git alarga el prefijo cuando dos commits lo comparten; aquí no se puede, porque el número va
-     * impreso en un documento firmado y no puede cambiar después. Así que se elige otro identificador.
-     * Los reportes descartados no emiten nada: sus eventos no se publican, porque no se guardan.
-     */
-    private ServiceReport conNumeroLibre(java.util.function.Supplier<ServiceReport> nuevo) {
-        for (int intento = 0; intento < INTENTOS_DE_NUMERO; intento++) {
-            ServiceReport reporte = nuevo.get();
-
-            if (!serviceReportPersistencePort.numberTaken(reporte.numero())) {
-                return reporte;
-            }
+        if (!cerrado.isEstadoActivo()) {
+            throw new IllegalStateException("El reporte " + cerrado.numero() + " ya esta retirado");
+        }
+        if (cerrado.getEstado() != ReportState.FINALIZADO) {
+            throw new IllegalStateException("El reporte " + cerrado.numero() + " esta en borrador: se corrige"
+                    + " escribiendo en el, no sustituyendolo");
         }
 
-        throw new IllegalStateException("No se encontro un numero de reporte libre en "
-                + INTENTOS_DE_NUMERO + " intentos");
-    }
-
-    /**
-     * Los protocolos del preventivo del tipo del equipo, copiados como pasos pendientes. RF-13: se
-     * cargan solos, sin que nadie los elija.
-     *
-     * <p>Solo en una orden preventiva, decidido por el usuario el 2026-10-10: un correctivo es una
-     * reparación distinta cada vez y se describe con texto libre. Se copian ahora, al abrir, y no al
-     * cerrar: el ingeniero los marca mientras trabaja, y lo que marca tiene que ser lo que había ese
-     * día aunque el protocolo se edite a media orden.
-     */
-    private List<ReportStep> pasosDelProtocolo(WorkOrder orden, UUID idEquipoCliente) {
-        if (orden.getTipoServicio() != ServiceType.PREVENTIVO) {
-            return List.of();
+        WorkOrder orden = workOrderServicePort.findById(cerrado.getIdOrdenTrabajo(), ReadScope.unrestricted());
+        if (!orden.isEstadoActivo()) {
+            throw new IllegalStateException("No se sustituye un reporte de una orden cancelada: " + orden.getId());
         }
 
-        return protocolServicePort.protocolsOf(tipoDelEquipo(idEquipoCliente).getId()).stream()
-                .map(asignado -> ReportStep.copied(
-                        asignado.prioridad(),
-                        asignado.protocolo().getId(),
-                        asignado.protocolo().getNombre(),
-                        asignado.protocolo().getDescripcion(),
-                        asignado.indicacion()))
-                .toList();
+        cerrado.deactivate();
+        // El adaptador vuelca la retirada antes de insertar el borrador: si no, el índice único parcial vería
+        // por un instante dos reportes activos del mismo equipo en la misma orden.
+        persistAndPublish(cerrado);
+
+        return serviceReportDrafts.open(orden.getId(), orden.getTipoServicio(), cerrado.getIdEquipoCliente());
     }
 
     // ---------------------------------------------------------------------------
@@ -249,9 +220,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport fill(FillServiceReportCommand command) {
-        // Las cuatro escrituras recuperan el reporte sin restriccion: el alcance acota lecturas, y
-        // llenar, verificar, cerrar o descartar un reporte exige report.write.
-        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport reporte = paraEscribir(command.id());
 
         reporte.fill(
                 command.fallaReportada(),
@@ -279,7 +248,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport recordVerification(RecordVerificationCommand command) {
-        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport reporte = paraEscribir(command.id());
         EquipmentType tipo = tipoDelEquipo(reporte.getIdEquipoCliente());
 
         reporte.recordVerification(traducirLecturas(tipo, command.lecturas()));
@@ -294,7 +263,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport recordIntake(RecordIntakeCommand command) {
-        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport reporte = paraEscribir(command.id());
         List<RecordIntakeCommand.Accessory> pedidos =
                 command.accesorios() == null ? List.of() : command.accesorios();
 
@@ -313,7 +282,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport recordHandover(RecordHandoverCommand command) {
-        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport reporte = paraEscribir(command.id());
         boolean vacio = Stream.of(command.nombre(), command.cedula(), command.cargo())
                 .allMatch(texto -> texto == null || texto.isBlank());
 
@@ -334,7 +303,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public List<ServiceReport> signReceipt(SignReceiptCommand command) {
-        ServiceReport pedido = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport pedido = paraEscribir(command.id());
         Handover recibe = new Handover(command.nombre(), command.cedula(), command.cargo());
         DocumentImage firma = DocumentImage.firma(command.firma());
         LocalDateTime ahora = LocalDateTime.now();
@@ -375,7 +344,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport useReferenceStandard(UseReferenceStandardCommand command) {
-        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport reporte = paraEscribir(command.id());
         requireActiveVerification(tipoDelEquipo(reporte.getIdEquipoCliente()), command.idVerificacion());
         ReferenceStandard patron = referenceStandardServicePort.findById(command.idEquipoPatron());
 
@@ -409,7 +378,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport removeReferenceStandard(RemoveReferenceStandardCommand command) {
-        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport reporte = paraEscribir(command.id());
         reporte.removeReferenceStandard(command.idVerificacion(), command.idEquipoPatron());
 
         return persistAndPublish(reporte);
@@ -418,7 +387,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport markStep(MarkReportStepCommand command) {
-        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport reporte = paraEscribir(command.id());
         reporte.markStep(command.orden(), command.estado(), command.nota());
 
         return persistAndPublish(reporte);
@@ -438,7 +407,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional
     public ServiceReport finish(FinishServiceReportCommand command) {
-        ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
+        ServiceReport reporte = paraEscribir(command.id());
 
         requireCompleteVerification(reporte);
         requireStandardsForReadings(reporte);
@@ -518,13 +487,26 @@ public class ServiceReportService implements ServiceReportServicePort {
         return huella == null ? null : documentImageStorePort.find(huella).orElse(null);
     }
 
+    /**
+     * Retira un borrador, que desde {@code V50} es sacar su equipo de la orden: lo hace el servicio de
+     * órdenes, con su regla —una orden ejecutada ya no cambia de equipos—. Uno cerrado no se retira, se
+     * sustituye: retirarlo dejaría el equipo fuera de una orden en la que sí se le prestó el servicio.
+     */
     @Override
     @Transactional
     public void discard(DiscardServiceReportCommand command) {
         ServiceReport reporte = findById(command.id(), ReadScope.unrestricted());
-        reporte.deactivate();
 
-        persistAndPublish(reporte);
+        if (!reporte.isEstadoActivo()) {
+            return;
+        }
+        if (reporte.getEstado() == ReportState.FINALIZADO) {
+            throw new IllegalStateException("El reporte " + reporte.numero() + " esta cerrado: no se retira,"
+                    + " se sustituye");
+        }
+
+        workOrderServicePort.removeEquipment(
+                new RemoveEquipmentFromWorkOrderCommand(reporte.getIdOrdenTrabajo(), reporte.getIdEquipoCliente()));
     }
 
     // ---------------------------------------------------------------------------
@@ -542,45 +524,31 @@ public class ServiceReportService implements ServiceReportServicePort {
         return guardado;
     }
 
-    private void requireStartedOrder(WorkOrder orden) {
+    /**
+     * El reporte, para escribir en él: con su orden empezada (V50).
+     *
+     * <p>Un reporte cuenta lo que se hizo, y en una orden todavía en {@code CREADA} no se ha hecho nada.
+     * Hasta {@code V50} eso se comprobaba al abrirlo; desde entonces el borrador nace al añadir el equipo,
+     * aunque la orden no haya empezado, y la regla pasa a cada escritura. Una orden ya {@code EJECUTADA}
+     * sí admite escribir —el sustituto de un reporte cerrado se rellena después—; una cancelada, no.
+     *
+     * <p>Las escrituras recuperan el reporte sin restricción: el alcance acota lecturas, y escribir en un
+     * reporte exige {@code report.write}.
+     */
+    private ServiceReport paraEscribir(UUID id) {
+        ServiceReport reporte = findById(id, ReadScope.unrestricted());
+        WorkOrder orden = workOrderServicePort.findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted());
+
         if (!orden.isEstadoActivo()) {
             throw new IllegalStateException(
-                    "No se abre un reporte en una orden cancelada: " + orden.getId());
+                    "No se escribe en un reporte de una orden cancelada: " + orden.getId());
         }
         if (orden.getEstadoEjecucion() == ExecutionState.CREADA) {
-            throw new IllegalStateException("La orden " + orden.getId() + " no ha empezado:"
-                    + " un reporte cuenta lo que se hizo, y todavia no se ha hecho nada");
+            throw new IllegalStateException("La orden " + orden.numero() + " no ha empezado: un reporte cuenta"
+                    + " lo que se hizo, y todavia no se ha hecho nada");
         }
-    }
 
-    /**
-     * El equipo está en el alcance <b>vivo</b> de la orden.
-     *
-     * <p>La clave foránea compuesta del esquema ya impide reportar un equipo que la orden nunca
-     * incluyó. Lo que no puede ver es el borrado lógico: un equipo retirado del alcance conserva su
-     * fila, de modo que para la base sigue siendo un destino válido. Es la misma distinción entre
-     * «existe» y «sigue en uso» que ya subió reglas al servicio en {@code client}, en
-     * {@code equipment} y en {@code work-order}.
-     */
-    private void requireEquipmentInScopeOf(WorkOrder orden, UUID idEquipoCliente) {
-        boolean enElAlcance = orden.getEquipos().stream()
-                .map(SelectedEquipment::getIdEquipoCliente)
-                .anyMatch(idEquipoCliente::equals);
-
-        if (!enElAlcance) {
-            throw new IllegalArgumentException("El equipo " + idEquipoCliente
-                    + " no esta en el alcance de la orden " + orden.getId());
-        }
-    }
-
-    private void requireNoOpenReport(UUID idOrdenTrabajo, UUID idEquipoCliente) {
-        serviceReportPersistencePort
-                .findActiveByWorkOrderAndEquipment(idOrdenTrabajo, idEquipoCliente)
-                .ifPresent(abierto -> {
-                    throw new IllegalStateException("El equipo " + idEquipoCliente
-                            + " ya tiene el reporte " + abierto.getId() + " en esta orden:"
-                            + " para volver a empezar hay que retirar ese");
-                });
+        return reporte;
     }
 
     /**

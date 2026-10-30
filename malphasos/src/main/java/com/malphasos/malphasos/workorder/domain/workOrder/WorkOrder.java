@@ -6,17 +6,10 @@ import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipm
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderAssignedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderCreatedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderDeactivatedEvent;
-import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderEquipmentAddedEvent;
-import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderEquipmentPayload;
-import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderEquipmentRemovedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderExecutedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderPayload;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderStartedEvent;
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -28,20 +21,18 @@ import lombok.Getter;
  * <p>Una orden dice <b>qué se va a hacer</b>. Lo que se hizo será el reporte de servicio, que
  * colgará de aquí cuando exista.
  *
- * <p><b>El cliente y la sede se guardan, no se deducen.</b> Podrían obtenerse recorriendo los
- * equipos hasta su área, su sede y su cliente, pero un equipo puede trasladarse después a otra sede
- * del mismo cliente y entonces una orden ya ejecutada cambiaría de sede sola. Lo mismo vale para el
- * área de cada equipo, que se congela al seleccionarlo: ver {@link SelectedEquipment}. La
- * redundancia es deliberada y protege el historial.
+ * <p><b>La sede se guarda, no se deduce.</b> Podría obtenerse recorriendo los equipos hasta su área y
+ * su sede, pero una orden se presta en un sitio aunque todavía no tenga equipos. El cliente es el de su
+ * sede desde {@code V47}.
  *
- * <p><b>Los equipos son parte de la orden, no un agregado aparte.</b> No tienen sentido fuera de
- * ella y su ciclo de vida es el suyo: se eligen al planificar y dejan de poder cambiarse cuando el
- * trabajo termina. Por eso viven dentro y no se referencian por identificador como el cliente o la
- * sede.
+ * <p><b>Los equipos no viven aquí desde {@code V50}.</b> Un equipo está en una orden si y solo si tiene
+ * en ella un reporte activo: añadirlo es abrir su borrador y sacarlo, retirarlo. Lo hace el servicio por
+ * {@code WorkOrderReportsPort}, y este agregado solo dice si su alcance todavía se puede tocar —{@link
+ * #requireScopeChangeable(String)}— y si con tantos equipos se puede empezar —{@link #start(int)}—.
  *
  * <p><b>Lo que este agregado no puede comprobar.</b> Que el cliente y la sede existan y estén
- * activos, que la sede sea de ese cliente, que cada equipo pertenezca a ese cliente y estuviera en
- * el área declarada, y que el ingeniero sea de tipo {@code ENGINEER}: todo eso exige consultar otros
+ * activos, que la sede sea de ese cliente, que cada equipo pertenezca a ese cliente y esté en esa
+ * sede, y que el ingeniero sea de tipo {@code ENGINEER}: todo eso exige consultar otros
  * módulos y vive en el servicio de aplicación. Aquí solo se defiende lo que se puede decidir con lo
  * que la propia orden tiene delante.
  */
@@ -75,8 +66,6 @@ public class WorkOrder extends AggregateRoot {
     /** Ingeniero a cargo. Nulo mientras la orden está creada pero sin asignar. */
     private UUID idIngeniero;
 
-    private final Set<SelectedEquipment> equipos;
-
     private boolean estadoActivo;
 
     /** Lo que la orden era al ejecutarse (V49). Nulo mientras no se ha ejecutado. */
@@ -95,7 +84,6 @@ public class WorkOrder extends AggregateRoot {
             boolean garantia,
             ExecutionState estadoEjecucion,
             UUID idIngeniero,
-            Collection<SelectedEquipment> equipos,
             boolean estadoActivo,
             WorkOrderDocument documento,
             boolean documentoTardio) {
@@ -109,7 +97,6 @@ public class WorkOrder extends AggregateRoot {
         this.garantia = garantia;
         this.estadoEjecucion = estadoEjecucion;
         this.idIngeniero = idIngeniero;
-        this.equipos = new LinkedHashSet<>(equipos);
         this.estadoActivo = estadoActivo;
         this.documento = documento;
         this.documentoTardio = documentoTardio;
@@ -156,7 +143,6 @@ public class WorkOrder extends AggregateRoot {
                 garantia,
                 ExecutionState.CREADA,
                 null,
-                Set.of(),
                 true,
                 null,
                 false);
@@ -176,11 +162,10 @@ public class WorkOrder extends AggregateRoot {
             ServiceType tipoServicio,
             ExecutionState estadoEjecucion,
             UUID idIngeniero,
-            Collection<SelectedEquipment> equipos,
             boolean estadoActivo) {
 
         return rehydrate(id, idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio, false,
-                estadoEjecucion, idIngeniero, equipos, estadoActivo);
+                estadoEjecucion, idIngeniero, estadoActivo);
     }
 
     public static WorkOrder rehydrate(
@@ -193,11 +178,10 @@ public class WorkOrder extends AggregateRoot {
             boolean garantia,
             ExecutionState estadoEjecucion,
             UUID idIngeniero,
-            Collection<SelectedEquipment> equipos,
             boolean estadoActivo) {
 
         return rehydrate(id, idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio, garantia,
-                estadoEjecucion, idIngeniero, equipos, estadoActivo, null, false);
+                estadoEjecucion, idIngeniero, estadoActivo, null, false);
     }
 
     /** Con su documento, si ya se ejecutó (V49). */
@@ -211,13 +195,12 @@ public class WorkOrder extends AggregateRoot {
             boolean garantia,
             ExecutionState estadoEjecucion,
             UUID idIngeniero,
-            Collection<SelectedEquipment> equipos,
             boolean estadoActivo,
             WorkOrderDocument documento,
             boolean documentoTardio) {
 
         return new WorkOrder(id, idCliente, idSede, fechaMantenimiento, periodicidad, tipoServicio,
-                garantia, estadoEjecucion, idIngeniero, equipos, estadoActivo, documento, documentoTardio);
+                garantia, estadoEjecucion, idIngeniero, estadoActivo, documento, documentoTardio);
     }
 
     public static final int LARGO_NUMERO = 6;
@@ -236,56 +219,23 @@ public class WorkOrder extends AggregateRoot {
     // ---------------------------------------------------------------------------
 
     /**
-     * Añade un equipo al alcance, con el área en la que está ahora.
+     * Que todavía se puedan añadir o sacar equipos, o asignar la orden: mientras el trabajo no haya
+     * terminado.
      *
-     * <p>Añadir uno que ya está no hace nada, ni siquiera si el área que se pasa es otra: dentro de
-     * una orden la identidad de un equipo es el equipo, y el área quedó congelada la primera vez.
-     * Para corregirla hay que retirarlo y volver a añadirlo.
-     */
-    public void addEquipment(UUID idEquipoCliente, UUID idAreaServicio) {
-        exigirModificable("anadir equipos");
-
-        SelectedEquipment seleccionado = SelectedEquipment.of(idEquipoCliente, idAreaServicio);
-
-        if (!equipos.add(seleccionado)) {
-            return;
-        }
-
-        registerEvent(new WorkOrderEquipmentAddedEvent(
-                metadataFor(WorkOrderEquipmentAddedEvent.TYPE),
-                new WorkOrderEquipmentPayload(idEquipoCliente, idAreaServicio)));
-    }
-
-    /** Saca un equipo del alcance. Sacar uno que no está no hace nada. */
-    public void removeEquipment(UUID idEquipoCliente) {
-        exigirModificable("retirar equipos");
-
-        SelectedEquipment retirado = equipos.stream()
-                .filter(equipo -> equipo.getIdEquipoCliente().equals(idEquipoCliente))
-                .findFirst()
-                .orElse(null);
-
-        if (retirado == null) {
-            return;
-        }
-
-        equipos.remove(retirado);
-        registerEvent(new WorkOrderEquipmentRemovedEvent(
-                metadataFor(WorkOrderEquipmentRemovedEvent.TYPE),
-                new WorkOrderEquipmentPayload(
-                        retirado.getIdEquipoCliente(), retirado.getIdAreaServicio())));
-    }
-
-    /**
-     * Los equipos del alcance, en el orden en que se añadieron. Copia inmutable: modificarla no
-     * cambia la orden.
+     * <p>Se permite en ejecución, no solo al planificar: en campo aparece un equipo que no estaba
+     * previsto, o uno de los elegidos resulta inaccesible. Lo que no se admite es cambiar una orden
+     * ejecutada, porque entonces su registro dejaría de describir lo que se hizo.
      *
-     * <p>Se devuelve envuelto y no con {@code Set.copyOf}, que no conserva el orden de iteración.
-     * Aquí importa: con él, dos lecturas del mismo agregado dan la misma secuencia, y eso hace
-     * comparables tanto una prueba como el volcado que persista el adaptador.
+     * <p>Público desde {@code V50}: los equipos ya no viven en el agregado, y quien los añade o los saca
+     * —el servicio, abriendo y retirando reportes— le pregunta antes a la orden si se puede.
      */
-    public Set<SelectedEquipment> getEquipos() {
-        return Collections.unmodifiableSet(new LinkedHashSet<>(equipos));
+    public void requireScopeChangeable(String accion) {
+        exigirActiva(accion);
+
+        if (estadoEjecucion.esFinal()) {
+            throw new IllegalStateException(
+                    "No se puede " + accion + " en una orden ya ejecutada");
+        }
     }
 
     // ---------------------------------------------------------------------------
@@ -294,7 +244,7 @@ public class WorkOrder extends AggregateRoot {
 
     /** Pone la orden en manos de un ingeniero. Asignársela a quien ya la tiene no hace nada. */
     public void assignTo(UUID idIngeniero) {
-        exigirModificable("asignar la orden");
+        requireScopeChangeable("asignar la orden");
 
         UUID ingeniero = exigir(idIngeniero, "ingeniero");
 
@@ -313,14 +263,17 @@ public class WorkOrder extends AggregateRoot {
      * <p>Exige un ingeniero y al menos un equipo: sin lo primero no hay quien lo haga, y sin lo
      * segundo no hay sobre qué. Son las dos condiciones que convierten una orden planificada en
      * trabajo real, y por eso se comprueban aquí y no al crearla.
+     *
+     * @param equipos cuántos equipos tiene la orden, que desde {@code V50} los cuenta el servicio: son
+     *     los que tienen en ella un reporte activo
      */
-    public void start() {
+    public void start(int equipos) {
         avanzarA(ExecutionState.EN_EJECUCION, "empezar");
 
         if (idIngeniero == null) {
             throw new WorkOrderWithoutEngineerException();
         }
-        if (equipos.isEmpty()) {
+        if (equipos <= 0) {
             throw new WorkOrderWithoutEquipmentException();
         }
 
@@ -399,22 +352,6 @@ public class WorkOrder extends AggregateRoot {
         if (!estadoEjecucion.avanzaA(destino)) {
             throw new IllegalStateException("No se puede " + accion + " una orden que esta "
                     + estadoEjecucion + ": el paso siguiente es " + estadoEjecucion.siguiente());
-        }
-    }
-
-    /**
-     * El alcance y la asignación se tocan mientras el trabajo no haya terminado.
-     *
-     * <p>Se permite en ejecución, no solo al planificar: en campo aparece un equipo que no estaba
-     * previsto, o uno de los elegidos resulta inaccesible. Lo que no se admite es cambiar una orden
-     * ejecutada, porque entonces su registro dejaría de describir lo que se hizo.
-     */
-    private void exigirModificable(String accion) {
-        exigirActiva(accion);
-
-        if (estadoEjecucion.esFinal()) {
-            throw new IllegalStateException(
-                    "No se puede " + accion + " en una orden ya ejecutada");
         }
     }
 

@@ -26,11 +26,11 @@ import com.malphasos.malphasos.workorder.application.services.workOrder.commands
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReportsException;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
-import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,8 +46,9 @@ import org.springframework.transaction.annotation.Transactional;
  * la propia orden tiene delante.
  *
  * <p>Este es el módulo con más vecinos del proyecto: consulta a {@code client} por el cliente, la
- * sede y el área, a {@code equipment} por cada unidad, y a {@code person} por el ingeniero. Nadie
- * lo consulta a él, así que sigue sin haber ciclos.
+ * sede y el área, a {@code equipment} por cada unidad, y a {@code person} por el ingeniero. Y desde
+ * {@code V50} sus equipos son los reportes de {@code report}, que depende de este: los abre, los retira
+ * y los cuenta por {@link WorkOrderReportsPort}, que declara este módulo y contesta aquel.
  *
  * <p><b>Las referencias se comprueban activas, no solo existentes.</b> Una clave foránea confirma
  * que la fila está; con borrado lógico eso deja de significar que siga en uso. Es la misma
@@ -154,7 +155,13 @@ public class WorkOrderService implements WorkOrderServicePort {
     public List<WorkOrder> findByEquipment(UUID idEquipoCliente, ReadScope alcance) {
         clientEquipmentServicePort.findById(idEquipoCliente, alcance);
 
-        return workOrderPersistencePort.findByEquipment(idEquipoCliente);
+        return workOrderPersistencePort.findAllById(workOrderReportsPort.workOrdersOf(idEquipoCliente));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, List<WorkOrderReportsPort.ActiveReport>> equipmentOf(Collection<UUID> idsOrdenes) {
+        return workOrderReportsPort.activeReports(idsOrdenes);
     }
 
     // ---------------------------------------------------------------------------
@@ -205,12 +212,12 @@ public class WorkOrderService implements WorkOrderServicePort {
     }
 
     /**
-     * Añade un equipo, congelando el área <b>en la que el equipo está ahora</b>.
+     * Añade un equipo abriendo su reporte en borrador (V50): un equipo está en una orden si y solo si
+     * tiene en ella un reporte activo. Añadir uno que ya está no hace nada.
      *
-     * <p>El área no viene en el comando: la averigua este método. Si el llamante la declarase
-     * podría declarar una donde el equipo no está, y el registro histórico nacería mintiendo sobre
-     * dónde se prestó el servicio. La regla «el equipo estaba en el área declarada» no se comprueba,
-     * se hace imposible de violar.
+     * <p>El borrador nace aunque la orden no haya empezado, y no se rellena hasta que empiece: lo
+     * comprueba {@code report} en cada escritura. La orden no cambia, así que no se guarda ni emite nada:
+     * el hecho es el reporte abierto, y lo publica su módulo.
      */
     @Override
     @Transactional
@@ -227,19 +234,26 @@ public class WorkOrderService implements WorkOrderServicePort {
         }
 
         requireEquipmentInScopeOf(unidad, orden);
+        orden.requireScopeChangeable("anadir equipos");
 
-        orden.addEquipment(unidad.getId(), unidad.getIdAreaServicio());
+        workOrderReportsPort.openDraft(orden.getId(), orden.getTipoServicio(), unidad.getId());
 
-        return persistAndPublish(orden);
+        return orden;
     }
 
+    /**
+     * Saca un equipo retirando su borrador (V50). Uno con el reporte cerrado no sale: un reporte cerrado
+     * cuenta un servicio prestado, y se sustituye. Sacar uno que no está no hace nada.
+     */
     @Override
     @Transactional
     public WorkOrder removeEquipment(RemoveEquipmentFromWorkOrderCommand command) {
         WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
-        orden.removeEquipment(command.idEquipoCliente());
+        orden.requireScopeChangeable("retirar equipos");
 
-        return persistAndPublish(orden);
+        workOrderReportsPort.retireDraft(orden.getId(), command.idEquipoCliente());
+
+        return orden;
     }
 
     @Override
@@ -277,7 +291,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     @Transactional
     public WorkOrder start(StartWorkOrderCommand command) {
         WorkOrder orden = findById(command.id(), ReadScope.unrestricted());
-        orden.start();
+        orden.start(workOrderReportsPort.activeReports(orden.getId()).size());
 
         return persistAndPublish(orden);
     }
@@ -297,7 +311,8 @@ public class WorkOrderService implements WorkOrderServicePort {
 
     /**
      * Una orden no se da por ejecutada con equipos sin reporte cerrado (decidido por el usuario el
-     * 2026-10-14): ejecutada quiere decir que cada equipo tiene el suyo.
+     * 2026-10-14): ejecutada quiere decir que cada equipo tiene el suyo. Desde {@code V50} los equipos de
+     * la orden son sus reportes activos, así que basta con que ninguno siga en borrador.
      *
      * <p>Solo se pregunta cuando ejecutar sería posible. Si la orden aún no empezó, o ya se ejecutó, el
      * agregado responde con su propio conflicto de estado, que es el motivo de verdad; contar reportes
@@ -308,10 +323,8 @@ public class WorkOrderService implements WorkOrderServicePort {
             return;
         }
 
-        Set<UUID> cerrados = workOrderReportsPort.equipmentWithFinishedReport(orden.getId());
-        long pendientes = orden.getEquipos().stream()
-                .map(SelectedEquipment::getIdEquipoCliente)
-                .filter(equipo -> !cerrados.contains(equipo))
+        long pendientes = workOrderReportsPort.activeReports(orden.getId()).stream()
+                .filter(reporte -> !reporte.cerrado())
                 .count();
 
         if (pendientes > 0) {

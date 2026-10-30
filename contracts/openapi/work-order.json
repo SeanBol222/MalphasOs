@@ -135,12 +135,12 @@
       },
       "WorkOrderEquipmentResponse" : {
         "properties" : {
-          "idAreaServicio" : {
-            "description" : "Area donde estaba el equipo al anadirlo, no donde esta hoy",
+          "idEquipoCliente" : {
             "format" : "uuid",
             "type" : "string"
           },
-          "idEquipoCliente" : {
+          "idReporteServicio" : {
+            "description" : "Su reporte activo en esta orden: un equipo está en una orden si y solo si tiene uno",
             "format" : "uuid",
             "type" : "string"
           }
@@ -692,7 +692,7 @@
     },
     "/v1/api/work-orders/{id}/equipments" : {
       "post" : {
-        "description" : "El area se toma de donde esta el equipo ahora; no se envia. El equipo debe estar activo, en un area abierta y ser del mismo cliente.",
+        "description" : "Abre su reporte en borrador, que no se rellena hasta que la orden empiece. El equipo debe estar activo, en un area abierta de la sede de la orden.",
         "operationId" : "addEquipment",
         "parameters" : [ {
           "in" : "path",
@@ -765,13 +765,13 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Anadir un equipo al alcance",
+        "summary" : "Anadir un equipo a la orden",
         "tags" : [ "WorkOrder" ]
       }
     },
     "/v1/api/work-orders/{id}/equipments/{idEquipoCliente}" : {
       "delete" : {
-        "description" : "No borra el historial: la fila queda inactiva.",
+        "description" : "Retira su reporte en borrador. Uno con el reporte cerrado no sale: se sustituye.",
         "operationId" : "removeEquipment",
         "parameters" : [ {
           "in" : "path",
@@ -842,13 +842,13 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Sacar un equipo del alcance",
+        "summary" : "Sacar un equipo de la orden",
         "tags" : [ "WorkOrder" ]
       }
     },
     "/v1/api/work-orders/{id}/execute" : {
       "patch" : {
-        "description" : "Desde aqui la orden ya no admite cambios de alcance ni de ingeniero.",
+        "description" : "Exige el reporte de cada equipo cerrado, y congela la orden: desde aqui no admite cambios de equipos ni de ingeniero.",
         "operationId" : "execute",
         "parameters" : [ {
           "in" : "path",
@@ -917,7 +917,7 @@
     },
     "/v1/api/work-orders/{id}/start" : {
       "patch" : {
-        "description" : "Exige ingeniero asignado y al menos un equipo en el alcance.",
+        "description" : "Exige ingeniero asignado y al menos un equipo en la orden.",
         "operationId" : "start",
         "parameters" : [ {
           "in" : "path",

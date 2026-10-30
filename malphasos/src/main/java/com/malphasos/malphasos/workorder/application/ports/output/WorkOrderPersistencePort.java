@@ -39,8 +39,11 @@ public interface WorkOrderPersistencePort {
     /** Las órdenes de un ingeniero que además son de estos clientes. */
     List<WorkOrder> findByEngineerAndClientIn(UUID idIngeniero, Collection<UUID> idsClientes);
 
-    /** El historial de un equipo: en qué órdenes se le ha intervenido. */
-    List<WorkOrder> findByEquipment(UUID idEquipoCliente);
+    /**
+     * Varias órdenes por su identificador. Las que no existan no aparecen. Desde {@code V50} es lo que
+     * responde en qué órdenes está un equipo: cuáles son lo dicen sus reportes.
+     */
+    List<WorkOrder> findAllById(Collection<UUID> ids);
 
     /**
      * Las órdenes con fecha de mantenimiento entre dos días, ambos incluidos, ordenadas por fecha.

@@ -8,10 +8,10 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.MarkReportStepCommand;
-import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReplaceServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
@@ -22,7 +22,6 @@ import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordH
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordIntakeRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordVerificationRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
-import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.SignReceiptRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.UseReferenceStandardRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.response.ReportDocumentResponse;
@@ -166,21 +165,6 @@ public class ServiceReportRestAdapter {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.inline().filename(pdf.nombre()).build().toString())
                 .body(pdf.contenido());
-    }
-
-    @Operation(summary = "Abrir el reporte de un equipo de una orden",
-            description = "Nace en borrador y vacio. La orden debe haber empezado y el equipo "
-                    + "seguir en su alcance; un equipo no tiene dos reportes vivos en la misma orden.")
-    @PreAuthorize("hasAuthority('report.write')")
-    @PostMapping("/work-orders/{idOrdenTrabajo}")
-    public ResponseEntity<ServiceReportResponse> open(
-            @PathVariable UUID idOrdenTrabajo,
-            @Valid @RequestBody ServiceReportOpenRequest request) {
-
-        ServiceReportResponse abierto = mapper.toResponse(serviceReportServicePort.open(
-                new OpenServiceReportCommand(idOrdenTrabajo, request.idEquipoCliente())));
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(abierto);
     }
 
     @Operation(summary = "Registrar la informacion tecnica (RF-15)",
@@ -339,9 +323,21 @@ public class ServiceReportRestAdapter {
                 serviceReportServicePort.finish(new FinishServiceReportCommand(id)));
     }
 
-    @Operation(summary = "Retirar un reporte",
-            description = "No lo borra: lo deja inactivo. Es la unica forma de corregir uno ya "
-                    + "cerrado, retirandolo y abriendo otro.")
+    @Operation(summary = "Sustituir un reporte cerrado",
+            description = "Lo retira y abre el borrador del mismo equipo en la misma orden, en un solo "
+                    + "paso. Es la unica forma de corregir uno cerrado, tambien con la orden ejecutada.")
+    @PreAuthorize("hasAuthority('report.write')")
+    @PostMapping("/{id}/replace")
+    public ResponseEntity<ServiceReportResponse> replace(@PathVariable UUID id) {
+        ServiceReportResponse borrador =
+                mapper.toResponse(serviceReportServicePort.replace(new ReplaceServiceReportCommand(id)));
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(borrador);
+    }
+
+    @Operation(summary = "Retirar un borrador",
+            description = "No lo borra: lo deja inactivo, y con el su equipo sale de la orden. Un reporte "
+                    + "cerrado no se retira: se sustituye.")
     @PreAuthorize("hasAuthority('report.write')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

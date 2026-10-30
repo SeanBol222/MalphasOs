@@ -28,7 +28,7 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM orden_trabajo_equipo",
+            "DELETE FROM reporte_servicio",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
             "DELETE FROM modelo",
@@ -239,17 +239,15 @@ class WorkOrderSchemaTest {
         return id;
     }
 
-    private void insertWorkOrderEquipment(UUID orden, UUID equipoCliente, UUID area) {
+    /** Pone el equipo en la orden: desde V50, con su reporte en borrador, que es lo que lo pone en ella. */
+    private void insertWorkOrderEquipment(UUID orden, UUID equipoCliente) {
         jdbcTemplate.update(
-                """
-                INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio)
-                VALUES (?, ?, ?)
-                """,
-                orden, equipoCliente, area);
+                "INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente) VALUES (?, ?, ?)",
+                UUID.randomUUID(), orden, equipoCliente);
     }
 
     @Test
-    @DisplayName("las dos tablas del modulo existen tras la migracion")
+    @DisplayName("la orden existe y la tabla puente ya no: sus equipos son sus reportes (V50)")
     void migracionCreaLasTablas() {
         Integer tablas = jdbcTemplate.queryForObject(
                 """
@@ -259,7 +257,7 @@ class WorkOrderSchemaTest {
                 """,
                 Integer.class);
 
-        assertThat(tablas).isEqualTo(2);
+        assertThat(tablas).isEqualTo(1);
     }
 
     @Test
@@ -284,22 +282,6 @@ class WorkOrderSchemaTest {
                 """,
                 String.class);
         assertThat(nulabilidadIngeniero).isEqualTo("YES");
-    }
-
-    @Test
-    @DisplayName("todas las columnas del puente equipo-orden son obligatorias")
-    void columnasObligatoriasDelPuente() {
-        Integer obligatorias = jdbcTemplate.queryForObject(
-                """
-                SELECT count(*) FROM information_schema.columns
-                WHERE table_name = 'orden_trabajo_equipo'
-                  AND column_name IN ('k_id_orden_trabajo', 'k_id_equipo_cliente',
-                                      'k_id_area_servicio', 'b_estado_activo')
-                  AND is_nullable = 'NO'
-                """,
-                Integer.class);
-
-        assertThat(obligatorias).isEqualTo(4);
     }
 
     @Test
@@ -531,16 +513,16 @@ class WorkOrderSchemaTest {
     }
 
     @Test
-    @DisplayName("el mismo equipo no se lista dos veces en la misma orden")
+    @DisplayName("el mismo equipo no esta dos veces en la misma orden: un solo reporte activo por par")
     void mismoEquipoNoSeRepiteEnLaMismaOrden() {
         UUID cliente = insertClient();
         UUID sede = insertHeadquarter(cliente);
         UUID area = insertServiceArea(sede, "UCI");
         UUID orden = insertMinimalWorkOrder(cliente, sede);
         UUID equipo = insertClientEquipment(area);
-        insertWorkOrderEquipment(orden, equipo, area);
+        insertWorkOrderEquipment(orden, equipo);
 
-        assertThatThrownBy(() -> insertWorkOrderEquipment(orden, equipo, area))
+        assertThatThrownBy(() -> insertWorkOrderEquipment(orden, equipo))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -553,37 +535,29 @@ class WorkOrderSchemaTest {
         UUID equipo = insertClientEquipment(area);
         UUID ordenUno = insertMinimalWorkOrder(cliente, sede);
         UUID ordenDos = insertMinimalWorkOrder(cliente, sede);
-        insertWorkOrderEquipment(ordenUno, equipo, area);
+        insertWorkOrderEquipment(ordenUno, equipo);
 
-        assertThatCode(() -> insertWorkOrderEquipment(ordenDos, equipo, area))
+        assertThatCode(() -> insertWorkOrderEquipment(ordenDos, equipo))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("trasladar el equipo a otra area no falla, y el puente conserva el area vieja")
-    void trasladarElEquipoNoReescribeElAreaCongelada() {
+    @DisplayName("la base no impide trasladar un equipo que esta en una orden: lo impide el servicio (V50)")
+    void trasladarNoLoImpideLaBase() {
+        // Que un equipo en una orden sin ejecutar no se traslade es una regla que cruza dos modulos y
+        // depende del estado de la orden, y vive en el servicio de equipos. Si la base la impusiera,
+        // tambien impediria trasladar un equipo de una orden ya ejecutada, que es legitimo.
         UUID cliente = insertClient();
         UUID sede = insertHeadquarter(cliente);
         UUID areaVieja = insertServiceArea(sede, "UCI");
         UUID areaNueva = insertServiceArea(sede, "Urgencias");
         UUID equipo = insertClientEquipment(areaVieja);
-        UUID orden = insertMinimalWorkOrder(cliente, sede);
-        insertWorkOrderEquipment(orden, equipo, areaVieja);
+        insertWorkOrderEquipment(insertMinimalWorkOrder(cliente, sede), equipo);
 
-        // No hay clave foranea compuesta contra equipo_cliente a proposito: si la hubiera, este
-        // traslado -- legitimo -- fallaria por culpa de una orden vieja que lo referencia.
         assertThatCode(() -> jdbcTemplate.update(
                         "UPDATE equipo_cliente SET k_id_area_servicio = ? WHERE k_id_equipo_cliente = ?",
                         areaNueva, equipo))
                 .doesNotThrowAnyException();
-
-        UUID areaEnElPuente = jdbcTemplate.queryForObject(
-                """
-                SELECT k_id_area_servicio FROM orden_trabajo_equipo
-                WHERE k_id_orden_trabajo = ? AND k_id_equipo_cliente = ?
-                """,
-                UUID.class, orden, equipo);
-        assertThat(areaEnElPuente).isEqualTo(areaVieja);
     }
 
     @Test
@@ -606,7 +580,7 @@ class WorkOrderSchemaTest {
         UUID area = insertServiceArea(sede, "UCI");
         UUID orden = insertMinimalWorkOrder(cliente, sede);
         UUID equipo = insertClientEquipment(area);
-        insertWorkOrderEquipment(orden, equipo, area);
+        insertWorkOrderEquipment(orden, equipo);
 
         assertThatThrownBy(
                         () -> jdbcTemplate.update(

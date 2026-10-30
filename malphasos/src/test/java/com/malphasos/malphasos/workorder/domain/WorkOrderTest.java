@@ -12,20 +12,16 @@ import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEngine
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
-import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderAssignedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderCreatedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderDeactivatedEvent;
-import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderEquipmentAddedEvent;
-import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderEquipmentRemovedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderExecutedEvent;
 import com.malphasos.malphasos.workorder.domain.workOrder.events.WorkOrderStartedEvent;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -56,11 +52,10 @@ class WorkOrderTest {
                 CLIENTE, SEDE, MANANA, Periodicity.TRIMESTRAL, ServiceType.PREVENTIVO);
     }
 
-    /** Una orden lista para arrancar: con ingeniero y con un equipo. */
+    /** Una orden lista para arrancar: con ingeniero. Sus equipos los cuenta el servicio desde V50. */
     private static WorkOrder unaOrdenArrancable() {
         WorkOrder orden = unaOrden();
         orden.assignTo(INGENIERO);
-        orden.addEquipment(UUID.randomUUID(), UUID.randomUUID());
         orden.pullEvents();
 
         return orden;
@@ -84,7 +79,6 @@ class WorkOrderTest {
 
             assertThat(orden.getEstadoEjecucion()).isEqualTo(ExecutionState.CREADA);
             assertThat(orden.getIdIngeniero()).isNull();
-            assertThat(orden.getEquipos()).isEmpty();
             assertThat(orden.isEstadoActivo()).isTrue();
         }
 
@@ -161,7 +155,7 @@ class WorkOrderTest {
         void elNumero() {
             WorkOrder orden = WorkOrder.rehydrate(UUID.fromString("4f2a9c00-0000-4000-8000-000000000000"),
                     CLIENTE, SEDE, MANANA, Periodicity.MENSUAL, ServiceType.CORRECTIVO, true,
-                    ExecutionState.CREADA, null, Set.of(), true);
+                    ExecutionState.CREADA, null, true);
 
             assertThat(orden.numero()).isEqualTo("4F2A9C");
             assertThat(orden.isGarantia()).isTrue();
@@ -173,7 +167,7 @@ class WorkOrderTest {
             // Leer de la base no es un hecho del dominio.
             WorkOrder orden = WorkOrder.rehydrate(UUID.randomUUID(), CLIENTE, SEDE, MANANA,
                     Periodicity.MENSUAL, ServiceType.CALIBRACION, ExecutionState.EN_EJECUCION,
-                    INGENIERO, Set.of(), true);
+                    INGENIERO, true);
 
             assertThat(orden.hasPendingEvents()).isFalse();
         }
@@ -183,119 +177,52 @@ class WorkOrderTest {
     @DisplayName("El alcance")
     class ElAlcance {
 
+        // Desde V50 los equipos son los reportes de la orden y los abre y retira el servicio; el agregado
+        // solo dice si todavia se pueden tocar.
+
         @Test
-        @DisplayName("un equipo entra con el area en la que estaba al seleccionarlo")
-        void entraConSuArea() {
-            WorkOrder orden = unaOrden();
-            UUID equipo = UUID.randomUUID();
-            UUID area = UUID.randomUUID();
+        @DisplayName("se toca al planificar y en ejecucion, porque en campo cambia")
+        void seTocaMientrasNoTermina() {
+            WorkOrder orden = unaOrdenArrancable();
 
-            orden.addEquipment(equipo, area);
-
-            assertThat(orden.getEquipos())
-                    .extracting(SelectedEquipment::getIdEquipoCliente,
-                            SelectedEquipment::getIdAreaServicio)
-                    .containsExactly(org.assertj.core.groups.Tuple.tuple(equipo, area));
+            assertThatCode(() -> orden.requireScopeChangeable("anadir equipos")).doesNotThrowAnyException();
+            orden.start(1);
+            assertThatCode(() -> orden.requireScopeChangeable("anadir equipos")).doesNotThrowAnyException();
         }
 
         @Test
-        @DisplayName("anadir dos veces el mismo equipo no lo duplica ni emite dos eventos")
-        void anadirDosVecesEsIdempotente() {
-            WorkOrder orden = unaOrden();
-            UUID equipo = UUID.randomUUID();
-            UUID area = UUID.randomUUID();
+        @DisplayName("una orden ejecutada ya no cambia de equipos, y el mensaje dice que se pidio")
+        void ejecutadaNoSeToca() {
+            WorkOrder orden = unaOrdenArrancable();
+            orden.start(1);
+            orden.execute(DOCUMENTO);
 
-            orden.addEquipment(equipo, area);
-            orden.addEquipment(equipo, area);
-
-            assertThat(orden.getEquipos()).hasSize(1);
-            assertThat(tiposDe(orden)).containsExactly(
-                    WorkOrderCreatedEvent.TYPE, WorkOrderEquipmentAddedEvent.TYPE);
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> orden.requireScopeChangeable("retirar equipos"))
+                    .withMessageContaining("retirar equipos")
+                    .withMessageContaining("ya ejecutada");
         }
 
         @Test
-        @DisplayName("reanadir el mismo equipo con otra area NO cambia el area congelada")
-        void reanadirNoCambiaElAreaCongelada() {
-            // Es contraintuitivo y por eso se fija: dentro de una orden la identidad de un equipo
-            // es el equipo, no el par. Para corregir el area hay que retirarlo y volver a anadirlo.
+        @DisplayName("una cancelada tampoco")
+        void canceladaNoSeToca() {
             WorkOrder orden = unaOrden();
-            UUID equipo = UUID.randomUUID();
-            UUID areaOriginal = UUID.randomUUID();
-            UUID areaNueva = UUID.randomUUID();
+            orden.cancel();
 
-            orden.addEquipment(equipo, areaOriginal);
-            orden.addEquipment(equipo, areaNueva);
-
-            assertThat(orden.getEquipos()).singleElement()
-                    .extracting(SelectedEquipment::getIdAreaServicio)
-                    .isEqualTo(areaOriginal);
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> orden.requireScopeChangeable("anadir equipos"))
+                    .withMessageContaining("cancelada");
         }
 
         @Test
-        @DisplayName("retirar y volver a anadir si permite corregir el area")
-        void retirarYReanadirCorrigeElArea() {
-            WorkOrder orden = unaOrden();
-            UUID equipo = UUID.randomUUID();
-            UUID areaNueva = UUID.randomUUID();
-
-            orden.addEquipment(equipo, UUID.randomUUID());
-            orden.removeEquipment(equipo);
-            orden.addEquipment(equipo, areaNueva);
-
-            assertThat(orden.getEquipos()).singleElement()
-                    .extracting(SelectedEquipment::getIdAreaServicio)
-                    .isEqualTo(areaNueva);
-        }
-
-        @Test
-        @DisplayName("retirar un equipo que no esta no hace nada")
-        void retirarLoQueNoEstaNoHaceNada() {
+        @DisplayName("preguntarlo no cambia nada ni emite nada")
+        void preguntarNoEmite() {
             WorkOrder orden = unaOrden();
             orden.pullEvents();
 
-            orden.removeEquipment(UUID.randomUUID());
+            orden.requireScopeChangeable("anadir equipos");
 
             assertThat(orden.hasPendingEvents()).isFalse();
-        }
-
-        @Test
-        @DisplayName("retirar anuncia el equipo que salio, con su area")
-        void retirarAnunciaElEquipo() {
-            WorkOrder orden = unaOrden();
-            UUID equipo = UUID.randomUUID();
-            orden.addEquipment(equipo, UUID.randomUUID());
-            orden.pullEvents();
-
-            orden.removeEquipment(equipo);
-
-            assertThat(tiposDe(orden)).containsExactly(WorkOrderEquipmentRemovedEvent.TYPE);
-            assertThat(orden.getEquipos()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("el equipo y su area son obligatorios, y se rechazan como dato invalido")
-        void exigeEquipoYArea() {
-            // IllegalArgumentException y no NullPointerException: el advice de cada modulo
-            // traduce la primera a un 400, y la segunda saldria como 500 fuera del contrato.
-            WorkOrder orden = unaOrden();
-
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> orden.addEquipment(null, UUID.randomUUID()));
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> orden.addEquipment(UUID.randomUUID(), null));
-        }
-
-        @Test
-        @DisplayName("la coleccion que se devuelve es una copia inmutable")
-        void laColeccionEsInmutable() {
-            WorkOrder orden = unaOrden();
-            orden.addEquipment(UUID.randomUUID(), UUID.randomUUID());
-
-            Set<SelectedEquipment> copia = orden.getEquipos();
-
-            assertThatCode(() -> copia.clear())
-                    .isInstanceOf(UnsupportedOperationException.class);
-            assertThat(orden.getEquipos()).hasSize(1);
         }
     }
 
@@ -359,7 +286,7 @@ class WorkOrderTest {
         void arranca() {
             WorkOrder orden = unaOrdenArrancable();
 
-            orden.start();
+            orden.start(1);
 
             assertThat(orden.getEstadoEjecucion()).isEqualTo(ExecutionState.EN_EJECUCION);
             assertThat(tiposDe(orden)).containsExactly(WorkOrderStartedEvent.TYPE);
@@ -369,11 +296,10 @@ class WorkOrderTest {
         @DisplayName("sin ingeniero no arranca: no hay quien lo haga")
         void sinIngenieroNoArranca() {
             WorkOrder orden = unaOrden();
-            orden.addEquipment(UUID.randomUUID(), UUID.randomUUID());
 
             // Con su propia excepción, que lleva su propio código al API (2026-10-26).
             assertThatExceptionOfType(WorkOrderWithoutEngineerException.class)
-                    .isThrownBy(orden::start)
+                    .isThrownBy(() -> orden.start(1))
                     .withMessageContaining("sin ingeniero");
         }
 
@@ -384,7 +310,7 @@ class WorkOrderTest {
             orden.assignTo(INGENIERO);
 
             assertThatExceptionOfType(WorkOrderWithoutEquipmentException.class)
-                    .isThrownBy(orden::start)
+                    .isThrownBy(() -> orden.start(0))
                     .withMessageContaining("sin equipos");
         }
 
@@ -397,7 +323,7 @@ class WorkOrderTest {
             orden.assignTo(INGENIERO);
             orden.pullEvents();
 
-            assertThatIllegalStateException().isThrownBy(orden::start);
+            assertThatIllegalStateException().isThrownBy(() -> orden.start(0));
 
             assertThat(orden.getEstadoEjecucion()).isEqualTo(ExecutionState.CREADA);
             assertThat(orden.hasPendingEvents()).isFalse();
@@ -416,7 +342,7 @@ class WorkOrderTest {
         @DisplayName("ejecutar congela el documento, y sin documento no se ejecuta")
         void ejecutarCongelaElDocumento() {
             WorkOrder orden = unaOrdenArrancable();
-            orden.start();
+            orden.start(1);
 
             assertThatIllegalArgumentException().isThrownBy(() -> orden.execute(null))
                     .withMessageContaining("documento");
@@ -442,39 +368,22 @@ class WorkOrderTest {
         @DisplayName("una orden ejecutada no vuelve a ejecucion ni se ejecuta dos veces")
         void ejecutadaEsFinal() {
             WorkOrder orden = unaOrdenArrancable();
-            orden.start();
+            orden.start(1);
             orden.execute(DOCUMENTO);
 
-            assertThatIllegalStateException().isThrownBy(orden::start)
+            assertThatIllegalStateException().isThrownBy(() -> orden.start(1))
                     .withMessageContaining("ya ejecutada");
             assertThatIllegalStateException().isThrownBy(() -> orden.execute(DOCUMENTO))
                     .withMessageContaining("ya ejecutada");
         }
 
         @Test
-        @DisplayName("el alcance se puede tocar en ejecucion, porque en campo cambia")
-        void enEjecucionElAlcanceSeToca() {
-            WorkOrder orden = unaOrdenArrancable();
-            orden.start();
-            orden.pullEvents();
-
-            orden.addEquipment(UUID.randomUUID(), UUID.randomUUID());
-
-            assertThat(orden.getEquipos()).hasSize(2);
-            assertThat(tiposDe(orden)).containsExactly(WorkOrderEquipmentAddedEvent.TYPE);
-        }
-
-        @Test
-        @DisplayName("una orden ejecutada ya no admite cambios de alcance ni de ingeniero")
+        @DisplayName("una orden ejecutada ya no admite cambios de ingeniero")
         void ejecutadaNoAdmiteCambios() {
             WorkOrder orden = unaOrdenArrancable();
-            orden.start();
+            orden.start(1);
             orden.execute(DOCUMENTO);
 
-            assertThatIllegalStateException()
-                    .isThrownBy(() -> orden.addEquipment(UUID.randomUUID(), UUID.randomUUID()));
-            assertThatIllegalStateException()
-                    .isThrownBy(() -> orden.removeEquipment(UUID.randomUUID()));
             assertThatIllegalStateException()
                     .isThrownBy(() -> orden.assignTo(UUID.randomUUID()));
         }
@@ -514,7 +423,7 @@ class WorkOrderTest {
             // Cancelar no es lo contrario de ejecutar: retirar del listado un registro historico
             // no reescribe lo que ocurrio.
             WorkOrder orden = unaOrdenArrancable();
-            orden.start();
+            orden.start(1);
             orden.execute(DOCUMENTO);
             orden.pullEvents();
 
@@ -530,13 +439,10 @@ class WorkOrderTest {
             WorkOrder orden = unaOrdenArrancable();
             orden.cancel();
 
-            assertThatIllegalStateException().isThrownBy(orden::start)
+            assertThatIllegalStateException().isThrownBy(() -> orden.start(1))
                     .withMessageContaining("cancelada");
             assertThatIllegalStateException()
                     .isThrownBy(() -> orden.assignTo(UUID.randomUUID()))
-                    .withMessageContaining("cancelada");
-            assertThatIllegalStateException()
-                    .isThrownBy(() -> orden.addEquipment(UUID.randomUUID(), UUID.randomUUID()))
                     .withMessageContaining("cancelada");
         }
     }
@@ -590,7 +496,7 @@ class WorkOrderTest {
         @DisplayName("todo evento lleva el identificador de la orden que lo produjo")
         void llevanElIdentificador() {
             WorkOrder orden = unaOrdenArrancable();
-            orden.start();
+            orden.start(1);
             orden.execute(DOCUMENTO);
 
             List<DomainEvent<? extends Payload>> eventos = orden.pullEvents();
@@ -610,9 +516,6 @@ class WorkOrderTest {
             assertThat(WorkOrderStartedEvent.TYPE).isEqualTo("work-order.started");
             assertThat(WorkOrderExecutedEvent.TYPE).isEqualTo("work-order.executed");
             assertThat(WorkOrderDeactivatedEvent.TYPE).isEqualTo("work-order.deactivated");
-            assertThat(WorkOrderEquipmentAddedEvent.TYPE).isEqualTo("work-order.equipment-added");
-            assertThat(WorkOrderEquipmentRemovedEvent.TYPE)
-                    .isEqualTo("work-order.equipment-removed");
         }
     }
 
@@ -632,19 +535,10 @@ class WorkOrderTest {
             WorkOrder orden = unaOrdenArrancable();
             WorkOrder mismaOrden = WorkOrder.rehydrate(orden.getId(), CLIENTE, SEDE, MANANA,
                     Periodicity.ANUAL, ServiceType.CORRECTIVO, ExecutionState.EJECUTADA,
-                    UUID.randomUUID(), Set.of(), false);
+                    UUID.randomUUID(), false);
 
             assertThat(mismaOrden).isEqualTo(orden);
             assertThat(mismaOrden).hasSameHashCodeAs(orden);
-        }
-
-        @Test
-        @DisplayName("un equipo seleccionado se identifica por el equipo, no por el par")
-        void laIdentidadDelSeleccionado() {
-            UUID equipo = UUID.randomUUID();
-
-            assertThat(SelectedEquipment.of(equipo, UUID.randomUUID()))
-                    .isEqualTo(SelectedEquipment.of(equipo, UUID.randomUUID()));
         }
     }
 }
