@@ -11,6 +11,7 @@ import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardInter
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardSerialTakenException;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
+import com.malphasos.malphasos.equipment.domain.exception.RelocationDuringWorkOrderException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.MagnitudeNotFoundException;
@@ -162,6 +163,14 @@ public class EquipmentControllerAdvice {
      * unidad, que ya pertenece a otro cliente. Lleva código propio para que quien llama pueda
      * distinguirlo de un dato mal formado sin leer el mensaje.
      */
+    /** 409 por lo mismo que el traslado entre clientes: la unidad está en una orden sin ejecutar (V50). */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(RelocationDuringWorkOrderException.class)
+    public EquipmentErrorResponse handleRelocationDuringWorkOrder(RelocationDuringWorkOrderException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.RELOCATION_DURING_WORK_ORDER, List.of(ex.getMessage()));
+    }
+
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(CrossClientRelocationException.class)
     public EquipmentErrorResponse handleCrossClientRelocation(CrossClientRelocationException ex) {

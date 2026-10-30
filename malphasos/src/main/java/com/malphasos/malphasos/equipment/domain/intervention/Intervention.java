@@ -16,8 +16,9 @@ import java.util.UUID;
  * <p><b>Sus tres datos son una copia congelada</b> del reporte en el momento de cerrarse, no una
  * referencia a lo que el reporte diga hoy. Guarda {@code idReporteServicio} para poder volver al
  * reporte completo desde el historial, y eso es trazabilidad, no dependencia: si el reporte se
- * corrige después, o se retira, esta línea no cambia. Es la misma decisión que el área congelada de
- * {@code orden_trabajo_equipo}, y el esquema lleva escrita la foránea que por eso no existe.
+ * corrige después, o se retira, esta línea no cambia. Era la misma decisión que el área congelada de
+ * {@code orden_trabajo_equipo} —que {@code V50} quitó con la tabla, porque la orden se congela entera al
+ * ejecutarse—, y el esquema lleva escrita la foránea que por eso no existe.
  *
  * <p><b>Desde {@code V17} lleva además qué se hizo y quién lo hizo</b>: los procedimientos del reporte
  * y el nombre del ingeniero de la orden, congelados igual. Son opcionales —una orden puede no tener

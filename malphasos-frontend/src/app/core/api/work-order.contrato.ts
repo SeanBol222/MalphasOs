@@ -79,8 +79,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Anadir un equipo al alcance
-         * @description El area se toma de donde esta el equipo ahora; no se envia. El equipo debe estar activo, en un area abierta y ser del mismo cliente.
+         * Anadir un equipo a la orden
+         * @description Abre su reporte en borrador, que no se rellena hasta que la orden empiece. El equipo debe estar activo, en un area abierta de la sede de la orden.
          */
         post: operations["addEquipment"];
         delete?: never;
@@ -100,8 +100,8 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Sacar un equipo del alcance
-         * @description No borra el historial: la fila queda inactiva.
+         * Sacar un equipo de la orden
+         * @description Retira su reporte en borrador. Uno con el reporte cerrado no sale: se sustituye.
          */
         delete: operations["removeEquipment"];
         options?: never;
@@ -124,7 +124,7 @@ export interface paths {
         head?: never;
         /**
          * Dar el trabajo por terminado
-         * @description Desde aqui la orden ya no admite cambios de alcance ni de ingeniero.
+         * @description Exige el reporte de cada equipo cerrado, y congela la orden: desde aqui no admite cambios de equipos ni de ingeniero.
          */
         patch: operations["execute"];
         trace?: never;
@@ -144,7 +144,7 @@ export interface paths {
         head?: never;
         /**
          * Arrancar el trabajo
-         * @description Exige ingeniero asignado y al menos un equipo en el alcance.
+         * @description Exige ingeniero asignado y al menos un equipo en la orden.
          */
         patch: operations["start"];
         trace?: never;
@@ -205,13 +205,13 @@ export interface components {
             idEquipoCliente: string;
         };
         WorkOrderEquipmentResponse: {
-            /**
-             * Format: uuid
-             * @description Area donde estaba el equipo al anadirlo, no donde esta hoy
-             */
-            idAreaServicio?: string;
             /** Format: uuid */
             idEquipoCliente?: string;
+            /**
+             * Format: uuid
+             * @description Su reporte activo en esta orden: un equipo está en una orden si y solo si tiene uno
+             */
+            idReporteServicio?: string;
         };
         WorkOrderErrorResponse: {
             code?: string;

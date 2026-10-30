@@ -7,10 +7,13 @@ import com.malphasos.malphasos.workorder.application.services.workOrder.commands
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.ScheduleWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.StartWorkOrderCommand;
+import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -44,6 +47,12 @@ public interface WorkOrderServicePort {
     List<WorkOrder> findByEngineer(UUID idIngeniero, ReadScope alcance);
 
     List<WorkOrder> findByEquipment(UUID idEquipoCliente, ReadScope alcance);
+
+    /**
+     * Los equipos de cada orden con su reporte activo, por orden (V50: los equipos de una orden son sus
+     * reportes). No acota: se pide con órdenes que ya pasaron por una lectura acotada.
+     */
+    Map<UUID, List<WorkOrderReportsPort.ActiveReport>> equipmentOf(Collection<UUID> idsOrdenes);
 
     /**
      * Las órdenes cuya fecha de mantenimiento cae entre dos días, ambos incluidos, ordenadas por

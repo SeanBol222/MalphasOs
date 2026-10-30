@@ -87,7 +87,8 @@ export class OrdenApi {
   }
 
   /**
-   * Suma un equipo al alcance de la orden.
+   * Suma un equipo a la orden, y con él su reporte en borrador (V50): un equipo está en una orden si y
+   * solo si tiene en ella un reporte activo.
    *
    * <p>Uno por llamada, porque es lo que el API ofrece. La pantalla que permite elegir varios los manda
    * en serie y cuenta lo que entro: ver {@code AgregarEquipos}.
@@ -98,15 +99,16 @@ export class OrdenApi {
         firstValueFrom(
           this.http.post<OrdenDeTrabajo>(`${this.url}/${id}/equipments`, { idEquipoCliente }),
         ),
-      onSuccess: () => this.invalidar(),
+      onSuccess: () => this.invalidarConLosReportes(),
     }));
   }
 
+  /** Saca un equipo de la orden retirando su borrador (V50). Uno con el reporte cerrado no sale. */
   quitarEquipo() {
     return injectMutation(() => ({
       mutationFn: ({ id, idEquipoCliente }: { id: string; idEquipoCliente: string }) =>
         firstValueFrom(this.http.delete<void>(`${this.url}/${id}/equipments/${idEquipoCliente}`)),
-      onSuccess: () => this.invalidar(),
+      onSuccess: () => this.invalidarConLosReportes(),
     }));
   }
 
@@ -163,5 +165,14 @@ export class OrdenApi {
    */
   private invalidar(): void {
     void this.queryClient.invalidateQueries({ queryKey: OrdenApi.CLAVE });
+  }
+
+  /**
+   * Añadir o quitar un equipo abre o retira su reporte (V50), así que caducan también los reportes. La
+   * clave se escribe aquí y no se importa de {@code ReporteApi}, que ya importa esta clase.
+   */
+  private invalidarConLosReportes(): void {
+    this.invalidar();
+    void this.queryClient.invalidateQueries({ queryKey: ['reportes'] });
   }
 }

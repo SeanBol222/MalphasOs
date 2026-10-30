@@ -49,7 +49,11 @@ public enum EquipmentErrorCatalog {
     REFERENCE_STANDARD_INTERNAL_CODE_TAKEN("ERR_EQUIPMENT_019",
             "A reference standard with that internal code already exists"),
     // La hoja de vida en PDF, del 2026-10-18.
-    LIFE_SHEET_PDF_UNAVAILABLE("ERR_EQUIPMENT_020", "The life sheet PDF could not be generated");
+    LIFE_SHEET_PDF_UNAVAILABLE("ERR_EQUIPMENT_020", "The life sheet PDF could not be generated"),
+
+    // V50: como CROSS_CLIENT_RELOCATION, el area de destino es valida y lo que choca es el estado de la
+    // unidad, que esta en una orden sin ejecutar.
+    RELOCATION_DURING_WORK_ORDER("ERR_EQUIPMENT_021", "The unit is in a work order that has not been executed");
 
     private final String code;
     private final String message;

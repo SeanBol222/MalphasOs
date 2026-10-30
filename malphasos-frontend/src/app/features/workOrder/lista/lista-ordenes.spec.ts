@@ -25,8 +25,8 @@ const TODAS = ['work-order.read', 'work-order.write', 'person.read', 'report.rea
 
 /** Dos equipos, para que el avance tenga de qué contar. */
 const DOS_EQUIPOS = [
-  { idEquipoCliente: 'ec1', idAreaServicio: 'a1' },
-  { idEquipoCliente: 'ec2', idAreaServicio: 'a1' },
+  { idEquipoCliente: 'ec1', idReporteServicio: 'r1' },
+  { idEquipoCliente: 'ec2', idReporteServicio: 'r2' },
 ];
 
 describe('Listado de órdenes de trabajo', () => {

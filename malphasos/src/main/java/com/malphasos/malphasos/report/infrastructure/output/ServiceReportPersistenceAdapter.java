@@ -7,6 +7,8 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ServiceReportEntity;
 import com.malphasos.malphasos.report.infrastructure.output.mapper.ServiceReportPersistenceMapper;
 import com.malphasos.malphasos.report.infrastructure.output.repository.ServiceReportRepository;
+import com.malphasos.malphasos.report.application.model.ActiveReportSummary;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -92,6 +94,25 @@ public class ServiceReportPersistenceAdapter implements ServiceReportPersistence
     @Transactional(readOnly = true)
     public List<ServiceReport> findByEquipment(UUID idEquipoCliente) {
         return mapper.toDomainList(serviceReportRepository.findByIdEquipoCliente(idEquipoCliente));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ActiveReportSummary> findActiveSummaries(Collection<UUID> idsOrdenes) {
+        if (idsOrdenes.isEmpty()) {
+            return List.of();
+        }
+
+        return serviceReportRepository.findActiveSummaries(idsOrdenes).stream()
+                .map(fila -> new ActiveReportSummary(fila.getId(), fila.getIdOrdenTrabajo(),
+                        fila.getIdEquipoCliente(), ReportState.valueOf(fila.getEstado())))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean inUnexecutedWorkOrder(UUID idEquipoCliente) {
+        return serviceReportRepository.inUnexecutedWorkOrder(idEquipoCliente);
     }
 
     @Override

@@ -69,7 +69,7 @@ class ReportDocumentComposerTest {
     private static WorkOrder orden(UUID ingeniero) {
         return WorkOrder.rehydrate(ORDEN, UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 10, 1),
                 Periodicity.TRIMESTRAL, ServiceType.CORRECTIVO, true, ExecutionState.EN_EJECUCION, ingeniero,
-                List.of(), true);
+                true);
     }
 
     private static LifeSheet hoja() {

@@ -1,15 +1,10 @@
 package com.malphasos.malphasos.workorder.infrastructure.output.entities;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -80,7 +75,4 @@ public class WorkOrderEntity {
 
     @Column(name = "b_documento_tardio", nullable = false)
     private boolean documentoTardio;
-
-    @OneToMany(mappedBy = "orden", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<WorkOrderEquipmentEntity> equipos = new ArrayList<>();
 }

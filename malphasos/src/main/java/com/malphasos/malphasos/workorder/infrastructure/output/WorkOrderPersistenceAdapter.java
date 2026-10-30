@@ -17,17 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Guarda y recupera órdenes de trabajo.
  *
- * <p>Al guardar busca antes la fila existente y se la pasa al mapper. No es una lectura de más por
- * pereza: sin ella el mapper construiría una entidad nueva en cada guardado y Hibernate insertaría
- * duplicados del alcance en la tabla puente, que es la misma razón por la que el adaptador de
- * clientes hace lo propio con sus contactos.
+ * <p>Al guardar busca antes la fila existente y se la pasa al mapper, que la pone al día.
  *
- * <p><b>Los métodos llevan {@code @Transactional}</b> porque el mapeo recorre el alcance, que es una
- * colección perezosa: sin transacción abierta lanzaría {@code LazyInitializationException}, porque
- * {@code open-in-view} está desactivado en este proyecto. Hoy el servicio siempre abre una, así que
- * la falta no era visible desde el API — pero dejaba el adaptador inservible por su cuenta, y lo
- * destapó la primera prueba que lo llamó directamente. Es la misma razón por la que lo llevan los
- * adaptadores de {@code client} y de {@code person}, los otros dos con colecciones propias.
+ * <p><b>Los métodos llevan {@code @Transactional}</b> desde que el mapeo recorría el alcance, una
+ * colección perezosa: sin transacción abierta lanzaba {@code LazyInitializationException}, y lo destapó
+ * la primera prueba que llamó al adaptador directamente. Desde {@code V50} la orden ya no tiene esa
+ * colección —sus equipos son sus reportes—, y se conservan porque leer y escribir siguen siendo una
+ * unidad.
  */
 @Component
 @RequiredArgsConstructor
@@ -81,8 +77,8 @@ public class WorkOrderPersistenceAdapter implements WorkOrderPersistencePort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkOrder> findByEquipment(UUID idEquipoCliente) {
-        return mapper.toDomainList(workOrderRepository.findByEquipment(idEquipoCliente));
+    public List<WorkOrder> findAllById(Collection<UUID> ids) {
+        return mapper.toDomainList(workOrderRepository.findAllById(ids));
     }
 
     @Override

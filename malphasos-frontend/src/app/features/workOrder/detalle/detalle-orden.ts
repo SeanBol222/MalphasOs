@@ -100,18 +100,22 @@ export class DetalleOrden {
 
   private readonly reporteApi = inject(ReporteApi);
   private readonly reportes = this.reporteApi.porOrden(this.id);
-  protected readonly apertura = this.reporteApi.abrir();
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('work-order.write'));
   protected readonly puedeAsignar = computed(() => this.sesion.puede('work-order.assign'));
-  protected readonly puedeReportar = computed(() => this.sesion.puede('report.write'));
 
   /**
-   * Un reporte cuenta lo que se hizo, y en una orden sin empezar no se ha hecho nada: es la regla que
-   * el servidor impone al abrirlo. Aqui se refleja para no ofrecer un boton que responderia 409.
+   * Un reporte cuenta lo que se hizo, y en una orden sin empezar no se ha hecho nada: desde V50 el
+   * borrador de cada equipo nace al añadirlo, pero el servidor no deja escribir en él hasta que la orden
+   * empieza. Aquí se avisa, para que nadie lo descubra con un 409.
    */
-  protected readonly sePuedeReportar = computed(
-    () => this.orden.data()?.estadoEjecucion !== 'CREADA' && !!this.orden.data()?.estadoActivo,
+  protected readonly sinEmpezar = computed(
+    () => this.orden.data()?.estadoEjecucion === 'CREADA' && !!this.orden.data()?.estadoActivo,
+  );
+
+  /** Mientras no se ha ejecutado, sus equipos se añaden y se quitan. */
+  protected readonly cambiaDeEquipos = computed(
+    () => this.orden.data()?.estadoEjecucion !== 'EJECUTADA' && !!this.orden.data()?.estadoActivo,
   );
 
   protected readonly confirmandoAnulacion = signal(false);
@@ -225,9 +229,11 @@ export class DetalleOrden {
    * El alcance, agrupado por área: qué equipos toca esta orden, qué es cada uno y cómo va su reporte.
    *
    * <p>El reporte que cuenta es <b>el vivo</b>: la consulta trae también los retirados, porque el API
-   * devuelve el historial completo de la orden, y un equipo cuyo reporte se retiró vuelve a estar sin
-   * reporte. Quedarse con el primero de la lista mostraría el retirado y el botón de abrir
-   * desaparecería para siempre.
+   * devuelve el historial completo de la orden. Desde V50 cada equipo de una orden viva tiene el suyo
+   * —es lo que lo pone en ella— y la orden lo dice; el estado se lee de la consulta de reportes.
+   *
+   * <p>El área de cada equipo es la de hoy, del listado de equipos: mientras la orden no se ejecuta, sus
+   * equipos no se trasladan. La de una orden ejecutada está en su documento.
    */
   protected readonly grupos = computed(() => {
     const resumen = new Map((this.resumen.data()?.filas ?? []).map((fila) => [fila.id, fila]));
@@ -273,7 +279,7 @@ export class DetalleOrden {
     for (const equipo of this.orden.data()?.equipos ?? []) {
       const fila = resumen.get(equipo.idEquipoCliente!);
       const reporte = reportes.get(equipo.idEquipoCliente!);
-      const clave = equipo.idAreaServicio ?? '';
+      const clave = fila?.idAreaServicio ?? '';
       const grupo = grupos.get(clave) ?? {
         area: fila?.areaServicio ?? 'Área no disponible',
         equipos: [],
@@ -282,7 +288,7 @@ export class DetalleOrden {
       grupo.equipos.push({
         id: equipo.idEquipoCliente!,
         ...describir(fila),
-        idReporte: reporte?.id,
+        idReporte: equipo.idReporteServicio ?? reporte?.id,
         ...estadoDelReporte(reporte?.estado, reporte?.resultado),
       });
       grupos.set(clave, grupo);
@@ -313,7 +319,10 @@ export class DetalleOrden {
     const nombresDeArea = new Map(
       (this.resumen.data()?.filas ?? []).map((fila) => [fila.idAreaServicio, fila.areaServicio]),
     );
-    const idsDeArea = new Set((datos?.equipos ?? []).map((equipo) => equipo.idAreaServicio));
+    // Las áreas de sus equipos, del listado pedido por los equipos de la orden: la orden ya no las guarda.
+    const idsDeArea = new Set(
+      (this.resumen.data()?.filas ?? []).map((fila) => fila.idAreaServicio),
+    );
     const porPersona = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
 
     // Una fila por cada cosa de la que responde en este sitio: desde el 2026-10-27 un encargado puede
@@ -343,8 +352,7 @@ export class DetalleOrden {
       this.ejecucion.isError() ||
       this.anulacion.isError() ||
       this.bajaDeEquipo.isError() ||
-      this.asignacion.isError() ||
-      this.apertura.isError(),
+      this.asignacion.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
     traducirError(
@@ -353,8 +361,7 @@ export class DetalleOrden {
         this.ejecucion.error() ??
         this.anulacion.error() ??
         this.bajaDeEquipo.error() ??
-        this.asignacion.error() ??
-        this.apertura.error(),
+        this.asignacion.error(),
     ),
   );
 
@@ -375,16 +382,6 @@ export class DetalleOrden {
 
   protected quitarEquipo(idEquipoCliente: string): void {
     this.bajaDeEquipo.mutate({ id: this.id(), idEquipoCliente });
-  }
-
-  /** Abre el reporte de un equipo y lleva a él: lo que sigue es llenarlo, no volver al listado. */
-  protected abrirReporte(idEquipoCliente: string): void {
-    this.apertura.mutate(
-      { idOrdenTrabajo: this.id(), idEquipoCliente },
-      {
-        onSuccess: (reporte) => void this.router.navigate(['/reportes', reporte.id]),
-      },
-    );
   }
 
   protected asignar(): void {

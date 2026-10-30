@@ -582,10 +582,16 @@
             }
           </p>
         }
+        @if (datos.estado === 'BORRADOR' && datos.estadoActivo && ordenSinEmpezar()) {
+          <!-- La regla del servidor desde V50: el borrador nace con el equipo, y se llena al empezar. -->
+          <p class="mt-2 text-sm text-neutral-300" data-sin-empezar>
+            La orden no ha empezado: este reporte se llena cuando empiece el trabajo.
+          </p>
+        }
         @if (datos.estado === 'FINALIZADO' && datos.estadoActivo) {
           <p class="mt-2 text-sm text-neutral-300">
-            Este reporte está cerrado y no se modifica. Para corregirlo hay que retirarlo y abrir
-            otro.
+            Este reporte está cerrado y no se modifica. Para corregirlo se sustituye: se retira y se
+            abre otro borrador para el mismo equipo, en un solo paso.
           </p>
         }
 
@@ -599,8 +605,8 @@
             @if (datos.estado === 'BORRADOR') {
               @if (confirmandoCierre()) {
                 <p class="border-l-2 border-accent bg-brand-black p-1.5 text-sm">
-                  Un reporte cerrado ya no se modifica. Si después hay que corregir algo, se retira
-                  y se abre otro para el mismo equipo.
+                  Un reporte cerrado ya no se modifica. Si después hay que corregir algo, se
+                  sustituye por otro para el mismo equipo.
                 </p>
                 <button
                   class="boton-primario min-h-tactil"
@@ -629,34 +635,71 @@
               }
             }
 
-            @if (confirmandoRetiro()) {
-              <p class="border-l-2 border-accent bg-brand-black p-1.5 text-sm">
-                El reporte queda retirado con sus datos y sus lecturas intactos, y deja de contar
-                como el reporte de este equipo en la orden. No se borra nada.
-              </p>
-              <button
-                class="boton-primario min-h-tactil"
-                type="button"
-                [disabled]="retiro.isPending()"
-                (click)="retirar()"
-              >
-                Confirmar retiro
-              </button>
-              <button
-                class="min-h-tactil border border-neutral-500 font-bold"
-                type="button"
-                (click)="confirmandoRetiro.set(false)"
-              >
-                Cancelar
-              </button>
-            } @else {
-              <button
-                class="min-h-tactil border border-neutral-500 font-bold hover:border-white"
-                type="button"
-                (click)="confirmandoRetiro.set(true)"
-              >
-                Retirar
-              </button>
+            <!--
+              Desde V50 un reporte es lo que pone a su equipo en la orden: un cerrado se sustituye, y
+              retirar un borrador es quitar el equipo de la orden, que solo cabe antes de ejecutarla.
+            -->
+            @if (datos.estado === 'FINALIZADO') {
+              @if (confirmandoSustitucion()) {
+                <p class="border-l-2 border-accent bg-brand-black p-1.5 text-sm">
+                  Este reporte queda retirado con sus datos y sus lecturas intactos, y se abre un
+                  borrador para el mismo equipo. Hasta que ese se cierre, la hoja de vida sigue
+                  contando este. No se borra nada.
+                </p>
+                <button
+                  class="boton-primario min-h-tactil"
+                  type="button"
+                  [disabled]="sustitucion.isPending()"
+                  (click)="sustituir()"
+                >
+                  Confirmar sustitución
+                </button>
+                <button
+                  class="min-h-tactil border border-neutral-500 font-bold"
+                  type="button"
+                  (click)="confirmandoSustitucion.set(false)"
+                >
+                  Cancelar
+                </button>
+              } @else {
+                <button
+                  class="min-h-tactil border border-neutral-500 font-bold hover:border-white"
+                  type="button"
+                  (click)="confirmandoSustitucion.set(true)"
+                >
+                  Sustituir
+                </button>
+              }
+            } @else if (seQuitaDeLaOrden()) {
+              @if (confirmandoRetiro()) {
+                <p class="border-l-2 border-accent bg-brand-black p-1.5 text-sm">
+                  El equipo sale de la orden, y este borrador queda retirado con lo escrito. No se
+                  borra nada.
+                </p>
+                <button
+                  class="boton-primario min-h-tactil"
+                  type="button"
+                  [disabled]="retiro.isPending()"
+                  (click)="retirar()"
+                >
+                  Confirmar
+                </button>
+                <button
+                  class="min-h-tactil border border-neutral-500 font-bold"
+                  type="button"
+                  (click)="confirmandoRetiro.set(false)"
+                >
+                  Cancelar
+                </button>
+              } @else {
+                <button
+                  class="min-h-tactil border border-neutral-500 font-bold hover:border-white"
+                  type="button"
+                  (click)="confirmandoRetiro.set(true)"
+                >
+                  Quitar de la orden
+                </button>
+              }
             }
           </div>
         }

@@ -45,7 +45,6 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM intervencion",
             "DELETE FROM dato_verificacion",
             "DELETE FROM reporte_servicio",
-            "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
             "DELETE FROM modelo",
@@ -155,12 +154,6 @@ class InterventionSchemaTest {
                 """,
                 orden, sede, LocalDate.now(), tipoServicio);
 
-        jdbcTemplate.update(
-                """
-                INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio)
-                VALUES (?, ?, ?)
-                """,
-                orden, unidad, area);
 
         UUID reporte = UUID.randomUUID();
         jdbcTemplate.update(
@@ -214,7 +207,7 @@ class InterventionSchemaTest {
 
         // No hay foranea compuesta contra reporte_servicio a proposito: si la hubiera, esta
         // correccion -- legitima -- fallaria por culpa de la intervencion que copio el valor viejo.
-        // Es el mismo caso que el area congelada de orden_trabajo_equipo, y la misma razon: la
+        // Era el mismo caso que el area congelada de la tabla puente, que V50 quito, y la misma razon: la
         // restriccion que protege el pasado impediria el futuro.
         assertThatCode(() -> jdbcTemplate.update(
                         "UPDATE reporte_servicio SET t_resultado = ? WHERE k_id_reporte_servicio = ?",

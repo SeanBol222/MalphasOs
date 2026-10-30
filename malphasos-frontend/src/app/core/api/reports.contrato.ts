@@ -44,26 +44,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/api/reports/work-orders/{idOrdenTrabajo}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Abrir el reporte de un equipo de una orden
-         * @description Nace en borrador y vacio. La orden debe haber empezado y el equipo seguir en su alcance; un equipo no tiene dos reportes vivos en la misma orden.
-         */
-        post: operations["open"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/api/reports/{id}": {
         parameters: {
             query?: never;
@@ -76,8 +56,8 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Retirar un reporte
-         * @description No lo borra: lo deja inactivo. Es la unica forma de corregir uno ya cerrado, retirandolo y abriendo otro.
+         * Retirar un borrador
+         * @description No lo borra: lo deja inactivo, y con el su equipo sale de la orden. Un reporte cerrado no se retira: se sustituye.
          */
         delete: operations["discard"];
         options?: never;
@@ -207,6 +187,26 @@ export interface paths {
          * @description Quien recibe el servicio firma en la pantalla (RF-18), antes o despues de cerrar: es lo unico que se anade a un reporte cerrado. Una vez firmado no cambia. Con aplicarALaOrden la misma firma va a los reportes activos de la orden que aun no tengan (RF-21). Devuelve los reportes firmados, el pedido primero.
          */
         patch: operations["signReceipt"];
+        trace?: never;
+    };
+    "/v1/api/reports/{id}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sustituir un reporte cerrado
+         * @description Lo retira y abre el borrador del mismo equipo en la misma orden, en un solo paso. Es la unica forma de corregir uno cerrado, tambien con la orden ejecutada.
+         */
+        post: operations["replace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/api/reports/{id}/steps/{orden}": {
@@ -493,10 +493,6 @@ export interface components {
              */
             resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
         };
-        ServiceReportOpenRequest: {
-            /** Format: uuid */
-            idEquipoCliente: string;
-        };
         ServiceReportResponse: {
             /** @description Los accesorios con que llego, en su orden; desde V31 */
             accesorios?: components["schemas"]["ReportAccessoryResponse"][];
@@ -751,77 +747,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WorkOrderReportProgressResponse"][];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
-                };
-            };
-        };
-    };
-    open: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idOrdenTrabajo: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ServiceReportOpenRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ServiceReportResponse"];
                 };
             };
             /** @description Bad Request */
@@ -1439,6 +1364,73 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ServiceReportResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+        };
+    };
+    replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportResponse"];
                 };
             };
             /** @description Bad Request */

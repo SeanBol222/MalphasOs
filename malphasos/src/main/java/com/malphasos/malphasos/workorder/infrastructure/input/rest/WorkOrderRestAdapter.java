@@ -10,6 +10,7 @@ import com.malphasos.malphasos.workorder.application.services.workOrder.commands
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.ScheduleWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.StartWorkOrderCommand;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.infrastructure.input.mapper.WorkOrderRestMapper;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.request.WorkOrderEquipmentRequest;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.request.WorkOrderScheduleRequest;
@@ -90,7 +91,7 @@ public class WorkOrderRestAdapter {
                         "Un periodo solo se combina con el ingeniero, no con cliente, sede ni equipo");
             }
 
-            return mapper.toList(workOrderServicePort.findInPeriod(desde, hasta, idIngeniero, alcance));
+            return responder(workOrderServicePort.findInPeriod(desde, hasta, idIngeniero, alcance));
         }
 
         long filtros = java.util.stream.Stream
@@ -104,26 +105,36 @@ public class WorkOrderRestAdapter {
         }
 
         if (idCliente != null) {
-            return mapper.toList(workOrderServicePort.findByClient(idCliente, alcance));
+            return responder(workOrderServicePort.findByClient(idCliente, alcance));
         }
         if (idSede != null) {
-            return mapper.toList(workOrderServicePort.findByHeadquarter(idSede, alcance));
+            return responder(workOrderServicePort.findByHeadquarter(idSede, alcance));
         }
         if (idIngeniero != null) {
-            return mapper.toList(workOrderServicePort.findByEngineer(idIngeniero, alcance));
+            return responder(workOrderServicePort.findByEngineer(idIngeniero, alcance));
         }
         if (idEquipoCliente != null) {
-            return mapper.toList(workOrderServicePort.findByEquipment(idEquipoCliente, alcance));
+            return responder(workOrderServicePort.findByEquipment(idEquipoCliente, alcance));
         }
 
-        return mapper.toList(workOrderServicePort.findAll(alcance));
+        return responder(workOrderServicePort.findAll(alcance));
+    }
+
+    /** Una orden con sus equipos, que desde V50 son sus reportes activos. */
+    private WorkOrderResponse responder(WorkOrder orden) {
+        return responder(List.of(orden)).getFirst();
+    }
+
+    /** Varias, con los equipos de todas en una sola consulta: el listado y la agenda piden decenas. */
+    private List<WorkOrderResponse> responder(List<WorkOrder> ordenes) {
+        return mapper.toList(ordenes, workOrderServicePort.equipmentOf(ordenes.stream().map(WorkOrder::getId).toList()));
     }
 
     @Operation(summary = "Obtener una orden por su identificador")
     @PreAuthorize("hasAuthority('work-order.read')")
     @GetMapping("/{id}")
     public WorkOrderResponse getById(@PathVariable UUID id, Authentication autenticacion) {
-        return mapper.toResponse(workOrderServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
+        return responder(workOrderServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
     @Operation(summary = "Programar un mantenimiento",
@@ -134,7 +145,7 @@ public class WorkOrderRestAdapter {
     public ResponseEntity<WorkOrderResponse> schedule(
             @Valid @RequestBody WorkOrderScheduleRequest request) {
 
-        WorkOrderResponse creada = mapper.toResponse(workOrderServicePort.schedule(
+        WorkOrderResponse creada = responder(workOrderServicePort.schedule(
                 new ScheduleWorkOrderCommand(
                         request.idCliente(),
                         request.idSede(),
@@ -146,28 +157,28 @@ public class WorkOrderRestAdapter {
         return ResponseEntity.status(HttpStatus.CREATED).body(creada);
     }
 
-    @Operation(summary = "Anadir un equipo al alcance",
-            description = "El area se toma de donde esta el equipo ahora; no se envia. "
-                    + "El equipo debe estar activo, en un area abierta y ser del mismo cliente.")
+    @Operation(summary = "Anadir un equipo a la orden",
+            description = "Abre su reporte en borrador, que no se rellena hasta que la orden empiece. "
+                    + "El equipo debe estar activo, en un area abierta de la sede de la orden.")
     @PreAuthorize("hasAuthority('work-order.write')")
     @PostMapping("/{id}/equipments")
     public ResponseEntity<WorkOrderResponse> addEquipment(
             @PathVariable UUID id, @Valid @RequestBody WorkOrderEquipmentRequest request) {
 
-        WorkOrderResponse actualizada = mapper.toResponse(workOrderServicePort.addEquipment(
+        WorkOrderResponse actualizada = responder(workOrderServicePort.addEquipment(
                 new AddEquipmentToWorkOrderCommand(id, request.idEquipoCliente())));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(actualizada);
     }
 
-    @Operation(summary = "Sacar un equipo del alcance",
-            description = "No borra el historial: la fila queda inactiva.")
+    @Operation(summary = "Sacar un equipo de la orden",
+            description = "Retira su reporte en borrador. Uno con el reporte cerrado no sale: se sustituye.")
     @PreAuthorize("hasAuthority('work-order.write')")
     @DeleteMapping("/{id}/equipments/{idEquipoCliente}")
     public WorkOrderResponse removeEquipment(
             @PathVariable UUID id, @PathVariable UUID idEquipoCliente) {
 
-        return mapper.toResponse(workOrderServicePort.removeEquipment(
+        return responder(workOrderServicePort.removeEquipment(
                 new RemoveEquipmentFromWorkOrderCommand(id, idEquipoCliente)));
     }
 
@@ -176,24 +187,25 @@ public class WorkOrderRestAdapter {
     @PreAuthorize("hasAuthority('work-order.assign')")
     @PatchMapping("/{id}/engineer/{idIngeniero}")
     public WorkOrderResponse assign(@PathVariable UUID id, @PathVariable UUID idIngeniero) {
-        return mapper.toResponse(
+        return responder(
                 workOrderServicePort.assign(new AssignWorkOrderCommand(id, idIngeniero)));
     }
 
     @Operation(summary = "Arrancar el trabajo",
-            description = "Exige ingeniero asignado y al menos un equipo en el alcance.")
+            description = "Exige ingeniero asignado y al menos un equipo en la orden.")
     @PreAuthorize("hasAuthority('work-order.write')")
     @PatchMapping("/{id}/start")
     public WorkOrderResponse start(@PathVariable UUID id) {
-        return mapper.toResponse(workOrderServicePort.start(new StartWorkOrderCommand(id)));
+        return responder(workOrderServicePort.start(new StartWorkOrderCommand(id)));
     }
 
     @Operation(summary = "Dar el trabajo por terminado",
-            description = "Desde aqui la orden ya no admite cambios de alcance ni de ingeniero.")
+            description = "Exige el reporte de cada equipo cerrado, y congela la orden: desde aqui no admite "
+                    + "cambios de equipos ni de ingeniero.")
     @PreAuthorize("hasAuthority('work-order.write')")
     @PatchMapping("/{id}/execute")
     public WorkOrderResponse execute(@PathVariable UUID id) {
-        return mapper.toResponse(workOrderServicePort.execute(new ExecuteWorkOrderCommand(id)));
+        return responder(workOrderServicePort.execute(new ExecuteWorkOrderCommand(id)));
     }
 
     @Operation(summary = "Cancelar una orden",

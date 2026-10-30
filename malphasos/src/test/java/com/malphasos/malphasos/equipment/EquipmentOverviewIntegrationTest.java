@@ -39,7 +39,6 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM dato_verificacion",
             "DELETE FROM paso_reporte",
             "DELETE FROM reporte_servicio",
-            "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
             "DELETE FROM modelo",
@@ -162,9 +161,6 @@ class EquipmentOverviewIntegrationTest {
                 VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO')
                 """,
                 orden, lugar.sede(), LocalDate.now());
-        jdbcTemplate.update(
-                "INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio) VALUES (?, ?, ?)",
-                orden, unidad, lugar.area());
 
         UUID reporte = UUID.randomUUID();
         jdbcTemplate.update(

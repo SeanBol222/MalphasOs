@@ -23,7 +23,7 @@ import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfUnavailableException;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
-import com.malphasos.malphasos.report.application.services.serviceReport.commands.OpenServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReplaceServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordHandoverCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
@@ -44,7 +44,6 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordVerificationRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportFillRequest;
-import com.malphasos.malphasos.report.infrastructure.input.model.request.ServiceReportOpenRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.UseReferenceStandardRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.VerificationReadingRequest;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
@@ -89,52 +88,30 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
-    @DisplayName("POST abre el reporte y responde 201 con el borrador vacio")
-    void abrir() throws Exception {
-        ServiceReport abierto = unReporte();
-        when(serviceReportServicePort.open(any())).thenReturn(abierto);
+    @DisplayName("sustituir responde 201 con el borrador nuevo, y el reporte sale de la ruta (V50)")
+    void sustituir() throws Exception {
+        ServiceReport borrador = unReporte();
+        UUID cerrado = UUID.randomUUID();
+        when(serviceReportServicePort.replace(any())).thenReturn(borrador);
 
-        mockMvc.perform(post("/v1/api/reports/work-orders/" + ORDEN)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(
-                                new ServiceReportOpenRequest(EQUIPO))))
+        mockMvc.perform(post("/v1/api/reports/" + cerrado + "/replace"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.numero").value(abierto.numero()))
-                .andExpect(jsonPath("$.estado").value("BORRADOR"))
-                .andExpect(jsonPath("$.resultado").isEmpty())
-                .andExpect(jsonPath("$.finalizado").isEmpty())
-                .andExpect(jsonPath("$.lecturas").isEmpty());
+                .andExpect(jsonPath("$.numero").value(borrador.numero()))
+                .andExpect(jsonPath("$.estado").value("BORRADOR"));
+
+        ArgumentCaptor<ReplaceServiceReportCommand> comando =
+                ArgumentCaptor.forClass(ReplaceServiceReportCommand.class);
+        verify(serviceReportServicePort).replace(comando.capture());
+        assertThat(comando.getValue().id()).isEqualTo(cerrado);
     }
 
     @Test
-    @DisplayName("la orden sale de la ruta y el equipo del cuerpo")
-    void laOrdenViajaEnLaRuta() throws Exception {
-        when(serviceReportServicePort.open(any())).thenReturn(unReporte());
-
+    @DisplayName("un reporte ya no se abre por su cuenta: nace al anadir el equipo a la orden (V50)")
+    void noSeAbrePorSuCuenta() throws Exception {
         mockMvc.perform(post("/v1/api/reports/work-orders/" + ORDEN)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(
-                                new ServiceReportOpenRequest(EQUIPO))))
-                .andExpect(status().isCreated());
-
-        ArgumentCaptor<OpenServiceReportCommand> comando =
-                ArgumentCaptor.forClass(OpenServiceReportCommand.class);
-        verify(serviceReportServicePort).open(comando.capture());
-
-        assertThat(comando.getValue().idOrdenTrabajo()).isEqualTo(ORDEN);
-        assertThat(comando.getValue().idEquipoCliente()).isEqualTo(EQUIPO);
-    }
-
-    @Test
-    @DisplayName("abrir sin equipo se rechaza sin llegar al servicio")
-    void sinEquipo() throws Exception {
-        mockMvc.perform(post("/v1/api/reports/work-orders/" + ORDEN)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(
-                                new ServiceReportOpenRequest(null))))
-                .andExpect(status().isBadRequest());
-
-        verify(serviceReportServicePort, never()).open(any());
+                        .content("{\"idEquipoCliente\":\"" + EQUIPO + "\"}"))
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isIn(404, 405));
     }
 
     @Test
@@ -825,7 +802,8 @@ class ServiceReportRestAdapterTest {
         assertThat(docs).contains(
                 "/v1/api/reports/{id}/verifications/{idVerificacion}/reference-standards/{idEquipoPatron}");
         assertThat(docs).contains("/v1/api/reports/progress");
-        assertThat(docs).contains("/v1/api/reports/work-orders/{idOrdenTrabajo}");
+        assertThat(docs).contains("/v1/api/reports/{id}/replace");
+        assertThat(docs).doesNotContain("/v1/api/reports/work-orders/{idOrdenTrabajo}");
     }
 
     @Test

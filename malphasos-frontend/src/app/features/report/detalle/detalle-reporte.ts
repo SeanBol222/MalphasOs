@@ -44,8 +44,9 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  *
  * <p><b>Cerrar es una operación, no un campo.</b> No hay desplegable de estado: hay un botón que
  * aparece cuando se puede usar, igual que iniciar y ejecutar en una orden. Y va con confirmación,
- * porque desde ahí el reporte ya no cambia — corregirlo es retirarlo y abrir otro, que es justo lo que
- * dice el aviso.
+ * porque desde ahí el reporte ya no cambia — corregirlo es sustituirlo, que es justo lo que dice el
+ * aviso. Desde V50 «Sustituir» lo retira y abre el borrador del mismo equipo en un solo paso, y retirar
+ * un borrador es quitar su equipo de la orden.
  *
  * <p><b>Los datos que vienen de la orden no se escriben: se muestran.</b> Cliente, sede, responsables y
  * tipo de servicio salen de la orden de trabajo, que es literalmente lo que RF-11 pide —«autocompletar
@@ -87,6 +88,7 @@ export class DetalleReporte {
   protected readonly guardado = this.api.llenar();
   protected readonly cierre = this.api.cerrar();
   protected readonly retiro = this.api.retirar();
+  protected readonly sustitucion = this.api.sustituir();
   protected readonly marca = this.api.marcarPaso();
 
   // --- Los pasos del protocolo (RF-13, desde el 2026-10-10) ---------------------
@@ -154,6 +156,7 @@ export class DetalleReporte {
 
   protected readonly confirmandoCierre = signal(false);
   protected readonly confirmandoRetiro = signal(false);
+  protected readonly confirmandoSustitucion = signal(false);
 
   protected readonly RESULTADOS = RESULTADOS_DE_SERVICIO;
   protected readonly etiquetaDeResultado = ETIQUETA_DE_RESULTADO;
@@ -169,7 +172,21 @@ export class DetalleReporte {
   });
 
   /**
-   * Un reporte cerrado o retirado no se toca, y el formulario lo refleja desactivándose.
+   * Si la orden todavía no ha empezado (V50): el borrador nace al añadir el equipo, y el servidor no deja
+   * escribir en él hasta que la orden empiece, porque un reporte cuenta lo que se hizo.
+   */
+  protected readonly ordenSinEmpezar = computed(
+    () => this.orden.data()?.estadoEjecucion === 'CREADA',
+  );
+
+  /** Mientras la orden no se ha ejecutado, un borrador se puede quitar de ella con su equipo. */
+  protected readonly seQuitaDeLaOrden = computed(
+    () => this.orden.data()?.estadoEjecucion !== 'EJECUTADA' && !!this.orden.data()?.estadoActivo,
+  );
+
+  /**
+   * Un reporte cerrado o retirado no se toca, y el formulario lo refleja desactivándose. Tampoco uno de
+   * una orden sin empezar o cancelada, que es lo que el servidor rechaza en cada escritura (V50).
    *
    * <p>Se desactiva en vez de esconderse porque lo escrito sigue siendo lo que hay que leer: un reporte
    * finalizado es el documento que se entregó.
@@ -178,7 +195,9 @@ export class DetalleReporte {
     () =>
       this.puedeEscribir() &&
       this.reporte.data()?.estado === 'BORRADOR' &&
-      !!this.reporte.data()?.estadoActivo,
+      !!this.reporte.data()?.estadoActivo &&
+      !!this.orden.data()?.estadoActivo &&
+      !this.ordenSinEmpezar(),
   );
 
   /**
@@ -408,6 +427,7 @@ export class DetalleReporte {
       this.guardado.isError() ||
       this.cierre.isError() ||
       this.retiro.isError() ||
+      this.sustitucion.isError() ||
       this.marca.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
@@ -416,6 +436,7 @@ export class DetalleReporte {
         this.guardado.error() ??
         this.cierre.error() ??
         this.retiro.error() ??
+        this.sustitucion.error() ??
         this.marca.error(),
     ),
   );
@@ -495,9 +516,18 @@ export class DetalleReporte {
     const idOrden = this.reporte.data()?.idOrdenTrabajo;
 
     this.retiro.mutate(this.id(), {
-      // Se vuelve a la orden: quedarse en un reporte retirado invita a seguir tocandolo, y desde la
-      // orden se puede abrir otro, que es la forma de corregirlo.
+      // Se vuelve a la orden: con el borrador, el equipo salio de ella (V50).
       onSuccess: () => void this.router.navigate(idOrden ? ['/ordenes', idOrden] : ['/ordenes']),
+    });
+  }
+
+  /** Sustituye el reporte cerrado y lleva al borrador nuevo: lo que sigue es llenarlo. */
+  protected sustituir(): void {
+    this.sustitucion.mutate(this.id(), {
+      onSuccess: (borrador) => {
+        this.confirmandoSustitucion.set(false);
+        void this.router.navigate(['/reportes', borrador.id]);
+      },
     });
   }
 }

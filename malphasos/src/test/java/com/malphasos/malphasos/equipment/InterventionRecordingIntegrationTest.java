@@ -15,7 +15,7 @@ import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
 import com.malphasos.malphasos.equipment.domain.model.RiskClass;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
-import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReplaceServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
@@ -54,7 +54,6 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM intervencion",
             "DELETE FROM dato_verificacion",
             "DELETE FROM reporte_servicio",
-            "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
             "DELETE FROM modelo",
@@ -164,17 +163,12 @@ class InterventionRecordingIntegrationTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
-                                           f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio)
-                VALUES (?, ?, ?, 'MENSUAL', ?)
+                                           f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
+                                           t_estado_ejecucion)
+                VALUES (?, ?, ?, 'MENSUAL', ?, 'EN_EJECUCION')
                 """,
                 orden, sede, LocalDate.now(), tipoServicio);
 
-        jdbcTemplate.update(
-                """
-                INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio)
-                VALUES (?, ?, ?)
-                """,
-                orden, unidad, area);
 
         UUID reporte = UUID.randomUUID();
         jdbcTemplate.update(
@@ -203,16 +197,11 @@ class InterventionRecordingIntegrationTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede,
-                                           f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio)
-                VALUES (?, ?, ?, 'MENSUAL', 'CALIBRACION')
+                                           f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio,
+                                           t_estado_ejecucion)
+                VALUES (?, ?, ?, 'MENSUAL', 'CALIBRACION', 'EN_EJECUCION')
                 """,
                 orden, contexto.sede(), LocalDate.now());
-        jdbcTemplate.update(
-                """
-                INSERT INTO orden_trabajo_equipo (k_id_orden_trabajo, k_id_equipo_cliente, k_id_area_servicio)
-                VALUES (?, ?, ?)
-                """,
-                orden, contexto.equipo(), contexto.area());
 
         UUID reporte = UUID.randomUUID();
         jdbcTemplate.update(
@@ -520,32 +509,16 @@ class InterventionRecordingIntegrationTest {
     // Corregir un reporte: el sustituto reemplaza al anterior
     // ------------------------------------------------------------------------
 
-    /** Un reporte nuevo en borrador sobre la misma orden y el mismo equipo que el del contexto. */
-    private UUID otroBorradorDeLaMismaOrden(Contexto contexto) {
-        UUID orden = jdbcTemplate.queryForObject(
-                "SELECT k_id_orden_trabajo FROM reporte_servicio WHERE k_id_reporte_servicio = ?",
-                UUID.class, contexto.reporte());
-        UUID reporte = UUID.randomUUID();
-        jdbcTemplate.update(
-                """
-                INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente)
-                VALUES (?, ?, ?)
-                """,
-                reporte, orden, contexto.equipo());
-
-        return reporte;
-    }
-
     @Test
     @DisplayName("corregir un reporte deja UNA linea en la hoja de vida, y la vieja apuntando a la nueva")
     void corregirUnReporteNoDuplicaElMantenimiento() {
-        // El flujo que la pantalla de un reporte cerrado indica: retirarlo y abrir otro. Antes de V14
-        // dejaba dos lineas para un solo mantenimiento.
+        // El flujo que la pantalla de un reporte cerrado indica: «Sustituir», que lo retira y abre el
+        // borrador del mismo equipo en un paso (V50). Antes de V14 dejaba dos lineas para un solo
+        // mantenimiento.
         Contexto contexto = unBorrador("PREVENTIVO");
         llenarYCerrar(contexto.reporte(), ServiceResult.FUERA_DE_SERVICIO);
 
-        serviceReportServicePort.discard(new DiscardServiceReportCommand(contexto.reporte()));
-        UUID sustituto = otroBorradorDeLaMismaOrden(contexto);
+        UUID sustituto = serviceReportServicePort.replace(new ReplaceServiceReportCommand(contexto.reporte())).getId();
         llenarYCerrar(sustituto, ServiceResult.OPERATIVO);
 
         List<Intervention> historial =
@@ -563,17 +536,18 @@ class InterventionRecordingIntegrationTest {
     }
 
     @Test
-    @DisplayName("retirar un reporte cerrado SIN abrir sustituto deja su linea en la hoja de vida")
-    void retirarSinSustitutoNoBorraElMantenimiento() {
+    @DisplayName("sustituir un reporte cerrado SIN cerrar el sustituto deja su linea en la hoja de vida")
+    void sustituirSinCerrarNoBorraElMantenimiento() {
         // La otra mitad de la decision: un mantenimiento hecho no desaparece porque su reporte se
-        // retire. Solo deja de contar cuando otro cierre lo sustituye.
+        // retire. Solo deja de contar cuando otro cierre lo sustituye. Desde V50 un cerrado no se retira
+        // solo, sino al sustituirlo, y mientras el sustituto sea un borrador la linea es la del retirado.
         Contexto contexto = unBorrador("CORRECTIVO");
         llenarYCerrar(contexto.reporte(), ServiceResult.OPERATIVO);
 
-        serviceReportServicePort.discard(new DiscardServiceReportCommand(contexto.reporte()));
+        serviceReportServicePort.replace(new ReplaceServiceReportCommand(contexto.reporte()));
 
         assertThat(interventionServicePort.findByEquipment(contexto.equipo(), ReadScope.unrestricted()))
-                .hasSize(1);
+                .singleElement().extracting(Intervention::idReporteServicio).isEqualTo(contexto.reporte());
     }
 
     @Test

@@ -71,7 +71,7 @@ copias del reporte (B1, B2 y B3) se sustituyen por su **documento congelado al c
 desde `V37`; el área de cada equipo en la orden (B6) se quita **bloqueando el traslado** de un equipo que
 está en una orden sin ejecutar; y **la orden se congela al ejecutarse**, en su propio documento. La hoja
 de vida sigue leyendo en vivo todo menos el historial, que sale del documento de cada reporte cerrado.
-Son **once** migraciones, `V42` a `V52`, y `V42` a `V49` están construidas el 2026-10-28. (Decía
+Son **once** migraciones, `V42` a `V52`, y `V42` a `V50` están construidas el 2026-10-28. (Decía
 **diez**, `V42` a `V51`, unas horas, hasta que la del congelado de la orden y la tabla puente se partió en
 dos. Decía **siete**, `V42` a `V48`, hasta que al construirlas se partieron dos: la de la empresa en tres
 y la de la orden y la verificación en dos. Eran seis, `V42` a `V47`, y fueron ocho unas horas, mientras el recibido

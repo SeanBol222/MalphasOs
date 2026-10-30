@@ -87,7 +87,7 @@ export function orden(
     tipoServicio: string;
     garantia: boolean;
     idIngeniero: string | undefined;
-    equipos: { idEquipoCliente: string; idAreaServicio: string }[];
+    equipos: { idEquipoCliente: string; idReporteServicio: string }[];
   }> = {},
 ) {
   return {

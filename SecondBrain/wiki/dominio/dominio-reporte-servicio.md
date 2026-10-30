@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # Reportes de servicio — el módulo completo
@@ -25,11 +25,16 @@ updated: 2026-10-27
 La orden dice **qué se va a hacer**; el reporte dice, equipo por equipo, **qué se encontró, qué se hizo y cómo quedó**. RF-09 lo pide con esas palabras —«un reporte de mantenimiento individual por cada equipo seleccionado dentro de una orden de trabajo»— y coincide con lo que ocurre en campo: cada equipo se interviene y se entrega por separado.
 
 ```
-orden_trabajo_equipo ──> reporte_servicio ──> dato_verificacion ──> punto_verificacion
-  (que se iba a hacer)     (que se hizo)        (que se midio)      (donde se mide, V8)
+orden_trabajo ──┐
+                ├──> reporte_servicio ──> dato_verificacion ──> punto_verificacion
+equipo_cliente ─┘     (que se hizo)        (que se midio)      (donde se mide, V8)
 ```
 
-**La llave foránea es compuesta contra el puente**, no dos sueltas hacia `orden_trabajo` y `equipo_cliente`. Con dos sueltas cabría un reporte del equipo A en una orden que nunca lo incluyó: dos filas que por separado existen y juntas no significan nada. Contra el puente lo impide el esquema solo, y **sale gratis** porque el par ya es su llave primaria. Es la misma técnica de `UQ_sede_identidad_con_cliente` en `V6`.
+**Desde `V50` el reporte es también lo que pone a su equipo en la orden**: no hay tabla puente, un equipo
+está en una orden si y solo si tiene en ella un reporte activo, y el borrador nace al añadir el equipo. Ver
+[[dominio-orden-trabajo]], «Sin tabla puente».
+
+~~**La llave foránea es compuesta contra el puente**, no dos sueltas hacia `orden_trabajo` y `equipo_cliente`.~~ **Cierto hasta `V50`, el 2026-10-28**, que la cambió por dos sueltas a propósito. La compuesta impedía un reporte de un equipo que la orden no incluía; sin puente es el reporte el que lo incluye, y que el equipo sea de la sede de la orden lo comprueba el servicio de órdenes al añadirlo. Era la misma técnica de `UQ_sede_identidad_con_cliente` en `V6`.
 
 **El reporte no copia cliente, sede, tipo de servicio ni ingeniero**, y eso *es* RF-11. El requisito pide autocompletar esos datos «a partir de la información registrada en la orden de trabajo»; consultarlos por el identificador de la orden es autocompletarlos, y la orden ya los congeló al crearse —por eso `V6` los guarda de forma redundante—. Una tercera copia habría que mantenerla de acuerdo con las otras dos. **El original sí copiaba `k_id_cliente` aquí, y tenía el vínculo con la orden roto**: `k_id_orden_trabajo varchar(10)` contra un `uuid`.
 
@@ -413,7 +418,7 @@ Es el mismo tipo de choque que el proyecto ya conocía por otro lado —«un ada
 ## Lo que este módulo decidió no hacer
 
 - **No hay `findAll`.** Un reporte vive dentro de su orden o dentro del historial de su equipo; «todos los reportes del sistema» no responde a ninguna pregunta del dominio. El listado del API **exige** uno de los dos filtros.
-- **No hay operación para reabrir un reporte cerrado**, y hay dos pruebas que lo vigilan —una por reflexión sobre el agregado y otra sobre la ruta—. Un reporte cerrado es lo que se entregó al cliente; corregirlo es retirarlo y abrir otro, que es justo lo que permite el índice único parcial.
+- **No hay operación para reabrir un reporte cerrado**, y hay dos pruebas que lo vigilan —una por reflexión sobre el agregado y otra sobre la ruta—. Un reporte cerrado es lo que se entregó al cliente; corregirlo es **sustituirlo** —desde `V50` en un solo paso, que lo retira y abre el borrador del mismo equipo; decía «retirarlo y abrir otro», cierto hasta ese día—, que es justo lo que permite el índice único parcial. **Y un cerrado ya no se retira por su cuenta**: dejaría a su equipo fuera de una orden en la que sí se le prestó el servicio.
 - **No hay una tercera autoridad para cerrar.** Quien llena el reporte es quien lo firma en campo: separarlas describiría un reparto de trabajo que en esta empresa no existe. La firma digital (RF-21) traerá la suya. Ver [[modelo-de-permisos]].
 - ~~**No hay protocolos** (RF-13, RF-14).~~ **Falso desde el 2026-10-10**: existen, se copian en cada reporte preventivo y se marcan uno a uno —ver «Los pasos del protocolo», arriba—. Esta línea sobrevivió seis días a su propia sección.
 
@@ -428,12 +433,13 @@ El backend estuvo completo un día sin que se pudiera tocar nada desde un navega
 | Historial de un equipo | `/equipos/:id/historial` | Los reportes de un aparato, borradores y retirados incluidos. **No es la hoja de vida**, que existe desde el 2026-10-04 en `/equipos/:id/hoja-de-vida` y solo cuenta mantenimientos cerrados. Ver [[hoja-de-vida]] |
 | Datos del servicio | dentro de la ficha | RF-11: cliente, sede, responsables y tipo de servicio |
 
-**Se entra desde la orden**, que es lo que pide el tercer criterio de RF-09: cada equipo del alcance lleva su reporte al lado, con un enlace si existe y un botón de abrirlo si no.
+**Se entra desde la orden**, que es lo que pide el tercer criterio de RF-09: cada equipo del alcance lleva su reporte al lado. (Con un enlace si existía y un botón de abrirlo si no, hasta `V50`: desde entonces todo equipo de la orden tiene el suyo, y el botón desapareció.)
 
 ### Lo que la pantalla refleja del servidor, en vez de descubrirlo a golpes
 
 - **Cerrar es un botón, no un desplegable de estado**, y se desactiva sin procedimientos ni resultado — lo mismo que el servidor exige. Ofrecerlo y responder 409 sería ofrecer algo que no existe.
-- **Los reportes se abren cuando la orden empieza.** Con la orden en `CREADA` no hay botón, y la pantalla dice por qué.
+- ~~**Los reportes se abren cuando la orden empieza.**~~ **Desde `V50` se llenan cuando la orden empieza**: el borrador existe desde que se añadió el equipo, la ficha del reporte se desactiva con la orden en `CREADA` y dice por qué, y la de la orden enlaza a «Ver borrador».
+- **Un cerrado se sustituye y un borrador se quita de la orden** (`V50`): son los dos botones del panel, y «Quitar de la orden» no aparece con la orden ya ejecutada.
 - **El reporte que cuenta es el vivo.** El API devuelve el historial de la orden, retirados incluidos; quedarse con el primero dejaría al equipo con reporte para siempre.
 - **Un reporte cerrado desactiva el formulario en vez de esconderlo**: lo escrito es el documento que se entregó.
 - **La tabla de verificación la dicta el tipo**: un punto por tres lecturas son tres casillas, así que la lectura en un punto ajeno o la número cuatro donde se piden tres **no se pueden escribir**.

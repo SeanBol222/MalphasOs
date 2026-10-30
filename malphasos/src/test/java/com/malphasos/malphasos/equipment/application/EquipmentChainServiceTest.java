@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -74,6 +75,7 @@ class EquipmentChainServiceTest {
     @Mock private ServiceAreaServicePort areaService;
     @Mock private ClientOwnershipPort ownershipPort;
     @Mock private EventDispatcherPort dispatcher;
+    @Mock private com.malphasos.malphasos.equipment.application.ports.output.WorkOrderAttendancePort workOrderAttendance;
 
     @SuppressWarnings("unchecked")
     private List<DomainEvent<? extends Payload>> despachados() {
@@ -163,7 +165,7 @@ class EquipmentChainServiceTest {
     class Unidad {
 
         private ClientEquipmentService service() {
-            return new ClientEquipmentService(unitPort, modelService, areaService, ownershipPort, dispatcher);
+            return new ClientEquipmentService(unitPort, modelService, areaService, ownershipPort, dispatcher, workOrderAttendance);
         }
 
         private void elAreaEsta(boolean activa) {
@@ -269,6 +271,41 @@ class EquipmentChainServiceTest {
             assertThat(despachados())
                     .extracting(evento -> evento.metadata().eventType())
                     .containsExactly("client-equipment.relocated");
+        }
+
+        @Test
+        @DisplayName("una unidad en una orden sin ejecutar no se traslada, y no se guarda nada (V50)")
+        void enUnaOrdenSinEjecutarNoSeTraslada() {
+            UUID id = UUID.randomUUID();
+            UUID areaActual = UUID.randomUUID();
+            elAreaEsta(true);
+            sonDelMismoCliente(areaActual, AREA, UUID.randomUUID());
+            when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
+                    id, "SN-001", MODELO, areaActual, null, null, null, null, null, null, true)));
+            when(workOrderAttendance.inUnexecutedWorkOrder(id)).thenReturn(true);
+
+            assertThatThrownBy(() -> service().relocate(new RelocateClientEquipmentCommand(id, AREA)))
+                    .isInstanceOf(com.malphasos.malphasos.equipment.domain.exception.RelocationDuringWorkOrderException.class)
+                    .hasMessageContaining("orden de trabajo sin ejecutar");
+
+            verify(unitPort, never()).save(any());
+            verify(dispatcher, never()).dispatchAll(any());
+        }
+
+        @Test
+        @DisplayName("«trasladarla» al area donde ya esta no es trasladarla, aunque este en una orden")
+        void aLaMismaAreaNoLaFrena() {
+            UUID id = UUID.randomUUID();
+            elAreaEsta(true);
+            sonDelMismoCliente(AREA, AREA, UUID.randomUUID());
+            when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
+                    id, "SN-001", MODELO, AREA, null, null, null, null, null, null, true)));
+            when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
+            // Estubado para que, si la guarda no mirara el area, fuera esto lo que la frenara.
+            org.mockito.Mockito.lenient().when(workOrderAttendance.inUnexecutedWorkOrder(id)).thenReturn(true);
+
+            assertThatCode(() -> service().relocate(new RelocateClientEquipmentCommand(id, AREA)))
+                    .doesNotThrowAnyException();
         }
 
         /**

@@ -83,7 +83,6 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM reporte_servicio",
             "DELETE FROM imagen_documento",
             "DELETE FROM equipo_patron",
-            "DELETE FROM orden_trabajo_equipo",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
             "DELETE FROM modelo",
@@ -220,7 +219,6 @@ class ServiceReportPersistenceAdapterTest {
 
         WorkOrder orden = WorkOrder.schedule(
                 cliente, sede, LocalDate.of(2026, 10, 1), Periodicity.ANUAL, ServiceType.PREVENTIVO);
-        orden.addEquipment(equipo, area);
         workOrderAdapter.save(orden);
 
         TypeVerification verificacion = tipo.verificacionesActivas().getFirst();

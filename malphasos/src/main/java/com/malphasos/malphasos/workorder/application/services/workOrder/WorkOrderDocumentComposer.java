@@ -13,7 +13,6 @@ import com.malphasos.malphasos.location.application.ports.input.CityServicePort;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
-import com.malphasos.malphasos.workorder.domain.workOrder.SelectedEquipment;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
 import java.time.Clock;
@@ -40,7 +39,10 @@ import org.springframework.stereotype.Component;
  * una prueba los compara sobre la misma orden. Por eso el orden de los equipos compara cadenas tal cual,
  * sin reglas del idioma: es lo que hace {@code COLLATE "C"}.
  *
- * <p>El área de cada equipo es la que la orden guardó al seleccionarlo, igual que lee el relleno.
+ * <p>Los equipos son los que tienen un reporte activo en la orden (V50), y el área de cada uno es la que
+ * tiene hoy: mientras una orden no se ha ejecutado, sus equipos no se trasladan. El relleno de V49 leía la
+ * que la orden había guardado al seleccionarlo, en la tabla puente que V50 quitó; con la regla del
+ * traslado, las dos son la misma.
  *
  * <p>Sin restricción de alcance: quien ejecuta una orden ya pasó por la autoridad de escribirla.
  */
@@ -125,26 +127,26 @@ public class WorkOrderDocumentComposer {
     }
 
     private List<WorkOrderDocument.Equipo> equipos(WorkOrder orden) {
-        Map<UUID, EquipmentOverview.Row> filas = filasDe(orden.getEquipos().stream()
-                .map(SelectedEquipment::getIdEquipoCliente)
+        List<WorkOrderReportsPort.ActiveReport> reportes = workOrderReportsPort.activeReports(orden.getId());
+        Map<UUID, EquipmentOverview.Row> filas = filasDe(reportes.stream()
+                .map(WorkOrderReportsPort.ActiveReport::idEquipoCliente)
                 .collect(Collectors.toSet()));
-        Map<UUID, String> reportes = workOrderReportsPort.activeReportNumbers(orden.getId());
         Map<UUID, String> areas = new HashMap<>();
 
-        return orden.getEquipos().stream()
-                .map(seleccionado -> {
-                    EquipmentOverview.Row fila = filas.get(seleccionado.getIdEquipoCliente());
+        return reportes.stream()
+                .map(reporte -> {
+                    EquipmentOverview.Row fila = filas.get(reporte.idEquipoCliente());
 
                     return new WorkOrderDocument.Equipo(
-                            seleccionado.getIdEquipoCliente(),
-                            areas.computeIfAbsent(seleccionado.getIdAreaServicio(), id ->
+                            reporte.idEquipoCliente(),
+                            areas.computeIfAbsent(fila.idAreaServicio(), id ->
                                     serviceAreaServicePort.findById(id, ReadScope.unrestricted()).getNombre()),
                             fila.tipoEquipo(),
                             fila.marca(),
                             fila.modelo(),
                             fila.serie(),
                             fila.numeroHojaVida(),
-                            reportes.get(seleccionado.getIdEquipoCliente()));
+                            reporte.numero());
                 })
                 .sorted(ORDEN_DE_LOS_EQUIPOS)
                 .toList();

@@ -21,12 +21,7 @@ import {
   URL_PERSONAS,
   urlSede,
 } from '../../../../testing/ordenes';
-import {
-  ID_REPORTE,
-  reporte,
-  urlAbrirReporte,
-  urlReportesDeOrden,
-} from '../../../../testing/reportes';
+import { ID_REPORTE, reporte, urlReportesDeOrden } from '../../../../testing/reportes';
 import { DetalleOrden } from './detalle-orden';
 
 const URL = `${URL_ORDENES}/${ID_ORDEN}`;
@@ -225,8 +220,8 @@ describe('Ficha de una orden de trabajo', () => {
 
     describe('ejecutar exige todos los reportes cerrados (2026-10-14)', () => {
       const DOS = [
-        { idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA },
-        { idEquipoCliente: 'ec2', idAreaServicio: 'a3' },
+        { idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE },
+        { idEquipoCliente: 'ec2', idReporteServicio: 'r2' },
       ];
       const boton = () =>
         [...raiz().querySelectorAll('button')].find(
@@ -455,7 +450,9 @@ describe('Ficha de una orden de trabajo', () => {
     it('con engineer.read enseña los de la sede y los de las áreas de la orden, no los demás', async () => {
       TestBed.resetTestingModule();
       montar([...TODAS, 'engineer.read']);
-      await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
+      await abrir(
+        orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }] }),
+      );
 
       const seccion = raiz().querySelector('section[aria-labelledby="encargados"]')!;
       expect(seccion.textContent).toContain('Luis Peña');
@@ -486,7 +483,9 @@ describe('Ficha de una orden de trabajo', () => {
     });
 
     it('cada equipo se enseña por lo que es, su hoja de vida y su serie, bajo su área', async () => {
-      await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
+      await abrir(
+        orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }] }),
+      );
 
       const fila = raiz().querySelector(`[data-equipo="${ID_EQUIPO}"]`)!;
       expect(fila.textContent).toContain('Monitor Mindray iMEC 10');
@@ -503,8 +502,8 @@ describe('Ficha de una orden de trabajo', () => {
         URL,
         orden({
           equipos: [
-            { idEquipoCliente: 'ec2', idAreaServicio: 'a3' },
-            { idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA },
+            { idEquipoCliente: 'ec2', idReporteServicio: 'r2' },
+            { idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE },
           ],
         }),
       );
@@ -523,8 +522,8 @@ describe('Ficha de una orden de trabajo', () => {
         orden({
           estadoEjecucion: 'EN_EJECUCION',
           equipos: [
-            { idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA },
-            { idEquipoCliente: 'ec2', idAreaServicio: 'a3' },
+            { idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE },
+            { idEquipoCliente: 'ec2', idReporteServicio: 'r2' },
           ],
         }),
         [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO', resultado: 'OPERATIVO' })],
@@ -540,12 +539,16 @@ describe('Ficha de una orden de trabajo', () => {
     });
 
     it('quitar un equipo llama al sub-recurso con su identificador', async () => {
-      await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
+      await abrir(
+        orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }] }),
+      );
       pulsar('Quitar');
       await asentar(fixture);
 
       http.expectOne({ method: 'DELETE', url: `${URL}/equipments/${ID_EQUIPO}` }).flush(null);
       await asentar(fixture);
+      // Sacar el equipo retira su borrador (V50): los reportes de la orden también se vuelven a pedir.
+      expect(http.match(urlReportesDeOrden(ID_ORDEN)).length).toBeGreaterThan(0);
       http.match(() => true).forEach((p) => p.flush([]));
       await asentar(fixture);
     });
@@ -554,7 +557,7 @@ describe('Ficha de una orden de trabajo', () => {
       await abrir(
         orden({
           estadoEjecucion: 'EN_EJECUCION',
-          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }],
         }),
         [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO' })],
       );
@@ -570,7 +573,7 @@ describe('Ficha de una orden de trabajo', () => {
       await abrir(
         orden({
           estadoEjecucion: 'EN_EJECUCION',
-          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }],
         }),
         [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'BORRADOR' })],
       );
@@ -583,63 +586,58 @@ describe('Ficha de una orden de trabajo', () => {
       ).toContain('font-extrabold');
     });
 
-    it('un equipo sin reporte ofrece abrirlo, y abrirlo lleva al reporte', async () => {
-      const router = TestBed.inject(Router);
-      const viaje = vi.spyOn(router, 'navigate');
+    it('ningún reporte se abre desde aquí: el borrador nace al añadir el equipo (V50)', async () => {
       await abrir(
         orden({
           estadoEjecucion: 'EN_EJECUCION',
-          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }],
         }),
       );
-
-      pulsar('Abrir reporte');
-      await asentar(fixture);
-
-      const peticion = http.expectOne(urlAbrirReporte(ID_ORDEN));
-      expect(peticion.request.method).toBe('POST');
-      expect(peticion.request.body).toEqual({ idEquipoCliente: ID_EQUIPO });
-      peticion.flush(reporte({ idEquipoCliente: ID_EQUIPO }));
-      await asentar(fixture);
-
-      // Se va al reporte: lo que sigue a abrirlo es llenarlo, no volver al listado.
-      expect(viaje).toHaveBeenCalledWith(['/reportes', ID_REPORTE]);
-      http.match(() => true).forEach((p) => p.flush([]));
-      await asentar(fixture);
-    });
-
-    it('con la orden todavía creada no se abre ningún reporte, y dice por qué', async () => {
-      // Es la regla del servidor: un reporte cuenta lo que se hizo, y en una orden sin empezar no se ha
-      // hecho nada. Ofrecer el boton seria ofrecer un 409.
-      await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
 
       expect(
         [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
       ).not.toContain('Abrir reporte');
-      expect(texto()).toContain('Los reportes se abren cuando la orden empieza');
+      // La orden dice cuál es su reporte aunque la consulta de reportes no lo haya traído todavía.
+      expect(raiz().querySelector(`[data-equipo="${ID_EQUIPO}"] a`)?.getAttribute('href')).toBe(
+        `/reportes/${ID_REPORTE}`,
+      );
     });
 
-    it('un reporte retirado deja volver a abrir otro: el que cuenta es el vivo', async () => {
+    it('con la orden todavía creada el borrador se ve, y dice por qué no se llena', async () => {
+      // Es la regla del servidor: un reporte cuenta lo que se hizo, y en una orden sin empezar no se ha
+      // hecho nada. El borrador ya existe desde que se añadió el equipo; lo que espera es poder escribirse.
+      await abrir(
+        orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }] }),
+        [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'BORRADOR' })],
+      );
+
+      expect(raiz().querySelector(`[data-equipo="${ID_EQUIPO}"] a`)?.textContent?.trim()).toBe(
+        'Ver borrador',
+      );
+      expect(texto()).toContain('Los reportes se llenan cuando la orden empieza');
+    });
+
+    it('un equipo con el reporte cerrado no se quita de la orden: su reporte se sustituye', async () => {
       await abrir(
         orden({
           estadoEjecucion: 'EN_EJECUCION',
-          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }],
         }),
-        // El API devuelve el historial de la orden, retirados incluidos. Si la pantalla se quedara con
-        // el primero, este equipo aparecería con reporte para siempre.
-        [reporte({ idEquipoCliente: ID_EQUIPO, estadoActivo: false })],
+        [reporte({ idEquipoCliente: ID_EQUIPO, estado: 'FINALIZADO', resultado: 'OPERATIVO' })],
       );
 
-      expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).toContain(
-        'Abrir reporte',
-      );
+      expect(
+        [...raiz().querySelectorAll(`[data-equipo="${ID_EQUIPO}"] button`)].map((b) =>
+          b.textContent?.trim(),
+        ),
+      ).not.toContain('Quitar');
     });
 
     it('una orden anulada no ofrece tocar su alcance', async () => {
       await abrir(
         orden({
           estadoActivo: false,
-          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }],
         }),
       );
 
@@ -699,7 +697,7 @@ describe('Ficha de una orden de trabajo', () => {
         ...orden({
           estadoEjecucion: 'EJECUTADA',
           idIngeniero: ID_INGENIERO,
-          equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }],
+          equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }],
         }),
         documento: documento(cambios),
         documentoTardio: tardio,

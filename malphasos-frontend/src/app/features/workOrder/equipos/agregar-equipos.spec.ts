@@ -88,7 +88,7 @@ describe('Añadir equipos a una orden', () => {
 
   it('lo que ya está en la orden no se vuelve a ofrecer', async () => {
     // Anadirlo otra vez no significa nada, y el backend lo trataria como un alcance repetido.
-    await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idAreaServicio: ID_AREA }] }));
+    await abrir(orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: 'r1' }] }));
 
     expect(texto()).not.toContain('SN-0001');
     expect(texto()).toContain('SN-0002');

@@ -157,7 +157,7 @@ class WorkOrderOwnershipFilteringTest {
         assertThatThrownBy(() -> service.findByEquipment(EQUIPO, SOLO_MIO))
                 .isInstanceOf(ClientEquipmentNotFoundException.class);
 
-        verify(workOrderPersistencePort, never()).findByEquipment(any());
+        verify(workOrderPersistencePort, never()).findAllById(any());
     }
 
     @Test

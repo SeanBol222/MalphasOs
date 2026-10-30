@@ -23,6 +23,7 @@ import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEngine
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
+import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.request.WorkOrderEquipmentRequest;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.ScheduleWorkOrderCommand;
@@ -309,18 +310,37 @@ class WorkOrderRestAdapterTest {
     }
 
     @Test
-    @DisplayName("el alcance se expone con el area congelada de cada equipo")
-    void elAlcanceExponeElArea() throws Exception {
+    @DisplayName("los equipos de la orden son sus reportes activos, cada uno con el suyo (V50)")
+    void losEquiposSonSusReportes() throws Exception {
         UUID equipo = UUID.randomUUID();
-        UUID area = UUID.randomUUID();
+        UUID reporte = UUID.randomUUID();
         WorkOrder orden = unaOrden();
-        orden.addEquipment(equipo, area);
         when(workOrderServicePort.findById(orden.getId(), ReadScope.unrestricted())).thenReturn(orden);
+        when(workOrderServicePort.equipmentOf(List.of(orden.getId()))).thenReturn(java.util.Map.of(orden.getId(),
+                List.of(new WorkOrderReportsPort.ActiveReport(reporte, equipo, "ABC123", false))));
 
         mockMvc.perform(get("/v1/api/work-orders/" + orden.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.equipos[0].idEquipoCliente").value(equipo.toString()))
-                .andExpect(jsonPath("$.equipos[0].idAreaServicio").value(area.toString()));
+                .andExpect(jsonPath("$.equipos[0].idReporteServicio").value(reporte.toString()));
+    }
+
+    @Test
+    @DisplayName("un listado pide los equipos de todas sus ordenes en una sola consulta")
+    void elListadoPideLosEquiposDeUnaVez() throws Exception {
+        WorkOrder una = unaOrden();
+        WorkOrder otra = unaOrden();
+        UUID equipo = UUID.randomUUID();
+        when(workOrderServicePort.findAll(ReadScope.unrestricted())).thenReturn(List.of(una, otra));
+        when(workOrderServicePort.equipmentOf(List.of(una.getId(), otra.getId()))).thenReturn(java.util.Map.of(
+                otra.getId(), List.of(new WorkOrderReportsPort.ActiveReport(UUID.randomUUID(), equipo, "ABC123", true))));
+
+        mockMvc.perform(get("/v1/api/work-orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].equipos").isEmpty())
+                .andExpect(jsonPath("$[1].equipos[0].idEquipoCliente").value(equipo.toString()));
+
+        verify(workOrderServicePort, org.mockito.Mockito.times(1)).equipmentOf(any());
     }
 
     @Test

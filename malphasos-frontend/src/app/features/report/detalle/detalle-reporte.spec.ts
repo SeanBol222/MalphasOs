@@ -69,6 +69,12 @@ const ENCARGADOS = [
 @Component({ selector: 'app-orden-falsa', template: '' })
 class OrdenFalsa {}
 
+/**
+ * La orden en la que se escribe un reporte: empezada. Desde V50 el borrador nace al añadir el equipo,
+ * aunque la orden no haya empezado, y no se escribe hasta que empiece.
+ */
+const EMPEZADA = orden({ estadoEjecucion: 'EN_EJECUCION' });
+
 describe('Ficha de un reporte de servicio', () => {
   let fixture: ComponentFixture<DetalleReporte>;
   let http: HttpTestingController;
@@ -114,7 +120,7 @@ describe('Ficha de un reporte de servicio', () => {
    * son cuatro eslabones del catálogo: unidad → modelo → equipo del catálogo → tipo. El backend camina
    * la misma cadena por la misma razón — ninguna tabla intermedia guarda un atajo hacia el tipo.
    */
-  async function abrir(datos: object = reporte(), laOrden: object = orden()): Promise<void> {
+  async function abrir(datos: object = reporte(), laOrden: object = EMPEZADA): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, urlReporte(ID_REPORTE), datos);
     http.match(URL_EQUIPOS_DE_CLIENTE).forEach((peticion) => peticion.flush(EQUIPOS));
@@ -148,7 +154,7 @@ describe('Ficha de un reporte de servicio', () => {
       [URL_EQUIPOS_DE_CATALOGO, EQUIPOS_DE_CATALOGO],
       [URL_TIPOS, TIPOS],
       [URL_PATRONES, PATRONES],
-      [`${URL_ORDENES}/${ID_ORDEN}`, orden()],
+      [`${URL_ORDENES}/${ID_ORDEN}`, EMPEZADA],
       [URL_CLIENTES, CLIENTES],
       [URL_PERSONAS, PERSONAS],
       [URL_ENCARGADOS, ENCARGADOS],
@@ -793,7 +799,7 @@ describe('Ficha de un reporte de servicio', () => {
 
     expect(campo('procedimientos').disabled).toBe(true);
     expect(opcionesDeResultado().every((opcion) => opcion.disabled)).toBe(true);
-    expect(texto()).toContain('Para corregirlo hay que retirarlo y abrir otro');
+    expect(texto()).toContain('Para corregirlo se sustituye');
     expect(texto()).toContain('cerrado el 2026-09-27');
     expect(
       [...raiz().querySelectorAll('button')].some((b) =>
@@ -809,15 +815,16 @@ describe('Ficha de un reporte de servicio', () => {
     expect(texto()).toContain('Retirado');
   });
 
-  it('retirar avisa de que no se borra nada y vuelve a la orden', async () => {
+  it('quitar un borrador de la orden avisa de que el equipo sale de ella y vuelve a la orden (V50)', async () => {
     const router = TestBed.inject(Router);
     const viaje = vi.spyOn(router, 'navigate');
     await abrir();
 
-    pulsar('Retirar');
+    pulsar('Quitar de la orden');
+    expect(texto()).toContain('El equipo sale de la orden');
     expect(texto()).toContain('No se borra nada');
 
-    pulsar('Confirmar retiro');
+    pulsar('Confirmar');
     await asentar(fixture);
 
     const peticion = http.expectOne(urlReporte(ID_REPORTE));
@@ -826,9 +833,60 @@ describe('Ficha de un reporte de servicio', () => {
     await asentar(fixture);
 
     expect(viaje).toHaveBeenCalledWith(['/ordenes', ID_ORDEN]);
-    http.match(urlReporte(ID_REPORTE)).forEach((p) => p.flush(reporte()));
-    http.match(URL_EQUIPOS_DE_CLIENTE).forEach((p) => p.flush(EQUIPOS));
-    await asentar(fixture);
+    // Con el borrador salió el equipo de la orden: la orden también se vuelve a pedir (V50).
+    expect(http.match(`${URL_ORDENES}/${ID_ORDEN}`).length).toBeGreaterThan(0);
+    await atenderTodo();
+  });
+
+  describe('Un reporte es lo que pone a su equipo en la orden (V50)', () => {
+    const botones = () =>
+      [...raiz().querySelectorAll('button')].map((b) => (b.textContent ?? '').trim());
+
+    it('un borrador de una orden sin empezar no se escribe, y dice cuándo se podrá', async () => {
+      await abrir(reporte(), orden());
+
+      expect(campo('procedimientos').disabled).toBe(true);
+      expect(raiz().querySelector('[data-sin-empezar]')?.textContent).toContain(
+        'se llena cuando empiece el trabajo',
+      );
+      // Pero sí se quita de la orden: es como se saca el equipo antes de empezar.
+      expect(botones()).toContain('Quitar de la orden');
+    });
+
+    it('un cerrado no se quita de la orden: se sustituye', async () => {
+      await abrir(reporteCerrable({ estado: 'FINALIZADO', finalizado: '2026-09-27T10:00:00' }));
+
+      expect(botones()).not.toContain('Quitar de la orden');
+      expect(botones()).toContain('Sustituir');
+    });
+
+    it('un borrador de una orden ejecutada tampoco sale de ella, aunque se escriba', async () => {
+      await abrir(reporte(), orden({ estadoEjecucion: 'EJECUTADA' }));
+
+      expect(botones()).not.toContain('Quitar de la orden');
+      expect(campo('procedimientos').disabled).toBe(false);
+    });
+
+    it('sustituir pide confirmación, lo pide a su ruta y lleva al borrador nuevo', async () => {
+      const router = TestBed.inject(Router);
+      const viaje = vi.spyOn(router, 'navigate');
+      await abrir(reporteCerrable({ estado: 'FINALIZADO', finalizado: '2026-09-27T10:00:00' }));
+
+      pulsar('Sustituir');
+      expect(texto()).toContain('se abre un borrador para el mismo equipo');
+      pulsar('Confirmar sustitución');
+      await asentar(fixture);
+
+      const peticion = http.expectOne(`${urlReporte(ID_REPORTE)}/replace`);
+      expect(peticion.request.method).toBe('POST');
+      peticion.flush(reporte({ id: 'r-nuevo' }));
+      await asentar(fixture);
+
+      expect(viaje).toHaveBeenCalledWith(['/reportes', 'r-nuevo']);
+      // El equipo tiene otro reporte en la orden: la orden se vuelve a pedir.
+      expect(http.match(`${URL_ORDENES}/${ID_ORDEN}`).length).toBeGreaterThan(0);
+      await atenderTodo();
+    });
   });
 
   it('sin report.write se lee y no se ofrece ninguna escritura', async () => {

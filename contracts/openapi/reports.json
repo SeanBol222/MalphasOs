@@ -508,16 +508,6 @@
         },
         "type" : "object"
       },
-      "ServiceReportOpenRequest" : {
-        "properties" : {
-          "idEquipoCliente" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        },
-        "required" : [ "idEquipoCliente" ],
-        "type" : "object"
-      },
       "ServiceReportResponse" : {
         "properties" : {
           "accesorios" : {
@@ -1013,98 +1003,9 @@
         "tags" : [ "ServiceReport" ]
       }
     },
-    "/v1/api/reports/work-orders/{idOrdenTrabajo}" : {
-      "post" : {
-        "description" : "Nace en borrador y vacio. La orden debe haber empezado y el equipo seguir en su alcance; un equipo no tiene dos reportes vivos en la misma orden.",
-        "operationId" : "open",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "idOrdenTrabajo",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ServiceReportOpenRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ServiceReportResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          },
-          "503" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
-                }
-              }
-            },
-            "description" : "Service Unavailable"
-          }
-        },
-        "summary" : "Abrir el reporte de un equipo de una orden",
-        "tags" : [ "ServiceReport" ]
-      }
-    },
     "/v1/api/reports/{id}" : {
       "delete" : {
-        "description" : "No lo borra: lo deja inactivo. Es la unica forma de corregir uno ya cerrado, retirandolo y abriendo otro.",
+        "description" : "No lo borra: lo deja inactivo, y con el su equipo sale de la orden. Un reporte cerrado no se retira: se sustituye.",
         "operationId" : "discard",
         "parameters" : [ {
           "in" : "path",
@@ -1170,7 +1071,7 @@
             "description" : "Service Unavailable"
           }
         },
-        "summary" : "Retirar un reporte",
+        "summary" : "Retirar un borrador",
         "tags" : [ "ServiceReport" ]
       },
       "get" : {
@@ -1842,6 +1743,85 @@
           }
         },
         "summary" : "Firmar el recibido",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
+    "/v1/api/reports/{id}/replace" : {
+      "post" : {
+        "description" : "Lo retira y abre el borrador del mismo equipo en la misma orden, en un solo paso. Es la unica forma de corregir uno cerrado, tambien con la orden ejecutada.",
+        "operationId" : "replace",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Sustituir un reporte cerrado",
         "tags" : [ "ServiceReport" ]
       }
     },

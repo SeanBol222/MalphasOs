@@ -2,6 +2,8 @@ package com.malphasos.malphasos.report.application.ports.output;
 
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
+import com.malphasos.malphasos.report.application.model.ActiveReportSummary;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +23,15 @@ public interface ServiceReportPersistencePort {
     List<ServiceReport> findByWorkOrder(UUID idOrdenTrabajo);
 
     List<ServiceReport> findByEquipment(UUID idEquipoCliente);
+
+    /** Los reportes activos de esas órdenes, sin su contenido (V50): son sus equipos. */
+    List<ActiveReportSummary> findActiveSummaries(Collection<UUID> idsOrdenes);
+
+    /**
+     * Si el equipo tiene un reporte activo en una orden viva sin ejecutar (V50): mientras lo tenga, no se
+     * traslada.
+     */
+    boolean inUnexecutedWorkOrder(UUID idEquipoCliente);
 
     /** Si algún reporte, retirado o no, tiene ya ese número: los seis primeros caracteres del id (V28). */
     boolean numberTaken(String numero);

@@ -7,6 +7,7 @@ import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
 import com.malphasos.malphasos.equipment.application.ports.output.ClientEquipmentPersistencePort;
+import com.malphasos.malphasos.equipment.application.ports.output.WorkOrderAttendancePort;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.DecommissionClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RegisterClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RelocateClientEquipmentCommand;
@@ -14,6 +15,7 @@ import com.malphasos.malphasos.equipment.application.services.clientEquipment.co
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.CrossClientRelocationException;
+import com.malphasos.malphasos.equipment.domain.exception.RelocationDuringWorkOrderException;
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
@@ -56,6 +58,7 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
      */
     private final ClientOwnershipPort clientOwnershipPort;
     private final EventDispatcherPort eventDispatcherPort;
+    private final WorkOrderAttendancePort workOrderAttendancePort;
 
     @Override
     @Transactional(readOnly = true)
@@ -134,9 +137,22 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
         // editar o dar de baja un equipo exige equipment.write.
         ClientEquipment unidad = findById(command.id(), ReadScope.unrestricted());
         requireSameClient(unidad, command.idAreaServicio());
+        requireNotInUnexecutedWorkOrder(unidad, command.idAreaServicio());
         unidad.relocateTo(command.idAreaServicio());
 
         return persistAndPublish(unidad);
+    }
+
+    /**
+     * Una unidad en una orden sin ejecutar no cambia de área (V50): la orden ya no guarda el área de cada
+     * equipo, y la lee de la unidad hasta congelarla al ejecutarse. «Trasladarla» al área donde ya está no
+     * es trasladarla, y no se rechaza.
+     */
+    private void requireNotInUnexecutedWorkOrder(ClientEquipment unidad, UUID idAreaDestino) {
+        if (!idAreaDestino.equals(unidad.getIdAreaServicio())
+                && workOrderAttendancePort.inUnexecutedWorkOrder(unidad.getId())) {
+            throw new RelocationDuringWorkOrderException(unidad.getId());
+        }
     }
 
     @Override
