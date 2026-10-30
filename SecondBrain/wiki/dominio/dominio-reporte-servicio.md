@@ -57,14 +57,17 @@ En `fill(...)`, **un nulo deja el campo como está y un texto en blanco lo borra
 
 **Al abrir el reporte de una orden preventiva** se copian como pasos, solos y en su orden, los
 protocolos que el tipo del equipo tiene asignados —RF-13—. En el reporte se marca cada uno **hecho** o
-**no aplica**, de uno en uno —`PATCH /v1/api/reports/{id}/steps/{orden}`—, porque en pantalla cada
+**no aplica**, de uno en uno —`PATCH /v1/api/reports/{id}/steps/{idProtocolo}`, que hasta `V51` era
+`{orden}`—, porque en pantalla cada
 casilla se guarda al pulsarla. Un correctivo no lleva pasos: es una reparación distinta cada vez.
 
 Cuatro decisiones del usuario, todas del mismo día:
 
-- **Se copian, no se leen del catálogo.** Nombre, descripción e indicación son los del día en que se
-  abrió el reporte: editar un protocolo después no cambia lo que dice un reporte viejo. Se copian al
-  **abrir** y no al cerrar, porque lo que el ingeniero marca mientras trabaja tiene que ser lo que había.
+- ~~**Se copian, no se leen del catálogo.**~~ **Cierto hasta `V51`, el 2026-10-28.** Desde entonces el
+  paso solo dice de qué protocolo es: su nombre, descripción, indicación y posición se leen del catálogo
+  mientras el reporte es borrador —reordenar los protocolos de un tipo reordena sus borradores, que es lo
+  que «abierto, en vivo» quiere decir— y del documento cuando se cierra. Ver «El reporte cerrado vive en
+  su documento», abajo.
 - **«No aplica» exige nota**, en el agregado y en la base: saltarse un paso queda justificado.
 - **La regla de cierre se parte en dos.** Con pasos, se exigen **todos marcados** y el texto
   —`t_procedimientos`, que la pantalla llamará «trabajo adicional»— es opcional. Sin pasos, el texto
@@ -112,9 +115,9 @@ Cuatro decisiones de esa tabla:
   existen igual. Nulo significa «esta lectura no corresponde a ningún valor constante declarado», no
   «falta el dato».
 - **Se guardan las dos lecturas**, incluso la del lado que debería ser constante. Lo constante lo es por cómo se monta el ensayo: si el patrón marcó 50,2 donde el punto dice 50, el reporte tiene que decir 50,2. Y deducirla del punto obligaría a consultar una configuración que puede haber cambiado — el punto se retira, no se edita, justamente para que los reportes viejos sigan cuadrando. Ver [[congelar-una-referencia-historica]].
-- **La unidad viaja en la lectura**, copiada de su verificación al tomar el dato. Sin ella no hay número
-  que imprimir, y sigue siendo una copia y no una foránea para que reconfigurar un tipo no cambie un
-  reporte ya firmado.
+- ~~**La unidad viaja en la lectura**, copiada de su verificación al tomar el dato.~~ **Cierto hasta
+  `V51`**: desde entonces la unidad es la de su verificación —del tipo en un borrador, del documento en un
+  reporte cerrado—, y es el documento lo que impide que reconfigurar un tipo cambie un reporte firmado.
 
 **`NULLS NOT DISTINCT` en el índice único no es un adorno.** Por defecto PostgreSQL considera que dos `NULL` son distintos, así que sin esa cláusula la modalidad variable —la única que deja el punto nulo— sería **la única que admitiría lecturas duplicadas**, que es justo al revés de lo que se quiere.
 
@@ -227,14 +230,16 @@ borde dentro —«±0,5» admite 0,5—.
 > por reporte, que es lo que `V27` guardaba. `V30` lo cambió el mismo día —ver «El formato que la empresa
 > ya entrega», abajo—. La copia y su razón siguen valiendo; lo que cambió es cuántos y dónde.
 
-**El reporte copia el patrón como estaba ese día** —nombre, marca, serie, certificado y vencimiento—,
-además de guardar su identificador. Renovar el certificado en el catálogo cambia la fila del patrón, y
+**El reporte copiaba el patrón como estaba ese día** —nombre, marca, serie, certificado y vencimiento—,
+además de guardar su identificador. (Hasta `V51`: desde entonces solo guarda el identificador, la ficha se
+lee del catálogo en un borrador y del documento en uno cerrado, y la razón de abajo la cumple el documento.) Renovar el certificado en el catálogo cambia la fila del patrón, y
 un reporte firmado tiene que seguir diciendo contra qué certificado se midió. Es
 [[congelar-una-referencia-historica]] otra vez, y la prueba de persistencia lo comprueba renovando el
 certificado por SQL después de guardar el reporte.
 
-**La lectura copia la tolerancia**, igual que ya copiaba la unidad, y **por eso la regla de conformidad
-vive en `VerificationReading` y no en el tipo de equipo**. Si el tipo cambiara su tolerancia mañana, un
+**La lectura copiaba la tolerancia** hasta `V51`, igual que la unidad, y **por eso la regla de conformidad
+vive en `VerificationReading` y no en el tipo de equipo** —desde `V51` recibe la tolerancia de quien sabe
+de qué momento se habla: el documento o el tipo—. Si el tipo cambiara su tolerancia mañana, un
 reporte cerrado no puede pasar de conforme a no conforme. La tanda de la tolerancia había puesto la regla
 en `TypeVerification.conforme`; la tanda siguiente **la retiró** al descubrir que se calculaba con un
 dato que no estaba congelado. Una regla en dos sitios es una regla que un día dice dos cosas.
@@ -414,6 +419,42 @@ Corregir una lectura retira la vieja —misma fila, `b_estado_activo` a falso—
 **Un índice único parcial no se puede declarar diferido en PostgreSQL**: `DEFERRABLE` es de las restricciones (`ADD CONSTRAINT`), y una restricción no admite `WHERE`. Así que el orden hay que imponerlo en el adaptador: se vuelca lo que ya existe, se vacía la sesión con `saveAndFlush`, y solo entonces se insertan las lecturas nuevas. **Un reporte nuevo no paga ninguna escritura extra**, porque sin fila previa no hay nada que vaciar antes.
 
 Es el mismo tipo de choque que el proyecto ya conocía por otro lado —«un adaptador que mapea una colección perezosa lleva `@Transactional`»—, y la lección general es la misma: **el orden en que una ORM escribe no es el orden en que el código lo dice**.
+
+## El reporte cerrado vive en su documento (2026-10-28, `V51`)
+
+Decidido por el usuario con el análisis del esquema: **una sola fuente para cada momento**. Hasta `V51`
+había dos a la vez: el documento de `V37`, congelado al cerrar, y las copias que el reporte hacía en sus
+filas —la ficha de cada patrón, la unidad y la tolerancia de cada lectura, el texto y la posición de cada
+paso—. Salen las copias, y el documento crece a su **versión 2** con lo que guardaban.
+
+| | Borrador | Cerrado |
+|---|---|---|
+| Texto y posición de cada paso | El protocolo y su asignación al tipo, hoy | El documento |
+| Unidad y tolerancia de cada verificación | El tipo, hoy | El documento |
+| Ficha de cada patrón | El catálogo, hoy | El documento |
+| Qué paso se marcó, qué se midió, qué patrón se eligió | Las filas del reporte | Las filas del reporte |
+
+**Lo compone `ReportDocumentComposer.catalog`**, y el servicio lo publica como `catalogOf`: el API y la
+hoja del informe leen de ahí sin saber de cuál de las dos fuentes sale. **El cierre comprueba el
+vencimiento de cada patrón en el documento que congela**, así que un certificado renovado en el catálogo
+después de elegir el patrón ya vale sin volver a elegirlo. Y **la línea de la hoja de vida** —los pasos
+hechos— sale del documento con que el reporte se cierra.
+
+**El relleno**: los documentos de los cerrados pasan a la versión 2 en SQL, leyendo las copias antes de
+quitarlas. Con lecturas, la tolerancia del documento es la que se copió en ellas —la que juzgó cada una—;
+sin lecturas, la del tipo. **La migración se detiene** si queda un cerrado sin documento, porque sus copias
+no tendrían dónde ir: los congelaba la aplicación al arrancar desde `V37`.
+
+**La prueba gemela**, `ClosedReportDocumentTest`, siembra los mismos datos en la base principal —donde Java
+cierra el reporte— y en un esquema en `V50` —donde ya está cerrado, con sus copias y su documento en la
+versión 1—, aplica `V51` y compara. **Al mutarla aparecieron dos supervivientes con causa**: quitar el
+`ORDER BY` de los pasos o de los patrones no cambiaba nada, porque PostgreSQL resolvía la consulta con los
+índices únicos de esas tablas y ya devolvían las filas en orden. Orden por plan, no garantizado; la prueba
+migra ahora con los recorridos por índice apagados, y las dos mueren.
+
+**Dos costes, aceptados al construirlo**: un borrador retirado pierde el texto de sus pasos —no tenía
+documento y ya no hay copias, de modo que se lee del catálogo de hoy—, y listar los reportes de una orden
+compone el catálogo de cada borrador, que son unas pocas consultas por reporte.
 
 ## Lo que este módulo decidió no hacer
 

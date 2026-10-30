@@ -78,17 +78,17 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V50`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V51`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **50** (`V1`…`V50`) |
+| Migraciones aplicadas | **51** (`V1`…`V51`) |
 | Tablas de dominio | **37** — eran **38** hasta `V50` |
 | Llaves foráneas | **50**, de las cuales **1 compuesta** — eran **52** y **2** hasta `V50` |
-| Restricciones `CHECK` propias | **77** — eran **76** hasta `V49` |
+| Restricciones `CHECK` propias | **73** — eran **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
-| Índices únicos **parciales** | **9** — eran **10** hasta `V48` |
+| Índices únicos **parciales** | **10** — eran **9** hasta `V51` y **10** hasta `V48` |
 | Foráneas sin ningún índice que las encabece | **1**, la de `intervencion`, que `V51` quita — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
 | Tablas con borrado lógico | **33 de 37** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
 
@@ -152,6 +152,13 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   una orden si y solo si tiene en ella un reporte activo, así que antes de quitarla la migración da su
 >   borrador a cada equipo del puente sin reporte: en desarrollo fueron cinco, con sus pasos del protocolo
 >   los preventivos. Se recontó con el guion de abajo, que **falló** hasta quitar el puente del diagrama.
+> - `V51`, **el reporte cerrado vive en su documento**: salen las copias del catálogo —las 11 columnas de
+>   la ficha en `patron_verificacion_reporte`, la unidad y la tolerancia en `dato_verificacion`, y el
+>   texto y la posición en `paso_reporte`— con los cuatro `CHECK` que las vigilaban y la única de la
+>   posición, `UQ_paso_reporte_orden`; entra `UQ_paso_reporte_protocolo`, parcial —**−17 columnas, −4
+>   `CHECK`, −1 única, +1 parcial**—. Antes, los documentos de los cerrados pasan a la versión 2 leyendo
+>   esas copias, y la migración **se detiene** si queda un cerrado sin documento. El guion **falló** con las
+>   17 columnas hasta quitarlas del diagrama.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -752,17 +759,6 @@ erDiagram
         uuid k_id_reporte_servicio FK "UK parcial con verificacion y patron"
         uuid k_id_verificacion FK "simple: el tipo lo comprueba el servicio"
         uuid k_id_equipo_patron FK
-        varchar n_nombre "copia, como toda la ficha"
-        varchar n_marca "copia"
-        varchar k_serie "copia"
-        varchar n_certificado "copia"
-        date f_vencimiento "copia"
-        varchar n_modelo "copia - V29"
-        varchar k_codigo_interno "copia"
-        varchar t_rango "copia"
-        varchar t_resolucion "copia"
-        date f_calibracion "copia"
-        varchar n_empresa_calibradora "copia"
         boolean b_estado_activo "quitar retira, volver a poner reactiva"
     }
     accesorio_reporte {
@@ -777,11 +773,7 @@ erDiagram
     paso_reporte {
         uuid k_id_paso_reporte PK
         uuid k_id_reporte_servicio FK
-        integer i_orden "UK con el reporte"
-        uuid k_id_protocolo FK "de cual salio"
-        varchar n_nombre "copia"
-        varchar t_descripcion "copia"
-        varchar t_indicacion "copia, anulable"
+        uuid k_id_protocolo FK "UK parcial con el reporte, desde V51"
         varchar t_estado_paso "PENDIENTE, HECHO, NO_APLICA"
         varchar t_nota "obligatoria con NO_APLICA"
         boolean b_estado_activo "desde V23"
@@ -816,19 +808,18 @@ erDiagram
         integer i_secuencia "1 a 100"
         numeric d_valor_patron
         numeric d_valor_equipo
-        varchar n_unidad "copia congelada"
-        numeric d_tolerancia "copia congelada - V27"
         boolean b_estado_activo
     }
 ```
 
-**La unidad de una lectura es una copia, no una foránea**, y es deliberado: reconfigurar un tipo no
-debe cambiar un reporte ya firmado. Ver [[congelar-una-referencia-historica]].
-
-**El patrón y la tolerancia también son copias, desde `V27`**, y por la misma razón: renovar el
-certificado de un patrón en el catálogo no puede reescribir un reporte firmado, y que el tipo cambie su
-tolerancia no puede volver no conforme una lectura de ayer. El patrón guarda además su identificador
-con una foránea **simple** —un patrón nunca se borra—.
+**Ninguna fila del reporte copia el catálogo desde `V51`.** Hasta entonces la unidad de una lectura, su
+tolerancia, la ficha de cada patrón y el texto y la posición de cada paso eran copias congeladas en las
+filas, para que reconfigurar un tipo o renovar un certificado no cambiara un reporte ya firmado. Eso lo
+garantiza ahora el documento del reporte, que lo guarda al cerrar —ver [[dominio-reporte-servicio]]—, y
+mientras es borrador se lee en vivo: una sola fuente para cada momento. El patrón conserva su
+identificador con una foránea **simple** —un patrón nunca se borra—, que es lo que contesta con un join
+«¿en qué reportes se usó?». (Esta nota decía que esas copias eran deliberadas: cierto hasta `V51`. Ver
+[[congelar-una-referencia-historica]] para la decisión de entonces.)
 
 > **Corregido el 2026-10-16, por la noche.** Este párrafo seguía: «y un `CHECK` de **todo o nada**: sin
 > identificador no hay copia». **Falso desde `V30`**, el mismo día: un reporte no tiene ya un patrón
@@ -866,17 +857,18 @@ falta cuando la orden dejó de guardar su cliente —ya no hay dos datos que pue
 nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
 lectura sin punto pasa y la que trae punto queda atada.
 
-## Los 9 índices únicos parciales, y por qué son parciales
+## Los 10 índices únicos parciales, y por qué son parciales
 
 `UQ_reporte_servicio_activo`, `UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo`, desde `V11`
 `UQ_modelo_nombre_activo_por_equipo`, desde `V21` `UQ_protocolo_clave_activo` y
 `UQ_protocolo_tipo_equipo_prioridad_activa`, desde `V25` `UQ_equipo_patron_serie_activo`, desde `V30`
-`UQ_patron_verificacion_reporte_activo` y desde `V35` `UQ_equipo_patron_codigo_interno_activo`.
+`UQ_patron_verificacion_reporte_activo`, desde `V35` `UQ_equipo_patron_codigo_interno_activo` y desde
+`V51` `UQ_paso_reporte_protocolo` —un reporte no repite protocolo—.
 (Decía **cinco**: cierto hasta el **2026-10-10**; **siete** hasta el **2026-10-14**, y **ocho** hasta el
 **2026-10-16**. **Corregido el 2026-10-28**: la lista nombraba nueve y no traía el de `V35`, de modo que
 eran diez desde el 2026-10-17, como ya decía la tabla de cifras. Vuelven a ser nueve con `V48`, que quitó
 `UQ_verificacion_magnitud_activa_por_tipo` con la magnitud de la verificación: esa regla vive ahora solo
-en el agregado.) **`UQ_reporte_servicio_numero`, de `V28`,
+en el agregado. Y diez otra vez con `V51`.) **`UQ_reporte_servicio_numero`, de `V28`,
 no está en la lista y no es un olvido**: es único y no parcial, porque un número impreso no se recicla.
 Los nueve llevan `WHERE b_estado_activo`, y la razón es la misma
 en todos: **aquí nada se borra**. Una restricción normal impediría volver a dar de alta algo que se

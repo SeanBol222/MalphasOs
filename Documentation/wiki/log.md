@@ -373,3 +373,11 @@ borrador es quitar su equipo de la orden, un cerrado solo se sustituye, el borra
 que la orden empieza y el traslado solo se bloquea si el área cambia. Ningún documento oficial cambia, y
 ningún requisito se mueve: RF-09 sigue diciendo «un reporte por cada equipo seleccionado», que ahora es
 literal.
+
+## [2026-10-28] ingest | V51 construida
+
+El reporte cerrado vive en su documento: salen las copias del catálogo de sus filas (B1, B2 y B3 del
+análisis de [[diseno-base-de-datos]]) y el documento de cada reporte cerrado pasa a la versión 2 con lo que
+guardaban. El análisis recoge las decisiones de detalle: la tolerancia que se copió en las lecturas manda
+sobre la del tipo, la migración se detiene ante un cerrado sin documento y un paso se marca por su
+protocolo. Ningún documento oficial cambia, y ningún requisito se mueve.

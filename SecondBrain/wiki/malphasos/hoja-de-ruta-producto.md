@@ -602,7 +602,7 @@ el bloqueo del traslado de un equipo que está en una orden viva.
 | `V48` | La verificación llega a su magnitud por la unidad | **Construida el 2026-10-28** |
 | `V49` | La orden se congela al ejecutarse | **Construida el 2026-10-28** |
 | `V50` | Sin tabla puente entre la orden y el equipo, con «Sustituir» y el traslado bloqueado | **Construida el 2026-10-28** |
-| `V51` | El reporte cerrado vive en su documento, sin copias del catálogo | Pendiente |
+| `V51` | El reporte cerrado vive en su documento, sin copias del catálogo | **Construida el 2026-10-28** |
 | `V52` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | Pendiente |
 
 **Renumerada el 2026-10-27**: el plan tenía siete, `V42` a `V48`, y el `V43` de entonces juntaba los
