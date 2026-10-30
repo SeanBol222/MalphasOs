@@ -26,10 +26,14 @@ import org.springframework.transaction.annotation.Transactional;
  * serían cinco repositorios y el filtrado en memoria, que es justo lo que este listado viene a
  * quitar del navegador.
  *
- * <p><b>El último servicio es la intervención vigente más reciente.</b> Las reemplazadas no cuentan
- * —{@code V14} las deja inactivas—, de modo que corregir un reporte no deja el resultado viejo a la
- * vista. Un equipo sin intervenciones sale con fecha y resultado nulos, y filtrar por resultado lo
- * deja fuera.
+ * <p><b>El último servicio es el reporte cerrado más reciente del equipo</b>, retirado o no, desde {@code V52}:
+ * es lo mismo que daba la intervención vigente más reciente mientras existió {@code intervencion}. El
+ * sustituto de un reporte se cierra después que el sustituido, así que corregir un reporte no deja el
+ * resultado viejo a la vista, y mientras el sustituto es borrador cuenta el sustituido. Un equipo sin
+ * reportes cerrados sale con fecha y resultado nulos, y filtrar por resultado lo deja fuera.
+ *
+ * <p>Lee la tabla de {@code report}, que este módulo no conoce en el código: es una consulta de lectura para
+ * un listado paginado y filtrado por resultado, que por un puerto costaría una consulta por equipo.
  */
 @Component
 @RequiredArgsConstructor
@@ -42,10 +46,10 @@ public class EquipmentOverviewPersistenceAdapter implements EquipmentOverviewPer
             JOIN tipo_equipo t ON t.k_id_tipo_equipo = e.k_id_tipo_equipo
             JOIN marca b ON b.k_id_marca = e.k_id_marca
             LEFT JOIN LATERAL (
-                SELECT i.f_fecha_servicio, i.t_resultado
-                FROM intervencion i
-                WHERE i.k_id_equipo_cliente = u.k_id_equipo_cliente AND i.b_estado_activo
-                ORDER BY i.f_fecha_servicio DESC
+                SELECT r.f_finalizado AS f_fecha_servicio, r.t_resultado
+                FROM reporte_servicio r
+                WHERE r.k_id_equipo_cliente = u.k_id_equipo_cliente AND r.t_estado_reporte = 'FINALIZADO'
+                ORDER BY r.f_finalizado DESC
                 LIMIT 1
             ) ult ON true
             """;
@@ -98,10 +102,10 @@ public class EquipmentOverviewPersistenceAdapter implements EquipmentOverviewPer
                        max(ult.f_fecha_servicio) AS ultimo
                 FROM equipo_cliente u
                 LEFT JOIN LATERAL (
-                    SELECT i.f_fecha_servicio, i.t_resultado
-                    FROM intervencion i
-                    WHERE i.k_id_equipo_cliente = u.k_id_equipo_cliente AND i.b_estado_activo
-                    ORDER BY i.f_fecha_servicio DESC
+                    SELECT r.f_finalizado AS f_fecha_servicio, r.t_resultado
+                    FROM reporte_servicio r
+                    WHERE r.k_id_equipo_cliente = u.k_id_equipo_cliente AND r.t_estado_reporte = 'FINALIZADO'
+                    ORDER BY r.f_finalizado DESC
                     LIMIT 1
                 ) ult ON true
                 WHERE u.b_estado_activo

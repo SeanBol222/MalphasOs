@@ -7,147 +7,46 @@ import java.util.UUID;
  * Un mantenimiento, una calibración o un diagnóstico que ya se le hizo a un equipo instalado: una
  * línea del historial de su hoja de vida.
  *
- * <p><b>Es un `record` y no un agregado de Generación 2, y conviene decir por qué.</b> Un agregado
- * existe para proteger invariantes a lo largo de los cambios que sufre, y una intervención <b>no
- * cambia</b>: describe algo que pasó. No tiene métodos que digan qué ocurrió porque ella misma <b>es</b>
- * lo que ocurrió. Darle la maquinaria de eventos habría añadido un mecanismo que nadie usa —este
- * sistema ya tiene siete eventos sin un solo consumidor— para un tipo que no tiene comportamiento.
+ * <p><b>Desde {@code V52} (2026-10-28) no se guarda: se deriva de un reporte cerrado.</b> Decidido por el
+ * usuario con el análisis del esquema: todo lo que la línea dice —fecha, tipo de servicio, resultado, qué se
+ * hizo y quién— lo dice ya el reporte, y la tabla {@code intervencion} que lo copiaba desde {@code V12} era
+ * una segunda fuente del mismo hecho. La línea la compone {@code report}, que es quien tiene los reportes,
+ * por {@code ServiceHistoryPort}, que declara este módulo.
  *
- * <p><b>Sus tres datos son una copia congelada</b> del reporte en el momento de cerrarse, no una
- * referencia a lo que el reporte diga hoy. Guarda {@code idReporteServicio} para poder volver al
- * reporte completo desde el historial, y eso es trazabilidad, no dependencia: si el reporte se
- * corrige después, o se retira, esta línea no cambia. Era la misma decisión que el área congelada de
- * {@code orden_trabajo_equipo} —que {@code V50} quitó con la tabla, porque la orden se congela entera al
- * ejecutarse—, y el esquema lleva escrita la foránea que por eso no existe.
+ * <p><b>La regla de {@code V14} pasa de dato a filtro.</b> Un reporte cerrado no se edita: se sustituye, y el
+ * sustituto, al cerrarse, reemplaza a la línea del sustituido. Hasta {@code V52} eso se guardaba en
+ * {@code k_id_reemplazada_por}; desde entonces es que cada par (orden, equipo) da una sola línea, la de su
+ * último reporte cerrado. Mientras el sustituto no se cierra, cuenta el sustituido, porque el mantenimiento
+ * sí ocurrió.
  *
- * <p><b>Desde {@code V17} lleva además qué se hizo y quién lo hizo</b>: los procedimientos del reporte
- * y el nombre del ingeniero de la orden, congelados igual. Son opcionales —una orden puede no tener
- * ingeniero, y un reporte viejo puede no tener procedimientos— y no entran en las exigencias de RF-27.
+ * <p>Es un {@code record} sin comportamiento: describe algo que pasó.
+ *
+ * @param idReporteServicio el reporte del que sale, que es también lo que la identifica
+ * @param descripcion lo que se hizo: los pasos hechos y el trabajo adicional, como lo escribe el reporte
+ * @param responsable el ingeniero de la orden, como lo congeló el documento del reporte al cerrarse
  */
 public record Intervention(
-        UUID id,
         UUID idEquipoCliente,
         UUID idReporteServicio,
         LocalDateTime fechaServicio,
         InterventionType tipoServicio,
         InterventionResult resultado,
         String descripcion,
-        String responsable,
-        boolean estadoActivo,
-        UUID reemplazadaPor) {
+        String responsable) {
 
     public Intervention {
-        exigir(id, "identificador");
         exigir(idEquipoCliente, "el equipo al que se le hizo");
         exigir(idReporteServicio, "el reporte del que sale");
         exigir(fechaServicio, "la fecha en que se hizo");
         exigir(tipoServicio, "el tipo de servicio");
         exigir(resultado, "el resultado");
-
-        if (reemplazadaPor != null && estadoActivo) {
-            throw new IllegalArgumentException(
-                    "Una intervencion reemplazada no puede seguir activa: contaria dos veces el mismo "
-                            + "mantenimiento");
-        }
     }
 
-    /**
-     * Registra una intervención a partir de un reporte que acaba de cerrarse.
-     *
-     * <p>No comprueba que el reporte esté finalizado ni que exista: eso lo sabe quien la invoca —el
-     * oyente del cierre— y lo garantiza el esquema con sus dos foráneas. Lo que este tipo garantiza
-     * es que no se registre una línea de historial a la que le falte alguno de los datos que RF-27
-     * exige.
-     */
-    public static Intervention record(
-            UUID idEquipoCliente,
-            UUID idReporteServicio,
-            LocalDateTime fechaServicio,
-            InterventionType tipoServicio,
-            InterventionResult resultado) {
-
-        return record(idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado, null, null);
+    /** Con lo que la identifica, que desde {@code V52} es su reporte. */
+    public UUID id() {
+        return idReporteServicio;
     }
 
-    /** Con qué se hizo y quién lo hizo. Un texto en blanco es lo mismo que no tenerlo. */
-    public static Intervention record(
-            UUID idEquipoCliente,
-            UUID idReporteServicio,
-            LocalDateTime fechaServicio,
-            InterventionType tipoServicio,
-            InterventionResult resultado,
-            String descripcion,
-            String responsable) {
-
-        return new Intervention(
-                UUID.randomUUID(),
-                idEquipoCliente,
-                idReporteServicio,
-                fechaServicio,
-                tipoServicio,
-                resultado,
-                opcional(descripcion),
-                opcional(responsable),
-                true,
-                null);
-    }
-
-    /**
-     * Esta misma intervención, reemplazada por la del reporte que la corrigió.
-     *
-     * <p>Es lo único que le puede pasar a una intervención después de registrarse, y no es un cambio
-     * de lo que describe: el mantenimiento sigue habiendo ocurrido como dice. Lo que cambia es que
-     * <b>deja de contar</b> en la hoja de vida, porque otra línea describe ya el mismo servicio, y
-     * queda apuntando a ella para que el rastro de la corrección no se pierda.
-     *
-     * <p>Devuelve una copia —es un {@code record}— y es idempotente: reemplazar dos veces por la misma
-     * sustituta da lo mismo.
-     */
-    public Intervention reemplazadaPor(UUID idSustituta) {
-        exigir(idSustituta, "la intervencion que la sustituye");
-
-        if (idSustituta.equals(id)) {
-            throw new IllegalArgumentException("Una intervencion no se reemplaza a si misma");
-        }
-
-        return new Intervention(
-                id, idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado,
-                descripcion, responsable, false, idSustituta);
-    }
-
-    /**
-     * Reconstruye una intervención leída del almacén.
-     *
-     * <p>Como en los agregados del proyecto, leer de la base no es un hecho del dominio: este camino
-     * no valida nada que el constructor compacto no exija ya, y existe para que el nombre diga de
-     * dónde viene el objeto.
-     */
-    public static Intervention rehydrate(
-            UUID id,
-            UUID idEquipoCliente,
-            UUID idReporteServicio,
-            LocalDateTime fechaServicio,
-            InterventionType tipoServicio,
-            InterventionResult resultado,
-            String descripcion,
-            String responsable,
-            boolean estadoActivo,
-            UUID reemplazadaPor) {
-
-        return new Intervention(
-                id, idEquipoCliente, idReporteServicio, fechaServicio, tipoServicio, resultado,
-                descripcion, responsable, estadoActivo, reemplazadaPor);
-    }
-
-    private static String opcional(String valor) {
-        return valor == null || valor.isBlank() ? null : valor.trim();
-    }
-
-    /**
-     * Lanza {@code IllegalArgumentException} y no una excepción propia a propósito: el advice de este
-     * módulo ya la traduce a {@code ERR_EQUIPMENT_007}, «datos de equipo inválidos», que es lo que
-     * esto es. Una excepción nueva habría obligado a un código de error nuevo para decir lo mismo.
-     */
     private static void exigir(Object valor, String que) {
         if (valor == null) {
             throw new IllegalArgumentException("Una intervencion necesita " + que);

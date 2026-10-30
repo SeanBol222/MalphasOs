@@ -603,7 +603,7 @@ el bloqueo del traslado de un equipo que está en una orden viva.
 | `V49` | La orden se congela al ejecutarse | **Construida el 2026-10-28** |
 | `V50` | Sin tabla puente entre la orden y el equipo, con «Sustituir» y el traslado bloqueado | **Construida el 2026-10-28** |
 | `V51` | El reporte cerrado vive en su documento, sin copias del catálogo | **Construida el 2026-10-28** |
-| `V52` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | Pendiente |
+| `V52` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | **Construida el 2026-10-28**: la refactorización a 3FN está completa |
 
 **Renumerada el 2026-10-27**: el plan tenía siete, `V42` a `V48`, y el `V43` de entonces juntaba los
 teléfonos, la ciudad y las imágenes de la empresa. Se partió en tres al construirlo porque tocan tres

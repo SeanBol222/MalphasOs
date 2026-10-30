@@ -24,7 +24,6 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,7 +50,6 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM intervencion",
             "DELETE FROM dato_verificacion",
             "DELETE FROM reporte_servicio",
             "DELETE FROM orden_trabajo",
@@ -510,7 +508,7 @@ class InterventionRecordingIntegrationTest {
     // ------------------------------------------------------------------------
 
     @Test
-    @DisplayName("corregir un reporte deja UNA linea en la hoja de vida, y la vieja apuntando a la nueva")
+    @DisplayName("corregir un reporte deja UNA linea en la hoja de vida, la del sustituto, y el sustituido no se borra")
     void corregirUnReporteNoDuplicaElMantenimiento() {
         // El flujo que la pantalla de un reporte cerrado indica: «Sustituir», que lo retira y abre el
         // borrador del mismo equipo en un paso (V50). Antes de V14 dejaba dos lineas para un solo
@@ -527,12 +525,13 @@ class InterventionRecordingIntegrationTest {
         assertThat(historial.getFirst().idReporteServicio()).isEqualTo(sustituto);
         assertThat(historial.getFirst().resultado()).isEqualTo(InterventionResult.OPERATIVO);
 
-        // La vieja no se borra: es el rastro de que hubo una correccion.
-        Map<String, Object> vieja = jdbcTemplate.queryForMap(
-                "SELECT b_estado_activo, k_id_reemplazada_por FROM intervencion WHERE k_id_reporte_servicio = ?",
-                contexto.reporte());
-        assertThat(vieja).containsEntry("b_estado_activo", false);
-        assertThat(vieja.get("k_id_reemplazada_por")).isEqualTo(historial.getFirst().id());
+        // El sustituido no se borra: es el rastro de que hubo una correccion. Hasta V52 lo era su linea, que
+        // quedaba apuntando a la nueva; desde entonces la linea se deriva, y el rastro es el propio reporte.
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT t_estado_reporte || ' ' || b_estado_activo FROM reporte_servicio"
+                                + " WHERE k_id_reporte_servicio = ?",
+                        String.class, contexto.reporte()))
+                .isEqualTo("FINALIZADO false");
     }
 
     @Test

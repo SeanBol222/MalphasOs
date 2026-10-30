@@ -539,7 +539,7 @@
             "type" : "string"
           },
           "id" : {
-            "description" : "Identificador de la intervencion",
+            "description" : "Identificador de la linea: desde V52, el de su reporte",
             "format" : "uuid",
             "type" : "string"
           },

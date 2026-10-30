@@ -628,6 +628,24 @@ class ServiceReportSchemaTest {
     }
 
     @Test
+    @DisplayName("el historial ya no tiene tabla: sale de los reportes, con un indice para el ultimo cierre (V52)")
+    void sinTablaDeIntervenciones() {
+        // intervencion copiaba de cada reporte cerrado lo que una linea de la hoja de vida dice. Que no vuelva:
+        // con ella habria otra vez dos fuentes del mismo hecho.
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'"
+                                + " AND table_name = 'intervencion'",
+                        Integer.class))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT indexdef FROM pg_indexes WHERE schemaname = 'public'"
+                                + " AND indexname = 'IX_reporte_servicio_equipo_cierre'",
+                        String.class))
+                .contains("k_id_equipo_cliente, f_finalizado DESC")
+                .contains("WHERE");
+    }
+
+    @Test
     @DisplayName("ni la lectura ni el paso ni el patron guardan copias del catalogo desde V51")
     void sinCopiasDelCatalogo() {
         // La unidad y la tolerancia son de la verificacion, el texto y la posicion de un paso son de su

@@ -2612,3 +2612,20 @@ mueren. Con ellas, 20 mutaciones del backend y 2 del frontend, todas muertas. Y 
 de la batería completa: otras clases borran los países y las ciudades sembrados, así que una prueba que
 necesita una ciudad en la base principal se la crea si no queda ninguna. Ver [[dominio-reporte-servicio]],
 [[esquema-bd-malphasos]], [[congelar-una-referencia-historica]] y [[hoja-de-ruta-producto]].
+
+## [2026-10-28] ingest | V52: sin intervencion, y la refactorización a 3FN completa
+
+Undécima y última migración del análisis del esquema. El historial de la hoja de vida deja de tener tabla:
+de cada par (orden, equipo) cuenta su último reporte cerrado, esté retirado o no, y es la regla de `V14`
+convertida en filtro. Lo pide `equipment` por `ServiceHistoryPort` y lo contesta `report`; el oyente del
+cierre —el primer y único consumidor de un evento de dominio del sistema— se retiró con la tabla. Quedan
+36 tablas, 47 foráneas, una sola compuesta, ningún ciclo dirigido y ninguna foránea sin índice: la prueba
+del contrato de índices se queda sin excepciones.
+
+**Lo que conviene recordar**: antes de quitar la tabla se comprobó en desarrollo que la regla derivada da
+las mismas líneas vigentes que la tabla, y se razonó por qué en general también: cada cierre reemplazaba a
+los anteriores de su par y a nada más. Y el razonamiento corrigió una palabra del análisis: decía «reportes
+cerrados **y vigentes**», y vigente no puede ser «activo», porque mientras el sustituto de un reporte es
+borrador el sustituido, ya retirado, sigue siendo el último servicio que ocurrió. Nueve mutaciones, todas
+muertas. Ver [[hoja-de-vida]], [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]] y
+[[hoja-de-ruta-producto]].

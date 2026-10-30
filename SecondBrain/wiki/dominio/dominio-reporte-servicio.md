@@ -505,7 +505,7 @@ imprime desde el navegador, y **no lo cierra**: el requisito pide el PDF firmado
 
 **Y el historial de un equipo no es RF-26.** Esa pantalla responde «qué se le ha hecho a este aparato», que es la consulta sobre la que se construirá la hoja de vida; RF-26 y RF-27 piden el historial **dentro de** una hoja de vida que todavía no existe como entidad.
 
-> **Actualizado el 2026-10-04.** RF-26 y RF-27 están construidos, y **no sobre esta consulta**, que es lo que el párrafo de arriba anunciaba: la hoja de vida es un compilado de la cadena del catálogo más un historial propio, `intervencion`, que un oyente escribe al cerrarse cada reporte. **Cerrar un reporte es ahora un hecho con consecuencias fuera de este módulo**, y la primera de las 51 que el sistema declara con alguien escuchando. Ver [[hoja-de-vida]].
+> **Actualizado el 2026-10-04.** RF-26 y RF-27 están construidos, y **no sobre esta consulta**, que es lo que el párrafo de arriba anunciaba: la hoja de vida es un compilado de la cadena del catálogo más un historial propio, `intervencion`, que un oyente escribe al cerrarse cada reporte. **Cerrar un reporte es ahora un hecho con consecuencias fuera de este módulo**, y la primera de las 51 que el sistema declara con alguien escuchando. Ver [[hoja-de-vida]]. (Hasta `V52`, el 2026-10-28: el historial se deriva desde entonces de los reportes cerrados, el oyente se retiró y ningún evento tiene ya consumidor.)
 
 ## Notas relacionadas
 

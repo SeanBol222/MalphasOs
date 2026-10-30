@@ -27,14 +27,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 class ForeignKeyIndexContractTest {
 
     /**
-     * Las que se quitan o se sustituyen en las migraciones siguientes de la refactorización, y por eso
-     * V42 no las indexa. Cada migración que quita una la saca de aquí, y la prueba exige que sigan
-     * existiendo: una excepción que ya no hace falta tiene que desaparecer de la lista. (La compuesta de
-     * la orden con su cliente salió con V47, y la de la verificación con su magnitud con V48; las dos veces
-     * la prueba lo exigió fallando hasta quitarla de aquí.)
+     * Las que se quitaban o se sustituían en las migraciones siguientes de la refactorización, y por eso V42
+     * no las indexó. Cada migración que quitaba una la sacaba de aquí, y la prueba exigía que siguieran
+     * existiendo: una excepción que ya no hace falta tiene que desaparecer de la lista. La compuesta de la
+     * orden con su cliente salió con V47, la de la verificación con su magnitud con V48, y la última, la de
+     * una intervención con la que la reemplazó, con V52 y su tabla: <b>desde entonces no queda ninguna</b>, y
+     * toda foránea tiene un índice que la encabeza.
      */
-    private static final Set<String> SE_RETIRAN = Set.of(
-            "intervencion.FK_intervencion_reemplazada_por");
+    private static final Set<String> SE_RETIRAN = Set.of();
 
     @Autowired private JdbcTemplate jdbcTemplate;
 
