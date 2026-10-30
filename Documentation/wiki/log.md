@@ -356,3 +356,11 @@ juntaba esto con la verificación por la unidad, y se partió: la verificación 
 La verificación llega a su magnitud por la unidad (A4 del análisis de [[diseno-base-de-datos]]). La nota
 decía que el plan eran **siete** migraciones, `V42` a `V48`: caducó al partirse dos de ellas, y se corrige
 a diez, `V42` a `V51`, con siete construidas. Ningún documento oficial cambia.
+
+## [2026-10-28] ingest | V49 construida, y el plan hasta V52
+
+La orden se congela al ejecutarse (B6 y «la orden también se congela» del análisis de
+[[diseno-base-de-datos]]). El `V49` del plan juntaba esto con quitar la tabla puente, y se partió: el
+puente es `V50`, y las dos últimas pasan a `V51` y `V52`. El análisis recoge además dos decisiones del
+usuario: el botón «Sustituir» y que se puede sustituir con la orden ejecutada. Ningún documento oficial
+cambia.

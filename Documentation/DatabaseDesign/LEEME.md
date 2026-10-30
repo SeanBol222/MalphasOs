@@ -7,7 +7,7 @@ es una foto fechada de un plan; la descripción viva del esquema está en `Secon
 | Qué | Dónde | Estado |
 |---|---|---|
 | **Análisis del esquema** (2026-10-27): ciclos, formas normales, copias y problemas, con las decisiones del usuario y el orden de las migraciones | `analisis-2026-10-27.md` | Decidido |
-| **La refactorización a 3FN y la propuesta final** | `refactor-3fn/` | `V42` a `V48` construidas; previsto hasta `V51` |
+| **La refactorización a 3FN y la propuesta final** | `refactor-3fn/` | `V42` a `V49` construidas; previsto hasta `V52` |
 | Un encargado con varias sedes y áreas | `V41-encargados/` | Implementado el 2026-10-27 |
 | El recibido firmado por sede o por área, en una tabla de la orden | `V42-recibido-por-orden/` | **Descartado** el 2026-10-27: el recibido se queda en el reporte, y firmar varios a la vez no pide migración. Se conserva como foto del plan |
 
@@ -16,7 +16,7 @@ es una foto fechada de un plan; la descripción viva del esquema está en `Secon
 ```
 refactor-3fn/
 ├── 1-hoy/              la base en V41
-├── 2-final/            la propuesta final, tras la refactorización a 3FN (V42 a V51)
+├── 2-final/            la propuesta final, tras la refactorización a 3FN (V42 a V52)
 │   ├── vista-general   solo los nombres de las tablas y sus relaciones: empezar por aquí
 │   ├── completo        todas las tablas con todas sus columnas
 │   └── modulos/        una por módulo: client, company, equipment, location, person, report, work-order

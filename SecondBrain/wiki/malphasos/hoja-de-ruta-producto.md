@@ -600,16 +600,20 @@ el bloqueo del traslado de un equipo que está en una orden viva.
 | `V46` | Sin segundo tipo de persona | **Construida el 2026-10-27** |
 | `V47` | La orden llega a su cliente por la sede | **Construida el 2026-10-28** |
 | `V48` | La verificación llega a su magnitud por la unidad | **Construida el 2026-10-28** |
-| `V49` | La orden se congela al ejecutarse, y sin tabla puente entre la orden y el equipo | Pendiente |
-| `V50` | El reporte cerrado vive en su documento, sin copias del catálogo | Pendiente |
-| `V51` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | Pendiente |
+| `V49` | La orden se congela al ejecutarse | **Construida el 2026-10-28** |
+| `V50` | Sin tabla puente entre la orden y el equipo, con «Sustituir» y el traslado bloqueado | Pendiente |
+| `V51` | El reporte cerrado vive en su documento, sin copias del catálogo | Pendiente |
+| `V52` | Sin `intervencion`: la hoja de vida lee el historial de los reportes | Pendiente |
 
 **Renumerada el 2026-10-27**: el plan tenía siete, `V42` a `V48`, y el `V43` de entonces juntaba los
 teléfonos, la ciudad y las imágenes de la empresa. Se partió en tres al construirlo porque tocan tres
 sitios distintos —la persistencia, la pantalla de la empresa, y `company`, `person` y `report` a la
 vez— y en un solo commit no se revisaban. **Y otra vez el 2026-10-28**: el `V47` que juntaba la orden por
 la sede y la verificación por la unidad se partió en dos, porque son dos módulos, y el plan llega a
-`V51`.
+`V51`. **Y una tercera ese mismo día**: el `V49` que juntaba el congelado de la orden y la tabla puente se
+partió en `V49` y `V50`, y el plan llega a `V52`. Con él quedaron decididas dos cosas que el puente no
+dejaba ver: sustituir un reporte cerrado es un botón «Sustituir», que lo retira y abre su borrador en un
+paso, y se puede sustituir con la orden ya ejecutada sin que su documento cambie.
 
 **Y el recibido** —firmar un reporte, un área o la orden entera— no pide migración: se queda en el reporte,
 como desde `V39`, y es trabajo de servicio y de pantalla después de `V49`.

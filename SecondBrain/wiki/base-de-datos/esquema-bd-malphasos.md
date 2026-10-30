@@ -78,14 +78,14 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V48`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V49`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **48** (`V1`…`V48`) |
+| Migraciones aplicadas | **49** (`V1`…`V49`) |
 | Tablas de dominio | **38** |
 | Llaves foráneas | **52**, de las cuales **2 compuestas** |
-| Restricciones `CHECK` propias | **76** |
+| Restricciones `CHECK` propias | **77** — eran **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **9** — eran **10** hasta `V48` |
@@ -141,6 +141,11 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   restricción única de `unidad_medida` que solo existía para la compuesta; entra una foránea simple a la
 >   unidad, con su índice —**−1 compuesta, −1 única, −1 parcial**, las foráneas se quedan en 52—. La
 >   regla de una magnitud por tipo queda solo en el agregado `EquipmentType`, que ya la imponía.
+> - `V49`, **la orden se congela al ejecutarse**: `orden_trabajo` gana `t_documento` (`jsonb`) y
+>   `b_documento_tardio`, con un `CHECK` que exige el documento a toda ejecutada y lo prohíbe a las demás
+>   —**+1 `CHECK`**—. Las ya ejecutadas se congelan en SQL dentro de la misma migración, con el área que
+>   guardó el puente, y quedan como tardías. Es la primera migración con un **gemelo en Java**
+>   comprobado: una prueba ejecuta su sentencia y la compara con lo que compone `WorkOrderDocumentComposer`.
 
 > **Recontado el 2026-10-16, por la noche, sobre la base con `V32`**, con las mismas consultas. Las cinco
 > migraciones del formato del reporte —el que la empresa ya entrega, ver [[dominio-reporte-servicio]]—
@@ -716,6 +721,8 @@ erDiagram
         varchar t_tipo_servicio
         varchar t_estado_ejecucion
         boolean b_estado_activo
+        jsonb t_documento "la orden al ejecutarse, V49; nulo antes"
+        boolean b_documento_tardio "congelada despues, por V49"
     }
     orden_trabajo_equipo {
         uuid k_id_orden_trabajo PK, FK

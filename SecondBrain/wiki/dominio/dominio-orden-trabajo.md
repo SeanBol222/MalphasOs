@@ -4,7 +4,7 @@ description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatr
 tags: [dominio, work-order, esquema, mantenimiento, "describe:ambos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/workorder/ y malphasos/src/main/resources/db/migration/V6__work_order.sql
 estado: estable
-updated: 2026-10-26
+updated: 2026-10-28
 ---
 
 # Órdenes de trabajo — el módulo completo
@@ -451,6 +451,33 @@ día que la lista no quepa en una página.
 
 **Dos ingenieros con el mismo nombre llevan la cédula en el filtro.** Lo enseñó la base de desarrollo,
 que tiene dos «Alan Turing» —uno retirado— y ofrecía dos opciones idénticas.
+
+## La orden se congela al ejecutarse (2026-10-28, `V49`)
+
+Decidido por el usuario con el análisis del esquema. **Mientras la orden vive se lee en vivo; al
+ejecutarla se compone un documento** —cabecera, cliente, sede con su dirección, ingeniero y cada equipo
+con su área, tipo, marca, modelo, serie, hoja de vida y el número de su reporte— y desde entonces la ficha
+se lee de él. Es lo que `V37` hizo con el informe de cada reporte, llevado a la orden, y es lo que permite
+que `V50` quite el puente: el área congelada en `orden_trabajo_equipo` ya no tiene que proteger nada.
+
+**Lo compone `WorkOrderDocumentComposer`** en el servicio, solo cuando ejecutar es posible: a una orden que
+no se puede ejecutar el agregado le dice por qué, sin leer seis módulos para nada. El agregado no se
+ejecuta sin documento, y el esquema lo exige a toda ejecutada.
+
+**Y tiene un gemelo en SQL**: `V49` congeló las órdenes que ya estaban ejecutadas —con el área del puente,
+que aún existe, y marcadas como tardías, sin fecha de ejecución—. Los dos escriben la misma forma, y
+`WorkOrderFrozenDocumentTest` **ejecuta la sentencia de la propia migración**, leída del archivo, y la
+compara con lo que compone Java. Los datos de la prueba están elegidos para que cada diferencia conocida
+salte: un área con tilde —por bytes va después de la «Z», por el idioma antes, y por eso los dos ordenan
+por bytes—, espacios en la dirección y un segundo nombre en blanco. Cinco mutaciones —quitar el orden,
+ordenar por idioma, otra dirección, el SQL sin recortar, el área de hoy en vez de la del puente— mueren.
+
+**Lo único que la ficha sigue leyendo en vivo es el estado de cada reporte**, porque un reporte cerrado se
+puede sustituir con la orden ya ejecutada (decidido por el usuario ese mismo día): el documento conserva
+el número de entonces, y la ficha dice «Su reporte se sustituyó después de ejecutarla».
+
+En desarrollo, una de las dos ejecutadas quedó con la lista de equipos vacía, y es fiel: se ejecutó sin
+ningún equipo en el puente, antes de que ejecutar exigiera los reportes cerrados.
 
 ## Lo que falta
 

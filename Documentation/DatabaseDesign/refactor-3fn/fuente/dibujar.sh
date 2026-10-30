@@ -7,7 +7,7 @@
 # Necesita java, el plantuml.jar de la extension de VS Code y rsvg-convert. Los .puml van a
 # fuente/plantuml/; los .svg y .pdf, a una carpeta por esquema:
 #     1-hoy/              la base en V41
-#     2-final/            la propuesta final, tras la refactorizacion a 3FN (V42 a V51)
+#     2-final/            la propuesta final, tras la refactorizacion a 3FN (V42 a V52)
 # y en cada una: vista-general, completo y modulos/<modulo>.
 set -euo pipefail
 cd "$(dirname "$0")/.."
