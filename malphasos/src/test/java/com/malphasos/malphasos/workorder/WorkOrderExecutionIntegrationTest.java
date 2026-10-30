@@ -31,7 +31,6 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM intervencion",
             "DELETE FROM paso_reporte",
             "DELETE FROM dato_verificacion",
             "DELETE FROM reporte_servicio",

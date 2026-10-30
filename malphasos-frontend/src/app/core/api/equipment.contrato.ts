@@ -879,7 +879,7 @@ export interface components {
             fechaServicio?: string;
             /**
              * Format: uuid
-             * @description Identificador de la intervencion
+             * @description Identificador de la linea: desde V52, el de su reporte
              */
             id?: string;
             /**

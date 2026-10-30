@@ -47,9 +47,8 @@ public class UnaHojaDeVida {
 
     /** Intervenciones de la más reciente a la más antigua, como las manda el servidor. */
     public UnaHojaDeVida con(InterventionResult resultado, LocalDate fecha) {
-        historial.add(Intervention.rehydrate(UUID.randomUUID(), ID, UUID.randomUUID(), fecha.atTime(9, 0),
-                InterventionType.PREVENTIVO, resultado, "Limpieza y verificación eléctrica", "Ada Lovelace",
-                true, null));
+        historial.add(new Intervention(ID, UUID.randomUUID(), fecha.atTime(9, 0),
+                InterventionType.PREVENTIVO, resultado, "Limpieza y verificación eléctrica", "Ada Lovelace"));
         return this;
     }
 

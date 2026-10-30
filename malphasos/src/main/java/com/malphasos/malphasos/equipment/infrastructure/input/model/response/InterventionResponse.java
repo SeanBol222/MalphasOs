@@ -12,7 +12,7 @@ import java.util.UUID;
  */
 @Schema(name = "InterventionResponse", description = "Una intervencion registrada en la hoja de vida")
 public record InterventionResponse(
-        @Schema(description = "Identificador de la intervencion") UUID id,
+        @Schema(description = "Identificador de la linea: desde V52, el de su reporte") UUID id,
         @Schema(description = "Equipo instalado al que se le hizo") UUID idEquipoCliente,
         @Schema(description = "Reporte de servicio del que sale, para abrirlo desde el historial")
         UUID idReporteServicio,

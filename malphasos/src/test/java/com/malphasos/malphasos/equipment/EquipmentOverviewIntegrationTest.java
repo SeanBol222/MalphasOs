@@ -35,7 +35,6 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM intervencion",
             "DELETE FROM dato_verificacion",
             "DELETE FROM paso_reporte",
             "DELETE FROM reporte_servicio",
@@ -151,8 +150,11 @@ class EquipmentOverviewIntegrationTest {
         return unidad;
     }
 
-    /** Un servicio cerrado: orden, reporte e intervención, que es lo que la hoja de vida cuenta. */
-    private void unServicio(Lugar lugar, UUID unidad, LocalDateTime fecha, InterventionResult resultado, boolean vigente) {
+    /**
+     * Un servicio: orden y reporte. Cerrado es lo que la hoja de vida cuenta, desde V52 sin tabla aparte; un
+     * borrador no es un servicio todavía.
+     */
+    private void unServicio(Lugar lugar, UUID unidad, LocalDateTime fecha, InterventionResult resultado, boolean cerrado) {
         UUID orden = UUID.randomUUID();
         jdbcTemplate.update(
                 """
@@ -162,17 +164,14 @@ class EquipmentOverviewIntegrationTest {
                 """,
                 orden, lugar.sede(), LocalDate.now());
 
-        UUID reporte = UUID.randomUUID();
-        jdbcTemplate.update(
-                "INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente) VALUES (?, ?, ?)",
-                reporte, orden, unidad);
         jdbcTemplate.update(
                 """
-                INSERT INTO intervencion (k_id_intervencion, k_id_equipo_cliente, k_id_reporte_servicio,
-                                          f_fecha_servicio, t_tipo_servicio, t_resultado, b_estado_activo)
-                VALUES (?, ?, ?, ?, 'PREVENTIVO', ?, ?)
+                INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
+                                              t_estado_reporte, t_resultado, f_finalizado)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                UUID.randomUUID(), unidad, reporte, fecha, resultado.name(), vigente);
+                UUID.randomUUID(), orden, unidad, cerrado ? "FINALIZADO" : "BORRADOR", resultado.name(),
+                cerrado ? fecha : null);
     }
 
     private static EquipmentOverviewQuery consulta() {
@@ -190,14 +189,15 @@ class EquipmentOverviewIntegrationTest {
     // ------------------------------------------------------------------------
 
     @Test
-    @DisplayName("cada fila llega compilada: hoja de vida, catalogo, ubicacion y el ultimo servicio vigente")
+    @DisplayName("cada fila llega compilada: hoja de vida, catalogo, ubicacion y el ultimo servicio cerrado")
     void filaCompilada() {
         Lugar lugar = unLugar("Clinica del Norte");
         Catalogo catalogo = unModelo("Balanza", "PCB 3500-2");
         UUID unidad = unEquipo(lugar, catalogo, "WB1240337");
         unServicio(lugar, unidad, LocalDateTime.of(2026, 1, 10, 9, 0), InterventionResult.FUERA_DE_SERVICIO, true);
         unServicio(lugar, unidad, LocalDateTime.of(2026, 3, 5, 15, 30), InterventionResult.OPERATIVO, true);
-        // Mas reciente pero retirada: una intervencion reemplazada no es el ultimo servicio.
+        // Mas reciente pero en borrador: no es un servicio todavia, y no es el ultimo. (Hasta V52 este caso era
+        // una intervencion reemplazada; sin la tabla, la que reemplaza siempre es la mas reciente.)
         unServicio(lugar, unidad, LocalDateTime.of(2026, 5, 1, 8, 0), InterventionResult.FUERA_DE_SERVICIO, false);
 
         EquipmentOverview pagina = listar(consulta(), lugar);
