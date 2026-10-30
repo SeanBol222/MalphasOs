@@ -38,6 +38,10 @@ import { traducirError } from '../../../core/errores/traducir';
  * encargados del sitio. Cada equipo del alcance llega como identificador, y lo que se sabe de él —tipo,
  * modelo, hoja de vida, serie y área— sale del listado de equipos pedido por esos identificadores, en una
  * petición. Hasta ese día se cruzaba la lista entera de equipos con una petición por área.
+ *
+ * <p><b>Una orden ejecutada se lee de su documento</b> (2026-10-28, {@code V49}): cliente, sede, ingeniero
+ * y cada equipo con su área, como eran el día que se ejecutó. Lo único que sigue en vivo es el estado de
+ * cada reporte, porque un reporte cerrado se puede sustituir después, y la ficha lo avisa.
  */
 @Component({
   selector: 'app-detalle-orden',
@@ -53,6 +57,22 @@ export class DetalleOrden {
   private readonly router = inject(Router);
 
   protected readonly orden = this.api.detalle(this.id);
+
+  /** Lo que la orden era al ejecutarse. Sin él, todo se lee en vivo. */
+  protected readonly documento = computed(() => this.orden.data()?.documento ?? undefined);
+
+  /** «Congelada al ejecutarse el 28 oct 2026», o que se congeló después, con los datos de entonces. */
+  protected readonly congelada = computed(() => {
+    const documento = this.documento();
+
+    if (!documento) {
+      return '';
+    }
+
+    return this.orden.data()?.documentoTardio || !documento.fechaEjecucion
+      ? 'Congelada después de ejecutarse, con los datos del día en que se actualizó el sistema.'
+      : `Congelada al ejecutarse el ${fechaCorta(documento.fechaEjecucion)}: dice lo que era ese día.`;
+  });
 
   protected readonly inicio = this.api.iniciar();
   protected readonly ejecucion = this.api.ejecutar();
@@ -107,6 +127,12 @@ export class DetalleOrden {
   protected readonly ingenieroElegido = new FormControl('', { nonNullable: true });
 
   protected readonly cliente = computed(() => {
+    const congelado = this.documento()?.cliente?.nombre;
+
+    if (congelado) {
+      return congelado;
+    }
+
     const id = this.orden.data()?.idCliente;
 
     return (
@@ -115,7 +141,9 @@ export class DetalleOrden {
     );
   });
 
-  protected readonly sede = computed(() => (this.sedes.data() ?? [])[0]?.nombre ?? 'No disponible');
+  protected readonly sede = computed(
+    () => this.documento()?.sede?.nombre ?? (this.sedes.data() ?? [])[0]?.nombre ?? 'No disponible',
+  );
 
   protected readonly estado = computed(() => {
     const estado = this.orden.data()?.estadoEjecucion;
@@ -149,6 +177,12 @@ export class DetalleOrden {
 
   /** El ingeniero asignado, con nombre. Sin él, la orden está programada y no repartida. */
   protected readonly ingeniero = computed(() => {
+    const congelado = this.documento()?.ingeniero;
+
+    if (congelado) {
+      return congelado;
+    }
+
     const id = this.orden.data()?.idIngeniero;
 
     if (!id) {
@@ -203,6 +237,38 @@ export class DetalleOrden {
         .map((reporte) => [reporte.idEquipoCliente, reporte]),
     );
     const grupos = new Map<string, { area: string; equipos: EquipoDelAlcance[] }>();
+    const documento = this.documento();
+
+    if (documento) {
+      // Ya ordenados por el servidor: área, hoja de vida y serie.
+      for (const equipo of documento.equipos ?? []) {
+        const reporte = reportes.get(equipo.id);
+        const area = equipo.area ?? 'Área no disponible';
+        const grupo = grupos.get(area) ?? { area, equipos: [] };
+        // Se puede sustituir un reporte cerrado después de ejecutar (decidido el 2026-10-28): el
+        // documento conserva el número de entonces, y la ficha dice que ya no es el vigente.
+        const sustituido =
+          !!equipo.numeroReporte && !!reporte?.numero && reporte.numero !== equipo.numeroReporte;
+
+        grupo.equipos.push({
+          id: equipo.id!,
+          nombre: [equipo.tipo, equipo.marca, equipo.modelo].filter(Boolean).join(' '),
+          detalle: [
+            equipo.numeroHojaVida,
+            equipo.serie ? `Serie ${equipo.serie}` : '',
+            sustituido ? 'Su reporte se sustituyó después de ejecutarla' : '',
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          deBaja: false,
+          idReporte: reporte?.id,
+          ...estadoDelReporte(reporte?.estado, reporte?.resultado),
+        });
+        grupos.set(area, grupo);
+      }
+
+      return [...grupos.values()];
+    }
 
     for (const equipo of this.orden.data()?.equipos ?? []) {
       const fila = resumen.get(equipo.idEquipoCliente!);
@@ -225,7 +291,9 @@ export class DetalleOrden {
     return [...grupos.values()].sort((a, b) => a.area.localeCompare(b.area, 'es'));
   });
 
-  protected readonly totalDeEquipos = computed(() => this.orden.data()?.equipos?.length ?? 0);
+  protected readonly totalDeEquipos = computed(
+    () => this.documento()?.equipos?.length ?? this.orden.data()?.equipos?.length ?? 0,
+  );
   protected readonly cerrados = computed(
     () =>
       this.grupos()
