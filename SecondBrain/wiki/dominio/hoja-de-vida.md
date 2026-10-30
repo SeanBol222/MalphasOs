@@ -1,10 +1,10 @@
 ---
 name: hoja-de-vida
-description: Que es la hoja de vida de un equipo en MalphasOS -un compilado de solo lectura con cuatro secciones-, por que su historial si tiene tabla, y el oyente que lo escribe
+description: Que es la hoja de vida de un equipo en MalphasOS -un compilado de solo lectura con cuatro secciones-, y de donde sale su historial: de una tabla propia hasta V52, de los reportes cerrados desde entonces
 tags: [dominio, equipos, reportes, hoja-de-vida, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/equipment/application/services/lifeSheet/LifeSheetService.java
 estado: estable
-updated: 2026-10-11
+updated: 2026-10-28
 ---
 
 # La hoja de vida de un equipo
@@ -53,7 +53,32 @@ porque cruzar tablas ajenas en SQL propio es como dos módulos acaban siendo uno
 abre para leerla o imprimirla, no en un bucle. Si algún día duele, la salida es un modelo de lectura
 con su tabla, no una consulta que atraviese las fronteras.
 
+## Desde `V52`, el historial no tiene tabla (2026-10-28)
+
+Decidido por el usuario con el análisis del esquema (B5): **todo lo que una línea del historial dice lo
+dice ya el reporte cerrado** —fecha de cierre, resultado, el tipo de servicio y el ingeniero en su
+documento, y lo hecho en sus pasos y su texto—, así que `intervencion` era una segunda fuente del mismo
+hecho. Además era el único ciclo dirigido del esquema y una de sus foráneas redundantes.
+
+| Hasta `V52` | Desde `V52` |
+|---|---|
+| Un oyente del cierre anotaba la línea en `intervencion` | No hay oyente: la línea se deriva del reporte al pedirla |
+| La regla de `V14` se guardaba en `k_id_reemplazada_por` | Es un filtro: **de cada par (orden, equipo), su último reporte cerrado**, esté retirado o no |
+| El responsable y lo hecho se congelaban en la línea | Salen del documento del reporte, congelado al cerrar |
+
+Lo pide `equipment` por `ServiceHistoryPort` y lo contesta `ServiceHistoryAdapter`, en `report`. **La
+regla da las mismas líneas** que la tabla tenía vigentes: cada cierre reemplazaba a los anteriores de su
+par y a nada más, de modo que lo vigente era siempre el último cierre de cada par. Y el último servicio
+del listado de equipos es el reporte cerrado más reciente, que es lo mismo que daba la línea vigente más
+reciente.
+
+Las dos secciones siguientes cuentan cómo era, y por qué se decidió entonces la tabla. **Las dos dejaron
+de valer con `V52`**: la segunda decisión del usuario de abajo —lo hecho y quién, congelado— la cumple
+ahora el documento del reporte.
+
 ## El historial sí tiene tabla, y es una decisión de dominio
+
+> **Hasta `V52`.** Ver la sección anterior.
 
 Los tres datos que RF-27 pide —fecha de servicio, tipo y resultado— **ya existían**: la fecha de
 cierre y el resultado en `reporte_servicio`, el tipo de servicio en `orden_trabajo`. El historial se
@@ -117,6 +142,9 @@ Verificado recorriendo el flujo entero contra PostgreSQL real —cerrar, retirar
 encontrando una línea; seis mutaciones, las seis caen.
 
 ## El oyente: el primer consumidor de un evento de dominio
+
+> **Retirado con `V52`**, el 2026-10-28: no queda nada que anotar al cerrar un reporte, y con él el sistema
+> vuelve a no tener ningún evento de dominio escuchado.
 
 `ServiceReportFinishedListener` anota la intervención al cerrarse un reporte. **Es el primero**: hay
 **51** eventos de dominio declarados en cinco módulos y, hasta él, ninguno escuchado.

@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 37 tablas, 50 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 36 tablas, 47 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -78,19 +78,19 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V51`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V52`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **51** (`V1`…`V51`) |
-| Tablas de dominio | **37** — eran **38** hasta `V50` |
-| Llaves foráneas | **50**, de las cuales **1 compuesta** — eran **52** y **2** hasta `V50` |
-| Restricciones `CHECK` propias | **73** — eran **77** hasta `V51` y **76** hasta `V49` |
+| Migraciones aplicadas | **52** (`V1`…`V52`), el final de la refactorización a 3FN |
+| Tablas de dominio | **36** — eran **37** hasta `V52` y **38** hasta `V50` |
+| Llaves foráneas | **47**, de las cuales **1 compuesta** — eran **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
+| Restricciones `CHECK` propias | **69** — eran **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **10** — eran **9** hasta `V51` y **10** hasta `V48` |
-| Foráneas sin ningún índice que las encabece | **1**, la de `intervencion`, que `V51` quita — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
-| Tablas con borrado lógico | **33 de 37** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
+| Foráneas sin ningún índice que las encabece | **0** desde `V52`, que quitó la última con su tabla, `intervencion` — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
+| Tablas con borrado lógico | **32 de 36** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
 > `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
@@ -152,6 +152,13 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 >   una orden si y solo si tiene en ella un reporte activo, así que antes de quitarla la migración da su
 >   borrador a cada equipo del puente sin reporte: en desarrollo fueron cinco, con sus pasos del protocolo
 >   los preventivos. Se recontó con el guion de abajo, que **falló** hasta quitar el puente del diagrama.
+> - `V52`, **sin `intervencion`**: el historial de la hoja de vida sale de los reportes cerrados, una línea
+>   por par (orden, equipo) —la de su último cierre, que es la regla de `V14` convertida en filtro—. Salen
+>   la tabla, sus tres foráneas —la del equipo, redundante con la del reporte, y la autorreferencia
+>   `k_id_reemplazada_por`, **el único ciclo dirigido del esquema**—, sus cuatro `CHECK` y su única de una
+>   línea por reporte; entra `IX_reporte_servicio_equipo_cierre`, el último cierre de cada equipo para el
+>   listado —**−1 tabla, −3 foráneas, −4 `CHECK`, −1 única**—. No se rellena nada: lo quitado era una copia. El
+>   guion **falló** con sus 10 columnas hasta quitarlas del diagrama.
 > - `V51`, **el reporte cerrado vive en su documento**: salen las copias del catálogo —las 11 columnas de
 >   la ficha en `patron_verificacion_reporte`, la unidad y la tolerancia en `dato_verificacion`, y el
 >   texto y la posición en `paso_reporte`— con los cuatro `CHECK` que las vigilaban y la única de la
@@ -298,7 +305,6 @@ graph TD
     client -->|representante, encargado| person
     equipment -->|pais del fabricante| location
     equipment -->|area donde se instala| client
-    equipment -->|reporte de cada intervencion| report
     workorder -->|cliente y sede| client
     workorder -->|ingeniero asignado| person
     workorder -->|equipo y area| equipment
@@ -306,9 +312,10 @@ graph TD
     report -->|verificacion y punto| equipment
 ```
 
-**Desde `V12` hay un par de módulos con referencias en los dos sentidos**, y es el único: `report`
-apunta a `equipment` —la verificación y el punto de cada lectura— y `equipment` apunta a `report`
-—`intervencion` guarda de qué reporte salió—. **El código no tiene ese ciclo**, y a propósito:
+~~**Desde `V12` hay un par de módulos con referencias en los dos sentidos**~~, y era el único: `report`
+apunta a `equipment` —la verificación y el punto de cada lectura— y `equipment` apuntaba a `report`
+—`intervencion` guardaba de qué reporte salió—. **Desde `V52` no queda ninguno**: el historial se deriva
+de los reportes y `equipment` lo pide por un puerto que contesta `report`. Lo que sigue es cómo era. **El código no tiene ese ciclo**, y a propósito:
 `InterventionEntity` guarda el identificador del reporte como un UUID suelto, sin `@ManyToOne`, y el
 oyente que la escribe vive en `report` y entra por un puerto que `equipment` publica. El ciclo existe
 solo en la base, donde la foránea es lo que garantiza que una línea del historial no apunte a un reporte
@@ -516,12 +523,13 @@ tablas distintas. Estar a cargo de una sede y de un área de esa misma sede a la
 tipo —uno relevado— y aplica `V41`. Hasta entonces lo que una migración hacía con los datos se
 comprobaba a mano sobre la base de desarrollo, y la de desarrollo no tenía ningún encargado.
 
-## `equipment` — 14 tablas
+## `equipment` — 13 tablas
 
 **Desde `V21` son cuatro cosas, y desde `V25` cinco**: lo de abajo, los **protocolos de mantenimiento**
 de su propia sección y el **catálogo de equipos patrón**, al final. Son tres cosas en un módulo: la **cadena del catálogo** (seis tablas), el **catálogo metrológico con lo
-que se verifica** (cuatro, de `V8` y `V10`) y, desde `V12`, el **historial de intervenciones** de cada
-equipo instalado, que es la única sección de su hoja de vida con tabla propia.
+que se verifica** (cuatro, de `V8` y `V10`) y, de `V12` a `V52`, el **historial de intervenciones** de
+cada equipo instalado, que era la única sección de su hoja de vida con tabla propia. Desde `V52` no tiene
+tabla: sale de los reportes cerrados del equipo. Ver [[hoja-de-vida]].
 
 **«Equipo» significa dos cosas**, y es la trampa de este módulo: `equipo` es una **categoría** —la
 combinación de una marca y un tipo— y `equipo_cliente` es la **máquina** instalada en un área.
@@ -533,8 +541,6 @@ erDiagram
     equipo ||--o{ modelo : "concreta"
     fabricante ||--o{ modelo : "fabrica"
     modelo ||--o{ equipo_cliente : "se instala como"
-    equipo_cliente ||--o{ intervencion : "su historial"
-    intervencion |o--o| intervencion : "reemplazada por"
     tipo_equipo {
         uuid k_id_tipo_equipo PK
         varchar n_nombre_tipo_equipo UK
@@ -574,18 +580,6 @@ erDiagram
         varchar n_numero_hoja_vida UK "HV-CDN-0001 - V20, lo pone un trigger"
         varchar n_codigo_interno "V16"
         varchar n_proveedor "V16"
-        boolean b_estado_activo
-    }
-    intervencion {
-        uuid k_id_intervencion PK
-        uuid k_id_equipo_cliente FK
-        uuid k_id_reporte_servicio FK "del modulo report - UK, no parcial"
-        timestamp f_fecha_servicio "copia congelada del cierre"
-        varchar t_tipo_servicio "copia congelada de la orden"
-        varchar t_resultado "copia congelada del reporte"
-        varchar t_descripcion "procedimientos, congelados - V17"
-        varchar n_responsable "ingeniero, congelado - V17"
-        uuid k_id_reemplazada_por FK "la que la sustituyo - V14"
         boolean b_estado_activo
     }
 ```

@@ -381,3 +381,10 @@ análisis de [[diseno-base-de-datos]]) y el documento de cada reporte cerrado pa
 guardaban. El análisis recoge las decisiones de detalle: la tolerancia que se copió en las lecturas manda
 sobre la del tipo, la migración se detiene ante un cerrado sin documento y un paso se marca por su
 protocolo. Ningún documento oficial cambia, y ningún requisito se mueve.
+
+## [2026-10-28] ingest | V52 construida: la refactorización está completa
+
+Sin `intervencion`: el historial de la hoja de vida sale de los reportes cerrados, una línea por par
+(orden, equipo). Con ella terminan las once migraciones del análisis de [[diseno-base-de-datos]], de `V42`
+a `V52`: 36 tablas, ningún ciclo dirigido y ninguna foránea sin índice. Ningún documento oficial cambia, y
+ningún requisito se mueve: RF-26 y RF-27 se siguen cumpliendo, con el historial derivado en vez de copiado.
