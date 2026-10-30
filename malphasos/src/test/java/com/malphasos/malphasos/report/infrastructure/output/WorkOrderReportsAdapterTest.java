@@ -159,13 +159,11 @@ class WorkOrderReportsAdapterTest {
         adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo());
 
         assertThat(activos(orden, sitio.equipo())).isEqualTo(1);
-        assertThat(jdbcTemplate.queryForList(
-                        """
-                        SELECT p.i_orden FROM paso_reporte p JOIN reporte_servicio r USING (k_id_reporte_servicio)
-                        WHERE r.k_id_orden_trabajo = ? ORDER BY p.i_orden
-                        """,
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM paso_reporte p JOIN reporte_servicio r USING (k_id_reporte_servicio)"
+                                + " WHERE r.k_id_orden_trabajo = ? AND p.b_estado_activo",
                         Integer.class, orden))
-                .containsExactly(1, 2);
+                .isEqualTo(2);
     }
 
     @Test

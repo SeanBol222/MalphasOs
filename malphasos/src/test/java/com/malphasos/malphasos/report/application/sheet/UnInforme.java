@@ -57,7 +57,12 @@ public final class UnInforme {
     public List<VerificationStandard> patrones = new ArrayList<>();
     public List<ReportStep> pasos = new ArrayList<>();
     public List<ReportDocument.Verificacion> verificaciones = new ArrayList<>(List.of(new ReportDocument.Verificacion(
-            VERIFICACION, "Presión", "mmHg", 3, List.of(new ReportDocument.Punto(PUNTO, new BigDecimal("100"))))));
+            VERIFICACION, "Presión", "mmHg", 3, new BigDecimal("0.5"),
+            List.of(new ReportDocument.Punto(PUNTO, new BigDecimal("100"))))));
+    /** El texto de cada paso, como lo lleva el documento desde V51. Lo pone {@link #conPaso}. */
+    public List<ReportDocument.Paso> textosDePasos = new ArrayList<>();
+    /** La ficha de cada patrón que se pueda elegir, por su identificador. */
+    public java.util.Map<UUID, UsedReferenceStandard> fichas = new java.util.LinkedHashMap<>(java.util.Map.of(PATRON.id(), PATRON));
     public ReportDocument.Empresa empresa = new ReportDocument.Empresa("Servicios de Ejemplo S.A.S.", "900.000.000-0",
             "Carrera 1 N.º 2-3", "Ciudad de Ejemplo", "300 000 0000", GARANTIA,
             "Mantenimiento realizado bajo el protocolo de la empresa.", "FT-002 · Versión 1", null);
@@ -70,10 +75,19 @@ public final class UnInforme {
     /** Las dos lecturas del punto de 100 mmHg con ±0,5: una dentro y otra fuera, con su patrón. */
     public UnInforme conLecturas() {
         lecturas.add(VerificationReading.rehydrate(UUID.randomUUID(), VERIFICACION, PUNTO, 2,
-                new BigDecimal("100"), new BigDecimal("100.9"), "mmHg", true, new BigDecimal("0.5")));
+                new BigDecimal("100"), new BigDecimal("100.9"), true));
         lecturas.add(VerificationReading.rehydrate(UUID.randomUUID(), VERIFICACION, PUNTO, 1,
-                new BigDecimal("100"), new BigDecimal("100.2"), "mmHg", true, new BigDecimal("0.5")));
-        patrones.add(new VerificationStandard(UUID.randomUUID(), VERIFICACION, PATRON, true));
+                new BigDecimal("100"), new BigDecimal("100.2"), true));
+        patrones.add(new VerificationStandard(UUID.randomUUID(), VERIFICACION, PATRON.id(), true));
+        return this;
+    }
+
+    /** Un paso del protocolo: su fila en el reporte y su texto en el documento, en el orden en que se añaden. */
+    public UnInforme conPaso(String nombre, com.malphasos.malphasos.report.domain.serviceReport.StepState estado,
+            String nota) {
+        UUID protocolo = UUID.randomUUID();
+        pasos.add(new ReportStep(UUID.randomUUID(), protocolo, estado, nota));
+        textosDePasos.add(new ReportDocument.Paso(protocolo, textosDePasos.size() + 1, nombre, "Descripción", null));
         return this;
     }
 
@@ -97,7 +111,11 @@ public final class UnInforme {
                 new ReportDocument.Equipo("Tensiómetro", "Welch Allyn", "ProBP 2400", "SN-0001", "HV-HCE-0007",
                         "INV-77", "MON-03", "Electrónica", "Medir la presión arterial", "IIA", "AC", 110, null, null,
                         60),
-                verificaciones, empresa, ingeniero, null);
+                verificaciones, empresa, ingeniero, null, textosDePasos,
+                patrones.stream()
+                        .filter(VerificationStandard::estadoActivo)
+                        .map(usado -> new ReportDocument.Patron(usado.idVerificacion(), fichas.get(usado.idEquipoPatron())))
+                        .toList());
 
         return new ReportDocumentView(reporte, documento, logo, firmaIngeniero, firmaRecibe,
                 estado == ReportState.FINALIZADO);

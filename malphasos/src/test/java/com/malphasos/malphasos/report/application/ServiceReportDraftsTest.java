@@ -126,9 +126,9 @@ class ServiceReportDraftsTest {
     }
 
     @Test
-    @DisplayName("en un preventivo copia los protocolos del tipo como pasos pendientes, en su orden")
+    @DisplayName("en un preventivo abre un paso pendiente por cada protocolo del tipo")
     void copiaLosPasos() {
-        // RF-13: se cargan solos. Se copian el nombre, la descripcion y la indicacion de ese dia.
+        // RF-13: se cargan solos. Desde V51 el paso solo dice de qué protocolo es: su texto se lee del catálogo.
         Protocol limpieza = Protocol.create("Limpieza", "Paño humedecido.");
         Protocol electrico = Protocol.create("Eléctrico", "Multímetro.");
         estubarProtocolos(
@@ -139,10 +139,10 @@ class ServiceReportDraftsTest {
         ServiceReport reporte = drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO);
 
         assertThat(reporte.getPasos())
-                .extracting(ReportStep::orden, ReportStep::nombre, ReportStep::indicacion, ReportStep::estado)
+                .extracting(ReportStep::idProtocolo, ReportStep::estado)
                 .containsExactly(
-                        tuple(1, "Limpieza", "Con guantes", StepState.PENDIENTE),
-                        tuple(2, "Eléctrico", null, StepState.PENDIENTE));
+                        tuple(limpieza.getId(), StepState.PENDIENTE),
+                        tuple(electrico.getId(), StepState.PENDIENTE));
     }
 
     @Test

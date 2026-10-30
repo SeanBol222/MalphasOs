@@ -9,7 +9,6 @@ import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
-import com.malphasos.malphasos.report.domain.serviceReport.UsedReferenceStandard;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
@@ -66,9 +65,7 @@ public class ServiceReportPersistenceMapper {
                         fila.getSecuencia(),
                         fila.getValorPatron(),
                         fila.getValorEquipo(),
-                        fila.getUnidad(),
-                        fila.isEstadoActivo(),
-                        fila.getTolerancia()))
+                        fila.isEstadoActivo()))
                 .toList();
 
         return ServiceReport.rehydrate(
@@ -84,22 +81,7 @@ public class ServiceReportPersistenceMapper {
                 entity.getRepuestos(),
                 entity.getPatrones().stream()
                         .map(fila -> new VerificationStandard(
-                                fila.getId(),
-                                fila.getIdVerificacion(),
-                                new UsedReferenceStandard(
-                                        fila.getIdEquipoPatron(),
-                                        fila.getNombre(),
-                                        fila.getMarca(),
-                                        fila.getSerie(),
-                                        fila.getCertificado(),
-                                        fila.getVencimiento(),
-                                        fila.getModelo(),
-                                        fila.getCodigoInterno(),
-                                        fila.getRango(),
-                                        fila.getResolucion(),
-                                        fila.getFechaCalibracion(),
-                                        fila.getEmpresaCalibradora()),
-                                fila.isEstadoActivo()))
+                                fila.getId(), fila.getIdVerificacion(), fila.getIdEquipoPatron(), fila.isEstadoActivo()))
                         .toList(),
                 ingreso(entity.getIngresoFisico(), entity.getIngresoFisicoObservacion()),
                 ingreso(entity.getIngresoOperativo(), entity.getIngresoOperativoObservacion()),
@@ -116,11 +98,7 @@ public class ServiceReportPersistenceMapper {
                 entity.getPasos().stream()
                         .map(fila -> new ReportStep(
                                 fila.getId(),
-                                fila.getOrden(),
                                 fila.getIdProtocolo(),
-                                fila.getNombre(),
-                                fila.getDescripcion(),
-                                fila.getIndicacion(),
                                 StepState.valueOf(fila.getEstado()),
                                 fila.getNota()))
                         .toList(),
@@ -232,22 +210,10 @@ public class ServiceReportPersistenceMapper {
                 fila.setId(usado.id());
                 fila.setReporte(entity);
                 fila.setIdVerificacion(usado.idVerificacion());
+                fila.setIdEquipoPatron(usado.idEquipoPatron());
                 entity.getPatrones().add(fila);
             }
 
-            UsedReferenceStandard patron = usado.patron();
-            fila.setIdEquipoPatron(patron.id());
-            fila.setNombre(patron.nombre());
-            fila.setMarca(patron.marca());
-            fila.setSerie(patron.serie());
-            fila.setCertificado(patron.certificado());
-            fila.setVencimiento(patron.vencimiento());
-            fila.setModelo(patron.modelo());
-            fila.setCodigoInterno(patron.codigoInterno());
-            fila.setRango(patron.rango());
-            fila.setResolucion(patron.resolucion());
-            fila.setFechaCalibracion(patron.fechaCalibracion());
-            fila.setEmpresaCalibradora(patron.empresaCalibradora());
             fila.setEstadoActivo(usado.estadoActivo());
         }
     }
@@ -269,11 +235,7 @@ public class ServiceReportPersistenceMapper {
                 fila = new ReportStepEntity();
                 fila.setId(paso.id());
                 fila.setReporte(entity);
-                fila.setOrden(paso.orden());
                 fila.setIdProtocolo(paso.idProtocolo());
-                fila.setNombre(paso.nombre());
-                fila.setDescripcion(paso.descripcion());
-                fila.setIndicacion(paso.indicacion());
                 entity.getPasos().add(fila);
             }
 
@@ -339,8 +301,6 @@ public class ServiceReportPersistenceMapper {
         fila.setSecuencia(lectura.secuencia());
         fila.setValorPatron(lectura.valorPatron());
         fila.setValorEquipo(lectura.valorEquipo());
-        fila.setUnidad(lectura.unidad());
         fila.setEstadoActivo(lectura.estadoActivo());
-        fila.setTolerancia(lectura.tolerancia());
     }
 }

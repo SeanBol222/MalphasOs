@@ -20,7 +20,9 @@ public final class UnDocumento {
             List.of(),
             null,
             null,
-            null);
+            null,
+            List.of(),
+            List.of());
 
     private UnDocumento() {
     }

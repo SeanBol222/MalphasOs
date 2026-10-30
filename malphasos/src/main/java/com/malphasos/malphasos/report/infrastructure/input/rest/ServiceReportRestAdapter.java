@@ -16,6 +16,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
+import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.infrastructure.input.mapper.ServiceReportRestMapper;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.MarkReportStepRequest;
 import com.malphasos.malphasos.report.infrastructure.input.model.request.RecordHandoverRequest;
@@ -94,6 +95,15 @@ public class ServiceReportRestAdapter {
     /** Traduce quién llama a un alcance de lectura. Ver {@code ClientRestAdapter}. */
     private final ReadScopeResolver readScopeResolver;
 
+    /** Un reporte con lo que dice de sus pasos, verificaciones y patrones sin guardarlo (V51). */
+    private ServiceReportResponse responder(ServiceReport reporte) {
+        return mapper.toResponse(reporte, serviceReportServicePort.catalogOf(reporte));
+    }
+
+    private List<ServiceReportResponse> responder(List<ServiceReport> reportes) {
+        return reportes.stream().map(this::responder).toList();
+    }
+
     @Operation(summary = "Listar reportes de una orden o de un equipo",
             description = "Hay que indicar uno de los dos filtros, y solo uno: un reporte no se "
                     + "consulta suelto, sino dentro de su orden o del historial de su equipo.")
@@ -114,8 +124,8 @@ public class ServiceReportRestAdapter {
         ReadScope alcance = readScopeResolver.scopeFor(autenticacion);
 
         return idOrdenTrabajo != null
-                ? mapper.toList(serviceReportServicePort.findByWorkOrder(idOrdenTrabajo, alcance))
-                : mapper.toList(serviceReportServicePort.findByEquipment(idEquipoCliente, alcance));
+                ? responder(serviceReportServicePort.findByWorkOrder(idOrdenTrabajo, alcance))
+                : responder(serviceReportServicePort.findByEquipment(idEquipoCliente, alcance));
     }
 
     @Operation(summary = "Avance de los reportes por orden",
@@ -135,7 +145,7 @@ public class ServiceReportRestAdapter {
     @PreAuthorize("hasAuthority('report.read')")
     @GetMapping("/{id}")
     public ServiceReportResponse getById(@PathVariable UUID id, Authentication autenticacion) {
-        return mapper.toResponse(
+        return responder(
                 serviceReportServicePort.findById(id, readScopeResolver.scopeFor(autenticacion)));
     }
 
@@ -175,7 +185,7 @@ public class ServiceReportRestAdapter {
     public ServiceReportResponse fill(
             @PathVariable UUID id, @Valid @RequestBody ServiceReportFillRequest request) {
 
-        return mapper.toResponse(serviceReportServicePort.fill(new FillServiceReportCommand(
+        return responder(serviceReportServicePort.fill(new FillServiceReportCommand(
                 id,
                 request.fallaReportada(),
                 request.diagnostico(),
@@ -195,7 +205,7 @@ public class ServiceReportRestAdapter {
     public ServiceReportResponse recordIntake(
             @PathVariable UUID id, @Valid @RequestBody RecordIntakeRequest request) {
 
-        return mapper.toResponse(serviceReportServicePort.recordIntake(new RecordIntakeCommand(
+        return responder(serviceReportServicePort.recordIntake(new RecordIntakeCommand(
                 id,
                 request.fisico(),
                 request.observacionFisico(),
@@ -216,7 +226,7 @@ public class ServiceReportRestAdapter {
     public ServiceReportResponse recordHandover(
             @PathVariable UUID id, @Valid @RequestBody RecordHandoverRequest request) {
 
-        return mapper.toResponse(serviceReportServicePort.recordHandover(
+        return responder(serviceReportServicePort.recordHandover(
                 new RecordHandoverCommand(id, request.nombre(), request.cedula(), request.cargo())));
     }
 
@@ -240,7 +250,7 @@ public class ServiceReportRestAdapter {
             throw new IllegalArgumentException("La firma no es un base64 valido");
         }
 
-        return mapper.toList(serviceReportServicePort.signReceipt(new SignReceiptCommand(
+        return responder(serviceReportServicePort.signReceipt(new SignReceiptCommand(
                 id, request.nombre(), request.cedula(), request.cargo(), firma, request.aplicaALaOrden())));
     }
 
@@ -263,7 +273,7 @@ public class ServiceReportRestAdapter {
                         lectura.valorEquipo()))
                 .toList();
 
-        return mapper.toResponse(serviceReportServicePort.recordVerification(
+        return responder(serviceReportServicePort.recordVerification(
                 new RecordVerificationCommand(id, lecturas)));
     }
 
@@ -283,7 +293,7 @@ public class ServiceReportRestAdapter {
             @PathVariable UUID idVerificacion,
             @Valid @RequestBody UseReferenceStandardRequest request) {
 
-        return mapper.toResponse(serviceReportServicePort.useReferenceStandard(
+        return responder(serviceReportServicePort.useReferenceStandard(
                 new UseReferenceStandardCommand(id, idVerificacion, request.idEquipoPatron())));
     }
 
@@ -300,15 +310,15 @@ public class ServiceReportRestAdapter {
     }
 
     @Operation(summary = "Marcar un paso del protocolo",
-            description = "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El orden es el del "
-                    + "paso dentro del reporte. Solo en un borrador.")
+            description = "HECHO, NO_APLICA -con nota obligatoria- o PENDIENTE otra vez. El paso se nombra por "
+                    + "su protocolo, que un reporte no repite. Solo en un borrador.")
     @PreAuthorize("hasAuthority('report.write')")
-    @PatchMapping("/{id}/steps/{orden}")
+    @PatchMapping("/{id}/steps/{idProtocolo}")
     public ServiceReportResponse markStep(
-            @PathVariable UUID id, @PathVariable int orden, @Valid @RequestBody MarkReportStepRequest request) {
+            @PathVariable UUID id, @PathVariable UUID idProtocolo, @Valid @RequestBody MarkReportStepRequest request) {
 
-        return mapper.toResponse(serviceReportServicePort.markStep(
-                new MarkReportStepCommand(id, orden, request.estado(), request.nota())));
+        return responder(serviceReportServicePort.markStep(
+                new MarkReportStepCommand(id, idProtocolo, request.estado(), request.nota())));
     }
 
     @Operation(summary = "Cerrar el reporte",
@@ -319,7 +329,7 @@ public class ServiceReportRestAdapter {
     @PreAuthorize("hasAuthority('report.write')")
     @PatchMapping("/{id}/finish")
     public ServiceReportResponse finish(@PathVariable UUID id) {
-        return mapper.toResponse(
+        return responder(
                 serviceReportServicePort.finish(new FinishServiceReportCommand(id)));
     }
 
@@ -330,7 +340,7 @@ public class ServiceReportRestAdapter {
     @PostMapping("/{id}/replace")
     public ResponseEntity<ServiceReportResponse> replace(@PathVariable UUID id) {
         ServiceReportResponse borrador =
-                mapper.toResponse(serviceReportServicePort.replace(new ReplaceServiceReportCommand(id)));
+                responder(serviceReportServicePort.replace(new ReplaceServiceReportCommand(id)));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(borrador);
     }

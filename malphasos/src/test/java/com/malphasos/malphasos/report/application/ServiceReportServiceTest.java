@@ -265,7 +265,7 @@ class ServiceReportServiceTest {
                             UUID.randomUUID())),
                     () -> service.removeReferenceStandard(new RemoveReferenceStandardCommand(id, UUID.randomUUID(),
                             UUID.randomUUID())),
-                    () -> service.markStep(new MarkReportStepCommand(id, 1, StepState.HECHO, null)),
+                    () -> service.markStep(new MarkReportStepCommand(id, UUID.randomUUID(), StepState.HECHO, null)),
                     () -> service.finish(new FinishServiceReportCommand(id)));
         }
 
@@ -429,43 +429,42 @@ class ServiceReportServiceTest {
         private static final UUID PUNTO_AJENO = UUID.randomUUID();
 
         @Test
-        @DisplayName("cada lectura copia la tolerancia de su verificacion, en las dos modalidades")
-        void copiaLaTolerancia() {
-            // V27: la conformidad de un reporte cerrado no puede cambiar porque el tipo cambie su
-            // tolerancia despues, asi que la lectura se queda con la de hoy. Las dos ramas -con punto y
-            // sin punto- construyen la lectura por separado, y por eso van las dos.
+        @DisplayName("un borrador dice sus pasos, verificaciones y patrones leyendo hoy el catalogo (V51)")
+        void elCatalogoDeUnBorrador() {
+            // Desde V51 la lectura no copia la unidad ni la tolerancia: un borrador las lee del tipo, por el
+            // compositor, que es el mismo que las congela al cerrar.
             ServiceReport reporte = unReporte();
-            VerificationPoint punto = unPunto("50");
-            EquipmentType tipo = tipoCon(List.of(
-                    TypeVerification.of(PRESION, MMHG, VerificationMode.PATRON_CONSTANTE, 1,
-                            List.of(punto), new BigDecimal("0.5")),
-                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.PATRON_EQUIPO_VARIABLE,
-                            null, List.of(), new BigDecimal("0.3"))));
-            UUID dePresion = tipo.verificacionesActivas().getFirst().id();
-            UUID deTemperatura = tipo.verificacionesActivas().get(1).id();
-            estubarReporte(reporte);
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
             estubarCadenaDelCatalogo(tipo);
-            estubarGuardado();
+            com.malphasos.malphasos.report.application.model.ReportCatalog vivo =
+                    new com.malphasos.malphasos.report.application.model.ReportCatalog(List.of(), List.of(), List.of());
+            when(reportDocumentComposer.catalog(reporte, tipo)).thenReturn(vivo);
 
-            service.recordVerification(new RecordVerificationCommand(reporte.getId(), List.of(
-                    new VerificationReadingCommand(
-                            dePresion, punto.id(), 1, new BigDecimal("50"), new BigDecimal("50.7")),
-                    new VerificationReadingCommand(
-                            deTemperatura, null, 1, new BigDecimal("37"), new BigDecimal("37.1")))));
-
-            VerificationReading dePresionLeida = reporte.lecturasActivas().stream()
-                    .filter(lectura -> lectura.idVerificacion().equals(dePresion)).findFirst().orElseThrow();
-            VerificationReading deTemperaturaLeida = reporte.lecturasActivas().stream()
-                    .filter(lectura -> lectura.idVerificacion().equals(deTemperatura)).findFirst().orElseThrow();
-
-            assertThat(dePresionLeida.tolerancia()).isEqualByComparingTo("0.5");
-            assertThat(dePresionLeida.conforme()).isFalse();
-            assertThat(deTemperaturaLeida.tolerancia()).isEqualByComparingTo("0.3");
-            assertThat(deTemperaturaLeida.conforme()).isTrue();
+            assertThat(service.catalogOf(reporte)).isSameAs(vivo);
         }
 
         @Test
-        @DisplayName("acepta las lecturas de un punto y les pone la unidad de la verificacion")
+        @DisplayName("uno cerrado lo dice su documento, sin tocar el catalogo: la tolerancia de hoy no lo cambia")
+        void elCatalogoDeUnCerrado() {
+            UUID verificacion = UUID.randomUUID();
+            ReportDocument base = UnDocumento.CUALQUIERA;
+            ReportDocument documento = new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(),
+                    List.of(new ReportDocument.Verificacion(verificacion, "Presión", "mmHg", 1, new BigDecimal("0.5"),
+                            List.of())),
+                    null, null, null, List.of(), List.of());
+            ServiceReport cerrado = ServiceReport.rehydrate(UUID.randomUUID(), ORDEN, EQUIPO, ReportState.FINALIZADO,
+                    null, null, "Limpieza", null, null, null, List.of(), null, null, List.of(), null,
+                    ServiceResult.OPERATIVO, java.time.LocalDateTime.of(2026, 10, 1, 9, 0), List.of(), List.of(), true,
+                    documento, false);
+
+            assertThat(service.catalogOf(cerrado).verificacion(verificacion)).get()
+                    .extracting(ReportDocument.Verificacion::tolerancia).isEqualTo(new BigDecimal("0.5"));
+            verify(reportDocumentComposer, never()).catalog(any(), any());
+            verify(clientEquipmentServicePort, never()).findById(any(), any());
+        }
+
+        @Test
+        @DisplayName("acepta las lecturas de un punto de su verificacion")
         void aceptaLasLecturasDelPunto() {
             ServiceReport reporte = unReporte();
             VerificationPoint punto = unPunto("50");
@@ -482,9 +481,7 @@ class ServiceReportServiceTest {
                             verificacion, punto.id(), 2, new BigDecimal("50"), new BigDecimal("49.8")))));
 
             assertThat(reporte.lecturasActivas()).hasSize(2);
-            // La unidad sale de la verificacion, y ya no hay forma de enviarla desde fuera.
-            assertThat(reporte.lecturasActivas()).extracting(VerificationReading::unidad)
-                    .containsOnly("mmHg");
+            // La unidad no viaja en el comando ni en la lectura (V51): es la de la verificacion.
             assertThat(reporte.lecturasActivas()).extracting(VerificationReading::idVerificacion)
                     .containsOnly(verificacion);
         }
@@ -514,8 +511,8 @@ class ServiceReportServiceTest {
                     new VerificationReadingCommand(
                             deTemperatura, celsius.id(), 1, new BigDecimal("37"), new BigDecimal("36.8")))));
 
-            assertThat(reporte.lecturasActivas()).extracting(VerificationReading::unidad)
-                    .containsExactlyInAnyOrder("mmHg", "°C");
+            assertThat(reporte.lecturasActivas()).extracting(VerificationReading::idVerificacion)
+                    .containsExactlyInAnyOrder(dePresion, deTemperatura);
         }
 
         @Test
@@ -692,8 +689,6 @@ class ServiceReportServiceTest {
 
             assertThat(reporte.lecturasActivas()).hasSize(1);
             assertThat(reporte.lecturasActivas().getFirst().idPuntoVerificacion()).isNull();
-            // Antes la unidad tenia que venir de fuera en este caso, y eso permitia inventarsela.
-            assertThat(reporte.lecturasActivas().getFirst().unidad()).isEqualTo("mmHg");
         }
 
         @Test
@@ -737,8 +732,18 @@ class ServiceReportServiceTest {
             lenient().when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
                     .thenReturn(unaOrdenEnEjecucion());
             // Cerrar congela el informe (2026-10-17): lo que se congela lo prueba su propia sección.
-            lenient().when(reportDocumentComposer.compose(any(), any()))
-                    .thenReturn(new ReportDocumentComposer.Composed(UnDocumento.CUALQUIERA, null, null));
+            // Desde V51 el cierre comprueba el vencimiento de cada patrón en el documento: lleva el vigente.
+            lenient().when(reportDocumentComposer.compose(any(), any())).thenAnswer(llamada -> {
+                ServiceReport aCerrar = llamada.getArgument(0);
+                ReportDocument base = UnDocumento.CUALQUIERA;
+                return new ReportDocumentComposer.Composed(new ReportDocument(base.version(), base.orden(),
+                        base.cliente(), base.equipo(), base.verificaciones(), base.empresa(), base.ingeniero(),
+                        base.huellaFirmaIngeniero(), base.pasos(),
+                        aCerrar.patronesActivos().stream()
+                                .map(usado -> new ReportDocument.Patron(usado.idVerificacion(), PATRON_VIGENTE))
+                                .toList()),
+                        null, null);
+            });
         }
 
         private ServiceReport unReporteSinVerificacion() {
@@ -786,10 +791,10 @@ class ServiceReportServiceTest {
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(
                     VerificationReading.of(verificacion, punto.id(), 1,
-                            new BigDecimal("50"), new BigDecimal("50.2"), "mmHg"),
+                            new BigDecimal("50"), new BigDecimal("50.2")),
                     VerificationReading.of(verificacion, punto.id(), 2,
-                            new BigDecimal("50"), new BigDecimal("49.9"), "mmHg")));
-            reporte.useReferenceStandard(verificacion, PATRON_VIGENTE);
+                            new BigDecimal("50"), new BigDecimal("49.9"))));
+            reporte.useReferenceStandard(verificacion, PATRON_VIGENTE.id());
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -809,7 +814,7 @@ class ServiceReportServiceTest {
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(
                     VerificationReading.of(laVerificacionDe(tipo).id(), punto.id(), 1,
-                            new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                            new BigDecimal("50"), new BigDecimal("50.2"))));
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -830,7 +835,7 @@ class ServiceReportServiceTest {
             reporte.fill(null, null, "Limpieza", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(
                     VerificationReading.of(laVerificacionDe(tipo).id(), uno.id(), 1,
-                            new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                            new BigDecimal("50"), new BigDecimal("50.2"))));
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -864,7 +869,7 @@ class ServiceReportServiceTest {
             // Solo las de presion. Las de temperatura no se tomaron.
             reporte.recordVerification(List.of(VerificationReading.of(
                     tipo.verificacionesActivas().getFirst().id(), dePresion.id(), 1,
-                    new BigDecimal("50"), new BigDecimal("50.2"), "mmHg")));
+                    new BigDecimal("50"), new BigDecimal("50.2"))));
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -897,7 +902,7 @@ class ServiceReportServiceTest {
             // Solo la de presion.
             reporte.recordVerification(List.of(VerificationReading.of(
                     tipo.verificacionesActivas().getFirst().id(), null, 1,
-                    new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
+                    new BigDecimal("1"), new BigDecimal("1.1"))));
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -922,11 +927,11 @@ class ServiceReportServiceTest {
             reporte.fill(null, null, "Barrido", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(
                     VerificationReading.of(tipo.verificacionesActivas().getFirst().id(), null, 1,
-                            new BigDecimal("1"), new BigDecimal("1.1"), "mmHg"),
+                            new BigDecimal("1"), new BigDecimal("1.1")),
                     VerificationReading.of(tipo.verificacionesActivas().get(1).id(), null, 1,
-                            new BigDecimal("37"), new BigDecimal("36.8"), "°C")));
-            reporte.useReferenceStandard(tipo.verificacionesActivas().getFirst().id(), PATRON_VIGENTE);
-            reporte.useReferenceStandard(tipo.verificacionesActivas().get(1).id(), PATRON_VIGENTE);
+                            new BigDecimal("37"), new BigDecimal("36.8"))));
+            reporte.useReferenceStandard(tipo.verificacionesActivas().getFirst().id(), PATRON_VIGENTE.id());
+            reporte.useReferenceStandard(tipo.verificacionesActivas().get(1).id(), PATRON_VIGENTE.id());
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -979,8 +984,8 @@ class ServiceReportServiceTest {
             reporte.fill(null, null, "Barrido completo", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(VerificationReading.of(
                     laVerificacionDe(tipo).id(), null, 1,
-                    new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
-            reporte.useReferenceStandard(laVerificacionDe(tipo).id(), PATRON_VIGENTE);
+                    new BigDecimal("1"), new BigDecimal("1.1"))));
+            reporte.useReferenceStandard(laVerificacionDe(tipo).id(), PATRON_VIGENTE.id());
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -1037,7 +1042,7 @@ class ServiceReportServiceTest {
         }
 
         @Test
-        @DisplayName("poner un patron copia en su verificacion lo que el catalogo dice hoy de el, ficha incluida")
+        @DisplayName("poner un patron lo pone en su verificacion, por su identificador: la ficha no se copia (V51)")
         void poneElPatron() {
             EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
             UUID verificacion = laVerificacionDe(tipo).id();
@@ -1056,9 +1061,7 @@ class ServiceReportServiceTest {
 
             assertThat(reporte.patronesActivos()).singleElement().satisfies(usado -> {
                 assertThat(usado.idVerificacion()).isEqualTo(verificacion);
-                assertThat(usado.patron()).isEqualTo(new UsedReferenceStandard(patron.getId(), "Juego de pesas",
-                        "Kern", "KF1-2024-118", "CAL-2026-0412", LocalDate.of(2027, 4, 30), "MS-F1", "BB-PAT-003",
-                        "1 mg a 2 kg", "0,1 mg", LocalDate.of(2026, 4, 30), "Metrologia Andina"));
+                assertThat(usado.idEquipoPatron()).isEqualTo(patron.getId());
             });
             verify(serviceReportPersistencePort).save(reporte);
         }
@@ -1119,7 +1122,7 @@ class ServiceReportServiceTest {
                     reporte.getId(), laVerificacionDe(tipo).id(), patron.getId()));
 
             assertThat(reporte.patronesActivos()).singleElement()
-                    .satisfies(usado -> assertThat(usado.patron().id()).isEqualTo(patron.getId()));
+                    .satisfies(usado -> assertThat(usado.idEquipoPatron()).isEqualTo(patron.getId()));
         }
 
         @Test
@@ -1127,7 +1130,7 @@ class ServiceReportServiceTest {
         void quitaElPatron() {
             UUID verificacion = UUID.randomUUID();
             ServiceReport reporte = unReporte();
-            reporte.useReferenceStandard(verificacion, PATRON_VIGENTE);
+            reporte.useReferenceStandard(verificacion, PATRON_VIGENTE.id());
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarGuardado();
@@ -1147,7 +1150,7 @@ class ServiceReportServiceTest {
             ServiceReport reporte = unReporte();
             reporte.fill(null, null, "Barrido", null, ServiceResult.OPERATIVO);
             reporte.recordVerification(List.of(VerificationReading.of(laVerificacionDe(tipo).id(), null, 1,
-                    new BigDecimal("1"), new BigDecimal("1.1"), "mmHg")));
+                    new BigDecimal("1"), new BigDecimal("1.1"))));
             reporte.pullEvents();
             estubarReporte(reporte);
             estubarCadenaDelCatalogo(tipo);
@@ -1264,7 +1267,7 @@ class ServiceReportServiceTest {
             ReportDocument base = UnDocumento.CUALQUIERA;
             return new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(), List.of(),
                     new ReportDocument.Empresa("Ejemplo", null, null, null, null, null, null, null, huella), null,
-                    null);
+                    null, List.of(), List.of());
         }
 
         @Test
@@ -1333,7 +1336,7 @@ class ServiceReportServiceTest {
             DocumentImage firma = new DocumentImage(PNG, "image/png");
             ReportDocument base = UnDocumento.CUALQUIERA;
             ReportDocument conFirma = new ReportDocument(base.version(), base.orden(), base.cliente(), base.equipo(),
-                    List.of(), null, "Ana Pérez", firma.huella());
+                    List.of(), null, "Ana Pérez", firma.huella(), List.of(), List.of());
             when(reportDocumentComposer.compose(reporte, tipo))
                     .thenReturn(new ReportDocumentComposer.Composed(conFirma, null, firma));
 

@@ -75,8 +75,9 @@ public class ServiceReportDrafts {
     }
 
     /**
-     * Los protocolos del preventivo del tipo del equipo, copiados como pasos pendientes. RF-13: se
-     * cargan solos, sin que nadie los elija.
+     * Los protocolos del preventivo del tipo del equipo, como pasos pendientes. RF-13: se cargan solos,
+     * sin que nadie los elija. Desde V51 un paso solo dice de qué protocolo es: su texto y su posición se
+     * leen del catálogo mientras el reporte es borrador, y del documento cuando se cierra.
      *
      * <p>Solo en una orden preventiva, decidido por el usuario el 2026-10-10: un correctivo es una
      * reparación distinta cada vez y se describe con texto libre. Se copian al abrir el borrador, que
@@ -96,12 +97,7 @@ public class ServiceReportDrafts {
         UUID idTipo = equipmentServicePort.findById(idEquipoCatalogo).getIdTipoEquipo();
 
         return protocolServicePort.protocolsOf(idTipo).stream()
-                .map(asignado -> ReportStep.copied(
-                        asignado.prioridad(),
-                        asignado.protocolo().getId(),
-                        asignado.protocolo().getNombre(),
-                        asignado.protocolo().getDescripcion(),
-                        asignado.indicacion()))
+                .map(asignado -> ReportStep.pending(asignado.protocolo().getId()))
                 .toList();
     }
 }

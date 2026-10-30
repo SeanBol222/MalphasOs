@@ -8,7 +8,6 @@ import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
-import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.StepState;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
@@ -184,8 +183,11 @@ class ReportHtmlRendererTest {
     @DisplayName("las lecturas sin tolerancia no cuentan como conformes ni como no conformes: no se sabe")
     void sinToleranciaNoSeSabe() {
         UnInforme informe = new UnInforme();
+        // La tolerancia es la de la verificación en el documento desde V51: aquí, ninguna.
+        informe.verificaciones.set(0, new ReportDocument.Verificacion(UnInforme.VERIFICACION, "Presión", "mmHg", 3,
+                null, informe.verificaciones.getFirst().puntos()));
         informe.lecturas.add(VerificationReading.rehydrate(UUID.randomUUID(), UnInforme.VERIFICACION,
-                UnInforme.PUNTO, 1, new BigDecimal("100"), new BigDecimal("100.3"), "mmHg", true));
+                UnInforme.PUNTO, 1, new BigDecimal("100"), new BigDecimal("100.3"), true));
         Document hoja = pintar(informe);
 
         assertThat(texto(hoja, "[data-verificacion]")).isEqualTo("1 lectura");
@@ -231,19 +233,28 @@ class ReportHtmlRendererTest {
     @Test
     @DisplayName("los pasos del protocolo: ✓ hecho, N/A con su nota, en blanco si quedó pendiente")
     void elProtocolo() {
-        UnInforme informe = new UnInforme();
-        informe.pasos.addAll(List.of(
-                new ReportStep(UUID.randomUUID(), 1, UUID.randomUUID(), "Limpieza", null, null, StepState.HECHO, null),
-                new ReportStep(UUID.randomUUID(), 2, UUID.randomUUID(), "Batería", null, null, StepState.NO_APLICA,
-                        "No tiene"),
-                new ReportStep(UUID.randomUUID(), 3, UUID.randomUUID(), "Cables", null, null, StepState.PENDIENTE,
-                        null)));
+        UnInforme informe = new UnInforme()
+                .conPaso("Limpieza", StepState.HECHO, null)
+                .conPaso("Batería", StepState.NO_APLICA, "No tiene")
+                .conPaso("Cables", StepState.PENDIENTE, null);
         Document hoja = pintar(informe);
 
         assertThat(hoja.select("[data-protocolo] li").stream().map(Element::text).toList())
                 .containsExactly("✓ Limpieza", "N/A Batería — No tiene", "Cables");
         // Con pasos, el texto libre es trabajo adicional.
         assertThat(texto(hoja, "[data-relato]")).contains("Trabajo adicional. Limpieza general");
+    }
+
+    @Test
+    @DisplayName("los pasos salen en el orden del documento, no en el de las filas del reporte (V51)")
+    void elProtocoloEnElOrdenDelDocumento() {
+        UnInforme informe = new UnInforme()
+                .conPaso("Limpieza", StepState.HECHO, null)
+                .conPaso("Cables", StepState.HECHO, null);
+        java.util.Collections.reverse(informe.pasos);
+
+        assertThat(pintar(informe).select("[data-protocolo] li").stream().map(Element::text).toList())
+                .containsExactly("✓ Limpieza", "✓ Cables");
     }
 
     @Test
@@ -370,12 +381,13 @@ class ReportHtmlRendererTest {
         void unPatronDosVerificaciones() {
             UUID humedad = UUID.randomUUID();
             UnInforme informe = new UnInforme().conLecturas();
-            informe.verificaciones.add(new ReportDocument.Verificacion(humedad, "Humedad", "%HR", 1, List.of()));
+            informe.verificaciones.add(new ReportDocument.Verificacion(humedad, "Humedad", "%HR", 1,
+                    new BigDecimal("2"), List.of()));
             // Primero la de humedad: las medidas salen en el orden en que el tipo las declara, no en el
             // de las lecturas.
             informe.lecturas.addFirst(VerificationReading.rehydrate(UUID.randomUUID(), humedad, null, 1,
-                    new BigDecimal("50"), new BigDecimal("51"), "%HR", true, new BigDecimal("2")));
-            informe.patrones.add(new VerificationStandard(UUID.randomUUID(), humedad, UnInforme.PATRON, true));
+                    new BigDecimal("50"), new BigDecimal("51"), true));
+            informe.patrones.add(new VerificationStandard(UUID.randomUUID(), humedad, UnInforme.PATRON.id(), true));
             Document hoja = pintar(informe);
 
             assertThat(hoja.select("[data-trazabilidad]")).hasSize(1);

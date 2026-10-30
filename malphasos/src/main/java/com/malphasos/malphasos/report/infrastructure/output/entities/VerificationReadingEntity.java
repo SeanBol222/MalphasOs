@@ -63,13 +63,7 @@ public class VerificationReadingEntity {
     @Column(name = "d_valor_equipo", nullable = false)
     private BigDecimal valorEquipo;
 
-    @Column(name = "n_unidad", nullable = false)
-    private String unidad;
-
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;
 
-    /** La tolerancia de la verificación cuando se tomó. Desde V27. */
-    @Column(name = "d_tolerancia", precision = 12, scale = 4)
-    private BigDecimal tolerancia;
 }

@@ -136,7 +136,7 @@ class ReportDocumentComposerTest {
                 new BigDecimal("0.5"), 60));
         TypeVerification declarada = tipo.getVerificaciones().getFirst();
         assertThat(documento.verificaciones()).containsExactly(new ReportDocument.Verificacion(
-                declarada.id(), "Masa", "kg", 3,
+                declarada.id(), "Masa", "kg", 3, declarada.tolerancia(),
                 List.of(new ReportDocument.Punto(declarada.puntos().getFirst().id(), new BigDecimal("10.5")))));
         assertThat(documento.empresa()).isEqualTo(new ReportDocument.Empresa("Ejemplo S.A.S.", "900", "Carrera 1",
                 "Ciudad", "300", "La garantía", "La aclaración", "FT-2", new DocumentImage(PNG, "image/png").huella()));

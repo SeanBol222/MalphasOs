@@ -100,8 +100,7 @@ class GotenbergReportPdfAdapterTest {
         for (int i = 3; i <= 60; i++) {
             informe.lecturas.add(com.malphasos.malphasos.report.domain.serviceReport.VerificationReading.rehydrate(
                     java.util.UUID.randomUUID(), UnInforme.VERIFICACION, UnInforme.PUNTO, i,
-                    new java.math.BigDecimal("100"), new java.math.BigDecimal("100.1"), "mmHg", true,
-                    new java.math.BigDecimal("0.5")));
+                    new java.math.BigDecimal("100"), new java.math.BigDecimal("100.1"), true));
         }
 
         byte[] pdf = adaptador.render(ReportSheetComposer.compose(informe.vista()));
