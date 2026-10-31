@@ -150,8 +150,23 @@ export class ReporteApi {
   }
 
   /**
-   * Los informes en PDF de todos los reportes de una orden, en un ZIP (2026-10-31). El servidor solo lo
-   * da con todos cerrados. Es una mutación y no una consulta: convierte un PDF por equipo, tarda, y se pide
+   * El resumen de una orden en PDF: la relación de los equipos atendidos (2026-10-31). Con la misma
+   * condición que el ZIP, del que es la primera hoja.
+   */
+  resumenDeOrden() {
+    return injectMutation(() => ({
+      mutationFn: (idOrdenTrabajo: string) =>
+        pedirArchivo(
+          this.http,
+          `${this.url}/summary?idOrdenTrabajo=${encodeURIComponent(idOrdenTrabajo)}`,
+          'orden.pdf',
+        ),
+    }));
+  }
+
+  /**
+   * Los informes en PDF de todos los reportes de una orden, en un ZIP, con el resumen de la orden delante
+   * (2026-10-31). El servidor solo lo da con todos cerrados. Es una mutación y no una consulta: convierte un PDF por equipo, tarda, y se pide
    * al pulsar el botón, no al abrir la ficha.
    */
   informesDeOrden() {

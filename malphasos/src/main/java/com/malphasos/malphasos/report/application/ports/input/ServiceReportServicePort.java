@@ -111,6 +111,14 @@ public interface ServiceReportServicePort {
     ReportArchive pdfsOfWorkOrder(UUID idOrdenTrabajo, ReadScope alcance);
 
     /**
+     * El resumen de una orden en PDF: una fila por equipo atendido, con su informe y su resultado
+     * (2026-10-31). Con la misma condición que {@link #pdfsOfWorkOrder}, del que es la primera hoja.
+     *
+     * @throws IllegalStateException si la orden no tiene reportes o alguno sigue en borrador
+     */
+    ReportPdf workOrderSummary(UUID idOrdenTrabajo, ReadScope alcance);
+
+    /**
      * Congela, con los datos de hoy, los reportes cerrados antes de que el informe se congelara, y los
      * marca como tardíos. Se llama al arrancar; con todos congelados no hace nada.
      *

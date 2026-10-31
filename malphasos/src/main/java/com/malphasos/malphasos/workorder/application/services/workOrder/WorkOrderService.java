@@ -27,6 +27,7 @@ import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReport
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -95,6 +96,23 @@ public class WorkOrderService implements WorkOrderServicePort {
         }
 
         return orden;
+    }
+
+    /**
+     * Una orden sin ejecutar se compone con lo de hoy, como la ficha la enseña, y sin fecha de ejecución:
+     * el compositor pone la de hoy porque es lo que guarda al ejecutar, y aquí todavía no se ha ejecutado.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public WorkOrderDocument documentOf(WorkOrder orden) {
+        if (orden.getDocumento() != null) {
+            return orden.getDocumento();
+        }
+        WorkOrderDocument hoy = workOrderDocumentComposer.compose(orden);
+
+        return new WorkOrderDocument(hoy.version(), hoy.numero(), hoy.tipoServicio(), hoy.garantia(),
+                hoy.periodicidad(), hoy.fechaMantenimiento(), null, hoy.cliente(), hoy.sede(), hoy.ingeniero(),
+                hoy.equipos());
     }
 
     @Override

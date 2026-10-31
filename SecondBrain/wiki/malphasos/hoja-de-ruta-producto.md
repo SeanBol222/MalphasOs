@@ -623,7 +623,8 @@ como tres opciones. Ver [[dominio-reporte-servicio]].
 
 **Y los informes de una orden en un ZIP**, pedido el 2026-10-31 y construido ese día: un botón en la ficha
 de la orden, cuando todos sus equipos tienen el reporte cerrado. Sin migración. Ver
-[[dominio-reporte-servicio]].
+[[dominio-reporte-servicio]]. **Y el resumen de la orden en PDF**, ese mismo día: la relación de los equipos
+atendidos, primera hoja del ZIP y con botón propio.
 
 ## El orden propuesto
 

@@ -9,6 +9,7 @@ import com.malphasos.malphasos.workorder.application.services.workOrder.commands
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.StartWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -32,6 +33,12 @@ public interface WorkOrderServicePort {
     List<WorkOrder> findAll(ReadScope alcance);
 
     WorkOrder findById(UUID id, ReadScope alcance);
+
+    /**
+     * Lo que dice la orden (2026-10-31): el documento congelado si ya se ejecutó (V49), y si no, el que se
+     * compondría hoy, sin fecha de ejecución. No acota: se pide de una orden leída ya con su alcance.
+     */
+    WorkOrderDocument documentOf(WorkOrder orden);
 
     List<WorkOrder> findByClient(UUID idCliente, ReadScope alcance);
 

@@ -590,6 +590,43 @@ class WorkOrderServiceTest {
     }
 
     @Nested
+    @DisplayName("Lo que dice la orden (2026-10-31)")
+    class LoQueDiceLaOrden {
+
+        private WorkOrderDocument unDocumento(java.time.LocalDate ejecutada) {
+            return new WorkOrderDocument(WorkOrderDocument.VERSION, "ABC123", "PREVENTIVO", false, "ANUAL", MANANA,
+                    ejecutada, new WorkOrderDocument.Cliente("Cliente", "900"),
+                    new WorkOrderDocument.Sede("Sede", "Calle 1", "Bogotá"), "Ingeniera", List.of());
+        }
+
+        @Test
+        @DisplayName("una orden ejecutada dice su documento congelado, sin componer nada")
+        void ejecutada() {
+            WorkOrderDocument congelado = unDocumento(java.time.LocalDate.of(2026, 10, 18));
+            WorkOrder ejecutada = WorkOrder.rehydrate(UUID.randomUUID(), CLIENTE, SEDE, MANANA, Periodicity.ANUAL,
+                    ServiceType.PREVENTIVO, false, ExecutionState.EJECUTADA, INGENIERO, true, congelado, false);
+
+            assertThat(service.documentOf(ejecutada)).isSameAs(congelado);
+            verify(workOrderDocumentComposer, never()).compose(any());
+        }
+
+        @Test
+        @DisplayName("una sin ejecutar se compone con lo de hoy, sin fecha de ejecución")
+        void sinEjecutar() {
+            WorkOrder enEjecucion = WorkOrder.rehydrate(UUID.randomUUID(), CLIENTE, SEDE, MANANA,
+                    Periodicity.ANUAL, ServiceType.PREVENTIVO, ExecutionState.EN_EJECUCION, INGENIERO, true);
+            // El compositor pone la fecha de hoy, porque es lo que guarda al ejecutar.
+            when(workOrderDocumentComposer.compose(enEjecucion)).thenReturn(unDocumento(java.time.LocalDate.now()));
+
+            WorkOrderDocument documento = service.documentOf(enEjecucion);
+
+            assertThat(documento.fechaEjecucion()).isNull();
+            assertThat(documento).usingRecursiveComparison().ignoringFields("fechaEjecucion")
+                    .isEqualTo(unDocumento(null));
+        }
+    }
+
+    @Nested
     @DisplayName("Las consultas comprueban que la referencia existe")
     class LasConsultas {
 

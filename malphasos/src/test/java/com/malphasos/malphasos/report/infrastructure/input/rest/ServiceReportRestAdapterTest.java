@@ -700,6 +700,33 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
+    @DisplayName("el resumen de una orden sale como PDF adjunto con el nombre que da el servicio")
+    void resumenDeLaOrden() throws Exception {
+        UUID orden = UUID.randomUUID();
+        byte[] pdf = "%PDF-resumen".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        when(serviceReportServicePort.workOrderSummary(eq(orden), any()))
+                .thenReturn(new ReportPdf("orden-ABC123.pdf", pdf));
+
+        mockMvc.perform(get("/v1/api/reports/summary").param("idOrdenTrabajo", orden.toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"orden-ABC123.pdf\""))
+                .andExpect(content().bytes(pdf));
+    }
+
+    @Test
+    @DisplayName("con algún reporte sin cerrar, el resumen responde 409")
+    void resumenConReportesAbiertos() throws Exception {
+        UUID orden = UUID.randomUUID();
+        when(serviceReportServicePort.workOrderSummary(eq(orden), any()))
+                .thenThrow(new IllegalStateException("1 reporte(s) sin cerrar"));
+
+        mockMvc.perform(get("/v1/api/reports/summary").param("idOrdenTrabajo", orden.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_003"));
+    }
+
+    @Test
     @DisplayName("con algún reporte sin cerrar, el ZIP responde 409")
     void zipConReportesAbiertos() throws Exception {
         UUID orden = UUID.randomUUID();
