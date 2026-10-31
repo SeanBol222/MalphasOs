@@ -184,7 +184,7 @@ export interface paths {
         head?: never;
         /**
          * Firmar el recibido
-         * @description Quien recibe el servicio firma en la pantalla (RF-18), antes o despues de cerrar: es lo unico que se anade a un reporte cerrado. Una vez firmado no cambia. Con aplicarALaOrden la misma firma va a los reportes activos de la orden que aun no tengan (RF-21). Devuelve los reportes firmados, el pedido primero.
+         * @description Quien recibe el servicio firma en la pantalla (RF-18), antes o despues de cerrar: es lo unico que se anade a un reporte cerrado. Una vez firmado no cambia. Con alcance AREA u ORDEN la misma firma va a los reportes activos del area o de la orden que aun no tengan (RF-21). Devuelve los reportes firmados, el pedido primero.
          */
         patch: operations["signReceipt"];
         trace?: never;
@@ -546,8 +546,11 @@ export interface components {
             resultado?: "OPERATIVO" | "OPERATIVO_CON_RESTRICCIONES" | "FUERA_DE_SERVICIO";
         };
         SignReceiptRequest: {
-            /** @description RF-21: la misma firma en los reportes de la orden que aun no tengan, abiertos o cerrados. Opcional; sin ella, solo este */
-            aplicarALaOrden?: boolean;
+            /**
+             * @description RF-21: a cuantos reportes va la misma firma. REPORTE, solo este; AREA, los de la orden en el area de este equipo; ORDEN, todos los de la orden. En los demas solo se pone si aun no tienen, abiertos o cerrados. Opcional; sin el, REPORTE
+             * @enum {string}
+             */
+            alcance?: "REPORTE" | "AREA" | "ORDEN";
             /** @example Jefe de enfermeria */
             cargo?: string;
             cedula?: string;

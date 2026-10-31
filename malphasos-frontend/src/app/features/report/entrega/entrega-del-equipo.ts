@@ -12,7 +12,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ReporteApi } from '../reporte-api';
-import { QuienRecibe } from '../../../core/api/tipos';
+import { AlcanceDeFirma, QuienRecibe } from '../../../core/api/tipos';
 import { traducirError } from '../../../core/errores/traducir';
 import { fechaCorta } from '../../../core/fechas';
 import { LienzoDeFirma } from '../../../shared/lienzo-de-firma/lienzo-de-firma';
@@ -66,7 +66,16 @@ export class EntregaDelEquipo {
   protected readonly firmado = this.api.firmarRecibido();
 
   protected readonly formulario = this.fb.nonNullable.group({ nombre: '', cedula: '', cargo: '' });
-  protected readonly aplicarALaOrden = this.fb.nonNullable.control(false);
+  /**
+   * RF-21: a cuántos reportes va la firma. Quien recibe puede firmar uno, todos los del área de este equipo o
+   * todos los de la orden, que es la sede entera (2026-10-30).
+   */
+  protected readonly alcance = this.fb.nonNullable.control<AlcanceDeFirma>('REPORTE');
+  protected readonly alcances: readonly { valor: AlcanceDeFirma; etiqueta: string }[] = [
+    { valor: 'REPORTE', etiqueta: 'Solo este reporte' },
+    { valor: 'AREA', etiqueta: 'Los reportes de esta área en la orden que aún no la tengan' },
+    { valor: 'ORDEN', etiqueta: 'Todos los reportes de la orden que aún no la tengan' },
+  ];
 
   private readonly escrito = toSignal(this.formulario.valueChanges);
 
@@ -85,8 +94,9 @@ export class EntregaDelEquipo {
   protected readonly trazo = signal<string | null>(null);
   protected readonly faltaTrazo = signal(false);
   protected readonly faltaQuienFirma = signal(false);
-  /** Cuántos reportes firmó la última firma: el aviso dice si fueron más de uno. */
+  /** Cuántos reportes firmó la última firma, y con qué alcance: el aviso dice si fueron más de uno. */
   protected readonly firmados = signal(0);
+  protected readonly firmadosEn = signal<AlcanceDeFirma>('REPORTE');
 
   private readonly lienzo = viewChild(LienzoDeFirma);
 
@@ -199,13 +209,14 @@ export class EntregaDelEquipo {
           cedula: texto(cedula),
           cargo: texto(cargo),
           imagen,
-          aplicarALaOrden: this.aplicarALaOrden.value,
+          alcance: this.alcance.value,
         },
       },
       {
         onSuccess: (reportes) => {
           this.formulario.markAsPristine();
           this.firmados.set(reportes.length);
+          this.firmadosEn.set(this.alcance.value);
         },
       },
     );

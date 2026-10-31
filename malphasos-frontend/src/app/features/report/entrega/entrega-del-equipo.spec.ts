@@ -172,7 +172,7 @@ describe('Entrega del equipo', () => {
         fixture.debugElement.query(By.directive(LienzoDeFirma)).componentInstance as LienzoDeFirma
       ).cambio.emit(imagen);
 
-    it('firma con el nombre escrito y el trazo, sin la casilla, solo este reporte', async () => {
+    it('firma con el nombre escrito y el trazo, sin elegir alcance, solo este reporte', async () => {
       await abrir();
       escribir('recibeNombre', ' Ana Pérez ');
       escribir('recibeCargo', 'Jefe de enfermería');
@@ -188,7 +188,7 @@ describe('Entrega del equipo', () => {
         cedula: undefined,
         cargo: 'Jefe de enfermería',
         imagen: PNG,
-        aplicarALaOrden: false,
+        alcance: 'REPORTE',
       });
       peticion.flush([{ id: ID_REPORTE }]);
       await asentar(fixture);
@@ -196,7 +196,7 @@ describe('Entrega del equipo', () => {
       expect(raiz().textContent).not.toContain('Firmados');
     });
 
-    it('firmar deja caducados los reportes de la orden y el informe: con la casilla cambiaron otros', async () => {
+    it('firmar deja caducados los reportes de la orden y el informe: con otro alcance cambiaron otros', async () => {
       const cache = TestBed.inject(QueryClient);
       // El cliente de pruebas tiene gcTime 0: sin esto, lo sembrado desaparece antes de firmar.
       cache.setQueryDefaults(ReporteApi.CLAVE, { gcTime: Infinity });
@@ -218,24 +218,47 @@ describe('Entrega del equipo', () => {
       expect(cache.getQueryState(INFORME)?.isInvalidated).toBe(true);
     });
 
-    it('con la casilla, la firma va a la orden y dice cuántos se firmaron', async () => {
+    for (const [alcance, donde] of [
+      ['ORDEN', 'orden'],
+      ['AREA', 'área'],
+    ] as const) {
+      it(`con el alcance ${alcance}, la firma va a la ${donde} y dice cuántos se firmaron`, async () => {
+        await abrir();
+        escribir('recibeNombre', 'Ana Pérez');
+        raiz().querySelector<HTMLInputElement>(`[data-alcance-opcion="${alcance}"]`)!.click();
+        // Su change sube al formulario, y con el nombre escrito el borrador guarda la entrega (2026-10-27).
+        await asentar(fixture);
+        http.expectOne(URL_ENTREGA).flush({ id: ID_REPORTE });
+        dibujar(PNG);
+        await asentar(fixture);
+        firmar()!.click();
+        await asentar(fixture);
+
+        const peticion = http.expectOne(URL_FIRMA);
+        expect(peticion.request.body.alcance).toBe(alcance);
+        peticion.flush([{ id: ID_REPORTE }, { id: 'b' }, { id: 'c' }]);
+        await asentar(fixture);
+
+        expect(raiz().textContent).toContain(`Firmados 3 reportes de esta ${donde}.`);
+      });
+    }
+
+    it('ofrece los tres alcances, y empieza en solo este reporte', async () => {
       await abrir();
-      escribir('recibeNombre', 'Ana Pérez');
-      raiz().querySelector<HTMLInputElement>('[data-aplicar-orden]')!.click();
-      // Su change sube al formulario, y con el nombre escrito el borrador guarda la entrega (2026-10-27).
-      await asentar(fixture);
-      http.expectOne(URL_ENTREGA).flush({ id: ID_REPORTE });
-      dibujar(PNG);
-      await asentar(fixture);
-      firmar()!.click();
-      await asentar(fixture);
 
-      const peticion = http.expectOne(URL_FIRMA);
-      expect(peticion.request.body.aplicarALaOrden).toBe(true);
-      peticion.flush([{ id: ID_REPORTE }, { id: 'b' }, { id: 'c' }]);
-      await asentar(fixture);
-
-      expect(raiz().textContent).toContain('Firmados 3 reportes de esta orden.');
+      const opciones = [
+        ...raiz().querySelectorAll<HTMLInputElement>('[data-alcance] input[type="radio"]'),
+      ];
+      expect(opciones.map((opcion) => opcion.dataset['alcanceOpcion'])).toEqual([
+        'REPORTE',
+        'AREA',
+        'ORDEN',
+      ]);
+      expect(
+        opciones
+          .filter((opcion) => opcion.checked)
+          .map((opcion) => opcion.dataset['alcanceOpcion']),
+      ).toEqual(['REPORTE']);
     });
 
     it('sin trazo no se firma, y dibujar quita el aviso', async () => {
