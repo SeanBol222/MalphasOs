@@ -85,6 +85,7 @@ export function orden(
     estadoEjecucion: string;
     estadoActivo: boolean;
     tipoServicio: string;
+    periodicidad: string | undefined;
     garantia: boolean;
     idIngeniero: string | undefined;
     equipos: { idEquipoCliente: string; idReporteServicio: string }[];
