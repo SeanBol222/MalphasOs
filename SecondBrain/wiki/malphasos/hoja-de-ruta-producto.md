@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-30
+updated: 2026-10-31
 ---
 
 # Hoja de ruta del producto
@@ -620,6 +620,10 @@ como desde `V39`, y es trabajo de servicio y de pantalla después de `V49`. **Co
 tras `V52`: la casilla «aplicar a la orden» se volvió un alcance de tres valores —solo este reporte, los
 del área de este equipo en la orden, o todos los de la orden—, en el API como `alcance` y en la pantalla
 como tres opciones. Ver [[dominio-reporte-servicio]].
+
+**Y los informes de una orden en un ZIP**, pedido el 2026-10-31 y construido ese día: un botón en la ficha
+de la orden, cuando todos sus equipos tienen el reporte cerrado. Sin migración. Ver
+[[dominio-reporte-servicio]].
 
 ## El orden propuesto
 

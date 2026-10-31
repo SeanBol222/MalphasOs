@@ -17,28 +17,58 @@ export function nombreDelArchivo(cabecera: string | null): string | null {
   return cabecera?.match(/filename="?([^";]+)"?/)?.[1] ?? null;
 }
 
-/**
- * Pide un PDF. Llega como binario, así que un error también: el cuerpo del 404 o del 503 es un
- * {@code Blob} y no el JSON con su código. Se lee aquí y se vuelve a lanzar con el JSON, para que el
- * mensaje sea el del catálogo y no el genérico.
- */
+/** Un archivo cualquiera y el nombre con que se guarda: el ZIP de los informes de una orden (2026-10-31). */
+export interface ArchivoDescargado {
+  readonly archivo: Blob;
+  readonly nombre: string;
+}
+
+/** Pide un PDF: ver {@link pedirArchivo}. */
 export async function pedirPdf(
   http: HttpClient,
   url: string,
   nombrePorDefecto: string,
 ): Promise<DocumentoEnPdf> {
+  const { archivo, nombre } = await pedirArchivo(http, url, nombrePorDefecto);
+
+  return { pdf: archivo, nombre };
+}
+
+/**
+ * Pide un binario. Llega como tal, así que un error también: el cuerpo del 404 o del 503 es un
+ * {@code Blob} y no el JSON con su código. Se lee aquí y se vuelve a lanzar con el JSON, para que el
+ * mensaje sea el del catálogo y no el genérico.
+ */
+export async function pedirArchivo(
+  http: HttpClient,
+  url: string,
+  nombrePorDefecto: string,
+): Promise<ArchivoDescargado> {
   try {
     const respuesta = await firstValueFrom(
       http.get(url, { observe: 'response', responseType: 'blob' }),
     );
 
     return {
-      pdf: respuesta.body!,
+      archivo: respuesta.body!,
       nombre: nombreDelArchivo(respuesta.headers.get('Content-Disposition')) ?? nombrePorDefecto,
     };
   } catch (fallo) {
     throw await conCuerpoLeido(fallo);
   }
+}
+
+/**
+ * Guarda en el equipo un archivo ya descargado, con su nombre: un enlace temporal que se pulsa solo. La
+ * dirección se libera después, cuando el navegador ya empezó a guardarlo.
+ */
+export function guardarArchivo({ archivo, nombre }: ArchivoDescargado): void {
+  const direccion = URL.createObjectURL(archivo);
+  const enlace = document.createElement('a');
+  enlace.href = direccion;
+  enlace.download = nombre;
+  enlace.click();
+  setTimeout(() => URL.revokeObjectURL(direccion));
 }
 
 /** Un error de una petición binaria con su cuerpo de error leído como JSON, si lo es. */

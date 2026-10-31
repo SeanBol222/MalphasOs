@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.infrastructure.input.rest;
 
+import com.malphasos.malphasos.report.application.model.ReportArchive;
 import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
@@ -35,9 +36,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -175,6 +181,39 @@ public class ServiceReportRestAdapter {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.inline().filename(pdf.nombre()).build().toString())
                 .body(pdf.contenido());
+    }
+
+    @Operation(summary = "Los informes de una orden en un ZIP",
+            description = "Un PDF por reporte activo de la orden, el mismo de /{id}/pdf. Solo cuando todos estan"
+                    + " cerrados: si alguno sigue en borrador, o la orden no tiene reportes, responde 409. Con el"
+                    + " alcance de la orden.")
+    @ApiResponse(responseCode = "200", description = "El ZIP",
+            content = @Content(mediaType = "application/zip", schema = @Schema(type = "string", format = "binary")))
+    @PreAuthorize("hasAuthority('report.read')")
+    @GetMapping(value = "/archive", produces = "application/zip")
+    public ResponseEntity<byte[]> getArchive(
+            @Parameter(description = "La orden de trabajo") @RequestParam UUID idOrdenTrabajo,
+            Authentication autenticacion) {
+        ReportArchive archivo = serviceReportServicePort.pdfsOfWorkOrder(
+                idOrdenTrabajo, readScopeResolver.scopeFor(autenticacion));
+
+        ByteArrayOutputStream zip = new ByteArrayOutputStream();
+        try (ZipOutputStream salida = new ZipOutputStream(zip)) {
+            for (ReportPdf pdf : archivo.informes()) {
+                salida.putNextEntry(new ZipEntry(pdf.nombre()));
+                salida.write(pdf.contenido());
+                salida.closeEntry();
+            }
+        } catch (IOException imposible) {
+            // Se escribe en memoria: un ByteArrayOutputStream no lanza.
+            throw new UncheckedIOException(imposible);
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(archivo.nombre()).build().toString())
+                .body(zip.toByteArray());
     }
 
     @Operation(summary = "Registrar la informacion tecnica (RF-15)",

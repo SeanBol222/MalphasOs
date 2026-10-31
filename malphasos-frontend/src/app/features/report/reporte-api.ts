@@ -18,7 +18,7 @@ import {
   RegistroDeIngreso,
   ReporteDeServicio,
 } from '../../core/api/tipos';
-import { DocumentoEnPdf, pedirPdf } from '../../core/api/pdf';
+import { DocumentoEnPdf, pedirArchivo, pedirPdf } from '../../core/api/pdf';
 
 /** El informe en PDF y el nombre con que se descarga, que dice el servidor (2026-10-17). */
 export type InformeEnPdf = DocumentoEnPdf;
@@ -146,6 +146,22 @@ export class ReporteApi {
       queryFn: (): Promise<InformeEnPdf> =>
         pedirPdf(this.http, `${this.url}/${id()}/pdf`, 'informe.pdf'),
       enabled: !!id(),
+    }));
+  }
+
+  /**
+   * Los informes en PDF de todos los reportes de una orden, en un ZIP (2026-10-31). El servidor solo lo
+   * da con todos cerrados. Es una mutación y no una consulta: convierte un PDF por equipo, tarda, y se pide
+   * al pulsar el botón, no al abrir la ficha.
+   */
+  informesDeOrden() {
+    return injectMutation(() => ({
+      mutationFn: (idOrdenTrabajo: string) =>
+        pedirArchivo(
+          this.http,
+          `${this.url}/archive?idOrdenTrabajo=${encodeURIComponent(idOrdenTrabajo)}`,
+          'informes.zip',
+        ),
     }));
   }
 

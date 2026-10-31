@@ -30,6 +30,7 @@ import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.shared.application.ports.output.DocumentImageStorePort;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfPort;
+import com.malphasos.malphasos.report.application.model.ReportArchive;
 import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.model.ReportSheet;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
@@ -77,6 +78,7 @@ import com.malphasos.malphasos.workorder.application.services.workOrder.commands
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.Periodicity;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
+import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.math.BigDecimal;
@@ -1636,6 +1638,81 @@ class ServiceReportServiceTest {
 
             assertThatThrownBy(() -> service.pdf(reporte.getId(), ReadScope.ofClients(List.of(UUID.randomUUID()))))
                     .isInstanceOf(ServiceReportNotFoundException.class);
+            verify(reportPdfPort, never()).render(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Los informes de una orden en un ZIP (2026-10-31)")
+    class LosInformesDeUnaOrden {
+
+        private ServiceReport cerradoDe(UUID equipo) {
+            return cerrado(UUID.randomUUID(), equipo);
+        }
+
+        private ServiceReport cerrado(UUID id, UUID equipo) {
+            return ServiceReport.rehydrate(id, ORDEN, equipo, ReportState.FINALIZADO, null, null,
+                    "Limpieza", null, null, null, List.of(), null, null, List.of(), null, ServiceResult.OPERATIVO,
+                    java.time.LocalDateTime.of(2026, 10, 1, 9, 0), List.of(), List.of(), true,
+                    UnDocumento.CUALQUIERA, false);
+        }
+
+        @Test
+        @DisplayName("con todos cerrados, un PDF por reporte activo, por número, y el ZIP con el de la orden")
+        void todosCerrados() {
+            // Identificadores fijos, y llegan al revés: con unos al azar, la mitad de las veces ya vendrían en orden.
+            ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"), UUID.randomUUID());
+            ServiceReport otro = cerrado(UUID.fromString("bbbbbb00-0000-0000-0000-000000000000"), UUID.randomUUID());
+            ServiceReport retirado = unReporte();
+            retirado.deactivate();
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(otro, retirado, uno));
+            when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+
+            ReportArchive archivo = service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted());
+
+            assertThat(archivo.nombre()).isEqualTo("informes-orden-" + unaOrdenEnEjecucion().numero() + ".zip");
+            assertThat(archivo.informes()).extracting(ReportPdf::nombre)
+                    .containsExactly("informe-AAAAAA.pdf", "informe-BBBBBB.pdf");
+            // Un retirado borrador no impide descargar ni entra: no es de la orden.
+            verify(reportPdfPort, org.mockito.Mockito.times(2)).render(any());
+        }
+
+        @Test
+        @DisplayName("con un reporte en borrador no se descarga, y no se convierte ninguno")
+        void unoSinCerrar() {
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN))
+                    .thenReturn(List.of(cerradoDe(UUID.randomUUID()), unReporte()));
+
+            assertThatThrownBy(() -> service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("1 reporte(s) sin cerrar");
+            verify(reportPdfPort, never()).render(any());
+        }
+
+        @Test
+        @DisplayName("una orden sin reportes activos no tiene nada que descargar")
+        void sinReportes() {
+            ServiceReport retirado = cerradoDe(UUID.randomUUID());
+            retirado.deactivate();
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(retirado));
+
+            assertThatThrownBy(() -> service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted()))
+                    .isInstanceOf(IllegalStateException.class);
+            verify(reportPdfPort, never()).render(any());
+        }
+
+        @Test
+        @DisplayName("la orden de otro cliente no existe, y no se lee ni se convierte nada")
+        void ordenAjena() {
+            ReadScope soloOtro = ReadScope.ofClients(List.of(UUID.randomUUID()));
+            when(workOrderServicePort.findById(ORDEN, soloOtro)).thenThrow(new WorkOrderNotFoundException(ORDEN));
+            // Si la guarda no estuviera, esto daría reportes que convertir.
+            lenient().when(serviceReportPersistencePort.findByWorkOrder(ORDEN))
+                    .thenReturn(List.of(cerradoDe(UUID.randomUUID())));
+            lenient().when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+
+            assertThatThrownBy(() -> service.pdfsOfWorkOrder(ORDEN, soloOtro))
+                    .isInstanceOf(WorkOrderNotFoundException.class);
             verify(reportPdfPort, never()).render(any());
         }
     }

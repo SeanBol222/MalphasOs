@@ -2638,3 +2638,14 @@ de su área en la orden o todos los de la orden. La casilla de RF-21 se volvió 
 los equipos que están hoy en la del pedido, que es la de cuando empezó la orden porque `V50` bloquea el
 traslado. Cinco mutaciones del backend y cuatro del frontend, todas muertas. Ver
 [[dominio-reporte-servicio]] y [[hoja-de-ruta-producto]].
+
+## [2026-10-31] ingest | Los informes de una orden en un ZIP
+
+Pedido por el usuario: descargar de una vez el PDF de cada reporte de una orden. `GET
+/reports/archive?idOrdenTrabajo=` los convierte uno a uno con Gotenberg y los devuelve en un ZIP, solo si
+todos los reportes activos están cerrados —si no, 409 sin convertir ninguno—, y la ficha de la orden ofrece
+el botón en ese mismo momento. Siete mutaciones del backend y seis del frontend, todas muertas.
+
+**Lo que conviene recordar**: la mutación que quitaba el orden por número sobrevivió a la primera, porque
+la prueba usaba identificadores al azar y la mitad de las veces la lista ya llegaba ordenada. Una prueba
+de orden necesita datos que lleguen desordenados siempre, no a veces. Ver [[dominio-reporte-servicio]].

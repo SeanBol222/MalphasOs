@@ -3,6 +3,7 @@ package com.malphasos.malphasos.report.application.ports.input;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.model.ReportArchive;
 import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
@@ -100,6 +101,14 @@ public interface ServiceReportServicePort {
      * si está cerrado, el de ahora si es un borrador, que sale marcado como tal.
      */
     ReportPdf pdf(UUID id, ReadScope alcance);
+
+    /**
+     * Los informes en PDF de todos los reportes activos de una orden, si la orden entra en el alcance y
+     * todos están cerrados (2026-10-31): es lo que se entrega al terminar.
+     *
+     * @throws IllegalStateException si la orden no tiene reportes o alguno sigue en borrador
+     */
+    ReportArchive pdfsOfWorkOrder(UUID idOrdenTrabajo, ReadScope alcance);
 
     /**
      * Congela, con los datos de hoy, los reportes cerrados antes de que el informe se congelara, y los

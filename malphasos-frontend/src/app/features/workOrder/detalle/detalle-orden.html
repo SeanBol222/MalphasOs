@@ -28,6 +28,17 @@
         </div>
 
         <div class="flex flex-wrap gap-1">
+          @if (puedeDescargarInformes()) {
+            <button
+              class="boton-secundario min-h-tactil"
+              type="button"
+              data-descargar-informes
+              [disabled]="descarga.isPending()"
+              (click)="descargarInformes()"
+            >
+              {{ descarga.isPending() ? 'Preparando los informes…' : 'Descargar informes (ZIP)' }}
+            </button>
+          }
           @if (puedeEscribir() && datos.estadoActivo) {
             <a
               class="boton-secundario flex min-h-tactil items-center"
