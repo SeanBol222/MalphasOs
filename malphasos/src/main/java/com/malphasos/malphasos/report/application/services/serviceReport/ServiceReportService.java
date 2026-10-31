@@ -19,6 +19,7 @@ import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.shared.application.ports.output.DocumentImageStorePort;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfPort;
+import com.malphasos.malphasos.report.application.model.ReportArchive;
 import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.services.serviceReport.sheet.ReportSheetComposer;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.DiscardServiceReportCommand;
@@ -444,8 +445,10 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional(readOnly = true)
     public ReportDocumentView document(UUID id, ReadScope alcance) {
-        ServiceReport reporte = findById(id, alcance);
+        return documentOf(findById(id, alcance));
+    }
 
+    private ReportDocumentView documentOf(ServiceReport reporte) {
         if (reporte.getDocumento() != null) {
             ReportDocument documento = reporte.getDocumento();
 
@@ -472,10 +475,42 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Override
     @Transactional(readOnly = true)
     public ReportPdf pdf(UUID id, ReadScope alcance) {
-        ReportDocumentView vista = document(id, alcance);
+        return pdfOf(findById(id, alcance));
+    }
+
+    private ReportPdf pdfOf(ServiceReport reporte) {
+        ReportDocumentView vista = documentOf(reporte);
 
         return new ReportPdf("informe-" + vista.reporte().numero() + ".pdf",
                 reportPdfPort.render(ReportSheetComposer.compose(vista)));
+    }
+
+    /**
+     * Los informes de una orden, uno por reporte activo y por orden de número. Solo cuando están todos
+     * cerrados: un borrador sale marcado como tal, y lo que se descarga junto es lo que se entrega.
+     *
+     * <p>Se comprueba antes de convertir ninguno, porque cada conversión es una llamada al conversor.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ReportArchive pdfsOfWorkOrder(UUID idOrdenTrabajo, ReadScope alcance) {
+        WorkOrder orden = workOrderServicePort.findById(idOrdenTrabajo, alcance);
+        List<ServiceReport> activos = serviceReportPersistencePort.findByWorkOrder(idOrdenTrabajo).stream()
+                .filter(ServiceReport::isEstadoActivo)
+                .sorted(java.util.Comparator.comparing(ServiceReport::numero))
+                .toList();
+
+        if (activos.isEmpty()) {
+            throw new IllegalStateException("La orden " + orden.numero() + " no tiene reportes que descargar");
+        }
+        long abiertos = activos.stream().filter(reporte -> reporte.getEstado() != ReportState.FINALIZADO).count();
+        if (abiertos > 0) {
+            throw new IllegalStateException("La orden " + orden.numero() + " tiene " + abiertos
+                    + " reporte(s) sin cerrar: los informes se descargan juntos cuando estan todos cerrados");
+        }
+
+        return new ReportArchive("informes-orden-" + orden.numero() + ".zip",
+                activos.stream().map(this::pdfOf).toList());
     }
 
     @Override

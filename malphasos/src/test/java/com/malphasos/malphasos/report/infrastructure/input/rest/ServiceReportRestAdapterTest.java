@@ -19,6 +19,7 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundException;
 import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.model.ReportArchive;
 import com.malphasos.malphasos.report.application.model.ReportPdf;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfUnavailableException;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
@@ -667,6 +668,47 @@ class ServiceReportRestAdapterTest {
 
         mockMvc.perform(get("/v1/api/reports/" + id + "/pdf"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("los informes de una orden salen en un ZIP adjunto, un PDF por reporte con su nombre")
+    void zipDeLaOrden() throws Exception {
+        UUID orden = UUID.randomUUID();
+        byte[] uno = "%PDF-uno".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] dos = "%PDF-dos".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        when(serviceReportServicePort.pdfsOfWorkOrder(eq(orden), any())).thenReturn(new ReportArchive(
+                "informes-orden-ABC123.zip",
+                List.of(new ReportPdf("informe-111111.pdf", uno), new ReportPdf("informe-222222.pdf", dos))));
+
+        byte[] cuerpo = mockMvc.perform(get("/v1/api/reports/archive").param("idOrdenTrabajo", orden.toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string("Content-Disposition",
+                        "attachment; filename=\"informes-orden-ABC123.zip\""))
+                .andReturn().getResponse().getContentAsByteArray();
+
+        java.util.Map<String, byte[]> entradas = new java.util.LinkedHashMap<>();
+        try (java.util.zip.ZipInputStream zip =
+                new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(cuerpo))) {
+            for (java.util.zip.ZipEntry entrada; (entrada = zip.getNextEntry()) != null; ) {
+                entradas.put(entrada.getName(), zip.readAllBytes());
+            }
+        }
+        assertThat(entradas).containsOnlyKeys("informe-111111.pdf", "informe-222222.pdf");
+        assertThat(entradas.get("informe-111111.pdf")).isEqualTo(uno);
+        assertThat(entradas.get("informe-222222.pdf")).isEqualTo(dos);
+    }
+
+    @Test
+    @DisplayName("con algún reporte sin cerrar, el ZIP responde 409")
+    void zipConReportesAbiertos() throws Exception {
+        UUID orden = UUID.randomUUID();
+        when(serviceReportServicePort.pdfsOfWorkOrder(eq(orden), any()))
+                .thenThrow(new IllegalStateException("1 reporte(s) sin cerrar"));
+
+        mockMvc.perform(get("/v1/api/reports/archive").param("idOrdenTrabajo", orden.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_003"));
     }
 
     @Test

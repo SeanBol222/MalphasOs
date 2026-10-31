@@ -932,6 +932,87 @@
         "tags" : [ "ServiceReport" ]
       }
     },
+    "/v1/api/reports/archive" : {
+      "get" : {
+        "description" : "Un PDF por reporte activo de la orden, el mismo de /{id}/pdf. Solo cuando todos estan cerrados: si alguno sigue en borrador, o la orden no tiene reportes, responde 409. Con el alcance de la orden.",
+        "operationId" : "getArchive",
+        "parameters" : [ {
+          "description" : "La orden de trabajo",
+          "in" : "query",
+          "name" : "idOrdenTrabajo",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/zip" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "El ZIP"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Los informes de una orden en un ZIP",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
     "/v1/api/reports/progress" : {
       "get" : {
         "description" : "Para cada orden con algun reporte vivo, cuantos equipos lo tienen cerrado y cuantos en borrador. Una orden sin reportes no aparece. Acotado al alcance de quien llama.",
