@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.infrastructure.input.model.request;
 
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReceiptScope;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -22,12 +23,8 @@ public record SignReceiptRequest(
         @NotBlank(message = "La firma es obligatoria")
         @Schema(description = "PNG de hasta 256 KB como data: URI", example = "data:image/png;base64,iVBORw0KGgo=")
         String imagen,
-        @Schema(description = "RF-21: la misma firma en los reportes de la orden que aun no tengan, abiertos o"
-                + " cerrados. Opcional; sin ella, solo este")
-        Boolean aplicarALaOrden) {
-
-    /** Sin la casilla, solo este reporte. Un {@code boolean} primitivo rechazaría el cuerpo que la omite. */
-    public boolean aplicaALaOrden() {
-        return Boolean.TRUE.equals(aplicarALaOrden);
-    }
+        @Schema(description = "RF-21: a cuantos reportes va la misma firma. REPORTE, solo este; AREA, los de la"
+                + " orden en el area de este equipo; ORDEN, todos los de la orden. En los demas solo se pone si"
+                + " aun no tienen, abiertos o cerrados. Opcional; sin el, REPORTE")
+        ReceiptScope alcance) {
 }

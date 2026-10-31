@@ -30,6 +30,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReceiptScope;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
@@ -294,10 +295,14 @@ public class ServiceReportService implements ServiceReportServicePort {
      * Quien recibe firma el recibido (V39, RF-18). La imagen se guarda una vez, por su huella, y cada
      * reporte firmado apunta a ella.
      *
-     * <p><b>Con {@code aplicarALaOrden}, RF-21</b>: la misma firma, con el mismo nombre, en los reportes
-     * activos de esa orden que aún no tengan, abiertos o cerrados. Los que ya tienen la suya no se tocan
-     * —firmado, no se cambia—, y los retirados tampoco. El pedido sí tiene que poder firmarse: si ya está
-     * firmado, falla aunque se aplique a la orden, porque quien firma cree estar firmando ese.
+     * <p><b>Con un alcance mayor, RF-21</b>: la misma firma, con el mismo nombre, en los reportes activos
+     * de esa orden que aún no tengan, abiertos o cerrados —todos, o solo los del área del equipo pedido
+     * (2026-10-30)—. Los que ya tienen la suya no se tocan —firmado, no se cambia—, y los retirados
+     * tampoco. El pedido sí tiene que poder firmarse: si ya está firmado, falla aunque se aplique a más,
+     * porque quien firma cree estar firmando ese.
+     *
+     * <p>El área es la de hoy de cada equipo, y es la misma que tenía al empezar: desde {@code V50} un
+     * equipo no se traslada mientras está en una orden sin ejecutar.
      */
     @Override
     @Transactional
@@ -309,11 +314,15 @@ public class ServiceReportService implements ServiceReportServicePort {
 
         List<ServiceReport> aFirmar = new ArrayList<>();
         aFirmar.add(pedido);
-        if (command.aplicarALaOrden()) {
+        if (command.alcance() != ReceiptScope.REPORTE) {
+            Set<UUID> equiposDelArea = command.alcance() == ReceiptScope.AREA
+                    ? equiposDelAreaDe(pedido.getIdEquipoCliente())
+                    : null;
             serviceReportPersistencePort.findByWorkOrder(pedido.getIdOrdenTrabajo()).stream()
                     .filter(otro -> !otro.getId().equals(pedido.getId()))
                     .filter(ServiceReport::isEstadoActivo)
                     .filter(otro -> !otro.firmadoPorQuienRecibe())
+                    .filter(otro -> equiposDelArea == null || equiposDelArea.contains(otro.getIdEquipoCliente()))
                     .forEach(aFirmar::add);
         }
 
@@ -329,6 +338,20 @@ public class ServiceReportService implements ServiceReportServicePort {
         }
 
         return firmados;
+    }
+
+    /**
+     * Los equipos que están hoy en el área de uno, en una consulta. Sin restricción, como
+     * {@link #tipoDelEquipo(UUID)}: quien llega aquí ya pasó por la comprobación del reporte pedido, y la
+     * lista solo filtra reportes de esa misma orden.
+     */
+    private Set<UUID> equiposDelAreaDe(UUID idEquipoCliente) {
+        UUID area = clientEquipmentServicePort.findById(idEquipoCliente, ReadScope.unrestricted())
+                .getIdAreaServicio();
+
+        return clientEquipmentServicePort.findByServiceArea(area, ReadScope.unrestricted()).stream()
+                .map(ClientEquipment::getId)
+                .collect(Collectors.toSet());
     }
 
     /**
