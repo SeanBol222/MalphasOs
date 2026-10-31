@@ -2649,3 +2649,16 @@ el botón en ese mismo momento. Siete mutaciones del backend y seis del frontend
 **Lo que conviene recordar**: la mutación que quitaba el orden por número sobrevivió a la primera, porque
 la prueba usaba identificadores al azar y la mitad de las veces la lista ya llegaba ordenada. Una prueba
 de orden necesita datos que lleguen desordenados siempre, no a veces. Ver [[dominio-reporte-servicio]].
+
+## [2026-10-31] ingest | El resumen de la orden en PDF
+
+La relación de los equipos atendidos en una orden, con su informe, su resultado y quién lo recibió, en
+carta horizontal: el diseño salió de tres propuestas dibujadas en un lienzo y una prueba que mezclaba dos.
+Va como primera hoja del ZIP y con su propio botón, con la misma condición: todos los reportes cerrados.
+Lo que la orden dice lo da `work-order` con `documentOf` —congelado si se ejecutó, de hoy y sin fecha de
+ejecución si no—, y el informe de cada fila es el del reporte activo. Doce mutaciones del backend y cuatro
+del frontend, todas muertas.
+
+**Lo que conviene recordar**: antes de mutar se convirtió la plantilla con el Gotenberg de desarrollo y
+doce filas de prueba, y se miró el PDF: las pruebas leen el HTML y no ven si la hoja cabe. Ver
+[[dominio-reporte-servicio]].

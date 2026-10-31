@@ -252,6 +252,28 @@ cuando todos los equipos tienen su reporte cerrado. `GET /reports/archive?idOrde
 - **En la pantalla es una mutación, no una consulta**: se pide al pulsar, no al abrir la ficha, y se
   guarda con un enlace temporal que se pulsa solo.
 
+### El resumen de la orden en PDF (2026-10-31)
+
+Pedido el mismo día que el ZIP: un documento de la orden con una tabla de todos los equipos atendidos.
+El usuario eligió el diseño sobre tres propuestas dibujadas en un lienzo —la tabla de control en carta
+horizontal, con la cabecera del resumen por área: la banda oscura con el logo de la empresa y los totales
+por resultado— y dos decisiones: **se descarga con todos los reportes cerrados**, como el ZIP, y va **dentro
+del ZIP como primera hoja** (`orden-<número>.pdf`) **y con su propio botón**, `GET /reports/summary`.
+
+- **Una fila por equipo**: área, equipo, marca y modelo, serie, hoja de vida, informe, fecha de cierre,
+  resultado y quién firmó el recibido —una raya si nadie—. Los no operativos pesan más; solo el total de
+  fuera de servicio va en el color de alerta.
+- **Lo que la orden dice sale de su documento** —`WorkOrderServicePort.documentOf`—: el congelado si se
+  ejecutó (`V49`), y si no el que se compondría hoy, **sin fecha de ejecución**, que el resumen imprime
+  como «En curso». El compositor de la orden pone la fecha de hoy porque es lo que guarda al ejecutar, y
+  un resumen de una orden sin ejecutar no puede decir que se ejecutó hoy.
+- **El informe de cada fila es el del reporte activo**, no el número que el documento congeló: un
+  reporte cerrado se puede sustituir con la orden ya ejecutada, y el resumen nombra el que vale.
+- **No se congela**: se compone al pedirlo, con la empresa de hoy. Lo congelado ya está en la orden y en
+  cada informe.
+- **Una orden larga sigue en más hojas**: la cabecera de la tabla se repite y la banda va solo en la
+  primera. Las firmas del ingeniero y del supervisor del cliente son líneas para firmar a mano.
+
 ### El patrón, la tolerancia y la conformidad
 
 Decidido por el usuario: **todo reporte con lecturas** dice contra qué equipo patrón se midió, el patrón
