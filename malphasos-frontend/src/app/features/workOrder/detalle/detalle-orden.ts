@@ -102,8 +102,6 @@ export class DetalleOrden {
   private readonly reporteApi = inject(ReporteApi);
   private readonly reportes = this.reporteApi.porOrden(this.id);
   protected readonly descarga = this.reporteApi.informesDeOrden();
-  protected readonly descargaDelResumen = this.reporteApi.resumenDeOrden();
-  protected readonly descargaDelCronograma = this.reporteApi.cronogramaDeOrden();
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('work-order.write'));
   protected readonly puedeAsignar = computed(() => this.sesion.puede('work-order.assign'));
@@ -184,18 +182,12 @@ export class DetalleOrden {
   protected readonly reportesPendientes = computed(() => this.totalDeEquipos() - this.cerrados());
 
   /**
-   * Los informes se descargan juntos, y el resumen de la orden, cuando todos los equipos tienen su reporte
-   * cerrado (2026-10-31), con la orden ejecutada o no: lo mismo exige el servidor.
+   * Los informes se descargan juntos, con el resumen y el cronograma de la orden, cuando todos los equipos
+   * tienen su reporte cerrado (2026-10-31), con la orden ejecutada o no: lo mismo exige el servidor.
    */
   protected readonly puedeDescargarInformes = computed(
     () => this.totalDeEquipos() > 0 && this.reportesPendientes() === 0,
   );
-
-  /**
-   * El cronograma va con los otros dos botones, así que pide lo mismo, y además que la orden tenga
-   * periodicidad (2026-10-31): sin ella no hay próximo mantenimiento que programar, y el servidor responde 409.
-   */
-  protected readonly tieneCronograma = computed(() => !!this.orden.data()?.periodicidad);
 
   /** El ingeniero asignado, con nombre. Sin él, la orden está programada y no repartida. */
   protected readonly ingeniero = computed(() => {
@@ -371,9 +363,7 @@ export class DetalleOrden {
       this.anulacion.isError() ||
       this.bajaDeEquipo.isError() ||
       this.asignacion.isError() ||
-      this.descarga.isError() ||
-      this.descargaDelResumen.isError() ||
-      this.descargaDelCronograma.isError(),
+      this.descarga.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
     traducirError(
@@ -383,22 +373,12 @@ export class DetalleOrden {
         this.anulacion.error() ??
         this.bajaDeEquipo.error() ??
         this.asignacion.error() ??
-        this.descarga.error() ??
-        this.descargaDelResumen.error() ??
-        this.descargaDelCronograma.error(),
+        this.descarga.error(),
     ),
   );
 
   protected descargarInformes(): void {
     this.descarga.mutate(this.id(), { onSuccess: guardarArchivo });
-  }
-
-  protected descargarResumen(): void {
-    this.descargaDelResumen.mutate(this.id(), { onSuccess: guardarArchivo });
-  }
-
-  protected descargarCronograma(): void {
-    this.descargaDelCronograma.mutate(this.id(), { onSuccess: guardarArchivo });
   }
 
   protected iniciar(): void {

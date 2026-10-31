@@ -660,13 +660,6 @@ describe('Ficha de una orden de trabajo', () => {
     const cerrado = (id: string, idEquipoCliente: string) =>
       reporte({ id, idEquipoCliente, estado: 'FINALIZADO', resultado: 'OPERATIVO' });
 
-    const URL_RESUMEN_PDF = `${API}/reports/summary?idOrdenTrabajo=${ID_ORDEN}`;
-    const botonDelResumen = () =>
-      raiz().querySelector<HTMLButtonElement>('[data-descargar-resumen]');
-    const URL_CRONOGRAMA = `${API}/reports/schedule?idOrdenTrabajo=${ID_ORDEN}`;
-    const botonDelCronograma = () =>
-      raiz().querySelector<HTMLButtonElement>('[data-descargar-cronograma]');
-
     it('con algún reporte en borrador no se ofrece', async () => {
       await abrir(orden({ estadoEjecucion: 'EN_EJECUCION', equipos: DOS }), [
         cerrado(ID_REPORTE, ID_EQUIPO),
@@ -674,15 +667,12 @@ describe('Ficha de una orden de trabajo', () => {
       ]);
 
       expect(boton()).toBeNull();
-      expect(botonDelResumen()).toBeNull();
-      expect(botonDelCronograma()).toBeNull();
     });
 
     it('una orden sin equipos no tiene informes que descargar', async () => {
       await abrir(orden({ estadoEjecucion: 'EN_EJECUCION', equipos: [] }));
 
       expect(boton()).toBeNull();
-      expect(botonDelResumen()).toBeNull();
     });
 
     it('con todos cerrados se ofrece aunque no se pueda escribir, y guarda el ZIP con el nombre del servidor', async () => {
@@ -720,128 +710,17 @@ describe('Ficha de una orden de trabajo', () => {
       }
     });
 
-    it('el resumen se descarga aparte, con el nombre que da el servidor', async () => {
-      const { createObjectURL, revokeObjectURL } = globalThis.URL; // URL es aquí la de la orden
-      const guardados: string[] = [];
-      const click = HTMLAnchorElement.prototype.click;
-      globalThis.URL.createObjectURL = () => 'blob:prueba/2';
-      globalThis.URL.revokeObjectURL = () => undefined;
-      HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
-        guardados.push(this.download);
-      };
-      try {
-        await abrir(orden({ estadoEjecucion: 'EJECUTADA', equipos: DOS }), [
-          cerrado(ID_REPORTE, ID_EQUIPO),
-          cerrado('r2', 'ec2'),
-        ]);
+    it('el resumen y el cronograma no tienen botón propio: van dentro del ZIP', async () => {
+      await abrir(orden({ estadoEjecucion: 'EJECUTADA', equipos: DOS }), [
+        cerrado(ID_REPORTE, ID_EQUIPO),
+        cerrado('r2', 'ec2'),
+      ]);
 
-        botonDelResumen()!.click();
-        await asentar(fixture);
-        expect(botonDelResumen()!.textContent).toContain('Preparando el resumen');
-        http.expectOne(URL_RESUMEN_PDF).flush(new Blob(['%PDF'], { type: 'application/pdf' }), {
-          headers: { 'Content-Disposition': 'attachment; filename="orden-ABC123.pdf"' },
-        });
-        await asentar(fixture);
-
-        expect(guardados).toEqual(['orden-ABC123.pdf']);
-        // Es su propia petición: el ZIP no se pidió.
-        http.expectNone(URL_ZIP);
-      } finally {
-        globalThis.URL.createObjectURL = createObjectURL;
-        globalThis.URL.revokeObjectURL = revokeObjectURL;
-        HTMLAnchorElement.prototype.click = click;
-      }
-    });
-
-    it('el cronograma se descarga aparte, con el nombre que da el servidor', async () => {
-      const { createObjectURL, revokeObjectURL } = globalThis.URL; // URL es aquí la de la orden
-      const guardados: string[] = [];
-      const click = HTMLAnchorElement.prototype.click;
-      globalThis.URL.createObjectURL = () => 'blob:prueba/3';
-      globalThis.URL.revokeObjectURL = () => undefined;
-      HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
-        guardados.push(this.download);
-      };
-      try {
-        await abrir(orden({ estadoEjecucion: 'EJECUTADA', equipos: DOS }), [
-          cerrado(ID_REPORTE, ID_EQUIPO),
-          cerrado('r2', 'ec2'),
-        ]);
-
-        botonDelCronograma()!.click();
-        await asentar(fixture);
-        expect(botonDelCronograma()!.textContent).toContain('Preparando el cronograma');
-        http.expectOne(URL_CRONOGRAMA).flush(new Blob(['%PDF'], { type: 'application/pdf' }), {
-          headers: { 'Content-Disposition': 'attachment; filename="cronograma-orden-ABC123.pdf"' },
-        });
-        await asentar(fixture);
-
-        expect(guardados).toEqual(['cronograma-orden-ABC123.pdf']);
-        http.expectNone(URL_ZIP);
-        http.expectNone(URL_RESUMEN_PDF);
-      } finally {
-        globalThis.URL.createObjectURL = createObjectURL;
-        globalThis.URL.revokeObjectURL = revokeObjectURL;
-        HTMLAnchorElement.prototype.click = click;
-      }
-    });
-
-    it('una orden sin periodicidad no tiene cronograma, pero sí resumen y ZIP', async () => {
-      await abrir(
-        orden({
-          estadoEjecucion: 'EJECUTADA',
-          equipos: DOS,
-          tipoServicio: 'CORRECTIVO',
-          periodicidad: undefined,
-        }),
-        [cerrado(ID_REPORTE, ID_EQUIPO), cerrado('r2', 'ec2')],
-      );
-
-      expect(botonDelCronograma()).toBeNull();
-      expect(botonDelResumen()).not.toBeNull();
       expect(boton()).not.toBeNull();
-    });
-
-    it('si el cronograma falla, lo dice con el mensaje del catálogo', async () => {
-      await abrir(orden({ estadoEjecucion: 'EJECUTADA', equipos: DOS }), [
-        cerrado(ID_REPORTE, ID_EQUIPO),
-        cerrado('r2', 'ec2'),
+      const textos = [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim());
+      expect(textos.filter((t) => t?.startsWith('Descargar'))).toEqual([
+        'Descargar informes (ZIP)',
       ]);
-
-      botonDelCronograma()!.click();
-      await asentar(fixture);
-      http.expectOne(URL_CRONOGRAMA).flush(
-        new Blob([JSON.stringify({ code: 'ERR_SERVICE_REPORT_010', message: 'x', details: [] })], {
-          type: 'application/json',
-        }),
-        { status: 503, statusText: 'Service Unavailable' },
-      );
-      await asentar(fixture);
-
-      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
-        'No se pudo generar el PDF del informe',
-      );
-    });
-
-    it('si el resumen falla, lo dice con el mensaje del catálogo', async () => {
-      await abrir(orden({ estadoEjecucion: 'EJECUTADA', equipos: DOS }), [
-        cerrado(ID_REPORTE, ID_EQUIPO),
-        cerrado('r2', 'ec2'),
-      ]);
-
-      botonDelResumen()!.click();
-      await asentar(fixture);
-      http.expectOne(URL_RESUMEN_PDF).flush(
-        new Blob([JSON.stringify({ code: 'ERR_SERVICE_REPORT_010', message: 'x', details: [] })], {
-          type: 'application/json',
-        }),
-        { status: 503, statusText: 'Service Unavailable' },
-      );
-      await asentar(fixture);
-
-      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
-        'No se pudo generar el PDF del informe',
-      );
     });
 
     it('si el conversor no responde, lo dice con el mensaje del catálogo', async () => {

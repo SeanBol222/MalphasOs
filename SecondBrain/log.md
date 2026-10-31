@@ -2683,3 +2683,9 @@ no lo tiene. Ver [[dominio-reporte-servicio]].
 `main`, **daba un 500 con un correctivo**: `Map.of(...).get(null)` lanza, al contrario que un `HashMap`.
 Ninguna prueba del resumen usaba una orden sin periodicidad. Y en el frontend una mutación sobrevivió por
 una condición repetida: el botón ya estaba dentro del bloque que la comprobaba.
+
+## [2026-10-31] ingest | El resumen y el cronograma, solo en el ZIP
+
+El usuario quitó los botones «Descargar resumen» y «Descargar cronograma» de la ficha de la orden: los dos
+documentos salen solo dentro del ZIP, delante de los informes. Las rutas del API se quedan. Una prueba
+exige que el único botón de descarga sea el del ZIP, y muere si vuelve otro. Ver [[dominio-reporte-servicio]].

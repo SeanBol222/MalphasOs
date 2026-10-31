@@ -260,6 +260,10 @@ horizontal, con la cabecera del resumen por área: la banda oscura con el logo d
 por resultado— y dos decisiones: **se descarga con todos los reportes cerrados**, como el ZIP, y va **dentro
 del ZIP como primera hoja** (`orden-<número>.pdf`) **y con su propio botón**, `GET /reports/summary`.
 
+> **Corregido el mismo día: ya no tiene botón.** El usuario los quitó, el del resumen y el del cronograma:
+> los dos documentos salen solo dentro del ZIP, que es lo que se entrega. Las rutas `/summary` y
+> `/schedule` siguen en el API, documentadas y probadas, sin pantalla que las llame.
+
 - **Una fila por equipo**: área, equipo, marca y modelo, serie, hoja de vida, informe, fecha de cierre,
   resultado y quién firmó el recibido —una raya si nadie—. Los no operativos pesan más; solo el total de
   fuera de servicio va en el color de alerta.
@@ -284,7 +288,8 @@ Pedido el mismo día: un documento con los equipos atendidos, cuándo se les hiz
 toca el próximo. El usuario eligió **«B · Plan de doce meses»** entre tres propuestas dibujadas en el
 lienzo de la orden: una fila por equipo y una columna por mes, desde el del servicio hasta doce después,
 con un cuadro negro para lo realizado y uno rojo en cada mantenimiento programado. Va **en el ZIP, tras el
-resumen** (`cronograma-orden-<número>.pdf`), y **con su propio botón**, `GET /reports/schedule`.
+resumen** (`cronograma-orden-<número>.pdf`), y tuvo **su propio botón**, `GET /reports/schedule`, hasta
+unas horas después: ver la corrección del resumen, arriba.
 
 - **Una sola fecha para toda la orden**, decidido por el usuario: se considera que todos los equipos se
   atienden el mismo día. Es la de ejecución de la orden, y si su documento no la tiene —una orden
@@ -296,8 +301,8 @@ resumen** (`cronograma-orden-<número>.pdf`), y **con su propio botón**, `GET /
   meses completos—. Una mutación lo comprueba.
 - **Un equipo fuera de servicio no se programa**, decidido por el usuario: su fila dice «Fuera de servicio»
   en lugar de la fecha y no tiene cuadros rojos.
-- **Sin periodicidad no hay cronograma**: una orden correctiva no lo lleva en el ZIP, su botón no aparece
-  y la ruta responde 409.
+- **Sin periodicidad no hay cronograma**: una orden correctiva no lo lleva en el ZIP, y la ruta responde
+  409.
 - Las filas, la cabecera y la línea del cliente son las del resumen, del mismo compositor.
 
 ### El patrón, la tolerancia y la conformidad
