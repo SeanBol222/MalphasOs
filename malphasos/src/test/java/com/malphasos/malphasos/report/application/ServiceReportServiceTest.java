@@ -31,6 +31,7 @@ import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import com.malphasos.malphasos.report.UnDocumento;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.model.WorkOrderSummarySheet;
+import com.malphasos.malphasos.report.application.ports.output.WorkOrderSchedulePdfPort;
 import com.malphasos.malphasos.report.application.ports.output.WorkOrderSummaryPdfPort;
 import com.malphasos.malphasos.shared.application.ports.output.DocumentImageStorePort;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfPort;
@@ -133,6 +134,7 @@ class ServiceReportServiceTest {
     @Mock private DocumentImageStorePort documentImageStorePort;
     @Mock private ReportPdfPort reportPdfPort;
     @Mock private WorkOrderSummaryPdfPort workOrderSummaryPdfPort;
+    @Mock private WorkOrderSchedulePdfPort workOrderSchedulePdfPort;
     @Mock private ServiceCompanyServicePort serviceCompanyServicePort;
     @Mock private ServiceReportDrafts serviceReportDrafts;
 
@@ -1679,10 +1681,11 @@ class ServiceReportServiceTest {
 
             String numero = unaOrdenEnEjecucion().numero();
             assertThat(archivo.nombre()).isEqualTo("informes-orden-" + numero + ".zip");
-            // El resumen de la orden va delante (2026-10-31).
-            assertThat(archivo.informes()).extracting(ReportPdf::nombre)
-                    .containsExactly("orden-" + numero + ".pdf", "informe-AAAAAA.pdf", "informe-BBBBBB.pdf");
+            // El resumen de la orden va delante, y tras él su cronograma (2026-10-31).
+            assertThat(archivo.informes()).extracting(ReportPdf::nombre).containsExactly("orden-" + numero + ".pdf",
+                    "cronograma-orden-" + numero + ".pdf", "informe-AAAAAA.pdf", "informe-BBBBBB.pdf");
             assertThat(archivo.informes().get(0).contenido()).isEqualTo(RESUMEN);
+            assertThat(archivo.informes().get(1).contenido()).isEqualTo(CRONOGRAMA);
             // Un retirado borrador no impide descargar ni entra: no es de la orden.
             verify(reportPdfPort, org.mockito.Mockito.times(2)).render(any());
         }
@@ -1699,8 +1702,12 @@ class ServiceReportServiceTest {
             assertThatThrownBy(() -> service.workOrderSummary(ORDEN, ReadScope.unrestricted()))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("1 reporte(s) sin cerrar");
+            assertThatThrownBy(() -> service.workOrderSchedule(ORDEN, ReadScope.unrestricted()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("1 reporte(s) sin cerrar");
             verify(reportPdfPort, never()).render(any());
             verify(workOrderSummaryPdfPort, never()).render(any());
+            verify(workOrderSchedulePdfPort, never()).render(any());
         }
 
         @Test
@@ -1716,12 +1723,73 @@ class ServiceReportServiceTest {
         }
 
         private static final byte[] RESUMEN = "%PDF-resumen".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        private static final byte[] CRONOGRAMA = "%PDF-cronograma".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
 
-        /** El documento de la orden y su conversión: lo que pide el resumen. */
+        /** El documento de la orden —anual— y sus dos conversiones: lo que piden el resumen y el cronograma. */
         private void estubarResumen() {
-            when(workOrderServicePort.documentOf(any())).thenReturn(
-                    com.malphasos.malphasos.report.application.sheet.UnaOrdenAtendida.documento(null));
-            when(workOrderSummaryPdfPort.render(any())).thenReturn(RESUMEN);
+            estubarResumen(com.malphasos.malphasos.report.application.sheet.UnaOrdenAtendida.documento(null));
+        }
+
+        private void estubarResumen(com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument documento) {
+            when(workOrderServicePort.documentOf(any())).thenReturn(documento);
+            lenient().when(workOrderSummaryPdfPort.render(any())).thenReturn(RESUMEN);
+            lenient().when(workOrderSchedulePdfPort.render(any())).thenReturn(CRONOGRAMA);
+        }
+
+        /** El documento de la orden de las pruebas, sin periodicidad: un correctivo, por ejemplo. */
+        private com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument sinPeriodicidad() {
+            var base = com.malphasos.malphasos.report.application.sheet.UnaOrdenAtendida.documento(null);
+
+            return new com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument(base.version(),
+                    base.numero(), "CORRECTIVO", false, null, base.fechaMantenimiento(), null, base.cliente(),
+                    base.sede(), base.ingeniero(), base.equipos());
+        }
+
+        @Test
+        @DisplayName("el cronograma sale del documento de la orden y de sus reportes, con la empresa de hoy")
+        void elCronograma() {
+            ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"),
+                    com.malphasos.malphasos.report.application.sheet.UnaOrdenAtendida.MONITOR);
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(uno));
+            estubarResumen();
+            ServiceCompany empresa = org.mockito.Mockito.mock(ServiceCompany.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
+            when(empresa.getDatos().nombre()).thenReturn("Empresa de Prueba");
+            when(empresa.logo()).thenReturn(Optional.empty());
+            when(serviceCompanyServicePort.find()).thenReturn(Optional.of(empresa));
+
+            ReportPdf pdf = service.workOrderSchedule(ORDEN, ReadScope.unrestricted());
+
+            assertThat(pdf.nombre()).isEqualTo("cronograma-orden-" + unaOrdenEnEjecucion().numero() + ".pdf");
+            assertThat(pdf.contenido()).isEqualTo(CRONOGRAMA);
+            ArgumentCaptor<com.malphasos.malphasos.report.application.model.WorkOrderScheduleSheet> hoja =
+                    ArgumentCaptor.forClass(com.malphasos.malphasos.report.application.model.WorkOrderScheduleSheet.class);
+            verify(workOrderSchedulePdfPort).render(hoja.capture());
+            assertThat(hoja.getValue().empresa()).isEqualTo("Empresa de Prueba");
+            assertThat(hoja.getValue().idOrden()).isEqualTo(ORDEN);
+            // Sin ejecución en el documento, la fecha programada más un año: es anual.
+            assertThat(hoja.getValue().proximo()).isEqualTo("14 oct 2027");
+            assertThat(hoja.getValue().filas()).hasSize(1);
+            verify(workOrderServicePort).documentOf(unaOrdenEnEjecucion());
+            verify(workOrderSummaryPdfPort, never()).render(any());
+        }
+
+        @Test
+        @DisplayName("una orden sin periodicidad no lleva cronograma en el ZIP, y no se descarga sola")
+        void sinCronograma() {
+            ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"), UUID.randomUUID());
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(uno));
+            when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+            estubarResumen(sinPeriodicidad());
+
+            ReportArchive archivo = service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted());
+
+            String numero = unaOrdenEnEjecucion().numero();
+            assertThat(archivo.informes()).extracting(ReportPdf::nombre)
+                    .containsExactly("orden-" + numero + ".pdf", "informe-AAAAAA.pdf");
+            assertThatThrownBy(() -> service.workOrderSchedule(ORDEN, ReadScope.unrestricted()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("no tiene periodicidad");
+            verify(workOrderSchedulePdfPort, never()).render(any());
         }
 
         @Test
@@ -1761,7 +1829,10 @@ class ServiceReportServiceTest {
 
             assertThatThrownBy(() -> service.workOrderSummary(ORDEN, soloOtro))
                     .isInstanceOf(WorkOrderNotFoundException.class);
+            assertThatThrownBy(() -> service.workOrderSchedule(ORDEN, soloOtro))
+                    .isInstanceOf(WorkOrderNotFoundException.class);
             verify(workOrderSummaryPdfPort, never()).render(any());
+            verify(workOrderSchedulePdfPort, never()).render(any());
         }
 
         @Test

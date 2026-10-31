@@ -60,7 +60,7 @@ public final class ReportSheetComposer {
             ServiceResult.OPERATIVO_CON_RESTRICCIONES, "Apto para el servicio",
             ServiceResult.FUERA_DE_SERVICIO, "No apto para el servicio");
 
-    private static final Map<String, Integer> MESES = Map.of(
+    static final Map<String, Integer> MESES = Map.of(
             "MENSUAL", 1, "TRIMESTRAL", 3, "SEMESTRAL", 6, "ANUAL", 12);
 
     private static final Map<String, String> RIESGO = Map.of(

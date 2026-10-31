@@ -42,6 +42,21 @@
                   : 'Descargar resumen (PDF)'
               }}
             </button>
+            @if (tieneCronograma()) {
+              <button
+                class="boton-secundario min-h-tactil"
+                type="button"
+                data-descargar-cronograma
+                [disabled]="descargaDelCronograma.isPending()"
+                (click)="descargarCronograma()"
+              >
+                {{
+                  descargaDelCronograma.isPending()
+                    ? 'Preparando el cronograma…'
+                    : 'Descargar cronograma (PDF)'
+                }}
+              </button>
+            }
             <button
               class="boton-secundario min-h-tactil"
               type="button"

@@ -727,6 +727,34 @@ class ServiceReportRestAdapterTest {
     }
 
     @Test
+    @DisplayName("el cronograma de una orden sale como PDF adjunto con el nombre que da el servicio")
+    void cronogramaDeLaOrden() throws Exception {
+        UUID orden = UUID.randomUUID();
+        byte[] pdf = "%PDF-cronograma".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        when(serviceReportServicePort.workOrderSchedule(eq(orden), any()))
+                .thenReturn(new ReportPdf("cronograma-orden-ABC123.pdf", pdf));
+
+        mockMvc.perform(get("/v1/api/reports/schedule").param("idOrdenTrabajo", orden.toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition",
+                        "attachment; filename=\"cronograma-orden-ABC123.pdf\""))
+                .andExpect(content().bytes(pdf));
+    }
+
+    @Test
+    @DisplayName("una orden sin periodicidad o con reportes abiertos no tiene cronograma: 409")
+    void cronogramaQueNoSePuede() throws Exception {
+        UUID orden = UUID.randomUUID();
+        when(serviceReportServicePort.workOrderSchedule(eq(orden), any()))
+                .thenThrow(new IllegalStateException("no tiene periodicidad"));
+
+        mockMvc.perform(get("/v1/api/reports/schedule").param("idOrdenTrabajo", orden.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_003"));
+    }
+
+    @Test
     @DisplayName("con algún reporte sin cerrar, el ZIP responde 409")
     void zipConReportesAbiertos() throws Exception {
         UUID orden = UUID.randomUUID();

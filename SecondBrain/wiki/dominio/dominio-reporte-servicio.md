@@ -274,6 +274,32 @@ del ZIP como primera hoja** (`orden-<número>.pdf`) **y con su propio botón**, 
 - **Una orden larga sigue en más hojas**: la cabecera de la tabla se repite y la banda va solo en la
   primera. Las firmas del ingeniero y del supervisor del cliente son líneas para firmar a mano.
 
+**Corregido el mismo día**: la línea del servicio buscaba la periodicidad en un `Map.of`, y `Map.of` **lanza
+al buscar nulo**. El resumen de una orden sin periodicidad —un correctivo— daba un 500. Lo destapó la
+prueba del cronograma, no la del resumen, que solo usaba órdenes con periodicidad.
+
+### El cronograma de la orden en PDF (2026-10-31)
+
+Pedido el mismo día: un documento con los equipos atendidos, cuándo se les hizo el mantenimiento y cuándo
+toca el próximo. El usuario eligió **«B · Plan de doce meses»** entre tres propuestas dibujadas en el
+lienzo de la orden: una fila por equipo y una columna por mes, desde el del servicio hasta doce después,
+con un cuadro negro para lo realizado y uno rojo en cada mantenimiento programado. Va **en el ZIP, tras el
+resumen** (`cronograma-orden-<número>.pdf`), y **con su propio botón**, `GET /reports/schedule`.
+
+- **Una sola fecha para toda la orden**, decidido por el usuario: se considera que todos los equipos se
+  atienden el mismo día. Es la de ejecución de la orden, y si su documento no la tiene —una orden
+  congelada tarde, o sin ejecutar todavía— la programada. **No** la del cierre de cada informe.
+- **El próximo es esa fecha más la periodicidad**, con la misma regla que el informe de cada equipo
+  imprime en «próximo servicio» (`ReportSheetComposer.proximoServicio`): el 31 de agosto más seis meses es
+  el 28 de febrero. Los cuadros rojos caen cada tantos meses como diga la periodicidad, y se cuentan por
+  la periodicidad y no por los meses entre las dos fechas —del 31 de agosto al 28 de febrero hay cinco
+  meses completos—. Una mutación lo comprueba.
+- **Un equipo fuera de servicio no se programa**, decidido por el usuario: su fila dice «Fuera de servicio»
+  en lugar de la fecha y no tiene cuadros rojos.
+- **Sin periodicidad no hay cronograma**: una orden correctiva no lo lleva en el ZIP, su botón no aparece
+  y la ruta responde 409.
+- Las filas, la cabecera y la línea del cliente son las del resumen, del mismo compositor.
+
 ### El patrón, la tolerancia y la conformidad
 
 Decidido por el usuario: **todo reporte con lecturas** dice contra qué equipo patrón se midió, el patrón

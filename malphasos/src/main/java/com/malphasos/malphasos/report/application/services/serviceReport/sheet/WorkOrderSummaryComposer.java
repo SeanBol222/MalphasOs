@@ -28,7 +28,7 @@ public final class WorkOrderSummaryComposer {
 
     private static final Map<String, String> SERVICIO = Map.of(
             "PREVENTIVO", "Preventivo", "CORRECTIVO", "Correctivo", "CALIBRACION", "Calibración");
-    private static final Map<String, String> PERIODICIDAD = Map.of(
+    static final Map<String, String> PERIODICIDAD = Map.of(
             "MENSUAL", "mensual", "TRIMESTRAL", "trimestral", "SEMESTRAL", "semestral", "ANUAL", "anual");
     private static final Map<ServiceResult, String> RESULTADO = Map.of(
             ServiceResult.OPERATIVO, "Operativo",
@@ -75,24 +75,30 @@ public final class WorkOrderSummaryComposer {
                 empresa,
                 logo == null ? null : logo.dataUri(),
                 servicio(orden),
-                unir(" · ",
-                        orden.cliente().nombre(),
-                        orden.cliente().documento() == null ? null : "NIT " + orden.cliente().documento(),
-                        unir(", ", orden.sede().nombre(), orden.sede().ciudad())),
+                cliente(orden),
                 oRaya(orden.ingeniero()),
                 totales(reportes),
                 filas);
     }
 
     /** «Orden N.º 1DC6F5 · Preventivo anual · Ejecutada el 18 oct 2026», o «En curso» si no se ejecutó. */
-    private static String servicio(WorkOrderDocument orden) {
+    static String servicio(WorkOrderDocument orden) {
         String tipo = SERVICIO.getOrDefault(orden.tipoServicio(), orden.tipoServicio());
-        String cada = PERIODICIDAD.get(orden.periodicidad());
+        // Map.of no admite buscar nulo: lanza. Un correctivo no tiene periodicidad.
+        String cada = orden.periodicidad() == null ? null : PERIODICIDAD.get(orden.periodicidad());
 
         return unir(" · ",
                 "Orden N.º " + orden.numero(),
                 (cada == null ? tipo : tipo + " " + cada) + (orden.garantia() ? " en garantía" : ""),
                 orden.fechaEjecucion() == null ? "En curso" : "Ejecutada el " + fechaCorta(orden.fechaEjecucion()));
+    }
+
+    /** «Clínica S.A.S. · NIT 900… · Sede Norte, Bogotá»: lo comparte el cronograma. */
+    static String cliente(WorkOrderDocument orden) {
+        return unir(" · ",
+                orden.cliente().nombre(),
+                orden.cliente().documento() == null ? null : "NIT " + orden.cliente().documento(),
+                unir(", ", orden.sede().nombre(), orden.sede().ciudad()));
     }
 
     private static WorkOrderSummarySheet.Totales totales(List<ServiceReport> reportes) {
@@ -107,7 +113,7 @@ public final class WorkOrderSummaryComposer {
                 cuenta.getOrDefault(ServiceResult.FUERA_DE_SERVICIO, 0L).intValue());
     }
 
-    private static String unir(String separador, String... partes) {
+    static String unir(String separador, String... partes) {
         return Stream.of(partes).filter(parte -> parte != null && !parte.isBlank())
                 .collect(Collectors.joining(separador));
     }

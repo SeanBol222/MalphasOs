@@ -1,0 +1,382 @@
+<!doctype html>
+<!--
+  El cronograma de una orden (2026-10-31): los equipos atendidos y, en los doce meses siguientes, cuándo les
+  toca el próximo mantenimiento. Es la propuesta «B · Plan de doce meses» que el usuario eligió ese día, con
+  la banda del resumen de la orden, en carta horizontal.
+
+  Una sola fecha por orden: todos los equipos se atienden el mismo día. Un equipo fuera de servicio no se
+  programa. Todo lo que imprime viene ya dicho en la hoja (WorkOrderScheduleSheet).
+-->
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <title th:text="'Cronograma de la orden N.º ' + ${hoja.numero}">Cronograma de la orden</title>
+    <style th:inline="css">
+      /* La fuente de la marca va dentro: Gotenberg no sale a internet a buscarla. */
+      @font-face {
+        font-family: 'Archivo';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url([(${fuenteLatina})]) format('woff2-variations');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+          U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Archivo';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url([(${fuenteLatinaExtendida})]) format('woff2-variations');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF,
+          U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @page {
+        size: letter landscape;
+        margin: 32px 0 28px;
+      }
+      @page :first {
+        margin: 0 0 28px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+        font-variant-numeric: tabular-nums;
+        color: #201e1d;
+        background: #ffffff;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      .cr-banda {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        padding: 22px 40px 16px;
+        background: #201e1d;
+        color: #f3f2f2;
+      }
+
+      .cr-banda__texto {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .cr-empresa {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      .cr-empresa img {
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
+      }
+
+      .cr-rotulo {
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #bab6b6;
+      }
+
+      .cr-titulo {
+        font-size: 30px;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.8px;
+      }
+
+      .cr-cliente {
+        font-size: 13px;
+        color: #d7d3d3;
+      }
+
+      .cr-qr {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+      }
+
+      .cr-qr svg {
+        width: 64px;
+        height: 64px;
+      }
+
+      .cr-qr figcaption {
+        font-size: 10px;
+        color: #d7d3d3;
+      }
+
+      .cr-cuerpo {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 40px 0;
+      }
+
+      .cr-leyenda {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        font-size: 11.5px;
+        color: #605d5d;
+      }
+
+      .cr-leyenda span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .cr-tabla {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+
+      .cr-tabla thead {
+        display: table-header-group;
+      }
+
+      .cr-tabla th {
+        padding: 6px 8px;
+        background: #201e1d;
+        color: #f3f2f2;
+        font-size: 10.5px;
+        font-weight: 700;
+        text-align: left;
+      }
+
+      .cr-tabla th.cr-mes {
+        width: 34px;
+        padding: 5px 0;
+        border-left: 1px solid #4a4746;
+        text-align: center;
+      }
+
+      .cr-mes small {
+        display: block;
+        min-height: 12px;
+        font-size: 9.5px;
+        font-weight: 500;
+        color: #bab6b6;
+      }
+
+      .cr-tabla td {
+        padding: 4px 8px;
+        border-bottom: 1px solid #d7d3d3;
+        vertical-align: middle;
+      }
+
+      .cr-tabla tr {
+        break-inside: avoid;
+      }
+
+      .cr-tabla tbody tr:nth-child(even) td {
+        background: #f6f5f5;
+      }
+
+      .cr-tabla td.cr-celda {
+        padding: 0;
+        border-left: 1px solid #e6e3e3;
+        text-align: center;
+      }
+
+      .cr-tabla tbody tr td.cr-celda--programado {
+        background: #fbeae6;
+      }
+
+      .cr-cuadro {
+        display: inline-block;
+        width: 13px;
+        height: 13px;
+        vertical-align: middle;
+      }
+
+      .cr-cuadro--realizado {
+        background: #201e1d;
+      }
+
+      .cr-cuadro--programado {
+        border: 2px solid #ae1800;
+        background: #ffffff;
+      }
+
+      .cr-leyenda .cr-cuadro--programado {
+        background: #fbeae6;
+      }
+
+      .cr-n,
+      .cr-tenue {
+        color: #605d5d;
+      }
+
+      .cr-proximo {
+        font-weight: 700;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .cr-fuera .cr-proximo {
+        font-weight: 900;
+      }
+
+      .cr-pie {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 32px;
+        margin-top: 16px;
+        break-inside: avoid;
+      }
+
+      .cr-nota {
+        max-width: 540px;
+        font-size: 11px;
+        color: #605d5d;
+      }
+
+      .cr-firmas {
+        display: flex;
+        gap: 32px;
+      }
+
+      .cr-firma {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        width: 200px;
+        font-size: 11px;
+        color: #605d5d;
+      }
+
+      .cr-firma__linea {
+        height: 40px;
+        border-bottom: 1px solid #201e1d;
+      }
+
+      .cr-firma strong {
+        font-size: 12px;
+        color: #201e1d;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="cr-banda">
+      <div class="cr-banda__texto">
+        <p class="cr-empresa" th:if="${hoja.empresa}">
+          <img th:if="${hoja.logo}" th:src="${hoja.logo}" alt="" />
+          <span data-empresa th:text="${hoja.empresa}">Empresa</span>
+        </p>
+        <p class="cr-rotulo" data-servicio th:text="${hoja.servicio}">Orden N.º</p>
+        <h1 class="cr-titulo">Cronograma de mantenimiento · próximos 12 meses</h1>
+        <p class="cr-cliente" data-cliente>
+          <span th:text="${hoja.cliente}">Cliente</span> ·
+          <span th:text="'Ingeniero: ' + ${hoja.ingeniero}">Ingeniero</span>
+        </p>
+      </div>
+      <figure class="cr-qr">
+        <svg
+          th:attr="viewBox='-2 -2 ' + (${qr.lado} + 4) + ' ' + (${qr.lado} + 4),aria-label='Código QR: ' + ${qr.direccion}"
+          role="img"
+          data-qr
+        >
+          <rect x="-2" y="-2" th:attr="width=${qr.lado} + 4,height=${qr.lado} + 4" fill="#fff" />
+          <path th:attr="d=${qr.trazo}" fill="#201e1d" />
+        </svg>
+        <figcaption>Ficha de la orden</figcaption>
+      </figure>
+    </header>
+
+    <main class="cr-cuerpo">
+      <p class="cr-leyenda">
+        <span><i class="cr-cuadro cr-cuadro--realizado"></i>Realizado en esta orden</span>
+        <span><i class="cr-cuadro cr-cuadro--programado"></i>Mantenimiento programado</span>
+        <span>Un equipo fuera de servicio no se programa hasta que se repare.</span>
+      </p>
+
+      <table class="cr-tabla">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Equipo</th>
+            <th>Área</th>
+            <th>Serie · HV</th>
+            <th class="cr-mes" th:each="mes : ${hoja.meses}" data-mes>
+              <span th:text="${mes.nombre}">oct</span><small th:text="${mes.anio}">2026</small>
+            </th>
+            <th style="text-align: right">Próximo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="fila : ${hoja.filas}" th:classappend="${fila.fueraDeServicio} ? 'cr-fuera'" data-fila>
+            <td class="cr-n" th:text="${fila.n}">1</td>
+            <td>
+              <strong th:text="${fila.equipo}">Equipo</strong><br /><span
+                class="cr-tenue"
+                th:text="${fila.marcaModelo}"
+                >Marca</span
+              >
+            </td>
+            <td th:text="${fila.area}">Área</td>
+            <td class="cr-tenue">
+              <span th:text="${fila.serie}">Serie</span><br /><span th:text="${fila.hojaDeVida}">HV</span>
+            </td>
+            <td
+              th:each="marca : ${fila.marcas}"
+              class="cr-celda"
+              th:classappend="${marca.name() == 'PROGRAMADO'} ? 'cr-celda--programado'"
+              th:attr="data-marca=${marca.name()}"
+            >
+              <i th:if="${marca.name() == 'REALIZADO'}" class="cr-cuadro cr-cuadro--realizado"></i>
+              <i th:if="${marca.name() == 'PROGRAMADO'}" class="cr-cuadro cr-cuadro--programado"></i>
+            </td>
+            <td class="cr-proximo" data-proximo th:text="${fila.proximo}">18 abr 2027</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="cr-pie">
+        <p class="cr-nota" data-nota>
+          Todos los equipos de la orden se atienden el mismo día: el
+          <span th:text="${hoja.realizado}">18 oct 2026</span>. El próximo mantenimiento es esa fecha más la
+          periodicidad <span th:text="${hoja.periodicidad}">semestral</span> de la orden, el
+          <strong th:text="${hoja.proximo}">18 abr 2027</strong>, la misma que imprime el informe de cada
+          equipo.
+        </p>
+        <div class="cr-firmas">
+          <div class="cr-firma">
+            <div class="cr-firma__linea"></div>
+            <strong th:text="${hoja.ingeniero}">Ingeniero</strong>
+            <span>Ingeniero a cargo</span>
+          </div>
+          <div class="cr-firma">
+            <div class="cr-firma__linea"></div>
+            <strong>Supervisor del cliente</strong>
+            <span>Nombre y fecha</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

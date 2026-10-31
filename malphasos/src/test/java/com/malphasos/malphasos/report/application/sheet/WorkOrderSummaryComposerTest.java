@@ -88,6 +88,18 @@ class WorkOrderSummaryComposerTest {
     }
 
     @Test
+    @DisplayName("una orden sin periodicidad, un correctivo, dice solo su tipo de servicio")
+    void sinPeriodicidad() {
+        WorkOrderDocument base = documento(LocalDate.of(2026, 10, 18));
+        WorkOrderDocument correctivo = new WorkOrderDocument(base.version(), base.numero(), "CORRECTIVO", false,
+                null, base.fechaMantenimiento(), base.fechaEjecucion(), base.cliente(), base.sede(), base.ingeniero(),
+                base.equipos());
+
+        assertThat(WorkOrderSummaryComposer.compose(ORDEN, correctivo, reportes(), null, null).servicio())
+                .isEqualTo("Orden N.º 1DC6F5 · Correctivo · Ejecutada el 18 oct 2026");
+    }
+
+    @Test
     @DisplayName("un equipo del documento sin reporte activo no sale: se quitó de la orden")
     void sinReporte() {
         WorkOrderSummarySheet hoja = WorkOrderSummaryComposer.compose(ORDEN, documento(null),

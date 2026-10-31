@@ -15,12 +15,15 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
+import com.malphasos.malphasos.report.application.model.WorkOrderScheduleSheet;
 import com.malphasos.malphasos.report.application.model.WorkOrderSummarySheet;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.ports.output.WorkOrderSchedulePdfPort;
 import com.malphasos.malphasos.report.application.ports.output.WorkOrderSummaryPdfPort;
+import com.malphasos.malphasos.report.application.services.serviceReport.sheet.WorkOrderScheduleComposer;
 import com.malphasos.malphasos.report.application.services.serviceReport.sheet.WorkOrderSummaryComposer;
 import com.malphasos.malphasos.shared.application.ports.output.DocumentImageStorePort;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfPort;
@@ -56,6 +59,7 @@ import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServic
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrderDocument;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,6 +112,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final DocumentImageStorePort documentImageStorePort;
     private final ReportPdfPort reportPdfPort;
     private final WorkOrderSummaryPdfPort workOrderSummaryPdfPort;
+    private final WorkOrderSchedulePdfPort workOrderSchedulePdfPort;
     private final ServiceCompanyServicePort serviceCompanyServicePort;
     private final ServiceReportDrafts serviceReportDrafts;
 
@@ -495,8 +500,9 @@ public class ServiceReportService implements ServiceReportServicePort {
 
     /**
      * Los informes de una orden, uno por reporte activo y por orden de número, y delante el resumen de la
-     * orden (2026-10-31). Solo cuando están todos cerrados: un borrador sale marcado como tal, y lo que se
-     * descarga junto es lo que se entrega.
+     * orden y su cronograma (2026-10-31). Solo cuando están todos cerrados: un borrador sale marcado como
+     * tal, y lo que se descarga junto es lo que se entrega. El cronograma, solo si la orden tiene
+     * periodicidad: sin ella no hay próximo mantenimiento.
      *
      * <p>Se comprueba antes de convertir ninguno, porque cada conversión es una llamada al conversor.
      */
@@ -505,9 +511,13 @@ public class ServiceReportService implements ServiceReportServicePort {
     public ReportArchive pdfsOfWorkOrder(UUID idOrdenTrabajo, ReadScope alcance) {
         WorkOrder orden = workOrderServicePort.findById(idOrdenTrabajo, alcance);
         List<ServiceReport> cerrados = cerradosDe(orden);
+        WorkOrderDocument documento = workOrderServicePort.documentOf(orden);
 
         List<ReportPdf> archivos = new ArrayList<>();
-        archivos.add(resumenDe(orden, cerrados));
+        archivos.add(resumenDe(orden, documento, cerrados));
+        if (WorkOrderScheduleComposer.applies(documento)) {
+            archivos.add(cronogramaDe(orden, documento, cerrados));
+        }
         cerrados.forEach(reporte -> archivos.add(pdfOf(reporte)));
 
         return new ReportArchive("informes-orden-" + orden.numero() + ".zip", archivos);
@@ -522,7 +532,22 @@ public class ServiceReportService implements ServiceReportServicePort {
     public ReportPdf workOrderSummary(UUID idOrdenTrabajo, ReadScope alcance) {
         WorkOrder orden = workOrderServicePort.findById(idOrdenTrabajo, alcance);
 
-        return resumenDe(orden, cerradosDe(orden));
+        List<ServiceReport> cerrados = cerradosDe(orden);
+
+        return resumenDe(orden, workOrderServicePort.documentOf(orden), cerrados);
+    }
+
+    /**
+     * El cronograma de una orden en PDF (2026-10-31): sus equipos y el próximo mantenimiento de cada uno en
+     * los doce meses siguientes. Con la misma condición que el ZIP, y además que la orden tenga periodicidad.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ReportPdf workOrderSchedule(UUID idOrdenTrabajo, ReadScope alcance) {
+        WorkOrder orden = workOrderServicePort.findById(idOrdenTrabajo, alcance);
+        List<ServiceReport> cerrados = cerradosDe(orden);
+
+        return cronogramaDe(orden, workOrderServicePort.documentOf(orden), cerrados);
     }
 
     /** Los reportes activos de una orden por número, si los hay y están todos cerrados. */
@@ -545,16 +570,27 @@ public class ServiceReportService implements ServiceReportServicePort {
     }
 
     /** La empresa se lee hoy, como el membrete de un borrador: el resumen no se congela, se compone. */
-    private ReportPdf resumenDe(WorkOrder orden, List<ServiceReport> cerrados) {
+    private ReportPdf resumenDe(WorkOrder orden, WorkOrderDocument documento, List<ServiceReport> cerrados) {
         Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
-        DocumentImage logo = empresa.flatMap(ServiceCompany::logo)
-                .map(imagen -> new DocumentImage(imagen.contenido(), imagen.tipo()))
-                .orElse(null);
-        WorkOrderSummarySheet hoja = WorkOrderSummaryComposer.compose(orden.getId(),
-                workOrderServicePort.documentOf(orden), cerrados,
-                empresa.map(e -> e.getDatos().nombre()).orElse(null), logo);
+        WorkOrderSummarySheet hoja = WorkOrderSummaryComposer.compose(orden.getId(), documento, cerrados,
+                empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa));
 
         return new ReportPdf("orden-" + orden.numero() + ".pdf", workOrderSummaryPdfPort.render(hoja));
+    }
+
+    /** Como el resumen: la empresa de hoy. Lanza si la orden no tiene periodicidad. */
+    private ReportPdf cronogramaDe(WorkOrder orden, WorkOrderDocument documento, List<ServiceReport> cerrados) {
+        Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
+        WorkOrderScheduleSheet hoja = WorkOrderScheduleComposer.compose(orden.getId(), documento, cerrados,
+                empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa));
+
+        return new ReportPdf("cronograma-orden-" + orden.numero() + ".pdf", workOrderSchedulePdfPort.render(hoja));
+    }
+
+    private static DocumentImage logoDe(Optional<ServiceCompany> empresa) {
+        return empresa.flatMap(ServiceCompany::logo)
+                .map(imagen -> new DocumentImage(imagen.contenido(), imagen.tipo()))
+                .orElse(null);
     }
 
     @Override

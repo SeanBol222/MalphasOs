@@ -1086,6 +1086,87 @@
         "tags" : [ "ServiceReport" ]
       }
     },
+    "/v1/api/reports/schedule" : {
+      "get" : {
+        "description" : "Los equipos de la orden y, en los doce meses siguientes, cuando les toca el proximo mantenimiento: la fecha de ejecucion mas la periodicidad, una para toda la orden. Un equipo fuera de servicio no se programa. Va tambien en el ZIP de /archive, tras el resumen. Con todos los reportes cerrados y una orden con periodicidad, o 409.",
+        "operationId" : "getSchedule",
+        "parameters" : [ {
+          "description" : "La orden de trabajo",
+          "in" : "query",
+          "name" : "idOrdenTrabajo",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/pdf" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "El PDF"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceReportErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "El cronograma de una orden en PDF",
+        "tags" : [ "ServiceReport" ]
+      }
+    },
     "/v1/api/reports/summary" : {
       "get" : {
         "description" : "La relacion de los equipos atendidos: una fila por reporte activo, con su informe, su resultado y quien lo recibio. Es tambien la primera hoja del ZIP de /archive, y con la misma condicion: todos los reportes cerrados, o 409.",

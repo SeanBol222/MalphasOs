@@ -165,8 +165,23 @@ export class ReporteApi {
   }
 
   /**
-   * Los informes en PDF de todos los reportes de una orden, en un ZIP, con el resumen de la orden delante
-   * (2026-10-31). El servidor solo lo da con todos cerrados. Es una mutación y no una consulta: convierte un PDF por equipo, tarda, y se pide
+   * El cronograma de una orden en PDF: sus equipos y el próximo mantenimiento en los doce meses siguientes
+   * (2026-10-31). Con la misma condición que el ZIP, y solo para una orden con periodicidad.
+   */
+  cronogramaDeOrden() {
+    return injectMutation(() => ({
+      mutationFn: (idOrdenTrabajo: string) =>
+        pedirArchivo(
+          this.http,
+          `${this.url}/schedule?idOrdenTrabajo=${encodeURIComponent(idOrdenTrabajo)}`,
+          'cronograma.pdf',
+        ),
+    }));
+  }
+
+  /**
+   * Los informes en PDF de todos los reportes de una orden, en un ZIP, con el resumen de la orden y su
+   * cronograma delante (2026-10-31). El servidor solo lo da con todos cerrados. Es una mutación y no una consulta: convierte un PDF por equipo, tarda, y se pide
    * al pulsar el botón, no al abrir la ficha.
    */
   informesDeOrden() {
