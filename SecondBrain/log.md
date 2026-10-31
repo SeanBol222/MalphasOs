@@ -2689,3 +2689,11 @@ una condición repetida: el botón ya estaba dentro del bloque que la comprobaba
 El usuario quitó los botones «Descargar resumen» y «Descargar cronograma» de la ficha de la orden: los dos
 documentos salen solo dentro del ZIP, delante de los informes. Las rutas del API se quedan. Una prueba
 exige que el único botón de descarga sea el del ZIP, y muere si vuelve otro. Ver [[dominio-reporte-servicio]].
+
+## [2026-10-31] ingest | Sin rutas para el resumen y el cronograma
+
+A petición del usuario se retiraron `GET /reports/summary` y `GET /reports/schedule`: desde que sus botones
+se fueron, ninguna pantalla las llamaba. El resumen y el cronograma se componen solo dentro del ZIP. Las
+pruebas del servicio que llamaban a las dos operaciones se reescribieron contra el ZIP en vez de borrarse
+—la empresa de hoy, la orden ajena, los reportes abiertos, la orden sin periodicidad—, y seis mutaciones
+sobre el ZIP mueren. Ver [[dominio-reporte-servicio]].
