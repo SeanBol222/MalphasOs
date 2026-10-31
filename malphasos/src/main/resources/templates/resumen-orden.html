@@ -1,0 +1,357 @@
+<!doctype html>
+<!--
+  El resumen de una orden de trabajo (2026-10-31): la relación de los equipos atendidos, con su informe,
+  su resultado y quién lo recibió. Es la propuesta «B con la cabecera de C» que el usuario eligió ese día:
+  la banda oscura con los totales del resumen por área, y debajo la tabla de control, en carta horizontal.
+
+  Todo lo que imprime viene ya dicho en la hoja (WorkOrderSummarySheet). Una orden larga sigue en más
+  hojas: la cabecera de la tabla se repite y la banda solo va en la primera.
+-->
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <title th:text="'Resumen de la orden N.º ' + ${hoja.numero}">Resumen de la orden</title>
+    <style th:inline="css">
+      /* La fuente de la marca va dentro: Gotenberg no sale a internet a buscarla. */
+      @font-face {
+        font-family: 'Archivo';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url([(${fuenteLatina})]) format('woff2-variations');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+          U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Archivo';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url([(${fuenteLatinaExtendida})]) format('woff2-variations');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF,
+          U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      /* La banda toca el borde en la primera hoja; las siguientes dejan margen arriba y abajo. */
+      @page {
+        size: letter landscape;
+        margin: 32px 0 28px;
+      }
+      @page :first {
+        margin: 0 0 28px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+        font-variant-numeric: tabular-nums;
+        color: #201e1d;
+        background: #ffffff;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      .ro-banda {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 22px 40px 16px;
+        background: #201e1d;
+        color: #f3f2f2;
+      }
+
+      .ro-banda__arriba {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+      }
+
+      .ro-banda__texto {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .ro-empresa {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      .ro-empresa img {
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
+      }
+
+      .ro-rotulo {
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #bab6b6;
+      }
+
+      .ro-titulo {
+        font-size: 30px;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.8px;
+      }
+
+      .ro-cliente {
+        font-size: 13px;
+        color: #d7d3d3;
+      }
+
+      .ro-qr {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+      }
+
+      .ro-qr svg {
+        width: 64px;
+        height: 64px;
+      }
+
+      .ro-qr figcaption {
+        font-size: 10px;
+        color: #d7d3d3;
+      }
+
+      .ro-totales {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        padding-top: 10px;
+        border-top: 1px solid #4a4746;
+      }
+
+      .ro-totales div {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .ro-totales strong {
+        font-size: 30px;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .ro-totales .ro-ligero {
+        font-weight: 500;
+      }
+
+      .ro-totales .ro-alerta {
+        color: #ff8a73;
+      }
+
+      .ro-totales span {
+        font-size: 12px;
+        color: #d7d3d3;
+      }
+
+      .ro-cuerpo {
+        padding: 14px 40px 0;
+      }
+
+      .ro-tabla {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11.5px;
+      }
+
+      .ro-tabla thead {
+        display: table-header-group;
+      }
+
+      .ro-tabla th {
+        padding: 6px 8px;
+        background: #201e1d;
+        color: #f3f2f2;
+        font-weight: 700;
+        text-align: left;
+      }
+
+      .ro-tabla td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #d7d3d3;
+        vertical-align: top;
+      }
+
+      .ro-tabla tr {
+        break-inside: avoid;
+      }
+
+      .ro-tabla tbody tr:nth-child(even) td {
+        background: #f6f5f5;
+      }
+
+      .ro-n {
+        color: #605d5d;
+      }
+
+      .ro-equipo {
+        font-weight: 700;
+      }
+
+      .ro-resultado {
+        font-weight: 500;
+      }
+
+      .ro-destacada .ro-resultado {
+        font-weight: 900;
+      }
+
+      .ro-pie {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 32px;
+        margin-top: 28px;
+        break-inside: avoid;
+      }
+
+      .ro-nota {
+        max-width: 520px;
+        font-size: 11px;
+        color: #605d5d;
+      }
+
+      .ro-firmas {
+        display: flex;
+        gap: 32px;
+      }
+
+      .ro-firma {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        width: 220px;
+        font-size: 11px;
+        color: #605d5d;
+      }
+
+      .ro-firma__linea {
+        height: 44px;
+        border-bottom: 1px solid #201e1d;
+      }
+
+      .ro-firma strong {
+        font-size: 12px;
+        color: #201e1d;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="ro-banda">
+      <div class="ro-banda__arriba">
+        <div class="ro-banda__texto">
+          <p class="ro-empresa" th:if="${hoja.empresa}">
+            <img th:if="${hoja.logo}" th:src="${hoja.logo}" alt="" />
+            <span data-empresa th:text="${hoja.empresa}">Empresa</span>
+          </p>
+          <p class="ro-rotulo" data-servicio th:text="${hoja.servicio}">Orden N.º</p>
+          <h1 class="ro-titulo">Relación de equipos atendidos</h1>
+          <p class="ro-cliente" data-cliente>
+            <span th:text="${hoja.cliente}">Cliente</span> ·
+            <span th:text="'Ingeniero: ' + ${hoja.ingeniero}">Ingeniero</span>
+          </p>
+        </div>
+        <figure class="ro-qr">
+          <svg
+            th:attr="viewBox='-2 -2 ' + (${qr.lado} + 4) + ' ' + (${qr.lado} + 4),aria-label='Código QR: ' + ${qr.direccion}"
+            role="img"
+            data-qr
+          >
+            <rect x="-2" y="-2" th:attr="width=${qr.lado} + 4,height=${qr.lado} + 4" fill="#fff" />
+            <path th:attr="d=${qr.trazo}" fill="#201e1d" />
+          </svg>
+          <figcaption>Ficha de la orden</figcaption>
+        </figure>
+      </div>
+      <div class="ro-totales" data-totales>
+        <div><strong th:text="${hoja.totales.equipos}">0</strong><span>equipos atendidos</span></div>
+        <div>
+          <strong class="ro-ligero" th:text="${hoja.totales.operativos}">0</strong><span>operativos</span>
+        </div>
+        <div><strong th:text="${hoja.totales.conRestricciones}">0</strong><span>con restricciones</span></div>
+        <div>
+          <strong
+            th:classappend="${hoja.totales.fueraDeServicio > 0} ? 'ro-alerta'"
+            th:text="${hoja.totales.fueraDeServicio}"
+            >0</strong
+          ><span>fuera de servicio</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="ro-cuerpo">
+      <table class="ro-tabla">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Área</th>
+            <th>Equipo</th>
+            <th>Marca · Modelo</th>
+            <th>Serie</th>
+            <th>Hoja de vida</th>
+            <th>Informe</th>
+            <th>Cerrado</th>
+            <th>Resultado</th>
+            <th>Recibió</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="fila : ${hoja.filas}" th:classappend="${fila.destacada} ? 'ro-destacada'" data-fila>
+            <td class="ro-n" th:text="${fila.n}">1</td>
+            <td th:text="${fila.area}">Área</td>
+            <td class="ro-equipo" th:text="${fila.equipo}">Equipo</td>
+            <td th:text="${fila.marcaModelo}">Marca</td>
+            <td th:text="${fila.serie}">Serie</td>
+            <td th:text="${fila.hojaDeVida}">HV</td>
+            <td th:text="${fila.informe}">Informe</td>
+            <td th:text="${fila.cerrado}">Cerrado</td>
+            <td class="ro-resultado" th:text="${fila.resultado}">Resultado</td>
+            <td th:text="${fila.recibio}">Recibió</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="ro-pie">
+        <p class="ro-nota">
+          Cada equipo tiene su informe completo con el número indicado, y en él las observaciones de los que
+          quedaron con restricciones o fuera de servicio. «Recibió» es quien firmó el recibido de ese
+          informe; una raya, que aún no se ha firmado.
+        </p>
+        <div class="ro-firmas">
+          <div class="ro-firma">
+            <div class="ro-firma__linea"></div>
+            <strong th:text="${hoja.ingeniero}">Ingeniero</strong>
+            <span>Ingeniero a cargo</span>
+          </div>
+          <div class="ro-firma">
+            <div class="ro-firma__linea"></div>
+            <strong>Supervisor del cliente</strong>
+            <span>Nombre y fecha</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,5 +1,7 @@
 package com.malphasos.malphasos.report.application.services.serviceReport;
 
+import com.malphasos.malphasos.company.application.ports.input.ServiceCompanyServicePort;
+import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
@@ -13,10 +15,13 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
+import com.malphasos.malphasos.report.application.model.WorkOrderSummarySheet;
 import com.malphasos.malphasos.report.application.ports.input.ServiceReportServicePort;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.ports.output.WorkOrderSummaryPdfPort;
+import com.malphasos.malphasos.report.application.services.serviceReport.sheet.WorkOrderSummaryComposer;
 import com.malphasos.malphasos.shared.application.ports.output.DocumentImageStorePort;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfPort;
 import com.malphasos.malphasos.report.application.model.ReportArchive;
@@ -55,6 +60,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -101,6 +107,8 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final ReportDocumentComposer reportDocumentComposer;
     private final DocumentImageStorePort documentImageStorePort;
     private final ReportPdfPort reportPdfPort;
+    private final WorkOrderSummaryPdfPort workOrderSummaryPdfPort;
+    private final ServiceCompanyServicePort serviceCompanyServicePort;
     private final ServiceReportDrafts serviceReportDrafts;
 
     // ---------------------------------------------------------------------------
@@ -486,8 +494,9 @@ public class ServiceReportService implements ServiceReportServicePort {
     }
 
     /**
-     * Los informes de una orden, uno por reporte activo y por orden de número. Solo cuando están todos
-     * cerrados: un borrador sale marcado como tal, y lo que se descarga junto es lo que se entrega.
+     * Los informes de una orden, uno por reporte activo y por orden de número, y delante el resumen de la
+     * orden (2026-10-31). Solo cuando están todos cerrados: un borrador sale marcado como tal, y lo que se
+     * descarga junto es lo que se entrega.
      *
      * <p>Se comprueba antes de convertir ninguno, porque cada conversión es una llamada al conversor.
      */
@@ -495,7 +504,30 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Transactional(readOnly = true)
     public ReportArchive pdfsOfWorkOrder(UUID idOrdenTrabajo, ReadScope alcance) {
         WorkOrder orden = workOrderServicePort.findById(idOrdenTrabajo, alcance);
-        List<ServiceReport> activos = serviceReportPersistencePort.findByWorkOrder(idOrdenTrabajo).stream()
+        List<ServiceReport> cerrados = cerradosDe(orden);
+
+        List<ReportPdf> archivos = new ArrayList<>();
+        archivos.add(resumenDe(orden, cerrados));
+        cerrados.forEach(reporte -> archivos.add(pdfOf(reporte)));
+
+        return new ReportArchive("informes-orden-" + orden.numero() + ".zip", archivos);
+    }
+
+    /**
+     * El resumen de una orden en PDF (2026-10-31): una fila por equipo, con su informe, su resultado y quién
+     * lo recibió. Con la misma condición que el ZIP, del que es la primera hoja.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ReportPdf workOrderSummary(UUID idOrdenTrabajo, ReadScope alcance) {
+        WorkOrder orden = workOrderServicePort.findById(idOrdenTrabajo, alcance);
+
+        return resumenDe(orden, cerradosDe(orden));
+    }
+
+    /** Los reportes activos de una orden por número, si los hay y están todos cerrados. */
+    private List<ServiceReport> cerradosDe(WorkOrder orden) {
+        List<ServiceReport> activos = serviceReportPersistencePort.findByWorkOrder(orden.getId()).stream()
                 .filter(ServiceReport::isEstadoActivo)
                 .sorted(java.util.Comparator.comparing(ServiceReport::numero))
                 .toList();
@@ -509,8 +541,20 @@ public class ServiceReportService implements ServiceReportServicePort {
                     + " reporte(s) sin cerrar: los informes se descargan juntos cuando estan todos cerrados");
         }
 
-        return new ReportArchive("informes-orden-" + orden.numero() + ".zip",
-                activos.stream().map(this::pdfOf).toList());
+        return activos;
+    }
+
+    /** La empresa se lee hoy, como el membrete de un borrador: el resumen no se congela, se compone. */
+    private ReportPdf resumenDe(WorkOrder orden, List<ServiceReport> cerrados) {
+        Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
+        DocumentImage logo = empresa.flatMap(ServiceCompany::logo)
+                .map(imagen -> new DocumentImage(imagen.contenido(), imagen.tipo()))
+                .orElse(null);
+        WorkOrderSummarySheet hoja = WorkOrderSummaryComposer.compose(orden.getId(),
+                workOrderServicePort.documentOf(orden), cerrados,
+                empresa.map(e -> e.getDatos().nombre()).orElse(null), logo);
+
+        return new ReportPdf("orden-" + orden.numero() + ".pdf", workOrderSummaryPdfPort.render(hoja));
     }
 
     @Override
