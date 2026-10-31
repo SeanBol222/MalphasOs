@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * Los informes de una orden en un ZIP
-         * @description Un PDF por reporte activo de la orden, el mismo de /{id}/pdf. Solo cuando todos estan cerrados: si alguno sigue en borrador, o la orden no tiene reportes, responde 409. Con el alcance de la orden.
+         * @description El resumen de la orden, el de /summary, y un PDF por reporte activo, el mismo de /{id}/pdf. Solo cuando todos estan cerrados: si alguno sigue en borrador, o la orden no tiene reportes, responde 409. Con el alcance de la orden.
          */
         get: operations["getArchive"];
         put?: never;
@@ -56,6 +56,26 @@ export interface paths {
          * @description Para cada orden con algun reporte vivo, cuantos equipos lo tienen cerrado y cuantos en borrador. Una orden sin reportes no aparece. Acotado al alcance de quien llama.
          */
         get: operations["progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/reports/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * El resumen de una orden en PDF
+         * @description La relacion de los equipos atendidos: una fila por reporte activo, con su informe, su resultado y quien lo recibio. Es tambien la primera hoja del ZIP de /archive, y con la misma condicion: todos los reportes cerrados, o 409.
+         */
+        get: operations["getSummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -841,6 +861,74 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WorkOrderReportProgressResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceReportErrorResponse"];
+                };
+            };
+        };
+    };
+    getSummary: {
+        parameters: {
+            query: {
+                /** @description La orden de trabajo */
+                idOrdenTrabajo: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description El PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
                 };
             };
             /** @description Bad Request */

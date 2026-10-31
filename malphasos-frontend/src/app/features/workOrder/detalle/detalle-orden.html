@@ -32,6 +32,19 @@
             <button
               class="boton-secundario min-h-tactil"
               type="button"
+              data-descargar-resumen
+              [disabled]="descargaDelResumen.isPending()"
+              (click)="descargarResumen()"
+            >
+              {{
+                descargaDelResumen.isPending()
+                  ? 'Preparando el resumen…'
+                  : 'Descargar resumen (PDF)'
+              }}
+            </button>
+            <button
+              class="boton-secundario min-h-tactil"
+              type="button"
               data-descargar-informes
               [disabled]="descarga.isPending()"
               (click)="descargarInformes()"
