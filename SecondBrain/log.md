@@ -2662,3 +2662,11 @@ del frontend, todas muertas.
 **Lo que conviene recordar**: antes de mutar se convirtió la plantilla con el Gotenberg de desarrollo y
 doce filas de prueba, y se miró el PDF: las pruebas leen el HTML y no ven si la hoja cabe. Ver
 [[dominio-reporte-servicio]].
+
+## [2026-10-31] ingest | Del reporte a su orden, desde arriba
+
+El usuario no encontraba cómo volver del llenado de un reporte a su orden: el enlace existía, pero al
+pie, debajo de todo el formulario y la firma. Ahora hay un botón «← Volver a la orden» en la cabecera,
+junto a «Ver el documento», y el del pie se queda para quien termina de firmar. Una prueba y una mutación,
+que muere. Lo que conviene recordar: **que algo exista en la pantalla no es lo mismo que se encuentre**, y
+el enlace del pie no tenía ninguna prueba.

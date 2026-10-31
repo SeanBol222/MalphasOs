@@ -34,6 +34,17 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
+        <!--
+          La orden a la que pertenece, arriba (2026-10-31): el enlace del pie queda tras todo el
+          formulario, y quien llena un reporte vuelve a la orden a por el equipo siguiente.
+        -->
+        <a
+          class="boton-secundario inline-flex min-h-tactil items-center"
+          [routerLink]="['/ordenes', datos.idOrdenTrabajo]"
+          data-volver-a-la-orden
+        >
+          ← Volver a la orden
+        </a>
         <!-- El documento: lo que se imprime, se guarda en PDF y se entrega (2026-10-16). -->
         <a
           class="boton-secundario inline-flex min-h-tactil items-center"
