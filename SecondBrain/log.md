@@ -2670,3 +2670,16 @@ pie, debajo de todo el formulario y la firma. Ahora hay un botón «← Volver a
 junto a «Ver el documento», y el del pie se queda para quien termina de firmar. Una prueba y una mutación,
 que muere. Lo que conviene recordar: **que algo exista en la pantalla no es lo mismo que se encuentre**, y
 el enlace del pie no tenía ninguna prueba.
+
+## [2026-10-31] ingest | El cronograma de la orden en PDF
+
+Los equipos de una orden y, mes a mes durante el año siguiente, cuándo les toca el próximo mantenimiento.
+El usuario eligió el plan de doce meses entre tres propuestas, y dos reglas: **una fecha para toda la
+orden** —la de ejecución, porque todos los equipos se atienden el mismo día— y **un equipo fuera de
+servicio no se programa**. Va en el ZIP tras el resumen y con su propio botón; una orden sin periodicidad
+no lo tiene. Ver [[dominio-reporte-servicio]].
+
+**Lo que conviene recordar**: la prueba de una orden sin periodicidad destapó que el resumen, ya en
+`main`, **daba un 500 con un correctivo**: `Map.of(...).get(null)` lanza, al contrario que un `HashMap`.
+Ninguna prueba del resumen usaba una orden sin periodicidad. Y en el frontend una mutación sobrevivió por
+una condición repetida: el botón ya estaba dentro del bloque que la comprobaba.
