@@ -624,9 +624,9 @@ como tres opciones. Ver [[dominio-reporte-servicio]].
 **Y los informes de una orden en un ZIP**, pedido el 2026-10-31 y construido ese día: un botón en la ficha
 de la orden, cuando todos sus equipos tienen el reporte cerrado. Sin migración. Ver
 [[dominio-reporte-servicio]]. **Y el resumen de la orden en PDF**, ese mismo día: la relación de los equipos
-atendidos, primera hoja del ZIP y con botón propio. **Y el cronograma de la orden**, también ese día: el
-próximo mantenimiento de cada equipo mes a mes durante el año siguiente, segunda hoja del ZIP y con botón
-propio, solo para una orden con periodicidad.
+atendidos, primera hoja del ZIP. **Y el cronograma de la orden**, también ese día: el próximo
+mantenimiento de cada equipo mes a mes durante el año siguiente, segunda hoja del ZIP, solo para una orden
+con periodicidad. Los dos tuvieron botón propio unas horas; el usuario los dejó solo en el ZIP.
 
 ## El orden propuesto
 
