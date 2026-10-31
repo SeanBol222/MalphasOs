@@ -21,6 +21,7 @@ import {
 import { fechaCorta } from '../../../core/fechas';
 import { Buscador, Opcion } from '../../../shared/buscador/buscador';
 import { traducirError } from '../../../core/errores/traducir';
+import { guardarArchivo } from '../../../core/api/pdf';
 
 /**
  * Una orden de trabajo: sus datos, su alcance y su ciclo de vida.
@@ -100,6 +101,7 @@ export class DetalleOrden {
 
   private readonly reporteApi = inject(ReporteApi);
   private readonly reportes = this.reporteApi.porOrden(this.id);
+  protected readonly descarga = this.reporteApi.informesDeOrden();
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('work-order.write'));
   protected readonly puedeAsignar = computed(() => this.sesion.puede('work-order.assign'));
@@ -178,6 +180,14 @@ export class DetalleOrden {
    * queden (2026-10-14), así que el botón se desactiva y lo dice, en vez de ofrecer un 409.
    */
   protected readonly reportesPendientes = computed(() => this.totalDeEquipos() - this.cerrados());
+
+  /**
+   * Los informes se descargan juntos cuando todos los equipos tienen su reporte cerrado (2026-10-31), con
+   * la orden ejecutada o no: lo mismo exige el servidor.
+   */
+  protected readonly puedeDescargarInformes = computed(
+    () => this.totalDeEquipos() > 0 && this.reportesPendientes() === 0,
+  );
 
   /** El ingeniero asignado, con nombre. Sin él, la orden está programada y no repartida. */
   protected readonly ingeniero = computed(() => {
@@ -352,7 +362,8 @@ export class DetalleOrden {
       this.ejecucion.isError() ||
       this.anulacion.isError() ||
       this.bajaDeEquipo.isError() ||
-      this.asignacion.isError(),
+      this.asignacion.isError() ||
+      this.descarga.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
     traducirError(
@@ -361,9 +372,14 @@ export class DetalleOrden {
         this.ejecucion.error() ??
         this.anulacion.error() ??
         this.bajaDeEquipo.error() ??
-        this.asignacion.error(),
+        this.asignacion.error() ??
+        this.descarga.error(),
     ),
   );
+
+  protected descargarInformes(): void {
+    this.descarga.mutate(this.id(), { onSuccess: guardarArchivo });
+  }
 
   protected iniciar(): void {
     this.inicio.mutate(this.id());

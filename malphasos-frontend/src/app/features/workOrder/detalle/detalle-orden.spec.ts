@@ -650,6 +650,88 @@ describe('Ficha de una orden de trabajo', () => {
     });
   });
 
+  describe('Los informes de la orden en un ZIP (2026-10-31)', () => {
+    const DOS = [
+      { idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE },
+      { idEquipoCliente: 'ec2', idReporteServicio: 'r2' },
+    ];
+    const URL_ZIP = `${API}/reports/archive?idOrdenTrabajo=${ID_ORDEN}`;
+    const boton = () => raiz().querySelector<HTMLButtonElement>('[data-descargar-informes]');
+    const cerrado = (id: string, idEquipoCliente: string) =>
+      reporte({ id, idEquipoCliente, estado: 'FINALIZADO', resultado: 'OPERATIVO' });
+
+    it('con algún reporte en borrador no se ofrece', async () => {
+      await abrir(orden({ estadoEjecucion: 'EN_EJECUCION', equipos: DOS }), [
+        cerrado(ID_REPORTE, ID_EQUIPO),
+        reporte({ id: 'r2', idEquipoCliente: 'ec2', estado: 'BORRADOR' }),
+      ]);
+
+      expect(boton()).toBeNull();
+    });
+
+    it('una orden sin equipos no tiene informes que descargar', async () => {
+      await abrir(orden({ estadoEjecucion: 'EN_EJECUCION', equipos: [] }));
+
+      expect(boton()).toBeNull();
+    });
+
+    it('con todos cerrados se ofrece aunque no se pueda escribir, y guarda el ZIP con el nombre del servidor', async () => {
+      TestBed.resetTestingModule();
+      montar(['work-order.read', 'report.read']);
+      const { createObjectURL, revokeObjectURL } = globalThis.URL; // URL es aquí la de la orden
+      const guardados: { href: string; download: string }[] = [];
+      const click = HTMLAnchorElement.prototype.click;
+      globalThis.URL.createObjectURL = () => 'blob:prueba/1';
+      globalThis.URL.revokeObjectURL = () => undefined;
+      HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+        guardados.push({ href: this.href, download: this.download });
+      };
+      try {
+        await abrir(orden({ estadoEjecucion: 'EN_EJECUCION', equipos: DOS }), [
+          cerrado(ID_REPORTE, ID_EQUIPO),
+          cerrado('r2', 'ec2'),
+        ]);
+
+        boton()!.click();
+        await asentar(fixture);
+        expect(boton()!.textContent).toContain('Preparando los informes');
+        http.expectOne(URL_ZIP).flush(new Blob(['PK'], { type: 'application/zip' }), {
+          headers: { 'Content-Disposition': 'attachment; filename="informes-orden-ABC123.zip"' },
+        });
+        await asentar(fixture);
+
+        expect(guardados).toEqual([
+          { href: 'blob:prueba/1', download: 'informes-orden-ABC123.zip' },
+        ]);
+      } finally {
+        globalThis.URL.createObjectURL = createObjectURL;
+        globalThis.URL.revokeObjectURL = revokeObjectURL;
+        HTMLAnchorElement.prototype.click = click;
+      }
+    });
+
+    it('si el conversor no responde, lo dice con el mensaje del catálogo', async () => {
+      await abrir(orden({ estadoEjecucion: 'EJECUTADA', equipos: DOS }), [
+        cerrado(ID_REPORTE, ID_EQUIPO),
+        cerrado('r2', 'ec2'),
+      ]);
+
+      boton()!.click();
+      await asentar(fixture);
+      http.expectOne(URL_ZIP).flush(
+        new Blob([JSON.stringify({ code: 'ERR_SERVICE_REPORT_010', message: 'x', details: [] })], {
+          type: 'application/json',
+        }),
+        { status: 503, statusText: 'Service Unavailable' },
+      );
+      await asentar(fixture);
+
+      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+        'No se pudo generar el PDF del informe',
+      );
+    });
+  });
+
   afterEach(() => {
     // En finally a proposito: si verify() lanza por una peticion abierta, sin esto el doble de
     // localStorage se queda instalado y el fichero SIGUIENTE hereda lo que este guardo. Es la variante
