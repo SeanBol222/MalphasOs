@@ -104,29 +104,12 @@ public interface ServiceReportServicePort {
 
     /**
      * Los informes en PDF de todos los reportes activos de una orden, si la orden entra en el alcance y
-     * todos están cerrados (2026-10-31): es lo que se entrega al terminar.
+     * todos están cerrados (2026-10-31): es lo que se entrega al terminar. Delante van el resumen de la orden
+     * y, si tiene periodicidad, su cronograma; no se descargan sueltos.
      *
      * @throws IllegalStateException si la orden no tiene reportes o alguno sigue en borrador
      */
     ReportArchive pdfsOfWorkOrder(UUID idOrdenTrabajo, ReadScope alcance);
-
-    /**
-     * El resumen de una orden en PDF: una fila por equipo atendido, con su informe y su resultado
-     * (2026-10-31). Con la misma condición que {@link #pdfsOfWorkOrder}, del que es la primera hoja.
-     *
-     * @throws IllegalStateException si la orden no tiene reportes o alguno sigue en borrador
-     */
-    ReportPdf workOrderSummary(UUID idOrdenTrabajo, ReadScope alcance);
-
-    /**
-     * El cronograma de una orden en PDF: sus equipos y el próximo mantenimiento de cada uno en los doce meses
-     * siguientes (2026-10-31). Con la misma condición que {@link #pdfsOfWorkOrder}, en el que va tras el
-     * resumen, y solo para una orden con periodicidad.
-     *
-     * @throws IllegalStateException si la orden no tiene reportes, alguno sigue en borrador o la orden no
-     *     tiene periodicidad
-     */
-    ReportPdf workOrderSchedule(UUID idOrdenTrabajo, ReadScope alcance);
 
     /**
      * Congela, con los datos de hoy, los reportes cerrados antes de que el informe se congelara, y los

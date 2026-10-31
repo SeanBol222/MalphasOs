@@ -626,7 +626,7 @@ de la orden, cuando todos sus equipos tienen el reporte cerrado. Sin migración.
 [[dominio-reporte-servicio]]. **Y el resumen de la orden en PDF**, ese mismo día: la relación de los equipos
 atendidos, primera hoja del ZIP. **Y el cronograma de la orden**, también ese día: el próximo
 mantenimiento de cada equipo mes a mes durante el año siguiente, segunda hoja del ZIP, solo para una orden
-con periodicidad. Los dos tuvieron botón propio unas horas; el usuario los dejó solo en el ZIP.
+con periodicidad. Los dos tuvieron botón y ruta propios unas horas; el usuario los dejó solo en el ZIP.
 
 ## El orden propuesto
 
