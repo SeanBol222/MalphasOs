@@ -238,6 +238,28 @@ public class ServiceReportRestAdapter {
                 .body(pdf.contenido());
     }
 
+    @Operation(summary = "El cronograma de una orden en PDF",
+            description = "Los equipos de la orden y, en los doce meses siguientes, cuando les toca el proximo"
+                    + " mantenimiento: la fecha de ejecucion mas la periodicidad, una para toda la orden. Un"
+                    + " equipo fuera de servicio no se programa. Va tambien en el ZIP de /archive, tras el"
+                    + " resumen. Con todos los reportes cerrados y una orden con periodicidad, o 409.")
+    @ApiResponse(responseCode = "200", description = "El PDF",
+            content = @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary")))
+    @PreAuthorize("hasAuthority('report.read')")
+    @GetMapping(value = "/schedule", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> getSchedule(
+            @Parameter(description = "La orden de trabajo") @RequestParam UUID idOrdenTrabajo,
+            Authentication autenticacion) {
+        ReportPdf pdf = serviceReportServicePort.workOrderSchedule(
+                idOrdenTrabajo, readScopeResolver.scopeFor(autenticacion));
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(pdf.nombre()).build().toString())
+                .body(pdf.contenido());
+    }
+
     @Operation(summary = "Registrar la informacion tecnica (RF-15)",
             description = "Un campo ausente deja el valor como estaba y uno en blanco lo borra. "
                     + "Un reporte cerrado ya no se llena.")

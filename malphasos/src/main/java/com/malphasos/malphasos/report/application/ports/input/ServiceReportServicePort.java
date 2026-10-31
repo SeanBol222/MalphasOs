@@ -119,6 +119,16 @@ public interface ServiceReportServicePort {
     ReportPdf workOrderSummary(UUID idOrdenTrabajo, ReadScope alcance);
 
     /**
+     * El cronograma de una orden en PDF: sus equipos y el próximo mantenimiento de cada uno en los doce meses
+     * siguientes (2026-10-31). Con la misma condición que {@link #pdfsOfWorkOrder}, en el que va tras el
+     * resumen, y solo para una orden con periodicidad.
+     *
+     * @throws IllegalStateException si la orden no tiene reportes, alguno sigue en borrador o la orden no
+     *     tiene periodicidad
+     */
+    ReportPdf workOrderSchedule(UUID idOrdenTrabajo, ReadScope alcance);
+
+    /**
      * Congela, con los datos de hoy, los reportes cerrados antes de que el informe se congelara, y los
      * marca como tardíos. Se llama al arrancar; con todos congelados no hace nada.
      *
