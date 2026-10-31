@@ -405,10 +405,12 @@ export type AccesorioDelIngreso = reportes['schemas']['IntakeAccessoryRequest'];
 export type QuienRecibe = reportes['schemas']['RecordHandoverRequest'];
 
 /**
- * Quien recibe firma el recibido (V39, 2026-10-17): quién es, la firma como PNG en data: URI y, con la
- * casilla de RF-21, si vale también para los reportes de la orden que aún no tengan.
+ * Quien recibe firma el recibido (V39, 2026-10-17): quién es, la firma como PNG en data: URI y, con el
+ * alcance de RF-21, si vale también para los del área o los de la orden que aún no tengan.
  */
 export type FirmaDeRecibido = reportes['schemas']['SignReceiptRequest'];
+/** RF-21: a cuántos reportes de la orden va una firma de quien recibe. */
+export type AlcanceDeFirma = NonNullable<FirmaDeRecibido['alcance']>;
 export type VerificacionAlIngreso = reportes['schemas']['IntakeCheckResponse'];
 export type AccesorioDeReporte = reportes['schemas']['ReportAccessoryResponse'];
 export type EstadoAlIngreso = NonNullable<RegistroDeIngreso['fisico']>;

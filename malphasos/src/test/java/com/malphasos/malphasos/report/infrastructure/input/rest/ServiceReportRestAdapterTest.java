@@ -28,6 +28,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReceiptScope;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.shared.domain.image.DocumentImage;
@@ -367,13 +368,13 @@ class ServiceReportRestAdapterTest {
         /** Un PNG mínimo: la cabecera de ocho bytes y uno más. */
         private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 7};
 
-        private String cuerpo(String imagen, boolean aplicarALaOrden) {
+        private String cuerpo(String imagen, String alcance) {
             return "{\"nombre\": \"Ana Pérez\", \"cedula\": \"52123456\", \"cargo\": \"Jefe de enfermeria\","
-                    + " \"imagen\": \"" + imagen + "\", \"aplicarALaOrden\": " + aplicarALaOrden + "}";
+                    + " \"imagen\": \"" + imagen + "\", \"alcance\": \"" + alcance + "\"}";
         }
 
         @Test
-        @DisplayName("firmar llega al servicio con los bytes del PNG y la casilla, y devuelve los firmados")
+        @DisplayName("firmar llega al servicio con los bytes del PNG y el alcance, y devuelve los firmados")
         void firmar() throws Exception {
             ServiceReport reporte = unReporte();
             ServiceReport otro = unReporte();
@@ -385,7 +386,7 @@ class ServiceReportRestAdapterTest {
             mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/receipt-signature")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(cuerpo("data:image/png;base64," + Base64.getEncoder().encodeToString(PNG),
-                                    true)))
+                                    "ORDEN")))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2))
                     .andExpect(jsonPath("$[0].id").value(reporte.getId().toString()))
@@ -400,28 +401,28 @@ class ServiceReportRestAdapterTest {
             assertThat(comando.getValue().cedula()).isEqualTo("52123456");
             assertThat(comando.getValue().cargo()).isEqualTo("Jefe de enfermeria");
             assertThat(comando.getValue().firma()).isEqualTo(PNG);
-            assertThat(comando.getValue().aplicarALaOrden()).isTrue();
+            assertThat(comando.getValue().alcance()).isEqualTo(ReceiptScope.ORDEN);
         }
 
         @Test
-        @DisplayName("sin la casilla, el comando no aplica a la orden")
-        void sinLaCasilla() throws Exception {
+        @DisplayName("el alcance del área llega tal cual al servicio")
+        void alcanceDelArea() throws Exception {
             ServiceReport reporte = unReporte();
             when(serviceReportServicePort.signReceipt(any())).thenReturn(List.of(reporte));
 
             mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/receipt-signature")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(cuerpo("data:image/png;base64," + Base64.getEncoder().encodeToString(PNG),
-                                    false)))
+                                    "AREA")))
                     .andExpect(status().isOk());
 
             ArgumentCaptor<SignReceiptCommand> comando = ArgumentCaptor.forClass(SignReceiptCommand.class);
             verify(serviceReportServicePort).signReceipt(comando.capture());
-            assertThat(comando.getValue().aplicarALaOrden()).isFalse();
+            assertThat(comando.getValue().alcance()).isEqualTo(ReceiptScope.AREA);
         }
 
         @Test
-        @DisplayName("la casilla es opcional: sin ella, solo este reporte")
+        @DisplayName("el alcance es opcional: sin él, solo este reporte")
         void sinLaCasillaEnElCuerpo() throws Exception {
             ServiceReport reporte = unReporte();
             when(serviceReportServicePort.signReceipt(any())).thenReturn(List.of(reporte));
@@ -434,7 +435,19 @@ class ServiceReportRestAdapterTest {
 
             ArgumentCaptor<SignReceiptCommand> comando = ArgumentCaptor.forClass(SignReceiptCommand.class);
             verify(serviceReportServicePort).signReceipt(comando.capture());
-            assertThat(comando.getValue().aplicarALaOrden()).isFalse();
+            assertThat(comando.getValue().alcance()).isEqualTo(ReceiptScope.REPORTE);
+        }
+
+        @Test
+        @DisplayName("un alcance que no existe responde 400 sin llegar al servicio")
+        void alcanceDesconocido() throws Exception {
+            mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo("data:image/png;base64," + Base64.getEncoder().encodeToString(PNG),
+                                    "SEDE")))
+                    .andExpect(status().isBadRequest());
+
+            verify(serviceReportServicePort, never()).signReceipt(any());
         }
 
         @Test
@@ -444,7 +457,7 @@ class ServiceReportRestAdapterTest {
             mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(cuerpo("data:image/gif;base64," + Base64.getEncoder().encodeToString(PNG),
-                                    false)))
+                                    "REPORTE")))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_002"));
 
@@ -456,7 +469,7 @@ class ServiceReportRestAdapterTest {
         void base64Roto() throws Exception {
             mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(cuerpo("data:image/png;base64,%%%", false)))
+                            .content(cuerpo("data:image/png;base64,%%%", "REPORTE")))
                     .andExpect(status().isBadRequest());
 
             verify(serviceReportServicePort, never()).signReceipt(any());
@@ -468,7 +481,7 @@ class ServiceReportRestAdapterTest {
             mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"nombre\": \" \", \"imagen\": \"data:image/png;base64,"
-                                    + Base64.getEncoder().encodeToString(PNG) + "\", \"aplicarALaOrden\": false}"))
+                                    + Base64.getEncoder().encodeToString(PNG) + "\", \"alcance\": \"REPORTE\"}"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("ERR_INVALID_DATA_002"));
 
@@ -484,7 +497,7 @@ class ServiceReportRestAdapterTest {
             mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(cuerpo("data:image/png;base64," + Base64.getEncoder().encodeToString(PNG),
-                                    false)))
+                                    "REPORTE")))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_003"));
         }

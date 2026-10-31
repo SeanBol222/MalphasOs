@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-27
+updated: 2026-10-30
 ---
 
 # Hoja de ruta del producto
@@ -543,7 +543,7 @@ del día anterior** —«tres líneas a mano»—, y el usuario la cambió a sab
 | Quién firma en pantalla | **Quien recibe el servicio**, el cliente o su encargado |
 | El ingeniero | **Su firma vive en su cuenta**: la dibuja una vez y no firma cada servicio. Solo la cambia su dueño *(de la sesión)* |
 | Cuándo firma quien recibe | **Antes o después de cerrar**: la firma es lo único que se añade a un informe cerrado, porque muchas veces se entrega después. Firmada, no se cambia *(de la sesión)* |
-| Replicar (RF-21) | **Como la ERS**: una casilla «aplicar a todos los reportes de esta orden», solo a los de esa orden que aún no tengan firma, abiertos o cerrados *(el alcance, de la sesión)* |
+| Replicar (RF-21) | **Como la ERS**: una casilla «aplicar a todos los reportes de esta orden», solo a los de esa orden que aún no tengan firma, abiertos o cerrados *(el alcance, de la sesión)*. **Ampliado el 2026-10-30** a tres alcances —el reporte, su área en la orden o la orden entera—, pedido por el usuario con el análisis del esquema |
 | La firma del ingeniero en el informe | **Se copia al cerrar**, con el resto de lo congelado: cambiarla después no altera lo entregado. Cerrar no la exige; sin ella la línea sale para firmar a mano *(de la sesión)* |
 | El supervisor | **A mano**: es el encargado del área, del cliente y sin cuenta |
 | El PDF | **En el servidor** |
@@ -616,7 +616,10 @@ dejaba ver: sustituir un reporte cerrado es un botón «Sustituir», que lo reti
 paso, y se puede sustituir con la orden ya ejecutada sin que su documento cambie.
 
 **Y el recibido** —firmar un reporte, un área o la orden entera— no pide migración: se queda en el reporte,
-como desde `V39`, y es trabajo de servicio y de pantalla después de `V49`.
+como desde `V39`, y es trabajo de servicio y de pantalla después de `V49`. **Construido el 2026-10-30**,
+tras `V52`: la casilla «aplicar a la orden» se volvió un alcance de tres valores —solo este reporte, los
+del área de este equipo en la orden, o todos los de la orden—, en el API como `alcance` y en la pantalla
+como tres opciones. Ver [[dominio-reporte-servicio]].
 
 ## El orden propuesto
 

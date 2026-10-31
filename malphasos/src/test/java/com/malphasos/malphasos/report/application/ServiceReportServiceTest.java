@@ -45,6 +45,7 @@ import com.malphasos.malphasos.report.application.services.serviceReport.command
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordVerificationCommand;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.RemoveReferenceStandardCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.ReceiptScope;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.SignReceiptCommand;
 import com.malphasos.malphasos.report.domain.serviceReport.events.ServiceReportReceiptSignedEvent;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.VerificationReadingCommand;
@@ -260,7 +261,7 @@ class ServiceReportServiceTest {
                     () -> service.recordIntake(new RecordIntakeCommand(id, IntakeState.CONFORME, null,
                             IntakeState.CONFORME, null, List.of())),
                     () -> service.recordHandover(new RecordHandoverCommand(id, "Ana", null, null)),
-                    () -> service.signReceipt(new SignReceiptCommand(id, "Ana", null, null, new byte[] {1}, false)),
+                    () -> service.signReceipt(new SignReceiptCommand(id, "Ana", null, null, new byte[] {1}, ReceiptScope.REPORTE)),
                     () -> service.useReferenceStandard(new UseReferenceStandardCommand(id, UUID.randomUUID(),
                             UUID.randomUUID())),
                     () -> service.removeReferenceStandard(new RemoveReferenceStandardCommand(id, UUID.randomUUID(),
@@ -1375,9 +1376,19 @@ class ServiceReportServiceTest {
         private static final DocumentImage FIRMA = new DocumentImage(PNG, "image/png");
         private static final Handover ANA = new Handover("Ana Pérez", "52123456", "Jefe de enfermeria");
 
-        private SignReceiptCommand firmar(ServiceReport reporte, boolean aplicarALaOrden) {
+        private SignReceiptCommand firmar(ServiceReport reporte, ReceiptScope alcance) {
             return new SignReceiptCommand(
-                    reporte.getId(), "Ana Pérez", "52123456", "Jefe de enfermeria", PNG, aplicarALaOrden);
+                    reporte.getId(), "Ana Pérez", "52123456", "Jefe de enfermeria", PNG, alcance);
+        }
+
+        private ServiceReport deOtroEquipo(UUID equipo) {
+            ServiceReport reporte = ServiceReport.open(ORDEN, equipo);
+            reporte.pullEvents();
+            return reporte;
+        }
+
+        private ClientEquipment unidad(UUID id, UUID area) {
+            return ClientEquipment.rehydrate(id, "SN-" + id, MODELO, area, null, null, null, null, null, null, true);
         }
 
         private ServiceReport cerrado() {
@@ -1394,19 +1405,20 @@ class ServiceReportServiceTest {
             estubarReporte(reporte);
             estubarGuardado();
 
-            List<ServiceReport> firmados = service.signReceipt(firmar(reporte, false));
+            List<ServiceReport> firmados = service.signReceipt(firmar(reporte, ReceiptScope.REPORTE));
 
             assertThat(firmados).containsExactly(reporte);
             assertThat(reporte.getRecibe()).isEqualTo(ANA);
             assertThat(reporte.getFirmaRecibe().huella()).isEqualTo(FIRMA.huella());
             verify(documentImageStorePort).store(FIRMA);
             verify(eventDispatcherPort).dispatch(any(ServiceReportReceiptSignedEvent.class));
-            // Sin la casilla no se mira la orden.
+            // Solo este: no se mira la orden ni el área.
             verify(serviceReportPersistencePort, never()).findByWorkOrder(any());
+            verify(clientEquipmentServicePort, never()).findByServiceArea(any(), any());
         }
 
         @Test
-        @DisplayName("RF-21: con la casilla, firma los de la orden sin firma, abiertos o cerrados, y no los demás")
+        @DisplayName("RF-21: a la orden, firma los de la orden sin firma, abiertos o cerrados, y no los demás")
         void aplicarALaOrden() {
             ServiceReport pedido = unReporte();
             ServiceReport abierto = unReporte();
@@ -1421,7 +1433,7 @@ class ServiceReportServiceTest {
             when(serviceReportPersistencePort.findByWorkOrder(ORDEN))
                     .thenReturn(List.of(abierto, pedido, yaFirmado, cerradoSinFirma, retirado));
 
-            List<ServiceReport> firmados = service.signReceipt(firmar(pedido, true));
+            List<ServiceReport> firmados = service.signReceipt(firmar(pedido, ReceiptScope.ORDEN));
 
             assertThat(firmados).containsExactly(pedido, abierto, cerradoSinFirma);
             assertThat(List.of(pedido, abierto, cerradoSinFirma)).allSatisfy(firmado -> {
@@ -1436,6 +1448,45 @@ class ServiceReportServiceTest {
             verify(documentImageStorePort).store(FIRMA);
             verify(serviceReportPersistencePort, never()).save(yaFirmado);
             verify(serviceReportPersistencePort, never()).save(retirado);
+            // Toda la orden: el área no se consulta.
+            verify(clientEquipmentServicePort, never()).findByServiceArea(any(), any());
+        }
+
+        @Test
+        @DisplayName("RF-21: al área, firma los de la orden cuyo equipo está en el área del pedido, y no los de otra")
+        void aplicarAlArea() {
+            UUID vecino = UUID.randomUUID();
+            UUID deOtraArea = UUID.randomUUID();
+            ServiceReport pedido = unReporte();
+            ServiceReport delArea = deOtroEquipo(vecino);
+            ServiceReport ajeno = deOtroEquipo(deOtraArea);
+            ServiceReport yaFirmado = deOtroEquipo(vecino);
+            yaFirmado.signReceipt(new Handover("Luis Gómez", null, null), "b".repeat(64),
+                    java.time.LocalDateTime.of(2026, 10, 2, 8, 0));
+            estubarReporte(pedido);
+            estubarGuardado();
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted()))
+                    .thenReturn(unidad(EQUIPO, AREA));
+            when(clientEquipmentServicePort.findByServiceArea(AREA, ReadScope.unrestricted()))
+                    .thenReturn(List.of(unidad(EQUIPO, AREA), unidad(vecino, AREA)));
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN))
+                    .thenReturn(List.of(ajeno, pedido, delArea, yaFirmado));
+
+            List<ServiceReport> firmados = service.signReceipt(firmar(pedido, ReceiptScope.AREA));
+
+            assertThat(firmados).containsExactly(pedido, delArea);
+            assertThat(delArea.getRecibe()).isEqualTo(ANA);
+            assertThat(ajeno.getFirmaRecibe()).isNull();
+            assertThat(yaFirmado.getRecibe().nombre()).isEqualTo("Luis Gómez");
+            verify(documentImageStorePort).store(FIRMA);
+            verify(serviceReportPersistencePort, never()).save(ajeno);
+        }
+
+        @Test
+        @DisplayName("sin alcance, el comando firma solo el reporte pedido")
+        void sinAlcance() {
+            assertThat(new SignReceiptCommand(UUID.randomUUID(), "Ana", null, null, PNG, null).alcance())
+                    .isEqualTo(ReceiptScope.REPORTE);
         }
 
         @Test
@@ -1447,7 +1498,7 @@ class ServiceReportServiceTest {
             estubarReporte(pedido);
             lenient().when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(pedido, otro));
 
-            assertThatThrownBy(() -> service.signReceipt(firmar(pedido, true)))
+            assertThatThrownBy(() -> service.signReceipt(firmar(pedido, ReceiptScope.ORDEN)))
                     .isInstanceOf(IllegalStateException.class);
 
             assertThat(otro.getFirmaRecibe()).isNull();
@@ -1462,7 +1513,7 @@ class ServiceReportServiceTest {
             estubarReporte(reporte);
 
             assertThatThrownBy(() -> service.signReceipt(new SignReceiptCommand(reporte.getId(), "Ana Pérez", null,
-                            null, "<svg/>".getBytes(java.nio.charset.StandardCharsets.UTF_8), false)))
+                            null, "<svg/>".getBytes(java.nio.charset.StandardCharsets.UTF_8), ReceiptScope.REPORTE)))
                     .isInstanceOf(IllegalArgumentException.class);
 
             assertThat(reporte.getFirmaRecibe()).isNull();
@@ -1477,7 +1528,7 @@ class ServiceReportServiceTest {
             estubarReporte(reporte);
 
             assertThatThrownBy(() -> service.signReceipt(
-                            new SignReceiptCommand(reporte.getId(), " ", null, null, PNG, false)))
+                            new SignReceiptCommand(reporte.getId(), " ", null, null, PNG, ReceiptScope.REPORTE)))
                     .isInstanceOf(IllegalArgumentException.class);
             verify(serviceReportPersistencePort, never()).save(any());
         }

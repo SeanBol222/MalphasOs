@@ -232,8 +232,9 @@ public class ServiceReportRestAdapter {
 
     @Operation(summary = "Firmar el recibido",
             description = "Quien recibe el servicio firma en la pantalla (RF-18), antes o despues de cerrar: es "
-                    + "lo unico que se anade a un reporte cerrado. Una vez firmado no cambia. Con aplicarALaOrden "
-                    + "la misma firma va a los reportes activos de la orden que aun no tengan (RF-21). Devuelve "
+                    + "lo unico que se anade a un reporte cerrado. Una vez firmado no cambia. Con alcance AREA u "
+                    + "ORDEN la misma firma va a los reportes activos del area o de la orden que aun no tengan "
+                    + "(RF-21). Devuelve "
                     + "los reportes firmados, el pedido primero.")
     @PreAuthorize("hasAuthority('report.write')")
     @PatchMapping("/{id}/receipt-signature")
@@ -251,7 +252,7 @@ public class ServiceReportRestAdapter {
         }
 
         return responder(serviceReportServicePort.signReceipt(new SignReceiptCommand(
-                id, request.nombre(), request.cedula(), request.cargo(), firma, request.aplicaALaOrden())));
+                id, request.nombre(), request.cedula(), request.cargo(), firma, request.alcance())));
     }
 
     @Operation(summary = "Registrar la verificacion metrologica",

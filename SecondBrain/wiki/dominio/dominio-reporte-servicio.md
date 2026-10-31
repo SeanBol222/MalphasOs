@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-28
+updated: 2026-10-30
 ---
 
 # Reportes de servicio — el módulo completo
@@ -217,6 +217,22 @@ corregir, y rellenarla no cuenta como cambio: no guarda nada hasta que se escrib
 
 **Los repuestos salen en la hoja de vida**: `descripcionDelServicio()` los añade al final —«Repuestos:
 fuente 12 V.»—, porque es lo que alguien busca cuando vuelve a fallar la misma pieza.
+
+### La firma de quien recibe, a un reporte, a un área o a la orden (2026-10-30)
+
+`V39` replicaba la firma con una casilla, «aplicar a los demás reportes de la orden» (RF-21). El usuario
+pidió con el análisis del esquema **tres formas de firmar**: un reporte, los de **un área** de la orden o
+**todos los de la orden**, que es toda la sede porque una orden es de una sola. La casilla se volvió un
+`alcance` —`REPORTE`, `AREA` u `ORDEN`, opcional y `REPORTE` si falta— y en la pantalla, tres opciones.
+
+- **Sin migración**: quien recibe no es un dato del área ni de la orden —en el periodo siguiente puede ser
+  otra persona—, así que la firma sigue en cada reporte y el alcance solo dice cuántos se rellenan de golpe.
+  La imagen se guarda una vez, por su huella.
+- **El área es la de hoy de cada equipo**, que es la que tenía al empezar la orden: desde `V50` un equipo no
+  se traslada mientras está en una orden sin ejecutar. El servicio pide los equipos del área del pedido en
+  una consulta y firma los reportes de la orden cuyo equipo está entre ellos.
+- **Las reglas de `V39` no cambian**: se firman los activos sin firma, abiertos o cerrados; el pedido tiene
+  que poder firmarse, o falla todo.
 
 ### El patrón, la tolerancia y la conformidad
 
