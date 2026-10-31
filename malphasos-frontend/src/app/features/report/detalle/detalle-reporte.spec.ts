@@ -266,6 +266,14 @@ describe('Ficha de un reporte de servicio', () => {
     expect(enlace?.getAttribute('href')).toBe(`/reportes/${ID_REPORTE}/documento`);
   });
 
+  it('vuelve a su orden desde la cabecera, sin bajar al pie (2026-10-31)', async () => {
+    await abrir();
+
+    const enlace = raiz().querySelector<HTMLAnchorElement>('[data-volver-a-la-orden]');
+    expect(enlace?.textContent?.trim()).toBe('← Volver a la orden');
+    expect(enlace?.getAttribute('href')).toBe(`/ordenes/${ID_ORDEN}`);
+  });
+
   it('una orden sin ingeniero lo dice, en vez de dejar el hueco en blanco', async () => {
     await abrir();
 
