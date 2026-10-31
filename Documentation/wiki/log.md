@@ -388,3 +388,10 @@ Sin `intervencion`: el historial de la hoja de vida sale de los reportes cerrado
 (orden, equipo). Con ella terminan las once migraciones del análisis de [[diseno-base-de-datos]], de `V42`
 a `V52`: 36 tablas, ningún ciclo dirigido y ninguna foránea sin índice. Ningún documento oficial cambia, y
 ningún requisito se mueve: RF-26 y RF-27 se siguen cumpliendo, con el historial derivado en vez de copiado.
+
+## [2026-10-30] ingest | RF-21 con tres alcances
+
+La réplica de la firma de quien recibe deja de ser una casilla de la orden: se firma un reporte, los del
+área del equipo en la orden o todos los de la orden. Lo pedía el análisis de [[diseno-base-de-datos]], y
+no lleva migración. RF-21 sigue implementado; cambia cómo se elige a cuántos reportes va. Ver
+[[rf-firma-digital]].

@@ -2629,3 +2629,12 @@ cerrados **y vigentes**», y vigente no puede ser «activo», porque mientras el
 borrador el sustituido, ya retirado, sigue siendo el último servicio que ocurrió. Nueve mutaciones, todas
 muertas. Ver [[hoja-de-vida]], [[esquema-bd-malphasos]], [[deuda-tecnica-y-riesgos]] y
 [[hoja-de-ruta-producto]].
+
+## [2026-10-30] ingest | La firma de quien recibe, con tres alcances
+
+Lo que quedaba del análisis del esquema tras `V52`, y sin migración: quien recibe firma un reporte, los
+de su área en la orden o todos los de la orden. La casilla de RF-21 se volvió un `alcance` en el API
+—`REPORTE`, `AREA` u `ORDEN`, `REPORTE` si falta— y tres opciones en la pantalla. El área se resuelve con
+los equipos que están hoy en la del pedido, que es la de cuando empezó la orden porque `V50` bloquea el
+traslado. Cinco mutaciones del backend y cuatro del frontend, todas muertas. Ver
+[[dominio-reporte-servicio]] y [[hoja-de-ruta-producto]].
