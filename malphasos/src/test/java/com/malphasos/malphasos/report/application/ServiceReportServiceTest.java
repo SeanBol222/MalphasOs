@@ -1699,12 +1699,6 @@ class ServiceReportServiceTest {
             assertThatThrownBy(() -> service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted()))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("1 reporte(s) sin cerrar");
-            assertThatThrownBy(() -> service.workOrderSummary(ORDEN, ReadScope.unrestricted()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("1 reporte(s) sin cerrar");
-            assertThatThrownBy(() -> service.workOrderSchedule(ORDEN, ReadScope.unrestricted()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("1 reporte(s) sin cerrar");
             verify(reportPdfPort, never()).render(any());
             verify(workOrderSummaryPdfPort, never()).render(any());
             verify(workOrderSchedulePdfPort, never()).render(any());
@@ -1746,7 +1740,7 @@ class ServiceReportServiceTest {
         }
 
         @Test
-        @DisplayName("el cronograma sale del documento de la orden y de sus reportes, con la empresa de hoy")
+        @DisplayName("el cronograma del ZIP sale del documento de la orden y de sus reportes, con la empresa de hoy")
         void elCronograma() {
             ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"),
                     com.malphasos.malphasos.report.application.sheet.UnaOrdenAtendida.MONITOR);
@@ -1757,7 +1751,9 @@ class ServiceReportServiceTest {
             when(empresa.logo()).thenReturn(Optional.empty());
             when(serviceCompanyServicePort.find()).thenReturn(Optional.of(empresa));
 
-            ReportPdf pdf = service.workOrderSchedule(ORDEN, ReadScope.unrestricted());
+            when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+
+            ReportPdf pdf = service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted()).informes().get(1);
 
             assertThat(pdf.nombre()).isEqualTo("cronograma-orden-" + unaOrdenEnEjecucion().numero() + ".pdf");
             assertThat(pdf.contenido()).isEqualTo(CRONOGRAMA);
@@ -1770,11 +1766,10 @@ class ServiceReportServiceTest {
             assertThat(hoja.getValue().proximo()).isEqualTo("14 oct 2027");
             assertThat(hoja.getValue().filas()).hasSize(1);
             verify(workOrderServicePort).documentOf(unaOrdenEnEjecucion());
-            verify(workOrderSummaryPdfPort, never()).render(any());
         }
 
         @Test
-        @DisplayName("una orden sin periodicidad no lleva cronograma en el ZIP, y no se descarga sola")
+        @DisplayName("una orden sin periodicidad no lleva cronograma en el ZIP")
         void sinCronograma() {
             ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"), UUID.randomUUID());
             when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(uno));
@@ -1786,14 +1781,11 @@ class ServiceReportServiceTest {
             String numero = unaOrdenEnEjecucion().numero();
             assertThat(archivo.informes()).extracting(ReportPdf::nombre)
                     .containsExactly("orden-" + numero + ".pdf", "informe-AAAAAA.pdf");
-            assertThatThrownBy(() -> service.workOrderSchedule(ORDEN, ReadScope.unrestricted()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("no tiene periodicidad");
             verify(workOrderSchedulePdfPort, never()).render(any());
         }
 
         @Test
-        @DisplayName("el resumen de la orden sale de su documento y de sus reportes, con la empresa de hoy")
+        @DisplayName("el resumen del ZIP sale del documento de la orden y de sus reportes, con la empresa de hoy")
         void elResumen() {
             UUID equipo = UUID.randomUUID();
             ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"), equipo);
@@ -1804,7 +1796,9 @@ class ServiceReportServiceTest {
             when(empresa.logo()).thenReturn(Optional.empty());
             when(serviceCompanyServicePort.find()).thenReturn(Optional.of(empresa));
 
-            ReportPdf pdf = service.workOrderSummary(ORDEN, ReadScope.unrestricted());
+            when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+
+            ReportPdf pdf = service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted()).informes().get(0);
 
             assertThat(pdf.nombre()).isEqualTo("orden-" + unaOrdenEnEjecucion().numero() + ".pdf");
             assertThat(pdf.contenido()).isEqualTo(RESUMEN);
@@ -1815,24 +1809,6 @@ class ServiceReportServiceTest {
             assertThat(hoja.getValue().totales().equipos()).isEqualTo(1);
             // El documento es el que da la orden, congelado o de hoy: este módulo no lo compone.
             verify(workOrderServicePort).documentOf(unaOrdenEnEjecucion());
-            verify(reportPdfPort, never()).render(any());
-        }
-
-        @Test
-        @DisplayName("el resumen de una orden ajena no existe, y no se convierte")
-        void resumenAjeno() {
-            ReadScope soloOtro = ReadScope.ofClients(List.of(UUID.randomUUID()));
-            when(workOrderServicePort.findById(ORDEN, soloOtro)).thenThrow(new WorkOrderNotFoundException(ORDEN));
-            lenient().when(serviceReportPersistencePort.findByWorkOrder(ORDEN))
-                    .thenReturn(List.of(cerradoDe(UUID.randomUUID())));
-            lenient().when(workOrderSummaryPdfPort.render(any())).thenReturn(RESUMEN);
-
-            assertThatThrownBy(() -> service.workOrderSummary(ORDEN, soloOtro))
-                    .isInstanceOf(WorkOrderNotFoundException.class);
-            assertThatThrownBy(() -> service.workOrderSchedule(ORDEN, soloOtro))
-                    .isInstanceOf(WorkOrderNotFoundException.class);
-            verify(workOrderSummaryPdfPort, never()).render(any());
-            verify(workOrderSchedulePdfPort, never()).render(any());
         }
 
         @Test
@@ -1848,6 +1824,8 @@ class ServiceReportServiceTest {
             assertThatThrownBy(() -> service.pdfsOfWorkOrder(ORDEN, soloOtro))
                     .isInstanceOf(WorkOrderNotFoundException.class);
             verify(reportPdfPort, never()).render(any());
+            verify(workOrderSummaryPdfPort, never()).render(any());
+            verify(workOrderSchedulePdfPort, never()).render(any());
         }
     }
 }

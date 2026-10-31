@@ -184,8 +184,8 @@ public class ServiceReportRestAdapter {
     }
 
     @Operation(summary = "Los informes de una orden en un ZIP",
-            description = "El resumen de la orden, el de /summary, y un PDF por reporte activo, el mismo de"
-                    + " /{id}/pdf. Solo cuando todos estan"
+            description = "El resumen de la orden, su cronograma si tiene periodicidad, y un PDF por reporte"
+                    + " activo, el mismo de /{id}/pdf. Solo cuando todos estan"
                     + " cerrados: si alguno sigue en borrador, o la orden no tiene reportes, responde 409. Con el"
                     + " alcance de la orden.")
     @ApiResponse(responseCode = "200", description = "El ZIP",
@@ -215,49 +215,6 @@ public class ServiceReportRestAdapter {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(archivo.nombre()).build().toString())
                 .body(zip.toByteArray());
-    }
-
-    @Operation(summary = "El resumen de una orden en PDF",
-            description = "La relacion de los equipos atendidos: una fila por reporte activo, con su informe, su"
-                    + " resultado y quien lo recibio. Es tambien la primera hoja del ZIP de /archive, y con la"
-                    + " misma condicion: todos los reportes cerrados, o 409.")
-    @ApiResponse(responseCode = "200", description = "El PDF",
-            content = @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary")))
-    @PreAuthorize("hasAuthority('report.read')")
-    @GetMapping(value = "/summary", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<byte[]> getSummary(
-            @Parameter(description = "La orden de trabajo") @RequestParam UUID idOrdenTrabajo,
-            Authentication autenticacion) {
-        ReportPdf pdf = serviceReportServicePort.workOrderSummary(
-                idOrdenTrabajo, readScopeResolver.scopeFor(autenticacion));
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(pdf.nombre()).build().toString())
-                .body(pdf.contenido());
-    }
-
-    @Operation(summary = "El cronograma de una orden en PDF",
-            description = "Los equipos de la orden y, en los doce meses siguientes, cuando les toca el proximo"
-                    + " mantenimiento: la fecha de ejecucion mas la periodicidad, una para toda la orden. Un"
-                    + " equipo fuera de servicio no se programa. Va tambien en el ZIP de /archive, tras el"
-                    + " resumen. Con todos los reportes cerrados y una orden con periodicidad, o 409.")
-    @ApiResponse(responseCode = "200", description = "El PDF",
-            content = @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary")))
-    @PreAuthorize("hasAuthority('report.read')")
-    @GetMapping(value = "/schedule", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<byte[]> getSchedule(
-            @Parameter(description = "La orden de trabajo") @RequestParam UUID idOrdenTrabajo,
-            Authentication autenticacion) {
-        ReportPdf pdf = serviceReportServicePort.workOrderSchedule(
-                idOrdenTrabajo, readScopeResolver.scopeFor(autenticacion));
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(pdf.nombre()).build().toString())
-                .body(pdf.contenido());
     }
 
     @Operation(summary = "Registrar la informacion tecnica (RF-15)",

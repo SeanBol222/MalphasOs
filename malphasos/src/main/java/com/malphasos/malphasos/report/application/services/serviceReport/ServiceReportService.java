@@ -523,33 +523,6 @@ public class ServiceReportService implements ServiceReportServicePort {
         return new ReportArchive("informes-orden-" + orden.numero() + ".zip", archivos);
     }
 
-    /**
-     * El resumen de una orden en PDF (2026-10-31): una fila por equipo, con su informe, su resultado y quién
-     * lo recibió. Con la misma condición que el ZIP, del que es la primera hoja.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public ReportPdf workOrderSummary(UUID idOrdenTrabajo, ReadScope alcance) {
-        WorkOrder orden = workOrderServicePort.findById(idOrdenTrabajo, alcance);
-
-        List<ServiceReport> cerrados = cerradosDe(orden);
-
-        return resumenDe(orden, workOrderServicePort.documentOf(orden), cerrados);
-    }
-
-    /**
-     * El cronograma de una orden en PDF (2026-10-31): sus equipos y el próximo mantenimiento de cada uno en
-     * los doce meses siguientes. Con la misma condición que el ZIP, y además que la orden tenga periodicidad.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public ReportPdf workOrderSchedule(UUID idOrdenTrabajo, ReadScope alcance) {
-        WorkOrder orden = workOrderServicePort.findById(idOrdenTrabajo, alcance);
-        List<ServiceReport> cerrados = cerradosDe(orden);
-
-        return cronogramaDe(orden, workOrderServicePort.documentOf(orden), cerrados);
-    }
-
     /** Los reportes activos de una orden por número, si los hay y están todos cerrados. */
     private List<ServiceReport> cerradosDe(WorkOrder orden) {
         List<ServiceReport> activos = serviceReportPersistencePort.findByWorkOrder(orden.getId()).stream()
