@@ -270,7 +270,7 @@ describe('Ficha de un reporte de servicio', () => {
     await abrir();
 
     const enlace = raiz().querySelector<HTMLAnchorElement>('[data-volver-a-la-orden]');
-    expect(enlace?.textContent?.trim()).toBe('← Volver a la orden');
+    expect(enlace?.textContent?.trim()).toBe('Volver a la orden');
     expect(enlace?.getAttribute('href')).toBe(`/ordenes/${ID_ORDEN}`);
   });
 
