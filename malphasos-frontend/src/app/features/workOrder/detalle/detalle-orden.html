@@ -29,34 +29,10 @@
 
         <div class="flex flex-wrap gap-1">
           @if (puedeDescargarInformes()) {
-            <button
-              class="boton-secundario min-h-tactil"
-              type="button"
-              data-descargar-resumen
-              [disabled]="descargaDelResumen.isPending()"
-              (click)="descargarResumen()"
-            >
-              {{
-                descargaDelResumen.isPending()
-                  ? 'Preparando el resumen…'
-                  : 'Descargar resumen (PDF)'
-              }}
-            </button>
-            @if (tieneCronograma()) {
-              <button
-                class="boton-secundario min-h-tactil"
-                type="button"
-                data-descargar-cronograma
-                [disabled]="descargaDelCronograma.isPending()"
-                (click)="descargarCronograma()"
-              >
-                {{
-                  descargaDelCronograma.isPending()
-                    ? 'Preparando el cronograma…'
-                    : 'Descargar cronograma (PDF)'
-                }}
-              </button>
-            }
+            <!--
+              El resumen y el cronograma de la orden van dentro del ZIP, delante de los informes: sin botón
+              propio desde el mismo día, pedido por el usuario. Se entrega todo junto.
+            -->
             <button
               class="boton-secundario min-h-tactil"
               type="button"

@@ -150,36 +150,6 @@ export class ReporteApi {
   }
 
   /**
-   * El resumen de una orden en PDF: la relación de los equipos atendidos (2026-10-31). Con la misma
-   * condición que el ZIP, del que es la primera hoja.
-   */
-  resumenDeOrden() {
-    return injectMutation(() => ({
-      mutationFn: (idOrdenTrabajo: string) =>
-        pedirArchivo(
-          this.http,
-          `${this.url}/summary?idOrdenTrabajo=${encodeURIComponent(idOrdenTrabajo)}`,
-          'orden.pdf',
-        ),
-    }));
-  }
-
-  /**
-   * El cronograma de una orden en PDF: sus equipos y el próximo mantenimiento en los doce meses siguientes
-   * (2026-10-31). Con la misma condición que el ZIP, y solo para una orden con periodicidad.
-   */
-  cronogramaDeOrden() {
-    return injectMutation(() => ({
-      mutationFn: (idOrdenTrabajo: string) =>
-        pedirArchivo(
-          this.http,
-          `${this.url}/schedule?idOrdenTrabajo=${encodeURIComponent(idOrdenTrabajo)}`,
-          'cronograma.pdf',
-        ),
-    }));
-  }
-
-  /**
    * Los informes en PDF de todos los reportes de una orden, en un ZIP, con el resumen de la orden y su
    * cronograma delante (2026-10-31). El servidor solo lo da con todos cerrados. Es una mutación y no una consulta: convierte un PDF por equipo, tarda, y se pide
    * al pulsar el botón, no al abrir la ficha.
