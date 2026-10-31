@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-30
+updated: 2026-10-31
 ---
 
 # Reportes de servicio — el módulo completo
@@ -233,6 +233,24 @@ pidió con el análisis del esquema **tres formas de firmar**: un reporte, los d
   una consulta y firma los reportes de la orden cuyo equipo está entre ellos.
 - **Las reglas de `V39` no cambian**: se firman los activos sin firma, abiertos o cerrados; el pedido tiene
   que poder firmarse, o falla todo.
+
+### Los informes de una orden, juntos en un ZIP (2026-10-31)
+
+Pedido por el usuario: un botón en la ficha de la orden que descargue el PDF de cada reporte en un ZIP,
+cuando todos los equipos tienen su reporte cerrado. `GET /reports/archive?idOrdenTrabajo=` devuelve
+`informes-orden-<número>.zip`, con un `informe-<número>.pdf` por reporte activo, el mismo de
+`/{id}/pdf`, por orden de número.
+
+- **Solo con todos cerrados, y lo exige el servidor**: con un borrador, o sin reportes, responde 409 sin
+  convertir ninguno. Un borrador saldría marcado como tal, y lo que se descarga junto es lo que se
+  entrega. La orden puede estar ejecutada o no: lo que cuenta son los reportes.
+- **El alcance es el de la orden**, comprobado por `work-order` como en la lista de reportes; una cuenta de
+  cliente también lo descarga, porque el botón pide `report.read` y no permisos de escritura.
+- **Se convierte uno tras otro**, una llamada a Gotenberg por equipo, y el ZIP se arma en memoria. Una
+  orden con decenas de equipos tarda; la pantalla lo dice («Preparando los informes…») y el botón se
+  desactiva mientras tanto. Si el tiempo llega a molestar, el siguiente paso es convertir en paralelo.
+- **En la pantalla es una mutación, no una consulta**: se pide al pulsar, no al abrir la ficha, y se
+  guarda con un enlace temporal que se pulsa solo.
 
 ### El patrón, la tolerancia y la conformidad
 
