@@ -2697,3 +2697,21 @@ se fueron, ninguna pantalla las llamaba. El resumen y el cronograma se componen 
 pruebas del servicio que llamaban a las dos operaciones se reescribieron contra el ZIP en vez de borrarse
 —la empresa de hoy, la orden ajena, los reportes abiertos, la orden sin periodicidad—, y seis mutaciones
 sobre el ZIP mueren. Ver [[dominio-reporte-servicio]].
+
+## [2026-11-01] ingest | El supervisor del cliente, en lugar de encargados y representante (`V53`)
+
+Decidido por el usuario tras discutir cómo firma quien aprueba: la gente del cliente es una sola, el
+**supervisor**, de todo el cliente. `representante_legal` se renombró a `supervisor_cliente` con
+`n_cargo` —se comprobó antes que el representante solo daba cuenta y acotaba lo que veía—, los
+encargados de sede y de área se borraron sin migrar, y `MANAGER` y `CEO_CLIENT` pasaron a `SUPERVISOR`.
+Todo supervisor tiene cuenta, así que el alta sin cuenta salió, y con los encargados `/managers`,
+`engineer.read` y `engineer.assign`. La hoja de vida y el informe leen ahora al supervisor del cliente.
+
+Esquema medido sobre la base de desarrollo con `V53`: **34** tablas, **43** foráneas, **70** `CHECK`,
+**10** índices únicos parciales; el verificador de columnas pasa. **Corrección del mismo día**: el
+diagrama que se le mostró al usuario contaba `flyway_schema_history` como tabla y decía 37 → 36; son
+**36 → 34** con `V53`, y **35** con `V54`. Once mutaciones del backend y diez del frontend mueren. Entra
+una deuda —las fichas de encargado quedaron como supervisores sin cuenta— y se tachan dos, una de ellas
+cerrada desde el 2026-10-17 sin que nadie la tachara. Ver [[decisiones-tecnicas-malphasos]],
+[[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].
+

@@ -3,10 +3,17 @@ name: modelo-de-permisos
 description: Las 22 autoridades del API, la expansion en dos escalones que separa al super usuario del administrador, la escalera de quien puede crear a quien, y la unica excepcion a la autoridad literal
 tags: [malphasos, seguridad, keycloak, autorizacion, "reusable:media", "describe:malphasos"]
 estado: estable
-updated: 2026-09-27
+updated: 2026-11-01
 ---
 
 # Modelo de permisos de MalphasOS
+
+> **Al día el 2026-11-01 (`V53`)**: la gente del cliente es una, el **supervisor** (`SUPERVISOR`), que
+> sustituye al representante (`CEO_CLIENT`) y al encargado (`MANAGER`). La escalera no cambia de forma:
+> el supervisor está en el escalón de abajo, con `person.write`, donde estaban los dos. Salieron
+> `engineer.read` y `engineer.assign`, que solo protegían las rutas de los encargados: el vocabulario
+> tiene **22** autoridades —**19** de recurso— y no 24. Donde la nota dice «representante» o
+> «encargado», hoy es el supervisor.
 
 Escrito el 2026-09-08, al cerrar la tanda que lo construyó (nueve commits, `e68f83e`…`2de115f`, rama `feat/permission-model`). Antes de esa tanda **el modelo de permisos no existía**: las 83 operaciones REST exigían `admin.full` y el realm solo se lo daba al grupo `admins`. Ver [[seguridad-keycloak-backend]] para las piezas de seguridad y [[keycloak-configuracion]] para el realm.
 
@@ -40,7 +47,7 @@ Las 17 de recurso, con las operaciones que protegen a fecha de hoy (contado sobr
 | Autoridad | Operaciones | Notas |
 |---|---|---|
 | `person.read` | 2 | |
-| `person.write` | 2 | **Era 12 hasta el 2026-09-13.** Ahora cubre el alta de representantes de cliente y la de encargados; las altas de la gente de la casa subieron de escalón, y editar y retirar —incluidos correos y teléfonos— delegan en un bean porque dependen del tipo de la persona |
+| `person.write` | 1 | **Era 12 hasta el 2026-09-13, y 2 hasta el 2026-11-01**, cuando el alta sin cuenta de los encargados salió con ellos. Ahora cubre el alta de supervisores del cliente; las altas de la gente de la casa subieron de escalón, y editar y retirar —incluidos correos y teléfonos— delegan en un bean porque dependen del tipo de la persona |
 | `location.read` | 4 | |
 | `location.write` | 6 | |
 | `client.read` | 4 | |
@@ -48,8 +55,8 @@ Las 17 de recurso, con las operaciones que protegen a fecha de hoy (contado sobr
 | `client.delete` | 1 | Solo la baja del cliente entero. Retirar un correo no es cerrar la cuenta |
 | `service-area.read` | 2 | Vocabulario propio, para que un ingeniero trabaje sobre áreas sin tocar la ficha del cliente |
 | `service-area.write` | 3 | |
-| `engineer.read` | 2 | El realm llama `engineer` a lo que el código llama `Manager` y la ERS «profesional responsable». Se conserva el vocabulario del realm porque es el que la documentación recoge |
-| `engineer.assign` | 4 | **No existe `engineer.write`**: al encargado se le asigna, no se le escribe. Una prueba lo fija, porque quien la escriba dejaría el endpoint sin nadie que pudiera llamarlo |
+| ~~`engineer.read`~~ | 0 | **Salió el 2026-11-01 con los encargados (`V53`)**, junto con su rol en el realm. El realm llama `engineer` a lo que el código llama `Manager` y la ERS «profesional responsable». Se conserva el vocabulario del realm porque es el que la documentación recoge |
+| ~~`engineer.assign`~~ | 0 | **Salió el 2026-11-01 con los encargados (`V53`).** **No existe `engineer.write`**: al encargado se le asigna, no se le escribe. Una prueba lo fija, porque quien la escriba dejaría el endpoint sin nadie que pudiera llamarlo |
 | `equipment.read` | 13 | |
 | `equipment.write` | 17 | |
 | `equipment.assign` | 2 | Vincular una unidad a un área y trasladarla a otra. Asignar cambia quién responde por un equipo, y es lo que un ingeniero de campo hace y un administrativo no |

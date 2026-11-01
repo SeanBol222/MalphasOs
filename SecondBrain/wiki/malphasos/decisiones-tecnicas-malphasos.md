@@ -582,3 +582,37 @@ directamente a PDF, como el informe.
 - **Lo compartido sube a `shared`**: el cliente de Gotenberg, las fuentes y el QR. Cada módulo traduce el
   fallo del conversor a su propio código —`ERR_SERVICE_REPORT_010`, `ERR_EQUIPMENT_020`—.
 
+## El supervisor del cliente, en lugar de encargados y representante (2026-11-01, `V53`)
+
+Decidido por el usuario a partir de dos casos reales que el modelo no recogía: un **cliente grande**
+—varias sedes, cada una con su jefe que recibe el equipo, y un ingeniero biomédico contratado por el
+cliente que revisa y aprueba en todas— y un **consultorio**, donde el mismo doctor recibe, responde y
+aprueba. «No me suenan los supervisores de área y de sede»: el papel que importa es de todo el cliente.
+
+- **Una sola persona del cliente con cuenta: el supervisor** (`PersonType.SUPERVISOR`). Sustituye a
+  `CEO_CLIENT` y a `MANAGER`. Ve lo de los clientes que supervisa —el filtrado por dueño lo acota igual
+  que acotaba al representante— y, en la tanda siguiente, **aprueba sus órdenes**.
+- **`representante_legal` se renombró a `supervisor_cliente`**, con `n_cargo`. Se comprobó antes que el
+  representante no hacía nada más que dar cuenta y acotar lo que veía: no salía en ningún documento ni
+  firmaba nada. Dos tablas casi iguales —representante y supervisor— habrían sido datos repetidos, y
+  el usuario pidió explícitamente que no los hubiera.
+- **El cargo es de la supervisión y no de la persona**: depende de los dos lados —se puede supervisar a
+  dos clientes con cargos distintos—, así que va en la tabla puente y no en `persona`.
+- **`encargado_sede` y `encargado_area` se borraron sin migrar sus filas**, decidido así. Con ellos
+  salieron `/managers`, 25 clases del módulo `client`, las pantallas de encargados de la sede y las
+  autoridades `engineer.read` y `engineer.assign`, que no protegían nada más.
+- **Todo supervisor tiene cuenta** (decidido por el usuario): el alta sin cuenta se quitó, y con ella
+  `Person.hasAccess()`, que deducía del tipo si había cuenta. Las fichas que eran `MANAGER` pasaron a
+  `SUPERVISOR` **sin usuario en Keycloak**; ver [[deuda-tecnica-y-riesgos]].
+- **Solo un `SUPERVISOR` se nombra supervisor**, regla del servicio: un ingeniero nombrado podría
+  aprobar su propio trabajo. Hereda `ERR_CLIENT_011`; `004`, `009` y `010` no se reutilizan.
+- **Lo impreso cambia de fuente**: el «Responsable» de la hoja de vida y el «Supervisor responsable»
+  del informe eran los encargados del área o de la sede; ahora son los supervisores del cliente. El campo
+  se sigue llamando `responsables` en el documento congelado, porque cambiarlo rompería los informes ya
+  cerrados.
+- **Lo que viene, ya decidido**: `V54` con `aprobacion_orden` —una activa por orden, la firma por su
+  huella, quién tenía la sesión para distinguir «en sitio» de «desde su cuenta»— y `k_id_recibe` en el
+  reporte, para que quien recibe pueda ser una persona registrada sin copiar su nombre. Se aprueba con la
+  orden ejecutada, solo se aprueba (no se rechaza) y sustituir un reporte retira la aprobación. El
+  diagrama está en el artefacto «Esquema del supervisor».
+

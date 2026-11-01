@@ -3,11 +3,16 @@ name: relacion-manager-persona
 description: Un encargado ES una persona, por clave primaria compartida — confirmado en esquema, servicio y DTO; el modelo de dominio es el único que no lo dice
 tags: [dominio, backend, deuda-de-diseno, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/domain/model/manager_model/, DataBase/v4/initdb/A_Sigma_DB_V4.sql
-estado: inconsistente
-updated: 2026-10-27
+estado: estable
+updated: 2026-11-01
 ---
 
 # `Manager` y `Person` son el mismo humano, y el dominio no lo dice
+
+> **Histórica desde el 2026-11-01 (`V53`)**: los encargados ya no existen en MalphasOS. Salieron con sus
+> dos tablas, sus rutas y su tipo de persona, sustituidos por el supervisor del cliente —ver
+> [[decisiones-tecnicas-malphasos]] y [[dominio-cliente]]—. La nota se conserva por lo que explica del
+> original y de cómo se llegó.
 
 > **Desde el 2026-10-27 la llave ya no es solo la persona** (`V41`). Lo que esta nota cuenta de la tabla
 > `encargado` —una fila por persona, «no puede haber dos encargados sobre la misma»— describe el
