@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 34 tablas, 43 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 35 tablas, 47 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -78,19 +78,19 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-01 sobre `V53`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-01 sobre `V54`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **53** (`V1`…`V53`): la refactorización a 3FN acabó en `V52`, y `V53` puso al supervisor del cliente |
-| Tablas de dominio | **34** — eran **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
-| Llaves foráneas | **43**, de las cuales **1 compuesta** — eran **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
+| Migraciones aplicadas | **54** (`V1`…`V54`): la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente y `V54` la aprobación de la orden |
+| Tablas de dominio | **35** — eran **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
+| Llaves foráneas | **47**, de las cuales **1 compuesta** — eran **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
 | Restricciones `CHECK` propias | **70** — eran **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
-| Índices únicos **parciales** | **10** — eran **9** hasta `V51` y **10** hasta `V48` |
+| Índices únicos **parciales** | **11** — eran **10** hasta `V54`, **9** hasta `V51` y **10** hasta `V48` |
 | Foráneas sin ningún índice que las encabece | **0** desde `V52`, que quitó la última con su tabla, `intervencion` — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
-| Tablas con borrado lógico | **30 de 34** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
+| Tablas con borrado lógico | **31 de 35** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
 > `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
@@ -707,10 +707,11 @@ erDiagram
   del tipo y se reactivan con su prioridad nueva, en la misma transacción. Es la tercera vez que un
   índice parcial obliga a imponer el orden en el adaptador.
 
-## `work-order` — 1 tabla
+## `work-order` — 2 tablas
 
 ```mermaid
 erDiagram
+    orden_trabajo ||--o{ aprobacion_orden : "una vigente, desde V54"
     orden_trabajo {
         uuid k_id_orden_trabajo PK
         uuid k_id_sede FK "y por ella su cliente, desde V47"
@@ -723,7 +724,23 @@ erDiagram
         jsonb t_documento "la orden al ejecutarse, V49; nulo antes"
         boolean b_documento_tardio "congelada despues, por V49"
     }
+    aprobacion_orden {
+        uuid k_id_aprobacion PK
+        uuid k_id_orden_trabajo FK "UK parcial: una vigente por orden"
+        uuid k_id_supervisor FK "a persona, no a supervisor_cliente"
+        uuid k_id_operador FK "quien tenia la sesion; nulo, el SuperUsuario"
+        varchar k_huella_firma FK "a imagen_documento"
+        timestamp f_aprobada
+        boolean b_estado_activo "retirada al sustituir un reporte"
+    }
 ```
+
+**Desde `V54`, el 2026-11-01, una orden ejecutada se aprueba**, que es lo que permite facturarla. La
+aprueba un supervisor de su cliente, en sitio —dibujando su firma en la sesión del ingeniero— o desde su
+cuenta con la firma guardada. **No se copia nada**: el nombre está en `persona`, el cargo en
+`supervisor_cliente` y la forma se deduce comparando operador y supervisor. La foránea del supervisor va
+a `persona` y no a `supervisor_cliente` para que la aprobación siga valiendo si después lo relevan; que
+lo fuera **al aprobar** lo comprueba el servicio. Ver [[dominio-orden-trabajo]].
 
 **Sus equipos no tienen tabla desde `V50`**: un equipo está en una orden si y solo si tiene en ella un
 reporte activo, y el reporte apunta a la orden y al equipo. Hasta entonces los guardaba

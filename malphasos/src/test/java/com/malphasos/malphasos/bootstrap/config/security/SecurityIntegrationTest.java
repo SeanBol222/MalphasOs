@@ -828,6 +828,25 @@ class SecurityIntegrationTest {
         }
 
         @Test
+        @DisplayName("un supervisor del cliente aprueba sus ordenes pero no las escribe (V54)")
+        void elClienteApruebaSinEscribir() throws Exception {
+            // Que aprobar tenga autoridad propia es justo esto: work-order.write le dejaria cancelar la
+            // orden o cambiar su alcance.
+            autorizado(post("/v1/api/work-orders/" + ID + "/approval/mine").with(comoElGrupo("clients")));
+
+            prohibido(delete("/v1/api/work-orders/" + ID).with(comoElGrupo("clients")));
+        }
+
+        @Test
+        @DisplayName("un ingeniero registra la aprobacion en sitio")
+        void elIngenieroRegistraLaAprobacion() throws Exception {
+            autorizado(post("/v1/api/work-orders/" + ID + "/approval")
+                    .with(comoElGrupo("engineers"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"idSupervisor\":\"" + ID + "\",\"imagen\":\"data:image/png;base64,iVBORw0KGgo=\"}"));
+        }
+
+        @Test
         @DisplayName("un cliente ve sus equipos pero no vincula ninguno a un area")
         void elClienteNoVinculaEquipos() throws Exception {
             // Lleva equipment.read y service-area.read, que son las dos autoridades que intervienen

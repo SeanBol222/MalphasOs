@@ -11,8 +11,9 @@ updated: 2026-11-01
 > **Al día el 2026-11-01 (`V53`)**: la gente del cliente es una, el **supervisor** (`SUPERVISOR`), que
 > sustituye al representante (`CEO_CLIENT`) y al encargado (`MANAGER`). La escalera no cambia de forma:
 > el supervisor está en el escalón de abajo, con `person.write`, donde estaban los dos. Salieron
-> `engineer.read` y `engineer.assign`, que solo protegían las rutas de los encargados: el vocabulario
-> tiene **22** autoridades —**19** de recurso— y no 24. Donde la nota dice «representante» o
+> `engineer.read` y `engineer.assign`, que solo protegían las rutas de los encargados, y **el mismo día
+> entró `work-order.approve`** (`V54`): aprobar una orden ejecutada, que tienen los tres grupos. El
+> vocabulario tiene **23** autoridades —**20** de recurso—. Donde la nota dice «representante» o
 > «encargado», hoy es el supervisor.
 
 Escrito el 2026-09-08, al cerrar la tanda que lo construyó (nueve commits, `e68f83e`…`2de115f`, rama `feat/permission-model`). Antes de esa tanda **el modelo de permisos no existía**: las 83 operaciones REST exigían `admin.full` y el realm solo se lo daba al grupo `admins`. Ver [[seguridad-keycloak-backend]] para las piezas de seguridad y [[keycloak-configuracion]] para el realm.

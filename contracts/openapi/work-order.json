@@ -22,6 +22,52 @@
         },
         "type" : "object"
       },
+      "WorkOrderApprovalRequest" : {
+        "properties" : {
+          "idSupervisor" : {
+            "description" : "El supervisor del cliente que aprueba",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "imagen" : {
+            "description" : "La firma dibujada, como data:image/png;base64,...",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "idSupervisor", "imagen" ],
+        "type" : "object"
+      },
+      "WorkOrderApprovalResponse" : {
+        "properties" : {
+          "aprobada" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "desdeSuCuenta" : {
+            "description" : "Si la aprobo el supervisor en su propia sesion; si no, en sitio",
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idOperador" : {
+            "description" : "Quien tenia la sesion; nulo si era el SuperUsuario",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idOrdenTrabajo" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idSupervisor" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "WorkOrderDocumentClient" : {
         "properties" : {
           "documento" : {
@@ -485,6 +531,69 @@
         "tags" : [ "WorkOrder" ]
       }
     },
+    "/v1/api/work-orders/pending-approval" : {
+      "get" : {
+        "description" : "Las ejecutadas, activas y sin aprobacion vigente al alcance de quien llama: a un supervisor, las de los clientes que supervisa.",
+        "operationId" : "pending",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/WorkOrderResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Ordenes por aprobar",
+        "tags" : [ "WorkOrderApproval" ]
+      }
+    },
     "/v1/api/work-orders/{id}" : {
       "delete" : {
         "description" : "No la borra: la deja inactiva. No es lo mismo que ejecutarla.",
@@ -611,6 +720,221 @@
         },
         "summary" : "Obtener una orden por su identificador",
         "tags" : [ "WorkOrder" ]
+      }
+    },
+    "/v1/api/work-orders/{id}/approval" : {
+      "get" : {
+        "description" : "204 si no esta aprobada.",
+        "operationId" : "getApproval",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderApprovalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "La aprobacion vigente de una orden",
+        "tags" : [ "WorkOrderApproval" ]
+      },
+      "post" : {
+        "description" : "El supervisor dibuja su firma en la sesion de quien registra la aprobacion. La orden tiene que estar ejecutada, sin otra aprobacion vigente, y quien aprueba tiene que supervisar a su cliente.",
+        "operationId" : "approveOnSite",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorkOrderApprovalRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderApprovalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Aprobar en sitio",
+        "tags" : [ "WorkOrderApproval" ]
+      }
+    },
+    "/v1/api/work-orders/{id}/approval/mine" : {
+      "post" : {
+        "description" : "Quien llama es el supervisor, y se usa la firma que guardo. 409 si no tiene ninguna.",
+        "operationId" : "approveFromAccount",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderApprovalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Aprobar desde mi cuenta",
+        "tags" : [ "WorkOrderApproval" ]
       }
     },
     "/v1/api/work-orders/{id}/engineer/{idIngeniero}" : {
@@ -997,5 +1321,8 @@
   "tags" : [ {
     "description" : "Mantenimientos programados y su alcance",
     "name" : "WorkOrder"
+  }, {
+    "description" : "La aprobacion de una orden ejecutada por el supervisor del cliente",
+    "name" : "WorkOrderApproval"
   } ]
 }

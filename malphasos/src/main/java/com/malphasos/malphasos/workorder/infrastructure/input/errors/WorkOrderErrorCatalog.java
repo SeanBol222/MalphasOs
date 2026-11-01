@@ -30,7 +30,10 @@ public enum WorkOrderErrorCatalog {
     // Lo mismo para empezar, del 2026-10-26: con el código genérico de estado la pantalla decía que
     // una orden se inicia estando creada, a una orden creada, sin decir que faltaba el ingeniero.
     WORK_ORDER_WITHOUT_ENGINEER("ERR_WORK_ORDER_010", "Work order has no engineer assigned"),
-    WORK_ORDER_WITHOUT_EQUIPMENT("ERR_WORK_ORDER_011", "Work order has no equipment");
+    WORK_ORDER_WITHOUT_EQUIPMENT("ERR_WORK_ORDER_011", "Work order has no equipment"),
+    // La aprobacion (V54). Dos conflictos y no datos invalidos: la persona y la orden existen.
+    NOT_SUPERVISOR_OF_CLIENT("ERR_WORK_ORDER_012", "That person does not supervise the client of this work order"),
+    NO_SAVED_SIGNATURE("ERR_WORK_ORDER_013", "No saved signature to approve with");
 
     private final String code;
     private final String message;

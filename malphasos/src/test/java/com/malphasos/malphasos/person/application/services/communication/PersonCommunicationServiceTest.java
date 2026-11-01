@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.malphasos.malphasos.person.application.mapper.PersonCommunicationMapperImpl;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
+import com.malphasos.malphasos.person.application.ports.output.PersonPersistencePort;
 import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PersonType;
@@ -31,9 +32,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PersonCommunicationServiceTest {
 
     @Mock private PersonServicePort personServicePort;
+    @Mock private PersonPersistencePort personPersistencePort;
 
     private PersonCommunicationService service() {
-        return new PersonCommunicationService(personServicePort, new PersonCommunicationMapperImpl());
+        return new PersonCommunicationService(personServicePort, new PersonCommunicationMapperImpl(), personPersistencePort);
     }
 
     @Test
@@ -66,5 +68,16 @@ class PersonCommunicationServiceTest {
             assertThat(telefono.idTelefonoPersona()).isEqualTo(idTelefono);
             assertThat(telefono.telefonoPersona()).isEqualTo("3009876543");
         });
+    }
+
+    @Test
+    @DisplayName("exists dice si hay ficha sin lanzar, y un identificador nulo no la tiene")
+    void existsNoLanza() {
+        UUID conFicha = UUID.randomUUID();
+        when(personPersistencePort.findById(conFicha)).thenReturn(java.util.Optional.of(new Person()));
+
+        assertThat(service().exists(conFicha)).isTrue();
+        assertThat(service().exists(UUID.randomUUID())).isFalse();
+        assertThat(service().exists(null)).isFalse();
     }
 }

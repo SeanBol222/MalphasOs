@@ -88,6 +88,8 @@ class RealmAuthorityContractTest {
                         ApiAuthority.WORK_ORDER_READ,
                         ApiAuthority.WORK_ORDER_WRITE,
                         ApiAuthority.WORK_ORDER_ASSIGN,
+                        // Registra la aprobacion en sitio, con la firma que dibuja el supervisor (V54).
+                        ApiAuthority.WORK_ORDER_APPROVE,
                         // El ingeniero es quien llena el reporte en campo, asi que escribe reportes
                         // aunque no escriba clientes ni sedes.
                         ApiAuthority.REPORT_READ,
@@ -103,6 +105,8 @@ class RealmAuthorityContractTest {
                         ApiAuthority.SERVICE_AREA_READ,
                         ApiAuthority.EQUIPMENT_READ,
                         ApiAuthority.WORK_ORDER_READ,
+                        // Su supervisor aprueba sus ordenes ejecutadas, sin poder tocarlas (V54).
+                        ApiAuthority.WORK_ORDER_APPROVE,
                         // El cliente lee los reportes de sus equipos; llenarlos no es suyo.
                         ApiAuthority.REPORT_READ);
     }

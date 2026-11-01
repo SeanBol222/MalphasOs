@@ -2715,3 +2715,18 @@ una deuda —las fichas de encargado quedaron como supervisores sin cuenta— y 
 cerrada desde el 2026-10-17 sin que nadie la tachara. Ver [[decisiones-tecnicas-malphasos]],
 [[esquema-bd-malphasos]] y [[hoja-de-ruta-producto]].
 
+## [2026-11-01] ingest | La aprobación de la orden (`V54`)
+
+Una orden ejecutada la aprueba un supervisor de su cliente, en sitio o desde su cuenta: `aprobacion_orden`,
+el agregado `WorkOrderApproval`, sus cuatro rutas y la autoridad `work-order.approve` en los tres grupos.
+Sustituir un reporte retira la aprobación. **La prueba de extremo a extremo destapó un 500**: aprobar en la
+sesión del SuperUsuario, sin ficha, dejaba la transacción marcada para deshacerse aunque se capturara la
+excepción de «no existe»; se pregunta con `PersonCommunicationPort.exists`. Que quien recibe sea una persona
+registrada (`k_id_recibe`), que el diagrama ponía en `V54`, va aparte en `V55`: toca el reporte y su
+documento, y es otra preocupación. Ver [[dominio-orden-trabajo]] y [[esquema-bd-malphasos]].
+
+Trece mutaciones; **dos sobrevivieron** y las dos eran huecos de prueba, no del código: la regla del tipo
+`SUPERVISOR` no la ejercía nadie —al ingeniero lo rechazaba antes no estar nombrado— y «por aprobar» no
+tenía ninguna orden en ejecución que excluir. Con sus dos casos, las trece mueren. Batería: **1559** en
+**135** clases. Esquema medido sobre `V54`: 35 tablas, 47 foráneas, 70 `CHECK`, 11 índices parciales.
+

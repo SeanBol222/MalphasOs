@@ -116,6 +116,13 @@ public final class ApiAuthority {
   public static final String WORK_ORDER_WRITE = "work-order.write";
   public static final String WORK_ORDER_ASSIGN = "work-order.assign";
 
+  /**
+   * Aprobar una orden ejecutada (V54, 2026-11-01). Aparte de {@link #WORK_ORDER_WRITE} para que el
+   * supervisor del cliente apruebe sin poder tocar la orden; la tienen también ingenieros y
+   * administradores, que registran la aprobación en sitio.
+   */
+  public static final String WORK_ORDER_APPROVE = "work-order.approve";
+
   public static final String REPORT_READ = "report.read";
 
   /**
@@ -169,6 +176,7 @@ public final class ApiAuthority {
           WORK_ORDER_READ,
           WORK_ORDER_WRITE,
           WORK_ORDER_ASSIGN,
+          WORK_ORDER_APPROVE,
           REPORT_READ,
           REPORT_WRITE,
           COMPANY_READ,

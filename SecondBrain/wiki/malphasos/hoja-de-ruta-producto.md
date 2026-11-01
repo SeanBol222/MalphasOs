@@ -645,8 +645,8 @@ cliente; en un consultorio, el doctor hace las dos cosas. Decidido —con el dia
 | # | Tanda | Estado |
 |---|---|---|
 | 1 | **`V53`**: supervisores en lugar de encargados y representante, `SUPERVISOR` como tipo, el alcance y los documentos leyendo al supervisor, y las pantallas de cliente, sede, personas, orden y reporte | **Construida el 2026-11-01** |
-| 2 | **`V54`**: `aprobacion_orden` y `k_id_recibe` en el reporte, con el servicio de aprobación y su REST | Pendiente |
-| 3 | La autoridad `work-order.approve` en el realm, y la firma guardada para cualquier persona con cuenta | Pendiente |
+| 2 | **`V54`**: `aprobacion_orden`, con el servicio de aprobación, su REST y la autoridad `work-order.approve` en el realm | **Construida el 2026-11-01** |
+| 3 | **`V55`**: `k_id_recibe` en el reporte, para que quien recibe sea una persona registrada sin copiar su nombre; y la firma guardada para cualquier persona con cuenta | Pendiente |
 | 4 | El bloque «Aprobación» de la orden —en sitio, con «también firma el recibido»— | Pendiente |
 | 5 | La vista «Órdenes por aprobar» del supervisor | Pendiente |
 | 6 | Informe, resumen y cronograma con la firma de quien aprobó, y la columna en el listado de órdenes | Pendiente |
