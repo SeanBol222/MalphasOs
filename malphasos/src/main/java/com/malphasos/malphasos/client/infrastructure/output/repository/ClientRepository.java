@@ -15,10 +15,10 @@ public interface ClientRepository extends JpaRepository<ClientEntity, UUID> {
     boolean existsBySigla(String sigla);
 
     /**
-     * Clientes que esta persona representa, por el lado de la tabla puente.
+     * Clientes que esta persona supervisa, por el lado de la tabla puente.
      *
      * <p>Se escribe a mano y no por nombre de método porque la consulta sale de
-     * {@code LegalRepresentativeEntity} y devuelve el identificador del cliente, no la entidad:
+     * {@code ClientSupervisorEntity} y devuelve el identificador del cliente, no la entidad:
      * traer el cliente entero para quedarse con su llave son tres colecciones perezosas de más en
      * una consulta que se hace en cada lectura del API.
      *
@@ -27,9 +27,9 @@ public interface ClientRepository extends JpaRepository<ClientEntity, UUID> {
      */
     @Query("""
             select r.cliente.id
-            from LegalRepresentativeEntity r
+            from ClientSupervisorEntity r
             where r.persona = :idPersona
               and r.estadoActivo = true
             """)
-    Set<UUID> findIdsRepresentedBy(@Param("idPersona") UUID idPersona);
+    Set<UUID> findIdsSupervisedBy(@Param("idPersona") UUID idPersona);
 }

@@ -28,7 +28,7 @@ const SUPER_USUARIO = 'super.admin.full';
  * sesión. Los datos son de solo lectura: editarlos sigue siendo cosa de «Personas».
  *
  * <p><b>Tres sesiones distintas caben aquí.</b> La de quien cierra informes ve y cambia su firma; la
- * de un representante de cliente ve sus datos sin sección de firma, porque no la necesita; y la del
+ * de un supervisor del cliente ve sus datos sin sección de firma, porque no la necesita; y la del
  * SuperUsuario no tiene ficha de persona —se crea a mano en Keycloak— y lo dice, en lugar de mostrar
  * datos vacíos o un «todavía no tiene firma» que no podría arreglar.
  *

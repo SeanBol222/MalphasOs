@@ -26,7 +26,6 @@ import com.malphasos.malphasos.shared.domain.events.Payload;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,7 +53,7 @@ class HeadquarterServiceTest {
     private void elClienteExiste() {
         when(clientPort.findById(CLIENTE)).thenReturn(Optional.of(
                 Client.rehydrate(CLIENTE, "900123456", IdentificationType.NIT_JURIDICO,
-                        "Hospital", "CLI", null, true, List.of(), List.of(), Set.of())));
+                        "Hospital", "CLI", null, true, List.of(), List.of(), List.of())));
     }
 
     @SuppressWarnings("unchecked")

@@ -14,23 +14,23 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Una persona que representa legalmente a un cliente.
+ * Una persona que supervisa a un cliente, con su cargo (V53; hasta entonces, un representante legal).
  *
  * <p>La llave primaria son las dos columnas, porque la relación es de muchos a muchos. Se usa
  * <b>identidad derivada</b>: el {@code @ManyToOne} hacia el cliente es a la vez parte de la llave,
  * de modo que {@code k_id_cliente} se mapea una sola vez. Declararla dos veces —como campo del
  * identificador y como columna de la relación— hace que Hibernate la repita en el {@code INSERT}.
  *
- * <p>Retirar a un representante no borra la fila: la deja inactiva, como todo en este sistema. El
+ * <p>Retirar a un supervisor no borra la fila: la deja inactiva, como todo en este sistema. El
  * agregado solo reconstruye los activos, y los demás quedan como historial.
  */
 @Getter
 @Setter
 @Entity
 @NoArgsConstructor
-@IdClass(LegalRepresentativeId.class)
-@Table(name = "representante_legal")
-public class LegalRepresentativeEntity {
+@IdClass(ClientSupervisorId.class)
+@Table(name = "supervisor_cliente")
+public class ClientSupervisorEntity {
 
     @Id
     @Column(name = "k_identificador", nullable = false)
@@ -40,6 +40,9 @@ public class LegalRepresentativeEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "k_id_cliente", nullable = false)
     private ClientEntity cliente;
+
+    @Column(name = "n_cargo", length = 80)
+    private String cargo;
 
     @Column(name = "b_estado_activo", nullable = false)
     private boolean estadoActivo;

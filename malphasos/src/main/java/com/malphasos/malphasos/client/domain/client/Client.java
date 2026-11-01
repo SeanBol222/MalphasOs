@@ -4,14 +4,14 @@ import com.malphasos.malphasos.client.domain.client.events.ClientCreatedEvent;
 import com.malphasos.malphasos.client.domain.client.events.ClientDeactivatedEvent;
 import com.malphasos.malphasos.client.domain.client.events.ClientPayload;
 import com.malphasos.malphasos.client.domain.client.events.ClientUpdatedEvent;
-import com.malphasos.malphasos.client.domain.client.events.LegalRepresentativeAppointedEvent;
-import com.malphasos.malphasos.client.domain.client.events.LegalRepresentativePayload;
-import com.malphasos.malphasos.client.domain.client.events.LegalRepresentativeRemovedEvent;
+import com.malphasos.malphasos.client.domain.client.events.SupervisorAppointedEvent;
+import com.malphasos.malphasos.client.domain.client.events.SupervisorPayload;
+import com.malphasos.malphasos.client.domain.client.events.SupervisorRemovedEvent;
 import com.malphasos.malphasos.shared.domain.events.AggregateRoot;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -20,13 +20,14 @@ import lombok.Getter;
  * Organización que contrata el mantenimiento de sus equipos.
  *
  * <p>El agregado abarca al cliente, sus correos y teléfonos —que no existen sin él— y los
- * identificadores de las personas que lo representan legalmente. <b>No abarca sus sedes</b>: cada
+ * personas que lo supervisan. <b>No abarca sus sedes</b>: cada
  * sede es un agregado propio que apunta aquí por identificador, de modo que cargar un cliente no
  * arrastra su organización entera y dos personas editando sedes distintas no compiten por la misma
  * fila.
  *
- * <p>Los representantes se guardan como identificadores de persona y no como objetos: pertenecen a
- * otro contexto acotado, y traérselos aquí ataría este módulo al modelo de personas.
+ * <p>Los supervisores se guardan como identificadores de persona y no como objetos: pertenecen a
+ * otro contexto acotado, y traérselos aquí ataría este módulo al modelo de personas. Hasta V53 eran los
+ * representantes legales, que solo daban cuenta al cliente; ver {@link ClientSupervisor}.
  */
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -57,8 +58,8 @@ public class Client extends AggregateRoot {
 
     private final List<PhoneClient> telefonos;
 
-    /** Identificadores de las personas que representan legalmente al cliente. */
-    private final Set<UUID> representantes;
+    /** Quienes lo supervisan hoy, por persona, en el orden en que se nombraron. */
+    private final Map<UUID, ClientSupervisor> supervisores;
 
     private Client(
             UUID id,
@@ -70,7 +71,7 @@ public class Client extends AggregateRoot {
             boolean estadoActivo,
             List<EmailClient> correos,
             List<PhoneClient> telefonos,
-            Set<UUID> representantes) {
+            List<ClientSupervisor> supervisores) {
 
         this.id = id;
         this.documento = documento;
@@ -84,7 +85,8 @@ public class Client extends AggregateRoot {
         // lanzaba NullPointerException.
         this.correos = new ArrayList<>(correos);
         this.telefonos = new ArrayList<>(telefonos);
-        this.representantes = new LinkedHashSet<>(representantes);
+        this.supervisores = new LinkedHashMap<>();
+        supervisores.forEach(supervisor -> this.supervisores.put(supervisor.idPersona(), supervisor));
     }
 
     /**
@@ -118,7 +120,7 @@ public class Client extends AggregateRoot {
                 true,
                 List.of(),
                 List.of(),
-                Set.of());
+                List.of());
 
         cliente.registerEvent(new ClientCreatedEvent(
                 cliente.metadataFor(ClientCreatedEvent.TYPE), cliente.payload()));
@@ -137,11 +139,11 @@ public class Client extends AggregateRoot {
             boolean estadoActivo,
             List<EmailClient> correos,
             List<PhoneClient> telefonos,
-            Set<UUID> representantes) {
+            List<ClientSupervisor> supervisores) {
 
         return new Client(
                 id, documento, tipoIdentificacion, razonSocial, sigla, idPais, estadoActivo,
-                correos, telefonos, representantes);
+                correos, telefonos, supervisores);
     }
 
     /** Cambia la razón social o el país. Un valor nulo deja el campo como está. */
@@ -196,38 +198,45 @@ public class Client extends AggregateRoot {
     }
 
     // ---------------------------------------------------------------------------
-    // Representantes legales
+    // Supervisores
     // ---------------------------------------------------------------------------
 
     /**
-     * Nombra representante legal a una persona.
+     * Nombra supervisora a una persona, o le cambia el cargo si ya lo era.
      *
-     * <p>Nombrar a quien ya lo es no hace nada. La relación es de muchos a muchos —una persona
-     * puede representar a varios clientes— y por eso se guarda un conjunto de identificadores y no
-     * un único valor.
+     * <p>Nombrar a quien ya lo es con el mismo cargo no hace nada. La relación es de muchos a muchos
+     * —una persona puede supervisar a varios clientes—, y que la persona sea de las que supervisan lo
+     * comprueba el servicio, que es quien puede preguntarle al módulo de personas.
      */
-    public void appointRepresentative(UUID idPersona) {
-        if (idPersona == null) {
-            throw new IllegalArgumentException("Un representante legal es una persona");
-        }
-        if (!representantes.add(idPersona)) {
+    public void appointSupervisor(UUID idPersona, String cargo) {
+        ClientSupervisor nuevo = new ClientSupervisor(idPersona, cargo);
+        if (nuevo.equals(supervisores.get(idPersona))) {
             return;
         }
 
-        registerEvent(new LegalRepresentativeAppointedEvent(
-                metadataFor(LegalRepresentativeAppointedEvent.TYPE),
-                new LegalRepresentativePayload(idPersona)));
+        supervisores.put(idPersona, nuevo);
+        registerEvent(new SupervisorAppointedEvent(
+                metadataFor(SupervisorAppointedEvent.TYPE), new SupervisorPayload(idPersona, nuevo.cargo())));
     }
 
-    /** Retira a una persona de la representación legal. Retirar a quien no lo es no hace nada. */
-    public void removeRepresentative(UUID idPersona) {
-        if (!representantes.remove(idPersona)) {
+    /** Cambia el cargo de quien ya supervisa al cliente. Falla si no lo supervisa. */
+    public void changeSupervisorTitle(UUID idPersona, String cargo) {
+        if (!supervisores.containsKey(idPersona)) {
+            throw new IllegalArgumentException(
+                    "La persona " + idPersona + " no supervisa a este cliente");
+        }
+
+        appointSupervisor(idPersona, cargo);
+    }
+
+    /** Retira a una persona de la supervisión. Retirar a quien no lo es no hace nada. */
+    public void removeSupervisor(UUID idPersona) {
+        if (supervisores.remove(idPersona) == null) {
             return;
         }
 
-        registerEvent(new LegalRepresentativeRemovedEvent(
-                metadataFor(LegalRepresentativeRemovedEvent.TYPE),
-                new LegalRepresentativePayload(idPersona)));
+        registerEvent(new SupervisorRemovedEvent(
+                metadataFor(SupervisorRemovedEvent.TYPE), new SupervisorPayload(idPersona, null)));
     }
 
     // ---------------------------------------------------------------------------
@@ -288,8 +297,8 @@ public class Client extends AggregateRoot {
         return List.copyOf(telefonos);
     }
 
-    public Set<UUID> getRepresentantes() {
-        return Set.copyOf(representantes);
+    public List<ClientSupervisor> getSupervisores() {
+        return List.copyOf(supervisores.values());
     }
 
     @Override

@@ -152,7 +152,7 @@ class PersonIdentityAdapterTest {
     }
 
     @ParameterizedTest(name = "el rol {0} se asigna al grupo {1}")
-    @CsvSource({"ENGINEER,engineers", "CEO_CLIENT,clients", "ADMIN,admins"})
+    @CsvSource({"ENGINEER,engineers", "SUPERVISOR,clients", "ADMIN,admins"})
     void eachRoleMapsToItsGroup(RoleType role, String expectedGroup) {
         when(response.getStatus()).thenReturn(201);
         when(response.getLocation())
@@ -433,7 +433,7 @@ class PersonIdentityAdapterTest {
         // sincroniza lo que el tipo de la persona implica, y nada mas.
         elRealmTieneLosTresGruposYElUsuarioEsta("clients", "otro-ajeno");
 
-        adapter.syncGroup(USER_ID, RoleType.CEO_CLIENT);
+        adapter.syncGroup(USER_ID, RoleType.SUPERVISOR);
 
         verify(userResource, never()).leaveGroup("id-otro-ajeno");
         verify(userResource, never()).leaveGroup("id-clients");

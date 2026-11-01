@@ -5,11 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.client.domain.client.events.ClientCreatedEvent;
 import com.malphasos.malphasos.client.domain.client.events.ClientDeactivatedEvent;
-import com.malphasos.malphasos.client.domain.client.events.LegalRepresentativeAppointedEvent;
-import com.malphasos.malphasos.client.domain.client.events.LegalRepresentativePayload;
-import com.malphasos.malphasos.client.domain.client.events.LegalRepresentativeRemovedEvent;
+import com.malphasos.malphasos.client.domain.client.events.SupervisorAppointedEvent;
+import com.malphasos.malphasos.client.domain.client.events.SupervisorPayload;
+import com.malphasos.malphasos.client.domain.client.events.SupervisorRemovedEvent;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,7 +48,7 @@ class ClientTest {
         // lanzaba NullPointerException.
         assertThat(cliente.getCorreos()).isNotNull().isEmpty();
         assertThat(cliente.getTelefonos()).isNotNull().isEmpty();
-        assertThat(cliente.getRepresentantes()).isNotNull().isEmpty();
+        assertThat(cliente.getSupervisores()).isNotNull().isEmpty();
     }
 
     @ParameterizedTest
@@ -130,59 +129,110 @@ class ClientTest {
     }
 
     @Test
-    @DisplayName("nombrar representante legal registra el hecho con la persona en el payload")
-    void nombrarRepresentante() {
+    @DisplayName("nombrar supervisor registra el hecho con la persona y su cargo en el payload")
+    void nombrarSupervisor() {
         Client cliente = unCliente();
         cliente.pullEvents();
         UUID persona = UUID.randomUUID();
 
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, "  Ingeniero biomédico ");
 
-        assertThat(cliente.getRepresentantes()).containsExactly(persona);
+        assertThat(cliente.getSupervisores())
+                .containsExactly(new ClientSupervisor(persona, "Ingeniero biomédico"));
         assertThat(cliente.pullEvents()).singleElement()
-                .isInstanceOfSatisfying(LegalRepresentativeAppointedEvent.class, evento ->
-                        assertThat(evento.payload()).isEqualTo(new LegalRepresentativePayload(persona)));
+                .isInstanceOfSatisfying(SupervisorAppointedEvent.class, evento -> assertThat(evento.payload())
+                        .isEqualTo(new SupervisorPayload(persona, "Ingeniero biomédico")));
     }
 
     @Test
-    @DisplayName("un cliente admite varios representantes legales")
-    void variosRepresentantes() {
+    @DisplayName("un cargo en blanco es no tener cargo, y uno de más de 80 caracteres no cabe")
+    void cargoEnBlancoODemasiadoLargo() {
         Client cliente = unCliente();
-        cliente.appointRepresentative(UUID.randomUUID());
-        cliente.appointRepresentative(UUID.randomUUID());
+        UUID persona = UUID.randomUUID();
 
-        assertThat(cliente.getRepresentantes()).hasSize(2);
+        cliente.appointSupervisor(persona, "   ");
+
+        assertThat(cliente.getSupervisores()).containsExactly(new ClientSupervisor(persona, null));
+        assertThatThrownBy(() -> cliente.appointSupervisor(UUID.randomUUID(), "x".repeat(81)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("80");
     }
 
     @Test
-    @DisplayName("nombrar dos veces a la misma persona no repite el hecho")
+    @DisplayName("un cliente admite varios supervisores, en el orden en que se nombraron")
+    void variosSupervisores() {
+        Client cliente = unCliente();
+        UUID primero = UUID.randomUUID();
+        UUID segundo = UUID.randomUUID();
+        cliente.appointSupervisor(primero, null);
+        cliente.appointSupervisor(segundo, null);
+
+        assertThat(cliente.getSupervisores())
+                .extracting(ClientSupervisor::idPersona)
+                .containsExactly(primero, segundo);
+    }
+
+    @Test
+    @DisplayName("nombrar dos veces a la misma persona con el mismo cargo no repite el hecho")
     void nombrarDosVeces() {
         Client cliente = unCliente();
         UUID persona = UUID.randomUUID();
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, "Médico");
         cliente.pullEvents();
 
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, "Médico");
 
-        assertThat(cliente.getRepresentantes()).hasSize(1);
+        assertThat(cliente.getSupervisores()).hasSize(1);
         assertThat(cliente.pullEvents()).isEmpty();
     }
 
     @Test
-    @DisplayName("retirar un representante registra el hecho; retirar a quien no lo es no hace nada")
-    void retirarRepresentante() {
+    @DisplayName("nombrar de nuevo con otro cargo lo cambia, y lo anuncia")
+    void nombrarConOtroCargo() {
         Client cliente = unCliente();
         UUID persona = UUID.randomUUID();
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, "Médico");
         cliente.pullEvents();
 
-        cliente.removeRepresentative(persona);
+        cliente.appointSupervisor(persona, "Médico propietario");
 
-        assertThat(cliente.getRepresentantes()).isEmpty();
+        assertThat(cliente.getSupervisores()).containsExactly(new ClientSupervisor(persona, "Médico propietario"));
+        assertThat(cliente.pullEvents()).singleElement().isInstanceOf(SupervisorAppointedEvent.class);
+    }
+
+    @Test
+    @DisplayName("cambiar el cargo exige que ya supervise al cliente")
+    void cambiarCargo() {
+        Client cliente = unCliente();
+        UUID persona = UUID.randomUUID();
+
+        assertThatThrownBy(() -> cliente.changeSupervisorTitle(persona, "Médico"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no supervisa");
+        assertThat(cliente.getSupervisores()).isEmpty();
+
+        cliente.appointSupervisor(persona, null);
+        cliente.changeSupervisorTitle(persona, "Médico");
+
+        assertThat(cliente.getSupervisores()).containsExactly(new ClientSupervisor(persona, "Médico"));
+    }
+
+    @Test
+    @DisplayName("retirar un supervisor registra el hecho; retirar a quien no lo es no hace nada")
+    void retirarSupervisor() {
+        Client cliente = unCliente();
+        UUID persona = UUID.randomUUID();
+        cliente.appointSupervisor(persona, "Médico");
+        cliente.pullEvents();
+
+        cliente.removeSupervisor(persona);
+
+        assertThat(cliente.getSupervisores()).isEmpty();
         assertThat(cliente.pullEvents()).singleElement()
-                .isInstanceOf(LegalRepresentativeRemovedEvent.class);
+                .isInstanceOfSatisfying(SupervisorRemovedEvent.class, evento ->
+                        assertThat(evento.payload()).isEqualTo(new SupervisorPayload(persona, null)));
 
-        cliente.removeRepresentative(persona);
+        cliente.removeSupervisor(persona);
         assertThat(cliente.pullEvents()).isEmpty();
     }
 
@@ -220,7 +270,7 @@ class ClientTest {
 
         assertThatThrownBy(() -> cliente.getCorreos().clear())
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> cliente.getRepresentantes().add(UUID.randomUUID()))
+        assertThatThrownBy(() -> cliente.getSupervisores().add(new ClientSupervisor(UUID.randomUUID(), null)))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
@@ -229,9 +279,9 @@ class ClientTest {
     void rehidratar() {
         UUID id = UUID.randomUUID();
         Client uno = Client.rehydrate(id, "900123456", IdentificationType.CC, "Uno", "CLI", null, true,
-                List.of(), List.of(), Set.of());
+                List.of(), List.of(), List.of());
         Client otro = Client.rehydrate(id, "900123456", IdentificationType.CC, "Otro", "CLI", null, false,
-                List.of(), List.of(), Set.of());
+                List.of(), List.of(), List.of());
 
         assertThat(uno.hasPendingEvents()).isFalse();
         assertThat(uno).isEqualTo(otro).hasSameHashCodeAs(otro);

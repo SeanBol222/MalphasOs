@@ -158,7 +158,7 @@ public class WorkOrderService implements WorkOrderServicePort {
         personCommunicationPort.findById(idIngeniero);
 
         // La única que no puede delegar: un ingeniero no es de ningún cliente, así que no hay a
-        // quién preguntar por él y lo que se acota es el resultado. Un representante que pregunte
+        // quién preguntar por él y lo que se acota es el resultado. Un supervisor que pregunte
         // por un ingeniero de la casa ve las órdenes de ese ingeniero en sus propios clientes, que
         // es exactamente lo que le toca ver, y no la agenda completa de nadie.
         if (!alcance.coversEverything()) {
@@ -290,9 +290,7 @@ public class WorkOrderService implements WorkOrderServicePort {
     /**
      * Pone la orden en manos de un ingeniero.
      *
-     * <p>Comprueba que la persona sea de tipo {@code ENGINEER}. Una persona puede tener dos tipos
-     * —el modelo lo permite—, de modo que basta con que cualquiera de los dos lo sea: alguien que
-     * es a la vez ingeniero y encargado sigue pudiendo ejecutar un mantenimiento.
+     * <p>Comprueba que la persona sea de tipo {@code ENGINEER}.
      */
     @Override
     @Transactional

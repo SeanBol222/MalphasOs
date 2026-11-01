@@ -4,10 +4,15 @@ description: person_hexagon — Person + integración con Keycloak Admin API par
 tags: [dominio, backend, identidad, keycloak, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../person_hexagon/
 estado: incompleto
-updated: 2026-09-09
+updated: 2026-11-01
 ---
 
 # Dominio Persona e Identidad (`person_hexagon`)
+
+> **MalphasOS, desde el 2026-11-01 (`V53`)**: los tipos son cuatro —`ENGINEER`, `SUPERVISOR`, `ADMIN`,
+> `SUPER_ADMIN`— y **toda persona tiene cuenta**: `SUPERVISOR` va al grupo `clients`, y el alta sin
+> cuenta (`POST /persons`) salió con los encargados. Las tablas de abajo con `MANAGER` y `CEO_CLIENT`
+> describen lo que había.
 
 ## Modelo de dominio
 

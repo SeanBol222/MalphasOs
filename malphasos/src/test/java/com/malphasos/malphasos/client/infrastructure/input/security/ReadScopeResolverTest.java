@@ -68,8 +68,8 @@ class ReadScopeResolverTest {
     void unRepresentanteVeSoloLoSuyo() {
         UUID yo = UUID.randomUUID();
         UUID miCliente = UUID.randomUUID();
-        when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.CEO_CLIENT));
-        when(clientOwnershipPort.clientsRepresentedBy(yo)).thenReturn(Set.of(miCliente));
+        when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.SUPERVISOR));
+        when(clientOwnershipPort.clientsSupervisedBy(yo)).thenReturn(Set.of(miCliente));
 
         ReadScope alcance = resolver.scopeFor(conSub(yo.toString()));
 
@@ -81,8 +81,8 @@ class ReadScopeResolverTest {
     @DisplayName("un representante que no representa a nadie no ve ningun cliente")
     void unRepresentanteSinClientesNoVeNada() {
         UUID yo = UUID.randomUUID();
-        when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.CEO_CLIENT));
-        when(clientOwnershipPort.clientsRepresentedBy(yo)).thenReturn(Set.of());
+        when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.SUPERVISOR));
+        when(clientOwnershipPort.clientsSupervisedBy(yo)).thenReturn(Set.of());
 
         ReadScope alcance = resolver.scopeFor(conSub(yo.toString()));
 
@@ -102,7 +102,7 @@ class ReadScopeResolverTest {
         assertThat(alcance.coversEverything()).isTrue();
         // No basta con que el alcance salga libre: preguntar por los clientes de un ingeniero seria
         // una consulta inutil en cada lectura del API.
-        verify(clientOwnershipPort, never()).clientsRepresentedBy(any());
+        verify(clientOwnershipPort, never()).clientsSupervisedBy(any());
     }
 
     @Test
@@ -166,8 +166,8 @@ class ReadScopeResolverTest {
         // Un token cuyo nombre de principal es otro claim: si el resolutor leyera getName() se
         // quedaria con «ada», no encontraria a nadie y abriria la vista en silencio.
         Authentication autenticacion = new JwtAuthenticationToken(token, Set.of(), "ada");
-        when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.CEO_CLIENT));
-        when(clientOwnershipPort.clientsRepresentedBy(yo)).thenReturn(Set.of());
+        when(personCommunicationPort.findById(yo)).thenReturn(persona(yo, PersonType.SUPERVISOR));
+        when(clientOwnershipPort.clientsSupervisedBy(yo)).thenReturn(Set.of());
 
         resolver.scopeFor(autenticacion);
 

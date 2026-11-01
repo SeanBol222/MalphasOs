@@ -123,15 +123,14 @@
           </dd>
         </div>
         <div class="px-2 py-1.5">
-          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">Encargado de la sede</dt>
-          <dd class="font-semibold">
-            @if (encargado()) {
-              {{ encargado() }}
+          <dt class="text-xs tracking-[0.08em] text-neutral-700 uppercase">
+            Supervisor del cliente
+          </dt>
+          <dd class="font-semibold" data-supervisor>
+            @if (supervisores()) {
+              {{ supervisores() }}
             } @else {
-              <!-- Se distingue «no tiene» de «no se pudo consultar», como en el resto de la aplicacion. -->
-              <span class="font-normal text-neutral-700"
-                >Esta sede no tiene encargado registrado</span
-              >
+              <span class="font-normal text-neutral-700">El cliente no tiene supervisor</span>
             }
           </dd>
         </div>

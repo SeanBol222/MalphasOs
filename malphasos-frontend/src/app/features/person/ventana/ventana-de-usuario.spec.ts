@@ -107,14 +107,15 @@ describe('Ventana de la sesión', () => {
       expect(raiz().querySelectorAll('input, select, textarea')).toHaveLength(0);
     });
 
-    it('un representante ve sus datos y no la firma, que no necesita', async () => {
-      // Un representante tiene report.read y no report.write: no cierra informes.
+    it('un supervisor del cliente ve sus datos y no la firma, que todavía no necesita', async () => {
+      // Un supervisor tiene report.read y no report.write: no cierra informes. Firmará al aprobar las
+      // órdenes, que es la tanda que viene después de V53.
       montar(['report.read']);
       fixture.detectChanges();
-      await responderA(fixture, http, URL_YO, { ...INGENIERA, tipoPersona: 'CEO_CLIENT' });
+      await responderA(fixture, http, URL_YO, { ...INGENIERA, tipoPersona: 'SUPERVISOR' });
 
       expect(raiz().querySelector('[data-rol]')?.textContent?.trim()).toBe(
-        'Representante del cliente',
+        'Supervisor del cliente',
       );
       expect(texto()).not.toContain('Firma digital');
       http.expectNone(URL_FIRMA);

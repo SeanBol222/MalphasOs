@@ -304,7 +304,7 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
     private String groupFor(RoleType roleType) {
         return switch (roleType) {
             case ENGINEER -> "engineers";
-            case CEO_CLIENT -> "clients";
+            case SUPERVISOR -> "clients";
             case ADMIN -> "admins";
         };
     }

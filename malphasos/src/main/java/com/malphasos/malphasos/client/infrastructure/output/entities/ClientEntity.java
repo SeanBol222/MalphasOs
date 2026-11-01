@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.BatchSize;
 
-/** Representación JPA de un cliente, con sus contactos y sus representantes legales. */
+/** Representación JPA de un cliente, con sus contactos y sus supervisores. */
 @Getter
 @Setter
 @Entity
@@ -58,5 +58,5 @@ public class ClientEntity {
 
     @BatchSize(size = 50)
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = jakarta.persistence.FetchType.LAZY)
-    private List<LegalRepresentativeEntity> representantes = new ArrayList<>();
+    private List<ClientSupervisorEntity> supervisores = new ArrayList<>();
 }

@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,7 +29,6 @@ import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.EmailPersonCreateRequest;
-import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonCreateRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonRegisterRequest;
 import java.util.List;
 import java.util.UUID;
@@ -125,9 +125,9 @@ class PersonRestAdapterTest {
         // error tipografico.
         when(personServicePort.registerEngineer(any())).thenReturn(samplePerson(UUID.randomUUID()));
         when(personServicePort.registerAdmin(any())).thenReturn(samplePerson(UUID.randomUUID()));
-        when(personServicePort.registerCeoClient(any())).thenReturn(samplePerson(UUID.randomUUID()));
+        when(personServicePort.registerSupervisor(any())).thenReturn(samplePerson(UUID.randomUUID()));
 
-        for (String ruta : List.of("engineers", "admins", "ceo-clients")) {
+        for (String ruta : List.of("engineers", "admins", "supervisors")) {
             mockMvc.perform(post("/v1/api/persons/" + ruta)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(validRegisterRequest())))
@@ -156,38 +156,16 @@ class PersonRestAdapterTest {
     }
 
     @Test
-    @DisplayName("crear una persona exige el tipo, que el original ni siquiera pedia")
-    void createPersonRequiresPersonType() throws Exception {
-        String sinTipo = """
-                {"cedula":"1234567890","primerNombre":"Ada","primerApellido":"Lovelace"}
-                """;
-
+    @DisplayName("ya no hay alta sin cuenta ni de representante legal: toda persona entra con usuario (V53)")
+    void sinAltaSinCuenta() throws Exception {
         mockMvc.perform(post("/v1/api/persons")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(sinTipo))
-                .andExpect(status().isBadRequest());
-
-        verify(personServicePort, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("crear una persona con tipo valido responde 201")
-    void createPersonReturnsCreated() throws Exception {
-        when(personServicePort.save(any())).thenReturn(samplePerson(UUID.randomUUID()));
-
-        PersonCreateRequest request = PersonCreateRequest.builder()
-                .cedula("1234567890")
-                .primerNombre("Ada")
-                .primerApellido("Lovelace")
-                .tipoPersona(PersonType.MANAGER)
-                .emailPersonList(List.of())
-                .phonePersonList(List.of())
-                .build();
-
-        mockMvc.perform(post("/v1/api/persons")
+                        .content(jsonMapper.writeValueAsString(validRegisterRequest())))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(post("/v1/api/persons/ceo-clients")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
+                        .content(jsonMapper.writeValueAsString(validRegisterRequest())))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test
@@ -198,7 +176,7 @@ class PersonRestAdapterTest {
                  "tipoPersona":"PRESIDENTE"}
                 """;
 
-        mockMvc.perform(post("/v1/api/persons")
+        mockMvc.perform(put("/v1/api/persons/" + UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(tipoInvalido))
                 .andExpect(status().isBadRequest());
@@ -220,20 +198,12 @@ class PersonRestAdapterTest {
     @Test
     @DisplayName("un dato que el dominio rechaza responde 400 y no 500")
     void invalidDataReturnsBadRequest() throws Exception {
-        when(personServicePort.save(any())).thenThrow(new IllegalArgumentException("Dato rechazado por el dominio"));
+        when(personServicePort.registerEngineer(any()))
+                .thenThrow(new IllegalArgumentException("Dato rechazado por el dominio"));
 
-        PersonCreateRequest request = PersonCreateRequest.builder()
-                .cedula("1234567890")
-                .primerNombre("Ada")
-                .primerApellido("Lovelace")
-                .tipoPersona(PersonType.ENGINEER)
-                .emailPersonList(List.of())
-                .phonePersonList(List.of())
-                .build();
-
-        mockMvc.perform(post("/v1/api/persons")
+        mockMvc.perform(post("/v1/api/persons/engineers")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request)))
+                        .content(jsonMapper.writeValueAsString(validRegisterRequest())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("ERR_PERSON_002"));
     }

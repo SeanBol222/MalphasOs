@@ -4,10 +4,16 @@ description: Como MalphasOS acota lo que un representante legal puede leer, el a
 tags: [malphasos, seguridad, permisos, arquitectura, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/shared/application/model/ReadScope.java
 estado: estable
-updated: 2026-10-17
+updated: 2026-11-01
 ---
 
 # El filtrado por dueño
+
+> **Al día el 2026-11-01 (`V53`)**: quien se acota es el **supervisor** del cliente (`SUPERVISOR`), y la
+> tabla que lo dice es `supervisor_cliente`, que es `representante_legal` renombrada. El mecanismo no
+> cambió: `ReadScopeResolver` miraba un tipo y una tabla y sigue mirando uno y una. Donde esta nota dice
+> «representante», hoy es el supervisor, y donde dice que el encargado no tiene cuenta, desde `V53` no
+> hay encargados y todo supervisor la tiene.
 
 **Construido el 2026-10-04, en cuatro tandas, y era la mayor deuda abierta del proyecto.** Hasta ese
 día un representante legal con `client.read` leía **todos** los clientes del sistema, y con

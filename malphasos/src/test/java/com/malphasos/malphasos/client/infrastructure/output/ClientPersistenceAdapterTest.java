@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.domain.client.Client;
+import com.malphasos.malphasos.client.domain.client.ClientSupervisor;
 import com.malphasos.malphasos.client.domain.client.EmailClient;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
 import java.util.UUID;
@@ -17,14 +18,14 @@ import org.springframework.test.context.jdbc.Sql;
 
 /**
  * Ejercita el adaptador contra un PostgreSQL real. Lo que importa aquí es el viaje de ida y vuelta
- * del agregado, y sobre todo la sincronización de los representantes legales, que es la única parte
+ * del agregado, y sobre todo la sincronización de los supervisores, que es la única parte
  * del mapeo con reglas propias.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM representante_legal",
+            "DELETE FROM supervisor_cliente",
             "DELETE FROM correo_cliente",
             "DELETE FROM telefono_cliente",
             "DELETE FROM cliente",
@@ -53,7 +54,7 @@ class ClientPersistenceAdapterTest {
                 """
                 INSERT INTO persona (k_identificador, k_cedula, n_primer_nombre, n_primer_apellido,
                                      t_tipo_persona)
-                VALUES (?, ?, 'Ada', 'Lovelace', 'CEO_CLIENT')
+                VALUES (?, ?, 'Ada', 'Lovelace', 'SUPERVISOR')
                 """,
                 id, unico());
 
@@ -121,77 +122,99 @@ class ClientPersistenceAdapterTest {
     }
 
     @Test
-    @DisplayName("nombrar un representante crea su fila en la tabla de union")
-    void nombrarRepresentante() {
+    @DisplayName("nombrar un supervisor crea su fila en la tabla de union")
+    void nombrarSupervisor() {
         UUID persona = unaPersona();
         Client cliente = unCliente();
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, null);
 
         Client guardado = adapter.save(cliente);
 
-        assertThat(adapter.findById(guardado.getId()).orElseThrow().getRepresentantes())
-                .containsExactly(persona);
+        assertThat(adapter.findById(guardado.getId()).orElseThrow().getSupervisores())
+                .extracting(ClientSupervisor::idPersona).containsExactly(persona);
     }
 
     @Test
-    @DisplayName("retirar un representante deja su fila inactiva, no la borra")
-    void retirarRepresentanteConservaLaFila() {
+    @DisplayName("el cargo del supervisor se guarda en su fila, cambia y vuelve con el cliente")
+    void cargoDelSupervisor() {
         UUID persona = unaPersona();
         Client cliente = unCliente();
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, "Médico propietario");
+        Client guardado = adapter.save(cliente);
+
+        assertThat(adapter.findById(guardado.getId()).orElseThrow().getSupervisores())
+                .containsExactly(new ClientSupervisor(persona, "Médico propietario"));
+
+        Client recuperado = adapter.findById(guardado.getId()).orElseThrow();
+        recuperado.changeSupervisorTitle(persona, "Ingeniero biomédico");
+        adapter.save(recuperado);
+
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT n_cargo FROM supervisor_cliente WHERE k_identificador = ?", String.class, persona))
+                .isEqualTo("Ingeniero biomédico");
+    }
+
+    @Test
+    @DisplayName("retirar un supervisor deja su fila inactiva, no la borra")
+    void retirarSupervisorConservaLaFila() {
+        UUID persona = unaPersona();
+        Client cliente = unCliente();
+        cliente.appointSupervisor(persona, null);
         Client guardado = adapter.save(cliente);
 
         Client recuperado = adapter.findById(guardado.getId()).orElseThrow();
-        recuperado.removeRepresentative(persona);
+        recuperado.removeSupervisor(persona);
         adapter.save(recuperado);
 
         // La fila sigue ahi, como historial, pero el agregado ya no lo cuenta entre los suyos.
         assertThat(jdbcTemplate.queryForObject(
-                        "SELECT b_estado_activo FROM representante_legal WHERE k_identificador = ?",
+                        "SELECT b_estado_activo FROM supervisor_cliente WHERE k_identificador = ?",
                         Boolean.class, persona))
                 .isFalse();
-        assertThat(adapter.findById(guardado.getId()).orElseThrow().getRepresentantes()).isEmpty();
+        assertThat(adapter.findById(guardado.getId()).orElseThrow().getSupervisores()).isEmpty();
     }
 
     @Test
     @DisplayName("volver a nombrar a quien fue retirado reactiva su fila en vez de crear otra")
-    void reactivarRepresentante() {
+    void reactivarSupervisor() {
         UUID persona = unaPersona();
         Client cliente = unCliente();
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, null);
         Client guardado = adapter.save(cliente);
 
         Client retirado = adapter.findById(guardado.getId()).orElseThrow();
-        retirado.removeRepresentative(persona);
+        retirado.removeSupervisor(persona);
         adapter.save(retirado);
 
         Client renombrado = adapter.findById(guardado.getId()).orElseThrow();
-        renombrado.appointRepresentative(persona);
+        renombrado.appointSupervisor(persona, null);
         adapter.save(renombrado);
 
         assertThat(jdbcTemplate.queryForObject(
-                        "SELECT count(*) FROM representante_legal WHERE k_identificador = ?",
+                        "SELECT count(*) FROM supervisor_cliente WHERE k_identificador = ?",
                         Integer.class, persona))
                 .isEqualTo(1);
-        assertThat(adapter.findById(guardado.getId()).orElseThrow().getRepresentantes())
-                .containsExactly(persona);
+        assertThat(adapter.findById(guardado.getId()).orElseThrow().getSupervisores())
+                .extracting(ClientSupervisor::idPersona).containsExactly(persona);
     }
 
     @Test
-    @DisplayName("una persona puede representar a dos clientes a la vez")
-    void representanteDeVariosClientes() {
+    @DisplayName("una persona puede supervisar a dos clientes a la vez")
+    void supervisorDeVariosClientes() {
         UUID persona = unaPersona();
 
         Client uno = unCliente();
-        uno.appointRepresentative(persona);
+        uno.appointSupervisor(persona, null);
         Client otro = unCliente();
-        otro.appointRepresentative(persona);
+        otro.appointSupervisor(persona, null);
 
         UUID idUno = adapter.save(uno).getId();
         UUID idOtro = adapter.save(otro).getId();
 
-        assertThat(adapter.findById(idUno).orElseThrow().getRepresentantes()).containsExactly(persona);
-        assertThat(adapter.findById(idOtro).orElseThrow().getRepresentantes()).containsExactly(persona);
+        assertThat(adapter.findById(idUno).orElseThrow().getSupervisores())
+                .extracting(ClientSupervisor::idPersona).containsExactly(persona);
+        assertThat(adapter.findById(idOtro).orElseThrow().getSupervisores())
+                .extracting(ClientSupervisor::idPersona).containsExactly(persona);
     }
 
     @Test
@@ -215,58 +238,58 @@ class ClientPersistenceAdapterTest {
     }
 
     @Test
-    @DisplayName("el filtrado por dueno encuentra los clientes que una persona representa")
-    void losClientesDeUnRepresentante() {
+    @DisplayName("el filtrado por dueno encuentra los clientes que una persona supervisa")
+    void losClientesDeUnSupervisor() {
         UUID persona = unaPersona();
         Client uno = unCliente();
-        uno.appointRepresentative(persona);
+        uno.appointSupervisor(persona, null);
         Client dos = unCliente();
-        dos.appointRepresentative(persona);
+        dos.appointSupervisor(persona, null);
         UUID ajeno = adapter.save(unCliente()).getId();
 
         UUID primero = adapter.save(uno).getId();
         UUID segundo = adapter.save(dos).getId();
 
-        // La llave de representante_legal es compuesta a proposito: una persona puede representar a
+        // La llave de supervisor_cliente es compuesta a proposito: una persona puede supervisar a
         // varios clientes, y el alcance tiene que traer los dos y ninguno mas.
-        assertThat(adapter.findIdsRepresentedBy(persona))
+        assertThat(adapter.findIdsSupervisedBy(persona))
                 .containsExactlyInAnyOrder(primero, segundo)
                 .doesNotContain(ajeno);
     }
 
     @Test
-    @DisplayName("retirar a un representante le quita el acceso, aunque su fila siga ahi")
-    void retirarAlRepresentanteLeQuitaElAcceso() {
+    @DisplayName("retirar a un supervisor le quita el acceso, aunque su fila siga ahi")
+    void retirarAlSupervisorLeQuitaElAcceso() {
         UUID persona = unaPersona();
         Client cliente = unCliente();
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, null);
         Client guardado = adapter.save(cliente);
 
         Client recuperado = adapter.findById(guardado.getId()).orElseThrow();
-        recuperado.removeRepresentative(persona);
+        recuperado.removeSupervisor(persona);
         adapter.save(recuperado);
 
         // Es la razon por la que la consulta mira b_estado_activo del nombramiento: la fila se queda
-        // como historial, y si el filtro no la descartara el representante retirado seguiria
+        // como historial, y si el filtro no la descartara el supervisor retirado seguiria
         // leyendo los datos del cliente.
-        assertThat(adapter.findIdsRepresentedBy(persona)).isEmpty();
+        assertThat(adapter.findIdsSupervisedBy(persona)).isEmpty();
     }
 
     @Test
-    @DisplayName("quien no representa a nadie no recibe ningun cliente")
+    @DisplayName("quien no supervisa a nadie no recibe ningun cliente")
     void sinNombramientosNingunCliente() {
         adapter.save(unCliente());
 
-        assertThat(adapter.findIdsRepresentedBy(unaPersona())).isEmpty();
-        assertThat(adapter.findIdsRepresentedBy(UUID.randomUUID())).isEmpty();
+        assertThat(adapter.findIdsSupervisedBy(unaPersona())).isEmpty();
+        assertThat(adapter.findIdsSupervisedBy(UUID.randomUUID())).isEmpty();
     }
 
     @Test
-    @DisplayName("un cliente retirado sigue siendo visible para su representante")
+    @DisplayName("un cliente retirado sigue siendo visible para su supervisor")
     void unClienteRetiradoSigueEnElAlcance() {
         UUID persona = unaPersona();
         Client cliente = unCliente();
-        cliente.appointRepresentative(persona);
+        cliente.appointSupervisor(persona, null);
         Client guardado = adapter.save(cliente);
 
         Client recuperado = adapter.findById(guardado.getId()).orElseThrow();
@@ -275,7 +298,7 @@ class ClientPersistenceAdapterTest {
 
         // Decision deliberada: el alcance mira si el nombramiento esta activo, no si el cliente lo
         // esta. findAll() devuelve los clientes retirados, y esconderselos solo a su propio
-        // representante seria incoherente con lo que ve cualquier otro.
-        assertThat(adapter.findIdsRepresentedBy(persona)).containsExactly(guardado.getId());
+        // supervisor seria incoherente con lo que ve cualquier otro.
+        assertThat(adapter.findIdsSupervisedBy(persona)).containsExactly(guardado.getId());
     }
 }

@@ -11,10 +11,9 @@ import java.util.UUID;
 /**
  * Casos de uso disponibles sobre personas.
  *
- * <p>Es el contrato que consumen los adaptadores de entrada. Los tres métodos {@code register*}
- * se distinguen del resto en que además dan de alta un usuario en el proveedor de identidad: son
- * altas de personas que acceden al sistema, mientras que {@link #save} registra a alguien que solo
- * existe como dato, sin credenciales.
+ * <p>Es el contrato que consumen los adaptadores de entrada. Los tres métodos {@code register*} dan
+ * de alta además un usuario en el proveedor de identidad: desde V53 toda persona accede al sistema, y
+ * el alta sin cuenta —que era para los encargados— salió con ellos.
  *
  * <p>Todas las operaciones que reciben un identificador lanzan {@link PersonNotFoundException} si
  * no corresponde a ninguna persona.
@@ -25,9 +24,6 @@ public interface PersonServicePort {
 
     List<Person> findAll();
 
-    /** Registra una persona sin acceso al sistema. */
-    Person save(Person person);
-
     /** Registra un ingeniero junto con su usuario en el proveedor de identidad. */
     Person registerEngineer(PersonUseCaseRequest request);
 
@@ -35,7 +31,7 @@ public interface PersonServicePort {
     Person registerAdmin(PersonUseCaseRequest request);
 
     /** Registra un representante legal de cliente junto con su usuario en el proveedor de identidad. */
-    Person registerCeoClient(PersonUseCaseRequest request);
+    Person registerSupervisor(PersonUseCaseRequest request);
 
     Person update(UUID id, Person person);
 

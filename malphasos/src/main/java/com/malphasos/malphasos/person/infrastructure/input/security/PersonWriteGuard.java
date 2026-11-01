@@ -72,10 +72,6 @@ public class PersonWriteGuard {
      * no un detalle del DTO, y porque el día que esta operación pase a {@code PATCH} —que es lo que
      * la convención del proyecto exige— una edición parcial sin tipo será lo normal. Lo destapó una
      * mutación que sobrevivía: tratar el nulo como prohibido no rompía ninguna prueba.
-     *
-     * <p>El segundo tipo no entra en esta cuenta porque solo admite {@code MANAGER} —lo exige el
-     * dominio y lo repite un {@code CHECK} del esquema—, de modo que no hay nada que escalar por ahí.
-     * Si algún día admitiera más valores, este método es el sitio donde añadirlo.
      */
     public boolean canUpdate(UUID id, PersonType nuevoTipo, Authentication autenticacion) {
         if (!canWrite(id, autenticacion)) {
@@ -89,8 +85,8 @@ public class PersonWriteGuard {
      * Qué autoridad exige escribir sobre alguien de este tipo.
      *
      * <p>Es la escalera entera, en un solo sitio: la gente de la casa —ingenieros y
-     * administradores— está un escalón por encima de la gente del cliente —representantes y
-     * encargados—.
+     * administradores— está un escalón por encima de la gente del cliente, que desde V53 son solo sus
+     * supervisores.
      *
      * <p>Se resuelve con una expresión {@code switch} y no con una sentencia: al añadir un valor a
      * {@link PersonType}, el compilador obliga a decidir de qué lado de la escalera cae. Es la misma
@@ -100,7 +96,7 @@ public class PersonWriteGuard {
     static String requiredAuthority(PersonType tipo) {
         return switch (tipo) {
             case ENGINEER, ADMIN, SUPER_ADMIN -> ApiAuthority.SUPER_PERSON_WRITE;
-            case CEO_CLIENT, MANAGER -> ApiAuthority.PERSON_WRITE;
+            case SUPERVISOR -> ApiAuthority.PERSON_WRITE;
         };
     }
 

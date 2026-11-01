@@ -4,20 +4,23 @@ import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
 import com.malphasos.malphasos.client.application.ports.output.ClientPersistencePort;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientPhoneCommand;
-import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.AppointSupervisorCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.ChangeClientAcronymCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.CreateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.DeactivateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientPhoneCommand;
-import com.malphasos.malphasos.client.application.services.client.commands.RemoveRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.RemoveSupervisorCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.UpdateClientCommand;
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.client.ClientAcronym;
 import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.SupervisorPersonTypeException;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
+import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
+import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
  * publica lo que registró. Los eventos salen después de guardar, de modo que nunca se anuncia un
  * cambio que la base terminó rechazando.
  *
- * <p>Para nombrar un representante legal consulta el módulo de personas a través de
+ * <p>Para nombrar un supervisor consulta el módulo de personas a través de
  * {@link PersonCommunicationPort}, el contrato que ese módulo publica hacia los demás. Es la primera
  * vez que un módulo de MalphasOS habla con otro. Podría dejarse en manos de la clave foránea, pero
  * entonces el llamante recibiría un conflicto de integridad genérico en lugar de "esa persona no
@@ -145,20 +148,39 @@ public class ClientService implements ClientServicePort {
         return applyTo(command.idCliente(), cliente -> cliente.removePhone(command.idTelefono()));
     }
 
+    /**
+     * Solo una persona {@code SUPERVISOR} supervisa (V53): un ingeniero nombrado supervisor podría
+     * aprobar el trabajo que él mismo hizo, y un administrador quedaría con su alcance acotado a un
+     * cliente sin que nadie lo decidiera.
+     */
     @Override
     @Transactional
-    public Client appointRepresentative(AppointRepresentativeCommand command) {
-        // Falla con "no existe esa persona" y no con un conflicto de integridad del motor.
-        personCommunicationPort.findById(command.idPersona());
+    public Client appointSupervisor(AppointSupervisorCommand command) {
+        requireSupervisor(command.idPersona());
 
-        return applyTo(command.idCliente(), cliente -> cliente.appointRepresentative(command.idPersona()));
+        return applyTo(command.idCliente(),
+                cliente -> cliente.appointSupervisor(command.idPersona(), command.cargo()));
     }
 
     @Override
     @Transactional
-    public Client removeRepresentative(RemoveRepresentativeCommand command) {
-        return applyTo(
-                command.idCliente(), cliente -> cliente.removeRepresentative(command.idPersona()));
+    public Client changeSupervisorTitle(AppointSupervisorCommand command) {
+        return applyTo(command.idCliente(),
+                cliente -> cliente.changeSupervisorTitle(command.idPersona(), command.cargo()));
+    }
+
+    @Override
+    @Transactional
+    public Client removeSupervisor(RemoveSupervisorCommand command) {
+        return applyTo(command.idCliente(), cliente -> cliente.removeSupervisor(command.idPersona()));
+    }
+
+    /** Falla con "no existe esa persona" y no con un conflicto de integridad del motor. */
+    private void requireSupervisor(UUID idPersona) {
+        PersonCommunicationResponse persona = personCommunicationPort.findById(idPersona);
+        if (persona.tipoPersona() != PersonType.SUPERVISOR) {
+            throw new SupervisorPersonTypeException(idPersona, persona.tipoPersona());
+        }
     }
 
     /**

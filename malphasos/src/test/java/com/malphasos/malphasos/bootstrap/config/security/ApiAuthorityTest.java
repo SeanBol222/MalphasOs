@@ -156,7 +156,7 @@ class ApiAuthorityTest {
     void elCatalogoNoContieneAlAdministrador() {
         assertThat(ApiAuthority.RESOURCE_AUTHORITIES)
                 .doesNotContain(ApiAuthority.ADMIN_FULL, ApiAuthority.SUPER_ADMIN_FULL)
-                .hasSize(21);
+                .hasSize(19);
     }
 
     @Test

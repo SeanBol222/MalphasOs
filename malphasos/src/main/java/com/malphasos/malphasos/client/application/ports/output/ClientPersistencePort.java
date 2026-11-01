@@ -28,14 +28,13 @@ public interface ClientPersistencePort {
     List<Client> findAllByIds(Collection<UUID> ids);
 
     /**
-     * Identificadores de los clientes que esta persona representa, para el filtrado por dueño.
+     * Identificadores de los clientes que esta persona supervisa, para el filtrado por dueño.
      *
      * <p>Mira solo si el nombramiento sigue activo, no si el cliente lo está: retirar a un
-     * representante debe quitarle el acceso en el acto, mientras que un cliente retirado sigue
-     * apareciendo en {@code findAll()} y sería incoherente esconderlo solo a su propio
-     * representante.
+     * supervisor debe quitarle el acceso en el acto, mientras que un cliente retirado sigue
+     * apareciendo en {@code findAll()} y sería incoherente esconderlo solo a su propio supervisor.
      */
-    Set<UUID> findIdsRepresentedBy(UUID idPersona);
+    Set<UUID> findIdsSupervisedBy(UUID idPersona);
 
     /** Para comprobar que un documento no esté ya registrado antes de dar un error del motor. */
     Optional<Client> findByDocumento(String documento);

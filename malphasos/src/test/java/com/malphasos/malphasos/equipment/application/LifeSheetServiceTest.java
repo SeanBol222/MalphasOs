@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
 import com.malphasos.malphasos.client.application.ports.input.HeadquarterServicePort;
-import com.malphasos.malphasos.client.application.ports.input.ServiceAreaResponsiblePort;
+import com.malphasos.malphasos.client.application.ports.input.ClientSupervisorPort;
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.BrandServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
@@ -63,7 +63,7 @@ class LifeSheetServiceTest {
     @Mock private ClientServicePort clientServicePort;
     @Mock private CityServicePort cityServicePort;
     @Mock private CountryServicePort countryServicePort;
-    @Mock private ServiceAreaResponsiblePort serviceAreaResponsiblePort;
+    @Mock private ClientSupervisorPort clientSupervisorPort;
     @Mock private ProtocolServicePort protocolServicePort;
 
     @InjectMocks private LifeSheetService service;
@@ -93,7 +93,7 @@ class LifeSheetServiceTest {
                 clientServicePort,
                 cityServicePort,
                 countryServicePort,
-                serviceAreaResponsiblePort,
+                clientSupervisorPort,
                 protocolServicePort);
     }
 

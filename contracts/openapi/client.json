@@ -175,19 +175,17 @@
           "razonSocial" : {
             "type" : "string"
           },
-          "representantes" : {
-            "description" : "Identificadores de las personas que lo representan legalmente",
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
-            },
-            "type" : "array",
-            "uniqueItems" : true
-          },
           "sigla" : {
             "description" : "Encabeza el numero de sus hojas de vida",
             "example" : "CDN",
             "type" : "string"
+          },
+          "supervisores" : {
+            "description" : "Quienes lo supervisan: tienen cuenta, ven lo de este cliente y aprueban sus ordenes",
+            "items" : {
+              "$ref" : "#/components/schemas/ClientSupervisorResponse"
+            },
+            "type" : "array"
           },
           "telefonos" : {
             "items" : {
@@ -197,6 +195,32 @@
           },
           "tipoIdentificacion" : {
             "enum" : [ "NIT_JURIDICO", "NIT_NATURAL", "CC", "CE" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ClientSupervisorRequest" : {
+        "properties" : {
+          "cargo" : {
+            "description" : "Como se le nombra en los documentos; vacio o nulo, sin cargo",
+            "example" : "Ingeniero biomedico",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ClientSupervisorResponse" : {
+        "properties" : {
+          "cargo" : {
+            "description" : "Como se le nombra en los documentos; nulo, sin cargo",
+            "example" : "Ingeniero biomedico",
+            "type" : "string"
+          },
+          "idPersona" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -409,102 +433,6 @@
           },
           "numero" : {
             "type" : "string"
-          }
-        },
-        "type" : "object"
-      },
-      "ManagerAssignRequest" : {
-        "properties" : {
-          "idAsignacion" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "idPersona" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "tipo" : {
-            "enum" : [ "HEADQUARTER", "SERVICE_AREA" ],
-            "type" : "string"
-          }
-        },
-        "required" : [ "idAsignacion", "idPersona", "tipo" ],
-        "type" : "object"
-      },
-      "ManagerRegisterRequest" : {
-        "properties" : {
-          "cedula" : {
-            "maxLength" : 10,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "correos" : {
-            "items" : {
-              "$ref" : "#/components/schemas/ContactRequest"
-            },
-            "minItems" : 1,
-            "type" : "array"
-          },
-          "idAsignacion" : {
-            "description" : "Sede o area de la que se encarga, segun el tipo",
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "primerApellido" : {
-            "minLength" : 1,
-            "type" : "string"
-          },
-          "primerNombre" : {
-            "minLength" : 1,
-            "type" : "string"
-          },
-          "segundoApellido" : {
-            "type" : "string"
-          },
-          "segundoNombre" : {
-            "type" : "string"
-          },
-          "telefonos" : {
-            "items" : {
-              "$ref" : "#/components/schemas/ContactRequest"
-            },
-            "type" : "array"
-          },
-          "tipo" : {
-            "description" : "De que se encarga",
-            "enum" : [ "HEADQUARTER", "SERVICE_AREA" ],
-            "example" : "HEADQUARTER",
-            "type" : "string"
-          }
-        },
-        "required" : [ "cedula", "correos", "idAsignacion", "primerApellido", "primerNombre", "tipo" ],
-        "type" : "object"
-      },
-      "ManagerResponse" : {
-        "properties" : {
-          "estadoActivo" : {
-            "description" : "Si está a cargo de algo",
-            "type" : "boolean"
-          },
-          "idPersona" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "idsAreaServicio" : {
-            "description" : "Áreas de servicio de las que está a cargo ahora",
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
-            },
-            "type" : "array"
-          },
-          "idsSede" : {
-            "description" : "Sedes de las que está a cargo ahora",
-            "items" : {
-              "format" : "uuid",
-              "type" : "string"
-            },
-            "type" : "array"
           }
         },
         "type" : "object"
@@ -1448,9 +1376,10 @@
         "tags" : [ "Client" ]
       }
     },
-    "/v1/api/clients/{id}/representatives/{idPersona}" : {
+    "/v1/api/clients/{id}/supervisors/{idPersona}" : {
       "delete" : {
-        "operationId" : "removeRepresentative",
+        "description" : "Pierde en el acto lo que veia de este cliente.",
+        "operationId" : "removeSupervisor",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1520,12 +1449,97 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Retirar a un representante legal",
+        "summary" : "Retirar a un supervisor",
+        "tags" : [ "Client" ]
+      },
+      "patch" : {
+        "description" : "Debe supervisar ya a este cliente.",
+        "operationId" : "changeSupervisorTitle",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "idPersona",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClientSupervisorRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Cambiar el cargo de un supervisor",
         "tags" : [ "Client" ]
       },
       "post" : {
-        "description" : "La persona debe existir. Una persona puede representar a varios clientes.",
-        "operationId" : "appointRepresentative",
+        "description" : "La persona debe existir y ser SUPERVISOR. Supervisar es tener cuenta, ver lo de este cliente y aprobar sus ordenes, en todas sus sedes. Una persona puede supervisar a varios clientes. Nombrar de nuevo a quien ya lo es le cambia el cargo.",
+        "operationId" : "appointSupervisor",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1543,6 +1557,15 @@
             "type" : "string"
           }
         } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClientSupervisorRequest"
+              }
+            }
+          }
+        },
         "responses" : {
           "200" : {
             "content" : {
@@ -1595,7 +1618,7 @@
             "description" : "Internal Server Error"
           }
         },
-        "summary" : "Nombrar representante legal",
+        "summary" : "Nombrar supervisor",
         "tags" : [ "Client" ]
       }
     },
@@ -2024,475 +2047,6 @@
         "tags" : [ "Headquarter" ]
       }
     },
-    "/v1/api/managers" : {
-      "get" : {
-        "operationId" : "getAllManagers",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/ManagerResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          }
-        },
-        "summary" : "Listar todos los encargados",
-        "tags" : [ "Manager" ]
-      },
-      "post" : {
-        "description" : "Crea la persona y la pone al frente de la sede o area indicada.",
-        "operationId" : "registerManager",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ManagerRegisterRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ManagerResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          }
-        },
-        "summary" : "Registrar un encargado nuevo",
-        "tags" : [ "Manager" ]
-      }
-    },
-    "/v1/api/managers/assignments" : {
-      "post" : {
-        "description" : "Para una persona ya registrada en el sistema. Si ya es encargado, se suma a lo que tiene a cargo, que tiene que ser del mismo cliente.",
-        "operationId" : "assignManager",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ManagerAssignRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ManagerResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          }
-        },
-        "summary" : "Poner al frente a alguien que ya existe",
-        "tags" : [ "Manager" ]
-      }
-    },
-    "/v1/api/managers/{idPersona}" : {
-      "delete" : {
-        "description" : "No lo borra: deja inactivas todas sus asignaciones.",
-        "operationId" : "deactivateManager",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "idPersona",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          }
-        },
-        "summary" : "Relevar a un encargado de todo",
-        "tags" : [ "Manager" ]
-      },
-      "get" : {
-        "operationId" : "getByPerson",
-        "parameters" : [ {
-          "description" : "Identificador de la persona, que es el del encargado",
-          "in" : "path",
-          "name" : "idPersona",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ManagerResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          }
-        },
-        "summary" : "Obtener el encargado que corresponde a una persona",
-        "tags" : [ "Manager" ]
-      }
-    },
-    "/v1/api/managers/{idPersona}/headquarters/{idSede}" : {
-      "delete" : {
-        "description" : "Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.",
-        "operationId" : "relieveFromHeadquarter",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "idPersona",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        }, {
-          "in" : "path",
-          "name" : "idSede",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          }
-        },
-        "summary" : "Relevar a un encargado de una sede",
-        "tags" : [ "Manager" ]
-      }
-    },
-    "/v1/api/managers/{idPersona}/service-areas/{idArea}" : {
-      "delete" : {
-        "description" : "Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.",
-        "operationId" : "relieveFromServiceArea",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "idPersona",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        }, {
-          "in" : "path",
-          "name" : "idArea",
-          "required" : true,
-          "schema" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ClientErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          }
-        },
-        "summary" : "Relevar a un encargado de un area de servicio",
-        "tags" : [ "Manager" ]
-      }
-    },
     "/v1/api/service-areas/{idAreaServicio}/equipments" : {
       "get" : {
         "operationId" : "getByServiceArea",
@@ -2880,9 +2434,6 @@
   "tags" : [ {
     "description" : "Gestion de sedes de clientes",
     "name" : "Headquarter"
-  }, {
-    "description" : "Gestion de encargados de sedes y areas",
-    "name" : "Manager"
   }, {
     "description" : "Gestion de clientes",
     "name" : "Client"

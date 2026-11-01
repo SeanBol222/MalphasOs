@@ -82,7 +82,6 @@ class RealmAuthorityContractTest {
                         ApiAuthority.LOCATION_READ,
                         ApiAuthority.CLIENT_READ,
                         ApiAuthority.SERVICE_AREA_READ,
-                        ApiAuthority.ENGINEER_READ,
                         ApiAuthority.EQUIPMENT_READ,
                         ApiAuthority.EQUIPMENT_WRITE,
                         ApiAuthority.EQUIPMENT_ASSIGN,
@@ -117,8 +116,7 @@ class RealmAuthorityContractTest {
                 ApiAuthority.LOCATION_WRITE,
                 ApiAuthority.CLIENT_WRITE,
                 ApiAuthority.CLIENT_DELETE,
-                ApiAuthority.SERVICE_AREA_WRITE,
-                ApiAuthority.ENGINEER_ASSIGN);
+                ApiAuthority.SERVICE_AREA_WRITE);
 
         assertThat(RealmFixture.rolesDelGrupo("engineers")).doesNotContainAnyElementsOf(vedadas);
         assertThat(RealmFixture.rolesDelGrupo("clients")).doesNotContainAnyElementsOf(vedadas);

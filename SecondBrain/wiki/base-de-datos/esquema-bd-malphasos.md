@@ -1,10 +1,10 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 36 tablas, 47 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 34 tablas, 43 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-10-28
+updated: 2026-11-01
 ---
 
 # El esquema de MalphasOS, hoy
@@ -78,19 +78,19 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-10-28 sobre `V52`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-01 sobre `V53`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **52** (`V1`…`V52`), el final de la refactorización a 3FN |
-| Tablas de dominio | **36** — eran **37** hasta `V52` y **38** hasta `V50` |
-| Llaves foráneas | **47**, de las cuales **1 compuesta** — eran **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
-| Restricciones `CHECK` propias | **69** — eran **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
+| Migraciones aplicadas | **53** (`V1`…`V53`): la refactorización a 3FN acabó en `V52`, y `V53` puso al supervisor del cliente |
+| Tablas de dominio | **34** — eran **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
+| Llaves foráneas | **43**, de las cuales **1 compuesta** — eran **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
+| Restricciones `CHECK` propias | **70** — eran **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **10** — eran **9** hasta `V51` y **10** hasta `V48` |
 | Foráneas sin ningún índice que las encabece | **0** desde `V52`, que quitó la última con su tabla, `intervencion` — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
-| Tablas con borrado lógico | **32 de 36** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
+| Tablas con borrado lógico | **30 de 34** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
 > `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
@@ -289,7 +289,7 @@ navega por objetos, entre módulos siempre por identificador.
 graph TD
     location["location<br/>pais · ciudad"]
     person["person<br/>persona + correos y telefonos"]
-    client["client<br/>cliente · sede · area · encargado"]
+    client["client<br/>cliente · sede · area · supervisor"]
     equipment["equipment<br/>catalogo + catalogo metrologico"]
     workorder["work-order<br/>orden_trabajo + su alcance"]
     report["report<br/>reporte_servicio + lecturas"]
@@ -302,7 +302,7 @@ graph TD
     report -->|logo y firmas congeladas| shared
 
     client -->|pais, ciudad| location
-    client -->|representante, encargado| person
+    client -->|supervisor| person
     equipment -->|pais del fabricante| location
     equipment -->|area donde se instala| client
     workorder -->|cliente y sede| client
@@ -427,7 +427,7 @@ erDiagram
         varchar n_segundo_nombre
         varchar n_primer_apellido
         varchar n_segundo_apellido
-        varchar t_tipo_persona "ENGINEER, MANAGER, CEO_CLIENT, ADMIN, SUPER_ADMIN"
+        varchar t_tipo_persona "ENGINEER, SUPERVISOR, ADMIN, SUPER_ADMIN - desde V53"
         boolean b_estado_activo
     }
     correo_persona {
@@ -462,17 +462,15 @@ los contactos del cliente—, y corregirlo exige su propia migración.~~ **Cerra
 que deja uno solo por persona —ver la sección de los índices parciales para por qué no es un índice—.
 El valor no lo rellena la migración sino un conciliador al arrancar, que le pregunta a Keycloak.)
 
-## `client` — 8 tablas
+## `client` — 6 tablas
 
 ```mermaid
 erDiagram
     cliente ||--o{ sede : "abre"
-    cliente ||--o{ representante_legal : "tiene"
+    cliente ||--o{ supervisor_cliente : "tiene"
     cliente ||--o{ correo_cliente : "tiene"
     cliente ||--o{ telefono_cliente : "tiene"
     sede ||--o{ area_servicio : "divide en"
-    sede ||--o{ encargado_sede : "tiene"
-    area_servicio ||--o{ encargado_area : "tiene"
     cliente {
         uuid k_id_cliente PK
         varchar k_documento UK "NO se llama n_nit: puede no ser un NIT"
@@ -481,6 +479,12 @@ erDiagram
         varchar n_sigla UK "CDN - V19, generada y corregible"
         integer i_consecutivo_hoja_vida "lo avanza el trigger de V20"
         uuid k_id_pais FK
+        boolean b_estado_activo
+    }
+    supervisor_cliente {
+        uuid k_identificador PK, FK "la persona"
+        uuid k_id_cliente PK, FK "llave compuesta"
+        varchar n_cargo "V53, de la supervision y no de la persona"
         boolean b_estado_activo
     }
     sede {
@@ -496,32 +500,21 @@ erDiagram
         varchar n_nombre_area
         boolean b_estado_activo
     }
-    encargado_sede {
-        uuid k_identificador PK, FK "la persona"
-        uuid k_id_sede PK, FK "llave compuesta, desde V41"
-        boolean b_estado_activo
-    }
-    encargado_area {
-        uuid k_identificador PK, FK "la persona"
-        uuid k_id_area_servicio PK, FK "llave compuesta, desde V41"
-        boolean b_estado_activo
-    }
 ```
 
-**Desde `V41`, el 2026-10-27, un encargado responde por varias sedes y áreas.** Hasta entonces la tabla
-era una, `encargado`, con la persona como llave primaria —**una fila por persona**, y por eso una sola
-sede o una sola área— y un `CHECK` que obligaba a que el tipo casara con la columna llena. El usuario
-confirmó que en sus clientes un encargado cubre varias, y eligió **dos tablas puente** sobre los
-diagramas de `Documentation/DatabaseDesign/V41-encargados/`. El `CHECK` sobró: el tipo es la tabla.
+**Desde `V53`, el 2026-11-01, la gente del cliente es una: su supervisor.** `representante_legal` se
+renombró a `supervisor_cliente` —sus filas no se copiaron, la tabla es la misma— y ganó `n_cargo`;
+`encargado_sede` y `encargado_area` se borraron sin migrar sus filas, decidido por el usuario. El
+supervisor tiene cuenta, ve lo de los clientes que supervisa y aprueba sus órdenes en todas sus sedes. El
+cargo va aquí y no en `persona` porque depende de los dos lados. Ver [[decisiones-tecnicas-malphasos]].
 
-**Lo que el esquema no comprueba, y vive en el servicio**: que todas las asignaciones activas de una
-persona sean **del mismo cliente**. La sede apunta a su cliente y el área llega a él por su sede, en dos
-tablas distintas. Estar a cargo de una sede y de un área de esa misma sede a la vez sí se permite.
+**Lo que el esquema no comprueba, y vive en el servicio**: que la persona nombrada sea de tipo
+`SUPERVISOR`. Una persona puede supervisar a varios clientes, y el esquema lo permite desde siempre.
 
-**Y `V41` es la primera migración con una prueba que migra hasta una versión**:
-`ManagerAssignmentsMigrationTest` lleva un esquema aparte hasta `V40`, siembra un encargado de cada
-tipo —uno relevado— y aplica `V41`. Hasta entonces lo que una migración hacía con los datos se
-comprobaba a mano sobre la base de desarrollo, y la de desarrollo no tenía ningún encargado.
+> **Lo que había antes, para leer el historial.** Entre `V41` y `V53` un encargado respondía por varias
+> sedes y áreas, con una tabla puente por cada una, y `V41` fue la primera migración con una prueba que
+> migra hasta una versión: `ManagerAssignmentsMigrationTest`, que sigue en la batería porque prueba
+> `V41` sobre un esquema aparte.
 
 ## `equipment` — 13 tablas
 

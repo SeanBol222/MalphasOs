@@ -26,10 +26,10 @@ import org.springframework.stereotype.Component;
  * tres que lo usan: {@code equipment}, {@code work-order} y {@code report} ya dependían de
  * {@code client} antes de esto, así que no hubo que invertir ninguna dependencia ni duplicar nada.
  *
- * <p><b>La regla: solo restringe cuando identifica positivamente a un representante.</b> El
+ * <p><b>La regla: solo restringe cuando identifica positivamente a un supervisor.</b> El
  * identificador de una persona es el que le asigna Keycloak, de modo que el {@code sub} del token
  * es la llave de la tabla {@code persona} y no hace falta tabla de correspondencia. Si esa fila dice
- * {@code CEO_CLIENT}, el alcance queda en los clientes que representa; si dice cualquier otra cosa
+ * {@code SUPERVISOR}, el alcance queda en los clientes que supervisa; si dice cualquier otra cosa
  * —ingeniero, administrador—, el alcance es libre.
  *
  * <p><b>Y qué hace con un llamante que no puede identificar</b>, que es la decisión delicada de esta
@@ -90,11 +90,11 @@ public class ReadScopeResolver {
 
         PersonCommunicationResponse persona = personaONulo(idPersona);
 
-        if (persona == null || persona.tipoPersona() != PersonType.CEO_CLIENT) {
+        if (persona == null || persona.tipoPersona() != PersonType.SUPERVISOR) {
             return ReadScope.unrestricted();
         }
 
-        return ReadScope.ofClients(clientOwnershipPort.clientsRepresentedBy(idPersona));
+        return ReadScope.ofClients(clientOwnershipPort.clientsSupervisedBy(idPersona));
     }
 
     /**

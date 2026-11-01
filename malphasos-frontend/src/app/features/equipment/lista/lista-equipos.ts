@@ -75,7 +75,7 @@ export class ListaEquipos {
   protected readonly resumen = inject(EquipoApi).resumen(this.consulta);
 
   /**
-   * El filtro por cliente solo se ofrece a quien puede leer clientes: un representante ve uno solo y
+   * El filtro por cliente solo se ofrece a quien puede leer clientes: un supervisor ve los suyos y
    * el filtro le sobraria, y pedir la lista sin permiso seria un 403 para nada.
    */
   protected readonly puedeFiltrarPorCliente = computed(() => this.sesion.puede('client.read'));

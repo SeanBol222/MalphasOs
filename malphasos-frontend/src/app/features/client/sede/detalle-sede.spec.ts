@@ -15,11 +15,8 @@ const URL = `http://localhost:8081/v1/api/headquarters/${ID}`;
 const URL_CIUDADES = 'http://localhost:8081/v1/api/cities';
 const URL_AREAS = `${URL}/service-areas`;
 const URL_AREA = 'http://localhost:8081/v1/api/service-areas';
-const URL_ENCARGADOS = 'http://localhost:8081/v1/api/managers';
-const URL_PERSONAS = 'http://localhost:8081/v1/api/persons';
 const URL_CLIENTE = `http://localhost:8081/v1/api/clients/${ID_CLIENTE}`;
 const CLIENTE = { id: ID_CLIENTE, razonSocial: 'Hospital Central', estadoActivo: true };
-const URL_RESUMEN_CLIENTE = 'http://localhost:8081/v1/api/headquarters/summary';
 
 const SEDE = {
   id: ID,
@@ -39,43 +36,12 @@ const AREAS = [
   { id: 'a2', nombre: 'Bodega vieja', idSede: ID, estadoActivo: false },
 ];
 
-// Desde el 2026-10-27 (V41) cada encargado trae lo que tiene a cargo en dos listas.
-const ENCARGADOS = [
-  { idPersona: 'p1', idsSede: [ID], idsAreaServicio: [], estadoActivo: true },
-  { idPersona: 'p2', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true },
-  // De otra sede: esta pantalla no debe ensenarlo, y el API no ofrece filtrar por sede.
-  { idPersona: 'p3', idsSede: ['otra-sede'], idsAreaServicio: [], estadoActivo: true },
-];
-
-const PERSONAS = [
-  {
-    identificador: 'p1',
-    primerNombre: 'Ana',
-    segundoNombre: 'María',
-    primerApellido: 'Ruiz',
-    cedula: '123',
-    tipoPersona: 'MANAGER',
-    estadoActivo: true,
-  },
-  {
-    identificador: 'p2',
-    primerNombre: 'Luis',
-    primerApellido: 'Peña',
-    cedula: '456',
-    tipoPersona: 'MANAGER',
-    estadoActivo: true,
-  },
-];
-
 /** Lo que un administrador trae y hace visible toda la pantalla. */
 const AUTORIDADES = [
   'client.read',
   'client.write',
   // Las áreas se editan con la suya desde el 2026-10-26, como en el servidor.
   'service-area.write',
-  'engineer.read',
-  'engineer.assign',
-  'person.read',
   'location.read',
 ];
 
@@ -114,8 +80,6 @@ describe('Ficha de una sede', () => {
     // Las areas se piden siempre, tambien cuando la sede falla: son dos consultas independientes y
     // la de las areas sale al construir la pantalla, no al llegar la sede.
     await responderA(fixture, http, URL_AREAS, AREAS);
-    await responderA(fixture, http, URL_ENCARGADOS, ENCARGADOS);
-    await responderA(fixture, http, URL_PERSONAS, PERSONAS);
     // El cliente de la sede, para la línea de arriba: se pide cuando la sede llega.
     http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
     await asentar(fixture);
@@ -159,8 +123,6 @@ describe('Ficha de una sede', () => {
       },
     );
     await responderA(fixture, http, URL_AREAS, AREAS);
-    await responderA(fixture, http, URL_ENCARGADOS, ENCARGADOS);
-    await responderA(fixture, http, URL_PERSONAS, PERSONAS);
     http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
     await asentar(fixture);
 
@@ -197,8 +159,6 @@ describe('Ficha de una sede', () => {
       await atenderRefresco(fixture, http, URL_AREAS, AREAS);
       // Cerrar una sede caduca también su cliente, que esta ficha nombra desde el rediseño.
       await atenderRefresco(fixture, http, URL_CLIENTE, CLIENTE);
-      // Y el resumen de las sedes del cliente, que cuelga de la misma clave desde el 2026-10-27.
-      http.match((r) => r.url === URL_RESUMEN_CLIENTE).forEach((p) => p.flush([]));
       await asentar(fixture);
 
       expect(TestBed.inject(Router).url).toBe(`/clientes/${ID_CLIENTE}`);
@@ -213,130 +173,13 @@ describe('Ficha de una sede', () => {
     });
   });
 
-  describe('Sus encargados', () => {
-    it('ensena los de la sede y los de sus areas, con nombre y con lo que tienen a cargo', async () => {
-      // El API devuelve solo identificadores: sin resolver el nombre contra el modulo de personas,
-      // esta lista seria una columna de UUID.
-      await abrir();
+  it('ya no tiene encargados (V53): ni sección, ni columna, ni los pide', async () => {
+    // Quien responde por el cliente es su supervisor, en todas sus sedes, y se nombra en su ficha.
+    await abrir();
 
-      expect(texto()).toContain('Ana María Ruiz');
-      expect(texto()).toContain('Toda la sede');
-      expect(texto()).toContain('Luis Peña');
-      expect(texto()).toContain('Área: Urgencias');
-    });
-
-    it('no ensena los encargados de otras sedes, que vienen en la misma lista', async () => {
-      // El API no ofrece filtrar por sede: el recorte lo hace la pantalla, y hay que comprobarlo.
-      await abrir();
-
-      const encargados = [...raiz().querySelectorAll('section ul li')].map((li) => li.textContent);
-
-      expect(encargados.filter((t) => t?.includes('Toda la sede'))).toHaveLength(1);
-    });
-
-    it('quitar a un encargado de la sede lo releva de la sede, y solo de ella', async () => {
-      await abrir();
-      const quitar = [...raiz().querySelectorAll('button')].filter(
-        (b) => b.textContent?.trim() === 'Quitar',
-      );
-      quitar[0].click();
-      await asentar(fixture);
-
-      // Desde V41 no se retira a la persona entera: tiene otras cosas a cargo.
-      http
-        .expectOne({ method: 'DELETE', url: `${URL_ENCARGADOS}/p1/headquarters/${ID}` })
-        .flush(null);
-      await asentar(fixture);
-      await atenderRefresco(fixture, http, URL_ENCARGADOS, ENCARGADOS);
-      await atenderRefresco(fixture, http, URL_PERSONAS, PERSONAS);
-    });
-
-    it('quien esta a cargo de la sede y de un area sale dos veces, y se quita de cada una aparte', async () => {
-      TestBed.resetTestingModule();
-      montar();
-      fixture.detectChanges();
-      await responderA(fixture, http, URL, SEDE);
-      await responderA(fixture, http, URL_CIUDADES, CIUDADES);
-      await responderA(fixture, http, URL_AREAS, AREAS);
-      await responderA(fixture, http, URL_ENCARGADOS, [
-        { idPersona: 'p1', idsSede: [ID], idsAreaServicio: ['a1'], estadoActivo: true },
-      ]);
-      await responderA(fixture, http, URL_PERSONAS, PERSONAS);
-      http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
-      await asentar(fixture);
-
-      const quitar = [...raiz().querySelectorAll<HTMLButtonElement>('button')].filter(
-        (b) => b.textContent?.trim() === 'Quitar',
-      );
-      expect(quitar.map((b) => b.getAttribute('aria-label'))).toEqual([
-        'Quitar a Ana María Ruiz de Toda la sede',
-        'Quitar a Ana María Ruiz de Área: Urgencias',
-      ]);
-
-      quitar[1].click();
-      await asentar(fixture);
-
-      http
-        .expectOne({ method: 'DELETE', url: `${URL_ENCARGADOS}/p1/service-areas/a1` })
-        .flush(null);
-      await asentar(fixture);
-      http.match(URL_ENCARGADOS).forEach((p) => p.flush([]));
-      http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS));
-      await asentar(fixture);
-    });
-
-    it('si un nombre no se pudo consultar, lo dice en vez de inventarselo', async () => {
-      fixture.detectChanges();
-      await responderA(fixture, http, URL, SEDE);
-      await responderA(fixture, http, URL_CIUDADES, CIUDADES);
-      await responderA(fixture, http, URL_AREAS, AREAS);
-      await responderA(fixture, http, URL_ENCARGADOS, ENCARGADOS);
-      // Sin person.read el backend responde 403, y es el caso real del grupo clients.
-      await responderA(
-        fixture,
-        http,
-        URL_PERSONAS,
-        { code: 'ERR_PERSON_001' },
-        {
-          status: 403,
-          statusText: 'Forbidden',
-        },
-      );
-
-      expect(texto()).toContain('no se pudo consultar');
-    });
-
-    describe('El frontend oculta, no autoriza', () => {
-      it('sin engineer.read la seccion no se ensena', async () => {
-        // Es el caso del grupo clients, que no tiene ninguna de las dos autoridades.
-        TestBed.resetTestingModule();
-        montar(['client.read']);
-        fixture.detectChanges();
-        await responderA(fixture, http, URL, SEDE);
-        await responderA(fixture, http, URL_AREAS, AREAS);
-
-        expect(texto()).not.toContain('Encargado');
-        // Y no se piden: desde el rediseño, sin la autoridad la consulta ni sale.
-        expect(http.match(URL_ENCARGADOS)).toHaveLength(0);
-        expect(http.match(URL_PERSONAS)).toHaveLength(0);
-        expect(http.match(URL_CIUDADES)).toHaveLength(0);
-      });
-
-      it('con engineer.read pero sin engineer.assign se ven y no se tocan', async () => {
-        // Es el caso del grupo engineers: consulta quien es el responsable, no lo cambia.
-        TestBed.resetTestingModule();
-        montar(['client.read', 'engineer.read', 'person.read', 'location.read']);
-        await abrir();
-
-        expect(texto()).toContain('Ana María Ruiz');
-        expect(
-          [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim()),
-        ).not.toContain('Quitar');
-        expect([...raiz().querySelectorAll('a')].map((a) => a.textContent?.trim())).not.toContain(
-          'Registrar encargado',
-        );
-      });
-    });
+    expect(raiz().querySelector('section[aria-labelledby="encargados"]')).toBeNull();
+    expect(texto()).not.toContain('Encargado');
+    expect(http.match((r) => r.url.includes('/managers'))).toHaveLength(0);
   });
 
   describe('Sus areas de servicio', () => {
@@ -441,7 +284,7 @@ describe('Ficha de una sede', () => {
     expect(aviso?.textContent).not.toContain('not found');
   });
 
-  describe('Quien solo lee, como el representante del cliente (2026-10-26)', () => {
+  describe('Quien solo lee, como el supervisor del cliente (2026-10-26)', () => {
     // No se le ofrece lo que el servidor le rechazaría: la sede pide client.write, y sus áreas,
     // service-area.write.
     const botones = () => [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim());
@@ -572,16 +415,11 @@ describe('Ficha de una sede', () => {
       expect(enlace?.getAttribute('href')).toBe(`/clientes/${ID_CLIENTE}`);
     });
 
-    it('cada área dice sus equipos y su encargado; sin uno propio, el de la sede, y se nota', async () => {
+    it('cada área dice sus equipos', async () => {
       await abrirConTodo();
 
-      expect(celdas('a1').slice(0, 3)).toEqual(['Urgencias', '4', 'Luis Peña']);
-      expect(celdas('a2').slice(0, 3)).toEqual([
-        'Bodega vieja Cerrada',
-        '0',
-        'De la sede: Ana María Ruiz',
-      ]);
-      expect(fila('a2').querySelectorAll('td')[2].className).toContain('text-neutral-700');
+      expect(celdas('a1').slice(0, 2)).toEqual(['Urgencias', '4']);
+      expect(celdas('a2').slice(0, 2)).toEqual(['Bodega vieja Cerrada', '0']);
     });
 
     it('registrar un equipo se ofrece en las áreas abiertas, y solo con equipment.assign', async () => {
@@ -621,182 +459,10 @@ describe('Ficha de una sede', () => {
     });
   });
 
-  describe('Asignar a alguien ya registrado (2026-10-27)', () => {
-    // Desde V41 un encargado responde por varias sedes y areas de su cliente.
-    const PERSONAS_DE_ASIGNAR = [
-      {
-        identificador: 'm1',
-        primerNombre: 'Beatriz',
-        primerApellido: 'Mora',
-        cedula: '1',
-        tipoPersona: 'MANAGER',
-        estadoActivo: true,
-      },
-      // A cargo de una sede de otro cliente: el servidor rechazaria mezclarlos.
-      {
-        identificador: 'm2',
-        primerNombre: 'Carlos',
-        primerApellido: 'Ajeno',
-        cedula: '2',
-        tipoPersona: 'MANAGER',
-        estadoActivo: true,
-      },
-      // Representante de este cliente, ya a cargo del area a1 de esta sede: desde V46 un representante
-      // puede estar a cargo, y es encargado por tener asignaciones, no por un segundo tipo.
-      {
-        identificador: 'm3',
-        primerNombre: 'Andrés',
-        primerApellido: 'Pardo',
-        cedula: '3',
-        tipoPersona: 'CEO_CLIENT',
-        estadoActivo: true,
-      },
-      // Representante de otro cliente: no se ofrece aquí.
-      {
-        identificador: 'x1',
-        primerNombre: 'Xavier',
-        primerApellido: 'Otro',
-        cedula: '6',
-        tipoPersona: 'CEO_CLIENT',
-        estadoActivo: true,
-      },
-      {
-        identificador: 'i1',
-        primerNombre: 'Ingrid',
-        primerApellido: 'Solo',
-        cedula: '4',
-        tipoPersona: 'ENGINEER',
-        estadoActivo: true,
-      },
-      {
-        identificador: 'r1',
-        primerNombre: 'Rosa',
-        primerApellido: 'Retirada',
-        cedula: '5',
-        tipoPersona: 'MANAGER',
-        estadoActivo: false,
-      },
-    ];
-    const ENCARGADOS_DE_ASIGNAR = [
-      { idPersona: 'm2', idsSede: ['sede-ajena'], idsAreaServicio: [], estadoActivo: true },
-      { idPersona: 'm3', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true },
-    ];
-    const RESUMEN = [{ id: ID, idCliente: ID_CLIENTE, areas: [{ id: 'a1' }, { id: 'a2' }] }];
-
-    async function abrirParaAsignar(autoridades: readonly string[] = AUTORIDADES): Promise<void> {
-      TestBed.resetTestingModule();
-      montar(autoridades);
-      fixture.detectChanges();
-      await responderA(fixture, http, URL, SEDE);
-      await asentar(fixture);
-      http.match(URL_CIUDADES).forEach((p) => p.flush(CIUDADES));
-      http.match(URL_AREAS).forEach((p) => p.flush(AREAS));
-      http.match(URL_ENCARGADOS).forEach((p) => p.flush(ENCARGADOS_DE_ASIGNAR));
-      http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS_DE_ASIGNAR));
-      http.match(URL_CLIENTE).forEach((p) => p.flush({ ...CLIENTE, representantes: ['m3'] }));
-      http.match((r) => r.url === URL_RESUMEN_CLIENTE).forEach((p) => p.flush(RESUMEN));
-      await asentar(fixture);
-    }
-
-    const opciones = (id: string) =>
-      [...raiz().querySelectorAll(`#${id} option`)].map((o) => o.textContent?.trim());
-
-    function elegir(id: string, valor: string): void {
-      const control = raiz().querySelector<HTMLSelectElement>(`#${id}`)!;
-      control.value = valor;
-      control.dispatchEvent(new Event('change'));
-      fixture.detectChanges();
-    }
-
-    it('ofrece a los encargados activos y a los representantes de este cliente, no a los de otro ni a quien no lo es', async () => {
-      await abrirParaAsignar();
-
-      expect(opciones('personaAsignada')).toEqual([
-        'Elija a quién',
-        'Andrés Pardo',
-        'Beatriz Mora',
-      ]);
-    });
-
-    it('de cada persona, solo lo que aun no tiene a cargo, y ninguna area cerrada', async () => {
-      await abrirParaAsignar();
-
-      elegir('personaAsignada', 'm1');
-      expect(opciones('destinoAsignado')).toEqual(['Elija', 'Toda la sede', 'Área: Urgencias']);
-
-      elegir('personaAsignada', 'm3');
-      expect(opciones('destinoAsignado')).toEqual(['Elija', 'Toda la sede']);
-    });
-
-    it('asignar suma la sede o el area a lo que ya tiene, por su propia ruta', async () => {
-      await abrirParaAsignar();
-      elegir('personaAsignada', 'm1');
-      elegir('destinoAsignado', 'SERVICE_AREA:a1');
-      raiz()
-        .querySelector<HTMLFormElement>('form[aria-labelledby="titulo-asignar"]')!
-        .dispatchEvent(new Event('submit'));
-      await asentar(fixture);
-
-      const peticion = http.expectOne({ method: 'POST', url: `${URL_ENCARGADOS}/assignments` });
-      expect(peticion.request.body).toEqual({
-        idPersona: 'm1',
-        tipo: 'SERVICE_AREA',
-        idAsignacion: 'a1',
-      });
-      peticion.flush({ idPersona: 'm1', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true });
-      await asentar(fixture);
-      http.match(URL_ENCARGADOS).forEach((p) => p.flush(ENCARGADOS_DE_ASIGNAR));
-      http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS_DE_ASIGNAR));
-      await asentar(fixture);
-    });
-
-    it('sin elegir de que se encarga no se manda nada', async () => {
-      await abrirParaAsignar();
-      elegir('personaAsignada', 'm1');
-      raiz()
-        .querySelector<HTMLFormElement>('form[aria-labelledby="titulo-asignar"]')!
-        .dispatchEvent(new Event('submit'));
-      await asentar(fixture);
-
-      http.expectNone(`${URL_ENCARGADOS}/assignments`);
-    });
-
-    it('si el servidor dice que es de otro cliente, se lee traducido', async () => {
-      await abrirParaAsignar();
-      elegir('personaAsignada', 'm1');
-      elegir('destinoAsignado', `HEADQUARTER:${ID}`);
-      raiz()
-        .querySelector<HTMLFormElement>('form[aria-labelledby="titulo-asignar"]')!
-        .dispatchEvent(new Event('submit'));
-      await asentar(fixture);
-      http
-        .expectOne({ method: 'POST', url: `${URL_ENCARGADOS}/assignments` })
-        .flush({ code: 'ERR_CLIENT_010' }, { status: 409, statusText: 'Conflict' });
-      await asentar(fixture);
-
-      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain('un solo cliente');
-    });
-
-    it('sin leer personas no se ofrece: no se podria elegir a nadie por su nombre', async () => {
-      await abrirParaAsignar(AUTORIDADES.filter((a) => a !== 'person.read'));
-
-      expect(raiz().querySelector('#personaAsignada')).toBeNull();
-      expect(texto()).not.toContain('Asignar a alguien ya registrado');
-    });
-
-    it('sin engineer.assign tampoco', async () => {
-      await abrirParaAsignar(AUTORIDADES.filter((a) => a !== 'engineer.assign'));
-
-      expect(texto()).not.toContain('Asignar a alguien ya registrado');
-    });
-  });
-
   afterEach(() => {
     // El nombre del cliente se pide cuando llega la sede y casi ninguna prueba lo mira: se responde
     // aqui para no repetirlo en cada una. Lo que si importa de el tiene su propia prueba.
     http.match(URL_CLIENTE).forEach((p) => p.flush(CLIENTE));
-    // Lo mismo con el resumen del cliente, que solo pide quien puede asignar encargados ya registrados.
-    http.match((r) => r.url === URL_RESUMEN_CLIENTE).forEach((p) => p.flush([]));
     http.verify();
   });
 });

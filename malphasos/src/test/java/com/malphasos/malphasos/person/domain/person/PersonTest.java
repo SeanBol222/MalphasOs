@@ -155,12 +155,4 @@ class PersonTest {
 
         assertThat(segundo.isEstadoActivo()).isFalse();
     }
-
-    @Test
-    @DisplayName("un encargado no accede al sistema; los demás tipos sí")
-    void quienAccede() {
-        assertThat(Person.builder().tipoPersona(PersonType.MANAGER).build().hasAccess()).isFalse();
-        assertThat(Person.builder().tipoPersona(PersonType.CEO_CLIENT).build().hasAccess()).isTrue();
-        assertThat(Person.builder().tipoPersona(PersonType.ENGINEER).build().hasAccess()).isTrue();
-    }
 }

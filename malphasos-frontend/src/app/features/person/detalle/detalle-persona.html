@@ -224,17 +224,15 @@
                     Para retirarlo, elija antes otro para la cuenta.
                   </span>
                 } @else {
-                  @if (tieneCuenta()) {
-                    <button
-                      class="min-h-tactil px-1 font-semibold underline"
-                      type="button"
-                      [attr.aria-label]="'Usar ' + correo.correoPersona + ' para la cuenta'"
-                      [disabled]="correoDeCuenta.isPending()"
-                      (click)="usarParaLaCuenta(correo.idCorreoPersona!)"
-                    >
-                      Usar para la cuenta
-                    </button>
-                  }
+                  <button
+                    class="min-h-tactil px-1 font-semibold underline"
+                    type="button"
+                    [attr.aria-label]="'Usar ' + correo.correoPersona + ' para la cuenta'"
+                    [disabled]="correoDeCuenta.isPending()"
+                    (click)="usarParaLaCuenta(correo.idCorreoPersona!)"
+                  >
+                    Usar para la cuenta
+                  </button>
                   <!--
                     Retirar y no borrar: apaga el estado y la fila se queda, como todo aqui. El API no
                     admite mandar la lista completa, asi que cada uno es su propia llamada.
@@ -351,7 +349,7 @@
       }
     </section>
 
-    @if (tieneCuenta() && puedeEscribir() && datos.estadoActivo) {
+    @if (puedeEscribir() && datos.estadoActivo) {
       <!--
         Sin servidor de correo, una contraseña olvidada se resuelve aquí (2026-10-17): una temporal que
         el sistema de acceso obliga a cambiar al entrar. La pide la misma escalera que editar a la persona.

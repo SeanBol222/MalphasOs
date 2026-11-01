@@ -39,7 +39,7 @@ public record PersonUpdateRequest(
 
         // El original documentaba aqui el ejemplo "representante_legal", que no es ninguno de los
         // valores que admite la base. Al ser un enum, el valor invalido se rechaza al deserializar.
-        @Schema(description = "Funcion principal", example = "CEO_CLIENT")
+        @Schema(description = "Funcion principal", example = "SUPERVISOR")
         @NotNull(message = "El tipo de persona es obligatorio")
         PersonType tipoPersona) {
 }

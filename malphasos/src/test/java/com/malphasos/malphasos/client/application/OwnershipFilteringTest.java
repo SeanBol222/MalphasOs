@@ -78,7 +78,7 @@ class OwnershipFilteringTest {
 
     private Client unCliente(UUID id) {
         return Client.rehydrate(id, "900" + id.hashCode(), IdentificationType.NIT_JURIDICO,
-                "Hospital", "CLI", null, true, List.of(), List.of(), Set.of());
+                "Hospital", "CLI", null, true, List.of(), List.of(), List.of());
     }
 
     private Headquarter unaSede(UUID id, UUID idCliente) {

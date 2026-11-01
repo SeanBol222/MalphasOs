@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # Hoja de ruta del producto
@@ -627,6 +627,29 @@ de la orden, cuando todos sus equipos tienen el reporte cerrado. Sin migración.
 atendidos, primera hoja del ZIP. **Y el cronograma de la orden**, también ese día: el próximo
 mantenimiento de cada equipo mes a mes durante el año siguiente, segunda hoja del ZIP, solo para una orden
 con periodicidad. Los dos tuvieron botón y ruta propios unas horas; el usuario los dejó solo en el ZIP.
+
+## El supervisor del cliente y la aprobación de la orden (decidido el 2026-11-01)
+
+Pedido por el usuario: quien recibe el equipo en sitio no es siempre quien revisa y aprueba el trabajo
+para facturar. En un cliente grande recibe el jefe de cada sede y aprueba el ingeniero biomédico del
+cliente; en un consultorio, el doctor hace las dos cosas. Decidido —con el diagrama en el artefacto
+«Esquema del supervisor»—:
+
+- **Una sola persona del cliente con cuenta, el supervisor**, de todo el cliente y no por sede ni área.
+  Sustituye al representante legal, que solo daba cuenta, y a los encargados, que salen sin migrar.
+- **Todo supervisor tiene cuenta.** Aprueba de dos formas: **en sitio**, dibujando su firma en la sesión
+  del ingeniero o del administrador, o **desde su cuenta**, con la firma que guarde.
+- **Se aprueba la orden ejecutada**, solo aprobar —sin rechazar— y sustituir un reporte de una orden
+  aprobada retira la aprobación.
+
+| # | Tanda | Estado |
+|---|---|---|
+| 1 | **`V53`**: supervisores en lugar de encargados y representante, `SUPERVISOR` como tipo, el alcance y los documentos leyendo al supervisor, y las pantallas de cliente, sede, personas, orden y reporte | **Construida el 2026-11-01** |
+| 2 | **`V54`**: `aprobacion_orden` y `k_id_recibe` en el reporte, con el servicio de aprobación y su REST | Pendiente |
+| 3 | La autoridad `work-order.approve` en el realm, y la firma guardada para cualquier persona con cuenta | Pendiente |
+| 4 | El bloque «Aprobación» de la orden —en sitio, con «también firma el recibido»— | Pendiente |
+| 5 | La vista «Órdenes por aprobar» del supervisor | Pendiente |
+| 6 | Informe, resumen y cronograma con la firma de quien aprobó, y la columna en el listado de órdenes | Pendiente |
 
 ## El orden propuesto
 

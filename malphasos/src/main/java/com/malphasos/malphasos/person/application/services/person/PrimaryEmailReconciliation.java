@@ -42,7 +42,7 @@ public class PrimaryEmailReconciliation {
         int conciliadas = 0;
 
         for (Person persona : personPersistencePort.findAll()) {
-            if (persona.isEstadoActivo() && persona.hasAccess() && persona.primaryEmail().isEmpty()
+            if (persona.isEstadoActivo() && persona.primaryEmail().isEmpty()
                     && conciliar(persona)) {
                 conciliadas++;
             }

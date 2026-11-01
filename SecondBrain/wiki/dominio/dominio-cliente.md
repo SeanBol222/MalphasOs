@@ -4,10 +4,15 @@ description: client_hexagon — Client, Headquarter, ServiceArea, Manager. Patr�
 tags: [dominio, backend, gestion-clientes, "reusable:media", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../client_hexagon/
 estado: incompleto
-updated: 2026-09-09
+updated: 2026-11-01
 ---
 
 # Dominio Cliente (`client_hexagon`)
+
+> **MalphasOS, desde el 2026-11-01 (`V53`)**: el cliente no tiene encargados ni representante legal.
+> Tiene **supervisores** —`supervisor_cliente`, con su cargo—, que son su única gente con cuenta: ven lo
+> de ese cliente y aprueban sus órdenes en todas sus sedes. Lo que sigue describe el original y cómo se
+> migró. Ver [[esquema-bd-malphasos]] y [[decisiones-tecnicas-malphasos]].
 
 > **Migrado el 2026-09-02.** El módulo se **reconstruyó** en Generación 2, no se portó: el original es Generación 1 y este wiki lo marca como patrón a no replicar. Se conservó la jerarquía conceptual y se rehízo todo lo demás. Ver [[migracion-client-hallazgos]].
 >

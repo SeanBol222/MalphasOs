@@ -27,7 +27,6 @@ import { DetalleOrden } from './detalle-orden';
 const URL = `${URL_ORDENES}/${ID_ORDEN}`;
 const API = 'http://localhost:8081/v1/api';
 const URL_RESUMEN = `${API}/client-equipments/overview`;
-const URL_ENCARGADOS = `${API}/managers`;
 
 /** Lo que el listado de equipos sabe de los dos equipos de prueba, pedidos por identificador. */
 const RESUMEN = {
@@ -59,11 +58,6 @@ const RESUMEN = {
     },
   ],
 };
-
-const ENCARGADOS = [
-  // Desde V41 una sola persona puede estar a cargo de la sede y de un area: una fila, dos listas.
-  { idPersona: 'p2', idsSede: [ID_SEDE], idsAreaServicio: ['a9'], estadoActivo: true },
-];
 
 /** Todas las autoridades que esta pantalla mira: un administrador. */
 const TODAS = [
@@ -120,7 +114,6 @@ describe('Ficha de una orden de trabajo', () => {
     await responderA(fixture, http, URL_PERSONAS, PERSONAS);
     http.match(urlReportesDeOrden(ID_ORDEN)).forEach((peticion) => peticion.flush(reportes));
     http.match(urlSede(ID_SEDE)).forEach((peticion) => peticion.flush(SEDE));
-    http.match(URL_ENCARGADOS).forEach((peticion) => peticion.flush(ENCARGADOS));
     await asentar(fixture);
     http.match((peticion) => peticion.url === URL_RESUMEN).forEach((p) => p.flush(RESUMEN));
     await asentar(fixture);
@@ -370,7 +363,7 @@ describe('Ficha de una orden de trabajo', () => {
       expect(texto()).not.toContain(ID_INGENIERO);
     });
 
-    it('solo ofrece ingenieros: un encargado de sede no ejecuta mantenimientos', async () => {
+    it('solo ofrece ingenieros: un supervisor del cliente no ejecuta mantenimientos', async () => {
       await abrir();
       pulsar('Asignar un ingeniero');
       await asentar(fixture);
@@ -446,32 +439,37 @@ describe('Ficha de una orden de trabajo', () => {
     });
   });
 
-  describe('Los encargados del sitio', () => {
-    it('con engineer.read enseña los de la sede y los de las áreas de la orden, no los demás', async () => {
+  describe('Los supervisores del cliente (V53)', () => {
+    it('con client.read enseña quién supervisa al cliente, con su cargo', async () => {
       TestBed.resetTestingModule();
-      montar([...TODAS, 'engineer.read']);
-      await abrir(
-        orden({ equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }] }),
-      );
+      montar([...TODAS, 'client.read']);
+      await abrir();
 
-      const seccion = raiz().querySelector('section[aria-labelledby="encargados"]')!;
+      const seccion = raiz().querySelector('section[aria-labelledby="supervisores"]')!;
       expect(seccion.textContent).toContain('Luis Peña');
-      expect(seccion.textContent).toContain('Toda la sede');
-      // El segundo es de un área que la orden no toca.
-      expect(seccion.querySelectorAll('p').length).toBe(1);
+      expect(seccion.textContent).toContain('Ingeniero biomédico');
+      expect(texto()).not.toContain('Encargados del sitio');
     });
 
-    it('sin engineer.read no se ve la sección ni se piden los encargados', async () => {
-      // Sin abrir(): ese ayudante responde a los encargados si se piden, y un expectNone despues no
-      // veria nada. La primera version de esta prueba paso con la guarda quitada por eso.
+    it('sin supervisores lo dice: nadie podría aprobar la orden', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'client.read']);
       fixture.detectChanges();
       await responderA(fixture, http, URL, orden());
+      http.match(URL_CLIENTES).forEach((p) => p.flush([{ ...CLIENTES[0], supervisores: [] }]));
       await asentar(fixture);
-
-      expect(http.match(URL_ENCARGADOS)).toHaveLength(0);
-      expect(raiz().querySelector('section[aria-labelledby="encargados"]')).toBeNull();
       http.match(() => true).forEach((p) => p.flush([]));
       await asentar(fixture);
+
+      expect(
+        raiz().querySelector('section[aria-labelledby="supervisores"]')?.textContent,
+      ).toContain('nadie puede aprobar esta orden');
+    });
+
+    it('sin client.read no se ve la sección', async () => {
+      await abrir();
+
+      expect(raiz().querySelector('section[aria-labelledby="supervisores"]')).toBeNull();
     });
   });
 

@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ClienteApi } from '../../client/cliente-api';
-import { asignacionesDe, EncargadoApi } from '../../client/encargado-api';
 import { SedeApi } from '../../client/sede-api';
 import { EquipoApi } from '../../equipment/equipo-api';
 import { OrdenApi } from '../orden-api';
@@ -36,9 +35,9 @@ import { guardarArchivo } from '../../../core/api/pdf';
  *
  * <p><b>Rehecha el 2026-10-11 con el rediseño</b> —la maqueta «A-Orden»—: cabecera con la línea de
  * estado, los equipos agrupados por área con su avance, y a un lado los datos, el ingeniero y los
- * encargados del sitio. Cada equipo del alcance llega como identificador, y lo que se sabe de él —tipo,
- * modelo, hoja de vida, serie y área— sale del listado de equipos pedido por esos identificadores, en una
- * petición. Hasta ese día se cruzaba la lista entera de equipos con una petición por área.
+ * supervisores del cliente —hasta V53, los encargados del sitio—. Cada equipo del alcance llega como
+ * identificador, y lo que se sabe de él —tipo, modelo, hoja de vida, serie y área— sale del listado de
+ * equipos pedido por esos identificadores, en una petición. Hasta ese día se cruzaba la lista entera de equipos con una petición por área.
  *
  * <p><b>Una orden ejecutada se lee de su documento</b> (2026-10-28, {@code V49}): cliente, sede, ingeniero
  * y cada equipo con su área, como eran el día que se ejecutó. Lo único que sigue en vivo es el estado de
@@ -95,9 +94,8 @@ export class DetalleOrden {
   );
   private readonly personas = inject(PersonaApi).listar();
 
-  /** Los encargados del sitio se ven con {@code engineer.read}, la autoridad que los protege. */
-  protected readonly puedeVerEncargados = computed(() => this.sesion.puede('engineer.read'));
-  private readonly encargados = inject(EncargadoApi).listar(this.puedeVerEncargados);
+  /** Los supervisores del cliente se ven con {@code client.read}: vienen en la ficha del cliente. */
+  protected readonly puedeVerSupervisores = computed(() => this.sesion.puede('client.read'));
 
   private readonly reporteApi = inject(ReporteApi);
   private readonly reportes = this.reporteApi.porOrden(this.id);
@@ -213,7 +211,7 @@ export class DetalleOrden {
    *
    * <p>Se filtran por tipo de persona: el API no publica «los ingenieros», publica las personas. Es la
    * misma ausencia de siempre, y aquí se nota porque una lista de todas las personas incluiría a los
-   * encargados de sede, que no ejecutan mantenimientos.
+   * supervisores del cliente, que no ejecutan mantenimientos.
    */
   protected readonly opcionesDeIngeniero = computed<readonly Opcion[]>(() =>
     (this.personas.data() ?? [])
@@ -321,38 +319,22 @@ export class DetalleOrden {
   );
 
   /**
-   * Los encargados del sitio: los de la sede y los de las áreas que la orden toca. El API no filtra
-   * por sede, así que se recorta aquí, igual que en la ficha de la sede.
+   * Quién supervisa al cliente de la orden, con su cargo: quien la revisa y la aprueba (V53,
+   * 2026-11-01). Hasta entonces la ficha mostraba a los encargados de la sede y de las áreas que la
+   * orden tocaba, que salieron con V53.
    */
-  protected readonly encargadosDelSitio = computed(() => {
-    const datos = this.orden.data();
-    const nombresDeArea = new Map(
-      (this.resumen.data()?.filas ?? []).map((fila) => [fila.idAreaServicio, fila.areaServicio]),
-    );
-    // Las áreas de sus equipos, del listado pedido por los equipos de la orden: la orden ya no las guarda.
-    const idsDeArea = new Set(
-      (this.resumen.data()?.filas ?? []).map((fila) => fila.idAreaServicio),
-    );
+  protected readonly supervisoresDelCliente = computed(() => {
+    const idCliente = this.orden.data()?.idCliente;
+    const cliente = (this.clientes.data() ?? []).find((c) => c.id === idCliente);
     const porPersona = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
 
-    // Una fila por cada cosa de la que responde en este sitio: desde el 2026-10-27 un encargado puede
-    // estarlo de la sede y de varias areas a la vez.
-    return (this.encargados.data() ?? []).flatMap((encargado) =>
-      asignacionesDe(encargado)
-        .filter(({ tipo, idAsignacion }) =>
-          tipo === 'HEADQUARTER' ? idAsignacion === datos?.idSede : idsDeArea.has(idAsignacion),
-        )
-        .map(({ tipo, idAsignacion }) => ({
-          id: encargado.idPersona!,
-          nombre: porPersona.has(encargado.idPersona!)
-            ? nombreCompleto(porPersona.get(encargado.idPersona!)!)
-            : 'Nombre no disponible',
-          aCargoDe:
-            tipo === 'SERVICE_AREA'
-              ? (nombresDeArea.get(idAsignacion) ?? 'Un área de la orden')
-              : 'Toda la sede',
-        })),
-    );
+    return (cliente?.supervisores ?? []).map(({ idPersona, cargo }) => ({
+      id: idPersona ?? '',
+      nombre: porPersona.has(idPersona)
+        ? nombreCompleto(porPersona.get(idPersona)!)
+        : 'Nombre no disponible',
+      cargo: cargo ?? null,
+    }));
   });
 
   protected readonly hayError = computed(

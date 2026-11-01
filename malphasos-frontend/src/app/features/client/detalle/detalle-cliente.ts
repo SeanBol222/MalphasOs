@@ -22,7 +22,7 @@ import { detallesDe, traducirError } from '../../../core/errores/traducir';
  * cliente es la raiz de todo lo que cuelga de el.
  *
  * <p><b>Rehecha el 2026-10-11 con el rediseño</b> —la maqueta «A-Cliente»—: cabecera con la sigla y
- * cuatro cifras, las sedes como tarjetas con sus áreas y sus equipos, y a un lado los representantes y
+ * cuatro cifras, las sedes como tarjetas con sus áreas y sus equipos, y a un lado los supervisores y
  * el contacto. Las cifras salen de los dos resúmenes del servidor, sumados en {@link contar}.
  *
  * <p><b>El identificador entra por la ruta como una senal de entrada</b>, no leyendo el snapshot del
@@ -49,7 +49,7 @@ export class DetalleCliente {
 
   /**
    * Quien edita el cliente y quien lo retira, con la autoridad que el servidor exige a cada cosa. El
-   * representante de un cliente solo lee: no se le ofrece lo que el servidor le rechazaría
+   * supervisor de un cliente solo lee: no se le ofrece lo que el servidor le rechazaría
    * (2026-10-26, pedido por el usuario).
    */
   protected readonly editaCliente = computed(() => this.sesion.puede('client.write'));
@@ -100,40 +100,46 @@ export class DetalleCliente {
       });
   });
 
-  /** Los representantes con nombre; sin {@code person.read}, solo cuántos son. */
-  protected readonly representantes = computed(() => {
-    const ids = this.cliente.data()?.representantes ?? [];
+  /**
+   * Los supervisores con nombre y cargo; sin {@code person.read}, solo cuántos son. Son quienes entran
+   * a ver lo de este cliente y aprueban sus órdenes (V53, 2026-11-01): hasta entonces eran los
+   * representantes, que solo entraban a ver.
+   */
+  protected readonly supervisores = computed(() => {
     const personas = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
 
-    return ids.map((id) => {
+    return (this.cliente.data()?.supervisores ?? []).map((supervisor) => {
+      const id = supervisor.idPersona ?? '';
       const persona = personas.get(id);
 
-      return { id, nombre: persona ? nombreCompleto(persona) : 'Representante' };
+      return {
+        id,
+        nombre: persona ? nombreCompleto(persona) : 'Supervisor',
+        cargo: supervisor.cargo ?? null,
+      };
     });
   });
 
   /**
-   * Quién puede cambiar los representantes: hace falta escribir sobre el cliente y poder leer
-   * personas, porque nombrar es elegir a alguien de una lista.
+   * Quién puede cambiar los supervisores: hace falta escribir sobre el cliente y poder leer personas,
+   * porque nombrar es elegir a alguien de una lista.
    */
-  protected readonly nombraRepresentantes = computed(
+  protected readonly nombraSupervisores = computed(
     () => this.sesion.puede('client.write') && this.vePersonas(),
   );
 
   /**
-   * A quién se puede nombrar: los representantes de cliente activos que aún no lo son de este.
-   *
-   * <p><b>Solo {@code CEO_CLIENT}</b>, aunque el servidor admite a cualquier persona: el filtrado por
-   * dueño solo acota a ese tipo, así que nombrar a un ingeniero no le daría ni le quitaría nada y
-   * dejaría en la ficha un dato que no significa lo que parece.
+   * A quién se puede nombrar: los supervisores activos que aún no lo son de este cliente. El servidor
+   * rechaza a cualquier otro tipo —un ingeniero aprobaría su propio trabajo—, así que ofrecerlo solo
+   * llevaría a un error.
    */
   protected readonly candidatos = computed(() => {
-    const ya = new Set(this.cliente.data()?.representantes ?? []);
+    const ya = new Set(this.supervisores().map((s) => s.id));
 
     return (this.personas.data() ?? [])
       .filter(
         (p) =>
-          p.tipoPersona === 'CEO_CLIENT' &&
+          p.tipoPersona === 'SUPERVISOR' &&
           p.estadoActivo !== false &&
           !!p.identificador &&
           !ya.has(p.identificador),
@@ -142,10 +148,20 @@ export class DetalleCliente {
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   });
 
-  protected readonly nombramiento = this.api.nombrarRepresentante();
-  protected readonly retiroDeRepresentante = this.api.retirarRepresentante();
-  protected readonly representanteElegido = inject(FormBuilder).nonNullable.control('', [
+  protected readonly nombramiento = this.api.nombrarSupervisor();
+  protected readonly cambioDeCargo = this.api.cambiarCargoDeSupervisor();
+  protected readonly retiroDeSupervisor = this.api.retirarSupervisor();
+  protected readonly supervisorElegido = inject(FormBuilder).nonNullable.control('', [
     Validators.required,
+  ]);
+  protected readonly cargoNuevo = inject(FormBuilder).nonNullable.control('', [
+    Validators.maxLength(80),
+  ]);
+
+  /** De quién se está cambiando el cargo, o nulo. Uno a la vez: el campo es uno solo. */
+  protected readonly editandoCargoDe = signal<string | null>(null);
+  protected readonly cargoEditado = inject(FormBuilder).nonNullable.control('', [
+    Validators.maxLength(80),
   ]);
 
   protected readonly baja = this.api.retirar();
@@ -176,7 +192,8 @@ export class DetalleCliente {
       this.cliente.error() ??
         this.baja.error() ??
         this.nombramiento.error() ??
-        this.retiroDeRepresentante.error() ??
+        this.cambioDeCargo.error() ??
+        this.retiroDeSupervisor.error() ??
         this.altaDeCorreo.error() ??
         this.bajaDeCorreo.error() ??
         this.altaDeTelefono.error() ??
@@ -190,7 +207,8 @@ export class DetalleCliente {
       this.cliente.isError() ||
       this.baja.isError() ||
       this.nombramiento.isError() ||
-      this.retiroDeRepresentante.isError() ||
+      this.cambioDeCargo.isError() ||
+      this.retiroDeSupervisor.isError() ||
       this.altaDeCorreo.isError() ||
       this.bajaDeCorreo.isError() ||
       this.altaDeTelefono.isError() ||
@@ -249,20 +267,43 @@ export class DetalleCliente {
   }
 
   protected nombrar(): void {
-    if (this.representanteElegido.invalid) {
-      this.representanteElegido.markAsTouched();
+    if (this.supervisorElegido.invalid || this.cargoNuevo.invalid) {
+      this.supervisorElegido.markAsTouched();
+      this.cargoNuevo.markAsTouched();
 
       return;
     }
 
     this.nombramiento.mutate(
-      { id: this.id(), idPersona: this.representanteElegido.value },
-      { onSuccess: () => this.representanteElegido.reset() },
+      { id: this.id(), idPersona: this.supervisorElegido.value, cargo: this.cargoNuevo.value },
+      {
+        onSuccess: () => {
+          this.supervisorElegido.reset();
+          this.cargoNuevo.reset();
+        },
+      },
     );
   }
 
-  protected retirarRepresentante(idPersona: string): void {
-    this.retiroDeRepresentante.mutate({ id: this.id(), idPersona });
+  protected editarCargo(supervisor: { id: string; cargo: string | null }): void {
+    this.cargoEditado.setValue(supervisor.cargo ?? '');
+    this.editandoCargoDe.set(supervisor.id);
+  }
+
+  protected guardarCargo(): void {
+    const idPersona = this.editandoCargoDe();
+    if (!idPersona || this.cargoEditado.invalid) {
+      return;
+    }
+
+    this.cambioDeCargo.mutate(
+      { id: this.id(), idPersona, cargo: this.cargoEditado.value },
+      { onSuccess: () => this.editandoCargoDe.set(null) },
+    );
+  }
+
+  protected retirarSupervisor(idPersona: string): void {
+    this.retiroDeSupervisor.mutate({ id: this.id(), idPersona });
   }
 
   protected quitarCorreo(idContacto: string): void {

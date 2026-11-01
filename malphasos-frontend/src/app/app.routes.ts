@@ -34,14 +34,6 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('client.write')],
       },
       {
-        path: 'sedes/:id/encargado',
-        loadComponent: () =>
-          import('./features/client/sede/nuevo-encargado').then((m) => m.NuevoEncargado),
-        // Los encargados los reparte quien puede asignar gente, no quien edita clientes. Lo declara
-        // ManagerRestAdapter, y es la misma autoridad con la que se asigna un ingeniero.
-        canActivate: [requiereAutoridad('engineer.assign')],
-      },
-      {
         path: 'sedes/:id/editar',
         loadComponent: () => import('./features/client/sede/editar-sede').then((m) => m.EditarSede),
         canActivate: [requiereAutoridad('client.write')],
@@ -139,21 +131,16 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('super.person.write')],
       },
       {
-        path: 'personas/nueva/representante',
+        // La gente del cliente (V53): una sola alta, con cuenta. Eran dos —representante y
+        // encargado, este sin cuenta— hasta el 2026-11-01.
+        path: 'personas/nueva/supervisor',
         loadComponent: () =>
           import('./features/person/nueva/nueva-persona').then((m) => m.NuevaPersona),
-        data: { clase: 'representante' },
+        data: { clase: 'supervisor' },
         canActivate: [requiereAutoridad('person.write')],
       },
       {
-        path: 'personas/nueva/encargado',
-        loadComponent: () =>
-          import('./features/person/nueva/nueva-persona').then((m) => m.NuevaPersona),
-        data: { clase: 'encargado' },
-        canActivate: [requiereAutoridad('person.write')],
-      },
-      {
-        // La ficha va DESPUES de las cuatro altas, o el router leeria «nueva» como un identificador.
+        // La ficha va DESPUES de las tres altas, o el router leeria «nueva» como un identificador.
         // Exige solo person.read: quien puede ESCRIBIR sobre esta persona depende de su tipo, y eso no
         // se sabe hasta cargarla. Esa decision vive en el componente, igual que en el backend vive en un
         // bean y no en la anotacion.

@@ -36,17 +36,11 @@ export type NuevaArea = components['schemas']['ServiceAreaCreateRequest'];
 /** Renombrar un area reutiliza el cuerpo del alta: el backend no declara un tipo aparte. */
 export type CambioDeArea = NuevaArea;
 
-export type Encargado = components['schemas']['ManagerResponse'];
-export type NuevoEncargado = components['schemas']['ManagerRegisterRequest'];
-export type AsignacionDeEncargado = components['schemas']['ManagerAssignRequest'];
 /**
- * Sale del tipo de la PETICION y no del de la respuesta.
- *
- * <p>En la respuesta el campo es opcional —springdoc no marca nada como requerido— y ese
- * {@code undefined} se cuela hasta el cuerpo que se manda. Del lado de la peticion el contrato si lo
- * exige, que es lo que este tipo tiene que decir.
+ * Quien supervisa a un cliente, con su cargo (V53, 2026-11-01): tiene cuenta, ve lo de ese cliente y
+ * aprueba sus ordenes. Sustituye a los encargados de sede y de area y al representante legal.
  */
-export type TipoDeAsignacion = NonNullable<NuevoEncargado['tipo']>;
+export type SupervisorDelCliente = components['schemas']['ClientSupervisorResponse'];
 
 /**
  * Los dos modulos que el frontend consume hoy publican su contrato por separado, y por eso hay dos
@@ -302,28 +296,26 @@ export const ETIQUETA_DE_TIPO_DE_SERVICIO: Readonly<Record<TipoDeServicio, strin
  * solo para poner nombre a un identificador; la seccion de personas no existe todavia». Fue cierto
  * hasta el <b>2026-10-02</b>.)
  *
- * <p><b>«Persona» no es «usuario».</b> Una persona puede existir sin cuenta —un encargado al que solo
- * se le llama por telefono— y por eso el API tiene cuatro altas distintas: una que crea solo la fila y
- * tres que crean ademas el usuario en Keycloak. Las tres ultimas exigen correo, nombre de usuario y
- * contrasena inicial; la primera, no.
+ * <p><b>Desde V53 toda persona tiene cuenta</b>: el API tiene tres altas, y las tres crean ademas el
+ * usuario en Keycloak, con correo, nombre de usuario y contrasena inicial. Hasta entonces habia una
+ * cuarta, sin cuenta, para los encargados.
  *
  * <p><b>Y quien puede crear a quien depende de QUE es esa persona</b>, que es la «escalera de
  * usuarios» del backend: la gente de la casa -ingenieros y administradores- exige
- * {@code super.person.write}, y la del cliente -representantes y encargados- {@code person.write}. El
+ * {@code super.person.write}, y la del cliente -sus supervisores- {@code person.write}. El
  * prefijo marca lo que {@code admin.full} no concede. Ver [[modelo-de-permisos]].
  */
 export type Persona = personas['schemas']['PersonResponse'];
-export type NuevaPersonaSinAcceso = personas['schemas']['PersonCreateRequest'];
 export type NuevoUsuario = personas['schemas']['PersonRegisterRequest'];
 export type CambioDePersona = personas['schemas']['PersonUpdateRequest'];
 export type CorreoDePersona = personas['schemas']['EmailPersonResponse'];
 export type TelefonoDePersona = personas['schemas']['PhonePersonResponse'];
 
 /** Sale del tipo de la PETICION: en la respuesta es opcional y ese undefined se colaria al cuerpo. */
-export type TipoDePersona = NonNullable<NuevaPersonaSinAcceso['tipoPersona']>;
+export type TipoDePersona = NonNullable<CambioDePersona['tipoPersona']>;
 
 /**
- * Los cinco tipos, de la casa hacia el cliente.
+ * Los cuatro tipos, de la casa hacia el cliente.
  *
  * <p>{@code SUPER_ADMIN} esta en la lista porque el contrato lo admite, pero <b>no se ofrece al dar de
  * alta</b>: el super usuario se crea a mano en Keycloak y ningun grupo concede su autoridad. Verlo en
@@ -333,24 +325,21 @@ export const TIPOS_DE_PERSONA: readonly TipoDePersona[] = [
   'SUPER_ADMIN',
   'ADMIN',
   'ENGINEER',
-  'MANAGER',
-  'CEO_CLIENT',
+  'SUPERVISOR',
 ] as const;
 
 /**
  * Como se nombra cada tipo en pantalla.
  *
- * <p>⚠️ <b>`ENGINEER` y `MANAGER` son dos cosas distintas y se confunden facilisimo.</b> El ingeniero
- * es de la empresa que presta el servicio y ejecuta mantenimientos; el encargado es del cliente y responde por una
- * sede o un area —lo que la ERS llama «profesional responsable» y el realm, por un nombre heredado,
- * tambien llama `engineer` en sus autoridades—. Ver el glosario del dominio.
+ * <p>El ingeniero es de la empresa que presta el servicio y ejecuta mantenimientos; el supervisor es
+ * del cliente, revisa y aprueba. Hasta V53 la gente del cliente era el encargado (`MANAGER`) y el
+ * representante (`CEO_CLIENT`).
  */
 export const ETIQUETA_DE_TIPO_DE_PERSONA: Readonly<Record<TipoDePersona, string>> = {
   SUPER_ADMIN: 'Super usuario',
   ADMIN: 'Administrador',
   ENGINEER: 'Ingeniero',
-  MANAGER: 'Encargado del cliente',
-  CEO_CLIENT: 'Representante del cliente',
+  SUPERVISOR: 'Supervisor del cliente',
 };
 
 /**

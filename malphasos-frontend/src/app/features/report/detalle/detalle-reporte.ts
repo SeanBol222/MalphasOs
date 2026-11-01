@@ -10,7 +10,6 @@ import {
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ClienteApi } from '../../client/cliente-api';
-import { EncargadoApi } from '../../client/encargado-api';
 import { SedeApi } from '../../client/sede-api';
 import { EquipoApi } from '../../equipment/equipo-api';
 import { nombreCompleto, PersonaApi } from '../../person/persona-api';
@@ -156,7 +155,6 @@ export class DetalleReporte {
     }),
   );
   private readonly personas = inject(PersonaApi).listar();
-  private readonly encargados = inject(EncargadoApi).listar();
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('report.write'));
 
@@ -398,27 +396,17 @@ export class DetalleReporte {
   });
 
   /**
-   * El encargado de la sede donde se presta el servicio.
-   *
-   * <p>Se filtra de la lista completa de encargados porque <b>el API no publica «los encargados de una
-   * sede»</b>: `GET /v1/api/managers` devuelve todos. Está anotado como deuda, y aquí se nota.
-   *
-   * <p>Solo los de sede, no los de área: quien responde por el sitio donde se firma el servicio es el
-   * de la sede. Desde el 2026-10-27 un encargado puede estarlo de varias sedes, y basta con que esta
-   * sea una de ellas.
+   * Quienes supervisan al cliente de la orden, por nombre: quien revisa y aprueba este servicio (V53,
+   * 2026-11-01). Hasta entonces era el encargado de la sede, que salió con los encargados.
    */
-  protected readonly encargado = computed(() => {
-    const idSede = this.orden.data()?.idSede;
+  protected readonly supervisores = computed(() => {
+    const idCliente = this.orden.data()?.idCliente;
+    const cliente = (this.clientes.data() ?? []).find((c) => c.id === idCliente);
 
-    if (!idSede) {
-      return '';
-    }
-
-    const suyo = (this.encargados.data() ?? []).find(
-      (encargado) => !!encargado.idsSede?.includes(idSede) && encargado.estadoActivo,
-    );
-
-    return suyo?.idPersona ? this.nombreDe(suyo.idPersona) : '';
+    return (cliente?.supervisores ?? [])
+      .filter((supervisor) => !!supervisor.idPersona)
+      .map((supervisor) => this.nombreDe(supervisor.idPersona!))
+      .join(' · ');
   });
 
   private nombreDe(idPersona: string): string {

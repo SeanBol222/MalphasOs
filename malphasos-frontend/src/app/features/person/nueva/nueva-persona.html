@@ -2,26 +2,15 @@
 <p class="mt-1 max-w-[640px] text-neutral-800">{{ receta().explicacion }}</p>
 @if (clienteDelAlta.data(); as cliente) {
   <p class="mt-1 max-w-[640px]">
-    Se nombrará representante de <strong>{{ cliente.razonSocial }}</strong
+    Se nombrará supervisor de <strong>{{ cliente.razonSocial }}</strong
     >.
   </p>
 }
 
-@if (pendiente() === 'asignar') {
+@if (pendiente()) {
   <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
     <p class="font-semibold">
-      La persona quedó registrada y nombrada representante, pero no se pudo ponerla al frente de la
-      sede.
-    </p>
-    <p class="mt-1">{{ mensajeDeAsignacion() }}</p>
-    <button class="boton-secundario mt-2 min-h-tactil" type="button" (click)="ponerAlFrente()">
-      Reintentar la asignación
-    </button>
-  </div>
-} @else if (pendiente() === 'nombrar') {
-  <div class="mt-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
-    <p class="font-semibold">
-      La persona quedó registrada, pero no se pudo nombrar representante del cliente.
+      La persona quedó registrada, pero no se pudo nombrar supervisora del cliente.
     </p>
     <p class="mt-1">
       Nómbrela desde la
@@ -102,16 +91,11 @@
     </div>
   </div>
 
-  @if (eligeCliente() || eligeSede()) {
+  @if (eligeCliente()) {
     <h2 class="titulo-seccion mt-3">Cliente</h2>
     <p class="text-neutral-700">
-      @if (eligeCliente()) {
-        Opcional. Si lo elige, se le nombra representante de ese cliente al registrarlo y su cuenta
-        verá lo de ese cliente; si no, se le puede nombrar después desde la ficha del cliente.
-      } @else {
-        Opcional. Un encargado responde por una sede de un cliente o por un área de esa sede. Si no
-        lo elige, queda registrado sin nada a cargo.
-      }
+      Opcional. Si lo elige, se le nombra supervisor de ese cliente al registrarlo y su cuenta verá
+      lo de ese cliente; si no, se le puede nombrar después desde la ficha del cliente.
     </p>
 
     <div class="mt-2">
@@ -128,99 +112,55 @@
     </div>
   }
 
-  @if (clienteDeLaAsignacion()) {
-    <!--
-      La sede es obligatoria en el encargado —el cliente solo no lo asigna— y opcional en el
-      representante, donde elegirla es decir que tambien es encargado.
-    -->
-    @if (eligeSede()) {
-      <label class="mt-2 block font-semibold" for="sede">
-        Sede <span aria-hidden="true">*</span>
-      </label>
-    } @else {
-      <h2 class="titulo-seccion mt-3">También encargado</h2>
-      <p class="text-neutral-700">
-        Opcional. Si además responde por una sede de este cliente o por un área suya, elíjala.
-      </p>
-      <label class="mt-2 block font-semibold" for="sede">Sede</label>
-    }
-    <select
-      class="campo min-h-tactil w-full"
-      id="sede"
-      [attr.aria-required]="eligeSede() ? 'true' : null"
-      formControlName="sede"
-    >
-      <option value="">{{ eligeSede() ? 'Elija una sede' : 'Ninguna' }}</option>
-      @for (opcion of sedesVigentes(); track opcion.id) {
-        <option [value]="opcion.id">{{ opcion.nombre }}</option>
-      }
-    </select>
-
-    @if (haySedeElegida()) {
-      <label class="mt-2 block font-semibold" for="area">
-        De qué se encarga <span aria-hidden="true">*</span>
-      </label>
-      <select
-        class="campo min-h-tactil w-full"
-        id="area"
-        aria-required="true"
-        formControlName="area"
-      >
-        <option value="">Elija</option>
-        <option [value]="todaLaSede">Toda la sede</option>
-        @for (opcion of areasVigentes(); track opcion.id) {
-          <option [value]="opcion.id">Área: {{ opcion.nombre }}</option>
-        }
-      </select>
-    }
-  }
-
-  @if (conCuenta()) {
-    <!--
-      Esta mitad solo existe cuando hay cuenta que crear. El alta de un encargado no la lleva, y no es
-      que este escondida: el servidor no crea usuario en esa puerta.
-    -->
-    <h2 class="titulo-seccion mt-3">Cuenta de acceso</h2>
-    <p class="text-neutral-700">
-      Con esto entra al sistema. El correo hace falta porque es con el que se crea la cuenta.
-    </p>
-
-    <label class="mt-2 block font-semibold" for="nombreUsuario">
-      Nombre de usuario <span aria-hidden="true">*</span>
-    </label>
+  @if (pideCargo()) {
+    <label class="mt-2 block font-semibold" for="cargo">Cargo</label>
     <input
       class="campo min-h-tactil w-full"
-      id="nombreUsuario"
+      id="cargo"
       type="text"
-      autocomplete="off"
-      aria-required="true"
-      formControlName="nombreUsuario"
+      maxlength="80"
+      placeholder="Ingeniero biomédico"
+      formControlName="cargo"
     />
-
-    <label class="mt-2 block font-semibold" for="password">
-      Contraseña temporal <span aria-hidden="true">*</span>
-    </label>
-    <input
-      class="campo min-h-tactil w-full"
-      id="password"
-      type="password"
-      autocomplete="new-password"
-      [attr.minlength]="largoMinimo"
-      aria-required="true"
-      formControlName="password"
-    />
-    <p class="mt-1 text-neutral-700">
-      Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo. Es temporal:
-      désela a la persona, y al entrar por primera vez tendrá que elegir una propia.
-    </p>
+    <p class="mt-1 text-neutral-700">Opcional. Es como se le nombra en los documentos.</p>
   }
 
-  <h2 class="titulo-seccion mt-3">
-    Correos
-    @if (exigeCorreo()) {
-      <span aria-hidden="true">*</span>
-    }
-  </h2>
+  <!-- Toda persona tiene cuenta desde V53: hasta entonces el alta de un encargado no la llevaba. -->
+  <h2 class="titulo-seccion mt-3">Cuenta de acceso</h2>
+  <p class="text-neutral-700">
+    Con esto entra al sistema. El correo hace falta porque es con el que se crea la cuenta.
+  </p>
+
+  <label class="mt-2 block font-semibold" for="nombreUsuario">
+    Nombre de usuario <span aria-hidden="true">*</span>
+  </label>
+  <input
+    class="campo min-h-tactil w-full"
+    id="nombreUsuario"
+    type="text"
+    autocomplete="off"
+    aria-required="true"
+    formControlName="nombreUsuario"
+  />
+
+  <label class="mt-2 block font-semibold" for="password">
+    Contraseña temporal <span aria-hidden="true">*</span>
+  </label>
+  <input
+    class="campo min-h-tactil w-full"
+    id="password"
+    type="password"
+    autocomplete="new-password"
+    [attr.minlength]="largoMinimo"
+    aria-required="true"
+    formControlName="password"
+  />
+  <p class="mt-1 text-neutral-700">
+    Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo. Es temporal: désela
+    a la persona, y al entrar por primera vez tendrá que elegir una propia.
+  </p>
+
+  <h2 class="titulo-seccion mt-3">Correos <span aria-hidden="true">*</span></h2>
 
   <div formArrayName="correos">
     @for (correo of correos.controls; track $index; let i = $index) {

@@ -50,16 +50,10 @@
               Del cliente
             </p>
             <a
-              class="flex min-h-tactil items-center gap-1 px-2 hover:bg-neutral-100"
-              routerLink="/personas/nueva/representante"
+              class="flex min-h-tactil items-center px-2 font-bold hover:bg-neutral-100"
+              routerLink="/personas/nueva/supervisor"
             >
-              <strong>Representante</strong> <span class="text-neutral-700">· con cuenta</span>
-            </a>
-            <a
-              class="flex min-h-tactil items-center gap-1 px-2 hover:bg-neutral-100"
-              routerLink="/personas/nueva/encargado"
-            >
-              <strong>Encargado</strong> <span class="text-neutral-700">· sin cuenta</span>
+              Supervisor
             </a>
           }
         </div>
@@ -121,10 +115,7 @@
   </div>
 
   @if (!filas().length) {
-    <p class="superficie mt-3 text-neutral-800">
-      No hay personas que coincidan. Los ingenieros y los administradores se registran con una
-      cuenta de acceso; un encargado del cliente puede existir sin ella.
-    </p>
+    <p class="superficie mt-3 text-neutral-800">No hay personas que coincidan.</p>
   } @else {
     <table class="tabla mt-3">
       <caption class="sr-only">
@@ -138,7 +129,6 @@
           @if (veClientes()) {
             <th scope="col">Cliente</th>
           }
-          <th scope="col">Acceso</th>
           <th scope="col">Estado</th>
         </tr>
       </thead>
@@ -169,9 +159,6 @@
             @if (veClientes()) {
               <td class="text-neutral-800">{{ fila.cliente }}</td>
             }
-            <td class="text-neutral-800">
-              {{ fila.entraAlSistema ? 'Con cuenta' : 'Sin cuenta' }}
-            </td>
             <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
             <td [class.font-bold]="fila.estadoActivo">
               {{ fila.estadoActivo ? 'Activa' : 'Retirada' }}

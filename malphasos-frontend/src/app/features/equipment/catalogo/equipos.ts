@@ -12,7 +12,7 @@ import { traducirError } from '../../../core/errores/traducir';
  * registra en un area. Esta pantalla lo dice en voz alta para que nadie busque aqui su tensiometro.
  *
  * <p>La respuesta solo trae identificadores, de modo que cada fila se compone cruzando las listas de
- * tipos y marcas. Es la misma ausencia que en los encargados: el API no devuelve nombres.
+ * tipos y marcas. Es la misma ausencia que tenían los encargados: el API no devuelve nombres.
  */
 @Component({
   selector: 'app-equipos-de-catalogo',

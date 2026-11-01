@@ -3,7 +3,6 @@ package com.malphasos.malphasos.person.infrastructure.input.rest;
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
 import com.malphasos.malphasos.person.infrastructure.input.mapper.PersonRestMapper;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PasswordResetRequest;
-import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonCreateRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonRegisterRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonUpdateRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.response.PersonResponse;
@@ -63,19 +62,6 @@ public class PersonRestAdapter {
     }
 
     @Operation(
-            summary = "Registrar una persona sin acceso al sistema",
-            description = "Crea la persona en la base de datos, sin usuario en el proveedor de identidad.")
-    @PreAuthorize("hasAuthority('person.write')")
-    @PostMapping
-    public ResponseEntity<PersonResponse> createPerson(@Valid @RequestBody PersonCreateRequest request) {
-
-        PersonResponse creada =
-                personRestMapper.toResponse(personServicePort.save(personRestMapper.toPerson(request)));
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(creada);
-    }
-
-    @Operation(
             summary = "Registrar un ingeniero",
             description = "Crea la persona y su usuario en el proveedor de identidad.")
     @PreAuthorize("hasAuthority('super.person.write')")
@@ -98,14 +84,15 @@ public class PersonRestAdapter {
     }
 
     @Operation(
-            summary = "Registrar un representante legal de cliente",
-            description = "Crea la persona y su usuario en el proveedor de identidad.")
+            summary = "Registrar un supervisor de cliente",
+            description = "Crea la persona y su usuario en el proveedor de identidad. Lo que ve lo decide "
+                    + "a que clientes se le nombra supervisor, desde la ficha de cada uno.")
     @PreAuthorize("hasAuthority('person.write')")
-    @PostMapping("/ceo-clients")
-    public ResponseEntity<PersonResponse> registerCeoClient(
+    @PostMapping("/supervisors")
+    public ResponseEntity<PersonResponse> registerSupervisor(
             @Valid @RequestBody PersonRegisterRequest request) {
 
-        return created(personServicePort.registerCeoClient(personRestMapper.toUseCaseRequest(request)));
+        return created(personServicePort.registerSupervisor(personRestMapper.toUseCaseRequest(request)));
     }
 
     @Operation(summary = "Actualizar los datos de una persona")

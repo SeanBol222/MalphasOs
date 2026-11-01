@@ -1,17 +1,19 @@
 package com.malphasos.malphasos.client.infrastructure.output.mapper;
 
 import com.malphasos.malphasos.client.domain.client.Client;
+import com.malphasos.malphasos.client.domain.client.ClientSupervisor;
 import com.malphasos.malphasos.client.domain.client.EmailClient;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
 import com.malphasos.malphasos.client.domain.client.PhoneClient;
 import com.malphasos.malphasos.client.infrastructure.output.entities.ClientEntity;
+import com.malphasos.malphasos.client.infrastructure.output.entities.ClientSupervisorEntity;
 import com.malphasos.malphasos.client.infrastructure.output.entities.EmailClientEntity;
-import com.malphasos.malphasos.client.infrastructure.output.entities.LegalRepresentativeEntity;
 import com.malphasos.malphasos.client.infrastructure.output.entities.PhoneClientEntity;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,12 +38,12 @@ public class ClientPersistenceMapper {
                         telefono.getId(), telefono.getTelefono(), telefono.isEstadoActivo()))
                 .toList();
 
-        // Solo los representantes activos: el agregado responde "quien representa hoy a este
-        // cliente", y los retirados quedan en la tabla como historial.
-        Set<UUID> representantes = entity.getRepresentantes().stream()
-                .filter(LegalRepresentativeEntity::isEstadoActivo)
-                .map(LegalRepresentativeEntity::getPersona)
-                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+        // Solo los supervisores activos: el agregado responde "quien supervisa hoy a este cliente",
+        // y los retirados quedan en la tabla como historial.
+        List<ClientSupervisor> supervisores = entity.getSupervisores().stream()
+                .filter(ClientSupervisorEntity::isEstadoActivo)
+                .map(fila -> new ClientSupervisor(fila.getPersona(), fila.getCargo()))
+                .toList();
 
         return Client.rehydrate(
                 entity.getId(),
@@ -53,7 +55,7 @@ public class ClientPersistenceMapper {
                 entity.isEstadoActivo(),
                 correos,
                 telefonos,
-                representantes);
+                supervisores);
     }
 
     public List<Client> toDomainList(List<ClientEntity> entities) {
@@ -80,7 +82,7 @@ public class ClientPersistenceMapper {
 
         sincronizarCorreos(cliente, entity);
         sincronizarTelefonos(cliente, entity);
-        sincronizarRepresentantes(cliente, entity);
+        sincronizarSupervisores(cliente, entity);
 
         return entity;
     }
@@ -124,27 +126,33 @@ public class ClientPersistenceMapper {
     }
 
     /**
-     * Los representantes son el único caso donde la fila puede tener que cambiar de estado sin que
-     * el agregado lo diga: quien ya no está en el conjunto es que fue retirado, y su fila queda
-     * inactiva en vez de desaparecer. Quien vuelve a estarlo reactiva la suya.
+     * Los supervisores son el único caso donde la fila puede tener que cambiar de estado sin que el
+     * agregado lo diga: quien ya no está es que fue retirado, y su fila queda inactiva en vez de
+     * desaparecer. Quien vuelve a estarlo reactiva la suya, con el cargo de ahora.
      */
-    private void sincronizarRepresentantes(Client cliente, ClientEntity entity) {
-        Set<UUID> activos = cliente.getRepresentantes();
+    private void sincronizarSupervisores(Client cliente, ClientEntity entity) {
+        Map<UUID, ClientSupervisor> activos = cliente.getSupervisores().stream()
+                .collect(Collectors.toMap(ClientSupervisor::idPersona, Function.identity()));
 
-        for (LegalRepresentativeEntity fila : entity.getRepresentantes()) {
-            fila.setEstadoActivo(activos.contains(fila.getPersona()));
+        for (ClientSupervisorEntity fila : entity.getSupervisores()) {
+            ClientSupervisor supervisor = activos.get(fila.getPersona());
+            fila.setEstadoActivo(supervisor != null);
+            if (supervisor != null) {
+                fila.setCargo(supervisor.cargo());
+            }
         }
 
-        for (UUID persona : activos) {
-            boolean yaEsta = entity.getRepresentantes().stream()
-                    .anyMatch(fila -> fila.getPersona().equals(persona));
+        for (ClientSupervisor supervisor : activos.values()) {
+            boolean yaEsta = entity.getSupervisores().stream()
+                    .anyMatch(fila -> fila.getPersona().equals(supervisor.idPersona()));
 
             if (!yaEsta) {
-                LegalRepresentativeEntity nueva = new LegalRepresentativeEntity();
-                nueva.setPersona(persona);
+                ClientSupervisorEntity nueva = new ClientSupervisorEntity();
+                nueva.setPersona(supervisor.idPersona());
                 nueva.setCliente(entity);
+                nueva.setCargo(supervisor.cargo());
                 nueva.setEstadoActivo(true);
-                entity.getRepresentantes().add(nueva);
+                entity.getSupervisores().add(nueva);
             }
         }
     }

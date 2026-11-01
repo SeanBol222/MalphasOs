@@ -28,12 +28,12 @@ public class ClientOwnershipService implements ClientOwnershipPort {
 
     @Override
     @Transactional(readOnly = true)
-    public Set<UUID> clientsRepresentedBy(UUID idPersona) {
+    public Set<UUID> clientsSupervisedBy(UUID idPersona) {
         if (idPersona == null) {
             return Set.of();
         }
 
-        return clientPersistencePort.findIdsRepresentedBy(idPersona);
+        return clientPersistencePort.findIdsSupervisedBy(idPersona);
     }
 
     @Override

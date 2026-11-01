@@ -10,20 +10,22 @@ package com.malphasos.malphasos.person.domain.person;
  *
  * <p>No confundir con {@link RoleType}, que representa el rol con el que se da de alta al usuario
  * en Keycloak. Son conceptos distintos y deliberadamente desacoplados: el tipo describe qué es la
- * persona para el negocio, mientras que el rol determina qué puede hacer en el sistema. No todas
- * las personas registradas necesitan usuario: un {@link #MANAGER} puede existir como contacto de
- * una sede sin acceder nunca a la aplicación.
+ * persona para el negocio, mientras que el rol determina qué puede hacer en el sistema.
+ *
+ * <p>Tenía cinco valores hasta V53 (2026-11-01): el encargado de una sede o un área ({@code MANAGER})
+ * y el representante legal del cliente ({@code CEO_CLIENT}) se juntaron en {@link #SUPERVISOR}, la
+ * única persona del cliente, que siempre tiene cuenta.
  */
 public enum PersonType {
 
     /** Personal técnico que ejecuta los mantenimientos. */
     ENGINEER,
 
-    /** Encargado de una sede o de un área de servicio del cliente. */
-    MANAGER,
-
-    /** Representante legal del cliente. */
-    CEO_CLIENT,
+    /**
+     * Persona del cliente: ve lo de los clientes que supervisa y aprueba sus órdenes. A cuáles lo dice
+     * {@code supervisor_cliente}, en el módulo de clientes.
+     */
+    SUPERVISOR,
 
     /** Administrador del sistema. */
     ADMIN,

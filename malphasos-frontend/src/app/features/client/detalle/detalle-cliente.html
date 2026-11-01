@@ -176,50 +176,104 @@
 
       <aside class="flex min-w-0 flex-[1_1_18rem] flex-col gap-3">
         <!--
-          Los representantes son lo que decide qué ve cada cuenta del cliente: un representante solo
-          lee lo de los clientes que representa. La persona se crea en Personas, con su cuenta; aquí
-          se nombra y se retira.
+          Los supervisores son lo que decide qué ve cada cuenta del cliente y quién aprueba sus órdenes,
+          en todas sus sedes (V53). La persona se crea en Personas, con su cuenta; aquí se nombra, se le
+          pone el cargo con que sale en los documentos y se retira.
         -->
-        <section class="superficie" aria-labelledby="representantes">
-          <h2 id="representantes" class="titulo-seccion">Representantes</h2>
+        <section class="superficie" aria-labelledby="supervisores">
+          <h2 id="supervisores" class="titulo-seccion">Supervisores</h2>
           <p class="mt-0.5 text-sm text-neutral-800">
-            Entran al sistema y consultan solo lo de este cliente.
+            Consultan lo de este cliente y aprueban sus órdenes, en todas sus sedes.
           </p>
           <ul>
-            @for (representante of representantes(); track representante.id) {
-              <li class="flex items-center gap-1">
-                <span class="min-w-0 grow font-semibold">{{ representante.nombre }}</span>
-                @if (nombraRepresentantes()) {
-                  <button
-                    class="min-h-tactil min-w-tactil text-sm font-semibold underline"
-                    type="button"
-                    [attr.aria-label]="'Retirar a ' + representante.nombre + ' como representante'"
-                    [disabled]="retiroDeRepresentante.isPending()"
-                    (click)="retirarRepresentante(representante.id)"
-                  >
-                    Retirar
-                  </button>
+            @for (supervisor of supervisores(); track supervisor.id) {
+              <li class="mt-1" data-supervisor>
+                @if (editandoCargoDe() === supervisor.id) {
+                  <span class="block font-semibold">{{ supervisor.nombre }}</span>
+                  <label class="sr-only" [for]="'cargo-' + supervisor.id">Cargo</label>
+                  <div class="mt-0.5 flex gap-1">
+                    <input
+                      [id]="'cargo-' + supervisor.id"
+                      class="campo min-h-tactil min-w-0 grow"
+                      maxlength="80"
+                      placeholder="Sin cargo"
+                      [formControl]="cargoEditado"
+                    />
+                    <button
+                      class="boton-secundario min-h-tactil"
+                      type="button"
+                      [disabled]="cambioDeCargo.isPending()"
+                      (click)="guardarCargo()"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      class="min-h-tactil text-sm font-semibold underline"
+                      type="button"
+                      (click)="editandoCargoDe.set(null)"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                } @else {
+                  <div class="flex items-center gap-1">
+                    <span class="min-w-0 grow">
+                      <span class="block font-semibold">{{ supervisor.nombre }}</span>
+                      <span class="block text-sm text-neutral-800" data-cargo>
+                        {{ supervisor.cargo ?? 'Sin cargo' }}
+                      </span>
+                    </span>
+                    @if (nombraSupervisores()) {
+                      <button
+                        class="min-h-tactil min-w-tactil text-sm font-semibold underline"
+                        type="button"
+                        [attr.aria-label]="'Cambiar el cargo de ' + supervisor.nombre"
+                        (click)="editarCargo(supervisor)"
+                      >
+                        Cargo
+                      </button>
+                      <button
+                        class="min-h-tactil min-w-tactil text-sm font-semibold underline"
+                        type="button"
+                        [attr.aria-label]="'Retirar a ' + supervisor.nombre + ' como supervisor'"
+                        [disabled]="retiroDeSupervisor.isPending()"
+                        (click)="retirarSupervisor(supervisor.id)"
+                      >
+                        Retirar
+                      </button>
+                    }
+                  </div>
                 }
               </li>
             } @empty {
-              <li class="mt-1 text-sm text-neutral-800">Ninguno registrado.</li>
+              <li class="mt-1 text-sm text-neutral-800">
+                Ninguno: sus órdenes no se pueden aprobar hasta nombrar uno.
+              </li>
             }
           </ul>
-          @if (nombraRepresentantes() && candidatos().length) {
-            <label class="mt-1.5 block text-sm font-semibold" for="representanteElegido">
-              Nombrar a un representante ya registrado
+          @if (nombraSupervisores() && candidatos().length) {
+            <label class="mt-1.5 block text-sm font-semibold" for="supervisorElegido">
+              Nombrar a un supervisor ya registrado
             </label>
+            <select
+              id="supervisorElegido"
+              class="campo mt-0.5 min-h-tactil w-full"
+              [formControl]="supervisorElegido"
+            >
+              <option value="" disabled>Elegir…</option>
+              @for (candidato of candidatos(); track candidato.id) {
+                <option [value]="candidato.id">{{ candidato.nombre }}</option>
+              }
+            </select>
+            <label class="mt-1 block text-sm font-semibold" for="cargoNuevo">Cargo</label>
             <div class="mt-0.5 flex gap-1">
-              <select
-                id="representanteElegido"
+              <input
+                id="cargoNuevo"
                 class="campo min-h-tactil min-w-0 grow"
-                [formControl]="representanteElegido"
-              >
-                <option value="" disabled>Elegir…</option>
-                @for (candidato of candidatos(); track candidato.id) {
-                  <option [value]="candidato.id">{{ candidato.nombre }}</option>
-                }
-              </select>
+                maxlength="80"
+                placeholder="Ingeniero biomédico"
+                [formControl]="cargoNuevo"
+              />
               <button
                 class="boton-secundario min-h-tactil"
                 type="button"
@@ -230,13 +284,13 @@
               </button>
             </div>
           }
-          @if (registraPersonas() && nombraRepresentantes()) {
+          @if (registraPersonas() && nombraSupervisores()) {
             <a
               class="mt-1.5 inline-block text-sm font-semibold underline"
-              routerLink="/personas/nueva/representante"
+              routerLink="/personas/nueva/supervisor"
               [queryParams]="{ cliente: id() }"
             >
-              Registrar representante nuevo
+              Registrar supervisor nuevo
             </a>
           }
         </section>

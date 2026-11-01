@@ -38,7 +38,7 @@ export class ListaClientes {
   private readonly sedes = inject(SedeApi).resumen();
 
   /**
-   * Quien da de alta clientes, que no es quien solo los consulta: el representante de un cliente ve
+   * Quien da de alta clientes, que no es quien solo los consulta: el supervisor de un cliente ve
    * el suyo y no tiene un «Nuevo cliente» que el servidor le rechazaría (2026-10-26).
    */
   protected readonly creaClientes = computed(() => this.sesion.puede('client.write'));
