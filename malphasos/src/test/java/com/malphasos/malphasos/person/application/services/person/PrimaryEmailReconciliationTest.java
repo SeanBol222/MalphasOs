@@ -62,7 +62,7 @@ class PrimaryEmailReconciliationTest {
     @DisplayName("si el correo de la cuenta no está en la ficha, lo añade y lo marca")
     void anadeElQueFalta() {
         // Decidido por el usuario: la cuenta es la que recibe los avisos, y la ficha la reconoce.
-        Person ada = persona(PersonType.CEO_CLIENT, "otro@x.local");
+        Person ada = persona(PersonType.SUPERVISOR, "otro@x.local");
         when(persistencePort.findAll()).thenReturn(List.of(ada));
         when(identityPort.findUserEmail(ada.getIdentificador().toString())).thenReturn(Optional.of("cuenta@x.local"));
 
@@ -74,13 +74,12 @@ class PrimaryEmailReconciliationTest {
     }
 
     @Test
-    @DisplayName("no pregunta por quien ya tiene principal, por los encargados ni por los retirados")
+    @DisplayName("no pregunta por quien ya tiene principal ni por los retirados")
     void soloLasQueLoNecesitan() {
         Person conPrincipal = persona(PersonType.ENGINEER, "ada@x.local");
         conPrincipal.getEmailPersonList().getFirst().setPrincipal(true);
-        Person encargado = persona(PersonType.MANAGER, "e@x.local");
         Person retirada = persona(PersonType.ENGINEER, "r@x.local").setEstadoActivo(false);
-        when(persistencePort.findAll()).thenReturn(List.of(conPrincipal, encargado, retirada));
+        when(persistencePort.findAll()).thenReturn(List.of(conPrincipal, retirada));
 
         assertThat(conciliacion().reconcile()).isZero();
 

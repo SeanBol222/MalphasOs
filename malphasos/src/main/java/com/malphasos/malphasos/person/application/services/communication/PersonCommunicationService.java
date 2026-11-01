@@ -1,11 +1,9 @@
 package com.malphasos.malphasos.person.application.services.communication;
 
 import com.malphasos.malphasos.person.application.mapper.PersonCommunicationMapper;
-import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationRequest;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
-import com.malphasos.malphasos.person.domain.person.Person;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,12 +29,5 @@ public class PersonCommunicationService implements PersonCommunicationPort {
     @Override
     public PersonCommunicationResponse findById(UUID id) {
         return personCommunicationMapper.toResponse(personServicePort.findById(id));
-    }
-
-    @Override
-    public UUID save(PersonCommunicationRequest request) {
-        Person guardada = personServicePort.save(personCommunicationMapper.toPerson(request));
-
-        return guardada.getIdentificador();
     }
 }

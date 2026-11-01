@@ -66,66 +66,6 @@
         "required" : [ "password" ],
         "type" : "object"
       },
-      "PersonCreateRequest" : {
-        "description" : "Alta de una persona sin acceso al sistema",
-        "properties" : {
-          "cedula" : {
-            "description" : "Cedula de la persona",
-            "example" : "1234567890",
-            "maxLength" : 10,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "emailPersonList" : {
-            "items" : {
-              "$ref" : "#/components/schemas/EmailPersonCreateRequest"
-            },
-            "type" : "array"
-          },
-          "phonePersonList" : {
-            "items" : {
-              "$ref" : "#/components/schemas/PhonePersonCreateRequest"
-            },
-            "type" : "array"
-          },
-          "primerApellido" : {
-            "description" : "Primer apellido",
-            "example" : "Perez",
-            "maxLength" : 50,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "primerNombre" : {
-            "description" : "Primer nombre",
-            "example" : "Juan",
-            "maxLength" : 50,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "segundoApellido" : {
-            "description" : "Segundo apellido, opcional",
-            "example" : "Gomez",
-            "maxLength" : 50,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "segundoNombre" : {
-            "description" : "Segundo nombre",
-            "example" : "Carlos",
-            "maxLength" : 50,
-            "minLength" : 0,
-            "type" : "string"
-          },
-          "tipoPersona" : {
-            "description" : "Funcion principal de la persona",
-            "enum" : [ "ENGINEER", "MANAGER", "CEO_CLIENT", "ADMIN", "SUPER_ADMIN" ],
-            "example" : "MANAGER",
-            "type" : "string"
-          }
-        },
-        "required" : [ "cedula", "primerApellido", "primerNombre", "tipoPersona" ],
-        "type" : "object"
-      },
       "PersonErrorResponse" : {
         "properties" : {
           "code" : {
@@ -252,7 +192,7 @@
             "type" : "string"
           },
           "tipoPersona" : {
-            "enum" : [ "ENGINEER", "MANAGER", "CEO_CLIENT", "ADMIN", "SUPER_ADMIN" ],
+            "enum" : [ "ENGINEER", "SUPERVISOR", "ADMIN", "SUPER_ADMIN" ],
             "type" : "string"
           }
         },
@@ -323,8 +263,8 @@
           },
           "tipoPersona" : {
             "description" : "Funcion principal",
-            "enum" : [ "ENGINEER", "MANAGER", "CEO_CLIENT", "ADMIN", "SUPER_ADMIN" ],
-            "example" : "CEO_CLIENT",
+            "enum" : [ "ENGINEER", "SUPERVISOR", "ADMIN", "SUPER_ADMIN" ],
+            "example" : "SUPERVISOR",
             "type" : "string"
           }
         },
@@ -475,94 +415,6 @@
         },
         "summary" : "Listar todas las personas",
         "tags" : [ "Person" ]
-      },
-      "post" : {
-        "description" : "Crea la persona en la base de datos, sin usuario en el proveedor de identidad.",
-        "operationId" : "createPerson",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/PersonCreateRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          },
-          "502" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Gateway"
-          },
-          "503" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonErrorResponse"
-                }
-              }
-            },
-            "description" : "Service Unavailable"
-          }
-        },
-        "summary" : "Registrar una persona sin acceso al sistema",
-        "tags" : [ "Person" ]
       }
     },
     "/v1/api/persons/admins" : {
@@ -652,96 +504,6 @@
           }
         },
         "summary" : "Registrar un administrador",
-        "tags" : [ "Person" ]
-      }
-    },
-    "/v1/api/persons/ceo-clients" : {
-      "post" : {
-        "description" : "Crea la persona y su usuario en el proveedor de identidad.",
-        "operationId" : "registerCeoClient",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/PersonRegisterRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Request"
-          },
-          "404" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonErrorResponse"
-                }
-              }
-            },
-            "description" : "Not Found"
-          },
-          "409" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Conflict"
-          },
-          "500" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/GlobalErrorResponse"
-                }
-              }
-            },
-            "description" : "Internal Server Error"
-          },
-          "502" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonErrorResponse"
-                }
-              }
-            },
-            "description" : "Bad Gateway"
-          },
-          "503" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PersonErrorResponse"
-                }
-              }
-            },
-            "description" : "Service Unavailable"
-          }
-        },
-        "summary" : "Registrar un representante legal de cliente",
         "tags" : [ "Person" ]
       }
     },
@@ -1081,6 +843,96 @@
         },
         "summary" : "Guardar mi firma",
         "tags" : [ "PersonSignature" ]
+      }
+    },
+    "/v1/api/persons/supervisors" : {
+      "post" : {
+        "description" : "Crea la persona y su usuario en el proveedor de identidad. Lo que ve lo decide a que clientes se le nombra supervisor, desde la ficha de cada uno.",
+        "operationId" : "registerSupervisor",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PersonRegisterRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "502" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Gateway"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Registrar un supervisor de cliente",
+        "tags" : [ "Person" ]
       }
     },
     "/v1/api/persons/{id}" : {

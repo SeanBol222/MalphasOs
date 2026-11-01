@@ -3,7 +3,6 @@ package com.malphasos.malphasos.client.infrastructure.input.model.response;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import lombok.Builder;
 
@@ -19,6 +18,14 @@ public record ClientResponse(
         boolean estadoActivo,
         List<ContactResponse> correos,
         List<ContactResponse> telefonos,
-        @Schema(description = "Identificadores de las personas que lo representan legalmente")
-        Set<UUID> representantes) {
+        @Schema(description = "Quienes lo supervisan: tienen cuenta, ven lo de este cliente y aprueban sus ordenes")
+        List<SupervisorResponse> supervisores) {
+
+    @Schema(name = "ClientSupervisorResponse")
+    public record SupervisorResponse(
+            UUID idPersona,
+            @Schema(description = "Como se le nombra en los documentos; nulo, sin cargo",
+                    example = "Ingeniero biomedico")
+            String cargo) {
+    }
 }

@@ -2,12 +2,10 @@ package com.malphasos.malphasos.client.infrastructure.input.mapper;
 
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
-import com.malphasos.malphasos.client.domain.manager.Manager;
 import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.client.infrastructure.input.model.response.ClientResponse;
 import com.malphasos.malphasos.client.infrastructure.input.model.response.ContactResponse;
 import com.malphasos.malphasos.client.infrastructure.input.model.response.HeadquarterResponse;
-import com.malphasos.malphasos.client.infrastructure.input.model.response.ManagerResponse;
 import com.malphasos.malphasos.client.infrastructure.input.model.response.ServiceAreaResponse;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -42,7 +40,10 @@ public class ClientRestMapper {
                         .map(telefono -> new ContactResponse(
                                 telefono.getId(), telefono.getTelefono(), telefono.isEstadoActivo()))
                         .toList())
-                .representantes(cliente.getRepresentantes())
+                .supervisores(cliente.getSupervisores().stream()
+                        .map(supervisor -> new ClientResponse.SupervisorResponse(
+                                supervisor.idPersona(), supervisor.cargo()))
+                        .toList())
                 .build();
     }
 
@@ -74,18 +75,5 @@ public class ClientRestMapper {
 
     public List<ServiceAreaResponse> toServiceAreaResponseList(List<ServiceArea> areas) {
         return areas.stream().map(this::toResponse).toList();
-    }
-
-    public ManagerResponse toResponse(Manager encargado) {
-        return ManagerResponse.builder()
-                .idPersona(encargado.getIdPersona())
-                .idsSede(encargado.getIdsSede())
-                .idsAreaServicio(encargado.getIdsAreaServicio())
-                .estadoActivo(encargado.isEstadoActivo())
-                .build();
-    }
-
-    public List<ManagerResponse> toManagerResponseList(List<Manager> encargados) {
-        return encargados.stream().map(this::toResponse).toList();
     }
 }

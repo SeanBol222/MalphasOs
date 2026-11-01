@@ -5,7 +5,6 @@ import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PhonePerson;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.EmailPersonCreateRequest;
-import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonCreateRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonRegisterRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonUpdateRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PhonePersonCreateRequest;
@@ -23,10 +22,6 @@ import org.mapstruct.Mapping;
  */
 @Mapper(componentModel = "spring")
 public interface PersonRestMapper {
-
-    @Mapping(target = "identificador", ignore = true)
-    @Mapping(target = "estadoActivo", ignore = true)
-    Person toPerson(PersonCreateRequest request);
 
     @Mapping(target = "identificador", ignore = true)
     @Mapping(target = "estadoActivo", ignore = true)

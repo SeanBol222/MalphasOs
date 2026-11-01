@@ -98,7 +98,7 @@ class WorkOrderServiceTest {
 
     private static Client unCliente(boolean activo) {
         return Client.rehydrate(CLIENTE, "900123456", IdentificationType.NIT_JURIDICO, "Hospital", "CLI",
-                UUID.randomUUID(), activo, List.of(), List.of(), Set.of());
+                UUID.randomUUID(), activo, List.of(), List.of(), List.of());
     }
 
     private static Headquarter unaSede(UUID idCliente, boolean activa) {
@@ -462,7 +462,7 @@ class WorkOrderServiceTest {
         void noEsIngeniero() {
             laOrdenExiste();
             when(personCommunicationPort.findById(INGENIERO))
-                    .thenReturn(unaPersona(PersonType.MANAGER, true));
+                    .thenReturn(unaPersona(PersonType.SUPERVISOR, true));
 
             assertThatIllegalArgumentException().isThrownBy(() -> service.assign(elComando()))
                     .withMessageContaining("no lo es");

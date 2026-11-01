@@ -50,8 +50,8 @@ public class ClientPersistenceAdapter implements ClientPersistencePort {
 
     @Override
     @Transactional(readOnly = true)
-    public Set<UUID> findIdsRepresentedBy(UUID idPersona) {
-        return clientRepository.findIdsRepresentedBy(idPersona);
+    public Set<UUID> findIdsSupervisedBy(UUID idPersona) {
+        return clientRepository.findIdsSupervisedBy(idPersona);
     }
 
     @Override

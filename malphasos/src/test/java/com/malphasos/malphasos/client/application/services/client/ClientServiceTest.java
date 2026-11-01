@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.client.application.ports.output.ClientPersistencePort;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
-import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.AppointSupervisorCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.CreateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.ChangeClientAcronymCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.DeactivateClientCommand;
@@ -19,6 +19,9 @@ import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
+import com.malphasos.malphasos.client.domain.exception.SupervisorPersonTypeException;
+import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
+import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
@@ -26,7 +29,6 @@ import com.malphasos.malphasos.shared.domain.events.DomainEvent;
 import com.malphasos.malphasos.shared.domain.events.Payload;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,7 +52,7 @@ class ClientServiceTest {
 
     private Client unCliente(UUID id) {
         return Client.rehydrate(id, "900123456", IdentificationType.NIT_JURIDICO,
-                "Hospital Central", "CLI", null, true, List.of(), List.of(), Set.of());
+                "Hospital Central", "CLI", null, true, List.of(), List.of(), List.of());
     }
 
     @SuppressWarnings("unchecked")
@@ -133,21 +135,29 @@ class ClientServiceTest {
         verifyNoInteractions(dispatcher);
     }
 
+    private static PersonCommunicationResponse persona(UUID id, PersonType tipo) {
+        return PersonCommunicationResponse.builder()
+                .identificador(id).primerNombre("Ana").primerApellido("Gómez")
+                .tipoPersona(tipo).estadoActivo(true).build();
+    }
+
     @Test
-    @DisplayName("nombrar representante comprueba antes que la persona exista")
-    void nombrarRepresentanteComprubaLaPersona() {
+    @DisplayName("nombrar supervisor comprueba antes que la persona exista y sea SUPERVISOR")
+    void nombrarSupervisorCompruebaLaPersona() {
         UUID cliente = UUID.randomUUID();
         UUID persona = UUID.randomUUID();
 
+        when(personCommunicationPort.findById(persona)).thenReturn(persona(persona, PersonType.SUPERVISOR));
         when(persistencePort.findById(cliente)).thenReturn(Optional.of(unCliente(cliente)));
         when(persistencePort.save(any(Client.class))).thenAnswer(i -> i.getArgument(0));
 
-        service().appointRepresentative(new AppointRepresentativeCommand(cliente, persona));
+        Client guardado = service().appointSupervisor(new AppointSupervisorCommand(cliente, persona, "Médico"));
 
-        verify(personCommunicationPort).findById(persona);
+        assertThat(guardado.getSupervisores()).singleElement()
+                .satisfies(supervisor -> assertThat(supervisor.cargo()).isEqualTo("Médico"));
         assertThat(despachados())
                 .extracting(evento -> evento.metadata().eventType())
-                .containsExactly("client.representative-appointed");
+                .containsExactly("client.supervisor-appointed");
     }
 
     @Test
@@ -160,11 +170,50 @@ class ClientServiceTest {
                 .thenThrow(new PersonNotFoundException("No existe"));
 
         assertThatThrownBy(() ->
-                        service().appointRepresentative(new AppointRepresentativeCommand(cliente, persona)))
+                        service().appointSupervisor(new AppointSupervisorCommand(cliente, persona, null)))
                 .isInstanceOf(PersonNotFoundException.class);
 
         verify(persistencePort, never()).save(any());
         verifyNoInteractions(dispatcher);
+    }
+
+    @Test
+    @DisplayName("un ingeniero o un administrador no se nombran supervisores: aprobarían su propio trabajo")
+    void soloUnSupervisorSupervisa() {
+        UUID cliente = UUID.randomUUID();
+        // Estubado para que, sin la regla, el nombramiento saliera bien y la prueba fallara por eso.
+        lenient().when(persistencePort.findById(cliente)).thenReturn(Optional.of(unCliente(cliente)));
+        lenient().when(persistencePort.save(any(Client.class))).thenAnswer(i -> i.getArgument(0));
+
+        for (PersonType tipo : List.of(PersonType.ENGINEER, PersonType.ADMIN, PersonType.SUPER_ADMIN)) {
+            UUID persona = UUID.randomUUID();
+            when(personCommunicationPort.findById(persona)).thenReturn(persona(persona, tipo));
+
+            assertThatThrownBy(() ->
+                            service().appointSupervisor(new AppointSupervisorCommand(cliente, persona, null)))
+                    .isInstanceOf(SupervisorPersonTypeException.class)
+                    .hasMessageContaining(tipo.name());
+        }
+
+        verify(persistencePort, never()).save(any());
+        verifyNoInteractions(dispatcher);
+    }
+
+    @Test
+    @DisplayName("cambiar el cargo no vuelve a preguntar por la persona: ya es supervisora")
+    void cambiarCargo() {
+        UUID cliente = UUID.randomUUID();
+        UUID persona = UUID.randomUUID();
+        Client conSupervisor = unCliente(cliente);
+        conSupervisor.appointSupervisor(persona, null);
+        when(persistencePort.findById(cliente)).thenReturn(Optional.of(conSupervisor));
+        when(persistencePort.save(any(Client.class))).thenAnswer(i -> i.getArgument(0));
+
+        Client guardado = service().changeSupervisorTitle(new AppointSupervisorCommand(cliente, persona, "Médico"));
+
+        assertThat(guardado.getSupervisores()).singleElement()
+                .satisfies(supervisor -> assertThat(supervisor.cargo()).isEqualTo("Médico"));
+        verifyNoInteractions(personCommunicationPort);
     }
 
     @Test

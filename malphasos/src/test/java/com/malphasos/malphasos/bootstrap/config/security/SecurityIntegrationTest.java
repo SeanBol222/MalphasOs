@@ -87,7 +87,7 @@ class SecurityIntegrationTest {
      */
     @BeforeEach
     void laPersonaDelIdentificadorEsUnRepresentante() {
-        when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.CEO_CLIENT));
+        when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.SUPERVISOR));
     }
 
     /**
@@ -148,7 +148,7 @@ class SecurityIntegrationTest {
               "cedula": "1000000001",
               "primerNombre": "Sean",
               "primerApellido": "Bolivar",
-              "tipoPersona": "CEO_CLIENT"
+              "tipoPersona": "SUPERVISOR"
             }
             """;
 
@@ -244,7 +244,7 @@ class SecurityIntegrationTest {
         @Test
         @DisplayName("el administrador da de alta representantes de cliente")
         void elAdministradorAltaRepresentantes() throws Exception {
-            autorizado(post("/v1/api/persons/ceo-clients")
+            autorizado(post("/v1/api/persons/supervisors")
                     .with(comoElGrupo("admins"))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(ALTA_VALIDA));
@@ -277,7 +277,7 @@ class SecurityIntegrationTest {
         @Test
         @DisplayName("el administrador edita y retira a un representante de cliente")
         void elAdministradorTocaAlRepresentante() throws Exception {
-            // El doble devuelve un CEO_CLIENT, de modo que basta person.write.
+            // El doble devuelve un SUPERVISOR, de modo que basta person.write.
             autorizado(delete("/v1/api/persons/" + ID).with(comoElGrupo("admins")));
         }
 
@@ -322,7 +322,7 @@ class SecurityIntegrationTest {
         @Test
         @DisplayName("la de un representante sí, que es de su escalón")
         void elAdministradorRestableceLaDelRepresentante() throws Exception {
-            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.CEO_CLIENT));
+            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.SUPERVISOR));
 
             autorizado(patch("/v1/api/persons/" + ID + "/password")
                     .with(comoElGrupo("admins"))
@@ -464,7 +464,6 @@ class SecurityIntegrationTest {
             "GET, /v1/api/persons",
             "GET, /v1/api/countries",
             "GET, /v1/api/clients",
-            "GET, /v1/api/managers",
             "GET, /v1/api/brands",
             "GET, /v1/api/client-equipments",
             "GET, /v1/api/client-equipments/overview",
@@ -481,13 +480,9 @@ class SecurityIntegrationTest {
             "DELETE, /v1/api/clients/" + ID,
             "DELETE, /v1/api/clients/" + ID + "/emails/" + ID,
             "DELETE, /v1/api/clients/" + ID + "/phones/" + ID,
-            "DELETE, /v1/api/clients/" + ID + "/representatives/" + ID,
+            "DELETE, /v1/api/clients/" + ID + "/supervisors/" + ID,
             "DELETE, /v1/api/headquarters/" + ID,
             "DELETE, /v1/api/service-areas/" + ID,
-            "DELETE, /v1/api/managers/" + ID,
-            // Relevar de una sede o de un area, del 2026-10-27: un encargado tiene varias.
-            "DELETE, /v1/api/managers/" + ID + "/headquarters/" + ID,
-            "DELETE, /v1/api/managers/" + ID + "/service-areas/" + ID,
             "DELETE, /v1/api/brands/" + ID,
             "DELETE, /v1/api/manufacturers/" + ID,
             "DELETE, /v1/api/models/" + ID,
@@ -535,7 +530,6 @@ class SecurityIntegrationTest {
             autorizado(get("/v1/api/countries").with(conRoles(rolDeAdministrador)));
             autorizado(get("/v1/api/clients").with(conRoles(rolDeAdministrador)));
             autorizado(get("/v1/api/service-areas/" + ID).with(conRoles(rolDeAdministrador)));
-            autorizado(get("/v1/api/managers").with(conRoles(rolDeAdministrador)));
             autorizado(get("/v1/api/brands").with(conRoles(rolDeAdministrador)));
         }
 
@@ -543,10 +537,10 @@ class SecurityIntegrationTest {
         @ValueSource(strings = {"admin.full", "super.admin.full"})
         @DisplayName("abre tambien las autoridades que no tiene ningun grupo del realm")
         void abreLasAutoridadesQueNadieMasTiene(String rolDeAdministrador) throws Exception {
-            // client.delete y engineer.assign no los lleva ningun grupo salvo administradores: si la
-            // expansion se los saltara, nadie en el sistema podria dar de baja a un cliente.
+            // client.delete no lo lleva ningun grupo salvo administradores: si la expansion se lo
+            // saltara, nadie en el sistema podria dar de baja a un cliente. (engineer.assign era el
+            // otro caso, hasta que salio con los encargados en V53.)
             autorizado(delete("/v1/api/clients/" + ID).with(conRoles(rolDeAdministrador)));
-            autorizado(delete("/v1/api/managers/" + ID).with(conRoles(rolDeAdministrador)));
             autorizado(patch("/v1/api/client-equipments/" + ID + "/service-area/" + ID)
                     .with(conRoles(rolDeAdministrador)));
         }
@@ -607,7 +601,6 @@ class SecurityIntegrationTest {
             "/v1/api/clients/" + ID + "/emails/" + ID + ", client.read",
             "/v1/api/headquarters/" + ID + ", client.read",
             "/v1/api/service-areas/" + ID + ", service-area.read",
-            "/v1/api/managers/" + ID + ", engineer.read",
             "/v1/api/brands/" + ID + ", equipment.read",
             "/v1/api/manufacturers/" + ID + ", equipment.read",
             "/v1/api/models/" + ID + ", equipment.read",
@@ -658,10 +651,11 @@ class SecurityIntegrationTest {
         }
 
         @Test
-        @DisplayName("engineer.assign no abre la consulta de encargados")
-        void engineerAssignNoAbreLaLectura() throws Exception {
-            // Poner a alguien al frente y consultar quien esta al frente son permisos distintos.
-            prohibido(get("/v1/api/managers").with(conRoles("engineer.assign")));
+        @DisplayName("person.write da de alta a un supervisor pero no lo nombra en un cliente")
+        void personWriteNoNombraSupervisores() throws Exception {
+            // Registrar a la persona y decidir que clientes ve son dos permisos: lo segundo es de quien
+            // gobierna al cliente.
+            prohibido(delete("/v1/api/clients/" + ID + "/supervisors/" + ID).with(conRoles("person.write")));
         }
     }
 
@@ -678,7 +672,7 @@ class SecurityIntegrationTest {
         void clientWriteNoDaDeBajaAlCliente() throws Exception {
             autorizado(delete("/v1/api/clients/" + ID + "/emails/" + ID).with(conRoles("client.write")));
             autorizado(delete("/v1/api/clients/" + ID + "/phones/" + ID).with(conRoles("client.write")));
-            autorizado(delete("/v1/api/clients/" + ID + "/representatives/" + ID).with(conRoles("client.write")));
+            autorizado(delete("/v1/api/clients/" + ID + "/supervisors/" + ID).with(conRoles("client.write")));
 
             prohibido(delete("/v1/api/clients/" + ID).with(conRoles("client.write")));
         }
@@ -716,23 +710,6 @@ class SecurityIntegrationTest {
 
             prohibido(delete("/v1/api/client-equipments/" + ID).with(conRoles("equipment.assign")));
         }
-
-        @Test
-        @DisplayName("los encargados se gobiernan con engineer.read y engineer.assign, no con engineer.write")
-        void alEncargadoSeLeAsignaNoSeLeEscribe() throws Exception {
-            // engineer.write no existe en el realm. Si alguien lo escribiera en una anotacion, el
-            // endpoint quedaria cerrado para todo el mundo, administrador incluido.
-            autorizado(get("/v1/api/managers").with(conRoles("engineer.read")));
-            autorizado(delete("/v1/api/managers/" + ID).with(conRoles("engineer.assign")));
-            autorizado(delete("/v1/api/managers/" + ID + "/headquarters/" + ID)
-                    .with(conRoles("engineer.assign")));
-            autorizado(delete("/v1/api/managers/" + ID + "/service-areas/" + ID)
-                    .with(conRoles("engineer.assign")));
-
-            prohibido(delete("/v1/api/managers/" + ID).with(conRoles("engineer.write")));
-            prohibido(delete("/v1/api/managers/" + ID + "/headquarters/" + ID)
-                    .with(conRoles("engineer.read")));
-        }
     }
 
     /**
@@ -751,7 +728,6 @@ class SecurityIntegrationTest {
             autorizado(get("/v1/api/countries").with(comoElGrupo("engineers")));
             autorizado(get("/v1/api/clients").with(comoElGrupo("engineers")));
             autorizado(get("/v1/api/service-areas/" + ID).with(comoElGrupo("engineers")));
-            autorizado(get("/v1/api/managers").with(comoElGrupo("engineers")));
             autorizado(get("/v1/api/brands").with(comoElGrupo("engineers")));
         }
 
@@ -777,15 +753,14 @@ class SecurityIntegrationTest {
         }
 
         @Test
-        @DisplayName("un ingeniero asigna equipos pero no encargados: equipment.assign no es engineer.assign")
-        void elIngenieroNoAsignaEncargados() throws Exception {
-            // Las dos autoridades se llaman igual salvo por el recurso, y el ingeniero lleva una y
-            // no la otra. Es el par que una revision apresurada del realm uniformiza "para que el
-            // ingeniero pueda asignar", concediendo de paso el gobierno de los encargados.
+        @DisplayName("un ingeniero asigna equipos pero no nombra supervisores")
+        void elIngenieroNoNombraSupervisores() throws Exception {
+            // Un ingeniero nombrado o nombrando supervisores decidiria quien aprueba su propio
+            // trabajo. Hasta V53 era el mismo cuidado con los encargados y engineer.assign.
             autorizado(patch("/v1/api/client-equipments/" + ID + "/service-area/" + ID)
                     .with(comoElGrupo("engineers")));
 
-            prohibido(delete("/v1/api/managers/" + ID).with(comoElGrupo("engineers")));
+            prohibido(delete("/v1/api/clients/" + ID + "/supervisors/" + ID).with(comoElGrupo("engineers")));
         }
 
         @Test
@@ -802,7 +777,7 @@ class SecurityIntegrationTest {
         }
 
         @Test
-        @DisplayName("un ingeniero no da de alta clientes, paises, personas ni encargados")
+        @DisplayName("un ingeniero no da de alta clientes, paises ni supervisores")
         void elIngenieroNoDaDeAltaNada() throws Exception {
             prohibido(post("/v1/api/clients")
                     .with(comoElGrupo("engineers"))
@@ -812,14 +787,10 @@ class SecurityIntegrationTest {
                     .with(comoElGrupo("engineers"))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(unPais()));
-            prohibido(post("/v1/api/persons")
+            prohibido(post("/v1/api/persons/supervisors")
                     .with(comoElGrupo("engineers"))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(unaPersona()));
-            prohibido(post("/v1/api/managers")
-                    .with(comoElGrupo("engineers"))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(unEncargado()));
+                    .content(unSupervisor()));
         }
 
         @Test
@@ -849,11 +820,11 @@ class SecurityIntegrationTest {
         }
 
         @Test
-        @DisplayName("un cliente no ve personas, paises ni encargados")
+        @DisplayName("un cliente no ve personas ni paises, ni se nombra supervisor de otro cliente")
         void elClienteNoVeLoQueNoEsSuyo() throws Exception {
             prohibido(get("/v1/api/persons").with(comoElGrupo("clients")));
             prohibido(get("/v1/api/countries").with(comoElGrupo("clients")));
-            prohibido(get("/v1/api/managers").with(comoElGrupo("clients")));
+            prohibido(delete("/v1/api/clients/" + ID + "/supervisors/" + ID).with(comoElGrupo("clients")));
         }
 
         @Test
@@ -879,7 +850,7 @@ class SecurityIntegrationTest {
             autorizado(delete("/v1/api/countries/" + ID).with(comoElGrupo("admins")));
             autorizado(delete("/v1/api/clients/" + ID).with(comoElGrupo("admins")));
             autorizado(delete("/v1/api/service-areas/" + ID).with(comoElGrupo("admins")));
-            autorizado(delete("/v1/api/managers/" + ID).with(comoElGrupo("admins")));
+            autorizado(delete("/v1/api/clients/" + ID + "/supervisors/" + ID).with(comoElGrupo("admins")));
             autorizado(delete("/v1/api/client-equipments/" + ID).with(comoElGrupo("admins")));
             autorizado(patch("/v1/api/client-equipments/" + ID + "/service-area/" + ID)
                     .with(comoElGrupo("admins")));
@@ -898,19 +869,12 @@ class SecurityIntegrationTest {
                """;
     }
 
-    private static String unaPersona() {
+    private static String unSupervisor() {
         return """
                {"cedula":"1234567890","primerNombre":"Ada","primerApellido":"Lovelace",
-                "tipoPersona":"MANAGER"}
+                "nombreUsuario":"ada","password":"secreto",
+                "emailPersonList":[{"correoPersona":"ada@hospital.com"}]}
                """;
-    }
-
-    private static String unEncargado() {
-        return """
-               {"cedula":"1234567890","primerNombre":"Ada","primerApellido":"Lovelace",
-                "tipo":"HEADQUARTER","idAsignacion":"%s","correos":[{"valor":"ada@hospital.com"}]}
-               """
-                .formatted(ID);
     }
 
     private static String unEquipoDeCliente() {

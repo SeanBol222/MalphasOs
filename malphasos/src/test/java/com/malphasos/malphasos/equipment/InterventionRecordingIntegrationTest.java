@@ -61,14 +61,13 @@ import org.springframework.test.context.jdbc.Sql;
             "DELETE FROM protocolo_tipo_equipo WHERE k_id_protocolo IN (SELECT k_id_protocolo FROM protocolo WHERE n_clave LIKE 'hv prueba %')",
             "DELETE FROM protocolo WHERE n_clave LIKE 'hv prueba %'",
             "DELETE FROM tipo_equipo",
-            "DELETE FROM encargado_sede",
-            "DELETE FROM encargado_area",
+            "DELETE FROM supervisor_cliente",
             "DELETE FROM area_servicio",
             "DELETE FROM sede",
             "DELETE FROM correo_cliente",
             "DELETE FROM telefono_cliente",
             "DELETE FROM cliente",
-            "DELETE FROM persona WHERE n_primer_nombre = 'Carla' AND n_primer_apellido = 'Ruiz'"
+            "DELETE FROM persona WHERE (n_primer_nombre, n_primer_apellido) IN (('Carla', 'Ruiz'), ('Ana', 'Mora'))"
         },
         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class InterventionRecordingIntegrationTest {
@@ -438,7 +437,7 @@ class InterventionRecordingIntegrationTest {
     }
 
     @Test
-    @DisplayName("la hoja de vida trae el responsable de la sede y los contactos vigentes del cliente")
+    @DisplayName("la hoja de vida trae a los supervisores vigentes del cliente y sus contactos vigentes")
     void elResponsableYLosContactos() {
         // De extremo a extremo y no con dobles: cruza tres modulos —equipment pide, client decide quien
         // responde, person pone el nombre— y lo que hay que ver es que el cableado llega.
@@ -448,13 +447,24 @@ class InterventionRecordingIntegrationTest {
                 """
                 INSERT INTO persona (k_identificador, k_cedula, n_primer_nombre, n_primer_apellido,
                                      t_tipo_persona)
-                VALUES (?, ?, 'Carla', 'Ruiz', 'MANAGER')
+                VALUES (?, ?, 'Carla', 'Ruiz', 'SUPERVISOR')
                 """,
                 persona, unico());
-        // Encargada de la SEDE, no del area: el area no tiene, asi que responde la sede.
         jdbcTemplate.update(
-                "INSERT INTO encargado_sede (k_identificador, k_id_sede) VALUES (?, ?)",
-                persona, contexto.sede());
+                "INSERT INTO supervisor_cliente (k_identificador, k_id_cliente) VALUES (?, ?)",
+                persona, contexto.cliente());
+        // Uno relevado no responde por el equipo, aunque su fila siga como historial.
+        UUID relevado = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO persona (k_identificador, k_cedula, n_primer_nombre, n_primer_apellido,
+                                     t_tipo_persona)
+                VALUES (?, ?, 'Ana', 'Mora', 'SUPERVISOR')
+                """,
+                relevado, unico());
+        jdbcTemplate.update(
+                "INSERT INTO supervisor_cliente (k_identificador, k_id_cliente, b_estado_activo) VALUES (?, ?, false)",
+                relevado, contexto.cliente());
         jdbcTemplate.update(
                 "INSERT INTO telefono_cliente (k_id_telefono_cliente, n_telefono_cliente, k_id_cliente) VALUES (?, '3001112233', ?)",
                 UUID.randomUUID(), contexto.cliente());

@@ -77,17 +77,14 @@ public final class ApiAuthority {
    * <p>
    * El prefijo {@code super.} no es decorativo: <b>marca lo que
    * {@link #ADMIN_FULL} no
-   * concede</b>. Un administrador crea representantes de cliente y encargados;
+   * concede</b>. Un administrador crea a los supervisores de los clientes;
    * crear a otro
    * administrador o a un ingeniero está un escalón por encima.
    *
    * <p>
-   * No se llama {@code engineer.write} a propósito. {@code engineer.read} y
-   * {@code engineer.assign} ya existen y hablan del <i>encargado</i> —lo que el
-   * código llama
-   * {@code Manager} y la ERS «profesional responsable»—, de modo que ese nombre
-   * ya está tomado
-   * por otro concepto.
+   * No se llama {@code engineer.write} a propósito: hasta el 2026-11-01 existían
+   * {@code engineer.read} y {@code engineer.assign}, que hablaban del
+   * <i>encargado</i> y no del ingeniero. Salieron con los encargados (V53).
    */
   public static final String SUPER_PERSON_WRITE = "super.person.write";
 
@@ -108,9 +105,6 @@ public final class ApiAuthority {
 
   public static final String SERVICE_AREA_READ = "service-area.read";
   public static final String SERVICE_AREA_WRITE = "service-area.write";
-
-  public static final String ENGINEER_READ = "engineer.read";
-  public static final String ENGINEER_ASSIGN = "engineer.assign";
 
   public static final String EQUIPMENT_READ = "equipment.read";
   public static final String EQUIPMENT_WRITE = "equipment.write";
@@ -169,8 +163,6 @@ public final class ApiAuthority {
           CLIENT_DELETE,
           SERVICE_AREA_READ,
           SERVICE_AREA_WRITE,
-          ENGINEER_READ,
-          ENGINEER_ASSIGN,
           EQUIPMENT_READ,
           EQUIPMENT_WRITE,
           EQUIPMENT_ASSIGN,

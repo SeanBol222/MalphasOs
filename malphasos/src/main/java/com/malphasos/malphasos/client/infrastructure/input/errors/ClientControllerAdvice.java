@@ -3,14 +3,10 @@ package com.malphasos.malphasos.client.infrastructure.input.errors;
 import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.client.domain.exception.HeadquarterNotFoundException;
-import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
-import com.malphasos.malphasos.client.domain.exception.ManagerNotFoundException;
-import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
-import com.malphasos.malphasos.client.domain.exception.ManagerPersonTypeException;
+import com.malphasos.malphasos.client.domain.exception.SupervisorPersonTypeException;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.client.infrastructure.input.rest.ClientRestAdapter;
 import com.malphasos.malphasos.client.infrastructure.input.rest.HeadquarterRestAdapter;
-import com.malphasos.malphasos.client.infrastructure.input.rest.ManagerRestAdapter;
 import com.malphasos.malphasos.client.infrastructure.input.rest.ServiceAreaRestAdapter;
 import com.malphasos.malphasos.location.domain.exception.CityNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
@@ -32,8 +28,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
         assignableTypes = {
             ClientRestAdapter.class,
             HeadquarterRestAdapter.class,
-            ServiceAreaRestAdapter.class,
-            ManagerRestAdapter.class
+            ServiceAreaRestAdapter.class
         })
 public class ClientControllerAdvice {
 
@@ -57,32 +52,11 @@ public class ClientControllerAdvice {
                 ClientErrorCatalog.SERVICE_AREA_NOT_FOUND, List.of(ex.getMessage()));
     }
 
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    @ExceptionHandler(ManagerNotFoundException.class)
-    public ClientErrorResponse handleManagerNotFound(ManagerNotFoundException ex) {
-        return ClientErrorResponse.of(ClientErrorCatalog.MANAGER_NOT_FOUND, List.of(ex.getMessage()));
-    }
-
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    @ExceptionHandler(ManagerAssignmentNotFoundException.class)
-    public ClientErrorResponse handleManagerAssignmentNotFound(ManagerAssignmentNotFoundException ex) {
-        return ClientErrorResponse.of(
-                ClientErrorCatalog.MANAGER_ASSIGNMENT_NOT_FOUND, List.of(ex.getMessage()));
-    }
-
-    /** Un encargado es de un cliente: todas sus asignaciones activas son del mismo (2026-10-27). */
+    /** Solo una persona SUPERVISOR supervisa a un cliente (V53, 2026-11-01). */
     @ResponseStatus(HttpStatus.CONFLICT)
-    @ExceptionHandler(ManagerOfAnotherClientException.class)
-    public ClientErrorResponse handleManagerOfAnotherClient(ManagerOfAnotherClientException ex) {
-        return ClientErrorResponse.of(
-                ClientErrorCatalog.MANAGER_OF_ANOTHER_CLIENT, List.of(ex.getMessage()));
-    }
-
-    /** Solo encargados y representantes responden por una sede o un área (V46, 2026-10-27). */
-    @ResponseStatus(HttpStatus.CONFLICT)
-    @ExceptionHandler(ManagerPersonTypeException.class)
-    public ClientErrorResponse handleManagerPersonType(ManagerPersonTypeException ex) {
-        return ClientErrorResponse.of(ClientErrorCatalog.MANAGER_PERSON_TYPE, List.of(ex.getMessage()));
+    @ExceptionHandler(SupervisorPersonTypeException.class)
+    public ClientErrorResponse handleSupervisorPersonType(SupervisorPersonTypeException ex) {
+        return ClientErrorResponse.of(ClientErrorCatalog.SUPERVISOR_PERSON_TYPE, List.of(ex.getMessage()));
     }
 
     /** La ciudad de una sede, que vive en el módulo de ubicación. */
@@ -92,7 +66,7 @@ public class ClientControllerAdvice {
         return ClientErrorResponse.of(ClientErrorCatalog.CITY_NOT_FOUND, List.of(ex.getMessage()));
     }
 
-    /** La persona detrás de un encargado o de un representante legal. */
+    /** La persona que se nombra supervisora. */
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(PersonNotFoundException.class)
     public ClientErrorResponse handlePerson(PersonNotFoundException ex) {

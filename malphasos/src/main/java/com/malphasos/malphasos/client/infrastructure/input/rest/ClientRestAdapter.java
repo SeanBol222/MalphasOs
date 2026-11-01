@@ -4,19 +4,20 @@ import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
 import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientPhoneCommand;
-import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.AppointSupervisorCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.ChangeClientAcronymCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.CreateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.DeactivateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientPhoneCommand;
-import com.malphasos.malphasos.client.application.services.client.commands.RemoveRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.RemoveSupervisorCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.UpdateClientCommand;
 import com.malphasos.malphasos.client.infrastructure.input.mapper.ClientRestMapper;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ClientAcronymRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ClientCreateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ClientUpdateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ContactRequest;
+import com.malphasos.malphasos.client.infrastructure.input.model.request.SupervisorRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.response.ClientResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -173,28 +174,44 @@ public class ClientRestAdapter {
     }
 
     @Operation(
-            summary = "Nombrar representante legal",
-            description = "La persona debe existir. Una persona puede representar a varios clientes.")
+            summary = "Nombrar supervisor",
+            description = "La persona debe existir y ser SUPERVISOR. Supervisar es tener cuenta, ver lo de "
+                    + "este cliente y aprobar sus ordenes, en todas sus sedes. Una persona puede supervisar "
+                    + "a varios clientes. Nombrar de nuevo a quien ya lo es le cambia el cargo.")
     @PreAuthorize("hasAuthority('client.write')")
-    @PostMapping("/{id}/representatives/{idPersona}")
-    public ResponseEntity<ClientResponse> appointRepresentative(
-            @PathVariable UUID id, @PathVariable UUID idPersona) {
+    @PostMapping("/{id}/supervisors/{idPersona}")
+    public ResponseEntity<ClientResponse> appointSupervisor(
+            @PathVariable UUID id,
+            @PathVariable UUID idPersona,
+            @Valid @RequestBody(required = false) SupervisorRequest request) {
 
         ClientResponse actualizado = clientRestMapper.toResponse(
-                clientServicePort.appointRepresentative(
-                        new AppointRepresentativeCommand(id, idPersona)));
+                clientServicePort.appointSupervisor(
+                        new AppointSupervisorCommand(id, idPersona, cargoDe(request))));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(actualizado);
     }
 
-    @Operation(summary = "Retirar a un representante legal")
+    @Operation(summary = "Cambiar el cargo de un supervisor", description = "Debe supervisar ya a este cliente.")
     @PreAuthorize("hasAuthority('client.write')")
-    @DeleteMapping("/{id}/representatives/{idPersona}")
-    public ClientResponse removeRepresentative(
-            @PathVariable UUID id, @PathVariable UUID idPersona) {
+    @PatchMapping("/{id}/supervisors/{idPersona}")
+    public ClientResponse changeSupervisorTitle(
+            @PathVariable UUID id, @PathVariable UUID idPersona, @Valid @RequestBody SupervisorRequest request) {
 
         return clientRestMapper.toResponse(
-                clientServicePort.removeRepresentative(
-                        new RemoveRepresentativeCommand(id, idPersona)));
+                clientServicePort.changeSupervisorTitle(
+                        new AppointSupervisorCommand(id, idPersona, cargoDe(request))));
+    }
+
+    @Operation(summary = "Retirar a un supervisor", description = "Pierde en el acto lo que veia de este cliente.")
+    @PreAuthorize("hasAuthority('client.write')")
+    @DeleteMapping("/{id}/supervisors/{idPersona}")
+    public ClientResponse removeSupervisor(@PathVariable UUID id, @PathVariable UUID idPersona) {
+        return clientRestMapper.toResponse(
+                clientServicePort.removeSupervisor(new RemoveSupervisorCommand(id, idPersona)));
+    }
+
+    private static String cargoDe(SupervisorRequest request) {
+        return request == null ? null : request.cargo();
     }
 }

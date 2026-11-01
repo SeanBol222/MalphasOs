@@ -52,44 +52,6 @@ public class PersonService implements PersonServicePort {
     }
 
     @Override
-    /**
-     * Alta de una persona <b>sin acceso al sistema</b>.
-     *
-     * <p>Solo admite {@link PersonType#MANAGER}. Los demás tipos tienen su propia puerta, cada una
-     * con su propia autoridad, y esta es la única que no crea usuario en el proveedor de identidad:
-     * dejarla aceptar cualquier tipo permitía escribir una fila que dice ser un administrador sin
-     * serlo, y saltarse de paso la escalera que las otras puertas imponen.
-     *
-     * <p>Es exactamente lo que un encargado necesita: existir como contacto de una sede sin entrar
-     * nunca a la aplicación. Sus dos llamantes —el alta directa y el registro de un encargado desde
-     * {@code client}— traen ya ese tipo.
-     */
-    @Transactional
-    public Person save(Person person) {
-
-        requireWithoutAccess(person);
-
-        person.setIdentificador(UUID.randomUUID());
-        person.setEstadoActivo(true);
-
-        // El mapper pone nulo encima de la lista vacía por defecto cuando la petición no la trae, y
-        // el contrato declara las dos listas opcionales: sin esto, omitirlas respondía 500.
-        person.setPhonePersonList(new ArrayList<>(listaOVacia(person.getPhonePersonList())));
-        person.setEmailPersonList(new ArrayList<>(listaOVacia(person.getEmailPersonList())));
-
-        person.getPhonePersonList().forEach(phone -> {
-            phone.setIdTelefonoPersona(UUID.randomUUID());
-            phone.setEstadoActivo(true);
-        });
-        person.getEmailPersonList().forEach(email -> {
-            email.setIdCorreoPersona(UUID.randomUUID());
-            email.setEstadoActivo(true);
-        });
-
-        return personPersistencePort.save(person);
-    }
-
-    @Override
     public Person registerEngineer(PersonUseCaseRequest request) {
         return register(request, PersonType.ENGINEER, RoleType.ENGINEER);
     }
@@ -100,8 +62,8 @@ public class PersonService implements PersonServicePort {
     }
 
     @Override
-    public Person registerCeoClient(PersonUseCaseRequest request) {
-        return register(request, PersonType.CEO_CLIENT, RoleType.CEO_CLIENT);
+    public Person registerSupervisor(PersonUseCaseRequest request) {
+        return register(request, PersonType.SUPERVISOR, RoleType.SUPERVISOR);
     }
 
     /**
@@ -117,16 +79,6 @@ public class PersonService implements PersonServicePort {
      * <p>En el original este método estaba escrito tres veces, una por rol, con cuerpos idénticos
      * salvo el valor del rol.
      */
-    /** Esta puerta no crea usuario, de modo que solo sirve para quien no lo necesita. */
-    private void requireWithoutAccess(Person person) {
-        if (person == null || person.getTipoPersona() != PersonType.MANAGER) {
-            throw new IllegalArgumentException(
-                    "Esta alta es solo para encargados, que no acceden al sistema. Para "
-                            + "ingenieros, administradores y representantes de cliente hay una ruta "
-                            + "propia que ademas crea su usuario");
-        }
-    }
-
     private Person register(PersonUseCaseRequest request, PersonType tipoPersona, RoleType roleType) {
 
         String userId = personIdentityPort.createUser(identityRequestFrom(request), roleType);
@@ -206,7 +158,7 @@ public class PersonService implements PersonServicePort {
      * <p><b>Por qué esto no era opcional.</b> Hasta el 2026-10-04 cambiar el tipo no tocaba la
      * identidad, de modo que quien dejaba de ser ingeniero conservaba sus permisos. Y desde que hay
      * filtrado por dueño pasa también lo contrario: el alcance de lectura se decide por el tipo, así
-     * que a un representante al que se le cambie el tipo se le quita el filtro <b>sin quitarle su
+     * que a un supervisor al que se le cambie el tipo se le quita el filtro <b>sin quitarle su
      * grupo</b>, y pasa a leer todo lo que sus autoridades alcanzan. La fila y la identidad decían
      * cosas distintas y el sistema creía las dos a la vez.
      *
@@ -214,8 +166,8 @@ public class PersonService implements PersonServicePort {
      * Keycloak. La idempotencia está además en el adaptador, de modo que esta comprobación es por
      * coste y no por corrección.
      *
-     * <p>Como en {@link #propagateProfile}, que la persona no tenga cuenta no es un error: es el caso
-     * normal de un encargado.
+     * <p>Como en {@link #propagateProfile}, que la persona no tenga cuenta no se trata como error: hasta
+     * V53 era el caso normal de un encargado, y las fichas de entonces siguen sin usuario.
      */
     private void propagateGroup(Person person, PersonType tipoAnterior) {
         if (person.getTipoPersona() == tipoAnterior) {
@@ -234,32 +186,27 @@ public class PersonService implements PersonServicePort {
     }
 
     /**
-     * Con qué permisos accede alguien de este tipo, o {@code null} si no accede.
+     * Con qué permisos accede alguien de este tipo.
      *
-     * <p>Es la traducción entre los cinco valores de {@link PersonType} y los tres grupos que el
+     * <p>Es la traducción entre los cuatro valores de {@link PersonType} y los tres grupos que el
      * realm reparte, y vive aquí —en la capa de aplicación— porque es una decisión de negocio y no
      * del proveedor de identidad. Se resuelve con una expresión {@code switch} para que añadir un
      * tipo nuevo obligue a decidir con qué entra: la misma precaución que toman {@code groupFor} y
      * {@code requiredAuthority}, y por la misma razón.
      *
-     * <p>Dos casos no son una coincidencia de nombres y conviene leerlos despacio:
+     * <p><b>{@code SUPER_ADMIN} entra como administrador</b>, y no es una coincidencia de nombres:
+     * <b>ningún grupo del realm concede {@code super.admin.full}</b>, a propósito, porque el escalón de
+     * arriba se otorga a mano. Dejarlo sin grupo dejaría sin acceso a quien se acaba de promover; se le
+     * da el grupo más alto que un grupo puede dar y se registra que falta el resto.
      *
-     * <ul>
-     *   <li><b>{@code MANAGER} no accede</b>, y por eso devuelve {@code null}: un encargado es alguien
-     *       de quien el sistema guarda datos, no alguien que inicia sesión. Si tenía cuenta por haber
-     *       sido otra cosa antes, queda sin ningún grupo y toda llamada suya responde 403.
-     *   <li><b>{@code SUPER_ADMIN} entra como administrador</b>, y no es un descuido: <b>ningún grupo
-     *       del realm concede {@code super.admin.full}</b>, a propósito, porque el escalón de arriba
-     *       se otorga a mano. Dejarlo sin grupo dejaría sin acceso a quien se acaba de promover; se le
-     *       da el grupo más alto que un grupo puede dar y se registra que falta el resto.
-     * </ul>
+     * <p>Hasta V53 había un tipo que no accedía —el encargado— y devolvía {@code null}. Desde entonces
+     * toda persona tiene cuenta.
      */
     private RoleType groupRoleFor(PersonType tipo) {
         return switch (tipo) {
             case ENGINEER -> RoleType.ENGINEER;
-            case CEO_CLIENT -> RoleType.CEO_CLIENT;
+            case SUPERVISOR -> RoleType.SUPERVISOR;
             case ADMIN -> RoleType.ADMIN;
-            case MANAGER -> null;
             case SUPER_ADMIN -> {
                 log.warn(
                         "Se ha dejado a un SUPER_ADMIN en el grupo de administradores: ningun grupo "
@@ -396,19 +343,13 @@ public class PersonService implements PersonServicePort {
      * Cambia el correo de la cuenta (V40, 2026-10-17). En el mismo orden que la edición: primero la
      * regla, después Keycloak, al final la base.
      *
-     * <p>Un encargado no tiene cuenta, y marcarle un principal sería afirmar algo que no existe: se
-     * rechaza. Una persona con acceso cuya cuenta no aparece en Keycloak —borrada a mano— sí se marca:
-     * la ficha es la que manda, y el conciliador lo deja dicho en el log.
+     * <p>Una persona cuya cuenta no aparece en Keycloak —borrada a mano— sí se marca: la ficha es la que
+     * manda, y el conciliador lo deja dicho en el log.
      */
     @Override
     @Transactional
     public Person markPrimaryEmail(UUID personId, UUID emailId) {
         Person person = findOrFail(personId);
-
-        if (!person.hasAccess()) {
-            throw new IllegalArgumentException(
-                    "Un encargado no tiene cuenta en el sistema: ninguno de sus correos es el de una cuenta");
-        }
 
         EmailPerson elegido = person.markPrimaryEmail(emailId);
         propagateEmail(person, elegido.getCorreoPersona());
@@ -420,18 +361,15 @@ public class PersonService implements PersonServicePort {
      * Restablece la contraseña de una cuenta con una temporal (2026-10-17): es como se resuelve hoy una
      * contraseña olvidada, porque el realm no tiene servidor de correo para el «¿Olvidó su contraseña?».
      *
-     * <p>No toca la base: la contraseña no se guarda aquí. Se rechaza a un encargado, que no tiene
-     * cuenta, y a una persona retirada, cuya cuenta está deshabilitada a propósito. Que la persona
-     * tenga acceso y Keycloak no la encuentre sí es un error, y llega a quien llama.
+     * <p>No toca la base: la contraseña no se guarda aquí. Se rechaza a una persona retirada, cuya
+     * cuenta está deshabilitada a propósito. Que Keycloak no la encuentre sí es un error, y llega a
+     * quien llama.
      */
     @Override
     @Transactional(readOnly = true)
     public void resetPassword(UUID personId, String temporaryPassword) {
         Person person = findOrFail(personId);
 
-        if (!person.hasAccess()) {
-            throw new IllegalArgumentException("Un encargado no tiene cuenta en el sistema: no tiene contrasena");
-        }
         if (!person.isEstadoActivo()) {
             throw new IllegalArgumentException(
                     "Esa persona esta retirada y su cuenta deshabilitada: no se le restablece la contrasena");

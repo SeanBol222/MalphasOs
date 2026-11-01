@@ -335,15 +335,6 @@
           "attributes": {}
         },
         {
-          "id": "d33574d7-94e7-4f9c-92ec-686c302cd23a",
-          "name": "engineer.assign",
-          "description": "",
-          "composite": false,
-          "clientRole": true,
-          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
-          "attributes": {}
-        },
-        {
           "id": "1e98cb61-4d69-45c3-b54f-f3ae0ccd6791",
           "name": "admin.full",
           "description": "",
@@ -364,15 +355,6 @@
         {
           "id": "6a6cd6b1-321d-4cef-967f-ded160e5082d",
           "name": "client.write",
-          "description": "",
-          "composite": false,
-          "clientRole": true,
-          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
-          "attributes": {}
-        },
-        {
-          "id": "cf2a0e8d-4ca8-49c6-b038-9bfc185b4f95",
-          "name": "engineer.read",
           "description": "",
           "composite": false,
           "clientRole": true,
@@ -644,8 +626,6 @@
           "client.write",
           "company.read",
           "company.write",
-          "engineer.assign",
-          "engineer.read",
           "equipment.assign",
           "equipment.read",
           "equipment.write",
@@ -692,7 +672,6 @@
       "clientRoles": {
         "malphasos-api": [
           "client.read",
-          "engineer.read",
           "equipment.assign",
           "equipment.read",
           "equipment.write",

@@ -15,34 +15,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
 import com.malphasos.malphasos.client.application.ports.input.HeadquarterServicePort;
-import com.malphasos.malphasos.client.application.ports.input.ManagerServicePort;
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
 import com.malphasos.malphasos.client.application.services.headquarter.commands.CreateHeadquarterCommand;
-import com.malphasos.malphasos.client.application.services.manager.commands.RegisterManagerCommand;
-import com.malphasos.malphasos.client.application.services.manager.commands.RelieveManagerCommand;
-import com.malphasos.malphasos.client.domain.exception.ManagerAssignmentNotFoundException;
-import com.malphasos.malphasos.client.domain.exception.ManagerOfAnotherClientException;
-import com.malphasos.malphasos.client.domain.exception.ManagerPersonTypeException;
+import com.malphasos.malphasos.client.application.services.client.commands.AppointSupervisorCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.RemoveSupervisorCommand;
+import com.malphasos.malphasos.client.domain.exception.SupervisorPersonTypeException;
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.exception.ClientAcronymTakenException;
 import com.malphasos.malphasos.client.domain.client.IdentificationType;
 import com.malphasos.malphasos.client.domain.exception.ClientNotFoundException;
 import com.malphasos.malphasos.client.domain.headquarter.Address;
 import com.malphasos.malphasos.client.domain.headquarter.Headquarter;
-import com.malphasos.malphasos.client.domain.manager.Manager;
-import com.malphasos.malphasos.client.domain.manager.ManagerAssignment;
-import com.malphasos.malphasos.client.domain.manager.ManagerType;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ClientCreateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.ContactRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.HeadquarterCreateRequest;
 import com.malphasos.malphasos.client.infrastructure.input.model.request.HeadquarterUpdateRequest;
-import com.malphasos.malphasos.client.infrastructure.input.model.request.ManagerAssignRequest;
-import com.malphasos.malphasos.client.infrastructure.input.model.request.ManagerRegisterRequest;
 import com.malphasos.malphasos.location.domain.exception.CityNotFoundException;
 import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,11 +59,10 @@ class ClientRestAdapterTest {
     @MockitoBean private ClientServicePort clientServicePort;
     @MockitoBean private HeadquarterServicePort headquarterServicePort;
     @MockitoBean private ServiceAreaServicePort serviceAreaServicePort;
-    @MockitoBean private ManagerServicePort managerServicePort;
 
     private Client unCliente(UUID id) {
         return Client.rehydrate(id, "900123456", IdentificationType.NIT_JURIDICO,
-                "Hospital Central", "CLI", null, true, List.of(), List.of(), Set.of());
+                "Hospital Central", "CLI", null, true, List.of(), List.of(), List.of());
     }
 
     @Test
@@ -150,14 +140,83 @@ class ClientRestAdapterTest {
     }
 
     @Test
-    @DisplayName("nombrar representante cuelga del cliente y de la persona")
-    void nombrarRepresentante() throws Exception {
+    @DisplayName("nombrar supervisor cuelga del cliente y de la persona; el cargo es opcional")
+    void nombrarSupervisor() throws Exception {
         UUID id = UUID.randomUUID();
         UUID persona = UUID.randomUUID();
-        when(clientServicePort.appointRepresentative(any())).thenReturn(unCliente(id));
+        when(clientServicePort.appointSupervisor(any())).thenReturn(unCliente(id));
 
-        mockMvc.perform(post("/v1/api/clients/" + id + "/representatives/" + persona))
+        mockMvc.perform(post("/v1/api/clients/" + id + "/supervisors/" + persona))
                 .andExpect(status().isCreated());
+        mockMvc.perform(post("/v1/api/clients/" + id + "/supervisors/" + persona)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cargo\":\"Médico propietario\"}"))
+                .andExpect(status().isCreated());
+
+        verify(clientServicePort).appointSupervisor(new AppointSupervisorCommand(id, persona, null));
+        verify(clientServicePort).appointSupervisor(new AppointSupervisorCommand(id, persona, "Médico propietario"));
+    }
+
+    @Test
+    @DisplayName("la respuesta del cliente lleva a sus supervisores con su cargo")
+    void respuestaConSupervisores() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID persona = UUID.randomUUID();
+        Client cliente = unCliente(id);
+        cliente.appointSupervisor(persona, "Ingeniero biomédico");
+        when(clientServicePort.changeSupervisorTitle(any())).thenReturn(cliente);
+
+        mockMvc.perform(patch("/v1/api/clients/" + id + "/supervisors/" + persona)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cargo\":\"Ingeniero biomédico\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supervisores[0].idPersona").value(persona.toString()))
+                .andExpect(jsonPath("$.supervisores[0].cargo").value("Ingeniero biomédico"))
+                .andExpect(jsonPath("$.representantes").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("un cargo de mas de 80 caracteres se rechaza antes de llegar al servicio")
+    void cargoDemasiadoLargo() throws Exception {
+        mockMvc.perform(post("/v1/api/clients/" + UUID.randomUUID() + "/supervisors/" + UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cargo\":\"" + "x".repeat(81) + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(clientServicePort, never()).appointSupervisor(any());
+    }
+
+    @Test
+    @DisplayName("nombrar supervisor a quien no es SUPERVISOR es un conflicto, 409, con su codigo")
+    void nombrarAQuienNoPuede() throws Exception {
+        UUID persona = UUID.randomUUID();
+        when(clientServicePort.appointSupervisor(any()))
+                .thenThrow(new SupervisorPersonTypeException(persona, PersonType.ENGINEER));
+
+        mockMvc.perform(post("/v1/api/clients/" + UUID.randomUUID() + "/supervisors/" + persona))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_CLIENT_011"));
+    }
+
+    @Test
+    @DisplayName("retirar un supervisor cuelga del cliente y de la persona")
+    void retirarSupervisor() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID persona = UUID.randomUUID();
+        when(clientServicePort.removeSupervisor(any())).thenReturn(unCliente(id));
+
+        mockMvc.perform(delete("/v1/api/clients/" + id + "/supervisors/" + persona))
+                .andExpect(status().isOk());
+
+        verify(clientServicePort).removeSupervisor(new RemoveSupervisorCommand(id, persona));
+    }
+
+    @Test
+    @DisplayName("los encargados y los representantes ya no tienen rutas (V53)")
+    void sinEncargadosNiRepresentantes() throws Exception {
+        mockMvc.perform(get("/v1/api/managers")).andExpect(status().isNotFound());
+        mockMvc.perform(post("/v1/api/clients/" + UUID.randomUUID() + "/representatives/" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -219,134 +278,11 @@ class ClientRestAdapterTest {
     }
 
     @Test
-    @DisplayName("registrar un encargado crea la persona y responde 201")
-    void registrarEncargado() throws Exception {
-        UUID persona = UUID.randomUUID();
-        UUID sede = UUID.randomUUID();
-        when(managerServicePort.register(any()))
-                .thenReturn(Manager.rehydrate(
-                        persona, List.of(new ManagerAssignment(ManagerType.HEADQUARTER, sede, true))));
-
-        mockMvc.perform(post("/v1/api/managers")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(new ManagerRegisterRequest(
-                                "1010101010", "Grace", null, "Hopper", null,
-                                ManagerType.HEADQUARTER, sede,
-                                List.of(new ContactRequest("grace@cliente.com")), List.of()))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.idPersona").value(persona.toString()))
-                // Desde V41 lleva las dos listas, y no un tipo con una sola sede o area.
-                .andExpect(jsonPath("$.idsSede[0]").value(sede.toString()))
-                .andExpect(jsonPath("$.idsSede.length()").value(1))
-                .andExpect(jsonPath("$.idsAreaServicio").isEmpty())
-                .andExpect(jsonPath("$.tipo").doesNotExist());
-
-        ArgumentCaptor<RegisterManagerCommand> comando =
-                ArgumentCaptor.forClass(RegisterManagerCommand.class);
-        verify(managerServicePort).register(comando.capture());
-
-        // El tipo de persona no viaja desde la peticion: lo fija el servicio.
-        assertThat(comando.getValue().persona().tipoPersona()).isNull();
-        assertThat(comando.getValue().persona().cedula()).isEqualTo("1010101010");
-    }
-
-    @Test
-    @DisplayName("relevar de una sede llama al sub-recurso con su tipo y su destino, y responde 204")
-    void relevarDeUnaSede() throws Exception {
-        UUID persona = UUID.randomUUID();
-        UUID sede = UUID.randomUUID();
-
-        mockMvc.perform(delete("/v1/api/managers/" + persona + "/headquarters/" + sede))
-                .andExpect(status().isNoContent());
-
-        verify(managerServicePort).relieve(
-                new RelieveManagerCommand(persona, ManagerType.HEADQUARTER, sede));
-    }
-
-    @Test
-    @DisplayName("relevar de un area va a su propio sub-recurso, con su tipo")
-    void relevarDeUnArea() throws Exception {
-        UUID persona = UUID.randomUUID();
-        UUID area = UUID.randomUUID();
-
-        mockMvc.perform(delete("/v1/api/managers/" + persona + "/service-areas/" + area))
-                .andExpect(status().isNoContent());
-
-        verify(managerServicePort).relieve(
-                new RelieveManagerCommand(persona, ManagerType.SERVICE_AREA, area));
-    }
-
-    @Test
-    @DisplayName("relevar de algo que no tenia a cargo es 404 con su propio codigo, no el del encargado")
-    void relevarDeLoQueNoTiene() throws Exception {
-        UUID persona = UUID.randomUUID();
-        UUID sede = UUID.randomUUID();
-        when(managerServicePort.relieve(any())).thenThrow(
-                new ManagerAssignmentNotFoundException(persona, ManagerType.HEADQUARTER, sede));
-
-        mockMvc.perform(delete("/v1/api/managers/" + persona + "/headquarters/" + sede))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ERR_CLIENT_009"));
-    }
-
-    @Test
-    @DisplayName("asignar una sede de otro cliente es un conflicto, 409, con su propio codigo")
-    void asignarDeOtroCliente() throws Exception {
-        UUID persona = UUID.randomUUID();
-        UUID sede = UUID.randomUUID();
-        when(managerServicePort.assign(any())).thenThrow(new ManagerOfAnotherClientException(
-                persona, UUID.randomUUID(), UUID.randomUUID()));
-
-        mockMvc.perform(post("/v1/api/managers/assignments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(
-                                new ManagerAssignRequest(persona, ManagerType.HEADQUARTER, sede))))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ERR_CLIENT_010"));
-    }
-
-    @Test
-    @DisplayName("poner a cargo a quien no es encargado ni representante es un conflicto, 409, con su codigo (V46)")
-    void asignarAQuienNoPuede() throws Exception {
-        UUID persona = UUID.randomUUID();
-        when(managerServicePort.assign(any()))
-                .thenThrow(new ManagerPersonTypeException(persona, PersonType.ENGINEER));
-
-        mockMvc.perform(post("/v1/api/managers/assignments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(
-                                new ManagerAssignRequest(persona, ManagerType.HEADQUARTER, UUID.randomUUID()))))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ERR_CLIENT_011"));
-    }
-
-    @Test
-    @DisplayName("el traslado ya no existe: con varias asignaciones es relevar y asignar")
-    void sinTraslado() throws Exception {
-        mockMvc.perform(patch("/v1/api/managers/" + UUID.randomUUID())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isMethodNotAllowed());
-    }
-
-    @Test
-    @DisplayName("un encargado sin correos se rechaza")
-    void encargadoSinCorreos() throws Exception {
-        mockMvc.perform(post("/v1/api/managers")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(new ManagerRegisterRequest(
-                                "1010101010", "Grace", null, "Hopper", null,
-                                ManagerType.HEADQUARTER, UUID.randomUUID(), List.of(), List.of()))))
-                .andExpect(status().isBadRequest());
-
-        verify(managerServicePort, never()).register(any());
-    }
-
-    @Test
-    @DisplayName("los cuatro recursos aparecen en el grupo de OpenAPI del modulo")
+    @DisplayName("los tres recursos aparecen en el grupo de OpenAPI del modulo")
     void recursosDocumentados() throws Exception {
         // Un patron de grupo que no case con ninguna ruta real no falla: deja el recurso fuera de
-        // Swagger en silencio. /managers se habia quedado fuera por esa via, sin declararse nunca.
+        // Swagger en silencio. /managers se habia quedado fuera por esa via, sin declararse nunca; salio
+        // con los encargados en V53.
         String docs = mockMvc.perform(get("/v3/api-docs/client"))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -358,7 +294,7 @@ class ClientRestAdapterTest {
                 .contains("/v1/api/clients")
                 .contains("/v1/api/headquarters")
                 .contains("/v1/api/service-areas")
-                .contains("/v1/api/managers")
+                .contains("/v1/api/clients/{id}/supervisors/{idPersona}")
                 // El resumen de sedes del rediseño, del 2026-10-11.
                 .contains("/v1/api/headquarters/summary");
     }

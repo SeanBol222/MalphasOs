@@ -61,7 +61,7 @@ class PersonWriteGuardTest {
     @Test
     @DisplayName("escribir sobre gente del cliente exige person.write")
     void laGenteDelClienteExigeElEscalonDeAbajo() {
-        UUID representante = alguienDeTipo(PersonType.CEO_CLIENT);
+        UUID representante = alguienDeTipo(PersonType.SUPERVISOR);
 
         assertThat(guard.canWrite(representante, con(ApiAuthority.PERSON_WRITE))).isTrue();
     }
@@ -69,7 +69,7 @@ class PersonWriteGuardTest {
     @Test
     @DisplayName("sin autenticar no se escribe sobre nadie")
     void sinAutenticarNo() {
-        UUID representante = alguienDeTipo(PersonType.CEO_CLIENT);
+        UUID representante = alguienDeTipo(PersonType.SUPERVISOR);
 
         assertThat(guard.canWrite(representante, null)).isFalse();
     }
@@ -85,7 +85,7 @@ class PersonWriteGuardTest {
         // representante exige solo person.write, porque la escalera mira el tipo que la persona TIENE.
         // Si ademas se le puede cambiar el tipo en la misma peticion, person.write alcanza para
         // fabricar un ADMIN, y el escalon de arriba deja de significar nada.
-        UUID representante = alguienDeTipo(PersonType.CEO_CLIENT);
+        UUID representante = alguienDeTipo(PersonType.SUPERVISOR);
 
         assertThat(guard.canUpdate(representante, PersonType.ADMIN, con(ApiAuthority.PERSON_WRITE)))
                 .isFalse();
@@ -94,16 +94,16 @@ class PersonWriteGuardTest {
     @Test
     @DisplayName("promover a SUPER_ADMIN tampoco, y es el caso que mas importa")
     void tampocoASuperAdmin() {
-        UUID encargado = alguienDeTipo(PersonType.MANAGER);
+        UUID supervisor = alguienDeTipo(PersonType.SUPERVISOR);
 
-        assertThat(guard.canUpdate(encargado, PersonType.SUPER_ADMIN, con(ApiAuthority.PERSON_WRITE)))
+        assertThat(guard.canUpdate(supervisor, PersonType.SUPER_ADMIN, con(ApiAuthority.PERSON_WRITE)))
                 .isFalse();
     }
 
     @Test
     @DisplayName("quien tiene el escalon de arriba si puede promover")
     void conElEscalonDeArribaSiSePromueve() {
-        UUID representante = alguienDeTipo(PersonType.CEO_CLIENT);
+        UUID representante = alguienDeTipo(PersonType.SUPERVISOR);
 
         assertThat(guard.canUpdate(
                         representante,
@@ -119,7 +119,7 @@ class PersonWriteGuardTest {
         // a gente de la casa, y eso no lo abarata el destino.
         UUID ingeniero = alguienDeTipo(PersonType.ENGINEER);
 
-        assertThat(guard.canUpdate(ingeniero, PersonType.CEO_CLIENT, con(ApiAuthority.PERSON_WRITE)))
+        assertThat(guard.canUpdate(ingeniero, PersonType.SUPERVISOR, con(ApiAuthority.PERSON_WRITE)))
                 .isFalse();
     }
 
@@ -134,7 +134,7 @@ class PersonWriteGuardTest {
         // quiere decir «no se pide cambio de tipo». El dia que esta ruta pase a PATCH —que es lo que
         // la convencion del proyecto exige— una edicion parcial sin tipo sera lo normal, y tratarla
         // como prohibida dejaria sin editar a quien si le toca.
-        UUID representante = alguienDeTipo(PersonType.CEO_CLIENT);
+        UUID representante = alguienDeTipo(PersonType.SUPERVISOR);
 
         assertThat(guard.canUpdate(representante, null, con(ApiAuthority.PERSON_WRITE))).isTrue();
     }
@@ -142,9 +142,9 @@ class PersonWriteGuardTest {
     @Test
     @DisplayName("editar sin cambiar de tipo sigue exigiendo lo de siempre")
     void editarSinCambiarDeTipo() {
-        UUID representante = alguienDeTipo(PersonType.CEO_CLIENT);
+        UUID representante = alguienDeTipo(PersonType.SUPERVISOR);
 
-        assertThat(guard.canUpdate(representante, PersonType.CEO_CLIENT, con(ApiAuthority.PERSON_WRITE)))
+        assertThat(guard.canUpdate(representante, PersonType.SUPERVISOR, con(ApiAuthority.PERSON_WRITE)))
                 .isTrue();
     }
 }

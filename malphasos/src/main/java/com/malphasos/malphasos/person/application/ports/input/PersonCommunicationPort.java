@@ -1,15 +1,13 @@
 package com.malphasos.malphasos.person.application.ports.input;
 
-import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationRequest;
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import java.util.UUID;
 
 /**
  * Contrato que este módulo publica hacia los demás para operar sobre personas.
  *
- * <p>Existe para que otro contexto —hoy el de clientes, que necesita registrar al encargado de una
- * sede o de un área— pueda crear y consultar personas <b>sin conocer el modelo de dominio de este
- * módulo</b>. Todo lo que cruza la frontera son los DTO de {@code application.model.communication}.
+ * <p>Existe para que otro contexto —los de clientes, órdenes y reportes— pueda consultar personas
+ * <b>sin conocer el modelo de dominio de este módulo</b>. Todo lo que cruza la frontera son los DTO de {@code application.model.communication}.
  *
  * <p>Es distinto de {@link PersonServicePort}, que expone el modelo de dominio completo y está
  * pensado para los adaptadores de entrada de este mismo módulo. Aquí la superficie es mínima a
@@ -28,12 +26,4 @@ public interface PersonCommunicationPort {
      * @throws com.malphasos.malphasos.person.domain.exception.PersonNotFoundException si no existe
      */
     PersonCommunicationResponse findById(UUID id);
-
-    /**
-     * Registra una persona sin acceso al sistema y devuelve su identificador.
-     *
-     * <p>No crea usuario en el proveedor de identidad: quien se registra por esta vía es alguien de
-     * quien el sistema guarda datos, no alguien que inicia sesión.
-     */
-    UUID save(PersonCommunicationRequest request);
 }

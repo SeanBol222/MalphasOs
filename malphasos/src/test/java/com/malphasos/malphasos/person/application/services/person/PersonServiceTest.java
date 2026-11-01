@@ -79,74 +79,6 @@ class PersonServiceTest {
     }
 
     @Test
-    @DisplayName("la cuarta alta solo admite MANAGER: una fila que diga ser admin sin cuenta no entra")
-    void saveSoloAdmiteManager() {
-        // ESTA REGLA NO ESTABA PROBADA, y lo destapo una mutacion el 2026-10-04: sustituir su
-        // condicion por `false` dejo la bateria entera en verde -- 853 pruebas --. PersonServiceTest
-        // tenia veinte casos y ninguno llamaba a save().
-        //
-        // Lo que la regla sostiene no es cosmetico. `save` es la UNICA puerta que NO crea usuario en
-        // Keycloak, porque un encargado existe como contacto de una sede y no entra al sistema. Si
-        // admitiera cualquier tipo, se podria escribir una fila que dice ser ADMIN o ENGINEER **sin
-        // cuenta en el proveedor de identidad**, saltandose de paso la escalera que las otras tres
-        // puertas imponen: esas exigen super.person.write para la gente de la casa, y esta no exige
-        // nada porque da por supuesto que lo que entra no accede.
-        //
-        // Y el frontend se apoya en ella: las cuatro altas no tienen selector de tipo, y la cuarta se
-        // justifica por esto.
-        for (PersonType tipo : new PersonType[] {
-                PersonType.ENGINEER, PersonType.ADMIN, PersonType.SUPER_ADMIN, PersonType.CEO_CLIENT}) {
-
-            assertThatThrownBy(() -> service().save(personaDeTipo(tipo)))
-                    .describedAs("tipo %s", tipo)
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("solo para encargados");
-        }
-
-        verify(persistencePort, never()).save(any());
-        verifyNoInteractions(identityPort);
-    }
-
-    @Test
-    @DisplayName("sin tipo de persona tampoco entra por esa puerta")
-    void saveSinTipo() {
-        assertThatThrownBy(() -> service().save(personaDeTipo(null)))
-                .isInstanceOf(IllegalArgumentException.class);
-
-        verify(persistencePort, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("un encargado si entra, y sin crear usuario en Keycloak")
-    void saveAdmiteManager() {
-        // La contraparte: sin esta, la prueba de arriba se satisfaria con un `save` que rechaza todo.
-        when(persistencePort.save(any(Person.class))).thenAnswer(i -> i.getArgument(0));
-
-        Person guardada = service().save(personaDeTipo(PersonType.MANAGER));
-
-        assertThat(guardada.getTipoPersona()).isEqualTo(PersonType.MANAGER);
-        assertThat(guardada.isEstadoActivo()).isTrue();
-        assertThat(guardada.getIdentificador()).isNotNull();
-        // Y lo que define a esta puerta: NO toca el proveedor de identidad.
-        verifyNoInteractions(identityPort);
-    }
-
-    @Test
-    @DisplayName("un encargado sin correos ni telefonos entra: las dos listas son opcionales")
-    void saveSinListasDeContacto() {
-        // El mapper pone nulo encima de la lista por defecto cuando la peticion no la trae.
-        when(persistencePort.save(any(Person.class))).thenAnswer(i -> i.getArgument(0));
-        Person persona = personaDeTipo(PersonType.MANAGER);
-        persona.setEmailPersonList(null);
-        persona.setPhonePersonList(null);
-
-        Person guardada = service().save(persona);
-
-        assertThat(guardada.getEmailPersonList()).isEmpty();
-        assertThat(guardada.getPhonePersonList()).isEmpty();
-    }
-
-    @Test
     @DisplayName("un registro sin telefonos se completa: la lista es opcional en el contrato")
     void registroSinTelefonos() {
         // Respondia 500: el servicio recorria la lista sin mirar si venia.
@@ -162,7 +94,7 @@ class PersonServiceTest {
                         EmailPersonUseCaseRequest.builder().correoPersona("ada@malphasos.local").build()))
                 .build();
 
-        Person creada = service().registerCeoClient(sinTelefonos);
+        Person creada = service().registerSupervisor(sinTelefonos);
 
         assertThat(creada.getPhonePersonList()).isEmpty();
         assertThat(creada.getEmailPersonList()).hasSize(1);
@@ -222,11 +154,11 @@ class PersonServiceTest {
         PersonService service = service();
         service.registerEngineer(validRequest());
         service.registerAdmin(validRequest());
-        service.registerCeoClient(validRequest());
+        service.registerSupervisor(validRequest());
 
         verify(identityPort, org.mockito.Mockito.times(3)).createUser(any(), role.capture());
         assertThat(role.getAllValues())
-                .containsExactly(RoleType.ENGINEER, RoleType.ADMIN, RoleType.CEO_CLIENT);
+                .containsExactly(RoleType.ENGINEER, RoleType.ADMIN, RoleType.SUPERVISOR);
     }
 
     @Test
@@ -519,12 +451,12 @@ class PersonServiceTest {
     }
 
     @Test
-    @DisplayName("cambiar de representante a ingeniero mueve la cuenta al grupo de ingenieros")
+    @DisplayName("cambiar de supervisor a ingeniero mueve la cuenta al grupo de ingenieros")
     void cambiarDeTipoMueveDeGrupo() {
         // Hasta el 2026-10-04 esto no ocurria: quien dejaba de ser ingeniero conservaba sus
         // permisos, y un representante al que se le cambiaba el tipo perdia el filtrado por dueno
         // sin perder su grupo. La fila y la identidad decian cosas distintas.
-        UUID id = existeAlguienDeTipo(PersonType.CEO_CLIENT);
+        UUID id = existeAlguienDeTipo(PersonType.SUPERVISOR);
 
         service().update(id, personaDeTipo(PersonType.ENGINEER));
 
@@ -544,18 +476,6 @@ class PersonServiceTest {
     }
 
     @Test
-    @DisplayName("pasar a encargado deja la cuenta sin ningun grupo, porque no accede")
-    void pasarAEncargadoDejaSinGrupo() {
-        UUID id = existeAlguienDeTipo(PersonType.ENGINEER);
-
-        service().update(id, personaDeTipo(PersonType.MANAGER));
-
-        // Nulo quiere decir «en ningun grupo»: un encargado es alguien de quien el sistema guarda
-        // datos, no alguien que inicia sesion.
-        verify(identityPort).syncGroup(id.toString(), null);
-    }
-
-    @Test
     @DisplayName("un super usuario queda en el grupo de administradores, que es lo mas que un grupo da")
     void superUsuarioQuedaEnAdministradores() {
         // Ningun grupo del realm concede super.admin.full, a proposito: ese escalon se otorga a
@@ -570,16 +490,16 @@ class PersonServiceTest {
     @Test
     @DisplayName("que la persona no tenga cuenta no rompe la edicion")
     void sinCuentaNoRompe() {
-        // El caso normal de un encargado al que se le corrige el nombre y se le cambia el tipo: no
+        // Hasta V53 era el caso normal de un encargado; sus fichas pasaron a SUPERVISOR sin usuario. No
         // hay usuario que mover, y eso no es un error.
-        UUID id = existeAlguienDeTipo(PersonType.MANAGER);
+        UUID id = existeAlguienDeTipo(PersonType.SUPERVISOR);
         doThrow(new KeycloakUserNotFoundException("no existe"))
                 .when(identityPort)
                 .syncGroup(any(), any());
 
-        Person resultado = service().update(id, personaDeTipo(PersonType.CEO_CLIENT));
+        Person resultado = service().update(id, personaDeTipo(PersonType.ENGINEER));
 
-        assertThat(resultado.getTipoPersona()).isEqualTo(PersonType.CEO_CLIENT);
+        assertThat(resultado.getTipoPersona()).isEqualTo(PersonType.ENGINEER);
     }
 
     // --- El correo de la cuenta (V40, 2026-10-17) -------------------------------------------
@@ -655,21 +575,7 @@ class PersonServiceTest {
     }
 
     @Test
-    @DisplayName("a un encargado no se le marca correo de cuenta: no tiene cuenta")
-    void encargadoSinPrincipal() {
-        Person persona = ingenieraConDosCorreos().setTipoPersona(PersonType.MANAGER);
-        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
-
-        assertThatThrownBy(() -> service().markPrimaryEmail(
-                        persona.getIdentificador(), persona.getEmailPersonList().get(1).getIdCorreoPersona()))
-                .isInstanceOf(IllegalArgumentException.class);
-
-        verifyNoInteractions(identityPort);
-        verify(persistencePort, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("una persona con acceso cuya cuenta no está en Keycloak se marca igual: la ficha manda")
+    @DisplayName("una persona cuya cuenta no está en Keycloak se marca igual: la ficha manda")
     void sinCuentaSeMarcaIgual() {
         Person persona = ingenieraConDosCorreos();
         when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
@@ -724,17 +630,6 @@ class PersonServiceTest {
 
         verify(identityPort).resetPassword(persona.getIdentificador().toString(), "temporal-de-prueba");
         verify(persistencePort, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("un encargado no tiene contraseña que restablecer")
-    void restablecerEncargado() {
-        Person persona = ingenieraConDosCorreos().setTipoPersona(PersonType.MANAGER);
-        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
-
-        assertThatThrownBy(() -> service().resetPassword(persona.getIdentificador(), "temporal-de-prueba"))
-                .isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(identityPort);
     }
 
     @Test

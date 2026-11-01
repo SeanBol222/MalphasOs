@@ -9,18 +9,16 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Llave compuesta de {@code representante_legal}.
+ * Llave compuesta de {@code supervisor_cliente}, que era {@code representante_legal} hasta V53.
  *
- * <p>La relación entre persona y cliente es de muchos a muchos —una persona puede representar a
- * varios clientes—, de modo que la llave primaria son las dos columnas. Se distinguía así de
- * {@code encargado}, cuya llave era la de la persona sola, hasta el 2026-10-27: desde `V41` un
- * encargado tiene la misma forma, con una tabla para sus sedes y otra para sus áreas.
+ * <p>La relación entre persona y cliente es de muchos a muchos —una persona puede supervisar a
+ * varios clientes—, de modo que la llave primaria son las dos columnas.
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LegalRepresentativeId implements Serializable {
+public class ClientSupervisorId implements Serializable {
 
     private UUID persona;
     private UUID cliente;
@@ -30,7 +28,7 @@ public class LegalRepresentativeId implements Serializable {
         if (this == otro) {
             return true;
         }
-        if (!(otro instanceof LegalRepresentativeId id)) {
+        if (!(otro instanceof ClientSupervisorId id)) {
             return false;
         }
 

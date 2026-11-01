@@ -2,7 +2,7 @@ package com.malphasos.malphasos.equipment.application.services.lifeSheet;
 
 import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
 import com.malphasos.malphasos.client.application.ports.input.HeadquarterServicePort;
-import com.malphasos.malphasos.client.application.ports.input.ServiceAreaResponsiblePort;
+import com.malphasos.malphasos.client.application.ports.input.ClientSupervisorPort;
 import com.malphasos.malphasos.client.application.ports.input.ServiceAreaServicePort;
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.client.domain.client.EmailClient;
@@ -67,7 +67,7 @@ public class LifeSheetService implements LifeSheetServicePort {
     private final ClientServicePort clientServicePort;
     private final CityServicePort cityServicePort;
     private final CountryServicePort countryServicePort;
-    private final ServiceAreaResponsiblePort serviceAreaResponsiblePort;
+    private final ClientSupervisorPort clientSupervisorPort;
     private final ProtocolServicePort protocolServicePort;
 
     @Override
@@ -101,7 +101,7 @@ public class LifeSheetService implements LifeSheetServicePort {
                         cityServicePort.findById(sede.getIdCiudad()).getNombre(),
                         area.getNombre(),
                         unidad.isEstadoActivo(),
-                        serviceAreaResponsiblePort.responsiblesFor(area.getId()),
+                        clientSupervisorPort.supervisorNamesOf(cliente.getId()),
                         cliente.getTelefonos().stream()
                                 .filter(PhoneClient::isEstadoActivo)
                                 .map(PhoneClient::getTelefono)

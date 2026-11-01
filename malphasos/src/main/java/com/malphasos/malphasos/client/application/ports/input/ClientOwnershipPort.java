@@ -8,7 +8,7 @@ import java.util.UUID;
  * Lo segundo que este módulo publica hacia los demás: a qué clientes pertenece una persona.
  *
  * <p>Existe para que el filtrado por dueño se pueda resolver desde fuera de este módulo sin que
- * nadie tenga que conocer {@code representante_legal} ni el agregado {@code Client}. Lo consultan
+ * nadie tenga que conocer {@code supervisor_cliente} ni el agregado {@code Client}. Lo consultan
  * los adaptadores de entrada de {@code equipment}, {@code work-order} y {@code report}, que ya
  * dependen de este módulo —la dependencia iba en ese sentido mucho antes de esto, de modo que no
  * hubo que invertir nada—.
@@ -20,15 +20,15 @@ import java.util.UUID;
 public interface ClientOwnershipPort {
 
     /**
-     * Identificadores de los clientes que esta persona representa legalmente.
+     * Identificadores de los clientes que esta persona supervisa.
      *
-     * <p>Devuelve un conjunto porque la llave de {@code representante_legal} es compuesta: una
-     * misma persona puede representar a varios clientes, y el esquema lo permite desde el principio.
+     * <p>Devuelve un conjunto porque la llave de {@code supervisor_cliente} es compuesta: una misma
+     * persona puede supervisar a varios clientes, y el esquema lo permite desde el principio.
      *
-     * <p>Un conjunto vacío significa que no representa a ninguno, no que el alcance sea libre. La
+     * <p>Un conjunto vacío significa que no supervisa a ninguno, no que el alcance sea libre. La
      * distinción la sostiene {@code ReadScope}, no este puerto.
      */
-    Set<UUID> clientsRepresentedBy(UUID idPersona);
+    Set<UUID> clientsSupervisedBy(UUID idPersona);
 
     /**
      * Identificadores de las áreas de servicio que cuelgan de estos clientes.

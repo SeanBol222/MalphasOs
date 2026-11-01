@@ -40,7 +40,8 @@ import java.util.stream.Stream;
  * hacía el navegador, en {@code documento-reporte.ts}; con el PDF en el servidor (RF-17) se movió aquí
  * entero, para que el diseño viva en un solo sitio.
  *
- * <p><b>Lo que no se guarda, se deriva</b>, decidido por el usuario: el supervisor es el encargado del área,
+ * <p><b>Lo que no se guarda, se deriva</b>, decidido por el usuario: el supervisor es quien supervisa al
+ * cliente (hasta V53, el encargado del área),
  * el próximo servicio es la fecha más la periodicidad de la orden, y la casilla de verificación metrológica
  * se marca sola si hay lecturas.
  *

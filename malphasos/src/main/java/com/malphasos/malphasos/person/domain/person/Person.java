@@ -14,8 +14,8 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 
 /**
- * Persona física registrada en el sistema: ingenieros, encargados de sede y representantes
- * legales de los clientes.
+ * Persona física registrada en el sistema: ingenieros, administradores y los supervisores de los
+ * clientes. Toda persona tiene cuenta desde V53.
  *
  * <p>Los nombres de los campos están en español porque son el vocabulario del dominio y de la
  * base de datos; cambiarlos obligaría a traducir mentalmente en cada consulta.
@@ -106,14 +106,6 @@ public class Person {
         elegido.setPrincipal(true);
 
         return elegido;
-    }
-
-    /**
-     * Si esta persona entra al sistema y por tanto tiene cuenta. Un encargado no: existe como contacto
-     * de una sede, y ninguno de sus correos es de una cuenta.
-     */
-    public boolean hasAccess() {
-        return tipoPersona != null && tipoPersona != PersonType.MANAGER;
     }
 
     public void addPhone(PhonePerson phone) {

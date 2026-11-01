@@ -2,13 +2,13 @@ package com.malphasos.malphasos.client.application.ports.input;
 
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.AddClientPhoneCommand;
-import com.malphasos.malphasos.client.application.services.client.commands.AppointRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.AppointSupervisorCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.ChangeClientAcronymCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.CreateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.DeactivateClientCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientEmailCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.RemoveClientPhoneCommand;
-import com.malphasos.malphasos.client.application.services.client.commands.RemoveRepresentativeCommand;
+import com.malphasos.malphasos.client.application.services.client.commands.RemoveSupervisorCommand;
 import com.malphasos.malphasos.client.application.services.client.commands.UpdateClientCommand;
 import com.malphasos.malphasos.client.domain.client.Client;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
@@ -54,8 +54,14 @@ public interface ClientServicePort {
 
     Client removePhone(RemoveClientPhoneCommand command);
 
-    /** Nombra representante legal a una persona, que debe existir en el módulo de personas. */
-    Client appointRepresentative(AppointRepresentativeCommand command);
+    /**
+     * Nombra supervisora a una persona, o le cambia el cargo si ya lo era. Debe existir en el módulo de
+     * personas y ser de tipo {@code SUPERVISOR}.
+     */
+    Client appointSupervisor(AppointSupervisorCommand command);
 
-    Client removeRepresentative(RemoveRepresentativeCommand command);
+    /** Cambia el cargo de quien ya supervisa al cliente. */
+    Client changeSupervisorTitle(AppointSupervisorCommand command);
+
+    Client removeSupervisor(RemoveSupervisorCommand command);
 }
