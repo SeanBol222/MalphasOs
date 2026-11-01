@@ -4,7 +4,7 @@ description: El modulo de ordenes de trabajo de MalphasOS, completo en sus cuatr
 tags: [dominio, work-order, esquema, mantenimiento, "describe:ambos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/workorder/ y malphasos/src/main/resources/db/migration/V6__work_order.sql
 estado: estable
-updated: 2026-10-28
+updated: 2026-11-01
 ---
 
 # Órdenes de trabajo — el módulo completo
@@ -516,6 +516,28 @@ listado de equipos, y la de una orden ejecutada, su documento.
 ejecutada, que ya está congelada, y sí en una cancelada, para que siga diciendo qué equipos tenía—, y el
 borrador de un equipo que ya se había sacado de la orden se retiró, mientras su cerrado se conserva. Lo
 prueba `WorkOrderWithoutBridgeMigrationTest`, con un caso por regla.
+
+## La aprobación del supervisor (2026-11-01, `V54`)
+
+Una orden ejecutada la aprueba **un supervisor de su cliente**, y eso es lo que permite facturarla.
+Decidido por el usuario: quien recibe el equipo en sitio no es siempre quien revisa y aprueba el trabajo.
+
+- **Un agregado aparte**, `WorkOrderApproval`, y no un estado de la orden: se retira —sustituir un reporte
+  de una orden aprobada la retira, porque se aprobó un documento que ya no es el mismo— y la retirada queda
+  como historial, mientras la orden sigue ejecutada. Una sola vigente por orden, con índice único parcial.
+- **Dos formas, dos operaciones**: `POST /work-orders/{id}/approval` en sitio, con la firma dibujada en la
+  sesión del ingeniero o del administrador —nunca se estampa la guardada desde la sesión de otro—, y
+  `POST /work-orders/{id}/approval/mine` desde la cuenta del supervisor, con su firma guardada. Quien llama
+  sale siempre del token. `GET /work-orders/pending-approval` lista lo que falta por aprobar al alcance de
+  quien pregunta: a un supervisor, lo de sus clientes.
+- **Reglas del servicio**: la orden ejecutada y activa —ejecutar no exige aprobar—, quien aprueba es un
+  supervisor activo de ese cliente en ese momento —tipo `SUPERVISOR` y nombrado—, y no hay otra vigente.
+  Solo aprobar, sin rechazar, en esta versión.
+- **Autoridad propia, `work-order.approve`**, que tienen los tres grupos: el supervisor aprueba sin poder
+  escribir la orden, y el ingeniero registra la aprobación en sitio.
+- **Lo que destapó la prueba de extremo a extremo**: aprobar en la sesión del SuperUsuario, que no tiene
+  ficha, fallaba con un 500. La consulta de la persona lanzaba dentro de la transacción y, aunque se
+  capturara, la dejaba marcada para deshacerse. `PersonCommunicationPort.exists` pregunta sin lanzar.
 
 ## Lo que falta
 
