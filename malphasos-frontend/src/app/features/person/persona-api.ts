@@ -7,21 +7,16 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  CambioDePersona,
-  NuevaPersonaSinAcceso,
-  NuevoUsuario,
-  Persona,
-} from '../../core/api/tipos';
+import { CambioDePersona, NuevoUsuario, Persona } from '../../core/api/tipos';
 
 /**
  * La unica puerta al modulo de personas.
  *
- * <p><b>Cuatro altas y no una, y eso no es ruido del API: son cuatro hechos distintos.</b> Una crea
- * solo la fila —alguien a quien se llama por telefono y no entra al sistema— y las otras tres crean
- * ademas su cuenta en Keycloak, por lo que exigen correo, nombre de usuario y contrasena inicial. El
- * tipo no viaja en el cuerpo de esas tres: lo dice la ruta, de modo que no se puede pedir «un
- * ingeniero» y mandar «ADMIN» en el campo.
+ * <p><b>Tres altas y no una, y eso no es ruido del API: son tres hechos distintos.</b> Las tres crean
+ * la persona y su cuenta en Keycloak, por lo que exigen correo, nombre de usuario y contrasena
+ * inicial. El tipo no viaja en el cuerpo: lo dice la ruta, de modo que no se puede pedir «un
+ * ingeniero» y mandar «ADMIN» en el campo. Hasta V53 (2026-11-01) habia una cuarta, sin cuenta, para
+ * los encargados del cliente.
  *
  * <p><b>Y quien puede usar cada una depende de QUE es esa persona</b>, que es la escalera de usuarios
  * del backend: la gente de la casa —ingenieros y administradores— exige {@code super.person.write}, y
@@ -57,7 +52,7 @@ export class PersonaApi {
   }
 
   /**
-   * Los datos de quien tiene la sesión, por {@code /persons/me}: un representante no tiene
+   * Los datos de quien tiene la sesión, por {@code /persons/me}: un supervisor no tiene
    * {@code person.read} y no podría leerse por su identificador. <b>Nulo si la cuenta no tiene ficha</b>
    * —el SuperUsuario, creado a mano en Keycloak—, que es un estado y no un fallo.
    */
@@ -83,24 +78,15 @@ export class PersonaApi {
     }));
   }
 
-  /** Alguien que no entra al sistema: se crea la fila y no hay cuenta que crear. */
-  registrarSinAcceso() {
-    return injectMutation(() => ({
-      mutationFn: (persona: NuevaPersonaSinAcceso) =>
-        firstValueFrom(this.http.post<Persona>(this.url, persona)),
-      onSuccess: () => this.invalidar(),
-    }));
-  }
-
   /**
-   * Las tres altas con cuenta. El tipo lo pone la ruta, no el cuerpo.
+   * Las tres altas, todas con cuenta. El tipo lo pone la ruta, no el cuerpo.
    *
    * <p>Tocan dos sistemas —la base y Keycloak— <b>sin transaccion que los envuelva</b>. El backend lo
    * resuelve en un orden concreto y, si el segundo paso falla, intenta deshacer el primero; cuando no
    * puede, lo deja escrito en su registro. Por eso los errores de Keycloak tienen mensaje propio en el
    * catalogo: no dicen que el formulario este mal.
    */
-  registrarConCuenta(oficio: 'admins' | 'engineers' | 'ceo-clients') {
+  registrarConCuenta(oficio: 'admins' | 'engineers' | 'supervisors') {
     return injectMutation(() => ({
       mutationFn: (usuario: NuevoUsuario) =>
         firstValueFrom(this.http.post<Persona>(`${this.url}/${oficio}`, usuario)),

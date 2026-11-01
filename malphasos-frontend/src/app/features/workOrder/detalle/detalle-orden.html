@@ -312,17 +312,20 @@
           }
         </section>
 
-        @if (puedeVerEncargados()) {
-          <section class="superficie" aria-labelledby="encargados">
-            <h2 id="encargados" class="titulo-seccion">Encargados del sitio</h2>
-            @for (encargado of encargadosDelSitio(); track encargado.id + encargado.aCargoDe) {
-              <p class="mt-1.5 text-sm">
-                <strong>{{ encargado.nombre }}</strong>
-                <span class="block text-neutral-700">{{ encargado.aCargoDe }}</span>
+        @if (puedeVerSupervisores()) {
+          <section class="superficie" aria-labelledby="supervisores">
+            <h2 id="supervisores" class="titulo-seccion">Supervisores del cliente</h2>
+            @for (supervisor of supervisoresDelCliente(); track supervisor.id) {
+              <p class="mt-1.5 text-sm" data-supervisor>
+                <strong>{{ supervisor.nombre }}</strong>
+                @if (supervisor.cargo) {
+                  <span class="block text-neutral-700">{{ supervisor.cargo }}</span>
+                }
               </p>
             } @empty {
               <p class="mt-1 text-sm text-neutral-800">
-                Nadie figura como responsable de esta sede ni de las áreas de la orden.
+                El cliente no tiene supervisor: nadie puede aprobar esta orden hasta que se le
+                nombre uno.
               </p>
             }
           </section>

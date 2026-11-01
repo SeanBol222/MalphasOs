@@ -18,9 +18,9 @@ import { CambioDeCliente, Cliente, NuevoCliente } from '../../core/api/tipos';
  *
  * <p>Es el espejo de un puerto de entrada del backend: lo que alli es
  * {@code ClientServicePort}, aqui es esto. <b>Un servicio por agregado y no uno por modulo</b>: el
- * modulo {@code client} tiene cuatro —cliente, sede, area de servicio y encargado— y el backend
- * tambien los separa asi, en {@code application/services/<agregado>/}. Un unico servicio para los
- * cuatro seria el archivo mas grande del frontend y no correspoderia con nada del otro lado.
+ * modulo {@code client} tiene tres —cliente, sede y area de servicio; eran cuatro con el encargado
+ * hasta V53— y el backend tambien los separa asi, en {@code application/services/<agregado>/}. Un
+ * unico servicio para los tres seria el archivo mas grande del frontend y no correspoderia con nada del otro lado.
  *
  * <p><b>Toda escritura invalida {@code ['clientes']}</b>, y eso alcanza tambien al detalle y a las
  * sedes, porque TanStack Query invalida por prefijo de clave. Es deliberado: una clave jerarquica
@@ -124,27 +124,43 @@ export class ClienteApi {
   }
 
   /**
-   * Nombra a una persona representante legal del cliente.
+   * Nombra a una persona supervisora del cliente, con su cargo (V53, 2026-11-01).
    *
-   * <p>No es un dato de la ficha y nada mas: es lo que decide <b>que ve</b> esa persona al entrar.
-   * El filtrado por dueño acota sus lecturas a los clientes que representa, de modo que un
-   * representante sin nombrar entra y no ve nada. Nombrar dos veces a la misma no cambia nada.
+   * <p>No es un dato de la ficha y nada mas: es lo que decide <b>que ve</b> esa persona al entrar, y
+   * quien aprueba las ordenes del cliente. El filtrado por dueño acota sus lecturas a los clientes que
+   * supervisa, de modo que un supervisor sin nombrar entra y no ve nada. Nombrar de nuevo a quien ya lo
+   * es le cambia el cargo.
    */
-  nombrarRepresentante() {
+  nombrarSupervisor() {
     return injectMutation(() => ({
-      mutationFn: ({ id, idPersona }: { id: string; idPersona: string }) =>
+      mutationFn: ({ id, idPersona, cargo }: { id: string; idPersona: string; cargo?: string }) =>
         firstValueFrom(
-          this.http.post<Cliente>(`${this.url}/${id}/representatives/${idPersona}`, null),
+          this.http.post<Cliente>(`${this.url}/${id}/supervisors/${idPersona}`, {
+            cargo: cargo?.trim() || null,
+          }),
+        ),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /** Cambia el cargo con que se nombra a quien ya supervisa al cliente. Vacío, sin cargo. */
+  cambiarCargoDeSupervisor() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, idPersona, cargo }: { id: string; idPersona: string; cargo: string }) =>
+        firstValueFrom(
+          this.http.patch<Cliente>(`${this.url}/${id}/supervisors/${idPersona}`, {
+            cargo: cargo.trim() || null,
+          }),
         ),
       onSuccess: () => this.invalidar(),
     }));
   }
 
   /** Le quita a la persona la vista de este cliente; su cuenta y sus otros clientes siguen igual. */
-  retirarRepresentante() {
+  retirarSupervisor() {
     return injectMutation(() => ({
       mutationFn: ({ id, idPersona }: { id: string; idPersona: string }) =>
-        firstValueFrom(this.http.delete<Cliente>(`${this.url}/${id}/representatives/${idPersona}`)),
+        firstValueFrom(this.http.delete<Cliente>(`${this.url}/${id}/supervisors/${idPersona}`)),
       onSuccess: () => this.invalidar(),
     }));
   }

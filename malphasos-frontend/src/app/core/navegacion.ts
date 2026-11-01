@@ -96,7 +96,7 @@ export const NAVEGACION: readonly EntradaDeNavegacion[] = [
     ruta: 'catalogo',
     etiqueta: 'Catálogo',
     // Se ofrece a quien lo administra, equipment.write, y no a quien puede leerlo (2026-10-26, pedido
-    // por el usuario): el representante de un cliente tiene equipment.read para ver SUS equipos y su
+    // por el usuario): el supervisor de un cliente tiene equipment.read para ver SUS equipos y su
     // hoja de vida, y el catalogo de la empresa no es asunto suyo. Lo oculta el menu y lo cierra la
     // ruta; el API sigue sirviendolo con equipment.read, porque los nombres de tipo, marca y modelo de
     // sus equipos salen de ahi.

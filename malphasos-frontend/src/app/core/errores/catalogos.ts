@@ -18,14 +18,12 @@ export const CATALOGO_CLIENT: Readonly<Record<string, string>> = {
   ERR_CLIENT_001: 'Ese cliente no existe o fue retirado.',
   ERR_CLIENT_002: 'Esa sede no existe o fue cerrada.',
   ERR_CLIENT_003: 'Esa área de servicio no existe o fue cerrada.',
-  ERR_CLIENT_004: 'Ese encargado no existe o fue retirado.',
   ERR_CLIENT_005: 'Revise los datos del formulario.',
   ERR_CLIENT_006: 'Esa ciudad no existe.',
   ERR_CLIENT_007: 'Esa persona no existe o fue retirada.',
   ERR_CLIENT_008: 'Esa sigla ya la tiene otro cliente.',
-  ERR_CLIENT_009: 'Esa persona no estaba a cargo de esa sede o de esa área.',
-  ERR_CLIENT_010:
-    'Esa persona ya está a cargo de sedes o áreas de otro cliente. Un encargado responde por un solo cliente.',
+  // 004, 009 y 010 eran de los encargados, que salieron con V53 (2026-11-01).
+  ERR_CLIENT_011: 'Solo una persona registrada como supervisor puede supervisar a un cliente.',
 };
 
 /**

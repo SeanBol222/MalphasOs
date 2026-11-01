@@ -14,11 +14,7 @@ export interface paths {
         /** Listar todas las personas */
         get: operations["getAllPersons"];
         put?: never;
-        /**
-         * Registrar una persona sin acceso al sistema
-         * @description Crea la persona en la base de datos, sin usuario en el proveedor de identidad.
-         */
-        post: operations["createPerson"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -39,26 +35,6 @@ export interface paths {
          * @description Crea la persona y su usuario en el proveedor de identidad.
          */
         post: operations["registerAdmin"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/api/persons/ceo-clients": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Registrar un representante legal de cliente
-         * @description Crea la persona y su usuario en el proveedor de identidad.
-         */
-        post: operations["registerCeoClient"];
         delete?: never;
         options?: never;
         head?: never;
@@ -127,6 +103,26 @@ export interface paths {
          * @description La sustituye si ya habia una. Los informes ya cerrados conservan la que copiaron.
          */
         patch: operations["save"];
+        trace?: never;
+    };
+    "/v1/api/persons/supervisors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar un supervisor de cliente
+         * @description Crea la persona y su usuario en el proveedor de identidad. Lo que ve lo decide a que clientes se le nombra supervisor, desde la ficha de cada uno.
+         */
+        post: operations["registerSupervisor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/api/persons/{id}": {
@@ -298,42 +294,6 @@ export interface components {
             /** @description Contraseña temporal; la persona tendrá que cambiarla al entrar */
             password: string;
         };
-        /** @description Alta de una persona sin acceso al sistema */
-        PersonCreateRequest: {
-            /**
-             * @description Cedula de la persona
-             * @example 1234567890
-             */
-            cedula: string;
-            emailPersonList?: components["schemas"]["EmailPersonCreateRequest"][];
-            phonePersonList?: components["schemas"]["PhonePersonCreateRequest"][];
-            /**
-             * @description Primer apellido
-             * @example Perez
-             */
-            primerApellido: string;
-            /**
-             * @description Primer nombre
-             * @example Juan
-             */
-            primerNombre: string;
-            /**
-             * @description Segundo apellido, opcional
-             * @example Gomez
-             */
-            segundoApellido?: string;
-            /**
-             * @description Segundo nombre
-             * @example Carlos
-             */
-            segundoNombre?: string;
-            /**
-             * @description Funcion principal de la persona
-             * @example MANAGER
-             * @enum {string}
-             */
-            tipoPersona: "ENGINEER" | "MANAGER" | "CEO_CLIENT" | "ADMIN" | "SUPER_ADMIN";
-        };
         PersonErrorResponse: {
             code?: string;
             details?: string[];
@@ -394,7 +354,7 @@ export interface components {
             segundoApellido?: string;
             segundoNombre?: string;
             /** @enum {string} */
-            tipoPersona?: "ENGINEER" | "MANAGER" | "CEO_CLIENT" | "ADMIN" | "SUPER_ADMIN";
+            tipoPersona?: "ENGINEER" | "SUPERVISOR" | "ADMIN" | "SUPER_ADMIN";
         };
         PersonSignatureRequest: {
             /**
@@ -440,10 +400,10 @@ export interface components {
             segundoNombre?: string;
             /**
              * @description Funcion principal
-             * @example CEO_CLIENT
+             * @example SUPERVISOR
              * @enum {string}
              */
-            tipoPersona: "ENGINEER" | "MANAGER" | "CEO_CLIENT" | "ADMIN" | "SUPER_ADMIN";
+            tipoPersona: "ENGINEER" | "SUPERVISOR" | "ADMIN" | "SUPER_ADMIN";
         };
         PhonePersonCreateRequest: {
             /**
@@ -541,163 +501,7 @@ export interface operations {
             };
         };
     };
-    createPerson: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PersonCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Bad Gateway */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonErrorResponse"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonErrorResponse"];
-                };
-            };
-        };
-    };
     registerAdmin: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PersonRegisterRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Bad Gateway */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonErrorResponse"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PersonErrorResponse"];
-                };
-            };
-        };
-    };
-    registerCeoClient: {
         parameters: {
             query?: never;
             header?: never;
@@ -1021,6 +825,84 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PersonSignatureResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+        };
+    };
+    registerSupervisor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonRegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonResponse"];
                 };
             };
             /** @description Bad Request */

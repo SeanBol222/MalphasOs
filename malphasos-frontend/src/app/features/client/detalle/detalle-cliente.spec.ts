@@ -62,7 +62,7 @@ const CLIENTE = {
   estadoActivo: true,
   correos: [{ id: 'c1', valor: 'contacto@hospital.co', estadoActivo: true }],
   telefonos: [{ id: 't1', valor: '6011234567', estadoActivo: true }],
-  representantes: ['p1', 'p2'],
+  supervisores: [{ idPersona: 'p1', cargo: 'Ingeniera biomédica' }, { idPersona: 'p2' }],
 };
 
 const PAISES = [{ id: ID_PAIS, nombre: 'Colombia', codigoIso: 'CO', estadoActivo: true }];
@@ -330,7 +330,7 @@ describe('Ficha de un cliente', () => {
     });
   });
 
-  describe('Quien solo lee, como el representante del cliente (2026-10-26)', () => {
+  describe('Quien solo lee, como el supervisor del cliente (2026-10-26)', () => {
     // No se le ofrece lo que el servidor le rechazaría: editar y el contacto piden client.write, y
     // retirar, client.delete.
     async function abrirSoloLectura(sedes: object = SEDES): Promise<void> {
@@ -510,15 +510,18 @@ describe('Ficha de un cliente', () => {
       expect(raiz().querySelector('[data-sede="s1"]')?.textContent).toContain('Bogotá');
     });
 
-    it('pide los conteos de este cliente y nombra a los representantes que encuentra', async () => {
+    it('pide los conteos de este cliente y nombra a los supervisores que encuentra, con su cargo', async () => {
       await abrirConTodo();
 
-      expect(texto()).toContain('Carolina Vélez');
-      // El otro representante no está en la lista de personas: no se inventa su nombre.
-      expect(texto()).toContain('Representante');
+      const supervisores = [...raiz().querySelectorAll('[data-supervisor]')].map((li) =>
+        li.textContent?.replace(/\s+/g, ' ').trim(),
+      );
+      // El otro supervisor no está en la lista de personas: no se inventa su nombre, y sin cargo se dice.
+      expect(supervisores[0]).toContain('Carolina Vélez Ingeniera biomédica');
+      expect(supervisores[1]).toContain('Supervisor Sin cargo');
       // El alta lleva el cliente, para nombrar a la persona al crearla.
       expect(
-        raiz().querySelector(`a[href="/personas/nueva/representante?cliente=${ID}"]`),
+        raiz().querySelector(`a[href="/personas/nueva/supervisor?cliente=${ID}"]`),
       ).not.toBeNull();
     });
 
@@ -528,24 +531,24 @@ describe('Ficha de un cliente', () => {
       expect(cifra('Equipos instalados')).toBeUndefined();
       expect(http.match((r) => r.url === URL_CONTEOS)).toHaveLength(0);
       expect(http.match(URL_PERSONAS)).toHaveLength(0);
-      expect(raiz().querySelector('a[href^="/personas/nueva/representante"]')).toBeNull();
+      expect(raiz().querySelector('a[href^="/personas/nueva/supervisor"]')).toBeNull();
     });
   });
 
-  describe('Sus representantes, que deciden qué ve cada cuenta del cliente', () => {
+  describe('Sus supervisores, que ven lo del cliente y aprueban sus órdenes (V53)', () => {
     const PERSONAS = [
       {
         identificador: 'p1',
         primerNombre: 'Carolina',
         primerApellido: 'Vélez',
-        tipoPersona: 'CEO_CLIENT',
+        tipoPersona: 'SUPERVISOR',
         estadoActivo: true,
       },
       {
         identificador: 'p3',
         primerNombre: 'Andrés',
         primerApellido: 'Mora',
-        tipoPersona: 'CEO_CLIENT',
+        tipoPersona: 'SUPERVISOR',
         estadoActivo: true,
       },
       {
@@ -559,10 +562,11 @@ describe('Ficha de un cliente', () => {
         identificador: 'p5',
         primerNombre: 'Lucía',
         primerApellido: 'Paz',
-        tipoPersona: 'CEO_CLIENT',
+        tipoPersona: 'SUPERVISOR',
         estadoActivo: false,
       },
     ];
+    const QUIEN_NOMBRA = ['client.read', 'client.write', 'person.read'];
 
     async function abrirCon(autoridades: readonly string[]): Promise<void> {
       TestBed.resetTestingModule();
@@ -573,71 +577,131 @@ describe('Ficha de un cliente', () => {
     }
 
     const opciones = () =>
-      [...raiz().querySelectorAll<HTMLOptionElement>('#representanteElegido option')]
+      [...raiz().querySelectorAll<HTMLOptionElement>('#supervisorElegido option')]
         .filter((o) => o.value)
         .map((o) => o.textContent?.trim());
 
-    it('ofrece nombrar solo a representantes de cliente activos que aún no lo son', async () => {
-      // Un ingeniero nombrado no ganaría ni perdería nada: el filtrado solo acota a CEO_CLIENT.
-      await abrirCon(['client.read', 'client.write', 'person.read']);
+    function escribirEn(id: string, valor: string): void {
+      const campo = raiz().querySelector<HTMLInputElement>(`#${id}`)!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    }
+
+    it('ofrece nombrar solo a supervisores activos que aún no lo son: un ingeniero aprobaría su trabajo', async () => {
+      await abrirCon(QUIEN_NOMBRA);
 
       expect(opciones()).toEqual(['Andrés Mora']);
     });
 
-    it('nombrar manda la persona elegida al sub-recurso del cliente', async () => {
-      await abrirCon(['client.read', 'client.write', 'person.read']);
-      const select = raiz().querySelector<HTMLSelectElement>('#representanteElegido')!;
+    it('nombrar manda la persona elegida y su cargo al sub-recurso del cliente', async () => {
+      await abrirCon(QUIEN_NOMBRA);
+      const select = raiz().querySelector<HTMLSelectElement>('#supervisorElegido')!;
       select.value = 'p3';
       select.dispatchEvent(new Event('change'));
-      fixture.detectChanges();
+      escribirEn('cargoNuevo', 'Médico propietario');
 
       pulsar('Nombrar');
       await asentar();
 
-      const peticion = http.expectOne(`${URL}/representatives/p3`);
+      const peticion = http.expectOne(`${URL}/supervisors/p3`);
       expect(peticion.request.method).toBe('POST');
-      peticion.flush({ ...CLIENTE, representantes: ['p1', 'p2', 'p3'] });
+      expect(peticion.request.body).toEqual({ cargo: 'Médico propietario' });
+      peticion.flush(CLIENTE);
       await asentar();
       // La ficha se vuelve a pedir: sin eso, el cambio no se veria hasta recargar.
+      http.expectOne({ method: 'GET', url: URL }).flush(CLIENTE);
+      await atenderRecargas();
+    });
+
+    it('sin cargo, lo manda nulo y no en blanco', async () => {
+      await abrirCon(QUIEN_NOMBRA);
+      const select = raiz().querySelector<HTMLSelectElement>('#supervisorElegido')!;
+      select.value = 'p3';
+      select.dispatchEvent(new Event('change'));
+      escribirEn('cargoNuevo', '   ');
+
+      pulsar('Nombrar');
+      await asentar();
+
+      const peticion = http.expectOne(`${URL}/supervisors/p3`);
+      expect(peticion.request.body).toEqual({ cargo: null });
+      peticion.flush(CLIENTE);
+      await asentar();
       http.expectOne({ method: 'GET', url: URL }).flush(CLIENTE);
       await atenderRecargas();
     });
 
     it('sin elegir a nadie no se nombra', async () => {
-      await abrirCon(['client.read', 'client.write', 'person.read']);
+      await abrirCon(QUIEN_NOMBRA);
 
       pulsar('Nombrar');
       await asentar();
 
-      expect(http.match((r) => r.url.includes('/representatives/'))).toHaveLength(0);
+      expect(http.match((r) => r.url.includes('/supervisors/'))).toHaveLength(0);
+    });
+
+    it('cambiar el cargo de uno manda un PATCH a su sub-recurso', async () => {
+      await abrirCon(QUIEN_NOMBRA);
+
+      raiz()
+        .querySelector<HTMLButtonElement>(
+          'button[aria-label="Cambiar el cargo de Carolina Vélez"]',
+        )!
+        .click();
+      fixture.detectChanges();
+      const campo = raiz().querySelector<HTMLInputElement>('#cargo-p1')!;
+      expect(campo.value).toBe('Ingeniera biomédica');
+      escribirEn('cargo-p1', 'Jefa de biomédica');
+      pulsar('Guardar');
+      await asentar();
+
+      const peticion = http.expectOne(`${URL}/supervisors/p1`);
+      expect(peticion.request.method).toBe('PATCH');
+      expect(peticion.request.body).toEqual({ cargo: 'Jefa de biomédica' });
+      peticion.flush(CLIENTE);
+      await asentar();
+      http.expectOne({ method: 'GET', url: URL }).flush(CLIENTE);
+      await atenderRecargas();
     });
 
     it('retirar a uno llama al sub-recurso con su identificador', async () => {
-      await abrirCon(['client.read', 'client.write', 'person.read']);
+      await abrirCon(QUIEN_NOMBRA);
 
       const boton = raiz().querySelector<HTMLButtonElement>(
-        'button[aria-label="Retirar a Carolina Vélez como representante"]',
+        'button[aria-label="Retirar a Carolina Vélez como supervisor"]',
       )!;
       boton.click();
       await asentar();
 
-      const peticion = http.expectOne(`${URL}/representatives/p1`);
+      const peticion = http.expectOne(`${URL}/supervisors/p1`);
       expect(peticion.request.method).toBe('DELETE');
-      peticion.flush({ ...CLIENTE, representantes: ['p2'] });
+      peticion.flush({ ...CLIENTE, supervisores: [{ idPersona: 'p2' }] });
       await asentar();
       // La ficha se vuelve a pedir: sin eso, el cambio no se veria hasta recargar.
       http.expectOne({ method: 'GET', url: URL }).flush(CLIENTE);
       await atenderRecargas();
+    });
+
+    it('sin supervisores dice que sus órdenes no se pueden aprobar', async () => {
+      TestBed.resetTestingModule();
+      montar(QUIEN_NOMBRA);
+      await abrir({ ...CLIENTE, supervisores: [] });
+      http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS));
+      await asentar();
+
+      expect(texto()).toContain('sus órdenes no se pueden aprobar hasta nombrar uno');
     });
 
     it('sin client.write los ve y no los toca', async () => {
       await abrirCon(['client.read', 'person.read', 'person.write']);
 
       expect(texto()).toContain('Carolina Vélez');
-      expect(raiz().querySelector('#representanteElegido')).toBeNull();
+      expect(raiz().querySelector('#supervisorElegido')).toBeNull();
       expect(raiz().querySelector('button[aria-label^="Retirar a"]')).toBeNull();
+      expect(raiz().querySelector('button[aria-label^="Cambiar el cargo"]')).toBeNull();
       // Registrar uno nuevo sin poder nombrarlo dejaría una cuenta que no ve nada.
-      expect(raiz().querySelector('a[href^="/personas/nueva/representante"]')).toBeNull();
+      expect(raiz().querySelector('a[href^="/personas/nueva/supervisor"]')).toBeNull();
     });
   });
 

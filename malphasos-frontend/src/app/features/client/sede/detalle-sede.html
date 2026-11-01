@@ -110,9 +110,6 @@
                     @if (veEquipos()) {
                       <th scope="col" class="text-right">Equipos</th>
                     }
-                    @if (puedeVerEncargados()) {
-                      <th scope="col">Encargado</th>
-                    }
                     <th scope="col"><span class="sr-only">Acciones</span></th>
                   </tr>
                 </thead>
@@ -120,11 +117,7 @@
                   @for (area of filasDeAreas(); track area.id) {
                     <tr [attr.data-area]="area.id">
                       @if (renombrando() === area.id) {
-                        <td
-                          [attr.colspan]="
-                            2 + (veEquipos() ? 1 : 0) + (puedeVerEncargados() ? 1 : 0)
-                          "
-                        >
+                        <td [attr.colspan]="2 + (veEquipos() ? 1 : 0)">
                           <span class="flex flex-wrap items-center gap-1">
                             <label class="sr-only" [attr.for]="'area-' + area.id"
                               >Nuevo nombre del área</label
@@ -165,9 +158,6 @@
                         </td>
                         @if (veEquipos()) {
                           <td class="text-right font-bold tabular-nums">{{ area.equipos }}</td>
-                        }
-                        @if (puedeVerEncargados()) {
-                          <td [class.text-neutral-700]="area.heredado">{{ area.encargado }}</td>
                         }
                         <td class="whitespace-nowrap text-right">
                           @if (registraEquipos() && area.abierta) {
@@ -251,133 +241,6 @@
       </section>
 
       <aside class="flex min-w-0 flex-[1_1_18rem] flex-col gap-3">
-        @if (puedeVerEncargados()) {
-          <section class="superficie" aria-labelledby="encargados">
-            <div class="flex flex-wrap items-center gap-1">
-              <h2 id="encargados" class="titulo-seccion">Encargados</h2>
-              @if (puedeAsignar() && datos.estadoActivo) {
-                <a
-                  class="ml-auto text-sm font-bold underline"
-                  [routerLink]="['/sedes', id(), 'encargado']"
-                >
-                  Registrar encargado
-                </a>
-              }
-            </div>
-            <p class="mt-1 text-sm text-neutral-800">
-              Responden por el área en la hoja de vida. Un área sin encargado toma los de la sede.
-            </p>
-
-            @if (!encargadosDeLaSede().length) {
-              <p class="mt-1.5 text-sm text-neutral-800">
-                Nadie figura como responsable de esta sede ni de sus áreas.
-              </p>
-            } @else {
-              <ul class="mt-1">
-                @for (
-                  encargado of encargadosDeLaSede();
-                  track encargado.idPersona + encargado.aCargoDe
-                ) {
-                  <li
-                    class="flex flex-wrap items-center gap-1 border-t border-neutral-200 py-1 text-sm"
-                  >
-                    <span class="min-w-0 grow">
-                      <span class="block" [class.font-bold]="encargado.estadoActivo">
-                        {{ encargado.nombre || 'Encargado' }}
-                      </span>
-                      <span class="block text-neutral-700">{{ encargado.aCargoDe }}</span>
-                    </span>
-                    @if (puedeAsignar() && encargado.estadoActivo) {
-                      <button
-                        class="min-h-tactil px-1 font-semibold underline"
-                        type="button"
-                        [attr.aria-label]="
-                          'Quitar a ' +
-                          (encargado.nombre || 'este encargado') +
-                          ' de ' +
-                          encargado.aCargoDe
-                        "
-                        [disabled]="bajaDeEncargado.isPending()"
-                        (click)="quitarEncargado(encargado)"
-                      >
-                        Quitar
-                      </button>
-                    }
-                  </li>
-                }
-              </ul>
-
-              @if (faltanNombres()) {
-                <!-- Decirlo es mejor que ensenar una fila que solo dice "Encargado": quien lo lea sabra
-                     que el dato existe y que lo que falta es el permiso para consultarlo. -->
-                <p class="mt-1 text-sm text-neutral-800">
-                  Algún nombre no se pudo consultar: hace falta el permiso de lectura de personas.
-                </p>
-              }
-            }
-
-            @if (asignaRegistrados() && datos.estadoActivo) {
-              <!--
-                Desde V41 un encargado responde por varias sedes y areas de su cliente. Aqui se suma
-                una a quien ya esta registrado; «Registrar encargado» crea a una persona nueva.
-              -->
-              <form
-                class="mt-2 border-t border-neutral-200 pt-1.5"
-                aria-labelledby="titulo-asignar"
-                [formGroup]="formularioDeAsignacion"
-                (ngSubmit)="asignarRegistrado()"
-              >
-                <h3 id="titulo-asignar" class="text-sm font-bold">
-                  Asignar a alguien ya registrado
-                </h3>
-                @if (!candidatos().length) {
-                  <p class="mt-1 text-sm text-neutral-800">
-                    No hay encargados registrados de este cliente que se puedan asignar.
-                  </p>
-                } @else {
-                  <label class="mt-1 block text-sm font-semibold" for="personaAsignada">
-                    Persona <span aria-hidden="true">*</span>
-                  </label>
-                  <select
-                    class="campo min-h-tactil w-full text-sm"
-                    id="personaAsignada"
-                    aria-required="true"
-                    formControlName="persona"
-                  >
-                    <option value="">Elija a quién</option>
-                    @for (candidato of candidatos(); track candidato.id) {
-                      <option [value]="candidato.id">{{ candidato.nombre }}</option>
-                    }
-                  </select>
-
-                  <label class="mt-1 block text-sm font-semibold" for="destinoAsignado">
-                    De qué se encarga <span aria-hidden="true">*</span>
-                  </label>
-                  <select
-                    class="campo min-h-tactil w-full text-sm"
-                    id="destinoAsignado"
-                    aria-required="true"
-                    formControlName="destino"
-                  >
-                    <option value="">Elija</option>
-                    @for (destino of destinosDisponibles(); track destino.valor) {
-                      <option [value]="destino.valor">{{ destino.etiqueta }}</option>
-                    }
-                  </select>
-
-                  <button
-                    class="boton-secundario mt-1.5 min-h-tactil"
-                    type="submit"
-                    [disabled]="asignacionExistente.isPending()"
-                  >
-                    {{ asignacionExistente.isPending() ? 'Asignando…' : 'Asignar' }}
-                  </button>
-                }
-              </form>
-            }
-          </section>
-        }
-
         @if (veOrdenes()) {
           <!-- El bloque oscuro de la maqueta: lo que está abierto en esta sede ahora mismo. -->
           <section class="bg-ink p-3 text-paper" aria-labelledby="ordenes-sede">

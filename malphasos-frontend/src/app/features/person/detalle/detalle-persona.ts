@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { asignacionesDe, EncargadoApi } from '../../client/encargado-api';
 import { LARGO_MINIMO_DE_CONTRASENA } from '../contrasena';
 import { nombreCompleto, PersonaApi } from '../persona-api';
 import { Sesion } from '../../../core/auth/sesion';
@@ -60,17 +59,6 @@ export class DetallePersona {
 
   protected readonly persona = this.api.detalle(this.id);
 
-  /**
-   * Un representante a cargo de una sede o un área es además encargado (V46): lo dicen sus asignaciones,
-   * no un segundo tipo. Solo se pregunta por un representante, que es el único que puede tenerlas sin
-   * ser encargado de tipo, y solo con la autoridad que esa lectura exige.
-   */
-  private readonly encargados = inject(EncargadoApi).listar(
-    computed(
-      () => this.sesion.puede('engineer.read') && this.persona.data()?.tipoPersona === 'CEO_CLIENT',
-    ),
-  );
-
   protected readonly edicion = this.api.editar();
   protected readonly baja = this.api.retirar();
 
@@ -104,14 +92,8 @@ export class DetallePersona {
 
   protected readonly funciones = computed(() => {
     const tipo = this.persona.data()?.tipoPersona as TipoDePersona | undefined;
-    const aCargo = (this.encargados.data() ?? []).some(
-      (e) => e.idPersona === this.id() && e.estadoActivo && asignacionesDe(e).length > 0,
-    );
 
-    return [tipo, tipo === 'CEO_CLIENT' && aCargo ? ('MANAGER' as const) : undefined]
-      .filter((t): t is TipoDePersona => !!t)
-      .map((t) => ETIQUETA_DE_TIPO_DE_PERSONA[t])
-      .join(' · ');
+    return tipo ? ETIQUETA_DE_TIPO_DE_PERSONA[tipo] : '';
   });
 
   /** Solo los activos: un correo retirado se queda en la base y no se pinta como vigente. */
@@ -150,15 +132,6 @@ export class DetallePersona {
     return this.formularioDeAcceso.controls.contrasenaTemporal;
   }
 
-  /**
-   * Si la persona tiene cuenta, que es lo que da sentido al correo de la cuenta. Un encargado no:
-   * existe como contacto y no entra al sistema.
-   */
-  protected readonly tieneCuenta = computed(() => {
-    const tipo = this.persona.data()?.tipoPersona;
-
-    return !!tipo && tipo !== 'MANAGER';
-  });
   protected readonly altaDeTelefono = this.api.anadirTelefono();
   protected readonly bajaDeTelefono = this.api.retirarTelefono();
 

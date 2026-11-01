@@ -159,7 +159,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/api/clients/{id}/representatives/{idPersona}": {
+    "/v1/api/clients/{id}/supervisors/{idPersona}": {
         parameters: {
             query?: never;
             header?: never;
@@ -169,15 +169,22 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Nombrar representante legal
-         * @description La persona debe existir. Una persona puede representar a varios clientes.
+         * Nombrar supervisor
+         * @description La persona debe existir y ser SUPERVISOR. Supervisar es tener cuenta, ver lo de este cliente y aprobar sus ordenes, en todas sus sedes. Una persona puede supervisar a varios clientes. Nombrar de nuevo a quien ya lo es le cambia el cargo.
          */
-        post: operations["appointRepresentative"];
-        /** Retirar a un representante legal */
-        delete: operations["removeRepresentative"];
+        post: operations["appointSupervisor"];
+        /**
+         * Retirar a un supervisor
+         * @description Pierde en el acto lo que veia de este cliente.
+         */
+        delete: operations["removeSupervisor"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Cambiar el cargo de un supervisor
+         * @description Debe supervisar ya a este cliente.
+         */
+        patch: operations["changeSupervisorTitle"];
         trace?: never;
     };
     "/v1/api/headquarters/summary": {
@@ -244,108 +251,6 @@ export interface paths {
          * @description Los campos ausentes conservan su valor. La direccion va entera o no va.
          */
         patch: operations["updateHeadquarter"];
-        trace?: never;
-    };
-    "/v1/api/managers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar todos los encargados */
-        get: operations["getAllManagers"];
-        put?: never;
-        /**
-         * Registrar un encargado nuevo
-         * @description Crea la persona y la pone al frente de la sede o area indicada.
-         */
-        post: operations["registerManager"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/api/managers/assignments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Poner al frente a alguien que ya existe
-         * @description Para una persona ya registrada en el sistema. Si ya es encargado, se suma a lo que tiene a cargo, que tiene que ser del mismo cliente.
-         */
-        post: operations["assignManager"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/api/managers/{idPersona}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obtener el encargado que corresponde a una persona */
-        get: operations["getByPerson"];
-        put?: never;
-        post?: never;
-        /**
-         * Relevar a un encargado de todo
-         * @description No lo borra: deja inactivas todas sus asignaciones.
-         */
-        delete: operations["deactivateManager"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/api/managers/{idPersona}/headquarters/{idSede}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Relevar a un encargado de una sede
-         * @description Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.
-         */
-        delete: operations["relieveFromHeadquarter"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/api/managers/{idPersona}/service-areas/{idArea}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Relevar a un encargado de un area de servicio
-         * @description Solo de esa: sigue a cargo de lo demás. No la borra: la deja inactiva.
-         */
-        delete: operations["relieveFromServiceArea"];
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/v1/api/service-areas/{idAreaServicio}/equipments": {
@@ -477,16 +382,32 @@ export interface components {
             /** Format: uuid */
             idPais?: string;
             razonSocial?: string;
-            /** @description Identificadores de las personas que lo representan legalmente */
-            representantes?: string[];
             /**
              * @description Encabeza el numero de sus hojas de vida
              * @example CDN
              */
             sigla?: string;
+            /** @description Quienes lo supervisan: tienen cuenta, ven lo de este cliente y aprueban sus ordenes */
+            supervisores?: components["schemas"]["ClientSupervisorResponse"][];
             telefonos?: components["schemas"]["ContactResponse"][];
             /** @enum {string} */
             tipoIdentificacion?: "NIT_JURIDICO" | "NIT_NATURAL" | "CC" | "CE";
+        };
+        ClientSupervisorRequest: {
+            /**
+             * @description Como se le nombra en los documentos; vacio o nulo, sin cargo
+             * @example Ingeniero biomedico
+             */
+            cargo?: string;
+        };
+        ClientSupervisorResponse: {
+            /**
+             * @description Como se le nombra en los documentos; nulo, sin cargo
+             * @example Ingeniero biomedico
+             */
+            cargo?: string;
+            /** Format: uuid */
+            idPersona?: string;
         };
         ClientUpdateRequest: {
             /** Format: uuid */
@@ -568,44 +489,6 @@ export interface components {
             idCiudad?: string;
             nombre?: string;
             numero?: string;
-        };
-        ManagerAssignRequest: {
-            /** Format: uuid */
-            idAsignacion: string;
-            /** Format: uuid */
-            idPersona: string;
-            /** @enum {string} */
-            tipo: "HEADQUARTER" | "SERVICE_AREA";
-        };
-        ManagerRegisterRequest: {
-            cedula: string;
-            correos: components["schemas"]["ContactRequest"][];
-            /**
-             * Format: uuid
-             * @description Sede o area de la que se encarga, segun el tipo
-             */
-            idAsignacion: string;
-            primerApellido: string;
-            primerNombre: string;
-            segundoApellido?: string;
-            segundoNombre?: string;
-            telefonos?: components["schemas"]["ContactRequest"][];
-            /**
-             * @description De que se encarga
-             * @example HEADQUARTER
-             * @enum {string}
-             */
-            tipo: "HEADQUARTER" | "SERVICE_AREA";
-        };
-        ManagerResponse: {
-            /** @description Si está a cargo de algo */
-            estadoActivo?: boolean;
-            /** Format: uuid */
-            idPersona?: string;
-            /** @description Áreas de servicio de las que está a cargo ahora */
-            idsAreaServicio?: string[];
-            /** @description Sedes de las que está a cargo ahora */
-            idsSede?: string[];
         };
         ServiceAreaCreateRequest: {
             /** @example UCI */
@@ -1346,7 +1229,70 @@ export interface operations {
             };
         };
     };
-    appointRepresentative: {
+    appointSupervisor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                idPersona: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ClientSupervisorRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClientErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    removeSupervisor: {
         parameters: {
             query?: never;
             header?: never;
@@ -1405,7 +1351,7 @@ export interface operations {
             };
         };
     };
-    removeRepresentative: {
+    changeSupervisorTitle: {
         parameters: {
             query?: never;
             header?: never;
@@ -1415,7 +1361,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientSupervisorRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -1779,411 +1729,6 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["HeadquarterResponse"];
                 };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-        };
-    };
-    getAllManagers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ManagerResponse"][];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-        };
-    };
-    registerManager: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ManagerRegisterRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ManagerResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-        };
-    };
-    assignManager: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ManagerAssignRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ManagerResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-        };
-    };
-    getByPerson: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Identificador de la persona, que es el del encargado */
-                idPersona: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ManagerResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-        };
-    };
-    deactivateManager: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idPersona: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-        };
-    };
-    relieveFromHeadquarter: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idPersona: string;
-                idSede: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ClientErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GlobalErrorResponse"];
-                };
-            };
-        };
-    };
-    relieveFromServiceArea: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                idPersona: string;
-                idArea: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Bad Request */
             400: {

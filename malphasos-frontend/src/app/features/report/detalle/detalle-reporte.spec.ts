@@ -53,17 +53,6 @@ const TODAS = [
   'work-order.read',
   'client.read',
   'person.read',
-  'engineer.read',
-];
-
-const URL_ENCARGADOS = 'http://localhost:8081/v1/api/managers';
-
-/** Un encargado de la sede de la orden, que es el responsable del cliente en ese sitio. */
-const ENCARGADOS = [
-  // De otra sede del mismo cliente, y primero en la lista: el responsable es el de la sede de la orden,
-  // no el primero que tenga alguna sede.
-  { idPersona: 'p9', idsSede: ['otra-sede'], idsAreaServicio: [], estadoActivo: true },
-  { idPersona: 'p2', idsSede: ['otra-sede', ID_SEDE], idsAreaServicio: [], estadoActivo: true },
 ];
 
 @Component({ selector: 'app-orden-falsa', template: '' })
@@ -128,11 +117,10 @@ describe('Ficha de un reporte de servicio', () => {
     http.match(URL_EQUIPOS_DE_CATALOGO).forEach((peticion) => peticion.flush(EQUIPOS_DE_CATALOGO));
     http.match(URL_TIPOS).forEach((peticion) => peticion.flush(TIPOS));
     http.match(URL_PATRONES).forEach((peticion) => peticion.flush(PATRONES));
-    // Y lo que RF-11 autocompleta: la orden, su cliente, su sede, las personas y los encargados.
+    // Y lo que RF-11 autocompleta: la orden, su cliente con sus supervisores, su sede y las personas.
     http.match(`${URL_ORDENES}/${ID_ORDEN}`).forEach((peticion) => peticion.flush(laOrden));
     http.match(URL_CLIENTES).forEach((peticion) => peticion.flush(CLIENTES));
     http.match(URL_PERSONAS).forEach((peticion) => peticion.flush(PERSONAS));
-    http.match(URL_ENCARGADOS).forEach((peticion) => peticion.flush(ENCARGADOS));
     await asentar(fixture);
     http.match(urlSede(ID_SEDE)).forEach((peticion) => peticion.flush(SEDE));
     await asentar(fixture);
@@ -157,7 +145,6 @@ describe('Ficha de un reporte de servicio', () => {
       [`${URL_ORDENES}/${ID_ORDEN}`, EMPEZADA],
       [URL_CLIENTES, CLIENTES],
       [URL_PERSONAS, PERSONAS],
-      [URL_ENCARGADOS, ENCARGADOS],
       [urlSede(ID_SEDE), SEDE],
     ];
 
@@ -214,8 +201,8 @@ describe('Ficha de un reporte de servicio', () => {
     expect(texto()).toContain('Sede Norte');
     expect(texto()).toContain('Preventivo · Trimestral');
     expect(texto()).toContain('2026-10-15');
-    // El encargado de la sede sale de la lista completa de encargados: el API no publica los de una sede.
-    expect(texto()).toContain('Luis Peña');
+    // El supervisor sale de la ficha del cliente de la orden (V53): hasta entonces era el encargado de la sede.
+    expect(raiz().querySelector('[data-supervisor]')?.textContent).toContain('Luis Peña');
   });
 
   it('lo autocompletado no tiene ningún campo que editar (RNF-07)', async () => {

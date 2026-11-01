@@ -25,7 +25,15 @@ export const ID_AREA = 'a1';
 export const ID_EQUIPO = 'ec1';
 export const ID_INGENIERO = 'p1';
 
-export const CLIENTES = [{ id: ID_CLIENTE, razonSocial: 'Hospital Central', estadoActivo: true }];
+// Supervisado por p2, el supervisor del cliente (V53): no ejecuta mantenimientos, y es quien aprueba.
+export const CLIENTES = [
+  {
+    id: ID_CLIENTE,
+    razonSocial: 'Hospital Central',
+    estadoActivo: true,
+    supervisores: [{ idPersona: 'p2', cargo: 'Ingeniero biomédico' }],
+  },
+];
 
 export const SEDE = {
   id: ID_SEDE,
@@ -71,8 +79,8 @@ export const PERSONAS = [
     primerNombre: 'Luis',
     primerApellido: 'Peña',
     cedula: '456',
-    // Un encargado de sede no ejecuta mantenimientos: no debe aparecer entre los ingenieros.
-    tipoPersona: 'MANAGER',
+    // Un supervisor del cliente no ejecuta mantenimientos: no debe aparecer entre los ingenieros.
+    tipoPersona: 'SUPERVISOR',
     estadoActivo: true,
   },
 ];

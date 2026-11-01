@@ -65,7 +65,7 @@ export class EquipoApi {
    * Todos los equipos de cliente registrados.
    *
    * <p>Sin filtros de consulta, porque el API no los ofrece. Lo que <b>si</b> filtra desde el
-   * 2026-10-04 es el servidor, por dueno: un representante legal recibe solo los equipos de sus
+   * 2026-10-04 es el servidor, por dueno: un supervisor del cliente recibe solo los equipos de sus
    * clientes. (Este comentario decia que la ausencia de filtros era «la misma que el filtrado por
    * dueno»: cierto hasta ese dia.) Con miles de equipos seguira haciendo falta paginacion.
    */

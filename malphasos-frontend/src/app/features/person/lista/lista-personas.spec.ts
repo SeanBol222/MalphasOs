@@ -14,7 +14,6 @@ const API = 'http://localhost:8081/v1/api';
 const URL_PERSONAS = `${API}/persons`;
 const URL_CLIENTES = `${API}/clients`;
 const URL_RESUMEN_SEDES = `${API}/headquarters/summary`;
-const URL_ENCARGADOS = `${API}/managers`;
 
 const PERSONAS = [
   {
@@ -42,7 +41,7 @@ const PERSONAS = [
     primerNombre: 'Carolina',
     primerApellido: 'Vélez',
     cedula: '52887412',
-    tipoPersona: 'CEO_CLIENT',
+    tipoPersona: 'SUPERVISOR',
     estadoActivo: true,
   },
   {
@@ -50,7 +49,7 @@ const PERSONAS = [
     primerNombre: 'Marta',
     primerApellido: 'Ríos',
     cedula: '39774102',
-    tipoPersona: 'MANAGER',
+    tipoPersona: 'SUPERVISOR',
     estadoActivo: true,
   },
   {
@@ -58,7 +57,7 @@ const PERSONAS = [
     primerNombre: 'Julián',
     primerApellido: 'Castro',
     cedula: '80123998',
-    tipoPersona: 'MANAGER',
+    tipoPersona: 'SUPERVISOR',
     estadoActivo: true,
   },
   {
@@ -69,41 +68,34 @@ const PERSONAS = [
     tipoPersona: 'SUPER_ADMIN',
     estadoActivo: true,
   },
-  // Representante y además a cargo de una sede: desde V46 es encargado por tener algo a cargo, no por
-  // un segundo tipo, y cuenta en los dos filtros.
+  // Supervisa a dos clientes, con cargos distintos (V53).
   {
     identificador: 'p7',
     primerNombre: 'Andrés',
     primerApellido: 'Pardo',
     cedula: '1020774512',
-    tipoPersona: 'CEO_CLIENT',
+    tipoPersona: 'SUPERVISOR',
     estadoActivo: true,
   },
 ];
 
 const CLIENTES = [
-  { id: 'c1', razonSocial: 'Clínica del Norte', representantes: ['p3', 'p7'], estadoActivo: true },
-];
-const SEDES = [
   {
-    id: 's1',
-    nombre: 'Sede principal',
-    idCliente: 'c1',
-    abierta: true,
-    areas: [{ id: 'a1', nombre: 'Laboratorio', abierta: true }],
+    id: 'c1',
+    razonSocial: 'Clínica del Norte',
+    supervisores: [{ idPersona: 'p3' }, { idPersona: 'p7', cargo: 'Ingeniero biomédico' }],
+    estadoActivo: true,
   },
-];
-const ENCARGADOS = [
-  { idPersona: 'p4', idsSede: [], idsAreaServicio: ['a1'], estadoActivo: true },
-  { idPersona: 'p5', idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
-  { idPersona: 'p7', idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
-  // Retirada: la representante ya no responde de la sede, y no debe decirlo. Desde V41 la respuesta
-  // solo trae lo activo, asi que llega sin nada a cargo.
-  { idPersona: 'p3', idsSede: [], idsAreaServicio: [], estadoActivo: false },
+  {
+    id: 'c2',
+    razonSocial: 'Consultorio Sur',
+    supervisores: [{ idPersona: 'p7', cargo: 'Asesor' }],
+    estadoActivo: true,
+  },
 ];
 
 /** Un administrador: ve todo y registra a la gente del cliente, no a la de la casa. */
-const ADMIN = ['person.read', 'person.write', 'client.read', 'engineer.read'];
+const ADMIN = ['person.read', 'person.write', 'client.read'];
 
 describe('Listado de personas', () => {
   let fixture: ComponentFixture<ListaPersonas>;
@@ -140,8 +132,6 @@ describe('Listado de personas', () => {
     await asentar(fixture);
     http.match(URL_PERSONAS).forEach((p) => p.flush(PERSONAS));
     http.match(URL_CLIENTES).forEach((p) => p.flush(CLIENTES));
-    http.match((r) => r.url === URL_RESUMEN_SEDES).forEach((p) => p.flush(SEDES));
-    http.match(URL_ENCARGADOS).forEach((p) => p.flush(ENCARGADOS));
     await asentar(fixture);
   }
 
@@ -154,46 +144,22 @@ describe('Listado de personas', () => {
       '1018456321',
       'Administrador',
       'De la casa',
-      'Con cuenta',
       'Activa',
     ]);
-    expect(celdas('p3').slice(2, 5)).toEqual([
-      'Representante del cliente',
-      'Clínica del Norte',
-      'Con cuenta',
-    ]);
+    expect(celdas('p3').slice(2, 4)).toEqual(['Supervisor del cliente', 'Clínica del Norte']);
+    // Desde V53 toda persona tiene cuenta: la columna que lo decía salió.
+    expect(texto()).not.toContain('Sin cuenta');
   });
 
-  it('un encargado dice de qué área o sede responde, y de qué cliente es', async () => {
+  it('un supervisor de dos clientes los dice los dos, cada uno con su cargo', async () => {
     montar();
     await abrir();
 
-    expect(celdas('p4').slice(2, 5)).toEqual([
-      'Encargado del cliente · Laboratorio',
-      'Clínica del Norte',
-      'Sin cuenta',
-    ]);
-    expect(celdas('p5').slice(2, 4)).toEqual([
-      'Encargado del cliente · Sede principal',
-      'Clínica del Norte',
-    ]);
-  });
-
-  it('quien esta a cargo de varias cosas las dice todas (V41)', async () => {
-    // Desde el 2026-10-27 un encargado responde por varias sedes y areas del mismo cliente.
-    montar();
-    fixture.detectChanges();
-    await asentar(fixture);
-    http
-      .match(URL_ENCARGADOS)
-      .forEach((p) =>
-        p.flush([
-          { idPersona: 'p4', idsSede: ['s1'], idsAreaServicio: ['a1'], estadoActivo: true },
-        ]),
-      );
-    await abrir();
-
-    expect(celdas('p4')[2]).toBe('Encargado del cliente · Sede principal, Laboratorio');
+    expect(celdas('p7')[3]).toBe(
+      'Clínica del Norte (Ingeniero biomédico) · Consultorio Sur (Asesor)',
+    );
+    // Un supervisor sin nombrar en ningún cliente no se inventa uno.
+    expect(celdas('p4')[3]).toBe('—');
   });
 
   it('las iniciales de la casa van en tinta y las del cliente en papel', async () => {
@@ -221,26 +187,17 @@ describe('Listado de personas', () => {
 
       expect(
         [...raiz().querySelectorAll('[role="group"] button')].map((b) => b.textContent?.trim()),
-      ).toEqual([
-        'Todas · 7',
-        'Ingenieros · 1',
-        'Administradores · 2',
-        'Representantes · 2',
-        'Encargados · 3',
-      ]);
+      ).toEqual(['Todas · 7', 'Ingenieros · 1', 'Administradores · 2', 'Supervisores · 4']);
     });
 
     it('elegir una función deja solo esa, y se marca pulsada', async () => {
       montar();
       await abrir();
-      boton('Encargados').click();
+      boton('Supervisores').click();
       await asentar(fixture);
 
-      expect(ids()).toEqual(['p4', 'p5', 'p7']);
-      expect(celdas('p7')[2]).toBe(
-        'Representante del cliente · Encargado del cliente · Sede principal',
-      );
-      expect(boton('Encargados').getAttribute('aria-pressed')).toBe('true');
+      expect(ids()).toEqual(['p3', 'p4', 'p5', 'p7']);
+      expect(boton('Supervisores').getAttribute('aria-pressed')).toBe('true');
     });
 
     it('el buscador encuentra por nombre sin tildes y por cédula', async () => {
@@ -273,7 +230,7 @@ describe('Listado de personas', () => {
       await asentar(fixture);
 
       expect(boton('Registrar persona').getAttribute('aria-expanded')).toBe('true');
-      expect(enlaces()).toEqual(['/personas/nueva/representante', '/personas/nueva/encargado']);
+      expect(enlaces()).toEqual(['/personas/nueva/supervisor']);
     });
 
     it('con super.person.write ofrece también las de la casa', async () => {
@@ -285,8 +242,7 @@ describe('Listado de personas', () => {
       expect(enlaces()).toEqual([
         '/personas/nueva/ingeniero',
         '/personas/nueva/administrador',
-        '/personas/nueva/representante',
-        '/personas/nueva/encargado',
+        '/personas/nueva/supervisor',
       ]);
     });
 
@@ -311,14 +267,13 @@ describe('Listado de personas', () => {
     });
   });
 
-  it('sin client.read ni engineer.read no pide clientes, sedes ni encargados, ni pinta la columna', async () => {
+  it('sin client.read no pide clientes ni pinta la columna; y las sedes ya no las pide nadie', async () => {
     montar(['person.read']);
     fixture.detectChanges();
     await asentar(fixture);
 
     expect(http.match(URL_CLIENTES)).toHaveLength(0);
     expect(http.match((r) => r.url === URL_RESUMEN_SEDES)).toHaveLength(0);
-    expect(http.match(URL_ENCARGADOS)).toHaveLength(0);
     await abrir();
     expect([...raiz().querySelectorAll('th')].map((th) => th.textContent?.trim())).not.toContain(
       'Cliente',

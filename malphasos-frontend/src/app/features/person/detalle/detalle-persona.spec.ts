@@ -21,7 +21,7 @@ function persona(cambios: Partial<Persona> = {}): Persona {
     cedula: '1010101010',
     primerNombre: 'Grace',
     primerApellido: 'Hopper',
-    tipoPersona: 'MANAGER',
+    tipoPersona: 'SUPERVISOR',
     estadoActivo: true,
     emailPersonList: [],
     phonePersonList: [],
@@ -110,36 +110,8 @@ describe('Ficha de una persona', () => {
 
     expect(texto()).toContain('Grace Hopper');
     expect(texto()).toContain('1010101010');
-    expect(texto()).toContain('Encargado del cliente');
+    expect(texto()).toContain('Supervisor del cliente');
     expect(texto()).toContain('Activa');
-  });
-
-  describe('un representante a cargo de algo es además encargado (V46)', () => {
-    const URL_ENCARGADOS = 'http://localhost:8081/v1/api/managers';
-
-    async function abrirRepresentante(encargados: object[]): Promise<void> {
-      TestBed.resetTestingModule();
-      montar(['person.read', 'person.write', 'engineer.read']);
-      await abrir(persona({ tipoPersona: 'CEO_CLIENT' }));
-      await responderA(fixture, http, URL_ENCARGADOS, encargados);
-    }
-
-    it('con una sede a cargo dice las dos funciones', async () => {
-      await abrirRepresentante([
-        { idPersona: ID, idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
-      ]);
-
-      expect(texto()).toContain('Representante del cliente · Encargado del cliente');
-    });
-
-    it('sin nada a cargo es solo representante', async () => {
-      await abrirRepresentante([
-        { idPersona: 'otra', idsSede: ['s1'], idsAreaServicio: [], estadoActivo: true },
-      ]);
-
-      expect(texto()).toContain('Representante del cliente');
-      expect(texto()).not.toContain('Encargado del cliente');
-    });
   });
 
   it('solo pinta los correos y teléfonos vigentes', async () => {
@@ -161,7 +133,7 @@ describe('Ficha de una persona', () => {
   it('con person.write se puede tocar a alguien del cliente', async () => {
     TestBed.resetTestingModule();
     montar(['person.read', 'person.write']);
-    await abrir(persona({ tipoPersona: 'MANAGER' }));
+    await abrir(persona({ tipoPersona: 'SUPERVISOR' }));
 
     expect(botones()).toContain('Editar datos');
     expect(botones()).toContain('Retirar');
@@ -413,10 +385,10 @@ describe('Ficha de una persona', () => {
       );
     });
 
-    it('un encargado no tiene cuenta: no se le ofrece usar ninguno para ella', async () => {
-      await abrir({ ...CON_CUENTA, tipoPersona: 'MANAGER' });
+    it('a un supervisor también se le ofrece: desde V53 toda persona tiene cuenta', async () => {
+      await abrir({ ...CON_CUENTA, tipoPersona: 'SUPERVISOR' });
 
-      expect(botonesDe('grace@casa.mil')).toEqual(['Retirar']);
+      expect(botonesDe('grace@casa.mil')).toEqual(['Usar para la cuenta', 'Retirar']);
     });
   });
 
@@ -474,12 +446,6 @@ describe('Ficha de una persona', () => {
       expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
         'rechazó la contraseña',
       );
-    });
-
-    it('un encargado no tiene cuenta: no hay contraseña que restablecer', async () => {
-      await abrir(persona({ tipoPersona: 'MANAGER' }));
-
-      expect(acceso()).toBeNull();
     });
 
     it('a una persona retirada tampoco: su cuenta está deshabilitada', async () => {
