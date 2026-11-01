@@ -26,4 +26,13 @@ public interface PersonCommunicationPort {
      * @throws com.malphasos.malphasos.person.domain.exception.PersonNotFoundException si no existe
      */
     PersonCommunicationResponse findById(UUID id);
+
+    /**
+     * Si hay una ficha con ese identificador, retirada o no.
+     *
+     * <p>Existe para quien necesita preguntar sin que la ausencia sea un error: {@link #findById} lanza, y
+     * dentro de una transacción esa excepción la deja marcada para deshacerse aunque se capture. Lo
+     * destapó la aprobación en sitio del SuperUsuario, que no tiene ficha (V54, 2026-11-01).
+     */
+    boolean exists(UUID id);
 }

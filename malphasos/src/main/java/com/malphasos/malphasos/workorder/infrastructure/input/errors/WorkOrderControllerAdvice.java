@@ -9,7 +9,10 @@ import com.malphasos.malphasos.workorder.domain.exception.WorkOrderHasOpenReport
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEngineerException;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
+import com.malphasos.malphasos.workorder.infrastructure.input.rest.WorkOrderApprovalRestAdapter;
 import com.malphasos.malphasos.workorder.infrastructure.input.rest.WorkOrderRestAdapter;
+import com.malphasos.malphasos.workorder.domain.exception.NoSavedSignatureException;
+import com.malphasos.malphasos.workorder.domain.exception.NotSupervisorOfClientException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,7 +27,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * tanda del traslado por no declarar una de ellas. Cada una lleva su propio código: el 404 dice que
  * algo no existe, y el código dice qué.
  */
-@RestControllerAdvice(assignableTypes = WorkOrderRestAdapter.class)
+@RestControllerAdvice(assignableTypes = {WorkOrderRestAdapter.class, WorkOrderApprovalRestAdapter.class})
 public class WorkOrderControllerAdvice {
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -98,6 +101,20 @@ public class WorkOrderControllerAdvice {
     public WorkOrderErrorResponse handleWithoutEquipment(WorkOrderWithoutEquipmentException ex) {
         return WorkOrderErrorResponse.of(
                 WorkOrderErrorCatalog.WORK_ORDER_WITHOUT_EQUIPMENT, List.of(ex.getMessage()));
+    }
+
+    /** Solo aprueba un supervisor activo del cliente de la orden (V54). */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(NotSupervisorOfClientException.class)
+    public WorkOrderErrorResponse handleNotSupervisor(NotSupervisorOfClientException ex) {
+        return WorkOrderErrorResponse.of(WorkOrderErrorCatalog.NOT_SUPERVISOR_OF_CLIENT, List.of(ex.getMessage()));
+    }
+
+    /** Aprobar desde la cuenta usa la firma guardada: sin ella, 409 con código propio para que se guarde. */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(NoSavedSignatureException.class)
+    public WorkOrderErrorResponse handleNoSavedSignature(NoSavedSignatureException ex) {
+        return WorkOrderErrorResponse.of(WorkOrderErrorCatalog.NO_SAVED_SIGNATURE, List.of(ex.getMessage()));
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)

@@ -4,6 +4,7 @@ import com.malphasos.malphasos.person.application.mapper.PersonCommunicationMapp
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
 import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
+import com.malphasos.malphasos.person.application.ports.output.PersonPersistencePort;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,9 +26,15 @@ public class PersonCommunicationService implements PersonCommunicationPort {
 
     private final PersonServicePort personServicePort;
     private final PersonCommunicationMapper personCommunicationMapper;
+    private final PersonPersistencePort personPersistencePort;
 
     @Override
     public PersonCommunicationResponse findById(UUID id) {
         return personCommunicationMapper.toResponse(personServicePort.findById(id));
+    }
+
+    @Override
+    public boolean exists(UUID id) {
+        return id != null && personPersistencePort.findById(id).isPresent();
     }
 }

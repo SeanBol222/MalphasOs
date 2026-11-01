@@ -78,6 +78,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
+import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderApprovalServicePort;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
@@ -123,6 +124,7 @@ class ServiceReportServiceTest {
 
     @Mock private ServiceReportPersistencePort serviceReportPersistencePort;
     @Mock private WorkOrderServicePort workOrderServicePort;
+    @Mock private WorkOrderApprovalServicePort workOrderApprovalServicePort;
     @Mock private ClientEquipmentServicePort clientEquipmentServicePort;
     @Mock private ModelServicePort modelServicePort;
     @Mock private EquipmentServicePort equipmentServicePort;
@@ -353,6 +355,8 @@ class ServiceReportServiceTest {
             orden.verify(serviceReportPersistencePort).save(cerrado);
             orden.verify(serviceReportDrafts).open(ORDEN, ServiceType.CORRECTIVO, EQUIPO);
             assertThat(cerrado.isEstadoActivo()).isFalse();
+            // V54: el supervisor aprobó un documento que ya no es el mismo.
+            verify(workOrderApprovalServicePort).withdraw(ORDEN);
         }
 
         @Test
@@ -366,6 +370,7 @@ class ServiceReportServiceTest {
                     .withMessageContaining("borrador");
             verify(serviceReportDrafts, never()).open(any(), any(), any());
             verify(serviceReportPersistencePort, never()).save(any());
+            verify(workOrderApprovalServicePort, never()).withdraw(any());
         }
 
         @Test

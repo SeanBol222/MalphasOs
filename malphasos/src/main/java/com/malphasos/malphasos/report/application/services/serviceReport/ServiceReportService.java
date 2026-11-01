@@ -55,6 +55,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
+import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderApprovalServicePort;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
@@ -101,6 +102,7 @@ public class ServiceReportService implements ServiceReportServicePort {
 
     private final ServiceReportPersistencePort serviceReportPersistencePort;
     private final WorkOrderServicePort workOrderServicePort;
+    private final WorkOrderApprovalServicePort workOrderApprovalServicePort;
     private final ClientEquipmentServicePort clientEquipmentServicePort;
     private final ModelServicePort modelServicePort;
     private final EquipmentServicePort equipmentServicePort;
@@ -199,6 +201,9 @@ public class ServiceReportService implements ServiceReportServicePort {
      * después. El documento de la orden no cambia —dice el número del reporte que había al ejecutarla—, y
      * su ficha avisa de que ese equipo se sustituyó después.
      *
+     * <p><b>Y retira la aprobación de la orden</b>, si la tenía (V54, 2026-11-01): el supervisor aprobó un
+     * documento que ya no es el mismo, y la orden vuelve a estar por aprobar.
+     *
      * @return el borrador nuevo
      */
     @Override
@@ -223,6 +228,7 @@ public class ServiceReportService implements ServiceReportServicePort {
         // El adaptador vuelca la retirada antes de insertar el borrador: si no, el índice único parcial vería
         // por un instante dos reportes activos del mismo equipo en la misma orden.
         persistAndPublish(cerrado);
+        workOrderApprovalServicePort.withdraw(orden.getId());
 
         return serviceReportDrafts.open(orden.getId(), orden.getTipoServicio(), cerrado.getIdEquipoCliente());
     }
