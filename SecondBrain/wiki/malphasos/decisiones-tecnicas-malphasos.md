@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-10-27
+updated: 2026-11-02
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -616,3 +616,29 @@ aprueba. «No me suenan los supervisores de área y de sede»: el papel que impo
   orden ejecutada, solo se aprueba (no se rechaza) y sustituir un reporte retira la aprobación. El
   diagrama está en el artefacto «Esquema del supervisor».
 
+## Dar acceso a una ficha sin cuenta: la ficha cambia de identificador (2026-11-02, `V56`)
+
+Las fichas que eran encargados quedaron con `V53` como supervisores **sin usuario en Keycloak**. El
+usuario eligió darles cuenta, y no retirarlas: «Dar acceso» en su ficha.
+
+- **El identificador de una persona es el de su usuario**, desde el principio —sin tabla de
+  correspondencia— y lo lee `SessionPerson` del token. **La Admin API no deja elegirlo**: se probó contra
+  el Keycloak de desarrollo, con un `id` en la representación, y lo ignora y genera otro. Así que la ficha
+  **toma el identificador del usuario nuevo**.
+- **`V56` pone en cascada las ocho foráneas hacia `persona`**, y solo la actualización: el cambio es una
+  sentencia, `UPDATE persona SET k_identificador`, que arrastra correos, teléfonos, supervisiones, órdenes,
+  recibos, firma y aprobaciones. Hibernate no admite cambiar un `@Id`, y por eso va en SQL. Una prueba
+  pregunta al catálogo que **toda** foránea hacia `persona` esté en cascada, para que la que entre mañana
+  también cuente. Los documentos congelados guardan nombres, no identificadores de persona: no hay que
+  tocarlos.
+- **Se descartó la importación parcial del realm**, que sí respeta el identificador: exige que el cliente
+  administrativo del backend tenga `manage-realm`, mucho más poder del que esta operación necesita.
+- **El orden es el del alta**: se marca el correo de la cuenta —el que la ficha marca, o el primero
+  vigente—, se crea el usuario con una contraseña temporal y el grupo de su tipo, y se cambia el
+  identificador. Si la base falla, se borra el usuario recién creado. Sin `@Transactional` en el servicio,
+  como el alta, para que el fallo al confirmar no escape al bloque que deshace.
+- **Lo pide el mismo bean que editar a esa persona** (`canWrite`): crearle la cuenta es tomarla. Si ya la
+  tiene, 409 con `ERR_PERSON_005`; sin correo o retirada, 400.
+- **La pantalla sustituye la entrada del historial** al ir a la ficha con el identificador nuevo: «atrás»
+  no puede volver a una ficha que ya no existe con ese nombre. Nombrarla supervisora de un cliente sigue
+  siendo un paso aparte, desde la ficha del cliente.
