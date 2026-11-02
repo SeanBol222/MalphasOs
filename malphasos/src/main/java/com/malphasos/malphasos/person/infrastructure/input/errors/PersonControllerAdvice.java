@@ -7,6 +7,7 @@ import com.malphasos.malphasos.person.domain.exception.KeycloakPasswordRejectedE
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
+import com.malphasos.malphasos.person.domain.exception.PersonAlreadyHasAccountException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PersonSignatureNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PrimaryEmailRemovalException;
@@ -72,6 +73,13 @@ public class PersonControllerAdvice {
     @ExceptionHandler(PrimaryEmailRemovalException.class)
     public PersonErrorResponse handlePrimaryEmailRemoval(PrimaryEmailRemovalException ex) {
         return PersonErrorResponse.of(PersonErrorCatalog.PRIMARY_EMAIL_REMOVAL, List.of(ex.getMessage()));
+    }
+
+    /** Dar acceso a quien ya lo tiene crearía una segunda cuenta (2026-11-02). */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(PersonAlreadyHasAccountException.class)
+    public PersonErrorResponse handleAlreadyHasAccount(PersonAlreadyHasAccountException ex) {
+        return PersonErrorResponse.of(PersonErrorCatalog.ALREADY_HAS_ACCOUNT, List.of(ex.getMessage()));
     }
 
     /** Otra cuenta ya usa ese correo: no es «el usuario ya existe», y se dice distinto. */

@@ -145,9 +145,18 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
 
     @Override
     public Optional<String> findUserEmail(String userId) {
+        return findUser(userId).map(UserRepresentation::getEmail);
+    }
+
+    @Override
+    public Optional<String> findUserName(String userId) {
+        return findUser(userId).map(UserRepresentation::getUsername);
+    }
+
+    /** La cuenta, o vacío si Keycloak no la encuentra: no tenerla es un estado, no un fallo. */
+    private Optional<UserRepresentation> findUser(String userId) {
         try {
-            return Optional.ofNullable(
-                    keycloakClient.realm(realm).users().get(userId).toRepresentation().getEmail());
+            return Optional.ofNullable(keycloakClient.realm(realm).users().get(userId).toRepresentation());
 
         } catch (ProcessingException | WebApplicationException e) {
             RuntimeException traducido = translateClientFailure(e, "leer el usuario " + userId);

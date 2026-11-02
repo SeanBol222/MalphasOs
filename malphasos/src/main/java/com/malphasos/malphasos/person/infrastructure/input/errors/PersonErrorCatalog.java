@@ -16,6 +16,7 @@ public enum PersonErrorCatalog {
     INVALID_PERSON_DATA("ERR_PERSON_002", "Invalid person data"),
     SIGNATURE_NOT_FOUND("ERR_PERSON_003", "The person has not saved a signature"),
     PRIMARY_EMAIL_REMOVAL("ERR_PERSON_004", "The account email cannot be removed: choose another one first"),
+    ALREADY_HAS_ACCOUNT("ERR_PERSON_005", "The person already has an account"),
     KEYCLOAK_USER_ALREADY_EXISTS("ERR_KEYCLOAK_001", "Keycloak user already exists"),
     KEYCLOAK_INVALID_DATA("ERR_KEYCLOAK_002", "Invalid data for Keycloak operation"),
     KEYCLOAK_UNAUTHORIZED("ERR_KEYCLOAK_003", "The service account cannot operate on Keycloak"),

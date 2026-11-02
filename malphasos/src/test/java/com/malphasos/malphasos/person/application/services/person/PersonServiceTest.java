@@ -21,6 +21,7 @@ import com.malphasos.malphasos.person.domain.exception.KeycloakConnectionExcepti
 import com.malphasos.malphasos.person.domain.exception.KeycloakEmailInUseException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
+import com.malphasos.malphasos.person.domain.exception.PersonAlreadyHasAccountException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
@@ -641,5 +642,159 @@ class PersonServiceTest {
         assertThatThrownBy(() -> service().resetPassword(persona.getIdentificador(), "temporal-de-prueba"))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(identityPort);
+    }
+
+    // --- Dar acceso a una ficha sin cuenta (2026-11-02) --------------------------------------
+
+    /** Una ficha que era encargado: supervisora, sin cuenta, con un correo retirado delante del vigente. */
+    private Person supervisoraSinCuenta() {
+        Person persona = Person.builder()
+                .identificador(UUID.randomUUID())
+                .cedula("1234567890")
+                .primerNombre("Grace")
+                .primerApellido("Hopper")
+                .tipoPersona(PersonType.SUPERVISOR)
+                .estadoActivo(true)
+                .build();
+        persona.addEmail(EmailPerson.builder().idCorreoPersona(UUID.randomUUID())
+                .correoPersona("grace@retirado.local").estadoActivo(false).build());
+        persona.addEmail(EmailPerson.builder().idCorreoPersona(UUID.randomUUID())
+                .correoPersona("grace@vigente.local").estadoActivo(true).build());
+        return persona;
+    }
+
+    @Test
+    @DisplayName("dar acceso crea el usuario con el primer correo vigente y el grupo de su tipo, y la ficha toma su identificador")
+    void darAcceso() {
+        Person persona = supervisoraSinCuenta();
+        UUID viejo = persona.getIdentificador();
+        UUID nuevo = UUID.randomUUID();
+        Person conCuenta = new Person();
+        when(persistencePort.findById(viejo)).thenReturn(Optional.of(persona));
+        when(identityPort.findUserName(viejo.toString())).thenReturn(Optional.empty());
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(identityPort.createUser(any(), any())).thenReturn(nuevo.toString());
+        when(persistencePort.changeIdentifier(viejo, nuevo)).thenReturn(conCuenta);
+        ArgumentCaptor<PersonIdentityRequest> aKeycloak = ArgumentCaptor.forClass(PersonIdentityRequest.class);
+
+        Person resultado = service().grantAccess(viejo, "grace", "temporal-de-prueba");
+
+        assertThat(resultado).isSameAs(conCuenta);
+        verify(identityPort).createUser(aKeycloak.capture(), eq(RoleType.SUPERVISOR));
+        assertThat(aKeycloak.getValue().userName()).isEqualTo("grace");
+        assertThat(aKeycloak.getValue().email()).isEqualTo("grace@vigente.local");
+        assertThat(aKeycloak.getValue().password()).isEqualTo("temporal-de-prueba");
+        assertThat(aKeycloak.getValue().firstName()).isEqualTo("Grace");
+        assertThat(aKeycloak.getValue().lastName()).isEqualTo("Hopper");
+        // El correo de la cuenta queda marcado ANTES de crear el usuario: los dos sistemas empiezan de acuerdo.
+        InOrder orden = Mockito.inOrder(persistencePort, identityPort);
+        orden.verify(persistencePort).save(persona);
+        orden.verify(identityPort).createUser(any(), any());
+        orden.verify(persistencePort).changeIdentifier(viejo, nuevo);
+        assertThat(persona.getEmailPersonList().get(1).isPrincipal()).isTrue();
+        assertThat(persona.getEmailPersonList().get(0).isPrincipal()).isFalse();
+        verify(identityPort, never()).deleteUser(any());
+    }
+
+    @Test
+    @DisplayName("si la ficha ya marca un correo de cuenta, ese es el que va, y no se guarda nada antes")
+    void darAccesoConPrincipal() {
+        Person persona = supervisoraSinCuenta();
+        persona.addEmail(EmailPerson.builder().idCorreoPersona(UUID.randomUUID())
+                .correoPersona("grace@cuenta.local").estadoActivo(true).principal(true).build());
+        UUID nuevo = UUID.randomUUID();
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(identityPort.findUserName(any())).thenReturn(Optional.empty());
+        when(identityPort.createUser(any(), any())).thenReturn(nuevo.toString());
+        ArgumentCaptor<PersonIdentityRequest> aKeycloak = ArgumentCaptor.forClass(PersonIdentityRequest.class);
+
+        service().grantAccess(persona.getIdentificador(), "grace", "temporal-de-prueba");
+
+        verify(identityPort).createUser(aKeycloak.capture(), any());
+        assertThat(aKeycloak.getValue().email()).isEqualTo("grace@cuenta.local");
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("el grupo es el del tipo de la ficha: un ingeniero sin cuenta entra como ingeniero")
+    void darAccesoIngeniero() {
+        Person persona = supervisoraSinCuenta().setTipoPersona(PersonType.ENGINEER);
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(identityPort.findUserName(any())).thenReturn(Optional.empty());
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(identityPort.createUser(any(), any())).thenReturn(UUID.randomUUID().toString());
+
+        service().grantAccess(persona.getIdentificador(), "grace", "temporal-de-prueba");
+
+        verify(identityPort).createUser(any(), eq(RoleType.ENGINEER));
+    }
+
+    @Test
+    @DisplayName("a quien ya tiene cuenta no se le crea otra")
+    void darAccesoAQuienYaTiene() {
+        Person persona = supervisoraSinCuenta();
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(identityPort.findUserName(persona.getIdentificador().toString())).thenReturn(Optional.of("grace"));
+
+        assertThatThrownBy(() -> service().grantAccess(persona.getIdentificador(), "grace", "temporal-de-prueba"))
+                .isInstanceOf(PersonAlreadyHasAccountException.class);
+        verify(identityPort, never()).createUser(any(), any());
+        verify(persistencePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("a una persona retirada no se le da acceso")
+    void darAccesoARetirada() {
+        Person persona = supervisoraSinCuenta().setEstadoActivo(false);
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        // Estubado para que no sea «ya tiene cuenta» lo que la rechace.
+        Mockito.lenient().when(identityPort.findUserName(any())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().grantAccess(persona.getIdentificador(), "grace", "temporal-de-prueba"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("retirada");
+        verify(identityPort, never()).createUser(any(), any());
+    }
+
+    @Test
+    @DisplayName("sin ningún correo vigente no hay cuenta que crear, y se dice")
+    void darAccesoSinCorreo() {
+        Person persona = supervisoraSinCuenta();
+        persona.getEmailPersonList().forEach(e -> e.setEstadoActivo(false));
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(identityPort.findUserName(any())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().grantAccess(persona.getIdentificador(), "grace", "temporal-de-prueba"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("correo");
+        verify(identityPort, never()).createUser(any(), any());
+    }
+
+    @Test
+    @DisplayName("si la ficha no toma el identificador nuevo, el usuario recién creado se borra")
+    void darAccesoDeshaceElUsuario() {
+        Person persona = supervisoraSinCuenta();
+        UUID nuevo = UUID.randomUUID();
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(identityPort.findUserName(any())).thenReturn(Optional.empty());
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(identityPort.createUser(any(), any())).thenReturn(nuevo.toString());
+        when(persistencePort.changeIdentifier(any(), any())).thenThrow(new IllegalStateException("la base fallo"));
+
+        assertThatThrownBy(() -> service().grantAccess(persona.getIdentificador(), "grace", "temporal-de-prueba"))
+                .hasMessage("la base fallo");
+        verify(identityPort).deleteUser(nuevo.toString());
+    }
+
+    @Test
+    @DisplayName("la cuenta de una persona es su nombre de usuario, o nada si no la tiene")
+    void cuentaDeUnaPersona() {
+        Person persona = supervisoraSinCuenta();
+        when(persistencePort.findById(persona.getIdentificador())).thenReturn(Optional.of(persona));
+        when(identityPort.findUserName(persona.getIdentificador().toString()))
+                .thenReturn(Optional.of("grace"), Optional.empty());
+
+        assertThat(service().accountOf(persona.getIdentificador())).contains("grace");
+        assertThat(service().accountOf(persona.getIdentificador())).isEmpty();
     }
 }

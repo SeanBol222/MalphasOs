@@ -6,6 +6,7 @@ import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PhonePerson;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -54,6 +55,17 @@ public interface PersonServicePort {
 
     /** Pone una contraseña temporal en la cuenta de la persona, que tendrá que cambiar al entrar. */
     void resetPassword(UUID personId, String temporaryPassword);
+
+    /** El nombre de usuario de su cuenta, o vacío si no la tiene. */
+    Optional<String> accountOf(UUID personId);
+
+    /**
+     * Da cuenta a una ficha que no la tiene (2026-11-02), con una contraseña temporal. Su identificador
+     * pasa a ser el del usuario nuevo, que es el que Keycloak elige.
+     *
+     * @return la persona con su identificador nuevo
+     */
+    Person grantAccess(UUID personId, String userName, String temporaryPassword);
 
     /** Desactiva el teléfono sin borrarlo. */
     Person removePhone(UUID personId, UUID phoneId);

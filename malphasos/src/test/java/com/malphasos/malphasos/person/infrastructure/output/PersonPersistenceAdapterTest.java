@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
+import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PersonType;
@@ -217,5 +218,52 @@ class PersonPersistenceAdapterTest {
         List<Person> all = adapter.findAll();
 
         assertThat(all).hasSize(2);
+    }
+
+    // --- Cambiar el identificador (V56, 2026-11-02) -----------------------------------------
+
+    @Test
+    @DisplayName("cambiar el identificador lleva consigo los correos y los teléfonos, y deja la llave vieja sin nada")
+    void cambiarIdentificador() {
+        Person saved = adapter.save(personWithContacts());
+        UUID viejo = saved.getIdentificador();
+        UUID nuevo = UUID.randomUUID();
+
+        Person movida = adapter.changeIdentifier(viejo, nuevo);
+
+        assertThat(movida.getIdentificador()).isEqualTo(nuevo);
+        assertThat(movida.getEmailPersonList()).singleElement().satisfies(email ->
+                assertThat(email.getCorreoPersona()).isEqualTo("ada@malphasos.local"));
+        assertThat(movida.getPhonePersonList()).hasSize(1);
+        assertThat(adapter.findById(viejo)).isEmpty();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM correo_persona WHERE k_identificador = ?", Integer.class, viejo)).isZero();
+    }
+
+    @Test
+    @DisplayName("cambiar el identificador de una persona que no existe lo dice")
+    void cambiarIdentificadorDeNadie() {
+        assertThatThrownBy(() -> adapter.changeIdentifier(UUID.randomUUID(), UUID.randomUUID()))
+                .isInstanceOf(PersonNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("toda foránea hacia persona sigue el cambio de identificador: si una no, la ficha no se mueve")
+    void todasLasForaneasEnCascada() {
+        // Una foránea nueva sin ON UPDATE CASCADE dejaría de poder dar acceso a quien ella nombre, y el
+        // fallo aparecería en producción, con la ficha concreta. Se pregunta al catálogo y no se listan
+        // a mano, para que la que entre mañana también cuente.
+        List<String> sinCascada = jdbcTemplate.queryForList(
+                """
+                SELECT conrelid::regclass || '.' || conname FROM pg_constraint
+                WHERE contype = 'f' AND confrelid = 'persona'::regclass AND confupdtype <> 'c'
+                """,
+                String.class);
+        Integer foraneas = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND confrelid = 'persona'::regclass",
+                Integer.class);
+
+        assertThat(sinCascada).isEmpty();
+        assertThat(foraneas).isEqualTo(8);
     }
 }
