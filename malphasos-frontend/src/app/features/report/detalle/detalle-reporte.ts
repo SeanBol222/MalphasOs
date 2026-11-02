@@ -12,7 +12,6 @@ import { Router, RouterLink } from '@angular/router';
 import { ClienteApi } from '../../client/cliente-api';
 import { SedeApi } from '../../client/sede-api';
 import { EquipoApi } from '../../equipment/equipo-api';
-import { nombreCompleto, PersonaApi } from '../../person/persona-api';
 import { OrdenApi } from '../../workOrder/orden-api';
 import { ReporteApi } from '../reporte-api';
 import { TablaDeVerificacion } from '../verificacion/tabla-de-verificacion';
@@ -154,7 +153,6 @@ export class DetalleReporte {
       return sede ? [sede] : [];
     }),
   );
-  private readonly personas = inject(PersonaApi).listar();
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('report.write'));
 
@@ -386,13 +384,11 @@ export class DetalleReporte {
 
   /** El ingeniero que ejecuta. Sin él la orden está programada y no repartida, y el reporte lo dice. */
   protected readonly ingeniero = computed(() => {
-    const id = this.orden.data()?.idIngeniero;
-
-    if (!id) {
+    if (!this.orden.data()?.idIngeniero) {
       return '';
     }
 
-    return this.nombreDe(id);
+    return this.orden.data()?.nombreIngeniero ?? 'No disponible';
   });
 
   /**
@@ -405,7 +401,7 @@ export class DetalleReporte {
 
     return (cliente?.supervisores ?? [])
       .filter((supervisor) => !!supervisor.idPersona)
-      .map((supervisor) => this.nombreDe(supervisor.idPersona!))
+      .map((supervisor) => supervisor.nombre ?? 'No disponible')
       .join(' · ');
   });
 
@@ -418,16 +414,10 @@ export class DetalleReporte {
       .filter((supervisor) => !!supervisor.idPersona)
       .map((supervisor) => ({
         id: supervisor.idPersona!,
-        nombre: this.nombreDe(supervisor.idPersona!),
+        nombre: supervisor.nombre ?? 'No disponible',
         cargo: supervisor.cargo ?? null,
       }));
   });
-
-  private nombreDe(idPersona: string): string {
-    const persona = (this.personas.data() ?? []).find((p) => p.identificador === idPersona);
-
-    return persona ? nombreCompleto(persona) : 'No disponible';
-  }
 
   protected readonly hayError = computed(
     () =>

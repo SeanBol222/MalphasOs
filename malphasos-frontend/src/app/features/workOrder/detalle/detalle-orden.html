@@ -350,16 +350,32 @@
               <p class="mt-1 text-sm" data-por-aprobar>
                 Por aprobar: la revisa y la aprueba el supervisor del cliente.
               </p>
-              @if (aprueba() && soySupervisor()) {
-                <button
-                  class="boton-primario mt-1.5 min-h-tactil"
-                  type="button"
-                  data-aprobar-con-mi-firma
-                  [disabled]="aprobando()"
-                  (click)="aprobarConMiFirma()"
+              @if (errorAlAprobar()) {
+                <p
+                  class="mt-1.5 border-l-2 border-accent-700 bg-accent-100 p-1.5 text-sm font-semibold"
+                  role="alert"
+                  data-error-al-aprobar
                 >
-                  {{ aprobando() ? 'Aprobando…' : 'Aprobar con mi firma' }}
-                </button>
+                  {{ errorAlAprobar() }}
+                </p>
+              }
+              @if (aprueba() && soySupervisor()) {
+                @if (sinFirmaGuardada()) {
+                  <!-- Aprobar desde la cuenta firma con la guardada: sin ella el servidor responde 409. -->
+                  <p class="mt-1.5 text-sm font-semibold" data-sin-firma>
+                    Para aprobar, guarde antes su firma: pulse su nombre al pie del menú.
+                  </p>
+                } @else {
+                  <button
+                    class="boton-primario mt-1.5 min-h-tactil"
+                    type="button"
+                    data-aprobar-con-mi-firma
+                    [disabled]="aprobando()"
+                    (click)="aprobarConMiFirma()"
+                  >
+                    {{ aprobando() ? 'Aprobando…' : 'Aprobar con mi firma' }}
+                  </button>
+                }
               } @else if (aprueba() && supervisoresDelCliente().length) {
                 <div class="mt-1.5 border-t border-neutral-200 pt-1.5" data-aprobar-en-sitio>
                   <h3 class="text-sm font-bold">Firmar aquí</h3>
