@@ -20,7 +20,37 @@
         <p class="font-semibold">{{ mensajeDeError() }}</p>
       </div>
     }
-    @if (!editable() && !firmable() && !recibe()?.nombre) {
+    @if (firmable() && supervisores().length) {
+      <!-- V55: un supervisor del cliente recibe como persona registrada, sin escribir nada. -->
+      <div class="mb-2">
+        <label class="block font-bold" for="quienRecibe">Quién recibe</label>
+        <select
+          class="campo mt-1 min-h-tactil w-full md:w-auto"
+          id="quienRecibe"
+          data-quien-recibe
+          [formControl]="quienFirma"
+        >
+          <option value="">Otra persona (escribir sus datos)</option>
+          @for (supervisor of supervisores(); track supervisor.id) {
+            <option [value]="supervisor.id">
+              {{ supervisor.nombre }}{{ supervisor.cargo ? ' — ' + supervisor.cargo : '' }}
+              (supervisor del cliente)
+            </option>
+          }
+        </select>
+      </div>
+    }
+    @if (recibioUnSupervisor(); as supervisor) {
+      <p data-recibio-supervisor>
+        Recibió <span class="font-semibold">{{ supervisor.nombre }}</span
+        >{{ supervisor.cargo ? ' (' + supervisor.cargo + ')' : '' }}, supervisor del cliente.
+      </p>
+    } @else if (supervisorQueFirma(); as supervisor) {
+      <p data-firma-supervisor>
+        Firma <span class="font-semibold">{{ supervisor.nombre }}</span> como supervisor del
+        cliente: su nombre, su cédula y su cargo salen de su ficha.
+      </p>
+    } @else if (!editable() && !firmable() && !recibe()?.nombre) {
       <p class="text-neutral-700">No se registró quién recibió el equipo.</p>
     } @else {
       <div class="grid gap-2 md:grid-cols-3">
@@ -54,7 +84,7 @@
         </div>
       </div>
     }
-    @if (registrable()) {
+    @if (registrable() && !supervisorQueFirma()) {
       @if (faltaElNombre()) {
         <p class="mt-1 font-semibold text-accent-700" role="alert">
           Falta el nombre: la cédula y el cargo solos no dicen quién recibió.
@@ -78,8 +108,8 @@
       <div class="mt-3 border-t border-neutral-300 pt-3" data-firmar>
         <h3 class="font-bold">Firma de quien recibe</h3>
         <p class="text-sm text-neutral-700">
-          Firma con el nombre de arriba. Se puede firmar también con el reporte ya cerrado; una vez
-          firmado, no se cambia.
+          Firma {{ supervisorQueFirma() ? 'el supervisor elegido' : 'con el nombre de arriba' }}. Se
+          puede firmar también con el reporte ya cerrado; una vez firmado, no se cambia.
         </p>
         <div class="mt-1 max-w-[600px]">
           <app-lienzo-de-firma

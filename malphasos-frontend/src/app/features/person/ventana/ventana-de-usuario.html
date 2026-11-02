@@ -111,7 +111,7 @@
     </p>
   }
 
-  @if (firmaInformes() && persona.data()) {
+  @if (conFirma() && persona.data()) {
     <section class="flex flex-col gap-2 p-2 md:p-3" aria-labelledby="titulo-firma-digital">
       <div class="flex items-baseline gap-1">
         <h3 id="titulo-firma-digital" class="text-xs font-bold tracking-[0.14em] uppercase">
@@ -143,7 +143,11 @@
           </button>
         </div>
         <p class="text-sm text-neutral-800">
-          Los informes ya cerrados conservan la firma con la que se cerraron.
+          {{
+            cierraInformes()
+              ? 'Los informes ya cerrados conservan la firma con la que se cerraron.'
+              : 'Las órdenes ya aprobadas conservan la firma con la que se aprobaron.'
+          }}
         </p>
       } @else {
         @if (firma.isPending()) {
@@ -157,15 +161,24 @@
           />
         } @else {
           <p class="text-neutral-800" data-sin-firma>
-            Todavía no tiene firma: los informes que cierre dejan la línea para firmar a mano.
+            @if (cierraInformes()) {
+              Todavía no tiene firma: los informes que cierre dejan la línea para firmar a mano.
+            } @else {
+              Todavía no tiene firma: sin ella no puede aprobar órdenes desde su cuenta.
+            }
           </p>
         }
         @if (guardadaConExito()) {
           <p class="font-semibold" role="status">Firma guardada.</p>
         }
-        <p class="text-sm text-neutral-800">
-          Los informes que cierre la llevan en la línea del profesional de servicio. Cambiarla no
-          altera los informes ya cerrados.
+        <p class="text-sm text-neutral-800" data-uso-de-la-firma>
+          @if (cierraInformes()) {
+            Los informes que cierre la llevan en la línea del profesional de servicio. Cambiarla no
+            altera los informes ya cerrados.
+          } @else {
+            Con ella aprueba desde su cuenta las órdenes ejecutadas de su cliente. Cambiarla no
+            altera las ya aprobadas.
+          }
         </p>
         <div>
           <button class="boton-primario min-h-tactil" type="button" (click)="empezarACambiar()">

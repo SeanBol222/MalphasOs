@@ -247,6 +247,14 @@
         color: #605d5d;
       }
 
+      .ro-firma__trazo {
+        display: block;
+        height: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        object-fit: contain;
+      }
+
       .ro-firma__linea {
         height: 44px;
         border-bottom: 1px solid #201e1d;
@@ -346,9 +354,24 @@
             <span>Ingeniero a cargo</span>
           </div>
           <div class="ro-firma">
-            <div class="ro-firma__linea"></div>
-            <strong>Supervisor del cliente</strong>
-            <span>Nombre y fecha</span>
+            <!-- V54: quien aprobó la orden; mientras nadie apruebe, se firma a mano con nombre y fecha. -->
+            <div class="ro-firma__linea">
+              <img
+                th:if="${hoja.aprobacion != null and hoja.aprobacion.firma != null}"
+                class="ro-firma__trazo"
+                data-firma-supervisor
+                th:src="${hoja.aprobacion.firma}"
+                alt="Firma del supervisor"
+              />
+            </div>
+            <strong data-firma-supervisor-nombre
+              th:text="${hoja.aprobacion == null ? 'Supervisor del cliente' : hoja.aprobacion.nombre}"
+              >Supervisor del cliente</strong
+            >
+            <span data-firma-supervisor-detalle
+              th:text="${hoja.aprobacion == null ? 'Nombre y fecha' : hoja.aprobacion.detalle}"
+              >Nombre y fecha</span
+            >
           </div>
         </div>
       </div>

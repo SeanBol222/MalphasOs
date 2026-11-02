@@ -559,6 +559,10 @@ no está registrado, como la jefa de enfermería de turno; un `CHECK` impide las
   datos inválidos antes de llegar al servicio.
 - **La firma guardada en la cuenta** pide desde aquí `work-order.approve` y no `report.write`: la tienen
   exactamente quienes firman algo, y con la de antes el supervisor no podía guardar la firma con que aprueba.
+- **En pantalla** (2026-11-02): la entrega del equipo ofrece «Quién recibe» con los supervisores del
+  cliente. Elegido uno, no se escribe nada y el registro sin firma no se guarda, porque registrar quién
+  recibió sigue siendo de texto: la persona viaja solo con la firma. Firmado, dice «Recibió Luis Peña
+  (Ingeniero biomédico), supervisor del cliente».
 
 ## Lo que este módulo decidió no hacer
 

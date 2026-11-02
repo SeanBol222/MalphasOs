@@ -104,6 +104,10 @@ export const CATALOGO_WORK_ORDER: Readonly<Record<string, string>> = {
     'La orden no tiene un ingeniero asignado. Asígnele uno antes de iniciar el trabajo.',
   ERR_WORK_ORDER_011:
     'La orden no tiene equipos. Añádale al menos uno antes de iniciar el trabajo.',
+  // La aprobación (V54).
+  ERR_WORK_ORDER_012:
+    'Esa persona no supervisa al cliente de esta orden. Solo la aprueba un supervisor del cliente.',
+  ERR_WORK_ORDER_013: 'Todavía no ha guardado su firma. Guárdela en su cuenta y vuelva a aprobar.',
 };
 
 /**
@@ -131,6 +135,9 @@ export const CATALOGO_SERVICE_REPORT: Readonly<Record<string, string>> = {
   // El PDF del informe (2026-10-17): el conversor no respondió. No es culpa de nadie y se reintenta.
   ERR_SERVICE_REPORT_010:
     'No se pudo generar el PDF del informe: el servicio que lo convierte no respondió. Vuelva a intentarlo en un momento.',
+  // Quien recibe como persona registrada (V55).
+  ERR_SERVICE_REPORT_011:
+    'Esa persona no supervisa al cliente de esta orden. Escriba el nombre de quien recibe en vez de elegirla.',
 };
 
 /**

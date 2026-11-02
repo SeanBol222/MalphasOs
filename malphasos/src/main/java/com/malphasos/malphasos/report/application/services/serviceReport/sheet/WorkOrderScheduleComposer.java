@@ -3,6 +3,7 @@ package com.malphasos.malphasos.report.application.services.serviceReport.sheet;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.fechaCorta;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.oRaya;
 
+import com.malphasos.malphasos.report.application.model.OrderApproval;
 import com.malphasos.malphasos.report.application.model.WorkOrderScheduleSheet;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
@@ -46,6 +47,13 @@ public final class WorkOrderScheduleComposer {
      */
     public static WorkOrderScheduleSheet compose(
             UUID idOrden, WorkOrderDocument orden, List<ServiceReport> reportes, String empresa, DocumentImage logo) {
+        return compose(idOrden, orden, reportes, empresa, logo, null);
+    }
+
+    /** @param aprobacion la vigente de la orden (V54), o nula: entonces la línea del supervisor se firma a mano */
+    public static WorkOrderScheduleSheet compose(
+            UUID idOrden, WorkOrderDocument orden, List<ServiceReport> reportes, String empresa, DocumentImage logo,
+            OrderApproval aprobacion) {
         if (!applies(orden)) {
             throw new IllegalStateException("La orden " + orden.numero()
                     + " no tiene periodicidad: no hay próximo mantenimiento que programar");
@@ -92,7 +100,8 @@ public final class WorkOrderScheduleComposer {
                 fechaCorta(proximo),
                 WorkOrderSummaryComposer.PERIODICIDAD.get(orden.periodicidad()),
                 meses(realizado),
-                filas);
+                filas,
+                SheetFormat.lineaDeAprobacion(aprobacion));
     }
 
     /** El mes del servicio y los doce siguientes, con el año en el primero y en cada enero. */

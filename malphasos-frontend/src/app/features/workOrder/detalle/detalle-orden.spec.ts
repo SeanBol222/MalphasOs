@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
@@ -21,7 +22,8 @@ import {
   URL_PERSONAS,
   urlSede,
 } from '../../../../testing/ordenes';
-import { ID_REPORTE, reporte, urlReportesDeOrden } from '../../../../testing/reportes';
+import { ID_REPORTE, reporte, urlReporte, urlReportesDeOrden } from '../../../../testing/reportes';
+import { LienzoDeFirma } from '../../../shared/lienzo-de-firma/lienzo-de-firma';
 import { DetalleOrden } from './detalle-orden';
 
 const URL = `${URL_ORDENES}/${ID_ORDEN}`;
@@ -79,11 +81,11 @@ describe('Ficha de una orden de trabajo', () => {
   let http: HttpTestingController;
   let desinstalarAlmacenamiento: () => void;
 
-  function montar(autoridades: readonly string[] = TODAS): void {
+  function montar(autoridades: readonly string[] = TODAS, identificador?: string): void {
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
-        ...proveerSesionFalsa({ autoridades }),
+        ...proveerSesionFalsa({ autoridades, identificador }),
         provideRouter([{ path: 'ordenes', component: ListadoFalso }]),
       ],
     });
@@ -116,6 +118,11 @@ describe('Ficha de una orden de trabajo', () => {
     http.match(urlSede(ID_SEDE)).forEach((peticion) => peticion.flush(SEDE));
     await asentar(fixture);
     http.match((peticion) => peticion.url === URL_RESUMEN).forEach((p) => p.flush(RESUMEN));
+    await asentar(fixture);
+    // Una orden ejecutada pregunta por su aprobación (V54); sin aprobar, el servidor responde 204.
+    http
+      .match(`${URL}/approval`)
+      .forEach((p) => p.flush(null, { status: 204, statusText: 'No Content' }));
     await asentar(fixture);
   }
 
@@ -470,6 +477,169 @@ describe('Ficha de una orden de trabajo', () => {
       await abrir();
 
       expect(raiz().querySelector('section[aria-labelledby="supervisores"]')).toBeNull();
+    });
+  });
+
+  describe('La aprobación del supervisor (V54)', () => {
+    const SUPERVISOR = 'p2';
+    const PNG = 'data:image/png;base64,iVBORw0KGgo=';
+    const ejecutada = () =>
+      orden({
+        estadoEjecucion: 'EJECUTADA',
+        equipos: [{ idEquipoCliente: ID_EQUIPO, idReporteServicio: ID_REPORTE }],
+      });
+    const bloque = () => raiz().querySelector('[data-aprobacion]');
+
+    function dibujar(): void {
+      fixture.debugElement.query(By.directive(LienzoDeFirma)).componentInstance.cambio.emit(PNG);
+      fixture.detectChanges();
+    }
+
+    function elegirSupervisor(id: string): void {
+      const select = raiz().querySelector<HTMLSelectElement>('#supervisorQueAprueba')!;
+      select.value = id;
+      select.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    }
+
+    it('sin ejecutar no hay bloque ni se pregunta por la aprobación', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'client.read', 'work-order.approve']);
+      await abrir();
+
+      expect(bloque()).toBeNull();
+      expect(http.match(`${URL}/approval`)).toHaveLength(0);
+    });
+
+    it('ejecutada y sin aprobar: por aprobar, con «Firmar aquí» para quien registra en sitio', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'client.read', 'work-order.approve']);
+      await abrir(ejecutada());
+
+      expect(bloque()?.textContent).toContain('Por aprobar');
+      expect(raiz().querySelector('[data-aprobar-en-sitio]')).not.toBeNull();
+      expect(raiz().querySelector('[data-aprobar-con-mi-firma]')).toBeNull();
+    });
+
+    it('sin elegir supervisor o sin firma no se aprueba, y dice qué falta', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'client.read', 'work-order.approve']);
+      await abrir(ejecutada());
+
+      raiz().querySelector<HTMLButtonElement>('[data-boton-aprobar]')!.click();
+      fixture.detectChanges();
+      expect(bloque()?.textContent).toContain('Elija qué supervisor aprueba');
+
+      elegirSupervisor(SUPERVISOR);
+      raiz().querySelector<HTMLButtonElement>('[data-boton-aprobar]')!.click();
+      await asentar(fixture);
+      const aprobaciones = http.match((r) => r.method === 'POST' && r.url.endsWith('/approval'));
+      http
+        .match(() => true)
+        .forEach((p) => p.flush(null, { status: 204, statusText: 'No Content' }));
+      await asentar(fixture);
+      expect(aprobaciones).toHaveLength(0);
+      expect(bloque()?.textContent).toContain('tiene que dibujar su firma');
+    });
+
+    it('sin marcar «también recibe», aprobar no firma el recibido de ningún reporte', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'client.read', 'work-order.approve']);
+      await abrir(ejecutada(), [reporte({ estado: 'FINALIZADO' })]);
+      elegirSupervisor(SUPERVISOR);
+      dibujar();
+
+      raiz().querySelector<HTMLButtonElement>('[data-boton-aprobar]')!.click();
+      await asentar(fixture);
+      http
+        .expectOne({ method: 'POST', url: `${URL}/approval` })
+        .flush({ idSupervisor: SUPERVISOR });
+      await asentar(fixture);
+      const recibido = http.match((r) => r.url.endsWith('/receipt-signature'));
+      http
+        .match(() => true)
+        .forEach((p) => p.flush(null, { status: 204, statusText: 'No Content' }));
+      await asentar(fixture);
+
+      expect(recibido).toHaveLength(0);
+    });
+
+    it('aprobar en sitio manda el supervisor y su firma; con «también recibe», firma el recibido como él', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'client.read', 'work-order.approve']);
+      await abrir(ejecutada(), [reporte({ estado: 'FINALIZADO' })]);
+      elegirSupervisor(SUPERVISOR);
+      dibujar();
+      raiz().querySelector<HTMLInputElement>('[data-tambien-recibe]')!.click();
+      fixture.detectChanges();
+
+      raiz().querySelector<HTMLButtonElement>('[data-boton-aprobar]')!.click();
+      await asentar(fixture);
+
+      // Se responde antes de comparar: una petición que queda abierta tumba en afterEach las pruebas siguientes.
+      const aprobacion = http.expectOne({ method: 'POST', url: `${URL}/approval` });
+      aprobacion.flush({
+        idSupervisor: SUPERVISOR,
+        desdeSuCuenta: false,
+        aprobada: '2026-11-02T10:00:00',
+      });
+      await asentar(fixture);
+      const recibido = http.match({
+        method: 'PATCH',
+        url: `${urlReporte(ID_REPORTE)}/receipt-signature`,
+      });
+      recibido.forEach((p) => p.flush([]));
+      await asentar(fixture);
+      http
+        .match(() => true)
+        .forEach((p) => p.flush(null, { status: 204, statusText: 'No Content' }));
+      await asentar(fixture);
+
+      expect(aprobacion.request.body).toEqual({ idSupervisor: SUPERVISOR, imagen: PNG });
+      expect(recibido.map((p) => p.request.body)).toEqual([
+        { idPersonaRecibe: SUPERVISOR, imagen: PNG, alcance: 'ORDEN' },
+      ]);
+    });
+
+    it('si la sesión es del supervisor, aprueba con su firma guardada', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'client.read', 'work-order.approve'], SUPERVISOR);
+      await abrir(ejecutada());
+
+      expect(raiz().querySelector('[data-aprobar-en-sitio]')).toBeNull();
+      raiz().querySelector<HTMLButtonElement>('[data-aprobar-con-mi-firma]')!.click();
+      await asentar(fixture);
+
+      http
+        .expectOne({ method: 'POST', url: `${URL}/approval/mine` })
+        .flush({ idSupervisor: SUPERVISOR });
+      await asentar(fixture);
+      http
+        .match(() => true)
+        .forEach((p) => p.flush(null, { status: 204, statusText: 'No Content' }));
+      await asentar(fixture);
+    });
+
+    it('aprobada: lista para facturar, con quién, su cargo, la forma y la fecha', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'client.read', 'work-order.approve']);
+      fixture.detectChanges();
+      await responderA(fixture, http, URL, ejecutada());
+      await responderA(fixture, http, URL_CLIENTES, CLIENTES);
+      await responderA(fixture, http, URL_PERSONAS, PERSONAS);
+      await responderA(fixture, http, `${URL}/approval`, {
+        idSupervisor: SUPERVISOR,
+        desdeSuCuenta: true,
+        aprobada: '2026-11-02T10:00:00',
+      });
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+
+      expect(bloque()?.textContent).toContain('Lista para facturar');
+      expect(bloque()?.textContent?.replace(/\s+/g, ' ')).toContain(
+        'Aprobada por Luis Peña (Ingeniero biomédico), desde su cuenta, el',
+      );
+      expect(raiz().querySelector('[data-boton-aprobar]')).toBeNull();
     });
   });
 

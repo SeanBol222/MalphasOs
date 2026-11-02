@@ -106,7 +106,8 @@ export const routes: Routes = [
       },
       {
         // La firma de quien tiene la sesión (V38, 2026-10-17): no es una entrada del menú sino del pie,
-        // junto a su nombre. Guardarla pide report.write, la de quien cierra reportes.
+        // junto a su nombre. Guardarla pide work-order.approve desde el 2026-11-02 (V55): la guardan quien
+        // cierra reportes y el supervisor del cliente, que aprueba con ella. Hasta entonces, report.write.
         // La firma vive desde el 2026-10-17 en la ventana de la sesion, que se abre desde el nombre al pie
         // de la barra lateral. La ruta se queda para no romper un enlace guardado.
         path: 'mi-firma',

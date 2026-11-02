@@ -71,6 +71,8 @@ public final class UnInforme {
     public DocumentImage logo;
     public DocumentImage firmaIngeniero;
     public DocumentImage firmaRecibe;
+    /** La aprobación vigente de la orden (V54), o nula. */
+    public com.malphasos.malphasos.report.application.model.OrderApproval aprobacion;
 
     /** Las dos lecturas del punto de 100 mmHg con ±0,5: una dentro y otra fuera, con su patrón. */
     public UnInforme conLecturas() {
@@ -118,6 +120,6 @@ public final class UnInforme {
                         .toList());
 
         return new ReportDocumentView(reporte, documento, logo, firmaIngeniero, firmaRecibe,
-                estado == ReportState.FINALIZADO);
+                estado == ReportState.FINALIZADO, reporte.getRecibe(), aprobacion);
     }
 }

@@ -331,6 +331,92 @@
           </section>
         }
 
+        @if (ejecutada()) {
+          <!--
+            La aprobación del supervisor del cliente (V54): lo que permite facturar. Aparece con la orden
+            ejecutada, porque se aprueba el trabajo terminado. En sitio el supervisor dibuja su firma en esta
+            sesión; si la sesión es la suya, aprueba con la firma que guardó.
+          -->
+          <section class="superficie" aria-labelledby="aprobacion" data-aprobacion>
+            <h2 id="aprobacion" class="titulo-seccion">Aprobación</h2>
+            @if (aprobada(); as hecha) {
+              <p class="mt-1 font-bold" data-aprobada>Lista para facturar</p>
+              <p class="text-sm">
+                Aprobada por <strong>{{ hecha.quien }}</strong
+                >{{ hecha.cargo ? ' (' + hecha.cargo + ')' : '' }}, {{ hecha.forma }}, el
+                {{ hecha.cuando }}.
+              </p>
+            } @else if (aprobacion.isSuccess()) {
+              <p class="mt-1 text-sm" data-por-aprobar>
+                Por aprobar: la revisa y la aprueba el supervisor del cliente.
+              </p>
+              @if (aprueba() && soySupervisor()) {
+                <button
+                  class="boton-primario mt-1.5 min-h-tactil"
+                  type="button"
+                  data-aprobar-con-mi-firma
+                  [disabled]="aprobando()"
+                  (click)="aprobarConMiFirma()"
+                >
+                  {{ aprobando() ? 'Aprobando…' : 'Aprobar con mi firma' }}
+                </button>
+              } @else if (aprueba() && supervisoresDelCliente().length) {
+                <div class="mt-1.5 border-t border-neutral-200 pt-1.5" data-aprobar-en-sitio>
+                  <h3 class="text-sm font-bold">Firmar aquí</h3>
+                  <label class="mt-1 block text-sm font-semibold" for="supervisorQueAprueba">
+                    Supervisor que aprueba <span aria-hidden="true">*</span>
+                  </label>
+                  <select
+                    id="supervisorQueAprueba"
+                    class="campo min-h-tactil w-full text-sm"
+                    aria-required="true"
+                    [formControl]="supervisorQueAprueba"
+                  >
+                    <option value="">Elija quién</option>
+                    @for (supervisor of supervisoresDelCliente(); track supervisor.id) {
+                      <option [value]="supervisor.id">{{ supervisor.nombre }}</option>
+                    }
+                  </select>
+                  <div class="mt-1">
+                    <app-lienzo-de-firma
+                      etiqueta="Área para la firma del supervisor"
+                      (cambio)="alDibujarLaAprobacion($event)"
+                    />
+                  </div>
+                  @if (sinRecibido().length) {
+                    <label class="mt-1 flex min-h-tactil items-center gap-1 text-sm">
+                      <input type="checkbox" data-tambien-recibe [formControl]="tambienRecibe" />
+                      También firma el recibido de
+                      {{
+                        sinRecibido().length === 1
+                          ? 'el informe'
+                          : 'los ' + sinRecibido().length + ' informes'
+                      }}
+                      sin firmar
+                    </label>
+                  }
+                  @if (faltaParaAprobar()) {
+                    <p class="mt-1 text-sm font-semibold" role="alert">{{ faltaParaAprobar() }}</p>
+                  }
+                  <button
+                    class="boton-primario mt-1.5 min-h-tactil"
+                    type="button"
+                    data-boton-aprobar
+                    [disabled]="aprobando()"
+                    (click)="aprobarEnSitio()"
+                  >
+                    {{ aprobando() ? 'Aprobando…' : 'Aprobar la orden' }}
+                  </button>
+                </div>
+              } @else if (aprueba()) {
+                <p class="mt-1 text-sm text-neutral-800">
+                  El cliente no tiene supervisor: nómbrelo en su ficha para poder aprobar.
+                </p>
+              }
+            }
+          </section>
+        }
+
         @if (puedeEscribir() && datos.estadoActivo) {
           <!-- Anular va aparte y abajo: es lo que menos se hace y lo que no tiene vuelta atrás. -->
           <section class="superficie" aria-label="Anular la orden">

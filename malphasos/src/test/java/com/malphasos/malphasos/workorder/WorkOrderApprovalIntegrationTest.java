@@ -1,5 +1,11 @@
 package com.malphasos.malphasos.workorder;
 
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.FillServiceReportCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.RecordIntakeCommand;
+import com.malphasos.malphasos.report.application.services.serviceReport.commands.FinishServiceReportCommand;
+import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
+import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
+import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -150,13 +156,14 @@ class WorkOrderApprovalIntegrationTest {
                 orden, sede, LocalDate.now(), ingeniero);
         UUID reporte = UUID.randomUUID();
         jdbcTemplate.update(
-                """
-                INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
-                                              t_estado_reporte, t_resultado, f_finalizado)
-                VALUES (?, ?, ?, 'FINALIZADO', 'OPERATIVO', ?)
-                """,
-                reporte, orden, unidad, LocalDateTime.now());
-        // Ejecutada por el servicio y no por SQL: así lleva el documento congelado que el esquema exige.
+                "INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente) VALUES (?, ?, ?)",
+                reporte, orden, unidad);
+        // Cerrado y ejecutada por el servicio y no por SQL: así llevan el documento congelado que el esquema
+        // exige (V49 y V51), y el informe se puede componer.
+        reportes.fill(new FillServiceReportCommand(reporte, null, null, "Limpieza", null, ServiceResult.OPERATIVO));
+        reportes.recordIntake(new RecordIntakeCommand(
+                reporte, IntakeState.CONFORME, null, IntakeState.CONFORME, null, List.of()));
+        reportes.finish(new FinishServiceReportCommand(reporte));
         ordenes.execute(new ExecuteWorkOrderCommand(orden));
 
         UUID supervisor = unaPersona("SUPERVISOR");
@@ -323,5 +330,33 @@ class WorkOrderApprovalIntegrationTest {
         assertThat(aprobaciones.pending(ReadScope.ofClients(Set.of(e.cliente()))))
                 .extracting(WorkOrder::getId)
                 .containsExactly(e.orden());
+    }
+
+    @Test
+    @DisplayName("el informe lleva a quien aprobó, con el cargo con que supervisa, su firma y el día (V54)")
+    void enElInforme() {
+        Escenario e = unaOrdenEjecutada();
+        assertThat(reportes.document(e.reporte(), ReadScope.unrestricted()).aprobacion()).isNull();
+
+        enSitio(e, e.supervisor(), e.ingeniero());
+
+        assertThat(reportes.document(e.reporte(), ReadScope.unrestricted()).aprobacion())
+                .satisfies(aprobacion -> {
+                    assertThat(aprobacion.nombre()).isEqualTo("Ana Aprobacion");
+                    assertThat(aprobacion.cargo()).isEqualTo("Ingeniera biomédica");
+                    assertThat(aprobacion.firma().contenido()).isEqualTo(PNG_FALSO);
+                    assertThat(aprobacion.fecha()).isEqualTo(LocalDate.now());
+                });
+    }
+
+    @Test
+    @DisplayName("sustituido un reporte, el informe de los demás vuelve a dejar la línea para firmar a mano")
+    void sustituidoSaleDelInforme() {
+        Escenario e = unaOrdenEjecutada();
+        enSitio(e, e.supervisor(), e.ingeniero());
+
+        reportes.replace(new ReplaceServiceReportCommand(e.reporte()));
+
+        assertThat(reportes.document(e.reporte(), ReadScope.unrestricted()).aprobacion()).isNull();
     }
 }

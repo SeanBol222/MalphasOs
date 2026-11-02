@@ -2747,3 +2747,25 @@ buscaron las copias `.orig-mutar` antes de nada: el arnés restaura en su `final
 llega a él. Se restauró desde la copia y se comprobó con `cmp`. Esquema medido sobre `V55`: 35 tablas,
 48 foráneas, 70 `CHECK`.
 
+## [2026-11-02] ingest | Las pantallas de la aprobación y la firma en los documentos
+
+Las tres tandas que faltaban del supervisor del cliente. **La ficha de la orden** aprueba en sitio o
+desde la cuenta del supervisor, con «también firma el recibido». **La entrega del reporte** deja elegir a
+un supervisor como quien recibe. **El listado de órdenes** filtra «Por aprobar» y dice en cada ejecutada si
+está aprobada. **La ventana de la sesión** ofrece la firma guardada a quien aprueba, que es lo que el
+servidor exige desde `V55`. **Y el informe, el resumen y el cronograma** llevan a quien aprobó, con su
+cargo, el día y su firma, leídos en vivo, porque la aprobación llega después de que todo lo demás se
+congeló. «Órdenes por aprobar» quedó como filtro y no como página. Ver [[dominio-orden-trabajo]].
+
+Hubo que reescribir algunas mutaciones del frontend: tal como estaban no compilaban, o morían por la razón
+equivocada, cuando un `as never` tumbaba veintitrés pruebas. **Y apareció una cascada que no era de las
+mutaciones**: comparar el cuerpo de una petición antes de responderla deja la petición abierta si la
+comparación falla, y en el `afterEach` caen todas las pruebas siguientes. Se responde primero y se compara
+después. Sobrevivieron dos mutaciones, y las dos eran huecos de prueba: aprobar sin marcar «también
+recibe» no tenía prueba, y la del nombre que no hace falta con un supervisor pasaba porque la prueba
+escribía un nombre igual. Con sus arreglos, las 35 del frontend mueren. La prueba de integración de la
+aprobación **cerraba el reporte por SQL**, y un reporte cerrado sin documento ya no se puede componer
+desde `V51`: ahora se cierra por el servicio.
+
+En el backend, catorce mutaciones sobre la lectura de la aprobación y las tres plantillas, y las catorce
+mueren. Batería: **1580** en **136** clases; frontend, **792**. Sin migración ni cambio de contrato.

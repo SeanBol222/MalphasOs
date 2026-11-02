@@ -21,6 +21,7 @@ import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
+import com.malphasos.malphasos.report.application.model.OrderApproval;
 import com.malphasos.malphasos.report.application.model.WorkOrderReportProgress;
 import com.malphasos.malphasos.report.application.model.WorkOrderScheduleSheet;
 import com.malphasos.malphasos.report.application.model.WorkOrderSummarySheet;
@@ -417,14 +418,35 @@ public class ServiceReportService implements ServiceReportServicePort {
 
         PersonCommunicationResponse persona = personCommunicationPort.findById(reporte.getIdRecibe());
         WorkOrder orden = workOrderServicePort.findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted());
-        String cargo = clientServicePort.findById(orden.getIdCliente(), ReadScope.unrestricted()).getSupervisores()
-                .stream()
-                .filter(supervisor -> supervisor.idPersona().equals(persona.identificador()))
+
+        return new Handover(persona.nombreCompleto(), persona.cedula(),
+                cargoDe(orden.getIdCliente(), persona.identificador()));
+    }
+
+    /** El cargo con que una persona supervisa a un cliente, o nulo si no lo tiene o ya no lo supervisa. */
+    private String cargoDe(UUID idCliente, UUID idPersona) {
+        return clientServicePort.findById(idCliente, ReadScope.unrestricted()).getSupervisores().stream()
+                .filter(supervisor -> supervisor.idPersona().equals(idPersona))
                 .map(ClientSupervisor::cargo)
                 .findFirst()
                 .orElse(null);
+    }
 
-        return new Handover(persona.nombreCompleto(), persona.cedula(), cargo);
+    /**
+     * La aprobación vigente de la orden, para imprimirla (V54): quién, con qué cargo, su firma y el día. Se lee
+     * cada vez, como la firma de quien recibe, porque llega después de que todo lo demás se congeló.
+     */
+    private OrderApproval aprobacionDe(UUID idOrden) {
+        return workOrderApprovalServicePort.findActive(idOrden, ReadScope.unrestricted())
+                .map(aprobacion -> {
+                    WorkOrder orden = workOrderServicePort.findById(idOrden, ReadScope.unrestricted());
+                    PersonCommunicationResponse persona = personCommunicationPort.findById(aprobacion.getIdSupervisor());
+
+                    return new OrderApproval(persona.nombreCompleto(),
+                            cargoDe(orden.getIdCliente(), aprobacion.getIdSupervisor()),
+                            imagen(aprobacion.getHuellaFirma()), aprobacion.getAprobada().toLocalDate());
+                })
+                .orElse(null);
     }
 
     /**
@@ -540,7 +562,8 @@ public class ServiceReportService implements ServiceReportServicePort {
 
             return new ReportDocumentView(reporte, documento,
                     imagen(documento.empresa() == null ? null : documento.empresa().huellaDelLogo()),
-                    imagen(documento.huellaFirmaIngeniero()), firmaRecibe(reporte), true, quienRecibe(reporte));
+                    imagen(documento.huellaFirmaIngeniero()), firmaRecibe(reporte), true, quienRecibe(reporte),
+                    aprobacionDe(reporte.getIdOrdenTrabajo()));
         }
 
         // Un borrador, o uno cerrado que aún no se congeló tarde: en vivo, sin guardar nada.
@@ -549,7 +572,7 @@ public class ServiceReportService implements ServiceReportServicePort {
 
         return new ReportDocumentView(
                 reporte, compuesto.documento(), compuesto.logo(), compuesto.firmaIngeniero(), firmaRecibe(reporte),
-                false, quienRecibe(reporte));
+                false, quienRecibe(reporte), aprobacionDe(reporte.getIdOrdenTrabajo()));
     }
 
     /** La firma de quien recibe no se congela al cerrar: se lee del reporte, que la guarda desde que firma. */
@@ -619,7 +642,8 @@ public class ServiceReportService implements ServiceReportServicePort {
     private ReportPdf resumenDe(WorkOrder orden, WorkOrderDocument documento, List<ServiceReport> cerrados) {
         Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
         WorkOrderSummarySheet hoja = WorkOrderSummaryComposer.compose(orden.getId(), documento, cerrados,
-                empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa), this::quienRecibe);
+                empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa), this::quienRecibe,
+                aprobacionDe(orden.getId()));
 
         return new ReportPdf("orden-" + orden.numero() + ".pdf", workOrderSummaryPdfPort.render(hoja));
     }
@@ -628,7 +652,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private ReportPdf cronogramaDe(WorkOrder orden, WorkOrderDocument documento, List<ServiceReport> cerrados) {
         Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
         WorkOrderScheduleSheet hoja = WorkOrderScheduleComposer.compose(orden.getId(), documento, cerrados,
-                empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa));
+                empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa), aprobacionDe(orden.getId()));
 
         return new ReportPdf("cronograma-orden-" + orden.numero() + ".pdf", workOrderSchedulePdfPort.render(hoja));
     }

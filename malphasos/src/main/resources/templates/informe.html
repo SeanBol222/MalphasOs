@@ -699,9 +699,20 @@
               <span>Profesional de servicio</span>
             </div>
             <div>
-              <div class="rs-firmas__linea"></div>
-              <strong th:text="${hoja.firmas.supervisor}">Supervisor</strong>
-              <span>Supervisor responsable</span>
+              <!-- V54: quien aprobó la orden firma aquí; mientras nadie apruebe, la línea es para firmar a mano. -->
+              <div class="rs-firmas__linea">
+                <img
+                  th:if="${hoja.firmas.firmaSupervisor}"
+                  class="rs-firmas__trazo"
+                  data-firma-supervisor
+                  th:src="${hoja.firmas.firmaSupervisor}"
+                  alt="Firma del supervisor"
+                />
+              </div>
+              <strong data-firma-supervisor-nombre th:text="${hoja.firmas.supervisor}">Supervisor</strong>
+              <span data-firma-supervisor-detalle th:text="${hoja.firmas.detalleSupervisor}"
+                >Supervisor responsable</span
+              >
             </div>
             <div>
               <div class="rs-firmas__linea">

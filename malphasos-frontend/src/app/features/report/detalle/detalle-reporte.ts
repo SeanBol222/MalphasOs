@@ -17,7 +17,7 @@ import { OrdenApi } from '../../workOrder/orden-api';
 import { ReporteApi } from '../reporte-api';
 import { TablaDeVerificacion } from '../verificacion/tabla-de-verificacion';
 import { RecepcionDelEquipo } from '../recepcion/recepcion-del-equipo';
-import { EntregaDelEquipo } from '../entrega/entrega-del-equipo';
+import { EntregaDelEquipo, SupervisorQueRecibe } from '../entrega/entrega-del-equipo';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   EstadoDePaso,
@@ -407,6 +407,20 @@ export class DetalleReporte {
       .filter((supervisor) => !!supervisor.idPersona)
       .map((supervisor) => this.nombreDe(supervisor.idPersona!))
       .join(' · ');
+  });
+
+  /** Los mismos, con su identificador y su cargo, para elegir quién recibe en la entrega (V55). */
+  protected readonly supervisoresQueReciben = computed<SupervisorQueRecibe[]>(() => {
+    const idCliente = this.orden.data()?.idCliente;
+    const cliente = (this.clientes.data() ?? []).find((c) => c.id === idCliente);
+
+    return (cliente?.supervisores ?? [])
+      .filter((supervisor) => !!supervisor.idPersona)
+      .map((supervisor) => ({
+        id: supervisor.idPersona!,
+        nombre: this.nombreDe(supervisor.idPersona!),
+        cargo: supervisor.cargo ?? null,
+      }));
   });
 
   private nombreDe(idPersona: string): string {

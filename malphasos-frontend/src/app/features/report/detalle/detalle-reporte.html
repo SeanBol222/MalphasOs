@@ -531,6 +531,8 @@
           [editable]="editable()"
           [firmadoRecibe]="datos.firmadoRecibe"
           [puedeFirmar]="datos.estadoActivo !== false && puedeEscribir()"
+          [supervisores]="supervisoresQueReciben()"
+          [idPersonaRecibe]="datos.idPersonaRecibe"
         />
 
         <p class="mt-3">

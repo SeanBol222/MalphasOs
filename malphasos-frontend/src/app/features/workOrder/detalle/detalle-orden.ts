@@ -21,6 +21,7 @@ import { fechaCorta } from '../../../core/fechas';
 import { Buscador, Opcion } from '../../../shared/buscador/buscador';
 import { traducirError } from '../../../core/errores/traducir';
 import { guardarArchivo } from '../../../core/api/pdf';
+import { LienzoDeFirma } from '../../../shared/lienzo-de-firma/lienzo-de-firma';
 
 /**
  * Una orden de trabajo: sus datos, su alcance y su ciclo de vida.
@@ -45,7 +46,7 @@ import { guardarArchivo } from '../../../core/api/pdf';
  */
 @Component({
   selector: 'app-detalle-orden',
-  imports: [ReactiveFormsModule, RouterLink, Buscador],
+  imports: [ReactiveFormsModule, RouterLink, Buscador, LienzoDeFirma],
   templateUrl: './detalle-orden.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -345,7 +346,10 @@ export class DetalleOrden {
       this.anulacion.isError() ||
       this.bajaDeEquipo.isError() ||
       this.asignacion.isError() ||
-      this.descarga.isError(),
+      this.descarga.isError() ||
+      this.aprobacionEnSitio.isError() ||
+      this.aprobacionDesdeMiCuenta.isError() ||
+      this.firmaDelRecibido.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
     traducirError(
@@ -355,9 +359,112 @@ export class DetalleOrden {
         this.anulacion.error() ??
         this.bajaDeEquipo.error() ??
         this.asignacion.error() ??
-        this.descarga.error(),
+        this.descarga.error() ??
+        this.aprobacionEnSitio.error() ??
+        this.aprobacionDesdeMiCuenta.error() ??
+        this.firmaDelRecibido.error(),
     ),
   );
+
+  // ---------------------------------------------------------------------------
+  // La aprobación del supervisor (V54 y V55, 2026-11-02)
+  // ---------------------------------------------------------------------------
+
+  /** Se aprueba el trabajo terminado: la orden ejecutada y activa. Antes, el bloque no aparece. */
+  protected readonly ejecutada = computed(
+    () => this.orden.data()?.estadoEjecucion === 'EJECUTADA' && !!this.orden.data()?.estadoActivo,
+  );
+  protected readonly aprobacion = this.api.aprobacion(this.id, this.ejecutada);
+
+  /** Aprobar pide {@code work-order.approve}: el supervisor desde su cuenta, el ingeniero o el administrador en sitio. */
+  protected readonly aprueba = computed(() => this.sesion.puede('work-order.approve'));
+
+  /** Si quien tiene la sesión es supervisor de este cliente: entonces aprueba con su firma guardada. */
+  protected readonly soySupervisor = computed(() =>
+    this.supervisoresDelCliente().some((s) => !!s.id && s.id === this.sesion.identificador()),
+  );
+
+  protected readonly aprobacionEnSitio = this.api.aprobarEnSitio();
+  protected readonly aprobacionDesdeMiCuenta = this.api.aprobarDesdeMiCuenta();
+  protected readonly firmaDelRecibido = this.reporteApi.firmarRecibido();
+
+  protected readonly supervisorQueAprueba = new FormControl('', { nonNullable: true });
+  protected readonly tambienRecibe = new FormControl(false, { nonNullable: true });
+  protected readonly trazoDeAprobacion = signal<string | null>(null);
+  protected readonly faltaParaAprobar = signal('');
+
+  /** Los reportes activos sin la firma de quien recibe: los que «también firma el recibido» firmaría. */
+  protected readonly sinRecibido = computed(() =>
+    (this.reportes.data() ?? []).filter((r) => r.estadoActivo !== false && !r.firmadoRecibe),
+  );
+
+  protected readonly aprobando = computed(
+    () =>
+      this.aprobacionEnSitio.isPending() ||
+      this.aprobacionDesdeMiCuenta.isPending() ||
+      this.firmaDelRecibido.isPending(),
+  );
+
+  /** «Aprobada por Dora Gómez (Médica propietaria), desde su cuenta, el 2 nov 2026». */
+  protected readonly aprobada = computed(() => {
+    const aprobacion = this.aprobacion.data();
+
+    if (!aprobacion) {
+      return null;
+    }
+
+    const supervisor = this.supervisoresDelCliente().find((s) => s.id === aprobacion.idSupervisor);
+
+    return {
+      quien: supervisor?.nombre ?? 'el supervisor del cliente',
+      cargo: supervisor?.cargo ?? null,
+      forma: aprobacion.desdeSuCuenta ? 'desde su cuenta' : 'en sitio',
+      cuando: fechaCorta(aprobacion.aprobada?.slice(0, 10)),
+    };
+  });
+
+  protected alDibujarLaAprobacion(imagen: string | null): void {
+    this.trazoDeAprobacion.set(imagen);
+  }
+
+  /**
+   * Aprueba en sitio, y si se pidió firma también el recibido de los reportes que aún no lo tengan, con la
+   * misma firma y como persona registrada (V55). Son dos llamadas sin transacción: si la segunda falla, la
+   * orden queda aprobada y el aviso de error lo dice; el recibido se firma después desde cada reporte.
+   */
+  protected aprobarEnSitio(): void {
+    const idSupervisor = this.supervisorQueAprueba.value;
+    const imagen = this.trazoDeAprobacion();
+
+    if (!idSupervisor) {
+      this.faltaParaAprobar.set('Elija qué supervisor aprueba.');
+      return;
+    }
+    if (!imagen) {
+      this.faltaParaAprobar.set('El supervisor tiene que dibujar su firma.');
+      return;
+    }
+    this.faltaParaAprobar.set('');
+
+    const sinRecibido = this.tambienRecibe.value ? this.sinRecibido() : [];
+    this.aprobacionEnSitio.mutate(
+      { id: this.id(), idSupervisor, imagen },
+      {
+        onSuccess: () => {
+          if (sinRecibido.length) {
+            this.firmaDelRecibido.mutate({
+              id: sinRecibido[0].id!,
+              firma: { idPersonaRecibe: idSupervisor, imagen, alcance: 'ORDEN' },
+            });
+          }
+        },
+      },
+    );
+  }
+
+  protected aprobarConMiFirma(): void {
+    this.aprobacionDesdeMiCuenta.mutate(this.id());
+  }
 
   protected descargarInformes(): void {
     this.descarga.mutate(this.id(), { onSuccess: guardarArchivo });

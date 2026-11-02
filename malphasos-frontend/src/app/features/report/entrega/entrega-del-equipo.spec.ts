@@ -351,5 +351,92 @@ describe('Entrega del equipo', () => {
         'Este reporte ya tiene la firma de quien recibe',
       );
     });
+
+    describe('Un supervisor del cliente recibe como persona registrada (V55)', () => {
+      const SUPERVISORES = [
+        { id: 'p2', nombre: 'Luis Peña', cargo: 'Ingeniero biomédico' },
+        { id: 'p3', nombre: 'Dora Gómez', cargo: null },
+      ];
+      const quienRecibe = () => raiz().querySelector<HTMLSelectElement>('[data-quien-recibe]');
+      async function elegir(id: string): Promise<void> {
+        quienRecibe()!.value = id;
+        quienRecibe()!.dispatchEvent(new Event('change', { bubbles: true }));
+        await asentar(fixture);
+      }
+
+      it('sin supervisores no hay a quién elegir: se escribe a mano', async () => {
+        await abrir();
+
+        expect(quienRecibe()).toBeNull();
+        expect(campo('recibeNombre')).not.toBeNull();
+      });
+
+      it('elegido un supervisor, no se escribe nada y firma por su identificador', async () => {
+        fixture.componentRef.setInput('supervisores', SUPERVISORES);
+        await abrir();
+        await elegir('p2');
+
+        // Sin nombre escrito: el del supervisor sale de su ficha, y no se pide.
+        expect(raiz().querySelector('#recibeNombre')).toBeNull();
+        expect(raiz().querySelector('[data-firma-supervisor]')?.textContent).toContain('Luis Peña');
+
+        dibujar(PNG);
+        await asentar(fixture);
+        firmar()!.click();
+        await asentar(fixture);
+
+        const peticion = http.expectOne(URL_FIRMA);
+        peticion.flush([{ id: ID_REPORTE }]);
+        await asentar(fixture);
+        expect(peticion.request.body).toEqual({
+          idPersonaRecibe: 'p2',
+          imagen: PNG,
+          alcance: 'REPORTE',
+        });
+        expect(raiz().textContent).not.toContain('Escriba el nombre de quien firma.');
+      });
+
+      it('elegido un supervisor no se guarda la entrega escrita', async () => {
+        fixture.componentRef.setInput('supervisores', SUPERVISORES);
+        await abrir();
+        escribir('recibeNombre', 'Ana Pérez');
+        await elegir('p2');
+
+        http.expectNone(URL_ENTREGA);
+        expect(raiz().querySelector('[data-estado-guardado]')).toBeNull();
+      });
+
+      it('volver a «otra persona» firma con lo escrito', async () => {
+        fixture.componentRef.setInput('supervisores', SUPERVISORES);
+        await abrir();
+        await elegir('p2');
+        await elegir('');
+        escribir('recibeNombre', 'Ana Pérez');
+        dibujar(PNG);
+        await asentar(fixture);
+        firmar()!.click();
+        await asentar(fixture);
+
+        const peticion = http.expectOne(URL_FIRMA);
+        peticion.flush([{ id: ID_REPORTE }]);
+        await asentar(fixture);
+        expect(peticion.request.body).toMatchObject({ nombre: 'Ana Pérez' });
+        expect(peticion.request.body.idPersonaRecibe).toBeUndefined();
+      });
+
+      it('firmado por un supervisor dice quién recibió, con su cargo, aunque no haya nada escrito', async () => {
+        fixture.componentRef.setInput('editable', false);
+        fixture.componentRef.setInput('supervisores', SUPERVISORES);
+        fixture.componentRef.setInput('idPersonaRecibe', 'p2');
+        fixture.componentRef.setInput('firmadoRecibe', '2026-11-02T09:30:00');
+        await abrir();
+
+        expect(
+          raiz().querySelector('[data-recibio-supervisor]')?.textContent?.replace(/\s+/g, ' '),
+        ).toContain('Recibió Luis Peña (Ingeniero biomédico), supervisor del cliente.');
+        expect(raiz().textContent).not.toContain('No se registró quién recibió');
+        expect(quienRecibe()).toBeNull();
+      });
+    });
   });
 });

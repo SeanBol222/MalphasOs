@@ -222,8 +222,12 @@ describe('Ficha de un reporte de servicio', () => {
       'observaciones',
     ]);
     // Los unicos desplegables son los de los patrones, uno por verificacion (V30), y no son un dato de
-    // la orden: los elige quien mide.
-    expect([...raiz().querySelectorAll('select')].map((s) => s.id)).toEqual(['patron-nuevo-ver1']);
+    // la orden: los elige quien mide. Y desde V55 (2026-11-02) el de quién recibe, que elige entre los
+    // supervisores del cliente a quien firma el recibido: es un dato del reporte, no de la orden.
+    expect([...raiz().querySelectorAll('select')].map((s) => s.id)).toEqual([
+      'patron-nuevo-ver1',
+      'quienRecibe',
+    ]);
     expect(opcionesDeResultado()).toHaveLength(3);
     // Los de texto son los del propio reporte desde V31 (2026-10-16): las observaciones del ingreso y
     // quien recibe. Ninguno trae un dato de la orden.
