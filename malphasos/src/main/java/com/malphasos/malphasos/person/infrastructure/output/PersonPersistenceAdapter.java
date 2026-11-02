@@ -5,6 +5,7 @@ import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.infrastructure.output.mapper.PersonPersistenceMapper;
 import com.malphasos.malphasos.person.infrastructure.output.repository.PersonRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +51,12 @@ public class PersonPersistenceAdapter implements PersonPersistencePort {
     public Person save(Person person) {
         return personPersistenceMapper.toDomain(
                 personRepository.save(personPersistenceMapper.toEntity(person)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Person> findAllById(Collection<UUID> ids) {
+        return personPersistenceMapper.toDomainList(personRepository.findAllById(ids));
     }
 
     @Override

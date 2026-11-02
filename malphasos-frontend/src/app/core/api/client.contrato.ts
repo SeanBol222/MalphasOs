@@ -408,6 +408,11 @@ export interface components {
             cargo?: string;
             /** Format: uuid */
             idPersona?: string;
+            /**
+             * @description Su nombre completo, para que quien lee el cliente lo nombre sin leer personas (2026-11-02); nulo si la ficha no existe
+             * @example Luis Pena
+             */
+            nombre?: string;
         };
         ClientUpdateRequest: {
             /** Format: uuid */

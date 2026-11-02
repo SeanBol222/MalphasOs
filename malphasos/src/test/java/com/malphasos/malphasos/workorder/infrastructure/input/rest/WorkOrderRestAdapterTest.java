@@ -57,6 +57,7 @@ class WorkOrderRestAdapterTest {
     @Autowired private JsonMapper jsonMapper;
 
     @MockitoBean private WorkOrderServicePort workOrderServicePort;
+    @MockitoBean private com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort personCommunicationPort;
 
     private static WorkOrder unaOrden() {
         return WorkOrder.schedule(CLIENTE, SEDE, LocalDate.now().plusDays(1),
@@ -413,5 +414,31 @@ class WorkOrderRestAdapterTest {
         mockMvc.perform(get("/v1/api/work-orders").param("desde", "2026-10-31").param("hasta", "2026-10-01"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("ERR_WORK_ORDER_002"));
+    }
+
+    @Test
+    @DisplayName("la orden viene con el nombre de su ingeniero, y un listado los pide en una consulta (2026-11-02)")
+    void nombreDelIngeniero() throws Exception {
+        // Quien lee la orden —el supervisor del cliente— no tiene person.read: sin esto no podía nombrarlo.
+        UUID ingeniero = UUID.randomUUID();
+        WorkOrder asignada = unaOrden();
+        asignada.assignTo(ingeniero);
+        WorkOrder sinAsignar = unaOrden();
+        when(workOrderServicePort.findById(asignada.getId(), ReadScope.unrestricted())).thenReturn(asignada);
+        when(workOrderServicePort.findAll(ReadScope.unrestricted())).thenReturn(List.of(asignada, sinAsignar));
+        when(personCommunicationPort.namesOf(any())).thenReturn(java.util.Map.of(ingeniero, "Grace Hopper"));
+
+        mockMvc.perform(get("/v1/api/work-orders/" + asignada.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombreIngeniero").value("Grace Hopper"));
+        mockMvc.perform(get("/v1/api/work-orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombreIngeniero").value("Grace Hopper"))
+                .andExpect(jsonPath("$[1].nombreIngeniero").isEmpty());
+
+        ArgumentCaptor<java.util.Collection<UUID>> pedidos = ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(personCommunicationPort, org.mockito.Mockito.times(2)).namesOf(pedidos.capture());
+        org.assertj.core.api.Assertions.assertThat(pedidos.getAllValues())
+                .allSatisfy(ids -> org.assertj.core.api.Assertions.assertThat(ids).containsExactly(ingeniero));
     }
 }

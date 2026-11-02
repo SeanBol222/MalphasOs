@@ -9,6 +9,7 @@ import { asentar, responderA } from '../../../../testing/pantalla';
 import {
   CLIENTES,
   EQUIPOS,
+  ID_INGENIERO,
   ID_ORDEN,
   ID_SEDE,
   orden,
@@ -903,6 +904,28 @@ describe('Ficha de un reporte de servicio', () => {
     expect(
       [...raiz().querySelectorAll('button')].map((b) => (b.textContent ?? '').trim()),
     ).toEqual([]);
+  });
+
+  it('nombra al ingeniero y a los supervisores con lo que trae el API, sin la lista de personas (2026-11-02)', async () => {
+    await abrir(reporte(), orden({ estadoEjecucion: 'EN_EJECUCION', idIngeniero: ID_INGENIERO }));
+
+    expect(raiz().textContent).toContain('Ana Ruiz');
+    const quienRecibe = [...raiz().querySelectorAll('#quienRecibe option')].map((o) =>
+      (o.textContent ?? '').replace(/\s+/g, ' ').trim(),
+    );
+    expect(quienRecibe.some((texto) => texto.startsWith('Luis Peña'))).toBe(true);
+  });
+
+  it('el supervisor del cliente lo lee sin pedir la lista de personas, que respondería 403', async () => {
+    // Lo que tiene de verdad el grupo clients (2026-11-02): sin person.read.
+    TestBed.resetTestingModule();
+    montar(['report.read', 'equipment.read', 'work-order.read', 'client.read']);
+    // Sin abrir(): responde a /persons si alguien lo pide, y esta prueba es justo sobre que no se pida.
+    fixture.detectChanges();
+    await responderA(fixture, http, urlReporte(ID_REPORTE), reporteCerrable());
+
+    http.expectNone(URL_PERSONAS);
+    await atenderTodo(reporteCerrable());
   });
 
   it('un 409 al cerrar se explica con el mensaje del catálogo, no con el del servidor', async () => {

@@ -30,11 +30,13 @@ export class UbicacionApi {
   /** Cinco minutos. Suficiente para una sesion de trabajo, corto para notar una correccion. */
   private static readonly VIGENCIA = 5 * 60 * 1000;
 
-  listarPaises() {
+  /** Admite una señal que la apaga, como las ciudades: un supervisor lee su cliente sin {@code location.read}. */
+  listarPaises(habilitada?: Signal<boolean>) {
     return injectQuery(() => ({
       queryKey: UbicacionApi.CLAVE_PAISES,
       queryFn: () => firstValueFrom(this.http.get<Pais[]>(this.urlPaises)),
       staleTime: UbicacionApi.VIGENCIA,
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 

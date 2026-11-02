@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.person.application.ports.output;
 
 import com.malphasos.malphasos.person.domain.person.Person;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +27,9 @@ public interface PersonPersistencePort {
      * describía algo que no ocurría.
      */
     Person save(Person person);
+
+    /** Las personas con esos identificadores, en una consulta; las que no existan simplemente no vienen. */
+    List<Person> findAllById(Collection<UUID> ids);
 
     /**
      * Cambia el identificador de una persona, con todo lo que la nombra (V56). Existe solo para dar

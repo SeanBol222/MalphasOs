@@ -44,8 +44,11 @@ export class DetalleCliente {
 
   protected readonly cliente = this.api.detalle(this.id);
   protected readonly sedes = inject(SedeApi).listarDe(this.id);
-  private readonly paises = inject(UbicacionApi).listarPaises();
   private readonly sesion = inject(Sesion);
+  /** Sin {@code location.read} —el supervisor del cliente— no se piden: responderían 403 (2026-11-02). */
+  private readonly paises = inject(UbicacionApi).listarPaises(
+    computed(() => this.sesion.puede('location.read')),
+  );
 
   /**
    * Quien edita el cliente y quien lo retira, con la autoridad que el servidor exige a cada cosa. El
@@ -101,23 +104,17 @@ export class DetalleCliente {
   });
 
   /**
-   * Los supervisores con nombre y cargo; sin {@code person.read}, solo cuántos son. Son quienes entran
+   * Los supervisores con nombre y cargo, que vienen con el cliente (2026-11-02). Son quienes entran
    * a ver lo de este cliente y aprueban sus órdenes (V53, 2026-11-01): hasta entonces eran los
    * representantes, que solo entraban a ver.
    */
   protected readonly supervisores = computed(() => {
-    const personas = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
-
-    return (this.cliente.data()?.supervisores ?? []).map((supervisor) => {
-      const id = supervisor.idPersona ?? '';
-      const persona = personas.get(id);
-
-      return {
-        id,
-        nombre: persona ? nombreCompleto(persona) : 'Supervisor',
-        cargo: supervisor.cargo ?? null,
-      };
-    });
+    // El nombre viene con el cliente (2026-11-02): su propio supervisor lo lee sin person.read.
+    return (this.cliente.data()?.supervisores ?? []).map((supervisor) => ({
+      id: supervisor.idPersona ?? '',
+      nombre: supervisor.nombre ?? 'Supervisor',
+      cargo: supervisor.cargo ?? null,
+    }));
   });
 
   /**

@@ -80,4 +80,28 @@ class PersonCommunicationServiceTest {
         assertThat(service().exists(UUID.randomUUID())).isFalse();
         assertThat(service().exists(null)).isFalse();
     }
+
+    @Test
+    @DisplayName("namesOf nombra a las que existen en una consulta, sin nulos ni repetidos (2026-11-02)")
+    void nombresEnUnaConsulta() {
+        UUID ada = UUID.randomUUID();
+        UUID nadie = UUID.randomUUID();
+        when(personPersistencePort.findAllById(any())).thenReturn(List.of(Person.builder()
+                .identificador(ada).cedula("1").primerNombre("Ada").segundoNombre("Augusta")
+                .primerApellido("Lovelace").tipoPersona(PersonType.SUPERVISOR).estadoActivo(true).build()));
+        ArgumentCaptor<java.util.Collection<UUID>> pedidos = ArgumentCaptor.forClass(java.util.Collection.class);
+
+        java.util.Map<UUID, String> nombres = service().namesOf(java.util.Arrays.asList(ada, null, ada, nadie));
+
+        assertThat(nombres).containsExactly(java.util.Map.entry(ada, "Ada Augusta Lovelace"));
+        org.mockito.Mockito.verify(personPersistencePort).findAllById(pedidos.capture());
+        assertThat(pedidos.getValue()).containsExactly(ada, nadie);
+    }
+
+    @Test
+    @DisplayName("namesOf sin nadie que nombrar no consulta")
+    void nombresDeNadie() {
+        assertThat(service().namesOf(java.util.Arrays.asList((UUID) null))).isEmpty();
+        org.mockito.Mockito.verifyNoInteractions(personPersistencePort);
+    }
 }

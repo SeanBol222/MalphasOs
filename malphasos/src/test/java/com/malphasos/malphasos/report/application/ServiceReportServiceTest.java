@@ -1815,6 +1815,39 @@ class ServiceReportServiceTest {
         }
 
         @Test
+        @DisplayName("aprobada por un supervisor sin cargo, sale sin cargo y no rompe: el cargo es opcional (2026-11-02)")
+        void conAprobacionSinCargo() {
+            // Respondía 500: se leía el cargo antes de elegir al supervisor, y findFirst() lanza sobre un nulo.
+            ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"),
+                    com.malphasos.malphasos.report.application.sheet.UnaOrdenAtendida.MONITOR);
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(uno));
+            estubarResumen();
+            when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+            UUID supervisor = UUID.randomUUID();
+            when(workOrderApprovalServicePort.findActive(ORDEN, ReadScope.unrestricted())).thenReturn(Optional.of(
+                    com.malphasos.malphasos.workorder.domain.approval.WorkOrderApproval.rehydrate(UUID.randomUUID(),
+                            ORDEN, supervisor, supervisor, "huella", java.time.LocalDateTime.of(2026, 11, 2, 9, 0),
+                            true)));
+            when(personCommunicationPort.findById(supervisor)).thenReturn(
+                    new com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse(
+                            supervisor, "1", "Luis", null, "Peña", null, null, true, List.of(), List.of()));
+            when(clientServicePort.findById(any(), any())).thenReturn(
+                    com.malphasos.malphasos.client.domain.client.Client.rehydrate(UUID.randomUUID(), "900",
+                            com.malphasos.malphasos.client.domain.client.IdentificationType.NIT_JURIDICO, "Clínica",
+                            "CLI", UUID.randomUUID(), true, List.of(), List.of(), List.of(
+                                    new com.malphasos.malphasos.client.domain.client.ClientSupervisor(
+                                            supervisor, null))));
+            when(documentImageStorePort.find("huella")).thenReturn(Optional.empty());
+
+            service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted());
+
+            ArgumentCaptor<WorkOrderSummarySheet> resumen = ArgumentCaptor.forClass(WorkOrderSummarySheet.class);
+            verify(workOrderSummaryPdfPort).render(resumen.capture());
+            assertThat(resumen.getValue().aprobacion().detalle())
+                    .isEqualTo("Supervisor responsable · Aprobó el 02 nov 2026");
+        }
+
+        @Test
         @DisplayName("una orden sin periodicidad no lleva cronograma en el ZIP")
         void sinCronograma() {
             ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"), UUID.randomUUID());

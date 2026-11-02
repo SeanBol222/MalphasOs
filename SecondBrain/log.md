@@ -2787,3 +2787,38 @@ sobrevivió una —que la pantalla anunciara el primer correo en vez del de la c
 dos, con la prueba que faltaba y la mutación reescrita, mueren. **Y la prueba nueva pasó la primera vez por
 el camino equivocado**: su selector cogía el botón, que también va en negrita, y falló en la batería
 completa. Batería: **1598** en **136** clases; frontend, **800**. Deuda propia: **102 filas, 48 abiertas**.
+
+## [2026-11-02] ingest | Lo que el supervisor no puede leer, y aprobar sin firma guardada
+
+Dos defectos que el usuario encontró probando con la cuenta de un supervisor. **«Aprobar con mi firma» no
+hacía nada**: el servidor respondía 409 porque ninguno de los dos supervisores del cliente tenía firma
+guardada, y el aviso salía arriba de la página, fuera de la vista. Ahora la ficha pregunta por la firma
+guardada de quien tiene la sesión y, sin ella, dice que la guarde en lugar de ofrecer el botón; y el fallo
+de aprobar sale junto al bloque. **Y la consola se llenaba de 403**: la ficha de la orden y la del
+reporte pedían la lista de personas sin `person.read`, y la del cliente el catálogo de países sin
+`location.read`, que el grupo `clients` no tiene a propósito. Cada pantalla lo pide ahora solo si puede
+leerlo.
+
+Lo que deja al descubierto, anotado en [[deuda-tecnica-y-riesgos]]: **el supervisor no ve los nombres**
+del ingeniero ni de quien aprobó, porque salen de esa lista. Se cierra poniéndolos en el API.
+
+Nueve mutaciones, y sobrevivió una: la prueba del reporte comprobaba que no se pidiera `/persons` después
+de un ayudante que responde a `/persons` si alguien lo pide. **Una prueba de ausencia no puede ir detrás
+de un ayudante que consume justo lo que busca.** Reescrita, muere. Frontend: **806**.
+
+**Y un 500 al abrir el informe de una orden aprobada**, también del usuario: el supervisor que aprobó no
+tenía cargo, y `cargoDe` convertía cada supervisor en su cargo **antes** de elegir el suyo; `findFirst()`
+lanza cuando el elemento que encuentra es nulo. Rompía el informe, su PDF y el ZIP en cuanto aprobaba
+alguien sin cargo, y ninguna prueba lo vio porque todas las aprobaciones de prueba llevaban uno. Ahora se
+elige y después se lee, con una prueba de un supervisor sin cargo que cae con el orden viejo. Batería:
+**1599** en **136** clases.
+
+**Y los nombres, ese mismo día.** El usuario aprobó en sitio y, desde la cuenta del supervisor, la ficha
+decía «Aprobada por Nombre no disponible»: la deuda que la tanda anterior había dejado anotada, vista en
+pantalla. Se cierra en el API: la orden trae `nombreIngeniero` y cada supervisor del cliente su `nombre`,
+con `PersonCommunicationPort.namesOf` —una consulta por respuesta; un listado no pide un nombre por
+fila—. Las fichas de la orden, del reporte y del cliente nombran con eso, y solo piden la lista de
+personas para elegir a quién asignar o nombrar. Ocho mutaciones en el backend y seis en el frontend; dos
+del frontend sobrevivieron —el reporte no tenía ninguna prueba que mirara el nombre del ingeniero ni el del
+supervisor que recibe—, y con la prueba que faltaba mueren. Batería: **1603** en **136** clases;
+frontend, **808**. Deuda propia: **103 filas, 48 abiertas**.

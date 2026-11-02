@@ -6,6 +6,7 @@ import { SedeApi } from '../../client/sede-api';
 import { EquipoApi } from '../../equipment/equipo-api';
 import { OrdenApi } from '../orden-api';
 import { ReporteApi } from '../../report/reporte-api';
+import { FirmaApi } from '../../person/firma-api';
 import { nombreCompleto, PersonaApi } from '../../person/persona-api';
 import { Sesion } from '../../../core/auth/sesion';
 import {
@@ -93,7 +94,10 @@ export class DetalleOrden {
       return sede ? [sede] : [];
     }),
   );
-  private readonly personas = inject(PersonaApi).listar();
+  /** Sin {@code person.read} —el supervisor del cliente— no se piden: responderían 403 (2026-11-02). */
+  private readonly personas = inject(PersonaApi).listar(
+    computed(() => this.sesion.puede('person.read')),
+  );
 
   /** Los supervisores del cliente se ven con {@code client.read}: vienen en la ficha del cliente. */
   protected readonly puedeVerSupervisores = computed(() => this.sesion.puede('client.read'));
@@ -196,15 +200,12 @@ export class DetalleOrden {
       return congelado;
     }
 
-    const id = this.orden.data()?.idIngeniero;
-
-    if (!id) {
+    if (!this.orden.data()?.idIngeniero) {
       return '';
     }
 
-    const persona = (this.personas.data() ?? []).find((p) => p.identificador === id);
-
-    return persona ? nombreCompleto(persona) : 'No disponible';
+    // El nombre viene con la orden (2026-11-02): quien la lee no siempre puede leer personas.
+    return this.orden.data()?.nombreIngeniero ?? 'No disponible';
   });
 
   /**
@@ -327,13 +328,11 @@ export class DetalleOrden {
   protected readonly supervisoresDelCliente = computed(() => {
     const idCliente = this.orden.data()?.idCliente;
     const cliente = (this.clientes.data() ?? []).find((c) => c.id === idCliente);
-    const porPersona = new Map((this.personas.data() ?? []).map((p) => [p.identificador, p]));
 
-    return (cliente?.supervisores ?? []).map(({ idPersona, cargo }) => ({
+    // El nombre viene con el cliente (2026-11-02): el supervisor que lee su orden no tiene person.read.
+    return (cliente?.supervisores ?? []).map(({ idPersona, nombre, cargo }) => ({
       id: idPersona ?? '',
-      nombre: porPersona.has(idPersona)
-        ? nombreCompleto(porPersona.get(idPersona)!)
-        : 'Nombre no disponible',
+      nombre: nombre ?? 'Nombre no disponible',
       cargo: cargo ?? null,
     }));
   });
@@ -347,8 +346,6 @@ export class DetalleOrden {
       this.bajaDeEquipo.isError() ||
       this.asignacion.isError() ||
       this.descarga.isError() ||
-      this.aprobacionEnSitio.isError() ||
-      this.aprobacionDesdeMiCuenta.isError() ||
       this.firmaDelRecibido.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
@@ -360,8 +357,6 @@ export class DetalleOrden {
         this.bajaDeEquipo.error() ??
         this.asignacion.error() ??
         this.descarga.error() ??
-        this.aprobacionEnSitio.error() ??
-        this.aprobacionDesdeMiCuenta.error() ??
         this.firmaDelRecibido.error(),
     ),
   );
@@ -384,6 +379,15 @@ export class DetalleOrden {
     this.supervisoresDelCliente().some((s) => !!s.id && s.id === this.sesion.identificador()),
   );
 
+  /**
+   * La firma guardada del supervisor que tiene la sesión, que es con la que aprueba desde su cuenta. Sin
+   * ella el servidor responde 409, así que se dice antes y no se ofrece el botón (2026-11-02).
+   */
+  private readonly miFirma = inject(FirmaApi).consultar(this.soySupervisor);
+  protected readonly sinFirmaGuardada = computed(
+    () => this.miFirma.isSuccess() && this.miFirma.data() === null,
+  );
+
   protected readonly aprobacionEnSitio = this.api.aprobarEnSitio();
   protected readonly aprobacionDesdeMiCuenta = this.api.aprobarDesdeMiCuenta();
   protected readonly firmaDelRecibido = this.reporteApi.firmarRecibido();
@@ -392,6 +396,16 @@ export class DetalleOrden {
   protected readonly tambienRecibe = new FormControl(false, { nonNullable: true });
   protected readonly trazoDeAprobacion = signal<string | null>(null);
   protected readonly faltaParaAprobar = signal('');
+
+  /**
+   * El fallo de aprobar, junto al bloque de la aprobación y no arriba de la página: desde el botón, un
+   * aviso que queda fuera de la pantalla se lee como que no pasó nada (2026-11-02).
+   */
+  protected readonly errorAlAprobar = computed(() => {
+    const fallo = this.aprobacionEnSitio.error() ?? this.aprobacionDesdeMiCuenta.error();
+
+    return fallo ? traducirError(fallo) : '';
+  });
 
   /** Los reportes activos sin la firma de quien recibe: los que «también firma el recibido» firmaría. */
   protected readonly sinRecibido = computed(() =>

@@ -334,6 +334,8 @@ export interface components {
             idIngeniero?: string;
             /** Format: uuid */
             idSede?: string;
+            /** @description El nombre del ingeniero, para que quien lee la orden lo nombre sin leer personas (2026-11-02); nulo sin ingeniero */
+            nombreIngeniero?: string;
             /**
              * @description Los seis primeros caracteres del identificador, en mayusculas
              * @example 4F2A9C

@@ -81,7 +81,11 @@ describe('Ficha de una orden de trabajo', () => {
   let http: HttpTestingController;
   let desinstalarAlmacenamiento: () => void;
 
+  /** La lista de personas solo se pide con person.read: el supervisor del cliente no lo tiene. */
+  let leePersonas = true;
+
   function montar(autoridades: readonly string[] = TODAS, identificador?: string): void {
+    leePersonas = autoridades.includes('person.read');
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -113,7 +117,9 @@ describe('Ficha de una orden de trabajo', () => {
     fixture.detectChanges();
     await responderA(fixture, http, URL, datos);
     await responderA(fixture, http, URL_CLIENTES, CLIENTES);
-    await responderA(fixture, http, URL_PERSONAS, PERSONAS);
+    if (leePersonas) {
+      await responderA(fixture, http, URL_PERSONAS, PERSONAS);
+    }
     http.match(urlReportesDeOrden(ID_ORDEN)).forEach((peticion) => peticion.flush(reportes));
     http.match(urlSede(ID_SEDE)).forEach((peticion) => peticion.flush(SEDE));
     await asentar(fixture);
@@ -618,6 +624,94 @@ describe('Ficha de una orden de trabajo', () => {
         .match(() => true)
         .forEach((p) => p.flush(null, { status: 204, statusText: 'No Content' }));
       await asentar(fixture);
+    });
+
+    describe('el supervisor, desde su cuenta (2026-11-02)', () => {
+      // Lo que tiene de verdad el grupo clients: sin person.read, que respondería 403.
+      const SUPERVISORA = ['work-order.read', 'client.read', 'report.read', 'work-order.approve'];
+      const URL_FIRMA = `${API}/persons/me/signature`;
+
+      async function abrirComoSupervisora(firma: object | null): Promise<void> {
+        TestBed.resetTestingModule();
+        montar(SUPERVISORA, SUPERVISOR);
+        await abrir(ejecutada());
+        if (firma) {
+          await responderA(fixture, http, URL_FIRMA, firma);
+        } else {
+          await responderA(
+            fixture,
+            http,
+            URL_FIRMA,
+            { code: 'ERR_PERSON_003' },
+            {
+              status: 404,
+              statusText: 'Not Found',
+            },
+          );
+        }
+      }
+
+      it('aprobada, nombra a quien aprobó aunque no pueda leer personas: el nombre viene con el cliente', async () => {
+        // Lo que vio el usuario el 2026-11-02: «Aprobada por Nombre no disponible».
+        TestBed.resetTestingModule();
+        montar(SUPERVISORA, SUPERVISOR);
+        fixture.detectChanges();
+        await responderA(fixture, http, URL, ejecutada());
+        await responderA(fixture, http, URL_CLIENTES, CLIENTES);
+        await responderA(fixture, http, `${URL}/approval`, {
+          idSupervisor: SUPERVISOR,
+          desdeSuCuenta: false,
+          aprobada: '2026-11-02T10:00:00',
+        });
+        http.match(() => true).forEach((p) => p.flush([]));
+        await asentar(fixture);
+
+        expect(bloque()?.textContent?.replace(/\s+/g, ' ')).toContain(
+          'Aprobada por Luis Peña (Ingeniero biomédico), en sitio',
+        );
+        expect(bloque()?.textContent).not.toContain('no disponible');
+      });
+
+      it('no pide la lista de personas, que no puede leer', async () => {
+        await abrirComoSupervisora({ imagen: PNG });
+
+        http.expectNone(URL_PERSONAS);
+      });
+
+      it('sin firma guardada no ofrece aprobar: dice que la guarde primero', async () => {
+        await abrirComoSupervisora(null);
+
+        expect(raiz().querySelector('[data-aprobar-con-mi-firma]')).toBeNull();
+        expect(bloque()?.querySelector('[data-sin-firma]')?.textContent).toContain(
+          'guarde antes su firma',
+        );
+      });
+
+      it('con firma guardada ofrece aprobar, y no pide que la guarde', async () => {
+        await abrirComoSupervisora({ imagen: PNG });
+
+        expect(raiz().querySelector('[data-aprobar-con-mi-firma]')).not.toBeNull();
+        expect(bloque()?.querySelector('[data-sin-firma]')).toBeNull();
+      });
+
+      it('si el servidor rechaza la aprobación, lo dice junto al botón y no arriba de la página', async () => {
+        await abrirComoSupervisora({ imagen: PNG });
+        raiz().querySelector<HTMLButtonElement>('[data-aprobar-con-mi-firma]')!.click();
+        await asentar(fixture);
+
+        http
+          .expectOne({ method: 'POST', url: `${URL}/approval/mine` })
+          .flush(
+            { code: 'ERR_WORK_ORDER_013', message: 'No saved signature' },
+            { status: 409, statusText: 'Conflict' },
+          );
+        await asentar(fixture);
+
+        expect(bloque()?.querySelector('[data-error-al-aprobar]')?.textContent).toContain(
+          'Todavía no ha guardado su firma',
+        );
+        expect(raiz().querySelectorAll('[role="alert"]')).toHaveLength(1);
+      });
     });
 
     it('aprobada: lista para facturar, con quién, su cargo, la forma y la fecha', async () => {

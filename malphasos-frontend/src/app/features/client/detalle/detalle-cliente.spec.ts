@@ -62,7 +62,11 @@ const CLIENTE = {
   estadoActivo: true,
   correos: [{ id: 'c1', valor: 'contacto@hospital.co', estadoActivo: true }],
   telefonos: [{ id: 't1', valor: '6011234567', estadoActivo: true }],
-  supervisores: [{ idPersona: 'p1', cargo: 'Ingeniera biomédica' }, { idPersona: 'p2' }],
+  // El nombre viene con el cliente (2026-11-02); p2 no tiene ficha, y el servidor no lo nombra.
+  supervisores: [
+    { idPersona: 'p1', nombre: 'Carolina Vélez', cargo: 'Ingeniera biomédica' },
+    { idPersona: 'p2' },
+  ],
 };
 
 const PAISES = [{ id: ID_PAIS, nombre: 'Colombia', codigoIso: 'CO', estadoActivo: true }];
@@ -96,11 +100,22 @@ class ListadoFalso {}
 describe('Ficha de un cliente', () => {
   let fixture: ComponentFixture<DetalleCliente>;
   let http: HttpTestingController;
+  /** Los países solo se piden con location.read: el supervisor del cliente no lo tiene (2026-11-02). */
+  let leePaises = true;
 
-  /** Solo client.*: lo que piden las autoridades de más se prueba aparte, en «Las cifras». */
+  /**
+   * client.* y location.read, que es lo que tiene quien administra: lo que piden las demás autoridades
+   * se prueba aparte, en «Las cifras».
+   */
   function montar(
-    autoridades: readonly string[] = ['client.read', 'client.write', 'client.delete'],
+    autoridades: readonly string[] = [
+      'client.read',
+      'client.write',
+      'client.delete',
+      'location.read',
+    ],
   ): void {
+    leePaises = autoridades.includes('location.read');
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -149,7 +164,9 @@ describe('Ficha de un cliente', () => {
   ): Promise<void> {
     fixture.detectChanges();
     await responder(URL, cliente, opciones);
-    await responder(URL_PAISES, PAISES);
+    if (leePaises) {
+      await responder(URL_PAISES, PAISES);
+    }
     await responder(URL_SEDES, SEDES);
     http.match((r) => r.url === URL_RESUMEN_SEDES).forEach((p) => p.flush(RESUMEN_SEDES));
     await asentar();
@@ -221,8 +238,9 @@ describe('Ficha de un cliente', () => {
   });
 
   it('si el catalogo de paises no se pudo consultar, no dice que el cliente no tiene pais', async () => {
-    // El grupo clients no tiene location.read: para esos usuarios el catalogo responde 403. Decir
-    // «sin especificar» seria afirmar algo falso sobre el cliente.
+    // Hasta el 2026-11-02 era el caso del grupo clients, que no tiene location.read y recibia 403; ahora
+    // ese grupo no lo pide. Sigue valiendo para un fallo cualquiera: decir «sin especificar» seria afirmar
+    // algo falso sobre el cliente.
     fixture.detectChanges();
     await responder(URL, CLIENTE);
     await responder(
@@ -338,13 +356,19 @@ describe('Ficha de un cliente', () => {
       montar(['client.read']);
       fixture.detectChanges();
       await responder(URL, CLIENTE);
-      await responder(URL_PAISES, PAISES);
       await responder(URL_SEDES, sedes);
       http.match((r) => r.url === URL_RESUMEN_SEDES).forEach((p) => p.flush(RESUMEN_SEDES));
       await asentar();
     }
 
     const botones = () => [...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim());
+
+    it('no pide el catálogo de países, que no puede leer: respondería 403', async () => {
+      await abrirSoloLectura();
+
+      http.expectNone(URL_PAISES);
+      expect(texto()).toContain('Hospital Central');
+    });
 
     it('no tiene Editar, Retirar ni Nueva sede', async () => {
       await abrirSoloLectura();
@@ -516,7 +540,7 @@ describe('Ficha de un cliente', () => {
       const supervisores = [...raiz().querySelectorAll('[data-supervisor]')].map((li) =>
         li.textContent?.replace(/\s+/g, ' ').trim(),
       );
-      // El otro supervisor no está en la lista de personas: no se inventa su nombre, y sin cargo se dice.
+      // Al otro el servidor no lo nombra —no tiene ficha—: no se inventa su nombre, y sin cargo se dice.
       expect(supervisores[0]).toContain('Carolina Vélez Ingeniera biomédica');
       expect(supervisores[1]).toContain('Supervisor Sin cargo');
       // El alta lleva el cliente, para nombrar a la persona al crearla.
@@ -566,7 +590,7 @@ describe('Ficha de un cliente', () => {
         estadoActivo: false,
       },
     ];
-    const QUIEN_NOMBRA = ['client.read', 'client.write', 'person.read'];
+    const QUIEN_NOMBRA = ['client.read', 'client.write', 'person.read', 'location.read'];
 
     async function abrirCon(autoridades: readonly string[]): Promise<void> {
       TestBed.resetTestingModule();
@@ -705,5 +729,10 @@ describe('Ficha de un cliente', () => {
     });
   });
 
-  afterEach(() => http.verify());
+  // Con location.read la ficha nombra también la ciudad de cada sede; las pruebas que no van de eso no
+  // tienen por qué responderla.
+  afterEach(() => {
+    http.match(URL_CIUDADES).forEach((p) => p.flush([]));
+    http.verify();
+  });
 });

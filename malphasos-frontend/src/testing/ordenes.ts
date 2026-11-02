@@ -25,15 +25,19 @@ export const ID_AREA = 'a1';
 export const ID_EQUIPO = 'ec1';
 export const ID_INGENIERO = 'p1';
 
-// Supervisado por p2, el supervisor del cliente (V53): no ejecuta mantenimientos, y es quien aprueba.
+// Supervisado por p2, el supervisor del cliente (V53): no ejecuta mantenimientos, y es quien aprueba. Su
+// nombre viene con el cliente (2026-11-02), como lo manda el servidor.
 export const CLIENTES = [
   {
     id: ID_CLIENTE,
     razonSocial: 'Hospital Central',
     estadoActivo: true,
-    supervisores: [{ idPersona: 'p2', cargo: 'Ingeniero biomédico' }],
+    supervisores: [{ idPersona: 'p2', nombre: 'Luis Peña', cargo: 'Ingeniero biomédico' }],
   },
 ];
+
+/** Lo que el servidor pone al lado de cada identificador de persona (2026-11-02). */
+const NOMBRES: Readonly<Record<string, string>> = { [ID_INGENIERO]: 'Ana Ruiz', p2: 'Luis Peña' };
 
 export const SEDE = {
   id: ID_SEDE,
@@ -111,5 +115,7 @@ export function orden(
     estadoActivo: true,
     equipos: [],
     ...cambios,
+    // Con la orden viene el nombre de su ingeniero, como lo manda el servidor.
+    nombreIngeniero: cambios.idIngeniero ? NOMBRES[cambios.idIngeniero] : undefined,
   };
 }
