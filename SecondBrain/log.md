@@ -2730,3 +2730,20 @@ Trece mutaciones; **dos sobrevivieron** y las dos eran huecos de prueba, no del 
 tenía ninguna orden en ejecución que excluir. Con sus dos casos, las trece mueren. Batería: **1559** en
 **135** clases. Esquema medido sobre `V54`: 35 tablas, 47 foráneas, 70 `CHECK`, 11 índices parciales.
 
+## [2026-11-02] ingest | Quien recibe como persona registrada (`V55`)
+
+El supervisor del cliente que recibe y aprueba a la vez firma el recibido como persona registrada:
+`k_id_recibe` en el reporte, sin copiar su nombre, su cédula ni su cargo, que el informe y el resumen leen
+de `persona` y de `supervisor_cliente` al pintarse. Solo lo hace un supervisor activo del cliente de la
+orden (`ERR_SERVICE_REPORT_011`), y la petición exige el nombre o la persona. La firma guardada en la
+cuenta pasa a `work-order.approve`, para que el supervisor pueda guardar la suya. **Lo que costó**: un
+`@Schema` repetido no compilaba, y javac lo escondía bajo decenas de «cannot find symbol» en archivos
+ajenos —Lombok deja de generar cuando hay un error de verdad—; el error real era el único que no decía
+«symbol». Batería: **1570** en **136** clases. Ver [[dominio-reporte-servicio]].
+
+Once mutaciones, y las once mueren. **Una se quedó aplicada en el código** al cortarse la sesión a mitad
+—`ServiceReportService` con la regla del supervisor reducida a `true`—, y apareció porque al volver se
+buscaron las copias `.orig-mutar` antes de nada: el arnés restaura en su `finally`, y un proceso muerto no
+llega a él. Se restauró desde la copia y se comprobó con `cmp`. Esquema medido sobre `V55`: 35 tablas,
+48 foráneas, 70 `CHECK`.
+

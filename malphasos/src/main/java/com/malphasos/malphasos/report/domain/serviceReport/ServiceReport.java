@@ -132,6 +132,12 @@ public class ServiceReport extends AggregateRoot {
     /** La firma de quien recibe (V39). Nula mientras no firme; una vez puesta no cambia. */
     private ReceiptSignature firmaRecibe;
 
+    /**
+     * Quien recibió, si es una persona registrada (V55, 2026-11-01): el supervisor del cliente que recibe y
+     * aprueba a la vez. Con ella {@link #recibe} va nulo: su nombre no se copia, se lee de su ficha.
+     */
+    private UUID idRecibe;
+
     /** Lo que cabe en la descripción de una intervención de la hoja de vida: {@code varchar(500)}. */
     static final int LARGO_DESCRIPCION_DEL_SERVICIO = 500;
 
@@ -373,7 +379,7 @@ public class ServiceReport extends AggregateRoot {
                 resultado, finalizado, lecturas, pasos, estadoActivo, documento, documentoTardio, null);
     }
 
-    /** La rehidratación completa desde V39: con la firma de quien recibe. */
+    /** La rehidratación desde V39: con la firma de quien recibe, escrito en texto. */
     public static ServiceReport rehydrate(
             UUID id,
             UUID idOrdenTrabajo,
@@ -398,6 +404,37 @@ public class ServiceReport extends AggregateRoot {
             ReportDocument documento,
             boolean documentoTardio,
             ReceiptSignature firmaRecibe) {
+        return rehydrate(id, idOrdenTrabajo, idEquipoCliente, estado, fallaReportada, diagnostico, procedimientos,
+                observaciones, causa, repuestos, patrones, ingresoFisico, ingresoOperativo, accesorios, recibe,
+                resultado, finalizado, lecturas, pasos, estadoActivo, documento, documentoTardio, firmaRecibe, null);
+    }
+
+    /** La rehidratación completa desde V55: quien recibe puede ser una persona registrada. */
+    public static ServiceReport rehydrate(
+            UUID id,
+            UUID idOrdenTrabajo,
+            UUID idEquipoCliente,
+            ReportState estado,
+            String fallaReportada,
+            String diagnostico,
+            String procedimientos,
+            String observaciones,
+            String causa,
+            String repuestos,
+            Collection<VerificationStandard> patrones,
+            IntakeCheck ingresoFisico,
+            IntakeCheck ingresoOperativo,
+            Collection<ReportAccessory> accesorios,
+            Handover recibe,
+            ServiceResult resultado,
+            LocalDateTime finalizado,
+            Collection<VerificationReading> lecturas,
+            Collection<ReportStep> pasos,
+            boolean estadoActivo,
+            ReportDocument documento,
+            boolean documentoTardio,
+            ReceiptSignature firmaRecibe,
+            UUID idRecibe) {
 
         // Sin validar: leer de la base no es un hecho del dominio, y una fila vieja que ya no cumple una
         // regla nueva tiene que poder cargarse para poder corregirla.
@@ -418,6 +455,7 @@ public class ServiceReport extends AggregateRoot {
         reporte.documento = documento;
         reporte.documentoTardio = documentoTardio;
         reporte.firmaRecibe = firmaRecibe;
+        reporte.idRecibe = idRecibe;
 
         return reporte;
     }
@@ -874,6 +912,27 @@ public class ServiceReport extends AggregateRoot {
         }
 
         this.recibe = recibe;
+        this.firmaRecibe = new ReceiptSignature(huellaFirma, cuando);
+        registerEvent(new ServiceReportReceiptSignedEvent(
+                metadataFor(ServiceReportReceiptSignedEvent.TYPE), payload()));
+    }
+
+    /**
+     * Firma el recibido una persona registrada (V55): el supervisor del cliente que recibe y aprueba a la
+     * vez. Las mismas reglas que {@link #signReceipt}; lo que cambia es que no se copia su nombre, y lo que
+     * hubiera escrito como quien recibe se descarta, porque quien firma es ella.
+     */
+    public void signReceiptAs(UUID idPersona, String huellaFirma, LocalDateTime cuando) {
+        Objects.requireNonNull(idPersona, "Una firma sin persona no dice quien firmo");
+        if (!estadoActivo) {
+            throw new IllegalStateException("No se puede firmar el recibido de un reporte retirado");
+        }
+        if (firmaRecibe != null) {
+            throw new IllegalStateException("Este reporte ya tiene la firma de quien recibe, del " + firmaRecibe.firmada());
+        }
+
+        this.recibe = null;
+        this.idRecibe = idPersona;
         this.firmaRecibe = new ReceiptSignature(huellaFirma, cuando);
         registerEvent(new ServiceReportReceiptSignedEvent(
                 metadataFor(ServiceReportReceiptSignedEvent.TYPE), payload()));

@@ -83,6 +83,7 @@ public class ServiceReportRestMapper {
                         ? null
                         : new HandoverResponse(reporte.getRecibe().nombre(), reporte.getRecibe().cedula(),
                                 reporte.getRecibe().cargo()))
+                .idPersonaRecibe(reporte.getIdRecibe())
                 .firmadoRecibe(reporte.getFirmaRecibe() == null ? null : reporte.getFirmaRecibe().firmada())
                 .resultado(reporte.getResultado())
                 .finalizado(reporte.getFinalizado())

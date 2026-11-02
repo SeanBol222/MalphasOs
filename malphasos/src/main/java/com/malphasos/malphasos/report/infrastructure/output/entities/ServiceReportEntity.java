@@ -115,6 +115,10 @@ public class ServiceReportEntity {
     @Column(name = "f_firma_recibe")
     private LocalDateTime firmaRecibe;
 
+    /** Quien recibió, si es una persona registrada (V55). */
+    @Column(name = "k_id_recibe")
+    private UUID idRecibe;
+
     @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<VerificationReadingEntity> lecturas = new ArrayList<>();
 

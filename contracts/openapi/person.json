@@ -757,7 +757,7 @@
         "tags" : [ "PersonSignature" ]
       },
       "patch" : {
-        "description" : "La sustituye si ya habia una. Los informes ya cerrados conservan la que copiaron.",
+        "description" : "La sustituye si ya habia una. Los informes ya cerrados y las ordenes ya aprobadas conservan la que copiaron.",
         "operationId" : "save",
         "requestBody" : {
           "content" : {

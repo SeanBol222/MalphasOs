@@ -107,7 +107,8 @@ public class ServiceReportPersistenceMapper {
                 entity.isDocumentoTardio(),
                 entity.getHuellaFirmaRecibe() == null
                         ? null
-                        : new ReceiptSignature(entity.getHuellaFirmaRecibe(), entity.getFirmaRecibe()));
+                        : new ReceiptSignature(entity.getHuellaFirmaRecibe(), entity.getFirmaRecibe()),
+                entity.getIdRecibe());
     }
 
     private static IntakeCheck ingreso(String estado, String observacion) {
@@ -157,6 +158,7 @@ public class ServiceReportPersistenceMapper {
         ReceiptSignature firma = reporte.getFirmaRecibe();
         entity.setHuellaFirmaRecibe(firma == null ? null : firma.huella());
         entity.setFirmaRecibe(firma == null ? null : firma.firmada());
+        entity.setIdRecibe(reporte.getIdRecibe());
 
         actualizarLecturasExistentes(reporte, entity);
         volcarPasos(reporte, entity);

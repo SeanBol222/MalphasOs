@@ -32,7 +32,10 @@ public enum ServiceReportErrorCatalog {
     REFERENCE_STANDARD_NOT_FOUND("ERR_SERVICE_REPORT_009", "Reference standard not found"),
 
     /** El conversor del PDF no respondió (2026-10-17): no es culpa de lo pedido, y se puede reintentar. */
-    PDF_UNAVAILABLE("ERR_SERVICE_REPORT_010", "The report PDF could not be generated");
+    PDF_UNAVAILABLE("ERR_SERVICE_REPORT_010", "The report PDF could not be generated"),
+
+    /** V55: quien recibe como persona registrada es un supervisor del cliente. Un conflicto. */
+    RECEIVER_NOT_SUPERVISOR("ERR_SERVICE_REPORT_011", "A registered receiver must supervise the client of the order");
 
     private final String code;
     private final String message;

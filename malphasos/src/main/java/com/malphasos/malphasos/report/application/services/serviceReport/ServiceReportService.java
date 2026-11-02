@@ -1,5 +1,12 @@
 package com.malphasos.malphasos.report.application.services.serviceReport;
 
+import com.malphasos.malphasos.report.domain.exception.ReceiverNotSupervisorException;
+import com.malphasos.malphasos.client.domain.client.ClientSupervisor;
+import com.malphasos.malphasos.client.application.ports.input.ClientServicePort;
+import com.malphasos.malphasos.client.application.ports.input.ClientOwnershipPort;
+import com.malphasos.malphasos.person.domain.person.PersonType;
+import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
+import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import com.malphasos.malphasos.company.application.ports.input.ServiceCompanyServicePort;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
@@ -103,6 +110,9 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final ServiceReportPersistencePort serviceReportPersistencePort;
     private final WorkOrderServicePort workOrderServicePort;
     private final WorkOrderApprovalServicePort workOrderApprovalServicePort;
+    private final PersonCommunicationPort personCommunicationPort;
+    private final ClientOwnershipPort clientOwnershipPort;
+    private final ClientServicePort clientServicePort;
     private final ClientEquipmentServicePort clientEquipmentServicePort;
     private final ModelServicePort modelServicePort;
     private final EquipmentServicePort equipmentServicePort;
@@ -328,7 +338,16 @@ public class ServiceReportService implements ServiceReportServicePort {
     @Transactional
     public List<ServiceReport> signReceipt(SignReceiptCommand command) {
         ServiceReport pedido = paraEscribir(command.id());
-        Handover recibe = new Handover(command.nombre(), command.cedula(), command.cargo());
+        UUID idPersona = command.idPersonaRecibe();
+        if (idPersona != null && Stream.of(command.nombre(), command.cedula(), command.cargo())
+                .anyMatch(texto -> texto != null && !texto.isBlank())) {
+            throw new IllegalArgumentException(
+                    "Quien recibe es una persona registrada o un nombre escrito, no las dos cosas");
+        }
+        Handover recibe = idPersona == null ? new Handover(command.nombre(), command.cedula(), command.cargo()) : null;
+        if (idPersona != null) {
+            exigirSupervisorDelCliente(idPersona, pedido);
+        }
         DocumentImage firma = DocumentImage.firma(command.firma());
         LocalDateTime ahora = LocalDateTime.now();
 
@@ -347,17 +366,65 @@ public class ServiceReportService implements ServiceReportServicePort {
         }
 
         // Primero el pedido, que es el que puede fallar: así no se guarda la imagen de una firma rechazada.
-        pedido.signReceipt(recibe, firma.huella(), ahora);
+        firmar(pedido, recibe, idPersona, firma.huella(), ahora);
         documentImageStorePort.store(firma);
 
         List<ServiceReport> firmados = new ArrayList<>();
         firmados.add(persistAndPublish(pedido));
         for (ServiceReport otro : aFirmar.subList(1, aFirmar.size())) {
-            otro.signReceipt(recibe, firma.huella(), ahora);
+            firmar(otro, recibe, idPersona, firma.huella(), ahora);
             firmados.add(persistAndPublish(otro));
         }
 
         return firmados;
+    }
+
+    private static void firmar(
+            ServiceReport reporte, Handover recibe, UUID idPersona, String huella, LocalDateTime cuando) {
+        if (idPersona == null) {
+            reporte.signReceipt(recibe, huella, cuando);
+        } else {
+            reporte.signReceiptAs(idPersona, huella, cuando);
+        }
+    }
+
+    /**
+     * Quien recibe como persona registrada es un supervisor activo del cliente de la orden (V55): es el caso
+     * del supervisor que recibe y aprueba a la vez, como el doctor de un consultorio. A cualquier otra
+     * persona se la escribe por su nombre.
+     */
+    private void exigirSupervisorDelCliente(UUID idPersona, ServiceReport reporte) {
+        WorkOrder orden = workOrderServicePort.findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted());
+        PersonCommunicationResponse persona = personCommunicationPort.findById(idPersona);
+        boolean supervisa = persona.estadoActivo()
+                && persona.tipoPersona() == PersonType.SUPERVISOR
+                && clientOwnershipPort.clientsSupervisedBy(idPersona).contains(orden.getIdCliente());
+
+        if (!supervisa) {
+            throw new ReceiverNotSupervisorException(idPersona);
+        }
+    }
+
+    /**
+     * Quien recibió, para pintarlo: lo escrito en el reporte, o la ficha de la persona registrada que firmó
+     * (V55) —su nombre, su cédula y el cargo con que supervisa al cliente de la orden—. No se copia nada al
+     * reporte: se lee cada vez, como la firma.
+     */
+    private Handover quienRecibe(ServiceReport reporte) {
+        if (reporte.getIdRecibe() == null) {
+            return reporte.getRecibe();
+        }
+
+        PersonCommunicationResponse persona = personCommunicationPort.findById(reporte.getIdRecibe());
+        WorkOrder orden = workOrderServicePort.findById(reporte.getIdOrdenTrabajo(), ReadScope.unrestricted());
+        String cargo = clientServicePort.findById(orden.getIdCliente(), ReadScope.unrestricted()).getSupervisores()
+                .stream()
+                .filter(supervisor -> supervisor.idPersona().equals(persona.identificador()))
+                .map(ClientSupervisor::cargo)
+                .findFirst()
+                .orElse(null);
+
+        return new Handover(persona.nombreCompleto(), persona.cedula(), cargo);
     }
 
     /**
@@ -473,7 +540,7 @@ public class ServiceReportService implements ServiceReportServicePort {
 
             return new ReportDocumentView(reporte, documento,
                     imagen(documento.empresa() == null ? null : documento.empresa().huellaDelLogo()),
-                    imagen(documento.huellaFirmaIngeniero()), firmaRecibe(reporte), true);
+                    imagen(documento.huellaFirmaIngeniero()), firmaRecibe(reporte), true, quienRecibe(reporte));
         }
 
         // Un borrador, o uno cerrado que aún no se congeló tarde: en vivo, sin guardar nada.
@@ -482,7 +549,7 @@ public class ServiceReportService implements ServiceReportServicePort {
 
         return new ReportDocumentView(
                 reporte, compuesto.documento(), compuesto.logo(), compuesto.firmaIngeniero(), firmaRecibe(reporte),
-                false);
+                false, quienRecibe(reporte));
     }
 
     /** La firma de quien recibe no se congela al cerrar: se lee del reporte, que la guarda desde que firma. */
@@ -552,7 +619,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private ReportPdf resumenDe(WorkOrder orden, WorkOrderDocument documento, List<ServiceReport> cerrados) {
         Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
         WorkOrderSummarySheet hoja = WorkOrderSummaryComposer.compose(orden.getId(), documento, cerrados,
-                empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa));
+                empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa), this::quienRecibe);
 
         return new ReportPdf("orden-" + orden.numero() + ".pdf", workOrderSummaryPdfPort.render(hoja));
     }

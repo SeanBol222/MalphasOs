@@ -1,10 +1,10 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 35 tablas, 47 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 35 tablas, 48 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-11-01
+updated: 2026-11-02
 ---
 
 # El esquema de MalphasOS, hoy
@@ -78,13 +78,13 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-01 sobre `V54`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-02 sobre `V55`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **54** (`V1`…`V54`): la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente y `V54` la aprobación de la orden |
+| Migraciones aplicadas | **55** (`V1`…`V55`): la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden y `V55` a quien recibe como persona registrada |
 | Tablas de dominio | **35** — eran **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
-| Llaves foráneas | **47**, de las cuales **1 compuesta** — eran **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
+| Llaves foráneas | **48**, de las cuales **1 compuesta** — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
 | Restricciones `CHECK` propias | **70** — eran **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
@@ -753,6 +753,7 @@ trasladan —regla del servicio—.
 ```mermaid
 erDiagram
     orden_trabajo ||--o{ reporte_servicio : "pone sus equipos, desde V50"
+    persona |o--o{ reporte_servicio : "recibe, desde V55"
     equipo_cliente ||--o{ reporte_servicio : "se reporta en"
     reporte_servicio ||--o{ dato_verificacion : "registra"
     reporte_servicio ||--o{ paso_reporte : "lleva, desde V22"
@@ -800,6 +801,7 @@ erDiagram
         varchar n_recibe_nombre "texto libre - V31"
         varchar k_recibe_cedula "sin nombre, nada"
         varchar n_recibe_cargo
+        uuid k_id_recibe FK "persona registrada, V55; con ella el texto va nulo"
         varchar t_resultado
         timestamp f_finalizado
         boolean b_estado_activo

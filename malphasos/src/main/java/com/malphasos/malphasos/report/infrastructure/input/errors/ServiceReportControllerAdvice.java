@@ -6,6 +6,7 @@ import com.malphasos.malphasos.equipment.domain.exception.EquipmentTypeNotFoundE
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfUnavailableException;
+import com.malphasos.malphasos.report.domain.exception.ReceiverNotSupervisorException;
 import com.malphasos.malphasos.report.domain.exception.ServiceReportNotFoundException;
 import com.malphasos.malphasos.report.infrastructure.input.rest.ServiceReportRestAdapter;
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderNotFoundException;
@@ -95,6 +96,14 @@ public class ServiceReportControllerAdvice {
     public ServiceReportErrorResponse handleState(IllegalStateException ex) {
         return ServiceReportErrorResponse.of(
                 ServiceReportErrorCatalog.SERVICE_REPORT_STATE_CONFLICT, List.of(ex.getMessage()));
+    }
+
+    /** Quien recibe como persona registrada tiene que supervisar al cliente (V55). */
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(ReceiverNotSupervisorException.class)
+    public ServiceReportErrorResponse handleReceiverNotSupervisor(ReceiverNotSupervisorException ex) {
+        return ServiceReportErrorResponse.of(
+                ServiceReportErrorCatalog.RECEIVER_NOT_SUPERVISOR, List.of(ex.getMessage()));
     }
 
     /** Las reglas del agregado y del servicio llegan como esto. */
