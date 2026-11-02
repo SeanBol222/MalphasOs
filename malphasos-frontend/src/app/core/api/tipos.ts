@@ -312,6 +312,9 @@ export type NuevoUsuario = personas['schemas']['PersonRegisterRequest'];
 export type CambioDePersona = personas['schemas']['PersonUpdateRequest'];
 export type CorreoDePersona = personas['schemas']['EmailPersonResponse'];
 export type TelefonoDePersona = personas['schemas']['PhonePersonResponse'];
+/** Si la persona tiene cuenta y con qué usuario entra (2026-11-02). */
+export type CuentaDePersona = personas['schemas']['PersonAccountResponse'];
+export type AccesoNuevo = personas['schemas']['AccountGrantRequest'];
 
 /** Sale del tipo de la PETICION: en la respuesta es opcional y ese undefined se colaria al cuerpo. */
 export type TipoDePersona = NonNullable<CambioDePersona['tipoPersona']>;

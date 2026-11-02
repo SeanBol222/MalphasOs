@@ -132,6 +132,29 @@ export class DetallePersona {
     return this.formularioDeAcceso.controls.contrasenaTemporal;
   }
 
+  // --- La cuenta: darla a quien no la tiene (2026-11-02) ---------------------------
+
+  /**
+   * Las fichas que eran encargados hasta V53 son supervisores sin cuenta: no pueden entrar ni aprobar
+   * desde la suya. Mientras no se sepa, la sección se comporta como si la tuviera.
+   */
+  protected readonly cuenta = this.api.cuenta(this.id);
+  protected readonly sinCuenta = computed(() => this.cuenta.data()?.tieneCuenta === false);
+
+  protected readonly acceso = this.api.darAcceso();
+  protected readonly dandoAcceso = signal(false);
+  protected readonly accesoDado = signal(false);
+
+  /** El correo con el que entrará: el de la cuenta si la ficha marca uno, si no el primero vigente. */
+  protected readonly correoDeLaCuentaNueva = computed(
+    () => (this.correos().find((correo) => correo.principal) ?? this.correos()[0])?.correoPersona,
+  );
+
+  protected readonly formularioDeCuentaNueva = this.fb.nonNullable.group({
+    nombreUsuario: ['', Validators.required],
+    contrasena: ['', [Validators.required, Validators.minLength(LARGO_MINIMO_DE_CONTRASENA)]],
+  });
+
   protected readonly altaDeTelefono = this.api.anadirTelefono();
   protected readonly bajaDeTelefono = this.api.retirarTelefono();
 
@@ -160,6 +183,7 @@ export class DetallePersona {
       this.bajaDeCorreo.isError() ||
       this.correoDeCuenta.isError() ||
       this.restablecimiento.isError() ||
+      this.acceso.isError() ||
       this.altaDeTelefono.isError() ||
       this.bajaDeTelefono.isError(),
   );
@@ -172,6 +196,7 @@ export class DetallePersona {
         this.bajaDeCorreo.error() ??
         this.correoDeCuenta.error() ??
         this.restablecimiento.error() ??
+        this.acceso.error() ??
         this.altaDeTelefono.error() ??
         this.bajaDeTelefono.error(),
     ),
@@ -288,6 +313,42 @@ export class DetallePersona {
           this.restableciendo.set(false);
           this.restablecida.set(true);
           this.contrasenaTemporal.reset();
+        },
+      },
+    );
+  }
+
+  protected empezarADarAcceso(): void {
+    this.dandoAcceso.set(true);
+    this.formularioDeCuentaNueva.reset();
+    this.acceso.reset();
+  }
+
+  /**
+   * Crea la cuenta y lleva a la ficha con su identificador nuevo: el viejo deja de existir, porque el
+   * de una persona es el de su usuario y Keycloak no deja elegirlo. Sustituye la entrada del historial
+   * para que «atrás» no vuelva a una ficha que ya no está.
+   */
+  protected darAcceso(): void {
+    if (this.formularioDeCuentaNueva.invalid) {
+      this.formularioDeCuentaNueva.markAllAsTouched();
+
+      return;
+    }
+
+    const v = this.formularioDeCuentaNueva.getRawValue();
+
+    this.acceso.mutate(
+      {
+        idPersona: this.id(),
+        acceso: { nombreUsuario: v.nombreUsuario.trim(), password: v.contrasena },
+      },
+      {
+        onSuccess: (persona) => {
+          this.dandoAcceso.set(false);
+          this.accesoDado.set(true);
+          this.formularioDeCuentaNueva.reset();
+          void this.router.navigate(['/personas', persona.identificador], { replaceUrl: true });
         },
       },
     );

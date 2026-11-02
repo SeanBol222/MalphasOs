@@ -147,6 +147,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/persons/{id}/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar la cuenta de una persona
+         * @description Si tiene usuario en el proveedor de identidad y cuál. No tenerlo no es un error.
+         */
+        get: operations["getAccount"];
+        put?: never;
+        /**
+         * Dar acceso a una persona sin cuenta
+         * @description Crea su usuario con una contraseña temporal y el correo de la ficha. El identificador de la persona cambia al del usuario nuevo, y la respuesta lo trae. 409 si ya tiene cuenta; 400 si no tiene correo o está retirada.
+         */
+        post: operations["grantAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/persons/{id}/password": {
         parameters: {
             query?: never;
@@ -267,6 +291,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccountGrantRequest: {
+            /**
+             * @description Nombre de usuario en el proveedor de identidad
+             * @example juan.perez
+             */
+            nombreUsuario: string;
+            /** @description Contraseña temporal; la persona tendrá que cambiarla al entrar */
+            password: string;
+        };
         EmailPersonCreateRequest: {
             /**
              * Format: email
@@ -293,6 +326,12 @@ export interface components {
         PasswordResetRequest: {
             /** @description Contraseña temporal; la persona tendrá que cambiarla al entrar */
             password: string;
+        };
+        PersonAccountResponse: {
+            /** @description Su nombre de usuario, si tiene cuenta */
+            nombreUsuario?: string;
+            /** @description Si tiene usuario en el proveedor de identidad */
+            tieneCuenta?: boolean;
         };
         PersonErrorResponse: {
             code?: string;
@@ -1137,6 +1176,164 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+        };
+    };
+    getAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador de la persona */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonAccountResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonErrorResponse"];
+                };
+            };
+        };
+    };
+    grantAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador de la persona */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountGrantRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PersonResponse"];
+                };
             };
             /** @description Bad Request */
             400: {
