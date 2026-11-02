@@ -4,7 +4,7 @@ description: El modulo de reportes de servicio de MalphasOS, backend completo el
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-10-31
+updated: 2026-11-02
 ---
 
 # Reportes de servicio — el módulo completo
@@ -543,6 +543,22 @@ migra ahora con los recorridos por índice apagados, y las dos mueren.
 **Dos costes, aceptados al construirlo**: un borrador retirado pierde el texto de sus pasos —no tenía
 documento y ya no hay copias, de modo que se lee del catálogo de hoy—, y listar los reportes de una orden
 compone el catálogo de cada borrador, que son unas pocas consultas por reporte.
+
+## Quien recibe puede ser una persona registrada (2026-11-01, `V55`)
+
+El supervisor del cliente a veces recibe y aprueba a la vez —el doctor de un consultorio—. Entonces el
+reporte apunta a su ficha con `k_id_recibe` y **no copia su nombre, su cédula ni su cargo**: se leen de
+`persona` y de `supervisor_cliente` al pintar el informe y el resumen. El nombre escrito sigue para quien
+no está registrado, como la jefa de enfermería de turno; un `CHECK` impide las dos cosas a la vez.
+
+- **Solo un supervisor activo del cliente de la orden** firma como persona registrada —regla del servicio,
+  `ERR_SERVICE_REPORT_011`—; a cualquier otra persona se la escribe por su nombre.
+- **El alcance de siempre**: la misma firma con alcance `AREA` u `ORDEN` pone a la misma persona en los
+  reportes que aún no la tengan.
+- **La petición exige una de las dos**, el nombre o la persona, con un `@AssertTrue` que responde el 400 de
+  datos inválidos antes de llegar al servicio.
+- **La firma guardada en la cuenta** pide desde aquí `work-order.approve` y no `report.write`: la tienen
+  exactamente quienes firman algo, y con la de antes el supervisor no podía guardar la firma con que aprueba.
 
 ## Lo que este módulo decidió no hacer
 
