@@ -3,7 +3,7 @@
 Lo que trae cada versión, para quien usa y despliega MalphasOS. El detalle de cada decisión y de cómo se
 construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/`.
 
-## [1.0.0] — 2026-10-17
+## [1.0.0] — 2026-11-02
 
 La primera versión para producción: la gestión de clientes, equipos y mantenimientos de una empresa de
 servicio biomédico, desde la orden de trabajo hasta el informe firmado en PDF. Cubre **24 de los 31
@@ -11,10 +11,10 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 
 ### Clientes y ubicaciones
 
-- Clientes con su NIT, su sigla y sus contactos; sedes con su ciudad; áreas de servicio y sus encargados.
-  **Un encargado puede estar a cargo de varias sedes y áreas** de un mismo cliente, y se le releva de
-  cada una por separado. La migración `V41` lleva los encargados que ya existían a la forma nueva, y la
-  ficha de la sede pone al frente a alguien ya registrado, sumándolo a lo que tiene.
+- Clientes con su NIT, su sigla y sus contactos; sedes con su ciudad, y sus áreas de servicio.
+- **Los supervisores del cliente**: la gente del cliente que entra a ver lo suyo y aprueba sus órdenes.
+  Se nombran desde la ficha del cliente, cada uno con su cargo, y una persona puede supervisar a varios
+  clientes. Son quienes firman como responsables en la hoja de vida y en el informe.
 - Los 249 países y las 1.350 ciudades —los municipios de Colombia y la capital de cada país— vienen
   sembrados, con un buscador que no distingue tildes ni mayúsculas.
 
@@ -27,7 +27,8 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 - Los protocolos de mantenimiento preventivo, asignados a cada tipo con su prioridad.
 - El catálogo de equipos patrón, con su certificado y su vencimiento.
 - **La hoja de vida de cada equipo**: identificación, ficha técnica, protocolo e historial de
-  intervenciones, que se escribe solo al cerrar cada reporte. Numerada por cliente, y **en PDF generado
+  intervenciones, que sale de sus reportes cerrados: corregir uno con un reporte sustituto corrige la
+  hoja. Numerada por cliente, y **en PDF generado
   por el servidor**, como el informe, con el número de página en cada hoja.
 
 ### Órdenes de trabajo
@@ -37,7 +38,16 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 - Se inicia y se ejecuta; **no se ejecuta con reportes abiertos**, y si falta el ingeniero o los equipos
   para iniciarla, la pantalla dice cuál de los dos.
 - La agenda del inicio, por semana o por mes, con «solo mis órdenes».
-- El listado de órdenes se ordena por cualquier columna, pulsando su cabecera, en los dos sentidos.
+- El listado de órdenes se ordena por cualquier columna, pulsando su cabecera, en los dos sentidos, y
+  filtra las que están **por aprobar**.
+- **Una orden ejecutada se congela**: cliente, sede, ingeniero y equipos quedan como eran ese día.
+- **La aprobación del supervisor del cliente**: con la orden ejecutada, el supervisor la aprueba desde
+  su propia cuenta con su firma guardada, o en sitio, dibujando su firma en la sesión del ingeniero o
+  del administrador —y con la misma firma puede recibir los equipos—. Aprobada, la orden queda lista
+  para facturar, y quien aprobó sale con su cargo, el día y su firma en el informe, el resumen y el
+  cronograma. Sustituir después un reporte retira la aprobación.
+- **Los documentos de la orden en un ZIP**: los informes de todos sus equipos, el resumen de la orden y,
+  si es periódica, el cronograma de los próximos mantenimientos, en PDF.
 
 ### Reportes de servicio
 
@@ -58,8 +68,9 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 - **La firma del ingeniero vive en su cuenta**: la dibuja una vez en la ventana que abre su nombre, al
   pie de la barra lateral, y cada informe que cierra la copia. Esa ventana reúne también sus datos y
   cerrar sesión.
-- **Quien recibe el servicio firma en la pantalla**, antes o después de cerrar el reporte, y con una
-  casilla la misma firma vale para los demás reportes de la orden que aún no la tengan.
+- **Quien recibe el servicio firma en la pantalla**, antes o después de cerrar el reporte, y la misma
+  firma puede valer para ese reporte, para los de su área o para toda la orden. Quien recibe puede ser
+  alguien de turno, con su nombre escrito, o uno de los supervisores del cliente, elegido de la lista.
 - **El informe en PDF lo genera el servidor**, con el formato de la empresa, las dos firmas, la gráfica
   de error y un QR a su versión digital. La pantalla lo muestra y lo exporta.
 
@@ -67,26 +78,17 @@ requisitos funcionales** de la ERS; lo que queda fuera está al final.
 
 - Los datos de la empresa que presta el servicio —membrete, logo, garantía, códigos de formato— se editan
   desde la aplicación; MalphasOS no lleva los de ninguna en su código. **Su ciudad se elige del catálogo**,
-  con el mismo buscador que las sedes; la migración `V44` enlaza la que ya estaba escrita y, si no casa
-  con una sola ciudad, se detiene diciendo cuál.
-- Ingenieros, administradores, representantes de cliente y encargados. Los que tienen cuenta la reciben
-  en Keycloak en el mismo paso.
-- **Cada quien ve lo suyo**: un representante de cliente solo ve los datos de su cliente, y la escalera de
-  permisos separa al SuperUsuario del administrador. No ve el catálogo de la empresa ni «Nuevo
-  cliente», y si todavía no representa a ninguno, la pantalla le dice que espere a que se lo asignen.
-  Las fichas de su cliente y de sus sedes son de solo lectura: sin editar, retirar ni cerrar, sin abrir
-  sedes ni áreas y sin tocar el contacto.
-- **Solo un encargado o un representante del cliente puede estar a cargo de una sede o un área**, y que
-  alguien es encargado lo dicen sus asignaciones: un representante a cargo de un área se ve y se filtra
-  también como encargado, y se le puede poner al frente desde la ficha de la sede. El alta de un ingeniero
-  o un administrador ya no ofrece «También es encargado de un cliente». La migración `V46` quita el
-  segundo tipo de persona y se detiene si alguien de otro tipo tuviera algo a cargo.
-- **El representante se nombra desde la ficha del cliente**, y es lo que decide qué clientes ve; el
-  alta entrada desde la ficha lo nombra al terminar. **Desde «Personas» el alta también deja elegir**,
-  sin obligar —el cliente se busca escribiendo, y solo se admite uno que exista—: el cliente del
-  representante, y el cliente, la sede y el área del encargado. Un
-  representante puede quedar además **encargado** de una sede de su cliente o de un área suya,
-  eligiéndola en el mismo formulario.
+  con el mismo buscador que las sedes.
+- Ingenieros, administradores y supervisores del cliente, **todos con cuenta**, que reciben en Keycloak
+  en el mismo paso del alta. A una ficha que no la tenga se le da desde su ficha, con «Dar acceso».
+- **Cada quien ve lo suyo**: un supervisor solo ve los datos de los clientes que supervisa, y la escalera
+  de permisos separa al SuperUsuario del administrador. No ve el catálogo de la empresa ni «Nuevo
+  cliente», y si todavía no supervisa a ninguno, la pantalla le dice que espere a que se lo asignen.
+  Las fichas de su cliente y de sus sedes son de solo lectura, y las de sus órdenes y reportes nombran
+  a quienes trabajan en ellos sin darle acceso a las demás personas del sistema.
+- **El supervisor se nombra desde la ficha del cliente**, y es lo que decide qué clientes ve; el alta
+  entrada desde la ficha lo nombra al terminar, y desde «Personas» el alta también deja elegir su
+  cliente. Solo una persona de tipo supervisor se nombra: un ingeniero aprobaría su propio trabajo.
 - **El correo de la cuenta**: uno de los correos de la ficha es el de Keycloak —con él también se
   entra—. Cambiarlo o corregirlo en la aplicación cambia la cuenta, y no se retira sin elegir otro. La
   consola de cuenta de Keycloak ya no deja a nadie cambiarse el correo ni el nombre por fuera.
