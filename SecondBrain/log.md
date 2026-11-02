@@ -2822,3 +2822,13 @@ personas para elegir a quién asignar o nombrar. Ocho mutaciones en el backend y
 del frontend sobrevivieron —el reporte no tenía ninguna prueba que mirara el nombre del ingeniero ni el del
 supervisor que recibe—, y con la prueba que faltaba mueren. Batería: **1603** en **136** clases;
 frontend, **808**. Deuda propia: **103 filas, 48 abiertas**.
+
+## [2026-11-02] ingest | La versión 1.0.0, etiquetada
+
+El usuario pidió el tag antes de desplegar. La 1.0.0 se había decidido y construido el 2026-10-17 y
+**nunca se etiquetó ni se desplegó**; desde entonces entraron cuarenta merges —de `V41` a `V56`, los
+supervisores en lugar de encargados y representantes, la aprobación de la orden, los documentos de la
+orden en un ZIP—. El usuario eligió etiquetar `v1.0.0` sobre `main` y no una 1.1.0, porque no había
+ninguna versión publicada que distinguir. La entrada `[1.0.0]` de `CHANGELOG.md` se reescribió con lo que
+hay hoy —hablaba todavía de encargados— y perdió las notas de migración, que solo sirven a quien ya
+tuviera datos. Batería: **1603** en el backend y **808** en el frontend.
