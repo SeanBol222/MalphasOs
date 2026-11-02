@@ -24,6 +24,9 @@ public record ClientResponse(
     @Schema(name = "ClientSupervisorResponse")
     public record SupervisorResponse(
             UUID idPersona,
+            @Schema(description = "Su nombre completo, para que quien lee el cliente lo nombre sin leer "
+                    + "personas (2026-11-02); nulo si la ficha no existe", example = "Luis Pena")
+            String nombre,
             @Schema(description = "Como se le nombra en los documentos; nulo, sin cargo",
                     example = "Ingeniero biomedico")
             String cargo) {

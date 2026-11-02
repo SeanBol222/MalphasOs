@@ -7,7 +7,12 @@ import com.malphasos.malphasos.client.infrastructure.input.model.response.Client
 import com.malphasos.malphasos.client.infrastructure.input.model.response.ContactResponse;
 import com.malphasos.malphasos.client.infrastructure.input.model.response.HeadquarterResponse;
 import com.malphasos.malphasos.client.infrastructure.input.model.response.ServiceAreaResponse;
+import com.malphasos.malphasos.client.domain.client.ClientSupervisor;
+import com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,9 +26,20 @@ import org.springframework.stereotype.Component;
  * la dirección se descompone, y el encargado deriva sus dos columnas de una sola asignación.
  */
 @Component
+@RequiredArgsConstructor
 public class ClientRestMapper {
 
+    /**
+     * Los nombres de los supervisores (2026-11-02): quien lee un cliente —su propio supervisor— no tiene
+     * {@code person.read}, y sin ellos la pantalla no podía nombrar a nadie.
+     */
+    private final PersonCommunicationPort personCommunicationPort;
+
     public ClientResponse toResponse(Client cliente) {
+        return toResponse(cliente, nombresDe(List.of(cliente)));
+    }
+
+    private ClientResponse toResponse(Client cliente, Map<UUID, String> nombres) {
         return ClientResponse.builder()
                 .id(cliente.getId())
                 .documento(cliente.getDocumento())
@@ -42,13 +58,23 @@ public class ClientRestMapper {
                         .toList())
                 .supervisores(cliente.getSupervisores().stream()
                         .map(supervisor -> new ClientResponse.SupervisorResponse(
-                                supervisor.idPersona(), supervisor.cargo()))
+                                supervisor.idPersona(), nombres.get(supervisor.idPersona()), supervisor.cargo()))
                         .toList())
                 .build();
     }
 
+    /** Los nombres de todos los supervisores en una consulta, y no una por cliente. */
     public List<ClientResponse> toClientResponseList(List<Client> clientes) {
-        return clientes.stream().map(this::toResponse).toList();
+        Map<UUID, String> nombres = nombresDe(clientes);
+
+        return clientes.stream().map(cliente -> toResponse(cliente, nombres)).toList();
+    }
+
+    private Map<UUID, String> nombresDe(List<Client> clientes) {
+        return personCommunicationPort.namesOf(clientes.stream()
+                .flatMap(cliente -> cliente.getSupervisores().stream())
+                .map(ClientSupervisor::idPersona)
+                .toList());
     }
 
     public HeadquarterResponse toResponse(Headquarter sede) {

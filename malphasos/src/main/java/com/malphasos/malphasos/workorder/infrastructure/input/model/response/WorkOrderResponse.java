@@ -25,6 +25,9 @@ public record WorkOrderResponse(
         ExecutionState estadoEjecucion,
         @Schema(description = "Nulo mientras la orden esta creada pero sin asignar")
         UUID idIngeniero,
+        @Schema(description = "El nombre del ingeniero, para que quien lee la orden lo nombre sin leer "
+                + "personas (2026-11-02); nulo sin ingeniero")
+        String nombreIngeniero,
         List<WorkOrderEquipmentResponse> equipos,
         boolean estadoActivo,
         @Schema(description = "Lo que la orden era al ejecutarse (V49). Nulo mientras no se ha ejecutado")

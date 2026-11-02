@@ -57,6 +57,7 @@ class ClientRestAdapterTest {
     @Autowired private JsonMapper jsonMapper;
 
     @MockitoBean private ClientServicePort clientServicePort;
+    @MockitoBean private com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort personCommunicationPort;
     @MockitoBean private HeadquarterServicePort headquarterServicePort;
     @MockitoBean private ServiceAreaServicePort serviceAreaServicePort;
 
@@ -172,6 +173,7 @@ class ClientRestAdapterTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.supervisores[0].idPersona").value(persona.toString()))
                 .andExpect(jsonPath("$.supervisores[0].cargo").value("Ingeniero biomédico"))
+                .andExpect(jsonPath("$.supervisores[0].nombre").isEmpty())
                 .andExpect(jsonPath("$.representantes").doesNotExist());
     }
 
@@ -297,5 +299,28 @@ class ClientRestAdapterTest {
                 .contains("/v1/api/clients/{id}/supervisors/{idPersona}")
                 // El resumen de sedes del rediseño, del 2026-10-11.
                 .contains("/v1/api/headquarters/summary");
+    }
+
+    @Test
+    @DisplayName("cada supervisor viene con su nombre, y un listado los pide todos en una consulta (2026-11-02)")
+    void supervisoresConNombre() throws Exception {
+        // Quien lee el cliente —su supervisor— no tiene person.read: sin el nombre aquí no podía nombrar a nadie.
+        UUID luis = UUID.randomUUID();
+        UUID ana = UUID.randomUUID();
+        Client uno = unCliente(UUID.randomUUID());
+        uno.appointSupervisor(luis, null);
+        Client otro = unCliente(UUID.randomUUID());
+        otro.appointSupervisor(ana, "Jefa de enfermería");
+        when(clientServicePort.findAll(any())).thenReturn(List.of(uno, otro));
+        when(personCommunicationPort.namesOf(any())).thenReturn(java.util.Map.of(luis, "Luis Peña", ana, "Ana Ruiz"));
+
+        mockMvc.perform(get("/v1/api/clients"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].supervisores[0].nombre").value("Luis Peña"))
+                .andExpect(jsonPath("$[1].supervisores[0].nombre").value("Ana Ruiz"));
+
+        ArgumentCaptor<java.util.Collection<UUID>> pedidos = ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(personCommunicationPort, org.mockito.Mockito.times(1)).namesOf(pedidos.capture());
+        org.assertj.core.api.Assertions.assertThat(pedidos.getValue()).containsExactlyInAnyOrder(luis, ana);
     }
 }

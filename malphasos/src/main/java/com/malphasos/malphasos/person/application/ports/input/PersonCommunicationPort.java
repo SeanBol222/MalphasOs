@@ -1,6 +1,8 @@
 package com.malphasos.malphasos.person.application.ports.input;
 
 import com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse;
+import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -35,4 +37,14 @@ public interface PersonCommunicationPort {
      * destapó la aprobación en sitio del SuperUsuario, que no tiene ficha (V54, 2026-11-01).
      */
     boolean exists(UUID id);
+
+    /**
+     * El nombre completo de cada una de esas personas, en una consulta (2026-11-02). Las que no existan
+     * no vienen en el mapa.
+     *
+     * <p>Existe para que el API ponga nombres al lado de los identificadores: quien lee una orden o un
+     * cliente —el supervisor del cliente— no tiene {@code person.read}, y sin esto la pantalla tendría que
+     * pedir la lista entera de personas para nombrar a tres.
+     */
+    Map<UUID, String> namesOf(Collection<UUID> ids);
 }

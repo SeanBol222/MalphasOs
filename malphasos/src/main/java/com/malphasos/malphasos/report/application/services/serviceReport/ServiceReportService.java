@@ -423,12 +423,18 @@ public class ServiceReportService implements ServiceReportServicePort {
                 cargoDe(orden.getIdCliente(), persona.identificador()));
     }
 
-    /** El cargo con que una persona supervisa a un cliente, o nulo si no lo tiene o ya no lo supervisa. */
+    /**
+     * El cargo con que una persona supervisa a un cliente, o nulo si no lo tiene o ya no lo supervisa.
+     *
+     * <p>Se elige al supervisor antes de leer su cargo, y no al revés: el cargo es opcional, y
+     * {@code findFirst()} sobre un elemento nulo lanza. Así respondían 500 el informe y su PDF en cuanto
+     * aprobaba un supervisor sin cargo (2026-11-02).
+     */
     private String cargoDe(UUID idCliente, UUID idPersona) {
         return clientServicePort.findById(idCliente, ReadScope.unrestricted()).getSupervisores().stream()
                 .filter(supervisor -> supervisor.idPersona().equals(idPersona))
-                .map(ClientSupervisor::cargo)
                 .findFirst()
+                .map(ClientSupervisor::cargo)
                 .orElse(null);
     }
 
