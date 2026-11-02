@@ -539,6 +539,23 @@ Decidido por el usuario: quien recibe el equipo en sitio no es siempre quien rev
   ficha, fallaba con un 500. La consulta de la persona lanzaba dentro de la transacción y, aunque se
   capturara, la dejaba marcada para deshacerse. `PersonCommunicationPort.exists` pregunta sin lanzar.
 
+### Las pantallas y los documentos (2026-11-02)
+
+- **La ficha de una orden ejecutada tiene un bloque «Aprobación»**: «Por aprobar» o «Lista para
+  facturar», con quién aprobó, su cargo, la forma y el día. Si la sesión es de un supervisor del cliente,
+  un botón aprueba con su firma guardada; si no, se elige al supervisor y se dibuja su firma. **«También
+  firma el recibido»** usa la misma firma para los reportes que aún no la tengan, como persona registrada
+  (`V55`) y con alcance `ORDEN`. Son dos llamadas sin transacción: si la segunda falla, la orden queda
+  aprobada y el recibido se firma después desde cada reporte.
+- **«Órdenes por aprobar» es un filtro del listado y no una página**, decidido al construirlo: la página
+  habría sido el mismo listado con otro filtro. Lo ve quien tiene `work-order.approve`, y en la columna de
+  estado cada ejecutada dice «Por aprobar» o «Aprobada». La lista de pendientes la da el servidor en una
+  consulta, ya acotada al alcance; **si no se pudo consultar, no se da ninguna por aprobada**.
+- **La firma de quien aprobó va en el informe, el resumen y el cronograma** y **no se congela**: llega
+  después de cerrar los reportes (`V51`) y de ejecutar la orden (`V49`), así que se lee de
+  `aprobacion_orden` al componer cada documento, como la firma de quien recibe. Sin aprobación, la línea
+  queda para firmar a mano; sustituir un reporte la retira y la línea vuelve a quedar en blanco.
+
 ## Lo que falta
 
 **El módulo no tiene ya nada sin cubrir.** Lo que queda es de fuera:

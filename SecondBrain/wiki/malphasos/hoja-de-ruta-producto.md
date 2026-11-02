@@ -647,9 +647,12 @@ cliente; en un consultorio, el doctor hace las dos cosas. Decidido —con el dia
 | 1 | **`V53`**: supervisores en lugar de encargados y representante, `SUPERVISOR` como tipo, el alcance y los documentos leyendo al supervisor, y las pantallas de cliente, sede, personas, orden y reporte | **Construida el 2026-11-01** |
 | 2 | **`V54`**: `aprobacion_orden`, con el servicio de aprobación, su REST y la autoridad `work-order.approve` en el realm | **Construida el 2026-11-01** |
 | 3 | **`V55`**: `k_id_recibe` en el reporte, para que quien recibe sea una persona registrada sin copiar su nombre; y la firma guardada para cualquier persona con cuenta | **Construida el 2026-11-02** |
-| 4 | El bloque «Aprobación» de la orden —en sitio, con «también firma el recibido»— | Pendiente |
-| 5 | La vista «Órdenes por aprobar» del supervisor | Pendiente |
-| 6 | Informe, resumen y cronograma con la firma de quien aprobó, y la columna en el listado de órdenes | Pendiente |
+| 4 | El bloque «Aprobación» de la orden —en sitio, con «también firma el recibido»— | **Construida el 2026-11-02**, con «Recibe un supervisor del cliente» en la entrega del reporte |
+| 5 | La vista «Órdenes por aprobar» del supervisor | **Construida el 2026-11-02 como filtro del listado de órdenes, no como página**: ver [[dominio-orden-trabajo]] |
+| 6 | Informe, resumen y cronograma con la firma de quien aprobó, y la columna en el listado de órdenes | **Construida el 2026-11-02**. La firma guardada se ofrece en la ventana de la sesión a quien tiene `work-order.approve` |
+
+**Con las seis tandas el supervisor está completo.** El marcador de requisitos no se mueve: ningún RF de la
+ERS describe la aprobación de la orden por el cliente.
 
 ## El orden propuesto
 
