@@ -642,3 +642,19 @@ usuario eligió darles cuenta, y no retirarlas: «Dar acceso» en su ficha.
 - **La pantalla sustituye la entrada del historial** al ir a la ficha con el identificador nuevo: «atrás»
   no puede volver a una ficha que ya no existe con ese nombre. Nombrarla supervisora de un cliente sigue
   siendo un paso aparte, desde la ficha del cliente.
+
+## Los nombres viajan con lo que los nombra (2026-11-02)
+
+El supervisor del cliente no tiene `person.read`, a propósito: leería a todas las personas del sistema. Y
+las fichas de la orden, del reporte y del cliente nombraban al ingeniero y a los supervisores cruzando
+identificadores con la lista entera de personas, así que para él decían «No disponible» —o, antes de
+dejar de pedirla, recibían 403—.
+
+- **El nombre lo pone el API** al lado del identificador: `nombreIngeniero` en la orden y `nombre` en
+  cada supervisor del cliente. Quien puede leer la orden o el cliente puede leer cómo se llaman quienes
+  trabajan en ellos; no hace falta ninguna autoridad más.
+- **Una consulta por respuesta**: `PersonCommunicationPort.namesOf` recibe todos los identificadores de un
+  listado y devuelve un mapa. Un listado de órdenes o de clientes no pide un nombre por fila.
+- **Lo resuelve el mapper REST** de cada módulo, que ya junta varias fuentes —la orden con sus reportes—,
+  y no el agregado: el nombre no es un dato de la orden ni del cliente, y no se guarda en ellos.
+- **Un nombre nulo** es una ficha que no existe; la pantalla dice «No disponible» y no lo inventa.
