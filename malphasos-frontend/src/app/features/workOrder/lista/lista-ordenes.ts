@@ -19,18 +19,25 @@ import { normalizar } from '../../../core/texto';
 import { traducirError } from '../../../core/errores/traducir';
 
 /** Lo que dice cada botón del filtro de estado. */
-type Filtro = 'POR_HACER' | 'TODAS' | 'EJECUTADAS' | 'ANULADAS';
+type Filtro = 'POR_HACER' | 'TODAS' | 'EJECUTADAS' | 'POR_APROBAR' | 'ANULADAS';
 
 const FILTROS: readonly { clave: Filtro; etiqueta: string }[] = [
   { clave: 'TODAS', etiqueta: 'Todas' },
   { clave: 'POR_HACER', etiqueta: 'Por hacer' },
   { clave: 'EJECUTADAS', etiqueta: 'Ejecutadas' },
+  // V54 (2026-11-02): las ejecutadas que el supervisor del cliente aún no aprueba. Solo para quien aprueba.
+  { clave: 'POR_APROBAR', etiqueta: 'Por aprobar' },
   { clave: 'ANULADAS', etiqueta: 'Anuladas' },
 ];
 
-/** «Por hacer» junta las creadas y las que están en ejecución: lo que todavía pide trabajo. */
-function cumple(orden: OrdenDeTrabajo, filtro: Filtro): boolean {
+/**
+ * «Por hacer» junta las creadas y las que están en ejecución: lo que todavía pide trabajo. «Por aprobar»
+ * lo dice el servidor, que sabe cuáles tienen aprobación: aquí solo se cruza la lista.
+ */
+function cumple(orden: OrdenDeTrabajo, filtro: Filtro, porAprobar: ReadonlySet<string>): boolean {
   switch (filtro) {
+    case 'POR_APROBAR':
+      return porAprobar.has(orden.id!);
     case 'TODAS':
       return true;
     case 'ANULADAS':
@@ -106,7 +113,20 @@ export class ListaOrdenes {
 
   protected readonly puedeProgramar = computed(() => this.sesion.puede('work-order.write'));
 
-  protected readonly FILTROS = FILTROS;
+  /**
+   * Quien aprueba ve cuáles faltan por aprobar (V54, 2026-11-02): el filtro y, en la columna de estado,
+   * si una ejecutada está aprobada. Las que faltan las da el servidor en una consulta, ya acotadas a lo
+   * que la sesión ve; una ejecutada que no está en esa lista está aprobada.
+   */
+  protected readonly aprueba = computed(() => this.sesion.puede('work-order.approve'));
+  private readonly pendientes = inject(OrdenApi).porAprobar(this.aprueba);
+  private readonly porAprobar = computed(
+    () => new Set((this.pendientes.data() ?? []).map((orden) => orden.id!)),
+  );
+
+  protected readonly filtros = computed(() =>
+    FILTROS.filter((f) => f.clave !== 'POR_APROBAR' || this.aprueba()),
+  );
   protected readonly filtro = signal<Filtro>('POR_HACER');
 
   /** El orden que eligió quien mira, o nulo mientras no haya pulsado ninguna cabecera. */
@@ -234,7 +254,10 @@ export class ListaOrdenes {
   protected readonly cuantas = computed(
     () =>
       Object.fromEntries(
-        FILTROS.map((f) => [f.clave, this.candidatas().filter((o) => cumple(o, f.clave)).length]),
+        FILTROS.map((f) => [
+          f.clave,
+          this.candidatas().filter((o) => cumple(o, f.clave, this.porAprobar())).length,
+        ]),
       ) as Record<Filtro, number>,
   );
 
@@ -244,9 +267,12 @@ export class ListaOrdenes {
     const clientes = this.nombresDeClientes();
     const sedes = this.nombresDeSedes();
     const personas = this.nombresDePersonas();
+    const porAprobar = this.porAprobar();
+    // Sin la lista de pendientes no se sabe, y entonces no se dice: una ejecutada no se da por aprobada.
+    const conAprobacion = this.aprueba() && this.pendientes.isSuccess();
 
     return this.candidatas()
-      .filter((orden) => cumple(orden, filtro))
+      .filter((orden) => cumple(orden, filtro, porAprobar))
       .map((orden) => {
         const equipos = orden.equipos?.length ?? 0;
         const cerrados = Math.min(Number(avance.get(orden.id!)?.cerrados ?? 0), equipos);
@@ -277,6 +303,12 @@ export class ListaOrdenes {
           // La barra solo dice algo cuando la orden ha empezado: antes, todo es cero por definicion.
           conBarra: equipos > 0 && estado !== 'CREADA',
           estado: orden.estadoActivo ? (estado ? ETIQUETA_DE_ESTADO[estado] : '') : 'Anulada',
+          aprobacion:
+            conAprobacion && orden.estadoActivo && estado === 'EJECUTADA'
+              ? porAprobar.has(orden.id!)
+                ? 'Por aprobar'
+                : 'Aprobada'
+              : '',
           // El manual: los estados por peso, no por colores nuevos. Lo que pide trabajo pesa mas.
           peso: !orden.estadoActivo
             ? 'font-normal'

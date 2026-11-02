@@ -302,6 +302,72 @@ describe('Listado de órdenes de trabajo', () => {
     );
   });
 
+  describe('Lo que falta por aprobar (V54)', () => {
+    const URL_POR_APROBAR = `${URL_ORDENES}/pending-approval`;
+    const EJECUTADAS = [
+      orden({ id: 'o1', fechaMantenimiento: '2026-10-01', estadoEjecucion: 'EJECUTADA' }),
+      orden({ id: 'o2', fechaMantenimiento: '2026-10-02', estadoEjecucion: 'EJECUTADA' }),
+      orden({ id: 'o3', fechaMantenimiento: '2026-10-03' }),
+    ];
+
+    async function abrirConAprobacion(pendientes: object[]): Promise<void> {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'work-order.approve']);
+      fixture.detectChanges();
+      await responderA(fixture, http, URL_POR_APROBAR, pendientes);
+      await abrir(EJECUTADAS);
+    }
+
+    it('«Por aprobar» filtra las ejecutadas que el servidor da por pendientes', async () => {
+      await abrirConAprobacion([EJECUTADAS[1]]);
+
+      expect(texto()).toContain('Por aprobar · 1');
+      pulsar('Por aprobar');
+      expect(filas().map((f) => f.getAttribute('data-orden'))).toEqual(['o2']);
+    });
+
+    it('una ejecutada dice si está aprobada, y lo pendiente pesa', async () => {
+      await abrirConAprobacion([EJECUTADAS[1]]);
+      pulsar('Ejecutadas');
+
+      const [o2, o1] = filas();
+      expect(o2.getAttribute('data-orden')).toBe('o2');
+      expect(celda(o2, 'data-aprobacion')).toBe('Por aprobar');
+      expect(o2.querySelector('[data-aprobacion]')!.className).toContain('font-bold');
+      expect(celda(o1, 'data-aprobacion')).toBe('Aprobada');
+      expect(o1.querySelector('[data-aprobacion]')!.className).not.toContain('font-bold');
+    });
+
+    it('una orden sin ejecutar no dice nada de aprobación', async () => {
+      await abrirConAprobacion([]);
+
+      expect(filas().map((f) => f.getAttribute('data-orden'))).toEqual(['o3']);
+      expect(filas()[0].querySelector('[data-aprobacion]')).toBeNull();
+    });
+
+    it('si no se pudo saber qué falta, no da ninguna por aprobada', async () => {
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'work-order.approve']);
+      fixture.detectChanges();
+      http
+        .expectOne(URL_POR_APROBAR)
+        .flush(null, { status: 500, statusText: 'Internal Server Error' });
+      await abrir(EJECUTADAS);
+      pulsar('Ejecutadas');
+
+      expect(raiz().querySelector('[data-aprobacion]')).toBeNull();
+    });
+
+    it('sin work-order.approve no hay filtro ni se pregunta', async () => {
+      await abrir(EJECUTADAS);
+
+      http.expectNone(URL_POR_APROBAR);
+      expect(texto()).not.toContain('Por aprobar');
+      pulsar('Ejecutadas');
+      expect(raiz().querySelector('[data-aprobacion]')).toBeNull();
+    });
+  });
+
   describe('Cada columna se ordena, en los dos sentidos (2026-10-27)', () => {
     const ids = () => filas().map((f) => f.getAttribute('data-orden'));
     const cabecera = (columna: string) =>

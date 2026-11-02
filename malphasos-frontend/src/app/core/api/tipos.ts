@@ -245,6 +245,8 @@ export const ETIQUETA_DE_IDENTIFICACION: Readonly<Record<TipoIdentificacion, str
 export type OrdenDeTrabajo = ordenes['schemas']['WorkOrderResponse'];
 export type NuevaOrdenDeTrabajo = ordenes['schemas']['WorkOrderScheduleRequest'];
 export type EquipoDeOrden = ordenes['schemas']['WorkOrderEquipmentResponse'];
+/** La aprobación de una orden ejecutada por el supervisor de su cliente (V54): lo que permite facturarla. */
+export type AprobacionDeOrden = ordenes['schemas']['WorkOrderApprovalResponse'];
 
 export type EstadoDeEjecucion = NonNullable<OrdenDeTrabajo['estadoEjecucion']>;
 export type Periodicidad = NonNullable<NuevaOrdenDeTrabajo['periodicidad']>;

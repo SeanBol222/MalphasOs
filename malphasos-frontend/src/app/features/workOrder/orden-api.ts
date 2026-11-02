@@ -7,7 +7,7 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { NuevaOrdenDeTrabajo, OrdenDeTrabajo } from '../../core/api/tipos';
+import { AprobacionDeOrden, NuevaOrdenDeTrabajo, OrdenDeTrabajo } from '../../core/api/tipos';
 
 /**
  * La unica puerta al servidor para las ordenes de trabajo.
@@ -140,6 +140,59 @@ export class OrdenApi {
     return injectMutation(() => ({
       mutationFn: (id: string) => firstValueFrom(this.http.delete<void>(`${this.url}/${id}`)),
       onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /**
+   * La aprobación vigente de la orden, o nula si no la tiene (V54): el servidor responde 204, que aquí es
+   * un estado y no un fallo. Solo tiene sentido con la orden ejecutada, y por eso la apaga una señal.
+   */
+  aprobacion(id: Signal<string>, habilitada: Signal<boolean>) {
+    return injectQuery(() => ({
+      queryKey: [...OrdenApi.claveDetalle(id()), 'aprobacion'] as const,
+      queryFn: () =>
+        firstValueFrom(
+          this.http.get<AprobacionDeOrden | null>(`${this.url}/${id()}/approval`),
+        ).then((aprobacion) => aprobacion ?? null),
+      enabled: !!id() && habilitada(),
+    }));
+  }
+
+  /** Aprueba en sitio: el supervisor dibuja su firma en esta sesión, que es la de quien lo registra. */
+  aprobarEnSitio() {
+    return injectMutation(() => ({
+      mutationFn: ({
+        id,
+        idSupervisor,
+        imagen,
+      }: {
+        id: string;
+        idSupervisor: string;
+        imagen: string;
+      }) =>
+        firstValueFrom(
+          this.http.post<AprobacionDeOrden>(`${this.url}/${id}/approval`, { idSupervisor, imagen }),
+        ),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /** Aprueba el propio supervisor, desde su cuenta y con la firma que guardó. */
+  aprobarDesdeMiCuenta() {
+    return injectMutation(() => ({
+      mutationFn: (id: string) =>
+        firstValueFrom(this.http.post<AprobacionDeOrden>(`${this.url}/${id}/approval/mine`, {})),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /** Las órdenes ejecutadas sin aprobar al alcance de quien pregunta: a un supervisor, las de sus clientes. */
+  porAprobar(habilitada?: Signal<boolean>) {
+    return injectQuery(() => ({
+      queryKey: [...OrdenApi.CLAVE, 'por-aprobar'] as const,
+      queryFn: () =>
+        firstValueFrom(this.http.get<OrdenDeTrabajo[]>(`${this.url}/pending-approval`)),
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 

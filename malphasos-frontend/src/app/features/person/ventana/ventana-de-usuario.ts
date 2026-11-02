@@ -28,7 +28,8 @@ const SUPER_USUARIO = 'super.admin.full';
  * sesión. Los datos son de solo lectura: editarlos sigue siendo cosa de «Personas».
  *
  * <p><b>Tres sesiones distintas caben aquí.</b> La de quien cierra informes ve y cambia su firma; la
- * de un supervisor del cliente ve sus datos sin sección de firma, porque no la necesita; y la del
+ * de un supervisor del cliente también, desde el 2026-11-02, porque con ella aprueba sus órdenes desde su
+ * cuenta (V54); y la del
  * SuperUsuario no tiene ficha de persona —se crea a mano en Keycloak— y lo dice, en lugar de mostrar
  * datos vacíos o un «todavía no tiene firma» que no podría arreglar.
  *
@@ -51,14 +52,20 @@ export class VentanaDeUsuario {
 
   protected readonly persona = inject(PersonaApi).yo();
 
-  /** Si la sesión cierra informes, que es quien necesita firma. */
-  protected readonly firmaInformes = computed(() => this.sesion.puede('report.write'));
+  /**
+   * Si la sesión necesita firma: la guarda quien aprueba órdenes, {@code work-order.approve}, que es lo que
+   * el servidor exige para guardarla desde V55. Hasta el 2026-11-02 era {@code report.write}, la de quien
+   * cierra informes, y el supervisor del cliente no tenía dónde guardar la suya.
+   */
+  protected readonly conFirma = computed(() => this.sesion.puede('work-order.approve'));
+  /** Si además cierra informes: entonces la firma va también en la línea del profesional de servicio. */
+  protected readonly cierraInformes = computed(() => this.sesion.puede('report.write'));
 
   /** Sin ficha de persona no hay dónde guardar una firma, y su 404 se leería como «no tiene». */
   private readonly tieneFicha = computed(() => !!this.persona.data());
 
   protected readonly firma = this.firmas.consultar(
-    computed(() => this.firmaInformes() && this.tieneFicha()),
+    computed(() => this.conFirma() && this.tieneFicha()),
   );
   protected readonly guardado = this.firmas.guardar();
 

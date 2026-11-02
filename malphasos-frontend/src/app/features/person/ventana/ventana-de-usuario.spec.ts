@@ -71,7 +71,7 @@ describe('Ventana de la sesión', () => {
 
   /** Abre la ventana de quien cierra informes, con su ficha y la firma que diga. */
   async function abrirIngeniera(firma: object | null): Promise<void> {
-    montar(['report.write']);
+    montar(['report.write', 'work-order.approve']);
     fixture.detectChanges();
     await responderA(fixture, http, URL_YO, INGENIERA);
     if (firma) {
@@ -107,16 +107,45 @@ describe('Ventana de la sesión', () => {
       expect(raiz().querySelectorAll('input, select, textarea')).toHaveLength(0);
     });
 
-    it('un supervisor del cliente ve sus datos y no la firma, que todavía no necesita', async () => {
-      // Un supervisor tiene report.read y no report.write: no cierra informes. Firmará al aprobar las
-      // órdenes, que es la tanda que viene después de V53.
-      montar(['report.read']);
+    it('un supervisor del cliente guarda su firma para aprobar desde su cuenta (V54)', async () => {
+      // Un supervisor tiene work-order.approve y no report.write: no cierra informes, pero aprueba.
+      montar(['report.read', 'work-order.approve']);
       fixture.detectChanges();
       await responderA(fixture, http, URL_YO, { ...INGENIERA, tipoPersona: 'SUPERVISOR' });
+      await responderA(
+        fixture,
+        http,
+        URL_FIRMA,
+        { code: 'ERR_PERSON_003', message: 'The person has not saved a signature' },
+        SIN_FICHA,
+      );
 
       expect(raiz().querySelector('[data-rol]')?.textContent?.trim()).toBe(
         'Supervisor del cliente',
       );
+      expect(texto()).toContain('Firma digital');
+      expect(raiz().querySelector('[data-sin-firma]')?.textContent).toContain(
+        'sin ella no puede aprobar órdenes desde su cuenta',
+      );
+      expect(raiz().querySelector('[data-uso-de-la-firma]')?.textContent).toContain(
+        'aprueba desde su cuenta las órdenes ejecutadas',
+      );
+      expect(texto()).not.toContain('profesional de servicio');
+    });
+
+    it('quien cierra informes lee que su firma va en ellos', async () => {
+      await abrirIngeniera(null);
+
+      expect(raiz().querySelector('[data-uso-de-la-firma]')?.textContent).toContain(
+        'línea del profesional de servicio',
+      );
+    });
+
+    it('sin work-order.approve no hay sección de firma ni se pregunta por ella', async () => {
+      montar(['report.read', 'report.write']);
+      fixture.detectChanges();
+      await responderA(fixture, http, URL_YO, INGENIERA);
+
       expect(texto()).not.toContain('Firma digital');
       http.expectNone(URL_FIRMA);
     });

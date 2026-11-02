@@ -17,6 +17,13 @@ import { traducirError } from '../../../core/errores/traducir';
 import { fechaCorta } from '../../../core/fechas';
 import { LienzoDeFirma } from '../../../shared/lienzo-de-firma/lienzo-de-firma';
 
+/** Un supervisor del cliente tal como lo ofrece la lista de quién recibe. */
+export interface SupervisorQueRecibe {
+  readonly id: string;
+  readonly nombre: string;
+  readonly cargo?: string | null;
+}
+
 /**
  * A quién se entregó el equipo (V31, 2026-10-16): nombre, cédula y cargo, en texto, porque quien
  * recibe muchas veces no está registrado en el sistema. Es el último bloque del reporte, como en el
@@ -34,6 +41,11 @@ import { LienzoDeFirma } from '../../../shared/lienzo-de-firma/lienzo-de-firma';
  * se retiró, y los datos se guardan al salir de cada campo si hay nombre —o si los tres quedan en
  * blanco, que es borrar—. Solo en un borrador sin firmar, que es cuando registrar sin firma tiene
  * sentido. Firmar sigue siendo un botón: es una decisión explícita, y manda los datos con la firma.
+ *
+ * <p><b>Y quien recibe puede ser un supervisor del cliente</b> (V55, 2026-11-02), como el médico dueño de
+ * un consultorio, que recibe y aprueba a la vez. Entonces no se escribe nada: se elige de la lista y el
+ * reporte apunta a su ficha, de donde salen nombre, cédula y cargo. Solo al firmar, porque el registro sin
+ * firma sigue siendo de texto.
  */
 @Component({
   selector: 'app-entrega-del-equipo',
@@ -52,6 +64,10 @@ export class EntregaDelEquipo {
    * servidor le rechazaría.
    */
   readonly puedeFirmar = input(true);
+  /** Los supervisores del cliente, con su nombre y su cargo: cualquiera de ellos puede recibir (V55). */
+  readonly supervisores = input<readonly SupervisorQueRecibe[]>([]);
+  /** Quien recibió, si fue un supervisor registrado (V55); con él, {@link recibe} viene vacío. */
+  readonly idPersonaRecibe = input<string | null | undefined>(null);
 
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(ReporteApi);
@@ -66,6 +82,25 @@ export class EntregaDelEquipo {
   protected readonly firmado = this.api.firmarRecibido();
 
   protected readonly formulario = this.fb.nonNullable.group({ nombre: '', cedula: '', cargo: '' });
+  /** Quién firma: el identificador de un supervisor, o vacío si se escribe a mano. */
+  protected readonly quienFirma = this.fb.nonNullable.control('');
+  private readonly elegido = toSignal(this.quienFirma.valueChanges, { initialValue: '' });
+  /** El supervisor elegido para firmar, o nulo si quien recibe se escribe a mano. */
+  protected readonly supervisorQueFirma = computed(
+    () => this.supervisores().find((s) => s.id === this.elegido()) ?? null,
+  );
+  /** El supervisor que ya recibió, si fue uno registrado. */
+  protected readonly recibioUnSupervisor = computed(() => {
+    const id = this.idPersonaRecibe();
+
+    return id
+      ? (this.supervisores().find((s) => s.id === id) ?? {
+          id,
+          nombre: 'Un supervisor del cliente',
+          cargo: null,
+        })
+      : null;
+  });
   /**
    * RF-21: a cuántos reportes va la firma. Quien recibe puede firmar uno, todos los del área de este equipo o
    * todos los de la orden, que es la sede entera (2026-10-30).
@@ -140,7 +175,13 @@ export class EntregaDelEquipo {
    * después: dos peticiones en vuelo podrían llegar al revés.
    */
   protected guardar(): void {
-    if (!this.registrable() || !this.formulario.dirty || this.faltaElNombre()) {
+    // Con un supervisor elegido lo escrito no cuenta: quien recibe sale de su ficha al firmar.
+    if (
+      !this.registrable() ||
+      !this.formulario.dirty ||
+      this.faltaElNombre() ||
+      this.supervisorQueFirma()
+    ) {
       return;
     }
     if (this.enVuelo) {
@@ -193,24 +234,24 @@ export class EntregaDelEquipo {
   /** RF-18: sin nombre no se sabe quién firmó, y sin trazo no hay firma. Ninguna de las dos se envía. */
   protected firmar(): void {
     const { nombre, cedula, cargo } = this.formulario.getRawValue();
+    const supervisor = this.supervisorQueFirma();
     const imagen = this.trazo();
-    this.faltaQuienFirma.set(!nombre.trim());
+    const sinNombre = !supervisor && !nombre.trim();
+    this.faltaQuienFirma.set(sinNombre);
     this.faltaTrazo.set(!imagen);
-    if (!nombre.trim() || !imagen) {
+    if (sinNombre || !imagen) {
       return;
     }
 
     const texto = (t: string) => t.trim() || undefined;
+    // Un supervisor firma como persona registrada: lo escrito a mano no viaja, y el servidor lo descarta.
+    const quien = supervisor
+      ? { idPersonaRecibe: supervisor.id }
+      : { nombre: nombre.trim(), cedula: texto(cedula), cargo: texto(cargo) };
     this.firmado.mutate(
       {
         id: this.idReporte(),
-        firma: {
-          nombre: nombre.trim(),
-          cedula: texto(cedula),
-          cargo: texto(cargo),
-          imagen,
-          alcance: this.alcance.value,
-        },
+        firma: { ...quien, imagen, alcance: this.alcance.value },
       },
       {
         onSuccess: (reportes) => {

@@ -54,7 +54,7 @@
       />
     </label>
     <div class="flex flex-wrap border border-ink" role="group" aria-label="Estado">
-      @for (opcion of FILTROS; track opcion.clave; let primero = $first) {
+      @for (opcion of filtros(); track opcion.clave; let primero = $first) {
         <button
           type="button"
           class="min-h-tactil px-1.5 text-sm"
@@ -165,7 +165,18 @@
               }
             </td>
             <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
-            <td [class]="fila.peso" data-estado>{{ fila.estado }}</td>
+            <td [class]="fila.peso" data-estado>
+              {{ fila.estado }}
+              @if (fila.aprobacion) {
+                <!-- V54: lo que falta por aprobar pesa más, como lo que falta por hacer. -->
+                <span
+                  class="block text-sm"
+                  [class.font-bold]="fila.aprobacion === 'Por aprobar'"
+                  data-aprobacion
+                  >{{ fila.aprobacion }}</span
+                >
+              }
+            </td>
           </tr>
         }
       </tbody>
