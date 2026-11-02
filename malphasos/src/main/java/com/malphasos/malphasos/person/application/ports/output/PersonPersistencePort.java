@@ -26,4 +26,15 @@ public interface PersonPersistencePort {
      * describía algo que no ocurría.
      */
     Person save(Person person);
+
+    /**
+     * Cambia el identificador de una persona, con todo lo que la nombra (V56). Existe solo para dar
+     * cuenta a una ficha que nació sin ella: el identificador es el de su usuario en Keycloak, y Keycloak
+     * no deja elegirlo.
+     *
+     * @return la persona ya con el identificador nuevo
+     * @throws com.malphasos.malphasos.person.domain.exception.PersonNotFoundException si no hay
+     *     ninguna persona con el actual
+     */
+    Person changeIdentifier(UUID actual, UUID nuevo);
 }

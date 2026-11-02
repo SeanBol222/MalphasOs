@@ -357,7 +357,17 @@
       <section class="superficie mt-3 max-w-[640px]" aria-labelledby="titulo-acceso">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 id="titulo-acceso" class="titulo-seccion">Acceso</h2>
-          @if (!restableciendo()) {
+          @if (sinCuenta()) {
+            @if (!dandoAcceso() && correos().length) {
+              <button
+                class="min-h-tactil px-1 font-semibold underline"
+                type="button"
+                (click)="empezarADarAcceso()"
+              >
+                Dar acceso
+              </button>
+            }
+          } @else if (!restableciendo()) {
             <button
               class="min-h-tactil px-1 font-semibold underline"
               type="button"
@@ -367,55 +377,137 @@
             </button>
           }
         </div>
-        <p class="text-neutral-700">
-          Si olvidó su contraseña, póngale una temporal y désela: al entrar con ella tendrá que
-          elegir una nueva.
-        </p>
-        @if (restablecida()) {
+        @if (accesoDado()) {
           <p class="mt-1 font-semibold" role="status">
-            Contraseña temporal puesta. Al entrar, tendrá que cambiarla.
+            Cuenta creada. Désele el usuario y la contraseña temporal: al entrar tendrá que
+            cambiarla.
           </p>
         }
-        @if (restableciendo()) {
-          <form class="mt-2" [formGroup]="formularioDeAcceso" (ngSubmit)="restablecer()">
-            <label class="block font-semibold" for="contrasenaTemporal">
-              Contraseña temporal <span aria-hidden="true">*</span>
-            </label>
-            <input
-              class="campo min-h-tactil w-full"
-              id="contrasenaTemporal"
-              type="text"
-              autocomplete="off"
-              spellcheck="false"
-              aria-required="true"
-              [attr.minlength]="largoMinimo"
-              formControlName="contrasenaTemporal"
-            />
-            <p class="mt-1 text-neutral-700">
-              Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo.
+        @if (sinCuenta()) {
+          <!--
+            Las fichas que eran encargados hasta V53 (2026-11-02): supervisores sin cuenta, que no pueden
+            entrar ni aprobar desde la suya. Darles acceso cambia su identificador al de la cuenta nueva.
+          -->
+          <p class="font-semibold" data-sin-cuenta>No tiene cuenta: no puede entrar al sistema.</p>
+          @if (correos().length) {
+            <p class="text-neutral-700">
+              Désela con un usuario y una contraseña temporal. Entrará con
+              <span class="font-semibold" data-correo-nuevo>{{ correoDeLaCuentaNueva() }}</span>
+              como correo de la cuenta.
             </p>
-            @if (contrasenaTemporal.touched && contrasenaTemporal.invalid) {
-              <p class="mt-1 font-semibold text-accent-700">
-                Escriba una contraseña de al menos {{ largoMinimo }} caracteres.
+          } @else {
+            <p class="text-neutral-700">Añada antes un correo: es el de la cuenta.</p>
+          }
+          @if (dandoAcceso()) {
+            <form class="mt-2" [formGroup]="formularioDeCuentaNueva" (ngSubmit)="darAcceso()">
+              <label class="block font-semibold" for="nombreUsuarioNuevo">
+                Usuario <span aria-hidden="true">*</span>
+              </label>
+              <input
+                class="campo min-h-tactil w-full"
+                id="nombreUsuarioNuevo"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                aria-required="true"
+                formControlName="nombreUsuario"
+              />
+              <label class="mt-2 block font-semibold" for="contrasenaDeLaCuentaNueva">
+                Contraseña temporal <span aria-hidden="true">*</span>
+              </label>
+              <input
+                class="campo min-h-tactil w-full"
+                id="contrasenaDeLaCuentaNueva"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                aria-required="true"
+                [attr.minlength]="largoMinimo"
+                formControlName="contrasena"
+              />
+              <p class="mt-1 text-neutral-700">
+                Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo.
               </p>
-            }
-            <div class="mt-2 flex flex-wrap gap-2">
-              <button
-                class="boton-primario min-h-tactil"
-                type="submit"
-                [disabled]="restablecimiento.isPending()"
-              >
-                {{ restablecimiento.isPending() ? 'Poniéndola…' : 'Poner contraseña temporal' }}
-              </button>
-              <button
-                class="boton-secundario min-h-tactil"
-                type="button"
-                (click)="restableciendo.set(false)"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
+              @if (formularioDeCuentaNueva.touched && formularioDeCuentaNueva.invalid) {
+                <p class="mt-1 font-semibold text-accent-700">
+                  Escriba un usuario y una contraseña de al menos {{ largoMinimo }} caracteres.
+                </p>
+              }
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  class="boton-primario min-h-tactil"
+                  type="submit"
+                  [disabled]="acceso.isPending()"
+                >
+                  {{ acceso.isPending() ? 'Creándola…' : 'Crear la cuenta' }}
+                </button>
+                <button
+                  class="boton-secundario min-h-tactil"
+                  type="button"
+                  (click)="dandoAcceso.set(false)"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          }
+        } @else {
+          @if (cuenta.data()?.nombreUsuario; as usuario) {
+            <p data-usuario>
+              Entra como <span class="font-semibold">{{ usuario }}</span
+              >.
+            </p>
+          }
+          <p class="text-neutral-700">
+            Si olvidó su contraseña, póngale una temporal y désela: al entrar con ella tendrá que
+            elegir una nueva.
+          </p>
+          @if (restablecida()) {
+            <p class="mt-1 font-semibold" role="status">
+              Contraseña temporal puesta. Al entrar, tendrá que cambiarla.
+            </p>
+          }
+          @if (restableciendo()) {
+            <form class="mt-2" [formGroup]="formularioDeAcceso" (ngSubmit)="restablecer()">
+              <label class="block font-semibold" for="contrasenaTemporal">
+                Contraseña temporal <span aria-hidden="true">*</span>
+              </label>
+              <input
+                class="campo min-h-tactil w-full"
+                id="contrasenaTemporal"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                aria-required="true"
+                [attr.minlength]="largoMinimo"
+                formControlName="contrasenaTemporal"
+              />
+              <p class="mt-1 text-neutral-700">
+                Al menos {{ largoMinimo }} caracteres, y distinta del usuario y del correo.
+              </p>
+              @if (contrasenaTemporal.touched && contrasenaTemporal.invalid) {
+                <p class="mt-1 font-semibold text-accent-700">
+                  Escriba una contraseña de al menos {{ largoMinimo }} caracteres.
+                </p>
+              }
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  class="boton-primario min-h-tactil"
+                  type="submit"
+                  [disabled]="restablecimiento.isPending()"
+                >
+                  {{ restablecimiento.isPending() ? 'Poniéndola…' : 'Poner contraseña temporal' }}
+                </button>
+                <button
+                  class="boton-secundario min-h-tactil"
+                  type="button"
+                  (click)="restableciendo.set(false)"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          }
         }
       </section>
     }

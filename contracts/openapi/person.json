@@ -1,6 +1,23 @@
 {
   "components" : {
     "schemas" : {
+      "AccountGrantRequest" : {
+        "properties" : {
+          "nombreUsuario" : {
+            "description" : "Nombre de usuario en el proveedor de identidad",
+            "example" : "juan.perez",
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "password" : {
+            "description" : "Contraseña temporal; la persona tendrá que cambiarla al entrar",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "nombreUsuario", "password" ],
+        "type" : "object"
+      },
       "EmailPersonCreateRequest" : {
         "properties" : {
           "correoPersona" : {
@@ -64,6 +81,19 @@
           }
         },
         "required" : [ "password" ],
+        "type" : "object"
+      },
+      "PersonAccountResponse" : {
+        "properties" : {
+          "nombreUsuario" : {
+            "description" : "Su nombre de usuario, si tiene cuenta",
+            "type" : "string"
+          },
+          "tieneCuenta" : {
+            "description" : "Si tiene usuario en el proveedor de identidad",
+            "type" : "boolean"
+          }
+        },
         "type" : "object"
       },
       "PersonErrorResponse" : {
@@ -1199,6 +1229,194 @@
           }
         },
         "summary" : "Actualizar los datos de una persona",
+        "tags" : [ "Person" ]
+      }
+    },
+    "/v1/api/persons/{id}/account" : {
+      "get" : {
+        "description" : "Si tiene usuario en el proveedor de identidad y cuál. No tenerlo no es un error.",
+        "operationId" : "getAccount",
+        "parameters" : [ {
+          "description" : "Identificador de la persona",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonAccountResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "502" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Gateway"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Consultar la cuenta de una persona",
+        "tags" : [ "Person" ]
+      },
+      "post" : {
+        "description" : "Crea su usuario con una contraseña temporal y el correo de la ficha. El identificador de la persona cambia al del usuario nuevo, y la respuesta lo trae. 409 si ya tiene cuenta; 400 si no tiene correo o está retirada.",
+        "operationId" : "grantAccess",
+        "parameters" : [ {
+          "description" : "Identificador de la persona",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AccountGrantRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "502" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Gateway"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Dar acceso a una persona sin cuenta",
         "tags" : [ "Person" ]
       }
     },

@@ -71,6 +71,13 @@ public interface PersonIdentityPort {
     Optional<String> findUserEmail(String userId);
 
     /**
+     * El nombre de usuario de la cuenta, o vacío si no hay cuenta con ese identificador. Es como se
+     * sabe si una ficha tiene cuenta (2026-11-02): el correo no sirve, porque una cuenta puede no
+     * tenerlo.
+     */
+    Optional<String> findUserName(String userId);
+
+    /**
      * Pone una contraseña <b>temporal</b>: al entrar con ella, Keycloak obliga a cambiarla. Es como un
      * administrador resuelve una contraseña olvidada sin servidor de correo (2026-10-17).
      *

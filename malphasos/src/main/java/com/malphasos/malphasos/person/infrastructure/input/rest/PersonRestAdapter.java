@@ -2,9 +2,11 @@ package com.malphasos.malphasos.person.infrastructure.input.rest;
 
 import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
 import com.malphasos.malphasos.person.infrastructure.input.mapper.PersonRestMapper;
+import com.malphasos.malphasos.person.infrastructure.input.model.request.AccountGrantRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PasswordResetRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonRegisterRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonUpdateRequest;
+import com.malphasos.malphasos.person.infrastructure.input.model.response.PersonAccountResponse;
 import com.malphasos.malphasos.person.infrastructure.input.model.response.PersonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -138,5 +140,32 @@ public class PersonRestAdapter {
         personServicePort.resetPassword(id, request.password());
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Consultar la cuenta de una persona",
+            description = "Si tiene usuario en el proveedor de identidad y cuál. No tenerlo no es un error.")
+    @PreAuthorize("hasAuthority('person.read')")
+    @GetMapping("/{id}/account")
+    public PersonAccountResponse getAccount(
+            @Parameter(description = "Identificador de la persona") @PathVariable UUID id) {
+
+        return personServicePort.accountOf(id)
+                .map(usuario -> new PersonAccountResponse(true, usuario))
+                .orElseGet(() -> new PersonAccountResponse(false, null));
+    }
+
+    @Operation(
+            summary = "Dar acceso a una persona sin cuenta",
+            description = "Crea su usuario con una contraseña temporal y el correo de la ficha. El "
+                    + "identificador de la persona cambia al del usuario nuevo, y la respuesta lo trae. "
+                    + "409 si ya tiene cuenta; 400 si no tiene correo o está retirada.")
+    @PreAuthorize("@personWriteGuard.canWrite(#id, authentication)")
+    @PostMapping("/{id}/account")
+    public ResponseEntity<PersonResponse> grantAccess(
+            @Parameter(description = "Identificador de la persona") @PathVariable UUID id,
+            @Valid @RequestBody AccountGrantRequest request) {
+
+        return created(personServicePort.grantAccess(id, request.nombreUsuario(), request.password()));
     }
 }

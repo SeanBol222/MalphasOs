@@ -23,6 +23,7 @@ import com.malphasos.malphasos.person.domain.exception.KeycloakPasswordRejectedE
 import com.malphasos.malphasos.person.domain.exception.KeycloakUnauthorizedException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserAlreadyExistsException;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
+import com.malphasos.malphasos.person.domain.exception.PersonAlreadyHasAccountException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.exception.PrimaryEmailRemovalException;
 import com.malphasos.malphasos.person.domain.person.EmailPerson;
@@ -31,6 +32,7 @@ import com.malphasos.malphasos.person.domain.person.PersonType;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.EmailPersonCreateRequest;
 import com.malphasos.malphasos.person.infrastructure.input.model.request.PersonRegisterRequest;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -387,5 +389,66 @@ class PersonRestAdapterTest {
                         .content("{\"password\":\"temporal-de-prueba\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ERR_KEYCLOAK_007"));
+    }
+
+    // --- La cuenta y dar acceso (2026-11-02) ------------------------------------------------
+
+    @Test
+    @DisplayName("la cuenta de una persona dice si la tiene y con qué usuario, y no tenerla responde 200")
+    void consultarCuenta() throws Exception {
+        UUID conCuenta = UUID.randomUUID();
+        UUID sinCuenta = UUID.randomUUID();
+        when(personServicePort.accountOf(conCuenta)).thenReturn(Optional.of("ada"));
+        when(personServicePort.accountOf(sinCuenta)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/v1/api/persons/{id}/account", conCuenta))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tieneCuenta").value(true))
+                .andExpect(jsonPath("$.nombreUsuario").value("ada"));
+        mockMvc.perform(get("/v1/api/persons/{id}/account", sinCuenta))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tieneCuenta").value(false));
+    }
+
+    @Test
+    @DisplayName("dar acceso responde 201 con la persona y su identificador nuevo")
+    void darAcceso() throws Exception {
+        UUID viejo = UUID.randomUUID();
+        UUID nuevo = UUID.randomUUID();
+        when(personServicePort.grantAccess(viejo, "ada", "temporal-de-prueba")).thenReturn(samplePerson(nuevo));
+
+        mockMvc.perform(post("/v1/api/persons/{id}/account", viejo)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombreUsuario\":\"ada\",\"password\":\"temporal-de-prueba\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.identificador").value(nuevo.toString()));
+    }
+
+    @Test
+    @DisplayName("dar acceso sin usuario o sin contraseña no llega al servicio")
+    void darAccesoIncompleto() throws Exception {
+        mockMvc.perform(post("/v1/api/persons/{id}/account", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombreUsuario\":\" \",\"password\":\"temporal-de-prueba\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/v1/api/persons/{id}/account", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombreUsuario\":\"ada\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(personServicePort, never()).grantAccess(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("dar acceso a quien ya tiene cuenta responde 409 con su propio código")
+    void darAccesoAQuienYaTiene() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(personServicePort.grantAccess(eq(id), any(), any())).thenThrow(new PersonAlreadyHasAccountException(id));
+
+        mockMvc.perform(post("/v1/api/persons/{id}/account", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombreUsuario\":\"ada\",\"password\":\"temporal-de-prueba\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ERR_PERSON_005"));
     }
 }

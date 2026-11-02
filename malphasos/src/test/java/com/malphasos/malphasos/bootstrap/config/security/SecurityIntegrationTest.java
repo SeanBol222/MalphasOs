@@ -320,6 +320,28 @@ class SecurityIntegrationTest {
         }
 
         @Test
+        @DisplayName("ni darle acceso a un ingeniero sin cuenta, que es crearle la cuenta (2026-11-02)")
+        void elAdministradorNoDaAccesoAlIngeniero() throws Exception {
+            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.ENGINEER));
+
+            prohibido(post("/v1/api/persons/" + ID + "/account")
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"nombreUsuario\":\"ada\",\"password\":\"temporal-de-prueba\"}"));
+        }
+
+        @Test
+        @DisplayName("a un supervisor sin cuenta sí, que es de su escalón")
+        void elAdministradorDaAccesoAlSupervisor() throws Exception {
+            when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.SUPERVISOR));
+
+            autorizado(post("/v1/api/persons/" + ID + "/account")
+                    .with(comoElGrupo("admins"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"nombreUsuario\":\"ada\",\"password\":\"temporal-de-prueba\"}"));
+        }
+
+        @Test
         @DisplayName("la de un representante sí, que es de su escalón")
         void elAdministradorRestableceLaDelRepresentante() throws Exception {
             when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.SUPERVISOR));

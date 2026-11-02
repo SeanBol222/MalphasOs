@@ -8,6 +8,7 @@ import com.malphasos.malphasos.person.application.ports.input.PersonServicePort;
 import com.malphasos.malphasos.person.application.ports.output.PersonIdentityPort;
 import com.malphasos.malphasos.person.application.ports.output.PersonPersistencePort;
 import com.malphasos.malphasos.person.domain.exception.KeycloakUserNotFoundException;
+import com.malphasos.malphasos.person.domain.exception.PersonAlreadyHasAccountException;
 import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
@@ -16,6 +17,7 @@ import com.malphasos.malphasos.person.domain.person.PhonePerson;
 import com.malphasos.malphasos.person.domain.person.RoleType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -376,6 +378,79 @@ public class PersonService implements PersonServicePort {
         }
 
         personIdentityPort.resetPassword(person.getIdentificador().toString(), temporaryPassword);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<String> accountOf(UUID personId) {
+        return personIdentityPort.findUserName(findOrFail(personId).getIdentificador().toString());
+    }
+
+    /**
+     * Da cuenta a una ficha que nació sin ella (2026-11-02): las de los encargados, que V53 dejó como
+     * supervisores sin poder entrar.
+     *
+     * <p><b>El identificador cambia</b>, y no hay otra manera: el de una persona es el de su usuario en
+     * Keycloak, y la Admin API genera el suyo sin dejar elegirlo. Así que se crea el usuario y la ficha
+     * pasa a llevar su identificador, con todo lo que la nombra (V56). Es el mismo orden que el alta:
+     * primero Keycloak y después la base, y si la base falla se borra el usuario recién creado.
+     *
+     * <p>El correo de la cuenta es el que la ficha ya marca, o si no marca ninguno el primero vigente, que
+     * queda marcado antes de crear el usuario para que los dos sistemas empiecen de acuerdo. Sin ningún
+     * correo no hay cuenta que crear. Tampoco a una persona retirada, ni a quien ya tiene una.
+     *
+     * <p>Sin {@code @Transactional}, como el alta: si lo llevara, el fallo al confirmar escaparía después
+     * del bloque que deshace el usuario.
+     */
+    @Override
+    public Person grantAccess(UUID personId, String userName, String temporaryPassword) {
+        Person person = findOrFail(personId);
+
+        if (!person.isEstadoActivo()) {
+            throw new IllegalArgumentException(
+                    "Esa persona esta retirada: no se le da acceso");
+        }
+        if (personIdentityPort.findUserName(personId.toString()).isPresent()) {
+            throw new PersonAlreadyHasAccountException(personId);
+        }
+
+        EmailPerson correo = correoParaLaCuenta(person);
+        if (!correo.isPrincipal()) {
+            person.markPrimaryEmail(correo.getIdCorreoPersona());
+            personPersistencePort.save(person);
+        }
+
+        String userId = personIdentityPort.createUser(
+                PersonIdentityRequest.builder()
+                        .userName(userName)
+                        .email(correo.getCorreoPersona())
+                        .firstName(person.getPrimerNombre())
+                        .lastName(person.getPrimerApellido())
+                        .password(temporaryPassword)
+                        .build(),
+                groupRoleFor(person.getTipoPersona()));
+
+        try {
+            return personPersistencePort.changeIdentifier(personId, UUID.fromString(userId));
+
+        } catch (RuntimeException failure) {
+            rollbackUser(userId, failure);
+            throw failure;
+        }
+    }
+
+    /** El correo marcado como el de la cuenta, o el primero vigente. */
+    private static EmailPerson correoParaLaCuenta(Person person) {
+        List<EmailPerson> vigentes = person.getEmailPersonList().stream()
+                .filter(EmailPerson::isEstadoActivo)
+                .toList();
+
+        return vigentes.stream()
+                .filter(EmailPerson::isPrincipal)
+                .findFirst()
+                .or(() -> vigentes.stream().findFirst())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Esa persona no tiene ningun correo: anada uno antes de darle acceso"));
     }
 
     /** Como {@link #propagateProfile}: que la persona no tenga cuenta no es un error. */

@@ -2769,3 +2769,21 @@ desde `V51`: ahora se cierra por el servicio.
 
 En el backend, catorce mutaciones sobre la lectura de la aprobación y las tres plantillas, y las catorce
 mueren. Batería: **1580** en **136** clases; frontend, **792**. Sin migración ni cambio de contrato.
+
+## [2026-11-02] ingest | «Dar acceso» a las fichas sin cuenta, y `V56`
+
+Cierra la deuda que `V53` abrió a propósito: las fichas que eran encargados son supervisores sin usuario
+en Keycloak. El usuario eligió darles cuenta y no retirarlas. **La ficha cambia de identificador**, porque
+el de una persona es el de su usuario y la Admin API no deja elegirlo —se probó: lo ignora—, y `V56` pone
+en cascada las ocho foráneas hacia `persona`. La importación parcial del realm sí lo respetaría, y se
+descartó por el permiso que pide. Ver [[decisiones-tecnicas-malphasos]].
+
+La ficha consulta `GET /persons/{id}/account` y, sin cuenta, dice con qué correo entrará y ofrece crearla
+con usuario y contraseña temporal; con cuenta, dice con qué usuario entra. En desarrollo hay **dos**
+fichas así, las dos con un correo.
+
+Catorce mutaciones en el backend y trece en el frontend. Las del backend mueren todas; en el frontend
+sobrevivió una —que la pantalla anunciara el primer correo en vez del de la cuenta— y no compiló otra. Las
+dos, con la prueba que faltaba y la mutación reescrita, mueren. **Y la prueba nueva pasó la primera vez por
+el camino equivocado**: su selector cogía el botón, que también va en negrita, y falló en la batería
+completa. Batería: **1598** en **136** clases; frontend, **800**. Deuda propia: **102 filas, 48 abiertas**.

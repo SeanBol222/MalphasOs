@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.person.infrastructure.output;
 
 import com.malphasos.malphasos.person.application.ports.output.PersonPersistencePort;
+import com.malphasos.malphasos.person.domain.exception.PersonNotFoundException;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.infrastructure.output.mapper.PersonPersistenceMapper;
 import com.malphasos.malphasos.person.infrastructure.output.repository.PersonRepository;
@@ -49,5 +50,17 @@ public class PersonPersistenceAdapter implements PersonPersistencePort {
     public Person save(Person person) {
         return personPersistenceMapper.toDomain(
                 personRepository.save(personPersistenceMapper.toEntity(person)));
+    }
+
+    @Override
+    @Transactional
+    public Person changeIdentifier(UUID actual, UUID nuevo) {
+        if (personRepository.changeIdentifier(actual, nuevo) == 0) {
+            throw new PersonNotFoundException(actual);
+        }
+
+        return personRepository.findById(nuevo)
+                .map(personPersistenceMapper::toDomain)
+                .orElseThrow(() -> new PersonNotFoundException(nuevo));
     }
 }

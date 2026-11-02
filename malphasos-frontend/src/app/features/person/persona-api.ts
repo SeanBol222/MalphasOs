@@ -7,7 +7,13 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CambioDePersona, NuevoUsuario, Persona } from '../../core/api/tipos';
+import {
+  AccesoNuevo,
+  CambioDePersona,
+  CuentaDePersona,
+  NuevoUsuario,
+  Persona,
+} from '../../core/api/tipos';
 
 /**
  * La unica puerta al modulo de personas.
@@ -166,6 +172,31 @@ export class PersonaApi {
     return injectMutation(() => ({
       mutationFn: ({ idPersona, password }: { idPersona: string; password: string }) =>
         firstValueFrom(this.http.patch<void>(`${this.url}/${idPersona}/password`, { password })),
+    }));
+  }
+
+  /**
+   * Si la persona tiene cuenta (2026-11-02). Cuelga de su ficha, así que cualquier escritura sobre la
+   * persona la recarga también.
+   */
+  cuenta(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...PersonaApi.claveDetalle(id()), 'cuenta'] as const,
+      queryFn: () => firstValueFrom(this.http.get<CuentaDePersona>(`${this.url}/${id()}/account`)),
+      enabled: !!id(),
+    }));
+  }
+
+  /**
+   * Da cuenta a una ficha que no la tiene (2026-11-02), con una contraseña temporal. <b>El
+   * identificador de la persona cambia</b> al del usuario que crea Keycloak, que no deja elegirlo: la
+   * respuesta trae la persona con el nuevo, y la ficha vieja deja de existir con ese nombre.
+   */
+  darAcceso() {
+    return injectMutation(() => ({
+      mutationFn: ({ idPersona, acceso }: { idPersona: string; acceso: AccesoNuevo }) =>
+        firstValueFrom(this.http.post<Persona>(`${this.url}/${idPersona}/account`, acceso)),
+      onSuccess: () => this.invalidar(),
     }));
   }
 

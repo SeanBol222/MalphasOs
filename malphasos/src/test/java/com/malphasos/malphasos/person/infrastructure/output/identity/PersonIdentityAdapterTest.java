@@ -513,6 +513,23 @@ class PersonIdentityAdapterTest {
         assertThatThrownBy(() -> adapter.findUserEmail(userId)).isInstanceOf(KeycloakConnectionException.class);
     }
 
+    @Test
+    @DisplayName("el usuario de una cuenta es su nombre de usuario, y vacío si la cuenta no existe (2026-11-02)")
+    void findUserName() {
+        String userId = UUID.randomUUID().toString();
+        UserRepresentation existing = new UserRepresentation();
+        existing.setUsername("ada");
+        existing.setEmail("ada@x.local");
+        when(usersResource.get(userId)).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(existing);
+
+        assertThat(adapter.findUserName(userId)).contains("ada");
+
+        when(userResource.toRepresentation())
+                .thenThrow(new ProcessingException(new NotFoundException("HTTP 404 Not Found")));
+        assertThat(adapter.findUserName(userId)).isEmpty();
+    }
+
     // --- Restablecer la contraseña (2026-10-17) ---------------------------------------------
 
     @Test

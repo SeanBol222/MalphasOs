@@ -5,7 +5,7 @@ import { provideRouter, Router } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar, responderA } from '../../../../testing/pantalla';
-import { Persona } from '../../../core/api/tipos';
+import { CuentaDePersona, Persona } from '../../../core/api/tipos';
 import { DetallePersona } from './detalle-persona';
 
 const URL = 'http://localhost:8081/v1/api/persons';
@@ -48,16 +48,27 @@ describe('Ficha de una persona', () => {
 
   beforeEach(() => montar(['person.read', 'person.write', 'super.person.write']));
 
-  afterEach(() => http?.verify());
+  // Toda escritura sobre la persona recarga también su cuenta, que cuelga de la ficha en la caché. Las
+  // pruebas que no van de la cuenta no tienen por qué responderla: se contesta aquí, y verify() sigue
+  // vigilando todo lo demás.
+  afterEach(() => {
+    http?.match(`${URL}/${ID}/account`).forEach((p) => p.flush({ tieneCuenta: true }));
+    http?.verify();
+  });
 
   const raiz = () => fixture.nativeElement as HTMLElement;
   const texto = () => raiz().textContent ?? '';
   const botones = () =>
     [...raiz().querySelectorAll('button')].map((b) => (b.textContent ?? '').trim());
 
-  async function abrir(datos: Persona = persona()): Promise<void> {
+  /** La ficha y su cuenta, que son dos consultas: la cuenta vive en Keycloak, no en la base. */
+  async function abrir(
+    datos: Persona = persona(),
+    cuenta: CuentaDePersona = { tieneCuenta: true, nombreUsuario: 'grace' },
+  ): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, `${URL}/${ID}`, datos);
+    await responderA(fixture, http, `${URL}/${ID}/account`, cuenta);
   }
 
   function pulsar(etiqueta: string, dentro: ParentNode = raiz()): void {
@@ -461,6 +472,134 @@ describe('Ficha de una persona', () => {
       await abrir(INGENIERA);
 
       expect(acceso()).toBeNull();
+    });
+  });
+
+  describe('Dar acceso a quien no tiene cuenta (2026-11-02)', () => {
+    // Las fichas que eran encargados hasta V53: supervisores sin cuenta, que no pueden entrar.
+    const SIN_CUENTA: CuentaDePersona = { tieneCuenta: false };
+    const CON_CORREO = persona({
+      emailPersonList: [
+        { idCorreoPersona: 'c1', correoPersona: 'grace@hospital.co', estadoActivo: true },
+      ],
+    });
+    const acceso = () => raiz().querySelector('section[aria-labelledby="titulo-acceso"]')!;
+
+    async function crearCuenta(usuario: string, contrasena: string): Promise<void> {
+      pulsar('Dar acceso', acceso());
+      escribir('nombreUsuarioNuevo', usuario);
+      escribir('contrasenaDeLaCuentaNueva', contrasena);
+      pulsar('Crear la cuenta', acceso());
+      await asentar(fixture);
+    }
+
+    it('dice que no tiene cuenta, ofrece dársela y no ofrece restablecer una contraseña que no existe', async () => {
+      await abrir(CON_CORREO, SIN_CUENTA);
+
+      expect(acceso().querySelector('[data-sin-cuenta]')).not.toBeNull();
+      expect(acceso().querySelector('[data-correo-nuevo]')?.textContent).toContain(
+        'grace@hospital.co',
+      );
+      expect(botones()).toContain('Dar acceso');
+      expect(botones()).not.toContain('Restablecer contraseña');
+    });
+
+    it('si la ficha ya marca un correo de la cuenta, dice que entrará con ese', async () => {
+      // Es el que el servidor manda a Keycloak: el marcado, aunque no sea el primero de la lista.
+      await abrir(
+        persona({
+          emailPersonList: [
+            { idCorreoPersona: 'c1', correoPersona: 'primero@hospital.co', estadoActivo: true },
+            {
+              idCorreoPersona: 'c2',
+              correoPersona: 'marcado@hospital.co',
+              estadoActivo: true,
+              principal: true,
+            },
+          ],
+        }),
+        SIN_CUENTA,
+      );
+
+      expect(acceso().querySelector('[data-correo-nuevo]')?.textContent).toContain(
+        'marcado@hospital.co',
+      );
+    });
+
+    it('con cuenta dice con qué usuario entra y no ofrece darla', async () => {
+      await abrir(CON_CORREO, { tieneCuenta: true, nombreUsuario: 'ghopper' });
+
+      expect(acceso().querySelector('[data-usuario]')?.textContent).toContain('ghopper');
+      expect(acceso().querySelector('[data-sin-cuenta]')).toBeNull();
+      expect(botones()).not.toContain('Dar acceso');
+      expect(botones()).toContain('Restablecer contraseña');
+    });
+
+    it('sin correos no se ofrece, y dice que hace falta uno', async () => {
+      await abrir(persona(), SIN_CUENTA);
+
+      expect(botones()).not.toContain('Dar acceso');
+      expect(acceso().textContent).toContain('Añada antes un correo');
+    });
+
+    it('crea la cuenta y lleva a la ficha con su identificador nuevo, sin dejar la vieja en el historial', async () => {
+      await abrir(CON_CORREO, SIN_CUENTA);
+      const router = TestBed.inject(Router);
+      const navegar = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      await crearCuenta('  ghopper ', 'temporal-de-doce');
+
+      const peticion = http.expectOne(`${URL}/${ID}/account`);
+      expect(peticion.request.method).toBe('POST');
+      expect(peticion.request.body).toEqual({
+        nombreUsuario: 'ghopper',
+        password: 'temporal-de-doce',
+      });
+      peticion.flush(persona({ identificador: 'p-nuevo' }));
+      await asentar(fixture);
+      http.match(`${URL}/${ID}`).forEach((p) => p.flush(CON_CORREO));
+      await asentar(fixture);
+
+      expect(navegar).toHaveBeenCalledWith(['/personas', 'p-nuevo'], { replaceUrl: true });
+      expect(acceso().textContent).toContain('Cuenta creada');
+      expect(raiz().querySelector('#nombreUsuarioNuevo')).toBeNull();
+    });
+
+    it('sin usuario o con una contraseña corta no llega al servidor', async () => {
+      await abrir(CON_CORREO, SIN_CUENTA);
+
+      await crearCuenta('', 'temporal-de-doce');
+      escribir('nombreUsuarioNuevo', 'ghopper');
+      escribir('contrasenaDeLaCuentaNueva', 'once-letras');
+      pulsar('Crear la cuenta', acceso());
+      await asentar(fixture);
+
+      http.expectNone((r) => r.method === 'POST');
+      expect(acceso().textContent).toContain('al menos 12 caracteres');
+    });
+
+    it('si el usuario ya existe en el sistema de acceso, lo explica', async () => {
+      await abrir(CON_CORREO, SIN_CUENTA);
+      await crearCuenta('ghopper', 'temporal-de-doce');
+
+      http
+        .expectOne((r) => r.method === 'POST')
+        .flush(
+          { code: 'ERR_KEYCLOAK_001', message: 'Keycloak user already exists' },
+          { status: 409, statusText: 'Conflict' },
+        );
+      await asentar(fixture);
+
+      expect(raiz().querySelector('[role="alert"]')).not.toBeNull();
+      expect(raiz().querySelector('#nombreUsuarioNuevo')).not.toBeNull();
+    });
+
+    it('sin el escalón que pide esta persona no se ofrece', async () => {
+      TestBed.resetTestingModule();
+      montar(['person.read', 'person.write']);
+      await abrir(persona({ ...CON_CORREO, tipoPersona: 'ENGINEER' }), SIN_CUENTA);
+
+      expect(botones()).not.toContain('Dar acceso');
     });
   });
 });
