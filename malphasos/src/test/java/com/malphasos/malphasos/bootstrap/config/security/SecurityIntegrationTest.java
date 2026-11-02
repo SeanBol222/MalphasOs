@@ -838,6 +838,20 @@ class SecurityIntegrationTest {
         }
 
         @Test
+        @DisplayName("un supervisor del cliente guarda la firma con que aprueba (V55)")
+        void elClienteGuardaSuFirma() throws Exception {
+            // Con report.write, como hasta V55, no podia: es la de quien cierra informes.
+            autorizado(patch("/v1/api/persons/me/signature")
+                    .with(comoElGrupo("clients"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"imagen\":\"data:image/png;base64,iVBORw0KGgo=\"}"));
+            prohibido(patch("/v1/api/persons/me/signature")
+                    .with(conRoles("report.write"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"imagen\":\"data:image/png;base64,iVBORw0KGgo=\"}"));
+        }
+
+        @Test
         @DisplayName("un ingeniero registra la aprobacion en sitio")
         void elIngenieroRegistraLaAprobacion() throws Exception {
             autorizado(post("/v1/api/work-orders/" + ID + "/approval")

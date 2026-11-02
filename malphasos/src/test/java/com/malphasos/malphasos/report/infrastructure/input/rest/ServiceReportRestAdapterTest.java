@@ -423,6 +423,43 @@ class ServiceReportRestAdapterTest {
         }
 
         @Test
+        @DisplayName("firma una persona registrada: llega su identificador, sin nombre, y la respuesta lo devuelve (V55)")
+        void firmaUnaPersonaRegistrada() throws Exception {
+            ServiceReport reporte = unReporte();
+            UUID supervisora = UUID.randomUUID();
+            reporte.signReceiptAs(supervisora, "a".repeat(64), java.time.LocalDateTime.of(2026, 11, 1, 9, 30));
+            when(serviceReportServicePort.signReceipt(any())).thenReturn(List.of(reporte));
+
+            mockMvc.perform(patch("/v1/api/reports/" + reporte.getId() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"idPersonaRecibe\": \"" + supervisora + "\", \"imagen\": \"data:image/png;base64,"
+                                    + Base64.getEncoder().encodeToString(PNG) + "\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].idPersonaRecibe").value(supervisora.toString()))
+                    .andExpect(jsonPath("$[0].recibe").doesNotExist());
+
+            ArgumentCaptor<SignReceiptCommand> comando = ArgumentCaptor.forClass(SignReceiptCommand.class);
+            verify(serviceReportServicePort).signReceipt(comando.capture());
+            assertThat(comando.getValue().idPersonaRecibe()).isEqualTo(supervisora);
+            assertThat(comando.getValue().nombre()).isNull();
+        }
+
+        @Test
+        @DisplayName("quien no supervisa al cliente es un conflicto, con su propio código (V55)")
+        void quienNoSupervisa() throws Exception {
+            UUID persona = UUID.randomUUID();
+            when(serviceReportServicePort.signReceipt(any()))
+                    .thenThrow(new com.malphasos.malphasos.report.domain.exception.ReceiverNotSupervisorException(persona));
+
+            mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"idPersonaRecibe\": \"" + persona + "\", \"imagen\": \"data:image/png;base64,"
+                                    + Base64.getEncoder().encodeToString(PNG) + "\"}"))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("ERR_SERVICE_REPORT_011"));
+        }
+
+        @Test
         @DisplayName("el alcance es opcional: sin él, solo este reporte")
         void sinLaCasillaEnElCuerpo() throws Exception {
             ServiceReport reporte = unReporte();
@@ -477,7 +514,7 @@ class ServiceReportRestAdapterTest {
         }
 
         @Test
-        @DisplayName("sin nombre no se firma: una firma sin nombre no dice quién firmó")
+        @DisplayName("sin nombre ni persona registrada no se firma: una firma sin nadie no dice quién firmó")
         void sinNombre() throws Exception {
             mockMvc.perform(patch("/v1/api/reports/" + UUID.randomUUID() + "/receipt-signature")
                             .contentType(MediaType.APPLICATION_JSON)

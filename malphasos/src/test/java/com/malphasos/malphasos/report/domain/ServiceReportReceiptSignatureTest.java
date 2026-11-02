@@ -136,4 +136,52 @@ class ServiceReportReceiptSignatureTest {
         assertThat(reporte.getRecibe().nombre()).isEqualTo("Luis Gómez");
         assertThat(reporte.firmadoPorQuienRecibe()).isFalse();
     }
+
+    // --- Quien recibe como persona registrada (V55, 2026-11-01) ----------------------------------
+
+    @Test
+    @DisplayName("una persona registrada firma: queda su identificador y no se copia ningún nombre")
+    void firmaUnaPersonaRegistrada() {
+        ServiceReport reporte = borrador();
+        reporte.recordHandover(new Handover("Luis Gómez", null, null));
+        reporte.pullEvents();
+        UUID supervisor = UUID.randomUUID();
+
+        reporte.signReceiptAs(supervisor, HUELLA, CUANDO);
+
+        assertThat(reporte.getIdRecibe()).isEqualTo(supervisor);
+        // Lo anotado sin firmar se descarta: quien firma es ella, y su nombre sale de su ficha.
+        assertThat(reporte.getRecibe()).isNull();
+        assertThat(reporte.getFirmaRecibe()).isEqualTo(new ReceiptSignature(HUELLA, CUANDO));
+        assertThat(reporte.pullEvents()).singleElement().isInstanceOf(ServiceReportReceiptSignedEvent.class);
+    }
+
+    @Test
+    @DisplayName("firmado, una persona registrada no vuelve a firmar, ni un retirado se firma")
+    void personaRegistradaUnaSolaVez() {
+        ServiceReport reporte = borrador();
+        reporte.signReceipt(ANA, HUELLA, CUANDO);
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> reporte.signReceiptAs(UUID.randomUUID(), HUELLA, CUANDO))
+                .withMessageContaining("ya tiene la firma");
+        assertThat(reporte.getIdRecibe()).isNull();
+        assertThat(reporte.getRecibe()).isEqualTo(ANA);
+
+        ServiceReport retirado = borrador();
+        retirado.deactivate();
+        assertThatIllegalStateException()
+                .isThrownBy(() -> retirado.signReceiptAs(UUID.randomUUID(), HUELLA, CUANDO))
+                .withMessageContaining("retirado");
+    }
+
+    @Test
+    @DisplayName("tras firmar una persona registrada, ya no se anota a nadie por su nombre")
+    void personaRegistradaNoSeSustituye() {
+        ServiceReport reporte = borrador();
+        reporte.signReceiptAs(UUID.randomUUID(), HUELLA, CUANDO);
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> reporte.recordHandover(new Handover("Otra", null, null)));
+    }
 }

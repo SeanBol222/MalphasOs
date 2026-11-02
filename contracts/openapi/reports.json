@@ -557,6 +557,11 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "idPersonaRecibe" : {
+            "description" : "Quien recibio, si es una persona registrada: el supervisor del cliente. Entonces recibe va nulo y el nombre sale de su ficha; desde V55",
+            "format" : "uuid",
+            "type" : "string"
+          },
           "ingresoFisico" : {
             "$ref" : "#/components/schemas/IntakeCheckResponse",
             "description" : "Estructura fisica al recibir el equipo. Nula mientras no se registre; desde V31"
@@ -629,6 +634,11 @@
             "minLength" : 0,
             "type" : "string"
           },
+          "idPersonaRecibe" : {
+            "description" : "V55: quien firma, si es una persona registrada que supervisa al cliente. Entonces nombre, cedula y cargo van vacios",
+            "format" : "uuid",
+            "type" : "string"
+          },
           "imagen" : {
             "description" : "PNG de hasta 256 KB como data: URI",
             "example" : "data:image/png;base64,iVBORw0KGgo=",
@@ -636,13 +646,14 @@
             "type" : "string"
           },
           "nombre" : {
+            "description" : "Quien firma, escrito. Vacio si firma una persona registrada",
             "example" : "Ana Perez",
             "maxLength" : 120,
             "minLength" : 0,
             "type" : "string"
           }
         },
-        "required" : [ "imagen", "nombre" ],
+        "required" : [ "imagen" ],
         "type" : "object"
       },
       "UseReferenceStandardRequest" : {

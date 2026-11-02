@@ -46,9 +46,15 @@ public class PersonSignatureRestAdapter {
                 .orElseThrow(() -> new PersonSignatureNotFoundException(yo)));
     }
 
+    /**
+     * Guardarla pide {@code work-order.approve} desde V55 (2026-11-01), y no {@code report.write}: la tienen
+     * exactamente quienes firman algo —el ingeniero que cierra informes y el supervisor que aprueba órdenes
+     * desde su cuenta—. Con {@code report.write} el supervisor no podía guardar la firma con que aprueba.
+     */
     @Operation(summary = "Guardar mi firma",
-            description = "La sustituye si ya habia una. Los informes ya cerrados conservan la que copiaron.")
-    @PreAuthorize("hasAuthority('report.write')")
+            description = "La sustituye si ya habia una. Los informes ya cerrados y las ordenes ya aprobadas "
+                    + "conservan la que copiaron.")
+    @PreAuthorize("hasAuthority('work-order.approve')")
     @PatchMapping
     public PersonSignatureResponse save(
             @Valid @RequestBody PersonSignatureRequest request, Authentication autenticacion) {

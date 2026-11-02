@@ -542,6 +542,11 @@ export interface components {
             idEquipoCliente?: string;
             /** Format: uuid */
             idOrdenTrabajo?: string;
+            /**
+             * Format: uuid
+             * @description Quien recibio, si es una persona registrada: el supervisor del cliente. Entonces recibe va nulo y el nombre sale de su ficha; desde V55
+             */
+            idPersonaRecibe?: string;
             /** @description Estructura fisica al recibir el equipo. Nula mientras no se registre; desde V31 */
             ingresoFisico?: components["schemas"]["IntakeCheckResponse"];
             /** @description Estado operativo al recibir el equipo. Nulo mientras no se registre; desde V31 */
@@ -575,12 +580,20 @@ export interface components {
             cargo?: string;
             cedula?: string;
             /**
+             * Format: uuid
+             * @description V55: quien firma, si es una persona registrada que supervisa al cliente. Entonces nombre, cedula y cargo van vacios
+             */
+            idPersonaRecibe?: string;
+            /**
              * @description PNG de hasta 256 KB como data: URI
              * @example data:image/png;base64,iVBORw0KGgo=
              */
             imagen: string;
-            /** @example Ana Perez */
-            nombre: string;
+            /**
+             * @description Quien firma, escrito. Vacio si firma una persona registrada
+             * @example Ana Perez
+             */
+            nombre?: string;
         };
         UseReferenceStandardRequest: {
             /**

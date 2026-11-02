@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.application.model;
 
+import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.shared.domain.image.DocumentImage;
@@ -13,6 +14,8 @@ import com.malphasos.malphasos.shared.domain.image.DocumentImage;
  * @param logo nulo si no lleva
  * @param firmaIngeniero nula si el ingeniero no tenía firma guardada
  * @param firmaRecibe nula mientras quien recibe no firme (V39)
+ * @param recibe quien recibió, ya resuelto: lo escrito en el reporte, o la ficha de la persona registrada
+ *     que firmó (V55). Nulo si nadie
  */
 public record ReportDocumentView(
         ServiceReport reporte,
@@ -20,5 +23,17 @@ public record ReportDocumentView(
         DocumentImage logo,
         DocumentImage firmaIngeniero,
         DocumentImage firmaRecibe,
-        boolean congelado) {
+        boolean congelado,
+        Handover recibe) {
+
+    /** Con quien recibe tal como está escrito en el reporte: lo de siempre, antes de V55. */
+    public ReportDocumentView(
+            ServiceReport reporte,
+            ReportDocument documento,
+            DocumentImage logo,
+            DocumentImage firmaIngeniero,
+            DocumentImage firmaRecibe,
+            boolean congelado) {
+        this(reporte, documento, logo, firmaIngeniero, firmaRecibe, congelado, reporte.getRecibe());
+    }
 }

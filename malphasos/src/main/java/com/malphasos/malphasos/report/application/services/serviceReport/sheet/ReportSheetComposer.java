@@ -86,7 +86,7 @@ public final class ReportSheetComposer {
         String resultado = reporte.getResultado() == null ? "Sin registrar" : APTITUD.get(reporte.getResultado());
         String verificacion = verificacion(lecturas, documento);
         String supervisor = unidos(cliente.responsables());
-        Handover recibe = reporte.getRecibe();
+        Handover recibe = vista.recibe();
 
         return new ReportSheet(
                 reporte.getEstado() != ReportState.FINALIZADO,

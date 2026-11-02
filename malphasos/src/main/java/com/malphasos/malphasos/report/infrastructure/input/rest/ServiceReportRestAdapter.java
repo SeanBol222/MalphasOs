@@ -292,7 +292,8 @@ public class ServiceReportRestAdapter {
         }
 
         return responder(serviceReportServicePort.signReceipt(new SignReceiptCommand(
-                id, request.nombre(), request.cedula(), request.cargo(), firma, request.alcance())));
+                id, request.nombre(), request.cedula(), request.cargo(), firma, request.alcance(),
+                request.idPersonaRecibe())));
     }
 
     @Operation(summary = "Registrar la verificacion metrologica",

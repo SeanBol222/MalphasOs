@@ -44,6 +44,9 @@ public record ServiceReportResponse(
         List<ReportAccessoryResponse> accesorios,
         @Schema(description = "Quien recibio el equipo. Nulo mientras no se diga; desde V31")
         HandoverResponse recibe,
+        @Schema(description = "Quien recibio, si es una persona registrada: el supervisor del cliente. Entonces"
+                + " recibe va nulo y el nombre sale de su ficha; desde V55")
+        UUID idPersonaRecibe,
         @Schema(description = "Cuando firmo quien recibe; nulo mientras no firme. La imagen viene en el"
                 + " informe; desde V39")
         LocalDateTime firmadoRecibe,

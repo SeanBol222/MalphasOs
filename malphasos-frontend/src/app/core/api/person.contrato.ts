@@ -100,7 +100,7 @@ export interface paths {
         head?: never;
         /**
          * Guardar mi firma
-         * @description La sustituye si ya habia una. Los informes ya cerrados conservan la que copiaron.
+         * @description La sustituye si ya habia una. Los informes ya cerrados y las ordenes ya aprobadas conservan la que copiaron.
          */
         patch: operations["save"];
         trace?: never;

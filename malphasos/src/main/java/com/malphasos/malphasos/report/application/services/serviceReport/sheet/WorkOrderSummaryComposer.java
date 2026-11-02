@@ -4,6 +4,7 @@ import static com.malphasos.malphasos.report.application.services.serviceReport.
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.oRaya;
 
 import com.malphasos.malphasos.report.application.model.WorkOrderSummarySheet;
+import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
 import com.malphasos.malphasos.shared.domain.image.DocumentImage;
@@ -44,6 +45,16 @@ public final class WorkOrderSummaryComposer {
      */
     public static WorkOrderSummarySheet compose(
             UUID idOrden, WorkOrderDocument orden, List<ServiceReport> reportes, String empresa, DocumentImage logo) {
+        return compose(idOrden, orden, reportes, empresa, logo, ServiceReport::getRecibe);
+    }
+
+    /**
+     * @param quienRecibe quien recibió cada reporte, ya resuelto: lo escrito, o la ficha de la persona
+     *     registrada que firmó (V55)
+     */
+    public static WorkOrderSummarySheet compose(
+            UUID idOrden, WorkOrderDocument orden, List<ServiceReport> reportes, String empresa, DocumentImage logo,
+            Function<ServiceReport, Handover> quienRecibe) {
         Map<UUID, ServiceReport> porEquipo = reportes.stream()
                 .collect(Collectors.toMap(ServiceReport::getIdEquipoCliente, Function.identity()));
 
@@ -65,7 +76,7 @@ public final class WorkOrderSummaryComposer {
                     reporte.numero(),
                     reporte.getFinalizado() == null ? SheetFormat.SIN_DATO : fechaCorta(reporte.getFinalizado().toLocalDate()),
                     resultado == null ? SheetFormat.SIN_DATO : RESULTADO.get(resultado),
-                    reporte.getRecibe() == null ? SheetFormat.SIN_DATO : reporte.getRecibe().nombre(),
+                    nombreDe(quienRecibe.apply(reporte)),
                     resultado != null && resultado != ServiceResult.OPERATIVO));
         }
 
@@ -116,5 +127,9 @@ public final class WorkOrderSummaryComposer {
     static String unir(String separador, String... partes) {
         return Stream.of(partes).filter(parte -> parte != null && !parte.isBlank())
                 .collect(Collectors.joining(separador));
+    }
+
+    private static String nombreDe(Handover recibe) {
+        return recibe == null ? SheetFormat.SIN_DATO : recibe.nombre();
     }
 }
