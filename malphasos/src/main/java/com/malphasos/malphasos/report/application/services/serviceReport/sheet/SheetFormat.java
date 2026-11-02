@@ -1,5 +1,7 @@
 package com.malphasos.malphasos.report.application.services.serviceReport.sheet;
 
+import com.malphasos.malphasos.report.application.model.ApprovalLine;
+import com.malphasos.malphasos.report.application.model.OrderApproval;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -48,5 +50,22 @@ public final class SheetFormat {
     /** El texto, o la raya si no hay. */
     public static String oRaya(String texto) {
         return texto == null || texto.isBlank() ? SIN_DATO : texto;
+    }
+
+    /**
+     * La línea de quien aprobó la orden (V54): «Supervisor responsable · Ingeniero biomédico · Aprobó el 2
+     * nov 2026», con su firma. Nula sin aprobación, y entonces cada documento deja la suya para firmar a mano.
+     */
+    public static ApprovalLine lineaDeAprobacion(OrderApproval aprobacion) {
+        if (aprobacion == null) {
+            return null;
+        }
+        String cargo = aprobacion.cargo() == null || aprobacion.cargo().isBlank() ? null : aprobacion.cargo();
+
+        return new ApprovalLine(
+                oRaya(aprobacion.nombre()),
+                "Supervisor responsable" + (cargo == null ? "" : " · " + cargo)
+                        + " · Aprobó el " + fechaCorta(aprobacion.fecha()),
+                aprobacion.firma() == null ? null : aprobacion.firma().dataUri());
     }
 }

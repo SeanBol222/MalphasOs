@@ -3,9 +3,11 @@ package com.malphasos.malphasos.report.application.services.serviceReport.sheet;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.SIN_DATO;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.conSigno;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.fechaCorta;
+import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.lineaDeAprobacion;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.numero;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.oRaya;
 
+import com.malphasos.malphasos.report.application.model.ApprovalLine;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
 import com.malphasos.malphasos.report.application.model.ReportSheet;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
@@ -87,6 +89,8 @@ public final class ReportSheetComposer {
         String verificacion = verificacion(lecturas, documento);
         String supervisor = unidos(cliente.responsables());
         Handover recibe = vista.recibe();
+        // La línea de firma es de quien aprobó (V54); la ficha del cliente sigue diciendo quién supervisa.
+        ApprovalLine aprobacion = lineaDeAprobacion(vista.aprobacion());
 
         return new ReportSheet(
                 reporte.getEstado() != ReportState.FINALIZADO,
@@ -122,11 +126,13 @@ public final class ReportSheetComposer {
                 new ReportSheet.Firmas(
                         oRaya(documento.ingeniero()),
                         dataUri(vista.firmaIngeniero()),
-                        supervisor,
+                        aprobacion == null ? supervisor : aprobacion.nombre(),
                         recibe == null ? SIN_DATO : oRaya(unir(" · ", recibe.nombre(),
                                 recibe.cedula() == null ? null : "C.C. " + recibe.cedula())),
                         recibe == null || recibe.cargo() == null ? "Recibe" : "Recibe · " + recibe.cargo(),
-                        dataUri(vista.firmaRecibe())),
+                        dataUri(vista.firmaRecibe()),
+                        aprobacion == null ? "Supervisor responsable" : aprobacion.detalle(),
+                        aprobacion == null ? null : aprobacion.firma()),
                 empresa == null ? "" : unir(" · ", empresa.codigoInforme(),
                         unir(", ", empresa.direccion(), empresa.ciudad()), empresa.movil()),
                 paginas,

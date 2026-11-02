@@ -300,6 +300,44 @@ class ReportHtmlRendererTest {
             assertThat(hoja.select("[data-firma-ingeniero], [data-firma-recibe-trazo]")).isEmpty();
             assertThat(texto(hoja, "[data-firma-profesional]")).isEqualTo("—");
         }
+
+        @Test
+        @DisplayName("sin aprobación, la línea del supervisor es para firmar a mano, con quienes supervisan (V54)")
+        void sinAprobacion() {
+            Document hoja = pintar(new UnInforme());
+
+            assertThat(hoja.select("[data-firma-supervisor]")).isEmpty();
+            assertThat(texto(hoja, "[data-firma-supervisor-detalle]")).isEqualTo("Supervisor responsable");
+            assertThat(texto(hoja, "[data-firma-supervisor-nombre]"))
+                    .isEqualTo(texto(hoja, "[data-supervisor]"));
+        }
+
+        @Test
+        @DisplayName("aprobada, la línea del supervisor lleva a quien aprobó, su cargo, el día y su firma (V54)")
+        void aprobada() {
+            UnInforme informe = new UnInforme();
+            informe.aprobacion = new com.malphasos.malphasos.report.application.model.OrderApproval(
+                    "Luis Peña", "Ingeniero biomédico", OTRO_PNG, java.time.LocalDate.of(2026, 11, 2));
+            Document hoja = pintar(informe);
+
+            assertThat(hoja.selectFirst("[data-firma-supervisor]").attr("src")).isEqualTo(OTRO_PNG.dataUri());
+            assertThat(texto(hoja, "[data-firma-supervisor-nombre]")).isEqualTo("Luis Peña");
+            assertThat(texto(hoja, "[data-firma-supervisor-detalle]"))
+                    .isEqualTo("Supervisor responsable · Ingeniero biomédico · Aprobó el 02 nov 2026");
+        }
+
+        @Test
+        @DisplayName("aprobada por un supervisor sin cargo ni firma en el almacén: sin cargo y sin trazo")
+        void aprobadaSinCargoNiFirma() {
+            UnInforme informe = new UnInforme();
+            informe.aprobacion = new com.malphasos.malphasos.report.application.model.OrderApproval(
+                    "Dora Gómez", " ", null, java.time.LocalDate.of(2026, 11, 2));
+            Document hoja = pintar(informe);
+
+            assertThat(hoja.select("[data-firma-supervisor]")).isEmpty();
+            assertThat(texto(hoja, "[data-firma-supervisor-detalle]"))
+                    .isEqualTo("Supervisor responsable · Aprobó el 02 nov 2026");
+        }
     }
 
     @Nested

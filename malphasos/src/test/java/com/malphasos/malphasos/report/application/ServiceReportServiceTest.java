@@ -139,6 +139,8 @@ class ServiceReportServiceTest {
     @Mock private WorkOrderSchedulePdfPort workOrderSchedulePdfPort;
     @Mock private ServiceCompanyServicePort serviceCompanyServicePort;
     @Mock private ServiceReportDrafts serviceReportDrafts;
+    @Mock private com.malphasos.malphasos.person.application.ports.input.PersonCommunicationPort personCommunicationPort;
+    @Mock private com.malphasos.malphasos.client.application.ports.input.ClientServicePort clientServicePort;
 
     @InjectMocks private ServiceReportService service;
 
@@ -1771,6 +1773,45 @@ class ServiceReportServiceTest {
             assertThat(hoja.getValue().proximo()).isEqualTo("14 oct 2027");
             assertThat(hoja.getValue().filas()).hasSize(1);
             verify(workOrderServicePort).documentOf(unaOrdenEnEjecucion());
+        }
+
+        @Test
+        @DisplayName("aprobada, el resumen y el cronograma del ZIP llevan a quien aprobó, su cargo y su firma (V54)")
+        void conAprobacion() {
+            ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"),
+                    com.malphasos.malphasos.report.application.sheet.UnaOrdenAtendida.MONITOR);
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(uno));
+            estubarResumen();
+            when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+            UUID supervisor = UUID.randomUUID();
+            when(workOrderApprovalServicePort.findActive(ORDEN, ReadScope.unrestricted())).thenReturn(Optional.of(
+                    com.malphasos.malphasos.workorder.domain.approval.WorkOrderApproval.rehydrate(UUID.randomUUID(),
+                            ORDEN, supervisor, supervisor, "huella", java.time.LocalDateTime.of(2026, 11, 2, 9, 0),
+                            true)));
+            when(personCommunicationPort.findById(supervisor)).thenReturn(
+                    new com.malphasos.malphasos.person.application.model.communication.PersonCommunicationResponse(
+                            supervisor, "1", "Luis", null, "Peña", null, null, true, List.of(), List.of()));
+            when(clientServicePort.findById(any(), any())).thenReturn(
+                    com.malphasos.malphasos.client.domain.client.Client.rehydrate(UUID.randomUUID(), "900",
+                            com.malphasos.malphasos.client.domain.client.IdentificationType.NIT_JURIDICO, "Clínica",
+                            "CLI", UUID.randomUUID(), true, List.of(), List.of(), List.of(
+                                    new com.malphasos.malphasos.client.domain.client.ClientSupervisor(
+                                            supervisor, "Ingeniero biomédico"))));
+            com.malphasos.malphasos.shared.domain.image.DocumentImage firma =
+                    new com.malphasos.malphasos.shared.domain.image.DocumentImage(new byte[] {7}, "image/png");
+            when(documentImageStorePort.find("huella")).thenReturn(Optional.of(firma));
+
+            service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted());
+
+            var aprobacion = new com.malphasos.malphasos.report.application.model.ApprovalLine("Luis Peña",
+                    "Supervisor responsable · Ingeniero biomédico · Aprobó el 02 nov 2026", firma.dataUri());
+            ArgumentCaptor<WorkOrderSummarySheet> resumen = ArgumentCaptor.forClass(WorkOrderSummarySheet.class);
+            verify(workOrderSummaryPdfPort).render(resumen.capture());
+            assertThat(resumen.getValue().aprobacion()).isEqualTo(aprobacion);
+            ArgumentCaptor<com.malphasos.malphasos.report.application.model.WorkOrderScheduleSheet> cronograma =
+                    ArgumentCaptor.forClass(com.malphasos.malphasos.report.application.model.WorkOrderScheduleSheet.class);
+            verify(workOrderSchedulePdfPort).render(cronograma.capture());
+            assertThat(cronograma.getValue().aprobacion()).isEqualTo(aprobacion);
         }
 
         @Test

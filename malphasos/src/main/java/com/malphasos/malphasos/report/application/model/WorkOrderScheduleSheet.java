@@ -16,6 +16,7 @@ import java.util.UUID;
  * @param proximo el del próximo mantenimiento, «18 abr 2027»
  * @param periodicidad «semestral», para la nota del pie
  * @param meses los trece del plan: el del servicio y los doce siguientes
+ * @param aprobacion la línea del supervisor que aprobó la orden (V54), o nula: entonces se firma a mano
  */
 public record WorkOrderScheduleSheet(
         UUID idOrden,
@@ -29,11 +30,21 @@ public record WorkOrderScheduleSheet(
         String proximo,
         String periodicidad,
         List<Mes> meses,
-        List<Fila> filas) {
+        List<Fila> filas,
+        ApprovalLine aprobacion) {
 
     public WorkOrderScheduleSheet {
         meses = List.copyOf(meses);
         filas = List.copyOf(filas);
+    }
+
+    /** Sin aprobación (V54): la línea del supervisor queda para firmar a mano. */
+    public WorkOrderScheduleSheet(
+            UUID idOrden, String numero, String empresa, String logo, String servicio, String cliente,
+            String ingeniero, String realizado, String proximo, String periodicidad, List<Mes> meses,
+            List<Fila> filas) {
+        this(idOrden, numero, empresa, logo, servicio, cliente, ingeniero, realizado, proximo, periodicidad,
+                meses, filas, null);
     }
 
     /** @param anio el año, solo en el primer mes y en enero; nulo en los demás */

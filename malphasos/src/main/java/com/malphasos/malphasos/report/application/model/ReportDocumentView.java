@@ -16,6 +16,7 @@ import com.malphasos.malphasos.shared.domain.image.DocumentImage;
  * @param firmaRecibe nula mientras quien recibe no firme (V39)
  * @param recibe quien recibió, ya resuelto: lo escrito en el reporte, o la ficha de la persona registrada
  *     que firmó (V55). Nulo si nadie
+ * @param aprobacion la aprobación vigente de la orden (V54), o nula mientras no la haya
  */
 public record ReportDocumentView(
         ServiceReport reporte,
@@ -24,7 +25,20 @@ public record ReportDocumentView(
         DocumentImage firmaIngeniero,
         DocumentImage firmaRecibe,
         boolean congelado,
-        Handover recibe) {
+        Handover recibe,
+        OrderApproval aprobacion) {
+
+    /** Sin aprobación: la de antes de V54. */
+    public ReportDocumentView(
+            ServiceReport reporte,
+            ReportDocument documento,
+            DocumentImage logo,
+            DocumentImage firmaIngeniero,
+            DocumentImage firmaRecibe,
+            boolean congelado,
+            Handover recibe) {
+        this(reporte, documento, logo, firmaIngeniero, firmaRecibe, congelado, recibe, null);
+    }
 
     /** Con quien recibe tal como está escrito en el reporte: lo de siempre, antes de V55. */
     public ReportDocumentView(

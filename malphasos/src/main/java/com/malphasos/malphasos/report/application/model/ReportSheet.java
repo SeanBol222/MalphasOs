@@ -77,9 +77,22 @@ public record ReportSheet(
     public record Parte(String titulo, String texto) {
     }
 
+    /**
+     * @param supervisor quien aprobó la orden (V54) o, mientras no la apruebe nadie, quienes la supervisan
+     * @param detalleSupervisor «Supervisor responsable», y con la aprobación su cargo y el día
+     * @param firmaSupervisor la firma de quien aprobó como data: URI, o nula
+     */
     public record Firmas(
             String ingeniero, String firmaIngeniero, String supervisor, String recibe, String cargoRecibe,
-            String firmaRecibe) {
+            String firmaRecibe, String detalleSupervisor, String firmaSupervisor) {
+
+        /** Sin aprobación: la línea del supervisor queda para firmar a mano. */
+        public Firmas(
+                String ingeniero, String firmaIngeniero, String supervisor, String recibe, String cargoRecibe,
+                String firmaRecibe) {
+            this(ingeniero, firmaIngeniero, supervisor, recibe, cargoRecibe, firmaRecibe,
+                    "Supervisor responsable", null);
+        }
     }
 
     /** Un patrón usado, una vez aunque se usara en dos verificaciones. */

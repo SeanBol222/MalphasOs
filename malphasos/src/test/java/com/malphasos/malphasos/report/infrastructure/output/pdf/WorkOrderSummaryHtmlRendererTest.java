@@ -97,4 +97,34 @@ class WorkOrderSummaryHtmlRendererTest {
         assertThat(Jsoup.parse(RENDERER.render(hoja)).select("[data-totales] strong").get(3).hasClass("ro-alerta"))
                 .isFalse();
     }
+
+    private static Document conAprobacion(com.malphasos.malphasos.report.application.model.OrderApproval aprobacion) {
+        WorkOrderSummarySheet hoja = WorkOrderSummaryComposer.compose(UnaOrdenAtendida.ORDEN,
+                UnaOrdenAtendida.documento(LocalDate.of(2026, 10, 18)), UnaOrdenAtendida.reportes(), "E", null,
+                com.malphasos.malphasos.report.domain.serviceReport.ServiceReport::getRecibe, aprobacion);
+
+        return Jsoup.parse(RENDERER.render(hoja));
+    }
+
+    @Test
+    @DisplayName("sin aprobación, el supervisor del cliente firma a mano con nombre y fecha (V54)")
+    void sinAprobacion() {
+        Document hoja = conAprobacion(null);
+
+        assertThat(hoja.select("[data-firma-supervisor]")).isEmpty();
+        assertThat(hoja.selectFirst("[data-firma-supervisor-nombre]").text()).isEqualTo("Supervisor del cliente");
+        assertThat(hoja.selectFirst("[data-firma-supervisor-detalle]").text()).isEqualTo("Nombre y fecha");
+    }
+
+    @Test
+    @DisplayName("aprobada, lleva a quien aprobó con su cargo, el día y su firma (V54)")
+    void aprobada() {
+        Document hoja = conAprobacion(new com.malphasos.malphasos.report.application.model.OrderApproval(
+                "Luis Peña", "Ingeniero biomédico", LOGO, LocalDate.of(2026, 11, 2)));
+
+        assertThat(hoja.selectFirst("[data-firma-supervisor]").attr("src")).isEqualTo(LOGO.dataUri());
+        assertThat(hoja.selectFirst("[data-firma-supervisor-nombre]").text()).isEqualTo("Luis Peña");
+        assertThat(hoja.selectFirst("[data-firma-supervisor-detalle]").text())
+                .isEqualTo("Supervisor responsable · Ingeniero biomédico · Aprobó el 02 nov 2026");
+    }
 }

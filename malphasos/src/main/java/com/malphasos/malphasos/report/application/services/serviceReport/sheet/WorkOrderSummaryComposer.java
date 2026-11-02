@@ -3,6 +3,7 @@ package com.malphasos.malphasos.report.application.services.serviceReport.sheet;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.fechaCorta;
 import static com.malphasos.malphasos.report.application.services.serviceReport.sheet.SheetFormat.oRaya;
 
+import com.malphasos.malphasos.report.application.model.OrderApproval;
 import com.malphasos.malphasos.report.application.model.WorkOrderSummarySheet;
 import com.malphasos.malphasos.report.domain.serviceReport.Handover;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
@@ -55,6 +56,13 @@ public final class WorkOrderSummaryComposer {
     public static WorkOrderSummarySheet compose(
             UUID idOrden, WorkOrderDocument orden, List<ServiceReport> reportes, String empresa, DocumentImage logo,
             Function<ServiceReport, Handover> quienRecibe) {
+        return compose(idOrden, orden, reportes, empresa, logo, quienRecibe, null);
+    }
+
+    /** @param aprobacion la vigente de la orden (V54), o nula: entonces la línea del supervisor se firma a mano */
+    public static WorkOrderSummarySheet compose(
+            UUID idOrden, WorkOrderDocument orden, List<ServiceReport> reportes, String empresa, DocumentImage logo,
+            Function<ServiceReport, Handover> quienRecibe, OrderApproval aprobacion) {
         Map<UUID, ServiceReport> porEquipo = reportes.stream()
                 .collect(Collectors.toMap(ServiceReport::getIdEquipoCliente, Function.identity()));
 
@@ -89,7 +97,8 @@ public final class WorkOrderSummaryComposer {
                 cliente(orden),
                 oRaya(orden.ingeniero()),
                 totales(reportes),
-                filas);
+                filas,
+                SheetFormat.lineaDeAprobacion(aprobacion));
     }
 
     /** «Orden N.º 1DC6F5 · Preventivo anual · Ejecutada el 18 oct 2026», o «En curso» si no se ejecutó. */
