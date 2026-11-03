@@ -35,3 +35,10 @@ target/
 # estan versionados y llevan el contenido y el historial. Si se clona el proyecto, hay que recrearlo:
 # la receta esta en CONVENCIONES.md, en «Como se trabaja aqui».
 CLAUDE.md
+
+# Material de referencia de clientes reales: informes, hojas de vida y lo que se use para disenar o
+# probar la carga de datos (2026-11-03): `raw/` en la raiz, con los informes exportados de la aplicacion
+# anterior, y `Documentation/raw/`. Son datos reales y no se publican, ni aqui ni en ningun otro
+# sitio del repositorio: el codigo y las pruebas usan datos inventados.
+/raw/
+Documentation/raw/
