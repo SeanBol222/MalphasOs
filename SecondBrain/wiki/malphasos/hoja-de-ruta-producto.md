@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Hoja de ruta del producto
@@ -653,6 +653,36 @@ cliente; en un consultorio, el doctor hace las dos cosas. Decidido —con el dia
 
 **Con las seis tandas el supervisor está completo.** El marcador de requisitos no se mueve: ningún RF de la
 ERS describe la aprobación de la orden por el cliente.
+## La versión 1.1.0: la carga de datos de otro sistema (decidida el 2026-11-03)
+
+Pedido por el usuario tras desplegar la 1.0.0 en su servidor: traer la información de la aplicación que
+la empresa usaba antes —**otra, en otro lenguaje, que no es `bolivarbioingenieria-app`**— sin pasarla a
+mano. Decidido:
+
+- **Un formato publicado, no un conversor dentro de MalphasOS**: un JSON con su esquema, en
+  `contracts/carga/`. MalphasOS no sabe nada del sistema de origen; el conversor vive al lado de él.
+- **Entra todo, historial incluido, y con los formatos actuales**: las órdenes ya ejecutadas y sus
+  reportes cerrados se componen y se congelan como cualquier reporte de MalphasOS. **No se adjunta el PDF
+  original.** Sin firmas: el documento dice que es importado.
+- **Lo que ya existe no se toca**: se reutiliza y el informe de la validación lista las diferencias.
+- **Validar antes de aplicar**, y aplicar todo o nada.
+- **Tres archivos y no uno**, pedido por el usuario: se monta cliente por cliente en el servidor de prueba,
+  y en la nube se cargan los mismos archivos en el mismo orden.
+
+Ver [[decisiones-tecnicas-malphasos]] para el porqué de las `ref` y del `origen`.
+
+| # | Tanda | Estado |
+|---|---|---|
+| 1 | **El formato**, en **tres archivos** que se cargan en orden —el catálogo de la empresa con sus ingenieros, cada cliente con sus equipos, el historial de cada cliente—: el esquema, un ejemplo inventado de cada uno y la guía, probados convirtiendo 129 informes reales de un cliente | **Escrito el 2026-11-03**, en revisión del usuario |
+| 2 | La migración del historial importado: la marca de importado, el número anterior y lo que haga falta para la serie vacía y el documento sin firmas | Por decidir con las cuatro decisiones abiertas de la guía |
+| 3 | Validar: leer, resolver refs, comprobar reglas; sin escribir | — |
+| 4 | Aplicar, en orden de dependencias, en una transacción, recordando cada ref bajo su origen | — |
+| 5 | La pantalla «Importar datos», solo para el SuperUsuario | — |
+| 6 | La carga real en el servidor de prueba, con el conversor fuera del repositorio | — |
+| 7 | `DESPLIEGUE.md` con la red local —el puerto, el Caddyfile por IP, el SuperUsuario en minúsculas—, el wiki y el `CHANGELOG` | — |
+
+**Los informes reales viven en `raw/`, ignorado por git**, igual que `Documentation/raw/`. Ni el formato
+ni sus pruebas llevan un solo dato de ellos.
 
 ## El orden propuesto
 

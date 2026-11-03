@@ -1,0 +1,207 @@
+{
+  "formato": "malphasos-carga/1",
+  "origen": "sistema-anterior",
+  "contenido": "catalogo",
+  "descripcion": "Ejemplo con datos inventados: el catálogo de la empresa y su ingeniero.",
+  "catalogo": {
+    "marcas": [
+      {
+        "ref": "marca-welch",
+        "nombre": "Welch Allyn"
+      },
+      {
+        "ref": "marca-generico",
+        "nombre": "Genérico"
+      }
+    ],
+    "fabricantes": [
+      {
+        "ref": "fab-welch",
+        "nombre": "Welch Allyn Inc.",
+        "pais": "USA"
+      },
+      {
+        "ref": "fab-generico",
+        "nombre": "Genérico"
+      }
+    ],
+    "protocolos": [
+      {
+        "ref": "prot-desinfeccion",
+        "nombre": "Desinfección técnica inicial",
+        "descripcion": "Desinfección de las superficies del equipo antes de manipularlo."
+      },
+      {
+        "ref": "prot-neumatico",
+        "nombre": "Sistema neumático",
+        "descripcion": "Verificación, ajuste y limpieza del manómetro, el brazalete, la pera y la válvula."
+      },
+      {
+        "ref": "prot-electronico",
+        "nombre": "Sistema electrónico",
+        "descripcion": "Verificación, ajuste y limpieza de la tarjeta, los conectores y el display."
+      },
+      {
+        "ref": "prot-limpieza",
+        "nombre": "Limpieza general",
+        "descripcion": "Limpieza final del equipo."
+      }
+    ],
+    "tiposEquipo": [
+      {
+        "ref": "tipo-tensiometro",
+        "nombre": "Tensiómetro análogo",
+        "definicionTecnica": "Instrumento para medir la presión arterial por método auscultatorio.",
+        "recomendacionesCuidado": "No inflar el brazalete sin estar puesto en el brazo.",
+        "tecnologiaPredominante": "Mecánica",
+        "uso": "Diagnóstico médico",
+        "protocolos": [
+          {
+            "protocolo": "prot-desinfeccion"
+          },
+          {
+            "protocolo": "prot-neumatico"
+          },
+          {
+            "protocolo": "prot-limpieza"
+          }
+        ],
+        "verificaciones": [
+          {
+            "ref": "ver-tensiometro-presion",
+            "magnitud": "presion",
+            "unidad": "mmHg",
+            "modalidad": "patron_constante",
+            "cantidadDatos": 1,
+            "tolerancia": 3,
+            "puntos": [
+              50,
+              100,
+              150,
+              200,
+              250
+            ]
+          }
+        ]
+      },
+      {
+        "ref": "tipo-termohigrometro",
+        "nombre": "Termohigrómetro digital",
+        "definicionTecnica": "Instrumento que mide la temperatura y la humedad relativa del ambiente.",
+        "recomendacionesCuidado": "Cambiar la batería cuando el display pierda contraste.",
+        "tecnologiaPredominante": "Electrónica",
+        "uso": "Control de temperatura",
+        "protocolos": [
+          {
+            "protocolo": "prot-desinfeccion"
+          },
+          {
+            "protocolo": "prot-electronico",
+            "indicacion": "Incluye la sonda, si la tiene."
+          },
+          {
+            "protocolo": "prot-limpieza"
+          }
+        ],
+        "verificaciones": [
+          {
+            "ref": "ver-termo-temperatura",
+            "magnitud": "temperatura",
+            "unidad": "°C",
+            "modalidad": "patron_equipo_variable",
+            "tolerancia": 1
+          },
+          {
+            "ref": "ver-termo-humedad",
+            "magnitud": "humedad_relativa",
+            "unidad": "%HR",
+            "modalidad": "patron_equipo_variable",
+            "tolerancia": 5
+          }
+        ]
+      }
+    ],
+    "modelos": [
+      {
+        "ref": "mod-ds44",
+        "tipo": "tipo-tensiometro",
+        "marca": "marca-welch",
+        "fabricante": "fab-welch",
+        "nombre": "DS44",
+        "fichaTecnica": {
+          "riesgo": "IIA",
+          "alimentacion": "No aplica"
+        }
+      },
+      {
+        "ref": "mod-termo-digital",
+        "tipo": "tipo-termohigrometro",
+        "marca": "marca-generico",
+        "fabricante": "fab-generico",
+        "nombre": "Digital",
+        "fichaTecnica": {
+          "riesgo": "I",
+          "alimentacion": "DC",
+          "voltaje": 3
+        }
+      }
+    ],
+    "patrones": [
+      {
+        "ref": "pat-manometro",
+        "nombre": "Manómetro digital",
+        "marca": "Fluke",
+        "modelo": "700G",
+        "serie": "MD-0001",
+        "codigoInterno": "PAT-01",
+        "rango": "0 a 300 mmHg",
+        "resolucion": "0,1 mmHg",
+        "certificados": [
+          {
+            "numero": "CAL-2024-001",
+            "fechaCalibracion": "2024-02-01",
+            "vencimiento": "2025-02-01",
+            "empresaCalibradora": "Laboratorio Ejemplo"
+          },
+          {
+            "numero": "CAL-2025-014",
+            "fechaCalibracion": "2025-01-28",
+            "vencimiento": "2026-01-28",
+            "empresaCalibradora": "Laboratorio Ejemplo"
+          }
+        ]
+      },
+      {
+        "ref": "pat-termohigrometro",
+        "nombre": "Termohigrómetro patrón",
+        "marca": "Testo",
+        "modelo": "608-H1",
+        "serie": "TH-0002",
+        "codigoInterno": "PAT-02",
+        "rango": "-10 a 70 °C y 10 a 95 %HR",
+        "resolucion": "0,1 °C",
+        "certificados": [
+          {
+            "numero": "CAL-2024-077",
+            "fechaCalibracion": "2024-06-10",
+            "vencimiento": "2025-06-10",
+            "empresaCalibradora": "Laboratorio Ejemplo"
+          }
+        ]
+      }
+    ]
+  },
+  "personas": [
+    {
+      "ref": "per-ing-1",
+      "cedula": "1000000001",
+      "tipo": "ENGINEER",
+      "primerNombre": "Andrés",
+      "primerApellido": "Gómez",
+      "segundoApellido": "Ruiz",
+      "correos": [
+        "andres.gomez@ejemplo.com"
+      ]
+    }
+  ]
+}

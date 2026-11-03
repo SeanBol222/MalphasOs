@@ -1,0 +1,1180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://malphasos.dev/contracts/carga/malphasos-carga-1.schema.json",
+  "title": "Carga de datos de MalphasOS, versión 1",
+  "description": "Lo que MalphasOS acepta para cargar los datos de otro sistema, en tres archivos que se cargan en orden: el catálogo de la empresa, cada cliente con sus equipos, y el historial de cada cliente. Las reglas que este esquema no puede expresar —que una referencia exista, que una unidad sea de su magnitud— las comprueba la validación de MalphasOS. Ver GUIA.md.",
+  "type": "object",
+  "required": [
+    "formato",
+    "origen",
+    "contenido"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "formato": {
+      "const": "malphasos-carga/1",
+      "description": "La versión del formato. Una carga con otra versión se rechaza entera."
+    },
+    "origen": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "description": "El nombre del sistema del que salen los datos, siempre el mismo para ese sistema. MalphasOS recuerda cada ref bajo su origen: así una segunda carga reconoce lo que ya entró."
+    },
+    "contenido": {
+      "enum": [
+        "catalogo",
+        "cliente",
+        "historial"
+      ],
+      "description": "Qué archivo es. catalogo: lo de la empresa, que sirve a todos los clientes —el catálogo de equipos, protocolos, patrones e ingenieros—. cliente: un cliente con sus supervisores, sedes, áreas y equipos. historial: las órdenes ejecutadas de un cliente con sus reportes. Se cargan en ese orden."
+    },
+    "cliente": {
+      "$ref": "#/$defs/ref",
+      "description": "Solo en el historial: la ref del cliente al que pertenecen todas sus órdenes."
+    },
+    "descripcion": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Texto libre para quien revise la carga: qué contiene, de cuándo es."
+    },
+    "catalogo": {
+      "$ref": "#/$defs/catalogo"
+    },
+    "personas": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/persona"
+      }
+    },
+    "clientes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/cliente"
+      }
+    },
+    "equipos": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/equipo"
+      }
+    },
+    "ordenes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/orden"
+      }
+    }
+  },
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$",
+      "description": "Identificador que pone el conversor, único en todo el archivo y estable entre cargas: la misma cosa lleva siempre la misma ref. Lo mejor es derivarla del identificador del sistema de origen."
+    },
+    "texto": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "textoLargo": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date"
+    },
+    "fechaHora": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "codigoPais": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "Código ISO 3166-1 alfa-3: COL, ECU, USA."
+    },
+    "correo": {
+      "type": "string",
+      "format": "email",
+      "maxLength": 255
+    },
+    "telefono": {
+      "type": "string",
+      "pattern": "^[0-9+() -]{3,30}$"
+    },
+    "catalogo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "marcas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/marca"
+          }
+        },
+        "fabricantes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fabricante"
+          }
+        },
+        "protocolos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/protocolo"
+          }
+        },
+        "tiposEquipo": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tipoEquipo"
+          }
+        },
+        "modelos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modelo"
+          }
+        },
+        "patrones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/patron"
+          }
+        }
+      }
+    },
+    "marca": {
+      "type": "object",
+      "required": [
+        "ref",
+        "nombre"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "nombre": {
+          "$ref": "#/$defs/texto"
+        }
+      }
+    },
+    "fabricante": {
+      "type": "object",
+      "required": [
+        "ref",
+        "nombre"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "nombre": {
+          "$ref": "#/$defs/texto"
+        },
+        "pais": {
+          "$ref": "#/$defs/codigoPais"
+        }
+      }
+    },
+    "protocolo": {
+      "type": "object",
+      "required": [
+        "ref",
+        "nombre",
+        "descripcion"
+      ],
+      "additionalProperties": false,
+      "description": "Un paso de mantenimiento del catálogo. Los reportes lo marcan hecho o no aplica.",
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "nombre": {
+          "$ref": "#/$defs/texto"
+        },
+        "descripcion": {
+          "$ref": "#/$defs/textoLargo"
+        }
+      }
+    },
+    "tipoEquipo": {
+      "type": "object",
+      "required": [
+        "ref",
+        "nombre",
+        "definicionTecnica",
+        "recomendacionesCuidado",
+        "tecnologiaPredominante"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "nombre": {
+          "$ref": "#/$defs/texto"
+        },
+        "definicionTecnica": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "recomendacionesCuidado": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "tecnologiaPredominante": {
+          "$ref": "#/$defs/texto"
+        },
+        "uso": {
+          "$ref": "#/$defs/texto"
+        },
+        "limpiezaCotidiana": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "valorUnitarioMantenimiento": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "protocolos": {
+          "type": "array",
+          "description": "Los pasos que se siguen en este tipo, en orden: la posición es la prioridad.",
+          "items": {
+            "type": "object",
+            "required": [
+              "protocolo"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "protocolo": {
+                "$ref": "#/$defs/ref"
+              },
+              "indicacion": {
+                "$ref": "#/$defs/textoLargo"
+              }
+            }
+          }
+        },
+        "verificaciones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/verificacion"
+          }
+        }
+      }
+    },
+    "verificacion": {
+      "type": "object",
+      "required": [
+        "ref",
+        "magnitud",
+        "unidad",
+        "modalidad"
+      ],
+      "additionalProperties": false,
+      "description": "Una magnitud que se mide en este tipo de equipo. Un termohigrómetro tiene dos: temperatura y humedad.",
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "magnitud": {
+          "type": "string",
+          "description": "El código de una magnitud del catálogo de MalphasOS: temperatura, presion, masa. La lista está en GUIA.md."
+        },
+        "unidad": {
+          "type": "string",
+          "description": "El símbolo de una unidad de esa magnitud: °C, mmHg, kg."
+        },
+        "modalidad": {
+          "enum": [
+            "patron_constante",
+            "equipo_constante",
+            "patron_equipo_variable"
+          ],
+          "description": "patron_constante: el patrón se fija en cada punto y se lee el equipo. equipo_constante: al revés. patron_equipo_variable: se leen los dos libremente, sin puntos."
+        },
+        "cantidadDatos": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Cuántas lecturas se toman en cada punto. Obligatorio en las dos modalidades constantes, prohibido en la variable."
+        },
+        "tolerancia": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "El error máximo admitido, en la unidad de la verificación. Sin ella, las lecturas no se califican de conformes."
+        },
+        "puntos": {
+          "type": "array",
+          "description": "Los valores en los que se verifica. Solo en las modalidades constantes.",
+          "items": {
+            "type": "number"
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "modalidad": {
+                "const": "patron_equipo_variable"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "cantidadDatos"
+                  ]
+                },
+                {
+                  "required": [
+                    "puntos"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "cantidadDatos",
+              "puntos"
+            ],
+            "properties": {
+              "puntos": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "modelo": {
+      "type": "object",
+      "required": [
+        "ref",
+        "tipo",
+        "marca",
+        "fabricante",
+        "nombre"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "tipo": {
+          "$ref": "#/$defs/ref"
+        },
+        "marca": {
+          "$ref": "#/$defs/ref"
+        },
+        "fabricante": {
+          "$ref": "#/$defs/ref"
+        },
+        "nombre": {
+          "$ref": "#/$defs/texto"
+        },
+        "invima": {
+          "$ref": "#/$defs/texto"
+        },
+        "fichaTecnica": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Lo que dice la placa: es igual en todas las máquinas de este modelo.",
+          "properties": {
+            "riesgo": {
+              "enum": [
+                "I",
+                "IIA",
+                "IIB",
+                "III"
+              ]
+            },
+            "alimentacion": {
+              "$ref": "#/$defs/texto"
+            },
+            "voltaje": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "potencia": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "amperaje": {
+              "type": "number",
+              "minimum": 0
+            },
+            "frecuencia": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "caracteristicas": {
+              "$ref": "#/$defs/textoLargo"
+            }
+          }
+        }
+      }
+    },
+    "patron": {
+      "type": "object",
+      "required": [
+        "ref",
+        "nombre",
+        "serie",
+        "certificados"
+      ],
+      "additionalProperties": false,
+      "description": "Un equipo patrón con todos los certificados que ha tenido. El catálogo se queda con el más reciente; cada reporte, con el que estaba vigente el día del servicio.",
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "nombre": {
+          "$ref": "#/$defs/texto"
+        },
+        "marca": {
+          "$ref": "#/$defs/texto"
+        },
+        "modelo": {
+          "$ref": "#/$defs/texto"
+        },
+        "serie": {
+          "$ref": "#/$defs/texto"
+        },
+        "codigoInterno": {
+          "$ref": "#/$defs/texto"
+        },
+        "rango": {
+          "$ref": "#/$defs/texto"
+        },
+        "resolucion": {
+          "$ref": "#/$defs/texto"
+        },
+        "certificados": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "numero",
+              "vencimiento"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "numero": {
+                "$ref": "#/$defs/texto"
+              },
+              "fechaCalibracion": {
+                "$ref": "#/$defs/fecha"
+              },
+              "vencimiento": {
+                "$ref": "#/$defs/fecha"
+              },
+              "empresaCalibradora": {
+                "$ref": "#/$defs/texto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "persona": {
+      "type": "object",
+      "required": [
+        "ref",
+        "cedula",
+        "tipo",
+        "primerNombre",
+        "primerApellido"
+      ],
+      "additionalProperties": false,
+      "description": "Entra como ficha sin cuenta. La cuenta se le da después desde MalphasOS, con «Dar acceso»: una carga nunca lleva contraseñas.",
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "cedula": {
+          "type": "string",
+          "pattern": "^[0-9A-Za-z-]{4,20}$"
+        },
+        "tipo": {
+          "enum": [
+            "ENGINEER",
+            "ADMIN",
+            "SUPERVISOR"
+          ]
+        },
+        "primerNombre": {
+          "$ref": "#/$defs/texto"
+        },
+        "segundoNombre": {
+          "$ref": "#/$defs/texto"
+        },
+        "primerApellido": {
+          "$ref": "#/$defs/texto"
+        },
+        "segundoApellido": {
+          "$ref": "#/$defs/texto"
+        },
+        "correos": {
+          "type": "array",
+          "description": "El primero será el de la cuenta cuando se le dé acceso.",
+          "items": {
+            "$ref": "#/$defs/correo"
+          },
+          "uniqueItems": true
+        },
+        "telefonos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/telefono"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "cliente": {
+      "type": "object",
+      "required": [
+        "ref",
+        "documento",
+        "tipoIdentificacion",
+        "razonSocial"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "documento": {
+          "type": "string",
+          "pattern": "^[0-9A-Za-z-]{4,20}$",
+          "description": "NIT o cédula, con el dígito de verificación si lo tiene: 900123456-7."
+        },
+        "tipoIdentificacion": {
+          "enum": [
+            "NIT_juridico",
+            "NIT_natural",
+            "CC",
+            "CE"
+          ]
+        },
+        "razonSocial": {
+          "$ref": "#/$defs/texto"
+        },
+        "pais": {
+          "$ref": "#/$defs/codigoPais"
+        },
+        "sigla": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{2,6}$",
+          "description": "Encabeza el número de las hojas de vida del cliente. Si falta, MalphasOS la genera de la razón social."
+        },
+        "correos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/correo"
+          },
+          "uniqueItems": true
+        },
+        "telefonos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/telefono"
+          },
+          "uniqueItems": true
+        },
+        "supervisores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "persona"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "persona": {
+                "$ref": "#/$defs/ref"
+              },
+              "cargo": {
+                "$ref": "#/$defs/texto"
+              }
+            }
+          }
+        },
+        "sedes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sede"
+          }
+        }
+      }
+    },
+    "sede": {
+      "type": "object",
+      "required": [
+        "ref",
+        "nombre",
+        "ciudad",
+        "calle",
+        "carrera",
+        "numero"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "nombre": {
+          "$ref": "#/$defs/texto"
+        },
+        "ciudad": {
+          "type": "object",
+          "required": [
+            "pais",
+            "nombre"
+          ],
+          "additionalProperties": false,
+          "description": "Se busca en el catálogo de ciudades sin tildes ni mayúsculas. Un nombre que se repite en el país es ambiguo y la validación lo dice.",
+          "properties": {
+            "pais": {
+              "$ref": "#/$defs/codigoPais"
+            },
+            "nombre": {
+              "$ref": "#/$defs/texto"
+            }
+          }
+        },
+        "calle": {
+          "$ref": "#/$defs/texto"
+        },
+        "carrera": {
+          "$ref": "#/$defs/texto"
+        },
+        "numero": {
+          "$ref": "#/$defs/texto"
+        },
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "ref",
+              "nombre"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "ref": {
+                "$ref": "#/$defs/ref"
+              },
+              "nombre": {
+                "$ref": "#/$defs/texto"
+              }
+            }
+          }
+        }
+      }
+    },
+    "equipo": {
+      "type": "object",
+      "required": [
+        "ref",
+        "area",
+        "modelo"
+      ],
+      "additionalProperties": false,
+      "description": "Una máquina instalada en un área de un cliente. Se describe una vez, como está hoy; los reportes la nombran por su ref.",
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "area": {
+          "$ref": "#/$defs/ref"
+        },
+        "modelo": {
+          "$ref": "#/$defs/ref"
+        },
+        "serie": {
+          "$ref": "#/$defs/texto",
+          "description": "Si la máquina no tiene serie legible, se omite: no se escribe «NT» ni «NA»."
+        },
+        "numeroInventario": {
+          "$ref": "#/$defs/texto"
+        },
+        "codigoInterno": {
+          "$ref": "#/$defs/texto",
+          "description": "El código que el cliente le da a la máquina."
+        },
+        "proveedor": {
+          "$ref": "#/$defs/texto"
+        },
+        "fechaCompra": {
+          "$ref": "#/$defs/fecha"
+        },
+        "valorCompra": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retirado": {
+          "type": "boolean",
+          "default": false,
+          "description": "Dado de baja: entra con su historial pero ya no se programa."
+        }
+      }
+    },
+    "orden": {
+      "type": "object",
+      "required": [
+        "ref",
+        "sede",
+        "fecha",
+        "periodicidad",
+        "tipoServicio",
+        "ingeniero",
+        "reportes"
+      ],
+      "additionalProperties": false,
+      "description": "Una orden ya ejecutada, con sus reportes cerrados. Entra terminada: no se puede seguir trabajando en ella.",
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "numeroAnterior": {
+          "$ref": "#/$defs/texto",
+          "description": "El número que la orden tenía en el sistema de origen. Se imprime junto al de MalphasOS para poder buscarla."
+        },
+        "sede": {
+          "$ref": "#/$defs/ref"
+        },
+        "fecha": {
+          "$ref": "#/$defs/fecha"
+        },
+        "periodicidad": {
+          "enum": [
+            "MENSUAL",
+            "TRIMESTRAL",
+            "SEMESTRAL",
+            "ANUAL"
+          ]
+        },
+        "tipoServicio": {
+          "enum": [
+            "PREVENTIVO",
+            "CORRECTIVO",
+            "CALIBRACION"
+          ]
+        },
+        "garantia": {
+          "type": "boolean",
+          "default": false
+        },
+        "ingeniero": {
+          "$ref": "#/$defs/ref"
+        },
+        "reportes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/reporte"
+          }
+        }
+      }
+    },
+    "reporte": {
+      "type": "object",
+      "required": [
+        "ref",
+        "equipo",
+        "finalizado",
+        "resultado",
+        "ingreso"
+      ],
+      "additionalProperties": false,
+      "description": "Un reporte cerrado. MalphasOS compone y congela su documento con el formato actual, sin firmas, y lo marca como importado.",
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "numeroAnterior": {
+          "$ref": "#/$defs/texto"
+        },
+        "equipo": {
+          "$ref": "#/$defs/ref"
+        },
+        "finalizado": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/fecha"
+            },
+            {
+              "$ref": "#/$defs/fechaHora"
+            }
+          ],
+          "description": "Cuándo se cerró. Una fecha sola se toma a mediodía, hora de Bogotá."
+        },
+        "fallaReportada": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "diagnostico": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "causa": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "repuestos": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "procedimientos": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "observaciones": {
+          "$ref": "#/$defs/textoLargo"
+        },
+        "resultado": {
+          "enum": [
+            "OPERATIVO",
+            "OPERATIVO_CON_RESTRICCIONES",
+            "FUERA_DE_SERVICIO"
+          ]
+        },
+        "ingreso": {
+          "type": "object",
+          "required": [
+            "fisico",
+            "operativo"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "fisico": {
+              "$ref": "#/$defs/estadoIngreso"
+            },
+            "operativo": {
+              "$ref": "#/$defs/estadoIngreso"
+            },
+            "accesorios": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "nombre",
+                  "conforme"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "nombre": {
+                    "$ref": "#/$defs/texto"
+                  },
+                  "conforme": {
+                    "type": "boolean"
+                  },
+                  "observacion": {
+                    "$ref": "#/$defs/textoLargo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pasos": {
+          "type": "array",
+          "description": "Los pasos del protocolo que se siguieron. Solo los preventivos los llevan.",
+          "items": {
+            "type": "object",
+            "required": [
+              "protocolo",
+              "estado"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "protocolo": {
+                "$ref": "#/$defs/ref"
+              },
+              "estado": {
+                "enum": [
+                  "HECHO",
+                  "NO_APLICA"
+                ]
+              },
+              "nota": {
+                "$ref": "#/$defs/textoLargo"
+              }
+            },
+            "if": {
+              "properties": {
+                "estado": {
+                  "const": "NO_APLICA"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "nota"
+              ]
+            }
+          }
+        },
+        "verificaciones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "verificacion",
+              "lecturas"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "verificacion": {
+                "$ref": "#/$defs/ref",
+                "description": "La ref de una verificación del tipo del equipo."
+              },
+              "patrones": {
+                "type": "array",
+                "description": "Los equipos patrón con los que se midió.",
+                "items": {
+                  "$ref": "#/$defs/ref"
+                },
+                "uniqueItems": true
+              },
+              "lecturas": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "patron",
+                    "equipo"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "punto": {
+                      "type": "number",
+                      "description": "El punto de verificación en que se tomó. Obligatorio en las modalidades constantes."
+                    },
+                    "patron": {
+                      "type": "number",
+                      "description": "Lo que marcó el patrón."
+                    },
+                    "equipo": {
+                      "type": "number",
+                      "description": "Lo que marcó el equipo."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "recibe": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Quien recibió el equipo: una persona de la carga o de MalphasOS, o solo su nombre. Su firma no se importa.",
+          "properties": {
+            "persona": {
+              "$ref": "#/$defs/ref"
+            },
+            "nombre": {
+              "$ref": "#/$defs/texto"
+            },
+            "cedula": {
+              "type": "string",
+              "pattern": "^[0-9A-Za-z-]{4,20}$"
+            },
+            "cargo": {
+              "$ref": "#/$defs/texto"
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "persona"
+              ]
+            },
+            {
+              "required": [
+                "nombre"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "estadoIngreso": {
+      "type": "object",
+      "required": [
+        "estado"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "estado": {
+          "enum": [
+            "CONFORME",
+            "NO_CONFORME",
+            "NO_APLICA"
+          ]
+        },
+        "observacion": {
+          "$ref": "#/$defs/textoLargo"
+        }
+      },
+      "if": {
+        "properties": {
+          "estado": {
+            "const": "NO_CONFORME"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "observacion"
+        ]
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "contenido": {
+            "const": "catalogo"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "catalogo"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "cliente"
+              ]
+            },
+            {
+              "required": [
+                "clientes"
+              ]
+            },
+            {
+              "required": [
+                "equipos"
+              ]
+            },
+            {
+              "required": [
+                "ordenes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "personas": {
+            "items": {
+              "properties": {
+                "tipo": {
+                  "enum": [
+                    "ENGINEER",
+                    "ADMIN"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "contenido": {
+            "const": "cliente"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "clientes"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "cliente"
+              ]
+            },
+            {
+              "required": [
+                "catalogo"
+              ]
+            },
+            {
+              "required": [
+                "ordenes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "clientes": {
+            "minItems": 1,
+            "maxItems": 1
+          },
+          "personas": {
+            "items": {
+              "properties": {
+                "tipo": {
+                  "const": "SUPERVISOR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "contenido": {
+            "const": "historial"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "cliente",
+          "ordenes"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "catalogo"
+              ]
+            },
+            {
+              "required": [
+                "personas"
+              ]
+            },
+            {
+              "required": [
+                "clientes"
+              ]
+            },
+            {
+              "required": [
+                "equipos"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
