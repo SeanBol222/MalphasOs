@@ -1,6 +1,5 @@
 {
   "formato": "malphasos-carga/1",
-  "origen": "sistema-anterior",
   "contenido": "cliente",
   "descripcion": "Ejemplo con datos inventados: un cliente con su supervisora, una sede, dos áreas y dos equipos.",
   "personas": [

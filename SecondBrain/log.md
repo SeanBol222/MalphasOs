@@ -2861,3 +2861,13 @@ esquema y **sus 1134 referencias tienen destino**.
 **Y las cuatro decisiones abiertas de la guía, contestadas por el usuario** el mismo día —ver
 [[decisiones-tecnicas-malphasos]]—. La de la serie la propuso él: en lugar de serie vacía o inventada,
 una provisional con el comienzo del identificador, `P:3f9a1c`.
+
+**Y, unas horas después, sin tocar la base de datos.** El usuario rechazó la tabla que recordaba las refs y
+las columnas del número anterior: la carga solo pasa el historial a lo que ya existe, con el menor
+esfuerzo de la aplicación y todo el detalle en los archivos. El formato perdió `origen` y `numeroAnterior`;
+los tres archivos de un cliente se suben juntos con el catálogo, lo repetido se ignora, y lo que no se
+puede reconocer se rechaza. Al preguntar por las firmas apareció que **la de quien recibe ya se podía
+poner en un reporte cerrado** —decidido el 2026-10-17— y que la del ingeniero se toma de su cuenta al
+cerrar: basta con que los ingenieros guarden su firma antes de cargar el historial. Y la serie provisional,
+`P:` y el comienzo del identificador, pasa a ser regla de todo equipo sin serie. Ver
+[[decisiones-tecnicas-malphasos]], que conserva la decisión anulada con su corrección.

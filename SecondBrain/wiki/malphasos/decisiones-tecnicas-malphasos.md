@@ -685,3 +685,20 @@ serie que se imprimiría como la de la placa—; una ciudad que no casa se recha
 parecida; y un equipo sin serie recibe una **provisional**, `P:` y los seis primeros caracteres de su
 identificador, como los números de reportes y órdenes (`V28`). La serie provisional es la excepción a la
 segunda regla, y por eso lleva la `P`: dice que no es de la placa. Solo la pone la carga.
+
+> **Corregido el mismo día, 2026-11-03.** Lo de arriba sobre recordar cada `ref` bajo su `origen` **ya no
+> vale**: el usuario no quiere ningún cambio en el esquema de la base de datos para la carga —«lo único que
+> quiero es que se pase el historial a lo que ya tenemos»—, y esa memoria era una tabla. Se queda escrito
+> porque explica qué se pierde. Lo que la sustituye:
+>
+> - **Las refs solo enlazan dentro de una carga**, y por eso los archivos que se nombran se suben juntos:
+>   cada cliente con el catálogo. Lo que ya existe se reconoce por su llave natural y **se ignora**.
+> - **Lo que no tiene llave natural no se puede reconocer**, así que lo que podría duplicarse se rechaza: el
+>   historial de un cliente que ya tiene órdenes en esas fechas, y un equipo sin serie de un cliente que ya
+>   existía. Como la carga es todo o nada, una fallida se repite sin riesgo.
+> - **El número anterior va a las observaciones**, escrito por el conversor, porque no hay columna.
+> - **Los reportes se cierran como cualquiera**, con la firma guardada del ingeniero: el catálogo se carga
+>   primero, los ingenieros reciben cuenta y guardan su firma, y después entra el historial. La firma de
+>   quien recibe ya se podía poner en un reporte cerrado. El documento no dice que es importado.
+> - **La serie provisional deja de ser cosa de la carga**: es regla del backend para todo equipo que se
+>   registre sin serie, también desde la pantalla. No toca el esquema: es texto en la columna de siempre.

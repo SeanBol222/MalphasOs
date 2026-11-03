@@ -1,6 +1,5 @@
 {
   "formato": "malphasos-carga/1",
-  "origen": "sistema-anterior",
   "contenido": "catalogo",
   "descripcion": "Ejemplo con datos inventados: el catálogo de la empresa y su ingeniero.",
   "catalogo": {

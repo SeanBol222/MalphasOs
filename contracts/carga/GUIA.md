@@ -1,19 +1,24 @@
 # Carga de datos — formato `malphasos-carga/1`
 
-Cómo se le entregan a MalphasOS los datos de otro sistema: tres clases de archivo JSON —el catálogo de
-la empresa, cada cliente con sus equipos y el historial de cada cliente—, con un mismo formato. Está pensado para que un
-conversor —escrito en cualquier lenguaje, junto al sistema de origen— produzca el archivo, y MalphasOS
-lo valide y lo cargue.
+Cómo se le entregan a MalphasOS los datos de otro sistema: el catálogo de la empresa, cada cliente con
+sus equipos y el historial de cada cliente, en archivos JSON con un mismo formato. Un conversor —escrito
+en cualquier lenguaje, junto al sistema de origen— produce los archivos, y MalphasOS los valida y los
+carga.
+
+**La regla de todo el diseño: el detalle va en los archivos.** MalphasOS no deduce, no completa y no
+recuerda nada de una carga: crea lo que no existe, ignora lo que ya existe y rechaza lo que no cuadra.
+Todo lo que haya que limpiar, unificar o completar lo hace el conversor. Y la carga **no añade nada al
+esquema de la base de datos**: usa lo que MalphasOS ya tiene.
 
 | Archivo | Qué es |
 |---|---|
 | `malphasos-carga-1.schema.json` | El contrato: JSON Schema 2020-12. Lo que no cumple el esquema no se carga |
-| `ejemplo-1-catalogo.json` · `ejemplo-2-cliente.json` · `ejemplo-3-historial.json` | Una carga completa con datos inventados, en sus tres archivos. Recorre todas las secciones |
+| `ejemplo-1-catalogo.json` · `ejemplo-2-cliente.json` · `ejemplo-3-historial.json` | Una carga completa con datos inventados. Recorre todas las secciones |
 | `GUIA.md` | Esto: lo que el esquema no puede decir |
 
 > **Estado, 2026-11-03.** Lo que existe es **el formato**. La validación, la carga y su pantalla están
-> **previstas para la versión 1.1.0** y no construidas: lo que esta guía dice que MalphasOS *hará* al
-> cargar es el diseño, no una descripción del código.
+> **previstas para la versión 1.1.0** y no construidas: lo que esta guía dice que MalphasOS *hará* es el
+> diseño, no una descripción del código.
 
 ## Los tres archivos
 
@@ -25,55 +30,55 @@ Cada archivo dice qué es en `contenido`, y el esquema rechaza lo que no le corr
 | `cliente` | **Un** cliente con sus supervisores, sedes, áreas y equipos | Uno por cliente |
 | `historial` | Las órdenes ejecutadas de **un** cliente, con sus reportes. Dice de qué cliente es en `cliente` | Uno por cliente |
 
-**Se cargan en ese orden**, porque cada uno nombra cosas del anterior: un equipo, su modelo; una orden,
-su ingeniero; un reporte, su equipo. Un archivo puede nombrar por su ref lo que entró en una carga
-anterior **del mismo origen**, y la validación lo busca allí.
-
-La división es para trabajar **cliente por cliente**: se monta y se depura todo en una instalación de
-prueba, y en la definitiva se cargan los mismos archivos en el mismo orden. Las refs se recuerdan en cada
-instalación, de modo que la definitiva no necesita nada de la de prueba.
+**Los archivos que se nombran entre sí se suben juntos**, en una sola carga: un equipo nombra su modelo,
+una orden su ingeniero, un reporte su equipo, y MalphasOS no recuerda las refs de una carga a otra. Por
+eso cada cliente se sube **con el catálogo**: lo que del catálogo ya está se ignora, y las refs se
+resuelven dentro de la carga.
 
 ## Cómo se usará
 
-1. **Convertir.** El conversor lee el sistema de origen y escribe el archivo.
-2. **Validar.** MalphasOS lo revisa sin escribir nada y devuelve un informe: cuántos registros de cada
-   sección entrarían, cuántos ya existen y cada error con su ruta —`ordenes[3].reportes[0].equipo: la
-   ref «eq-2789» no existe en el archivo ni en MalphasOS`—.
-3. **Corregir y repetir** hasta que el informe salga limpio. Se corrige el conversor, no el archivo a
-   mano: así la próxima carga sale bien sola.
-4. **Aplicar.** Todo o nada, en una sola transacción. Antes, un respaldo
-   (`respaldo.sh ahora`, ver `DESPLIEGUE.md`).
+1. **Convertir.** El conversor escribe el catálogo y, por cliente, su archivo y su historial.
+2. **Cargar el catálogo solo**, primero. Así entran los ingenieros.
+3. **Dar acceso a los ingenieros** con «Dar acceso» y que **cada uno guarde su firma** en su cuenta. Los
+   reportes del historial se cierran con la firma guardada del ingeniero de la orden, como cualquier
+   cierre: el que no la tenga guardada al cargar queda sin ella.
+4. **Por cada cliente, subir juntos** el catálogo, su archivo y su historial. MalphasOS los **valida**
+   sin escribir nada y devuelve un informe: cuántos registros de cada sección entrarían, cuántos se
+   ignoran porque ya existen y cada error con su ruta —`ordenes[3].reportes[0].equipo: la ref «eq-2789»
+   no está en la carga`—.
+5. **Corregir el conversor y repetir** hasta que el informe salga limpio. No se corrige el archivo a mano:
+   así la próxima conversión sale bien sola.
+6. **Aplicar.** Todo o nada, en una sola transacción: una carga que falla no deja nada, y se puede
+   repetir. Antes, un respaldo (`respaldo.sh ahora`, ver `DESPLIEGUE.md`).
+7. **Completar las firmas de quien recibe**, si se quiere: un reporte cerrado admite la firma de quien
+   recibe después, desde su pantalla, como cualquier reporte —con la opción de firmar todos los de la
+   orden o del área a la vez—. Y el supervisor puede aprobar las órdenes.
 
-Solo el SuperUsuario podrá cargar.
+Solo el SuperUsuario podrá cargar. Se monta y se depura todo en una instalación de prueba, y en la
+definitiva se repiten los mismos pasos con los mismos archivos.
 
 ## Las reglas generales
 
 **Todo se nombra por `ref`, nunca por identificador de MalphasOS.** Cada registro lleva una `ref` que
-pone el conversor, y los demás lo nombran por ella: un equipo dice en qué `area` está, un reporte de qué
-`equipo` es. Una `ref` es **única en todo el archivo** —no por sección—, y **estable**: la misma cosa
-lleva siempre la misma ref de una carga a otra. Lo más sencillo es derivarla del identificador que el
-registro tiene en el sistema de origen: `eq-2789`, `ot-3511`, `rep-11118`.
-
-**`origen` dice de qué sistema vienen las refs.** MalphasOS recuerda qué registro creó cada ref bajo su
-origen. Es lo que hace que **cargar dos veces no duplique nada**, y es imprescindible: una orden o un
-reporte no tienen ninguna llave natural por la que reconocerlos, y un equipo sin serie tampoco.
+pone el conversor, y los demás lo nombran por ella. Una `ref` es **única entre los archivos de una
+carga**, y MalphasOS no la guarda: solo sirve para enlazar. Lo más cómodo es derivarla del identificador
+del sistema de origen —`eq-2789`, `ot-3511`, `rep-11118`—, que además hace que dos conversiones del
+mismo sistema den las mismas refs.
 
 **Lo que no se sabe, se omite.** No se escribe `"NT"`, `"NA"`, `"N/A"` ni `""`: un campo opcional
 ausente es «no se sabe», y un texto como `"NT"` se guardaría tal cual y se imprimiría en los reportes.
 
+**Lo que no tiene campo va en las observaciones.** El número que un reporte o una orden tenían en el
+sistema de origen, por ejemplo, lo escribe el conversor en las `observaciones` del reporte —«N.º
+anterior: reporte 11118, orden 3511.»—: se ve en pantalla y en el PDF.
+
 **Las fechas van en ISO**: `2025-03-10`. Las fechas con hora llevan su zona: `2025-03-10T15:30:00-05:00`.
 
-**Un archivo se puede volver a cargar.** Si el catálogo crece —un modelo nuevo que aparece al convertir
-otro cliente—, se carga otra vez entero: lo que ya estaba se reconoce y solo entra lo nuevo.
+## Lo que ya existe se ignora
 
-## Lo que ya existe no se toca
-
-Si un registro del archivo ya está en MalphasOS, **no se modifica**: se reutiliza, y el informe de la
-validación lista las diferencias para que quien carga decida si corregirlas a mano. Lo que alguien
-editó en MalphasOS nunca lo pisa una carga.
-
-Un registro «ya está» si su ref se cargó antes bajo el mismo origen, o si no, si coincide su llave
-natural. Los nombres se comparan sin tildes, sin mayúsculas y sin espacios de sobra.
+Si un registro de la carga ya está en MalphasOS, **se ignora**: no se modifica ni se duplica, y lo que lo
+nombra en la carga apunta al que ya existe. El informe de la validación lo cuenta. Se reconoce por su
+llave natural, comparando los nombres sin tildes, sin mayúsculas y sin espacios de sobra.
 
 | Sección | Llave natural |
 |---|---|
@@ -83,23 +88,33 @@ natural. Los nombres se comparan sin tildes, sin mayúsculas y sin espacios de s
 | `personas` | la cédula |
 | `clientes` | el documento |
 | sedes · áreas | el nombre, dentro de su cliente · de su sede |
-| `equipos` | modelo y serie, si tiene serie |
-| `ordenes` · reportes | **ninguna**: solo la ref |
+| `equipos` | modelo y serie |
+| `ordenes` · reportes | **ninguna** |
+
+**Dos casos no se pueden reconocer, y se rechazan para no duplicar:**
+
+- **Un historial de un cliente que ya tiene órdenes** en las fechas del archivo. Como la carga es todo
+  o nada, una carga fallida se repite sin problema; lo que se impide es cargar dos veces una que salió
+  bien.
+- **Un equipo sin serie para un cliente que ya existía**, porque no hay con qué saber si ya está. Un
+  cliente nuevo se carga entero, con sus equipos sin serie.
 
 ## Lo que MalphasOS hará con cada sección
 
 - **Personas**: entran como **fichas sin cuenta**. La cuenta se da después, persona por persona, con
   «Dar acceso». **Una carga nunca lleva contraseñas.** El primer correo será el de la cuenta.
 - **Clientes**: si no traen `sigla`, se genera de la razón social, como en la pantalla.
-- **Equipos**: reciben su número de hoja de vida, `HV-<sigla>-0001`, como en un alta normal. Uno
-  `retirado` entra dado de baja y con su historial.
+- **Equipos**: reciben su número de hoja de vida, `HV-<sigla>-0001`, como en un alta normal. **Uno sin
+  serie recibe una provisional**, `P:` y los seis primeros caracteres de su identificador —`P:3f9a1c`—,
+  y es **la regla de todo equipo**, no solo de los cargados: el alta desde la pantalla hace lo mismo. Se
+  cambia por la real cuando alguien lea la placa. Uno `retirado` entra dado de baja, con su historial.
 - **Patrones**: el catálogo se queda con el certificado **más reciente**. Cada reporte usa el que estaba
   **vigente el día del servicio**, que es lo que imprime.
 - **Órdenes**: entran **ejecutadas**. No se puede seguir trabajando en ellas, como en cualquier orden
   terminada.
-- **Reportes**: entran **cerrados**, y MalphasOS compone y congela su documento con **el formato
-  actual**. **Sin firmas**: el documento dice que es un reporte importado, en vez de dejar en blanco los
-  recuadros de firma. El `numeroAnterior` se imprime junto al número de MalphasOS para poder buscarlo.
+- **Reportes**: entran **cerrados**, y MalphasOS los cierra como cualquier otro: compone y congela su
+  documento con **el formato actual** y la firma guardada del ingeniero. El documento **no dice que es
+  importado**: sale como cualquier reporte, con los recuadros de las firmas que falten vacíos.
 - **Lecturas**: se califican contra la tolerancia de la verificación del tipo, igual que al cerrar un
   reporte. Sin tolerancia, no se califican.
 
@@ -134,8 +149,9 @@ trae MalphasOS. Las magnitudes no se cargan, porque ya están sembradas:
 ## Lo que enseñaron los informes de la aplicación anterior
 
 El formato se probó convirtiendo **129 informes reales** de un cliente, exportados en Excel, a sus tres
-archivos: los tres cumplen el esquema y sus 1134 referencias tienen destino. Los datos no están en el repositorio. Lo que sigue es lo que cualquier conversor
-desde ese sistema tendrá que resolver, y que el esquema no puede resolver por él.
+archivos: los tres cumplen el esquema y sus 1134 referencias tienen destino. Los datos no están en el
+repositorio. Lo que sigue es lo que cualquier conversor desde ese sistema tendrá que resolver, y que el
+esquema no puede resolver por él.
 
 - **Cuatro plantillas**, con las filas en sitios distintos y la página 2 a veces ausente —los de 2022
   son de una sola página—. **Leer por etiqueta, no por celda.** La plantilla trae además columnas
@@ -148,16 +164,17 @@ desde ese sistema tendrá que resolver, y que el esquema no puede resolver por �
 - **Un área llamada «baja por mal funcionamiento»** no es un área: es un equipo `retirado`, que se queda
   en el área en que estaba.
 - **Una orden reúne servicios de varios tipos**, y en MalphasOS el tipo es de la orden. El conversor la
-  **parte en una por tipo**, con refs distintas y el mismo `numeroAnterior`. Diagnóstico cuenta como
-  correctivo y la verificación metrológica sola, como calibración.
+  **parte en una por tipo**, con refs distintas. Diagnóstico cuenta como correctivo y la verificación
+  metrológica sola, como calibración.
 - **La periodicidad no viene**: se deduce de la fecha del próximo servicio.
 - **Las verificaciones al ingreso tienen conceptos que MalphasOS no tiene** —temperatura, amperaje—:
   van a las `observaciones` del reporte. Y hay **«no conforme» sin observación**, que MalphasOS no
   admite: el conversor tiene que poner una.
 - **Los pasos del protocolo son texto libre** en cada informe, con erratas que los multiplican —40
   textos distintos—. Unificarlos en el catálogo antes de cargar ahorra protocolos repetidos.
-- **Un patrón aparece con varios certificados a lo largo de los años**, y a veces con dos códigos
-  internos. Y **dos patrones distintos comparten serie**, que MalphasOS no admite.
+- **Un patrón es su código interno**: la serie se escribe distinta de un informe a otro, o «NT», y el
+  mismo instrumento aparece con varios certificados a lo largo de los años. Y **dos patrones distintos
+  comparten serie**, que MalphasOS no admite.
 - **Los informes no dicen cuándo vence un certificado**, y MalphasOS lo exige.
 - **La ciudad no se escribe como en el catálogo** —con «D.C.», sin tilde—.
 - **Las personas aparecen solo por su nombre**, con variantes —con y sin segundo nombre—, y **sin
@@ -166,16 +183,22 @@ desde ese sistema tendrá que resolver, y que el esquema no puede resolver por �
 
 ## Decisiones tomadas (2026-11-03)
 
-Las cuatro las decidió el usuario. No cambian la forma del archivo, sí lo que MalphasOS hace con él.
+Todas las decidió el usuario.
 
-1. **Un certificado sin vencimiento conocido**: el conversor pone la fecha de calibración **más un año**,
-   y la validación avisa de cada certificado así completado.
-2. **Dos patrones distintos con la misma serie**: la validación **los rechaza**, y quien carga corrige la
-   serie en el conversor. No se distinguen solos, porque una serie inventada se imprimiría en los
-   reportes como si fuera la de la placa.
-3. **Una ciudad que no casa con el catálogo**: la validación **la rechaza y sugiere** la más parecida.
+1. **Ningún cambio en el esquema de la base de datos.** La carga solo pasa el historial a lo que
+   MalphasOS ya tiene.
+2. **Los archivos que se nombran se suben juntos, y lo repetido se ignora.** MalphasOS hace el menor
+   esfuerzo posible: el detalle está en los archivos.
+3. **Un historial se rechaza si el cliente ya tiene órdenes** en esas fechas.
+4. **El número anterior va en las observaciones** del reporte.
+5. **El ingeniero firma con su firma guardada, al cargar**: por eso el catálogo entra primero y los
+   ingenieros guardan su firma antes del historial. **La de quien recibe se pone después**, como en
+   cualquier reporte cerrado.
+6. **El documento no dice que es importado**: sale como cualquier reporte.
+7. **Un certificado sin vencimiento conocido**: el conversor pone la fecha de calibración **más un año**.
+8. **Dos patrones con la misma serie**: la validación **los rechaza**, y quien carga corrige la serie en
+   el conversor. No se inventan series que se imprimirían como la de la placa.
+9. **Una ciudad que no casa con el catálogo**: la validación **la rechaza y sugiere** la más parecida.
    El conversor lleva una tabla de equivalencias. Nunca se elige una ciudad sola.
-4. **Un equipo sin serie**: se omite en el archivo, y la carga le pone una **serie provisional**,
-   `P:` y los seis primeros caracteres de su identificador —`P:3f9a1c`—, como los números de reportes y
-   órdenes. La `P` dice que no es la de la placa: se cambia por la real cuando alguien la lea. Solo la
-   pone la carga; el alta desde la pantalla sigue exigiendo la serie.
+10. **Todo equipo sin serie recibe una provisional**, `P:` y el comienzo de su identificador, en la
+    carga y en el alta desde la pantalla. La `P` dice que no es la de la placa.
