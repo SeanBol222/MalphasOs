@@ -658,3 +658,23 @@ dejar de pedirla, recibían 403—.
 - **Lo resuelve el mapper REST** de cada módulo, que ya junta varias fuentes —la orden con sus reportes—,
   y no el agregado: el nombre no es un dato de la orden ni del cliente, y no se guarda en ellos.
 - **Un nombre nulo** es una ficha que no existe; la pantalla dice «No disponible» y no lo inventa.
+
+## La carga se reconoce por `ref` y `origen`, no por llaves naturales (2026-11-03)
+
+El formato de carga de la 1.1.0 nombra cada registro por una `ref` que pone el conversor, y no por los
+identificadores de MalphasOS ni por sus llaves naturales. Salió de convertir los informes reales:
+
+- **Una orden y un reporte no tienen ninguna llave natural.** El número es el prefijo del identificador
+  (`V28`), así que no hay nada por lo que reconocer, en una segunda carga, un reporte que ya entró.
+- **La mitad de los equipos no tiene serie**, y modelo y serie es su única llave.
+- **Las llaves naturales compuestas son incómodas de escribir**: un equipo tendría que nombrar su área por
+  cliente, sede y área. Con refs, cada cosa se nombra con una cadena.
+
+Por eso MalphasOS **recordará qué registro creó cada ref bajo su `origen`**: es lo que hace que cargar dos
+veces no duplique. La llave natural se usa solo para reconocer lo que **no** vino de una carga anterior
+—un cliente creado a mano—, y lo que ya existe **no se toca**: se reutiliza y se avisa la diferencia.
+
+**Y el historial entra con el formato actual, no como adjunto**, decidido por el usuario: los reportes se
+componen y se congelan como los de MalphasOS. El precio es que el conversor tiene que resolver lo que los
+informes viejos no traen o traen mal —ver `contracts/carga/GUIA.md`—, y que el documento no lleva firmas:
+dice que es importado, en lugar de dejar en blanco los recuadros.

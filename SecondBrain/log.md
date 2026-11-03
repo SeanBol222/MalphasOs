@@ -2832,3 +2832,28 @@ orden en un ZIP—. El usuario eligió etiquetar `v1.0.0` sobre `main` y no una 
 ninguna versión publicada que distinguir. La entrada `[1.0.0]` de `CHANGELOG.md` se reescribió con lo que
 hay hoy —hablaba todavía de encargados— y perdió las notas de migración, que solo sirven a quien ya
 tuviera datos. Batería: **1603** en el backend y **808** en el frontend.
+
+## [2026-11-03] ingest | El formato de carga de la 1.1.0
+
+Con la 1.0.0 ya desplegada en el servidor del usuario —por IP, en la red local, detrás de un puerto
+distinto del 443 porque el servidor ya tenía Nginx Proxy Manager; tres tropiezos que la prueba con
+`localhost` no podía ver y que van a `DESPLIEGUE.md` en la 1.1.0—, el usuario decidió la siguiente
+versión: cargar los datos de la aplicación anterior de la empresa, **una distinta de
+`bolivarbioingenieria-app`**, con historial y en los formatos actuales.
+
+Primera tanda, el formato: `contracts/carga/`, con el esquema, un ejemplo inventado y la guía. **Se probó
+con 129 informes reales** de un cliente, exportados en Excel, convertidos con un borrador de conversor
+fuera del repositorio: **los 129 cumplen el esquema**. Lo que enseñaron está en la guía, y lo que más pesó
+en el diseño fue que una orden y un reporte no tienen llave natural —ver [[decisiones-tecnicas-malphasos]]—.
+El lector se equivocó dos veces antes de acertar, las dos por fiarse de la posición: tomó por la sección
+«Diagnóstico» la casilla del mismo nombre del tipo de servicio, y no vio la metrología de los informes
+de 2022, que no tienen página 2. **Treinta informes «sin lecturas» eran del lector, no de los datos.**
+
+Los informes viven en `raw/`, ignorado por git desde este día junto con `Documentation/raw/`.
+
+**Y en tres archivos, el mismo día**, pedido por el usuario para montar cliente por cliente en el servidor
+de prueba y repetir la carga en la nube: el catálogo de la empresa —con los ingenieros, que como los
+patrones sirven a todos los clientes—, cada cliente con sus supervisores y equipos, y el historial de cada
+cliente. Un campo `contenido` dice cuál es, y el esquema rechaza lo que no le corresponde; ocho variantes
+rotas a propósito lo comprobaron. Los informes reales, convertidos a sus tres archivos, cumplen el
+esquema y **sus 1134 referencias tienen destino**.
