@@ -164,15 +164,18 @@ desde ese sistema tendrá que resolver, y que el esquema no puede resolver por �
   cédula**, que MalphasOS exige. Hay que conseguirlas aparte.
 - **Casi ningún informe dice quién recibió**: el campo es opcional.
 
-## Decisiones abiertas
+## Decisiones tomadas (2026-11-03)
 
-Ninguna cambia la forma del archivo, pero sí lo que MalphasOS hace con él.
+Las cuatro las decidió el usuario. No cambian la forma del archivo, sí lo que MalphasOS hace con él.
 
-1. **El vencimiento de un certificado que no se conoce.** Propuesta: que el conversor ponga la fecha de
-   calibración más un año y la validación lo avise.
-2. **Dos patrones con la misma serie.** Propuesta: que la validación lo rechace y el conversor
-   distinga las series —por ejemplo, añadiendo el código interno—.
-3. **Una ciudad que no casa.** Propuesta: que la validación la rechace sugiriendo la más parecida, y el
-   conversor lleve una tabla de equivalencias.
-4. **Un equipo sin serie**, que MalphasOS hoy exige. Propuesta: permitir la serie vacía solo en lo
-   importado, y que la hoja de vida diga «sin serie».
+1. **Un certificado sin vencimiento conocido**: el conversor pone la fecha de calibración **más un año**,
+   y la validación avisa de cada certificado así completado.
+2. **Dos patrones distintos con la misma serie**: la validación **los rechaza**, y quien carga corrige la
+   serie en el conversor. No se distinguen solos, porque una serie inventada se imprimiría en los
+   reportes como si fuera la de la placa.
+3. **Una ciudad que no casa con el catálogo**: la validación **la rechaza y sugiere** la más parecida.
+   El conversor lleva una tabla de equivalencias. Nunca se elige una ciudad sola.
+4. **Un equipo sin serie**: se omite en el archivo, y la carga le pone una **serie provisional**,
+   `P:` y los seis primeros caracteres de su identificador —`P:3f9a1c`—, como los números de reportes y
+   órdenes. La `P` dice que no es la de la placa: se cambia por la real cuando alguien la lea. Solo la
+   pone la carga; el alta desde la pantalla sigue exigiendo la serie.

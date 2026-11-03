@@ -2857,3 +2857,7 @@ patrones sirven a todos los clientes—, cada cliente con sus supervisores y equ
 cliente. Un campo `contenido` dice cuál es, y el esquema rechaza lo que no le corresponde; ocho variantes
 rotas a propósito lo comprobaron. Los informes reales, convertidos a sus tres archivos, cumplen el
 esquema y **sus 1134 referencias tienen destino**.
+
+**Y las cuatro decisiones abiertas de la guía, contestadas por el usuario** el mismo día —ver
+[[decisiones-tecnicas-malphasos]]—. La de la serie la propuso él: en lugar de serie vacía o inventada,
+una provisional con el comienzo del identificador, `P:3f9a1c`.
