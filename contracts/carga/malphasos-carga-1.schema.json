@@ -702,7 +702,7 @@
         },
         "serie": {
           "$ref": "#/$defs/texto",
-          "description": "Si la máquina no tiene serie legible, se omite: no se escribe «NT» ni «NA»."
+          "description": "Si la máquina no tiene serie legible, se omite: no se escribe «NT» ni «NA». La carga le pone una provisional, P: y el comienzo de su identificador."
         },
         "numeroInventario": {
           "$ref": "#/$defs/texto"

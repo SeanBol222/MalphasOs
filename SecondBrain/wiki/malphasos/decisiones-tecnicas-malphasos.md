@@ -678,3 +678,10 @@ veces no duplique. La llave natural se usa solo para reconocer lo que **no** vin
 componen y se congelan como los de MalphasOS. El precio es que el conversor tiene que resolver lo que los
 informes viejos no traen o traen mal —ver `contracts/carga/GUIA.md`—, y que el documento no lleva firmas:
 dice que es importado, en lugar de dejar en blanco los recuadros.
+
+**Y las cuatro decisiones del contenido, el mismo día**, del usuario: un certificado sin vencimiento toma
+la calibración más un año, con aviso; dos patrones con la misma serie se rechazan —no se inventa una
+serie que se imprimiría como la de la placa—; una ciudad que no casa se rechaza sugiriendo la más
+parecida; y un equipo sin serie recibe una **provisional**, `P:` y los seis primeros caracteres de su
+identificador, como los números de reportes y órdenes (`V28`). La serie provisional es la excepción a la
+segunda regla, y por eso lleva la `P`: dice que no es de la placa. Solo la pone la carga.

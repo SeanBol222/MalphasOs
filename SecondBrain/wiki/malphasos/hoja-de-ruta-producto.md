@@ -674,7 +674,7 @@ Ver [[decisiones-tecnicas-malphasos]] para el porqué de las `ref` y del `origen
 | # | Tanda | Estado |
 |---|---|---|
 | 1 | **El formato**, en **tres archivos** que se cargan en orden —el catálogo de la empresa con sus ingenieros, cada cliente con sus equipos, el historial de cada cliente—: el esquema, un ejemplo inventado de cada uno y la guía, probados convirtiendo 129 informes reales de un cliente | **Escrito el 2026-11-03**, en revisión del usuario |
-| 2 | La migración del historial importado: la marca de importado, el número anterior y lo que haga falta para la serie vacía y el documento sin firmas | Por decidir con las cuatro decisiones abiertas de la guía |
+| 2 | La migración del historial importado: la marca de importado, el número anterior, la serie provisional `P:` y el documento sin firmas | **Sus cuatro decisiones, tomadas el 2026-11-03** —ver la guía— |
 | 3 | Validar: leer, resolver refs, comprobar reglas; sin escribir | — |
 | 4 | Aplicar, en orden de dependencias, en una transacción, recordando cada ref bajo su origen | — |
 | 5 | La pantalla «Importar datos», solo para el SuperUsuario | — |
