@@ -1,13 +1,11 @@
 {
   "formato": "malphasos-carga/1",
-  "origen": "sistema-anterior",
   "contenido": "historial",
   "descripcion": "Ejemplo con datos inventados: dos órdenes ya ejecutadas del cliente, con sus reportes.",
   "cliente": "cli-almendros",
   "ordenes": [
     {
       "ref": "ot-500",
-      "numeroAnterior": "500",
       "sede": "sede-almendros-principal",
       "fecha": "2025-03-10",
       "periodicidad": "ANUAL",
@@ -16,7 +14,6 @@
       "reportes": [
         {
           "ref": "rep-9001",
-          "numeroAnterior": "9001",
           "equipo": "eq-0101",
           "finalizado": "2025-03-10",
           "procedimientos": "Mantenimiento preventivo.",
@@ -83,11 +80,11 @@
                 }
               ]
             }
-          ]
+          ],
+          "observaciones": "N.º anterior: reporte 9001, orden 500."
         },
         {
           "ref": "rep-9002",
-          "numeroAnterior": "9002",
           "equipo": "eq-0102",
           "finalizado": "2025-03-10T15:30:00-05:00",
           "resultado": "OPERATIVO",
@@ -155,13 +152,13 @@
                 }
               ]
             }
-          ]
+          ],
+          "observaciones": "N.º anterior: reporte 9002, orden 500."
         }
       ]
     },
     {
       "ref": "ot-512",
-      "numeroAnterior": "512",
       "sede": "sede-almendros-principal",
       "fecha": "2025-05-02",
       "periodicidad": "ANUAL",
@@ -170,7 +167,6 @@
       "reportes": [
         {
           "ref": "rep-9140",
-          "numeroAnterior": "9140",
           "equipo": "eq-0101",
           "finalizado": "2025-05-02",
           "fallaReportada": "El manómetro no regresa a cero.",
@@ -191,7 +187,8 @@
             "nombre": "Carlos Pérez",
             "cedula": "1000000003",
             "cargo": "Auxiliar de enfermería"
-          }
+          },
+          "observaciones": "N.º anterior: reporte 9140, orden 512."
         }
       ]
     }

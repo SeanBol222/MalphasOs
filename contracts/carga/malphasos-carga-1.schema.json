@@ -2,11 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://malphasos.dev/contracts/carga/malphasos-carga-1.schema.json",
   "title": "Carga de datos de MalphasOS, versión 1",
-  "description": "Lo que MalphasOS acepta para cargar los datos de otro sistema, en tres archivos que se cargan en orden: el catálogo de la empresa, cada cliente con sus equipos, y el historial de cada cliente. Las reglas que este esquema no puede expresar —que una referencia exista, que una unidad sea de su magnitud— las comprueba la validación de MalphasOS. Ver GUIA.md.",
+  "description": "Lo que MalphasOS acepta para cargar los datos de otro sistema: tres archivos —el catálogo de la empresa, un cliente con sus equipos y el historial de ese cliente— que se suben y se aplican juntos. Todo el detalle va en los archivos: MalphasOS no deduce nada, y lo que ya existe lo ignora. Las reglas que este esquema no puede expresar —que una referencia exista, que una unidad sea de su magnitud— las comprueba la validación. Ver GUIA.md.",
   "type": "object",
   "required": [
     "formato",
-    "origen",
     "contenido"
   ],
   "additionalProperties": false,
@@ -14,11 +13,6 @@
     "formato": {
       "const": "malphasos-carga/1",
       "description": "La versión del formato. Una carga con otra versión se rechaza entera."
-    },
-    "origen": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
-      "description": "El nombre del sistema del que salen los datos, siempre el mismo para ese sistema. MalphasOS recuerda cada ref bajo su origen: así una segunda carga reconoce lo que ya entró."
     },
     "contenido": {
       "enum": [
@@ -69,7 +63,7 @@
     "ref": {
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$",
-      "description": "Identificador que pone el conversor, único en todo el archivo y estable entre cargas: la misma cosa lleva siempre la misma ref. Lo mejor es derivarla del identificador del sistema de origen."
+      "description": "Identificador que pone el conversor para enlazar los registros entre sí: único entre los tres archivos de una carga. MalphasOS no lo guarda. Lo más cómodo es derivarlo del identificador del sistema de origen."
     },
     "texto": {
       "type": "string",
@@ -702,7 +696,7 @@
         },
         "serie": {
           "$ref": "#/$defs/texto",
-          "description": "Si la máquina no tiene serie legible, se omite: no se escribe «NT» ni «NA». La carga le pone una provisional, P: y el comienzo de su identificador."
+          "description": "Si la máquina no tiene serie legible, se omite: no se escribe «NT» ni «NA». MalphasOS le pone una provisional, como a todo equipo que se registra sin serie."
         },
         "numeroInventario": {
           "$ref": "#/$defs/texto"
@@ -744,10 +738,6 @@
       "properties": {
         "ref": {
           "$ref": "#/$defs/ref"
-        },
-        "numeroAnterior": {
-          "$ref": "#/$defs/texto",
-          "description": "El número que la orden tenía en el sistema de origen. Se imprime junto al de MalphasOS para poder buscarla."
         },
         "sede": {
           "$ref": "#/$defs/ref"
@@ -796,13 +786,10 @@
         "ingreso"
       ],
       "additionalProperties": false,
-      "description": "Un reporte cerrado. MalphasOS compone y congela su documento con el formato actual, sin firmas, y lo marca como importado.",
+      "description": "Un reporte cerrado. MalphasOS lo cierra como cualquier otro: compone y congela su documento con el formato actual y la firma guardada del ingeniero de la orden, si la tiene. La firma de quien recibe se puede poner después, como en cualquier reporte cerrado.",
       "properties": {
         "ref": {
           "$ref": "#/$defs/ref"
-        },
-        "numeroAnterior": {
-          "$ref": "#/$defs/texto"
         },
         "equipo": {
           "$ref": "#/$defs/ref"
@@ -834,7 +821,8 @@
           "$ref": "#/$defs/textoLargo"
         },
         "observaciones": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/textoLargo",
+          "description": "Lo que el conversor quiera conservar y no tenga campo propio, como el número que el reporte tenía en el sistema de origen."
         },
         "resultado": {
           "enum": [
