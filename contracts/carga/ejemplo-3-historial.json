@@ -1,0 +1,199 @@
+{
+  "formato": "malphasos-carga/1",
+  "origen": "sistema-anterior",
+  "contenido": "historial",
+  "descripcion": "Ejemplo con datos inventados: dos órdenes ya ejecutadas del cliente, con sus reportes.",
+  "cliente": "cli-almendros",
+  "ordenes": [
+    {
+      "ref": "ot-500",
+      "numeroAnterior": "500",
+      "sede": "sede-almendros-principal",
+      "fecha": "2025-03-10",
+      "periodicidad": "ANUAL",
+      "tipoServicio": "PREVENTIVO",
+      "ingeniero": "per-ing-1",
+      "reportes": [
+        {
+          "ref": "rep-9001",
+          "numeroAnterior": "9001",
+          "equipo": "eq-0101",
+          "finalizado": "2025-03-10",
+          "procedimientos": "Mantenimiento preventivo.",
+          "resultado": "OPERATIVO",
+          "ingreso": {
+            "fisico": {
+              "estado": "CONFORME"
+            },
+            "operativo": {
+              "estado": "CONFORME"
+            },
+            "accesorios": [
+              {
+                "nombre": "Brazalete adulto",
+                "conforme": true
+              }
+            ]
+          },
+          "pasos": [
+            {
+              "protocolo": "prot-desinfeccion",
+              "estado": "HECHO"
+            },
+            {
+              "protocolo": "prot-neumatico",
+              "estado": "HECHO"
+            },
+            {
+              "protocolo": "prot-limpieza",
+              "estado": "HECHO"
+            }
+          ],
+          "verificaciones": [
+            {
+              "verificacion": "ver-tensiometro-presion",
+              "patrones": [
+                "pat-manometro"
+              ],
+              "lecturas": [
+                {
+                  "punto": 50,
+                  "patron": 50,
+                  "equipo": 51
+                },
+                {
+                  "punto": 100,
+                  "patron": 100,
+                  "equipo": 100
+                },
+                {
+                  "punto": 150,
+                  "patron": 150,
+                  "equipo": 152
+                },
+                {
+                  "punto": 200,
+                  "patron": 200,
+                  "equipo": 201
+                },
+                {
+                  "punto": 250,
+                  "patron": 250,
+                  "equipo": 252
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ref": "rep-9002",
+          "numeroAnterior": "9002",
+          "equipo": "eq-0102",
+          "finalizado": "2025-03-10T15:30:00-05:00",
+          "resultado": "OPERATIVO",
+          "ingreso": {
+            "fisico": {
+              "estado": "CONFORME"
+            },
+            "operativo": {
+              "estado": "CONFORME"
+            }
+          },
+          "pasos": [
+            {
+              "protocolo": "prot-desinfeccion",
+              "estado": "HECHO"
+            },
+            {
+              "protocolo": "prot-electronico",
+              "estado": "NO_APLICA",
+              "nota": "El equipo no tiene sonda externa."
+            },
+            {
+              "protocolo": "prot-limpieza",
+              "estado": "HECHO"
+            }
+          ],
+          "verificaciones": [
+            {
+              "verificacion": "ver-termo-temperatura",
+              "patrones": [
+                "pat-termohigrometro"
+              ],
+              "lecturas": [
+                {
+                  "patron": 20.4,
+                  "equipo": 20.5
+                },
+                {
+                  "patron": 20.6,
+                  "equipo": 20.7
+                },
+                {
+                  "patron": 20.5,
+                  "equipo": 20.6
+                }
+              ]
+            },
+            {
+              "verificacion": "ver-termo-humedad",
+              "patrones": [
+                "pat-termohigrometro"
+              ],
+              "lecturas": [
+                {
+                  "patron": 55,
+                  "equipo": 57
+                },
+                {
+                  "patron": 56,
+                  "equipo": 57
+                },
+                {
+                  "patron": 55,
+                  "equipo": 56
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ref": "ot-512",
+      "numeroAnterior": "512",
+      "sede": "sede-almendros-principal",
+      "fecha": "2025-05-02",
+      "periodicidad": "ANUAL",
+      "tipoServicio": "CORRECTIVO",
+      "ingeniero": "per-ing-1",
+      "reportes": [
+        {
+          "ref": "rep-9140",
+          "numeroAnterior": "9140",
+          "equipo": "eq-0101",
+          "finalizado": "2025-05-02",
+          "fallaReportada": "El manómetro no regresa a cero.",
+          "diagnostico": "Válvula de desinflado con fuga.",
+          "repuestos": "1 válvula de desinflado",
+          "procedimientos": "Se cambia la válvula y se verifica el cero.",
+          "resultado": "OPERATIVO",
+          "ingreso": {
+            "fisico": {
+              "estado": "CONFORME"
+            },
+            "operativo": {
+              "estado": "NO_CONFORME",
+              "observacion": "La aguja queda en 10 mmHg sin presión."
+            }
+          },
+          "recibe": {
+            "nombre": "Carlos Pérez",
+            "cedula": "1000000003",
+            "cargo": "Auxiliar de enfermería"
+          }
+        }
+      ]
+    }
+  ]
+}

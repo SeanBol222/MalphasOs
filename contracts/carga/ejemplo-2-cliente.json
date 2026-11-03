@@ -1,0 +1,79 @@
+{
+  "formato": "malphasos-carga/1",
+  "origen": "sistema-anterior",
+  "contenido": "cliente",
+  "descripcion": "Ejemplo con datos inventados: un cliente con su supervisora, una sede, dos áreas y dos equipos.",
+  "personas": [
+    {
+      "ref": "per-sup-1",
+      "cedula": "1000000002",
+      "tipo": "SUPERVISOR",
+      "primerNombre": "Laura",
+      "primerApellido": "Díaz",
+      "correos": [
+        "laura.diaz@clinica-ejemplo.com"
+      ],
+      "telefonos": [
+        "3000000000"
+      ]
+    }
+  ],
+  "clientes": [
+    {
+      "ref": "cli-almendros",
+      "documento": "900000001-1",
+      "tipoIdentificacion": "NIT_juridico",
+      "razonSocial": "Clínica Los Almendros S.A.S.",
+      "pais": "COL",
+      "correos": [
+        "contacto@clinica-ejemplo.com"
+      ],
+      "telefonos": [
+        "6010000000"
+      ],
+      "supervisores": [
+        {
+          "persona": "per-sup-1",
+          "cargo": "Coordinadora asistencial"
+        }
+      ],
+      "sedes": [
+        {
+          "ref": "sede-almendros-principal",
+          "nombre": "Principal",
+          "ciudad": {
+            "pais": "COL",
+            "nombre": "Bogotá"
+          },
+          "calle": "100",
+          "carrera": "15",
+          "numero": "20",
+          "areas": [
+            {
+              "ref": "area-almendros-consultorio",
+              "nombre": "Consultorio"
+            },
+            {
+              "ref": "area-almendros-enfermeria",
+              "nombre": "Enfermería"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "equipos": [
+    {
+      "ref": "eq-0101",
+      "area": "area-almendros-consultorio",
+      "modelo": "mod-ds44",
+      "serie": "WA-123456",
+      "codigoInterno": "TEN-01"
+    },
+    {
+      "ref": "eq-0102",
+      "area": "area-almendros-enfermeria",
+      "modelo": "mod-termo-digital"
+    }
+  ]
+}
