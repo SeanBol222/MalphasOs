@@ -204,7 +204,7 @@ describe('Registro de un equipo en un area', () => {
     );
   });
 
-  it('manda el modelo y la serie, que es lo unico obligatorio', async () => {
+  it('manda el modelo y la serie', async () => {
     await abrir();
     elegirModelo();
     escribir('serie', 'SN-0001');
@@ -271,13 +271,45 @@ describe('Registro de un equipo en un area', () => {
     await asentar(fixture);
   });
 
-  it('sin serie no llega al servidor, y dice por que importa', async () => {
+  // Hasta el 2026-11-03 la serie era obligatoria y esta prueba comprobaba que sin ella no se mandaba nada.
+  // Desde entonces el servidor pone una provisional, y lo que importa es que no viaje una serie vacia:
+  // el servidor la tomaria por una serie escrita.
+  it('sin serie se registra igual, y la serie vacia no viaja', async () => {
+    await abrir();
+    elegirModelo();
+    escribir('serie', '   ');
+    await enviar();
+
+    const alta = http.expectOne({ method: 'POST', url: URL_EQUIPOS_DEL_AREA });
+
+    expect(alta.request.body).toEqual({ idModelo: ID_MODELO });
+    alta.flush({ id: 'ec1' });
+    await asentar(fixture);
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+  });
+
+  it('con la serie sin tocar tambien se registra', async () => {
+    // La de arriba escribe espacios, que Validators.required deja pasar: esta es la que dice que el campo
+    // vacio de verdad no es obligatorio.
     await abrir();
     elegirModelo();
     await enviar();
 
-    http.expectNone({ method: 'POST', url: URL_EQUIPOS_DEL_AREA });
-    expect(texto()).toContain('es lo que identifica a esta máquina');
+    const alta = http.expectOne({ method: 'POST', url: URL_EQUIPOS_DEL_AREA });
+
+    expect(alta.request.body).toEqual({ idModelo: ID_MODELO });
+    alta.flush({ id: 'ec1' });
+    await asentar(fixture);
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+  });
+
+  it('dice que sin serie el equipo recibe una provisional', async () => {
+    await abrir();
+
+    expect(texto()).toContain('recibe una serie provisional');
+    expect(raiz().querySelector('#serie')?.getAttribute('aria-required')).toBeNull();
   });
 
   it('al guardar vuelve a la ficha del area', async () => {

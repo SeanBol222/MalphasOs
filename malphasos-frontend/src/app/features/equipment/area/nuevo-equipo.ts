@@ -15,8 +15,10 @@ import { ModeloCreado, PanelDeModelo } from './panel-de-modelo';
  * Registro de un equipo en un area de servicio: el final de la cadena del catalogo.
  *
  * <p>Aqui un modelo deja de ser una entrada de catalogo y pasa a ser <b>una maquina concreta</b>. Lo
- * unico obligatorio es la serie y el modelo: el inventario, la fecha y el valor de compra pueden
- * faltar, porque un equipo se registra cuando llega y esos datos aparecen despues.
+ * unico obligatorio es el modelo: el inventario, la fecha y el valor de compra pueden faltar, porque un
+ * equipo se registra cuando llega y esos datos aparecen despues. <b>La serie tambien</b>, desde el
+ * 2026-11-03: una maquina sin serie legible recibe del servidor una provisional, {@code P:} y el
+ * comienzo de su identificador, que se cambia por la real desde el area.
  *
  * <p><b>Se entra por dos caminos y la pantalla es la misma</b>, decidido el 2026-09-26:
  *
@@ -70,7 +72,7 @@ export class NuevoEquipo {
     idTipoElegido: [''],
     idMarcaElegida: [''],
     idModelo: ['', Validators.required],
-    serie: ['', [Validators.required, Validators.maxLength(50)]],
+    serie: ['', Validators.maxLength(50)],
     numeroInventario: ['', Validators.maxLength(50)],
     fechaCompra: [''],
     valorCompra: [null as number | null],
@@ -268,7 +270,7 @@ export class NuevoEquipo {
         idArea: this.idArea(),
         equipo: {
           idModelo: datos.idModelo,
-          serie: datos.serie,
+          ...(datos.serie.trim() ? { serie: datos.serie.trim() } : {}),
           ...(datos.numeroInventario ? { numeroInventario: datos.numeroInventario } : {}),
           ...(datos.fechaCompra ? { fechaCompra: datos.fechaCompra } : {}),
           ...(datos.valorCompra === null ? {} : { valorCompra: datos.valorCompra }),

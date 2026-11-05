@@ -183,19 +183,22 @@
   }
 
   <div class="mb-3">
-    <label class="block font-semibold" for="serie">Serie <span class="text-accent-700" aria-hidden="true">*</span></label>
+    <label class="block font-semibold" for="serie">Serie</label>
     <input
       id="serie"
       class="campo mt-1 min-h-tactil w-full"
       formControlName="serie"
       maxlength="50"
       [attr.aria-invalid]="malo('serie') || null"
-      [attr.aria-describedby]="malo('serie') ? 'serie-error' : null"
-      aria-required="true"
+      [attr.aria-describedby]="malo('serie') ? 'serie-error serie-ayuda' : 'serie-ayuda'"
     />
+    <p class="mt-1 text-neutral-700" id="serie-ayuda">
+      La de la placa. Si no se puede leer, déjala vacía: el equipo recibe una serie provisional, que
+      empieza por «P:», y se cambia por la real desde su área.
+    </p>
     @if (malo('serie')) {
       <p class="mt-1 font-semibold text-accent-700" id="serie-error">
-        La serie es obligatoria y no pasa de 50 caracteres: es lo que identifica a esta máquina.
+        La serie no pasa de 50 caracteres.
       </p>
     }
   </div>

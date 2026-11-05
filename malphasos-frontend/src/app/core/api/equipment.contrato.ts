@@ -121,7 +121,7 @@ export interface paths {
         head?: never;
         /**
          * Corregir los datos de compra de una unidad
-         * @description Los campos ausentes conservan su valor.
+         * @description Los campos ausentes conservan su valor. La serie solo se acepta en una unidad con serie provisional, para poner la real.
          */
         patch: operations["update_4"];
         trace?: never;
@@ -634,7 +634,7 @@ export interface paths {
         put?: never;
         /**
          * Incorporar una unidad al inventario de un area
-         * @description El area debe estar activa y el modelo no puede estar retirado.
+         * @description El area debe estar activa y el modelo no puede estar retirado. Sin serie, la unidad recibe una provisional.
          */
         post: operations["register"];
         delete?: never;
@@ -688,7 +688,8 @@ export interface components {
             numeroInventario?: string;
             /** @description Quien vendio esta maquina */
             proveedor?: string;
-            serie: string;
+            /** @description La de la placa. Sin ella, MalphasOS pone una provisional: P: y el comienzo del identificador del equipo */
+            serie?: string;
             /** Format: int64 */
             valorCompra?: number;
         };
@@ -708,6 +709,8 @@ export interface components {
             numeroInventario?: string;
             proveedor?: string;
             serie?: string;
+            /** @description Si la serie es la provisional que MalphasOS puso porque el equipo se registro sin ella. Es la unica que se puede reemplazar, por la real */
+            serieProvisional?: boolean;
             /** Format: int64 */
             valorCompra?: number;
         };
@@ -719,6 +722,8 @@ export interface components {
             numeroInventario?: string;
             /** @description Quien vendio esta maquina */
             proveedor?: string;
+            /** @description La serie real, para un equipo que tiene la provisional. Una serie real no cambia */
+            serie?: string;
             /** Format: int64 */
             valorCompra?: number;
         };
