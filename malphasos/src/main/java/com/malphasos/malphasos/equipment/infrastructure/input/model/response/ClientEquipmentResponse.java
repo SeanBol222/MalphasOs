@@ -11,6 +11,9 @@ import lombok.Builder;
 public record ClientEquipmentResponse(
         UUID id,
         String serie,
+        @Schema(description = "Si la serie es la provisional que MalphasOS puso porque el equipo se registro sin "
+                + "ella. Es la unica que se puede reemplazar, por la real")
+        boolean serieProvisional,
         @Schema(description = "HV-<sigla>-0001, asignado al registrar el equipo y fijo")
         String numeroHojaVida,
         String numeroInventario,

@@ -116,7 +116,7 @@ describe('Equipos de un area', () => {
     await abrir([]);
 
     expect(raiz().querySelector('table')).toBeNull();
-    expect(texto()).toContain('con su serie, sobre un modelo del catálogo');
+    expect(texto()).toContain('sobre un modelo del catálogo, con la');
   });
 
   describe('Dar de baja no es un clic', () => {
@@ -148,6 +148,112 @@ describe('Equipos de un area', () => {
       );
 
       expect(botones).toHaveLength(1);
+    });
+  });
+
+  describe('La serie provisional', () => {
+    // Un equipo registrado sin serie recibe del servidor una provisional (2026-11-03). Quien lee la
+    // placa la cambia aqui; una serie real no se cambia, y eso lo decide el servidor con
+    // serieProvisional, no la pantalla mirando el prefijo.
+    const CON_PROVISIONAL = [
+      {
+        id: 'ec3',
+        serie: 'P:3f9a1c',
+        serieProvisional: true,
+        idModelo: ID_MODELO,
+        idAreaServicio: ID_AREA,
+        estadoActivo: true,
+      },
+      { ...INSTALADOS[0], serieProvisional: false },
+    ];
+
+    const filas = () => [...raiz().querySelectorAll('tbody tr')];
+
+    it('se marca como provisional, y la real no', async () => {
+      await abrir(CON_PROVISIONAL);
+
+      expect(filas()[0].querySelector('[data-provisional]')?.textContent).toContain(
+        'Serie provisional',
+      );
+      expect(filas()[1].querySelector('[data-provisional]')).toBeNull();
+    });
+
+    it('solo la provisional ofrece poner la serie real', async () => {
+      await abrir(CON_PROVISIONAL);
+
+      expect(filas()[0].textContent).toContain('Poner la serie real');
+      expect(filas()[1].textContent).not.toContain('Poner la serie real');
+    });
+
+    it('guardar manda solo la serie, recortada, a la ruta del equipo', async () => {
+      await abrir(CON_PROVISIONAL);
+      pulsar('Poner la serie real');
+      const campo = raiz().querySelector<HTMLInputElement>('#serie-real-ec3')!;
+      campo.value = '  SN-PLACA ';
+      campo.dispatchEvent(new Event('input'));
+      pulsar('Guardar serie');
+      await asentar(fixture);
+
+      const cambio = http.expectOne({ method: 'PATCH', url: `${URL_EQUIPO}/ec3` });
+      expect(cambio.request.body).toEqual({ serie: 'SN-PLACA' });
+      const corregido = { ...CON_PROVISIONAL[0], serie: 'SN-PLACA', serieProvisional: false };
+      cambio.flush(corregido);
+      await asentar(fixture);
+
+      // El campo se cierra cuando termina la recarga, que EquipoApi espera en su onSuccess. La recarga
+      // devuelve la fila corregida: con una lista vacia la fila desapareceria y el campo con ella, y la
+      // prueba pasaria aunque el campo no se cerrara nunca.
+      http
+        .match((p) => p.url === URL_EQUIPOS)
+        .forEach((p) => p.flush([corregido, CON_PROVISIONAL[1]]));
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+
+      expect(raiz().querySelector('#serie-real-ec3')).toBeNull();
+      expect(filas()[0].textContent).toContain('SN-PLACA');
+      expect(filas()[0].querySelector('[data-provisional]')).toBeNull();
+    });
+
+    it('vacia no se manda, y dice que falta', async () => {
+      await abrir(CON_PROVISIONAL);
+      pulsar('Poner la serie real');
+      const campo = raiz().querySelector<HTMLInputElement>('#serie-real-ec3')!;
+      campo.value = '   ';
+      campo.dispatchEvent(new Event('input'));
+      pulsar('Guardar serie');
+      await asentar(fixture);
+
+      http.expectNone({ method: 'PATCH', url: `${URL_EQUIPO}/ec3` });
+      expect(texto()).toContain('no puede quedar vacía');
+    });
+
+    it('un rechazo del servidor se ensena traducido', async () => {
+      await abrir(CON_PROVISIONAL);
+      pulsar('Poner la serie real');
+      const campo = raiz().querySelector<HTMLInputElement>('#serie-real-ec3')!;
+      campo.value = 'SN-PLACA';
+      campo.dispatchEvent(new Event('input'));
+      pulsar('Guardar serie');
+      await asentar(fixture);
+      http
+        .expectOne({ method: 'PATCH', url: `${URL_EQUIPO}/ec3` })
+        .flush(
+          { code: 'ERR_EQUIPMENT_007', message: 'La serie de una unidad no cambia', details: [] },
+          { status: 400, statusText: 'Bad Request' },
+        );
+      await asentar(fixture);
+
+      expect(raiz().querySelector('[role="alert"]')).not.toBeNull();
+      expect(raiz().querySelector('#serie-real-ec3')).not.toBeNull();
+    });
+
+    it('sin equipment.write no se ofrece', async () => {
+      TestBed.resetTestingModule();
+      montar(['equipment.read']);
+      await abrir(CON_PROVISIONAL);
+
+      expect(texto()).toContain('Serie provisional');
+      expect(texto()).not.toContain('Poner la serie real');
     });
   });
 

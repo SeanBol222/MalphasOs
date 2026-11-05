@@ -21,15 +21,24 @@ import lombok.Getter;
  * <p>El modelo no cambia —una unidad no se convierte en otra cosa—, pero el área sí: los equipos se
  * mueven entre las áreas de una sede, y ese traslado es un hecho que interesa fuera, porque cambia
  * quién responde por el equipo.
+ *
+ * <p><b>Toda unidad tiene serie, aunque no la traiga</b> (2026-11-03): la que se registra sin ella recibe
+ * una provisional, {@code P:} y los seis primeros caracteres de su identificador, como los números de
+ * reportes y órdenes. La {@code P} dice que no es la de la placa, y por eso nadie puede escribir una serie
+ * que empiece así. La serie no cambia, salvo la provisional: se reemplaza una vez por la real, cuando
+ * alguien la lee.
  */
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ClientEquipment extends AggregateRoot {
 
+    /** Lo que empieza la serie que pone MalphasOS a una unidad registrada sin ella. */
+    public static final String PREFIJO_SERIE_PROVISIONAL = "P:";
+
     @EqualsAndHashCode.Include
     private final UUID id;
 
-    private final String serie;
+    private String serie;
 
     private final UUID idModelo;
 
@@ -93,9 +102,10 @@ public class ClientEquipment extends AggregateRoot {
             String codigoInterno,
             String proveedor) {
 
+        UUID id = UUID.randomUUID();
         ClientEquipment unidad = new ClientEquipment(
-                UUID.randomUUID(),
-                validarSerie(serie),
+                id,
+                serie == null || serie.isBlank() ? serieProvisional(id) : validarSerie(serie),
                 exigir(idModelo, "modelo"),
                 exigir(idAreaServicio, "area de servicio"),
                 normalizar(numeroInventario),
@@ -149,7 +159,33 @@ public class ClientEquipment extends AggregateRoot {
             Long valorCompra,
             String codigoInterno,
             String proveedor) {
+        update(numeroInventario, fechaCompra, valorCompra, codigoInterno, proveedor, null);
+    }
+
+    /**
+     * Corrige los datos de compra y el inventario, y pone la serie real a una unidad que tenía la
+     * provisional. Un valor nulo o vacío deja el campo como está.
+     *
+     * <p>Una serie real no se cambia: identifica la máquina, y cambiarla sería decir que esta fila es otro
+     * equipo. Repetir la que ya tiene no es cambiarla.
+     */
+    public void update(
+            String numeroInventario,
+            LocalDate fechaCompra,
+            Long valorCompra,
+            String codigoInterno,
+            String proveedor,
+            String serie) {
         boolean cambio = false;
+
+        if (serie != null && !serie.isBlank() && !serie.trim().equals(this.serie)) {
+            if (!isSerieProvisional()) {
+                throw new IllegalArgumentException(
+                        "La serie de una unidad no cambia: solo se reemplaza una provisional, y esta es " + this.serie);
+            }
+            this.serie = validarSerie(serie);
+            cambio = true;
+        }
 
         if (numeroInventario != null
                 && !Objects.equals(normalizar(numeroInventario), this.numeroInventario)) {
@@ -200,16 +236,31 @@ public class ClientEquipment extends AggregateRoot {
         return id.toString();
     }
 
+    /** Si la serie es la que puso MalphasOS porque la unidad se registró sin ella. */
+    public boolean isSerieProvisional() {
+        return serie != null && serie.startsWith(PREFIJO_SERIE_PROVISIONAL);
+    }
+
     private ClientEquipmentPayload payload() {
         return new ClientEquipmentPayload(serie, idModelo, idAreaServicio);
     }
 
+    /** Una serie escrita por alguien: no vacía, y sin la marca de las provisionales. */
     private static String validarSerie(String serie) {
         if (serie == null || serie.isBlank()) {
             throw new IllegalArgumentException("Una unidad necesita su numero de serie");
         }
+        String limpia = serie.trim();
+        if (limpia.regionMatches(true, 0, PREFIJO_SERIE_PROVISIONAL, 0, PREFIJO_SERIE_PROVISIONAL.length())) {
+            throw new IllegalArgumentException("Una serie no puede empezar por «" + PREFIJO_SERIE_PROVISIONAL
+                    + "»: es la marca de las provisionales, que pone MalphasOS a lo que se registra sin serie");
+        }
 
-        return serie.trim();
+        return limpia;
+    }
+
+    private static String serieProvisional(UUID id) {
+        return PREFIJO_SERIE_PROVISIONAL + id.toString().substring(0, 6);
     }
 
     private static UUID exigir(UUID valor, String campo) {

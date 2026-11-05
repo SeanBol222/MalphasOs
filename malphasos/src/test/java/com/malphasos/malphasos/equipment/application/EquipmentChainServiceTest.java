@@ -24,6 +24,7 @@ import com.malphasos.malphasos.equipment.application.ports.output.ModelPersisten
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.ClientEquipmentService;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RegisterClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RelocateClientEquipmentCommand;
+import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.UpdateClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.equipment.EquipmentService;
 import com.malphasos.malphasos.equipment.application.services.equipment.commands.CreateEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.model.ModelService;
@@ -202,6 +203,35 @@ class EquipmentChainServiceTest {
             assertThat(despachados())
                     .extracting(evento -> evento.metadata().eventType())
                     .containsExactly("client-equipment.registered");
+        }
+
+        @Test
+        @DisplayName("incorporar sin serie guarda la unidad con la provisional")
+        void incorporarSinSerie() {
+            elModeloEsta(true);
+            elAreaEsta(true);
+            when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
+
+            ClientEquipment guardada = service().register(new RegisterClientEquipmentCommand(
+                    null, MODELO, AREA, null, null, null));
+
+            assertThat(guardada.getSerie()).startsWith("P:");
+        }
+
+        @Test
+        @DisplayName("editar pasa la serie real a la unidad, que reemplaza su provisional")
+        void editarPoneLaSerieReal() {
+            UUID id = UUID.randomUUID();
+            when(unitPort.findById(id)).thenReturn(Optional.of(ClientEquipment.rehydrate(
+                    id, "P:" + id.toString().substring(0, 6), MODELO, AREA, null, null, null, null, null,
+                    "HV-CDN-0001", true)));
+            when(unitPort.save(any(ClientEquipment.class))).thenAnswer(i -> i.getArgument(0));
+
+            ClientEquipment editada = service().update(new UpdateClientEquipmentCommand(
+                    id, null, null, null, null, null, "SN-REAL"));
+
+            assertThat(editada.getSerie()).isEqualTo("SN-REAL");
+            verify(unitPort).save(editada);
         }
 
         @Test

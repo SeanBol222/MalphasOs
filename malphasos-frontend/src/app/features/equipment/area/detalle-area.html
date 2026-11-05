@@ -33,8 +33,8 @@
         <p class="text-neutral-700" role="status">Cargando los equipos…</p>
       } @else if (!filas().length) {
         <p class="text-neutral-700">
-          Esta área no tiene equipos. Cada equipo se registra con su serie, sobre un modelo del
-          catálogo.
+          Esta área no tiene equipos. Cada equipo se registra sobre un modelo del catálogo, con la
+          serie de su placa.
         </p>
       } @else {
         <table class="tabla mt-1">
@@ -55,7 +55,12 @@
           <tbody>
             @for (fila of filas(); track fila.id) {
               <tr>
-                <td class="font-semibold">{{ fila.serie }}</td>
+                <td class="font-semibold">
+                  {{ fila.serie }}
+                  @if (fila.serieProvisional) {
+                    <span class="block font-normal text-neutral-700" data-provisional>Serie provisional</span>
+                  }
+                </td>
                 <td>{{ fila.modelo }}</td>
                 <td>{{ fila.numeroInventario || '—' }}</td>
                 <td [class.font-semibold]="fila.estadoActivo">
@@ -63,6 +68,49 @@
                 </td>
                 @if (puedeEditar()) {
                   <td>
+                    @if (fila.serieProvisional) {
+                      @if (poniendoSerie() === fila.id) {
+                        <div class="mb-1">
+                          <label class="block font-semibold" [for]="'serie-real-' + fila.id">Serie de la placa</label>
+                          <input
+                            class="campo mt-1 min-h-tactil w-full"
+                            [id]="'serie-real-' + fila.id"
+                            [formControl]="serieReal"
+                            maxlength="50"
+                            aria-required="true"
+                            [attr.aria-invalid]="(serieReal.touched && serieReal.invalid) || null"
+                          />
+                          @if (serieReal.touched && serieReal.invalid) {
+                            <p class="mt-1 font-semibold text-accent-700">
+                              Escribe la serie que dice la placa: no puede quedar vacía.
+                            </p>
+                          }
+                          <button
+                            class="boton-primario mt-1 min-h-tactil"
+                            type="button"
+                            [disabled]="edicion.isPending()"
+                            (click)="guardarSerie(fila.id)"
+                          >
+                            Guardar serie
+                          </button>
+                          <button
+                            class="min-h-tactil px-1 font-semibold underline"
+                            type="button"
+                            (click)="poniendoSerie.set(null)"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      } @else {
+                        <button
+                          class="min-h-tactil px-1 font-semibold underline"
+                          type="button"
+                          (click)="empezarSerie(fila.id)"
+                        >
+                          Poner la serie real
+                        </button>
+                      }
+                    }
                     @if (fila.estadoActivo) {
                       @if (confirmandoBaja() === fila.id) {
                         <button

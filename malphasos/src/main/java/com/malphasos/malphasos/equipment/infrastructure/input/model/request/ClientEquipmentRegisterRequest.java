@@ -1,7 +1,6 @@
 package com.malphasos.malphasos.equipment.infrastructure.input.model.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -12,8 +11,10 @@ import java.util.UUID;
 /** Incorpora una unidad al inventario. El área de servicio va en la ruta. */
 @Schema(name = "ClientEquipmentRegisterRequest")
 public record ClientEquipmentRegisterRequest(
-        @NotBlank(message = "El numero de serie es obligatorio")
-        @Size(max = 50) String serie,
+        @Size(max = 50)
+        @Schema(description = "La de la placa. Sin ella, MalphasOS pone una provisional: P: y el comienzo "
+                + "del identificador del equipo")
+        String serie,
 
         @NotNull(message = "El modelo es obligatorio") UUID idModelo,
 

@@ -10,6 +10,7 @@ import com.malphasos.malphasos.client.domain.serviceArea.ServiceArea;
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RegisterClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RelocateClientEquipmentCommand;
+import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.UpdateClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
@@ -117,6 +118,39 @@ class ClientEquipmentRelocationPersistenceTest {
         Model modelo = modelAdapter.save(Model.create("Modelo " + unico(), null, fabricante.getId(), asociacion.getId()));
 
         return modelo.getId();
+    }
+
+    /**
+     * La serie provisional (2026-11-03), en la fila real. Lo que los dobles no ven: que dos unidades sin
+     * serie del mismo modelo no chocan contra el indice unico de modelo y serie, y que reemplazar la
+     * provisional llega a la columna.
+     */
+    @Test
+    @DisplayName("dos unidades sin serie del mismo modelo se guardan, y la provisional se reemplaza en la fila")
+    void sinSerieSeGuardanYSeReemplaza() {
+        UUID cliente = unCliente();
+        ServiceArea area = serviceAreaServicePort.create(new CreateServiceAreaCommand("UCI", unaSedeDe(cliente)));
+        UUID modelo = unModelo();
+
+        ClientEquipment una = clientEquipmentServicePort.register(new RegisterClientEquipmentCommand(
+                null, modelo, area.getId(), null, null, null));
+        ClientEquipment otra = clientEquipmentServicePort.register(new RegisterClientEquipmentCommand(
+                " ", modelo, area.getId(), null, null, null));
+
+        assertThat(serieEnLaFila(una.getId())).isEqualTo("P:" + una.getId().toString().substring(0, 6));
+        assertThat(serieEnLaFila(otra.getId())).isEqualTo("P:" + otra.getId().toString().substring(0, 6));
+
+        clientEquipmentServicePort.update(new UpdateClientEquipmentCommand(
+                una.getId(), null, null, null, null, null, "SN-REAL-" + unico()));
+
+        assertThat(serieEnLaFila(una.getId())).startsWith("SN-REAL-");
+        assertThat(clientEquipmentServicePort.findById(una.getId(), ReadScope.unrestricted()).isSerieProvisional())
+                .isFalse();
+    }
+
+    private String serieEnLaFila(UUID id) {
+        return jdbcTemplate.queryForObject(
+                "SELECT k_serie FROM equipo_cliente WHERE k_id_equipo_cliente = ?", String.class, id);
     }
 
     @Test

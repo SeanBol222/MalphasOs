@@ -149,6 +149,7 @@ public class EquipmentRestMapper {
         return ClientEquipmentResponse.builder()
                 .id(unidad.getId())
                 .serie(unidad.getSerie())
+                .serieProvisional(unidad.isSerieProvisional())
                 .numeroHojaVida(unidad.getNumeroHojaVida())
                 .numeroInventario(unidad.getNumeroInventario())
                 .fechaCompra(unidad.getFechaCompra())

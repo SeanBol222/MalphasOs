@@ -160,7 +160,7 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
     public ClientEquipment update(UpdateClientEquipmentCommand command) {
         ClientEquipment unidad = findById(command.id(), ReadScope.unrestricted());
         unidad.update(command.numeroInventario(), command.fechaCompra(), command.valorCompra(),
-                command.codigoInterno(), command.proveedor());
+                command.codigoInterno(), command.proveedor(), command.serie());
 
         return persistAndPublish(unidad);
     }
