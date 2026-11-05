@@ -675,7 +675,7 @@ Ver [[decisiones-tecnicas-malphasos]] para el porqué de las `ref`, y la guía p
 | # | Tanda | Estado |
 |---|---|---|
 | 1 | **El formato**, en **tres archivos** que se cargan en orden —el catálogo de la empresa con sus ingenieros, cada cliente con sus equipos, el historial de cada cliente—: el esquema, un ejemplo inventado de cada uno y la guía, probados convirtiendo 129 informes reales de un cliente | **Escrito el 2026-11-03**, en revisión del usuario |
-| 2 | **La serie provisional**, regla del backend para todo equipo: sin serie, `P:` y el comienzo de su identificador. Sin migración | — |
+| 2 | **La serie provisional**, regla del backend para todo equipo: sin serie, `P:` y el comienzo de su identificador. Sin migración | **Construida el 2026-11-03**: el agregado la pone, la ficha del área la marca y deja poner la real, y el alta ya no exige serie |
 | 3 | Validar: leer los archivos de una carga, resolver refs, comprobar reglas; sin escribir | — |
 | 4 | Aplicar, en orden de dependencias, en una transacción, ignorando lo que ya existe | — |
 | 5 | La pantalla «Importar datos», solo para el SuperUsuario | — |

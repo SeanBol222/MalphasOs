@@ -2871,3 +2871,27 @@ poner en un reporte cerrado** —decidido el 2026-10-17— y que la del ingenier
 cerrar: basta con que los ingenieros guarden su firma antes de cargar el historial. Y la serie provisional,
 `P:` y el comienzo del identificador, pasa a ser regla de todo equipo sin serie. Ver
 [[decisiones-tecnicas-malphasos]], que conserva la decisión anulada con su corrección.
+
+## [2026-11-03] ingest | La serie provisional
+
+Tanda 2 de la 1.1.0, y la primera con código. Un equipo registrado sin serie recibe una provisional, `P:` y
+los seis primeros caracteres de su identificador; es regla de `ClientEquipment`, para el alta desde la
+pantalla y para la carga. **La serie era `final` y ninguna edición la tocaba**, así que hubo que abrir una
+sola puerta: reemplazar la provisional por la real, una vez. Nadie escribe una serie que empiece por `P:`.
+La respuesta dice `serieProvisional`, para que la pantalla no repita la regla del prefijo. Sin migración:
+dos provisionales del mismo modelo no chocan con el índice único de modelo y serie, comprobado contra
+PostgreSQL. La ficha del área marca la provisional y deja poner la de la placa; **la mutación de editar un
+equipo existía en `EquipoApi` y ninguna pantalla la usaba**.
+
+Trece mutaciones en el backend, las trece mueren. En el frontend, diez, y la batería enseñó dos cosas:
+
+- **Una prueba encontró un defecto**: tres espacios pasan `Validators.required`, así que «Guardar serie» no
+  mandaba nada pero tampoco decía por qué. Ahora el control exige un carácter visible.
+- **El arnés dio por muerta una mutación cuya prueba fallaba sin mutar nada.** La había corregido para
+  mirar el campo antes de la recarga, y `EquipoApi.editar()` espera la recarga en su `onSuccess`: el campo
+  se cierra después. «Muere» no significaba nada. **Un arnés de mutaciones tiene que comprobar primero que
+  la base está en verde**, que es la misma lección que «un arnés que no encuentra nada tiene que decirlo»,
+  vista por el otro lado. Con la base en verde, una mutación sobrevive y es **equivalente**: el campo vive
+  dentro de `@if (fila.serieProvisional)`, y cerrarlo a mano no cambia nada visible.
+
+Batería: **1619** en **136** clases; frontend, **816**.

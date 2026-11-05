@@ -3,7 +3,7 @@ name: dominio-equipo-mantenimiento
 description: equipment_hexagon — Equipment, EquipmentType, Brand, Manufacturer, Model, TechnicalVerification, MetrologicalData. El corazón del negocio de mantenimiento preventivo y la referencia arquitectónica principal
 tags: [dominio, backend, mantenimiento-preventivo, nucleo-malphasos, "reusable:alta", "describe:ambos"]
 source: Backend/sigma-bb/src/main/java/.../equipment_hexagon/
-updated: 2026-10-28
+updated: 2026-11-03
 ---
 
 # Dominio Equipo y Mantenimiento Preventivo (`equipment_hexagon`)
@@ -105,6 +105,8 @@ Tres cambios, por decisión del usuario:
 **Y lo que crea, queda creado.** Son hasta cinco llamadas y el backend no las envuelve en ninguna transacción: si falla la última, la marca nueva ya existe. La pantalla lo dice, porque la alternativa es que alguien reintente a ciegas y acabe con la misma marca tres veces. **Es una razón concreta para que el backend ofreciera un alta compuesta**, y queda anotada.
 
 **Lo que el alta de un equipo del cliente exige de verdad** es menos de lo que parece: `idModelo` y `serie`. El número de inventario, la fecha y el valor de compra son opcionales, porque un equipo se registra cuando llega y esos datos aparecen después. El frontend **no manda las claves vacías**: un cero no es «no se sabe».
+
+**Corregido el 2026-11-03: el alta exige solo `idModelo`.** Un equipo sin serie legible —la mitad de los de la aplicación anterior de la empresa, `NT` en sus informes— recibe del servidor una **serie provisional**, `P:` y los seis primeros caracteres de su identificador, como los números de reportes y órdenes. Es regla del agregado (`ClientEquipment.register`), no de la carga de datos, y la respuesta lo dice en `serieProvisional`. **La serie sigue sin cambiar, salvo la provisional**: se reemplaza una vez por la de la placa, desde la ficha del área, y nadie puede escribir una serie que empiece por `P:`. No hizo falta migración: es texto en `k_serie`, y dos provisionales del mismo modelo no chocan con `UQ_equipo_cliente_serie_por_modelo` porque llevan identificadores distintos.
 
 **Instalar un equipo exige `equipment.assign`, no `equipment.write`** — igual que el traslado. Es del backend, y la distinción es buena: repartir una máquina a un área no es editar un catálogo. Ver [[modelo-de-permisos]].
 
