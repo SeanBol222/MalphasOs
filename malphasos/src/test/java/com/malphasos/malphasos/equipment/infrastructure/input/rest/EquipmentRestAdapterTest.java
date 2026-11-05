@@ -16,6 +16,7 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
 import com.malphasos.malphasos.equipment.application.ports.input.*;
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.RegisterClientEquipmentCommand;
+import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.UpdateClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.application.services.model.commands.CreateModelCommand;
 import com.malphasos.malphasos.equipment.domain.brand.Brand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
@@ -357,6 +358,59 @@ class EquipmentRestAdapterTest {
         verify(clientEquipmentServicePort).register(comando.capture());
 
         assertThat(comando.getValue().idAreaServicio()).isEqualTo(area);
+    }
+
+    @Test
+    @DisplayName("el alta sin serie llega al servicio, y la respuesta dice que la serie es provisional")
+    void altaSinSerie() throws Exception {
+        UUID area = UUID.randomUUID();
+        UUID modelo = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
+        when(clientEquipmentServicePort.register(any())).thenReturn(ClientEquipment.rehydrate(
+                id, "P:" + id.toString().substring(0, 6), modelo, area, null, null, null, null, null, null, true));
+
+        mockMvc.perform(post("/v1/api/service-areas/" + area + "/equipments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"idModelo\":\"" + modelo + "\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.serieProvisional").value(true));
+
+        ArgumentCaptor<RegisterClientEquipmentCommand> comando =
+                ArgumentCaptor.forClass(RegisterClientEquipmentCommand.class);
+        verify(clientEquipmentServicePort).register(comando.capture());
+        assertThat(comando.getValue().serie()).isNull();
+    }
+
+    @Test
+    @DisplayName("una unidad con su serie no es provisional")
+    void conSerieNoEsProvisional() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(clientEquipmentServicePort.findById(any(), any())).thenReturn(ClientEquipment.rehydrate(
+                id, "SN-001", UUID.randomUUID(), UUID.randomUUID(), null, null, null, null, null, null, true));
+
+        mockMvc.perform(get("/v1/api/client-equipments/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serieProvisional").value(false));
+    }
+
+    @Test
+    @DisplayName("editar lleva la serie real al servicio")
+    void editarConSerie() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(clientEquipmentServicePort.update(any())).thenReturn(ClientEquipment.rehydrate(
+                id, "SN-REAL", UUID.randomUUID(), UUID.randomUUID(), null, null, null, null, null, null, true));
+
+        mockMvc.perform(patch("/v1/api/client-equipments/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"serie\":\"SN-REAL\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serie").value("SN-REAL"));
+
+        ArgumentCaptor<UpdateClientEquipmentCommand> comando =
+                ArgumentCaptor.forClass(UpdateClientEquipmentCommand.class);
+        verify(clientEquipmentServicePort).update(comando.capture());
+        assertThat(comando.getValue().serie()).isEqualTo("SN-REAL");
+        assertThat(comando.getValue().id()).isEqualTo(id);
     }
 
     @Test

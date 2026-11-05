@@ -59,7 +59,8 @@ public class ClientEquipmentRestAdapter {
     }
 
     @Operation(summary = "Incorporar una unidad al inventario de un area",
-            description = "El area debe estar activa y el modelo no puede estar retirado.")
+            description = "El area debe estar activa y el modelo no puede estar retirado. Sin serie, la "
+                    + "unidad recibe una provisional.")
     @PreAuthorize("hasAuthority('equipment.assign')")
     @PostMapping("/service-areas/{idAreaServicio}/equipments")
     public ResponseEntity<ClientEquipmentResponse> register(
@@ -97,7 +98,8 @@ public class ClientEquipmentRestAdapter {
     }
 
     @Operation(summary = "Corregir los datos de compra de una unidad",
-            description = "Los campos ausentes conservan su valor.")
+            description = "Los campos ausentes conservan su valor. La serie solo se acepta en una unidad con "
+                    + "serie provisional, para poner la real.")
     @PreAuthorize("hasAuthority('equipment.write')")
     @PatchMapping("/client-equipments/{id}")
     public ClientEquipmentResponse update(
@@ -105,7 +107,7 @@ public class ClientEquipmentRestAdapter {
 
         return mapper.toResponse(clientEquipmentServicePort.update(new UpdateClientEquipmentCommand(
                 id, request.numeroInventario(), request.fechaCompra(), request.valorCompra(),
-                request.codigoInterno(), request.proveedor())));
+                request.codigoInterno(), request.proveedor(), request.serie())));
     }
 
     @Operation(summary = "Trasladar una unidad a otra area de servicio",

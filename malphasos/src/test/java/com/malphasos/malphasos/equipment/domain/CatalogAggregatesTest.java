@@ -704,14 +704,88 @@ class CatalogAggregatesTest {
         }
 
         @Test
-        @DisplayName("una unidad sin serie, sin modelo o sin area se rechaza")
+        @DisplayName("una unidad sin modelo o sin area se rechaza")
         void referenciasObligatorias() {
-            assertThatThrownBy(() -> ClientEquipment.register(" ", MODELO, AREA, null, null, null, null, null))
-                    .isInstanceOf(IllegalArgumentException.class);
+            // Hasta el 2026-11-03 tambien se rechazaba sin serie. Desde entonces recibe la provisional:
+            // ver sinSerieRecibeLaProvisional.
             assertThatThrownBy(() -> ClientEquipment.register("SN", null, AREA, null, null, null, null, null))
                     .isInstanceOf(IllegalArgumentException.class);
             assertThatThrownBy(() -> ClientEquipment.register("SN", MODELO, null, null, null, null, null, null))
                     .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {"   "})
+        @DisplayName("una unidad sin serie recibe la provisional: P: y el comienzo de su identificador")
+        void sinSerieRecibeLaProvisional(String serie) {
+            ClientEquipment unidad = ClientEquipment.register(serie, MODELO, AREA, null, null, null, null, null);
+
+            assertThat(unidad.getSerie()).isEqualTo("P:" + unidad.getId().toString().substring(0, 6));
+            assertThat(unidad.isSerieProvisional()).isTrue();
+        }
+
+        @Test
+        @DisplayName("una unidad con serie no es provisional")
+        void conSerieNoEsProvisional() {
+            assertThat(unaUnidad().isSerieProvisional()).isFalse();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"P:123456", "p:abc", "  P:x"})
+        @DisplayName("nadie escribe una serie con la marca de las provisionales")
+        void laMarcaEsDeMalphasOS(String serie) {
+            assertThatThrownBy(() -> ClientEquipment.register(serie, MODELO, AREA, null, null, null, null, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("provisionales");
+
+            ClientEquipment sinSerie = ClientEquipment.register(null, MODELO, AREA, null, null, null, null, null);
+            assertThatThrownBy(() -> sinSerie.update(null, null, null, null, null, serie))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("provisionales");
+        }
+
+        @Test
+        @DisplayName("la provisional se reemplaza por la real, y eso es un cambio")
+        void laProvisionalSeReemplaza() {
+            ClientEquipment unidad = ClientEquipment.register(null, MODELO, AREA, null, null, null, null, null);
+            unidad.pullEvents();
+
+            unidad.update(null, null, null, null, null, "  SN-REAL ");
+
+            assertThat(unidad.getSerie()).isEqualTo("SN-REAL");
+            assertThat(unidad.isSerieProvisional()).isFalse();
+            assertThat(unidad.pullEvents()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("una serie real no cambia, ni siquiera la que vino de reemplazar una provisional")
+        void laRealNoCambia() {
+            ClientEquipment unidad = unaUnidad();
+            unidad.pullEvents();
+
+            assertThatThrownBy(() -> unidad.update(null, null, null, null, null, "OTRA"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("SN-001");
+            assertThat(unidad.getSerie()).isEqualTo("SN-001");
+
+            ClientEquipment reemplazada = ClientEquipment.register(null, MODELO, AREA, null, null, null, null, null);
+            reemplazada.update(null, null, null, null, null, "SN-REAL");
+            assertThatThrownBy(() -> reemplazada.update(null, null, null, null, null, "SN-OTRA"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("repetir la serie que tiene, o mandarla vacia, no es cambiarla")
+        void repetirLaSerieNoEsCambiarla() {
+            ClientEquipment unidad = unaUnidad();
+            unidad.pullEvents();
+
+            unidad.update(null, null, null, null, null, "SN-001");
+            unidad.update(null, null, null, null, null, " ");
+
+            assertThat(unidad.getSerie()).isEqualTo("SN-001");
+            assertThat(unidad.pullEvents()).isEmpty();
         }
 
         @Test

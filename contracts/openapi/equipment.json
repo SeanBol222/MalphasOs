@@ -97,6 +97,7 @@
             "type" : "string"
           },
           "serie" : {
+            "description" : "La de la placa. Sin ella, MalphasOS pone una provisional: P: y el comienzo del identificador del equipo",
             "maxLength" : 50,
             "minLength" : 0,
             "type" : "string"
@@ -106,7 +107,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "idModelo", "serie" ],
+        "required" : [ "idModelo" ],
         "type" : "object"
       },
       "ClientEquipmentResponse" : {
@@ -146,6 +147,10 @@
           "serie" : {
             "type" : "string"
           },
+          "serieProvisional" : {
+            "description" : "Si la serie es la provisional que MalphasOS puso porque el equipo se registro sin ella. Es la unica que se puede reemplazar, por la real",
+            "type" : "boolean"
+          },
           "valorCompra" : {
             "format" : "int64",
             "type" : "integer"
@@ -173,6 +178,12 @@
           "proveedor" : {
             "description" : "Quien vendio esta maquina",
             "maxLength" : 100,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "serie" : {
+            "description" : "La serie real, para un equipo que tiene la provisional. Una serie real no cambia",
+            "maxLength" : 50,
             "minLength" : 0,
             "type" : "string"
           },
@@ -2191,7 +2202,7 @@
         "tags" : [ "ClientEquipment" ]
       },
       "patch" : {
-        "description" : "Los campos ausentes conservan su valor.",
+        "description" : "Los campos ausentes conservan su valor. La serie solo se acepta en una unidad con serie provisional, para poner la real.",
         "operationId" : "update_4",
         "parameters" : [ {
           "in" : "path",
@@ -5601,7 +5612,7 @@
         "tags" : [ "ClientEquipment" ]
       },
       "post" : {
-        "description" : "El area debe estar activa y el modelo no puede estar retirado.",
+        "description" : "El area debe estar activa y el modelo no puede estar retirado. Sin serie, la unidad recibe una provisional.",
         "operationId" : "register",
         "parameters" : [ {
           "in" : "path",
