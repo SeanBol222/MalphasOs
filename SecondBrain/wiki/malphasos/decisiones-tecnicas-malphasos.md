@@ -719,3 +719,34 @@ importar, y esto corrige un tipo que estaba mal para cualquier equipo, cargado o
 pierde, porque todo entero cabe en `numeric(8,2)`. Los documentos congelados de los reportes cerrados
 guardan el voltaje como entero JSON y se siguen leyendo, con una prueba que lo fija. La escala se
 normaliza a dos decimales, como la del amperaje, para que 110 y 110,00 no cuenten como un cambio.
+
+## El cargador no toca los módulos: el trabajo pesado es del JSON (2026-11-07)
+
+**Decisión**: la carga la hace un módulo nuevo, `dataload`, **sin modificar los demás**. Valida el archivo
+contra el esquema publicado —con una librería de JSON Schema, la misma fuente de verdad que usa el
+conversor—, resuelve las `ref`, busca lo que ya existe con los puertos de lectura de cada módulo,
+construye cada agregado con su `rehydrate` —o su `create` donde encaja, como el equipo, que así recibe
+su serie provisional— y lo guarda con el puerto de persistencia de su módulo, en una transacción. Los
+documentos los compone lo que ya existía: `documentOf` para cada orden y `freezeClosedWithoutDocument()`
+para los reportes, el mismo que congeló los cerrados antes de `V37`. Fuera de `dataload` solo cambian
+`bootstrap` —la autoridad y el grupo de OpenAPI— y el realm.
+
+**Por qué**: lo pidió el usuario, «que todo el trabajo pesado esté en la creación del JSON y el back no
+se tenga que preocupar». Se le propuso antes un puerto de carga por módulo, con la regla histórica junto a
+la regla normal que relaja, y eligió esto sabiendo el precio: **`rehydrate` no valida**, porque existe para
+leer de la base, así que lo que no cubren el esquema, `dataload` o las restricciones de la base solo lo
+garantiza el conversor; y si mañana cambia una regla de un módulo, `dataload` no se entera solo. No se
+salta ninguna reacción: **ningún evento de dominio tiene consumidor** desde `V52`.
+
+**Los reportes cargados salen tardíos**: `freezeClosedWithoutDocument()` los marca, y la pantalla del
+reporte dice que su informe se congeló después de cerrarse, con los datos del día de la carga. Es
+cierto, y el aviso está fuera del PDF. Aceptado por el usuario: es lo que deja `report` sin tocar.
+
+**Las otras tres, del mismo día**:
+
+- **Solo el SuperUsuario**, con `super.data-load.write`: el prefijo `super.` es lo que `admin.full` no
+  concede, y una carga crea catálogo, personas e historial de golpe.
+- **Un ingeniero sin firma guardada rechaza la carga**: el documento de un reporte se congela al cargar,
+  y uno congelado sin firma no la recibiría nunca.
+- **El informe separa errores de avisos**: un error impide aplicar; un aviso —un equipo que recibirá serie
+  provisional— se lee y no detiene nada.
