@@ -68,12 +68,8 @@
     "texto": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 255
-    },
-    "textoLargo": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 4000
+      "pattern": "\\S",
+      "description": "Un texto con algo escrito: en blanco no vale. Cada campo dice su largo máximo, que es el que admite MalphasOS."
     },
     "fecha": {
       "type": "string",
@@ -91,11 +87,12 @@
     "correo": {
       "type": "string",
       "format": "email",
-      "maxLength": 255
+      "maxLength": 50
     },
     "telefono": {
       "type": "string",
-      "pattern": "^[0-9+() -]{3,30}$"
+      "pattern": "^[0-9+() -]{3,}$",
+      "description": "Cada uso dice su largo máximo: el de una persona es más corto que el de un cliente."
     },
     "catalogo": {
       "type": "object",
@@ -151,7 +148,8 @@
           "$ref": "#/$defs/ref"
         },
         "nombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         }
       }
     },
@@ -167,7 +165,8 @@
           "$ref": "#/$defs/ref"
         },
         "nombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "pais": {
           "$ref": "#/$defs/codigoPais"
@@ -188,10 +187,12 @@
           "$ref": "#/$defs/ref"
         },
         "nombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 120
         },
         "descripcion": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 500
         }
       }
     },
@@ -210,22 +211,28 @@
           "$ref": "#/$defs/ref"
         },
         "nombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "definicionTecnica": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 250
         },
         "recomendacionesCuidado": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 250
         },
         "tecnologiaPredominante": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "uso": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 250
         },
         "limpiezaCotidiana": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 250
         },
         "valorUnitarioMantenimiento": {
           "type": "integer",
@@ -245,7 +252,8 @@
                 "$ref": "#/$defs/ref"
               },
               "indicacion": {
-                "$ref": "#/$defs/textoLargo"
+                "$ref": "#/$defs/texto",
+                "maxLength": 300
               }
             }
           }
@@ -274,11 +282,15 @@
         },
         "magnitud": {
           "type": "string",
-          "description": "El código de una magnitud del catálogo de MalphasOS: temperatura, presion, masa. La lista está en GUIA.md."
+          "maxLength": 30,
+          "description": "El código de una magnitud del catálogo de MalphasOS: temperatura, presion, masa. La lista está en GUIA.md.",
+          "pattern": "\\S"
         },
         "unidad": {
           "type": "string",
-          "description": "El símbolo de una unidad de esa magnitud: °C, mmHg, kg."
+          "maxLength": 20,
+          "description": "El símbolo de una unidad de esa magnitud: °C, mmHg, kg.",
+          "pattern": "\\S"
         },
         "modalidad": {
           "enum": [
@@ -297,13 +309,16 @@
         "tolerancia": {
           "type": "number",
           "exclusiveMinimum": 0,
-          "description": "El error máximo admitido, en la unidad de la verificación. Sin ella, las lecturas no se califican de conformes."
+          "description": "El error máximo admitido, en la unidad de la verificación. Sin ella, las lecturas no se califican de conformes. Con cuatro decimales como mucho.",
+          "exclusiveMaximum": 100000000
         },
         "puntos": {
           "type": "array",
-          "description": "Los valores en los que se verifica. Solo en las modalidades constantes.",
+          "description": "Los valores en los que se verifica. Solo en las modalidades constantes. Con cuatro decimales como mucho.",
           "items": {
-            "type": "number"
+            "type": "number",
+            "exclusiveMinimum": -100000000,
+            "exclusiveMaximum": 100000000
           },
           "uniqueItems": true
         }
@@ -371,10 +386,12 @@
           "$ref": "#/$defs/ref"
         },
         "nombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "invima": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "fichaTecnica": {
           "type": "object",
@@ -390,26 +407,33 @@
               ]
             },
             "alimentacion": {
-              "$ref": "#/$defs/texto"
+              "$ref": "#/$defs/texto",
+              "maxLength": 50
             },
             "voltaje": {
               "type": "integer",
-              "minimum": 0
+              "minimum": 1,
+              "maximum": 2147483647
             },
             "potencia": {
               "type": "integer",
-              "minimum": 0
+              "minimum": 1,
+              "maximum": 2147483647
             },
             "amperaje": {
               "type": "number",
-              "minimum": 0
+              "exclusiveMinimum": 0,
+              "exclusiveMaximum": 1000000,
+              "description": "Mayor que cero, con dos decimales como mucho."
             },
             "frecuencia": {
               "type": "integer",
-              "minimum": 0
+              "minimum": 1,
+              "maximum": 2147483647
             },
             "caracteristicas": {
-              "$ref": "#/$defs/textoLargo"
+              "$ref": "#/$defs/texto",
+              "maxLength": 250
             }
           }
         }
@@ -430,25 +454,32 @@
           "$ref": "#/$defs/ref"
         },
         "nombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 120
         },
         "marca": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 80
         },
         "modelo": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 80
         },
         "serie": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 60
         },
         "codigoInterno": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 40
         },
         "rango": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 120
         },
         "resolucion": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 80
         },
         "certificados": {
           "type": "array",
@@ -462,7 +493,8 @@
             "additionalProperties": false,
             "properties": {
               "numero": {
-                "$ref": "#/$defs/texto"
+                "$ref": "#/$defs/texto",
+                "maxLength": 80
               },
               "fechaCalibracion": {
                 "$ref": "#/$defs/fecha"
@@ -471,7 +503,8 @@
                 "$ref": "#/$defs/fecha"
               },
               "empresaCalibradora": {
-                "$ref": "#/$defs/texto"
+                "$ref": "#/$defs/texto",
+                "maxLength": 120
               }
             }
           }
@@ -495,7 +528,7 @@
         },
         "cedula": {
           "type": "string",
-          "pattern": "^[0-9A-Za-z-]{4,20}$"
+          "pattern": "^[0-9A-Za-z-]{4,10}$"
         },
         "tipo": {
           "enum": [
@@ -505,16 +538,20 @@
           ]
         },
         "primerNombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "segundoNombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "primerApellido": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "segundoApellido": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "correos": {
           "type": "array",
@@ -527,7 +564,8 @@
         "telefonos": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/telefono"
+            "$ref": "#/$defs/telefono",
+            "maxLength": 10
           },
           "uniqueItems": true
         }
@@ -548,7 +586,7 @@
         },
         "documento": {
           "type": "string",
-          "pattern": "^[0-9A-Za-z-]{4,20}$",
+          "pattern": "^[0-9A-Za-z-]{4,11}$",
           "description": "NIT o cédula, con el dígito de verificación si lo tiene: 900123456-7."
         },
         "tipoIdentificacion": {
@@ -560,15 +598,16 @@
           ]
         },
         "razonSocial": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "pais": {
           "$ref": "#/$defs/codigoPais"
         },
         "sigla": {
           "type": "string",
-          "pattern": "^[A-Z0-9]{2,6}$",
-          "description": "Encabeza el número de las hojas de vida del cliente. Si falta, MalphasOS la genera de la razón social."
+          "pattern": "^[A-Za-z][A-Za-z0-9]{2,5}$",
+          "description": "De tres a seis letras o dígitos, empezando por letra: MalphasOS la pasa a mayúsculas. Encabeza el número de las hojas de vida del cliente. Si falta, MalphasOS la genera de la razón social."
         },
         "correos": {
           "type": "array",
@@ -580,7 +619,8 @@
         "telefonos": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/telefono"
+            "$ref": "#/$defs/telefono",
+            "maxLength": 50
           },
           "uniqueItems": true
         },
@@ -597,7 +637,8 @@
                 "$ref": "#/$defs/ref"
               },
               "cargo": {
-                "$ref": "#/$defs/texto"
+                "$ref": "#/$defs/texto",
+                "maxLength": 80
               }
             }
           }
@@ -626,7 +667,8 @@
           "$ref": "#/$defs/ref"
         },
         "nombre": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "ciudad": {
           "type": "object",
@@ -641,18 +683,22 @@
               "$ref": "#/$defs/codigoPais"
             },
             "nombre": {
-              "$ref": "#/$defs/texto"
+              "$ref": "#/$defs/texto",
+              "maxLength": 50
             }
           }
         },
         "calle": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "carrera": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "numero": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "areas": {
           "type": "array",
@@ -668,7 +714,8 @@
                 "$ref": "#/$defs/ref"
               },
               "nombre": {
-                "$ref": "#/$defs/texto"
+                "$ref": "#/$defs/texto",
+                "maxLength": 50
               }
             }
           }
@@ -696,17 +743,24 @@
         },
         "serie": {
           "$ref": "#/$defs/texto",
-          "description": "Si la máquina no tiene serie legible, se omite: no se escribe «NT» ni «NA». MalphasOS le pone una provisional, como a todo equipo que se registra sin serie."
+          "maxLength": 50,
+          "description": "Si la máquina no tiene serie legible, se omite: no se escribe «NT» ni «NA». MalphasOS le pone una provisional, como a todo equipo que se registra sin serie. Por eso ninguna serie puede empezar por «P:»: ese prefijo es de las provisionales.",
+          "not": {
+            "pattern": "^[Pp]:"
+          }
         },
         "numeroInventario": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 50
         },
         "codigoInterno": {
           "$ref": "#/$defs/texto",
+          "maxLength": 50,
           "description": "El código que el cliente le da a la máquina."
         },
         "proveedor": {
-          "$ref": "#/$defs/texto"
+          "$ref": "#/$defs/texto",
+          "maxLength": 100
         },
         "fechaCompra": {
           "$ref": "#/$defs/fecha"
@@ -806,22 +860,28 @@
           "description": "Cuándo se cerró. Una fecha sola se toma a mediodía, hora de Bogotá."
         },
         "fallaReportada": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 500
         },
         "diagnostico": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 500
         },
         "causa": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 500
         },
         "repuestos": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 500
         },
         "procedimientos": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 500
         },
         "observaciones": {
-          "$ref": "#/$defs/textoLargo",
+          "$ref": "#/$defs/texto",
+          "maxLength": 500,
           "description": "Lo que el conversor quiera conservar y no tenga campo propio, como el número que el reporte tenía en el sistema de origen."
         },
         "resultado": {
@@ -856,16 +916,19 @@
                 "additionalProperties": false,
                 "properties": {
                   "nombre": {
-                    "$ref": "#/$defs/texto"
+                    "$ref": "#/$defs/texto",
+                    "maxLength": 120
                   },
                   "conforme": {
                     "type": "boolean"
                   },
                   "observacion": {
-                    "$ref": "#/$defs/textoLargo"
+                    "$ref": "#/$defs/texto",
+                    "maxLength": 500
                   }
                 }
-              }
+              },
+              "maxItems": 50
             }
           }
         },
@@ -890,7 +953,8 @@
                 ]
               },
               "nota": {
-                "$ref": "#/$defs/textoLargo"
+                "$ref": "#/$defs/texto",
+                "maxLength": 300
               }
             },
             "if": {
@@ -942,15 +1006,21 @@
                   "properties": {
                     "punto": {
                       "type": "number",
-                      "description": "El punto de verificación en que se tomó. Obligatorio en las modalidades constantes."
+                      "description": "El punto de verificación en que se tomó. Obligatorio en las modalidades constantes. Con cuatro decimales como mucho.",
+                      "exclusiveMinimum": -100000000,
+                      "exclusiveMaximum": 100000000
                     },
                     "patron": {
                       "type": "number",
-                      "description": "Lo que marcó el patrón."
+                      "description": "Lo que marcó el patrón. Con cuatro decimales como mucho.",
+                      "exclusiveMinimum": -100000000,
+                      "exclusiveMaximum": 100000000
                     },
                     "equipo": {
                       "type": "number",
-                      "description": "Lo que marcó el equipo."
+                      "description": "Lo que marcó el equipo. Con cuatro decimales como mucho.",
+                      "exclusiveMinimum": -100000000,
+                      "exclusiveMaximum": 100000000
                     }
                   }
                 }
@@ -967,14 +1037,16 @@
               "$ref": "#/$defs/ref"
             },
             "nombre": {
-              "$ref": "#/$defs/texto"
+              "$ref": "#/$defs/texto",
+              "maxLength": 120
             },
             "cedula": {
               "type": "string",
               "pattern": "^[0-9A-Za-z-]{4,20}$"
             },
             "cargo": {
-              "$ref": "#/$defs/texto"
+              "$ref": "#/$defs/texto",
+              "maxLength": 80
             }
           },
           "oneOf": [
@@ -1007,7 +1079,8 @@
           ]
         },
         "observacion": {
-          "$ref": "#/$defs/textoLargo"
+          "$ref": "#/$defs/texto",
+          "maxLength": 500
         }
       },
       "if": {
