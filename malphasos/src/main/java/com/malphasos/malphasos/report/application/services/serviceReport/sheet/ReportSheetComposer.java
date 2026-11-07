@@ -186,7 +186,7 @@ public final class ReportSheetComposer {
     private static String alimentacion(ReportDocument.Equipo equipo) {
         String linea = unir(" · ",
                 equipo.alimentacion(),
-                equipo.voltaje() == null ? null : equipo.voltaje() + " V",
+                equipo.voltaje() == null ? null : numero(equipo.voltaje()) + " V",
                 equipo.potencia() == null ? null : equipo.potencia() + " W",
                 equipo.amperaje() == null ? null : numero(equipo.amperaje()) + " A",
                 equipo.frecuencia() == null ? null : equipo.frecuencia() + " Hz");

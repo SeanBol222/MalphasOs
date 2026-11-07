@@ -269,7 +269,7 @@ class ServiceReportPersistenceAdapterTest {
                     new ReportDocument.Cliente("Clínica del Norte", "900.111.222-3", "Sede Norte", "Calle 1",
                             "Ciudad", "Urgencias", List.of("Ana", "Luis"), List.of("601 1"), List.of()),
                     new ReportDocument.Equipo("Báscula", "Kern", "MS-200", "SN-1", "HV-CDN-0001", null, "BAS-3",
-                            "Electrónica", "Pesar", "IIA", "AC", 110, 20, new BigDecimal("0.50"), 60),
+                            "Electrónica", "Pesar", "IIA", "AC", new BigDecimal("110"), 20, new BigDecimal("0.50"), 60),
                     List.of(new ReportDocument.Verificacion(VERIFICACION, "Masa", "kg", 3, new BigDecimal("0.0500"),
                             List.of(new ReportDocument.Punto(PUNTO, new BigDecimal("10.5000"))))),
                     new ReportDocument.Empresa("Ejemplo S.A.S.", null, null, null, null, "Garantía", null, "FT-2",
@@ -304,6 +304,25 @@ class ServiceReportPersistenceAdapterTest {
 
             assertThat(recuperado.getDocumento()).isEqualTo(completo());
             assertThat(recuperado.isDocumentoTardio()).isFalse();
+        }
+
+        @Test
+        @DisplayName("un documento congelado antes de V57, con el voltaje entero, se sigue leyendo; y uno con 1,5 V vuelve igual")
+        void voltajeEnteroYDecimal() {
+            ServiceReport reporte = cerrado(completo());
+            adapter.save(reporte);
+            // Asi lo guardaba la base antes de V57: el voltaje como entero JSON.
+            jdbcTemplate.update("UPDATE reporte_servicio SET t_documento = jsonb_set(t_documento, '{equipo,voltaje}', '115'::jsonb)"
+                    + " WHERE k_id_reporte_servicio = ?", reporte.getId());
+
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().getDocumento().equipo().voltaje())
+                    .isEqualByComparingTo("115");
+
+            jdbcTemplate.update("UPDATE reporte_servicio SET t_documento = jsonb_set(t_documento, '{equipo,voltaje}', '1.50'::jsonb)"
+                    + " WHERE k_id_reporte_servicio = ?", reporte.getId());
+
+            assertThat(adapter.findById(reporte.getId()).orElseThrow().getDocumento().equipo().voltaje())
+                    .isEqualByComparingTo("1.5");
         }
 
         @Test

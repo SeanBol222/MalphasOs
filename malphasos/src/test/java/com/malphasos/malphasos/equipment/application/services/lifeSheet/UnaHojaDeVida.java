@@ -32,11 +32,18 @@ public class UnaHojaDeVida {
 
     private boolean activo = true;
     private int pasos = 2;
+    private BigDecimal voltaje = new BigDecimal("110");
     private final List<Intervention> historial = new ArrayList<>();
     private Optional<ServiceCompany> empresa = Optional.of(empresa(null));
 
     public UnaHojaDeVida deBaja() {
         activo = false;
+        return this;
+    }
+
+    /** El voltaje del modelo, que desde V57 admite decimales. */
+    public UnaHojaDeVida conVoltaje(String valor) {
+        voltaje = new BigDecimal(valor);
         return this;
     }
 
@@ -76,7 +83,7 @@ public class UnaHojaDeVida {
                 new LifeSheet.Tecnica("Báscula", "Mide la masa de un paciente", "Electrónica",
                         "No exponer a humedad\n\n  Limpiar la pantalla con un paño seco  ", "Clínico",
                         "Paño con alcohol al 70 %", "Kern", "MS-200", "INVIMA 2020DM-0001",
-                        new TechnicalSheet(RiskClass.IIA, null, "Red eléctrica", 110, 20, new BigDecimal("0.10"), 60),
+                        new TechnicalSheet(RiskClass.IIA, null, "Red eléctrica", voltaje, 20, new BigDecimal("0.10"), 60),
                         IntStream.rangeClosed(1, pasos)
                                 .mapToObj(i -> new LifeSheet.PasoDelProtocolo(i, "Paso " + i, "Qué se hace en el paso " + i,
                                         i == 1 ? "Alcohol isopropílico" : null))

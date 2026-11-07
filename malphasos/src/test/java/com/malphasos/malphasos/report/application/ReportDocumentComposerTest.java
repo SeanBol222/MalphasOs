@@ -79,7 +79,7 @@ class ReportDocumentComposerTest {
                         List.of("Ana Encargada"), List.of("601 1"), List.of("c@n.example")),
                 new LifeSheet.Tecnica("Báscula", null, "Electrónica", null, "Pesar pacientes", null, "Kern",
                         "MS-200", null,
-                        new TechnicalSheet(RiskClass.IIA, null, "AC", 110, 20, new BigDecimal("0.5"), 60),
+                        new TechnicalSheet(RiskClass.IIA, null, "AC", new BigDecimal("110"), 20, new BigDecimal("0.5"), 60),
                         List.of()),
                 new LifeSheet.Fabricante("Kern", null),
                 List.of());
@@ -132,7 +132,7 @@ class ReportDocumentComposerTest {
                 "Sede Norte", "Calle 1", "Ciudad", "Urgencias", List.of("Ana Encargada"), List.of("601 1"),
                 List.of("c@n.example")));
         assertThat(documento.equipo()).isEqualTo(new ReportDocument.Equipo("Báscula", "Kern", "MS-200", "SN-77",
-                "HV-CDN-0007", "INV-1", "BAS-3", "Electrónica", "Pesar pacientes", "IIA", "AC", 110, 20,
+                "HV-CDN-0007", "INV-1", "BAS-3", "Electrónica", "Pesar pacientes", "IIA", "AC", new BigDecimal("110"), 20,
                 new BigDecimal("0.5"), 60));
         TypeVerification declarada = tipo.getVerificaciones().getFirst();
         assertThat(documento.verificaciones()).containsExactly(new ReportDocument.Verificacion(

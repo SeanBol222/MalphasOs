@@ -20,8 +20,9 @@ class ModelTechnicalSheetTest {
     private static final UUID FABRICANTE = UUID.randomUUID();
     private static final UUID EQUIPO = UUID.randomUUID();
 
-    private static TechnicalSheet ficha(Integer voltaje, String amperaje) {
-        return TechnicalSheet.of(RiskClass.IIA, "Pantalla LCD", "Red electrica", voltaje, 50,
+    private static TechnicalSheet ficha(String voltaje, String amperaje) {
+        return TechnicalSheet.of(RiskClass.IIA, "Pantalla LCD", "Red electrica",
+                voltaje == null ? null : new BigDecimal(voltaje), 50,
                 amperaje == null ? null : new BigDecimal(amperaje), 60);
     }
 
@@ -39,8 +40,8 @@ class ModelTechnicalSheetTest {
     @Test
     @DisplayName("los datos electricos, si vienen, son positivos")
     void positivos() {
-        assertThatThrownBy(() -> ficha(0, null)).hasMessageContaining("voltaje");
-        assertThatThrownBy(() -> ficha(110, "-1")).hasMessageContaining("amperaje");
+        assertThatThrownBy(() -> ficha("0", null)).hasMessageContaining("voltaje");
+        assertThatThrownBy(() -> ficha("110", "-1")).hasMessageContaining("amperaje");
         assertThatThrownBy(() -> TechnicalSheet.of(null, null, null, null, 0, null, null))
                 .hasMessageContaining("potencia");
         assertThatThrownBy(() -> TechnicalSheet.of(null, null, null, null, null, null, -60))
@@ -52,8 +53,27 @@ class ModelTechnicalSheetTest {
     void amperajeConDosDecimales() {
         // En el esquema original numeric(2) redondeaba 2.5 a 3. Aqui se normaliza la escala, y un
         // tercer decimal se rechaza: redondearlo seria cambiar en silencio lo que dice la placa.
-        assertThat(ficha(110, "2.5").amperaje()).isEqualTo(new BigDecimal("2.50"));
-        assertThatThrownBy(() -> ficha(110, "2.555")).hasMessageContaining("dos decimales");
+        assertThat(ficha("110", "2.5").amperaje()).isEqualTo(new BigDecimal("2.50"));
+        assertThatThrownBy(() -> ficha("110", "2.555")).hasMessageContaining("dos decimales");
+    }
+
+    @Test
+    @DisplayName("el voltaje admite dos decimales desde V57: un equipo a pila es de 1,5 V")
+    void voltajeConDecimales() {
+        // Con un entero, el termometro a pila de los informes de la aplicacion anterior quedaba en 1 V.
+        assertThat(ficha("1.5", null).voltaje()).isEqualTo(new BigDecimal("1.50"));
+        assertThatThrownBy(() -> ficha("1.555", null)).hasMessageContaining("voltaje admite dos decimales");
+    }
+
+    @Test
+    @DisplayName("110 y 110.00 son el mismo voltaje: volver a mandarlo no emite evento")
+    void voltajeSinEventoPorLaEscala() {
+        Model modelo = Model.create("GS14", null, FABRICANTE, EQUIPO, ficha("110", null));
+        modelo.pullEvents();
+
+        modelo.describe(ficha("110.00", null));
+
+        assertThat(modelo.pullEvents()).isEmpty();
     }
 
     @Test
@@ -70,19 +90,19 @@ class ModelTechnicalSheetTest {
         Model modelo = Model.create("GS14", null, FABRICANTE, EQUIPO);
         modelo.pullEvents();
 
-        modelo.describe(ficha(110, "2.5"));
+        modelo.describe(ficha("110", "2.5"));
         assertThat(modelo.pullEvents()).hasSize(1);
         assertThat(modelo.getFichaTecnica().riesgo()).isEqualTo(RiskClass.IIA);
 
         // 2.50 y 2.5 son el mismo amperaje: sin normalizar la escala, esto emitiria un evento por nada.
-        modelo.describe(ficha(110, "2.50"));
+        modelo.describe(ficha("110", "2.50"));
         assertThat(modelo.pullEvents()).isEmpty();
     }
 
     @Test
     @DisplayName("mandar la ficha sin un dato lo vacia: se reemplaza entera")
     void seReemplazaEntera() {
-        Model modelo = Model.create("GS14", null, FABRICANTE, EQUIPO, ficha(110, "2.5"));
+        Model modelo = Model.create("GS14", null, FABRICANTE, EQUIPO, ficha("110", "2.5"));
 
         modelo.describe(TechnicalSheet.of(RiskClass.I, null, null, null, null, null, null));
 

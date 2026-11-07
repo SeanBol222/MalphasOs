@@ -702,3 +702,20 @@ segunda regla, y por eso lleva la `P`: dice que no es de la placa. Solo la pone 
 >   quien recibe ya se podía poner en un reporte cerrado. El documento no dice que es importado.
 > - **La serie provisional deja de ser cosa de la carga**: es regla del backend para todo equipo que se
 >   registre sin serie, también desde la pantalla. No toca el esquema: es texto en la columna de siempre.
+
+## El voltaje de un modelo, con decimales (2026-11-07, `V57`)
+
+**Decisión**: `modelo.i_voltaje integer` pasa a `d_voltaje numeric(8,2)`, como el amperaje, y el voltaje
+viaja como decimal en el API, el documento del informe y el formato de carga.
+
+**Por qué**: los termómetros a pila son de 1,5 V, y con un entero la hoja de vida decía 1 V. Lo destapó
+la carga de los informes de la aplicación anterior, que traen «1,5v»: el conversor tomaba la parte
+entera. Se preguntó al usuario entre dejar el voltaje vacío con «pila de 1,5 V» en las características,
+redondear a 2 V o cambiar la columna, y eligió cambiarla. **Es la primera migración de la v1.1.0, y va
+contra la regla de no tocar el esquema para la carga**: la regla protegía de inventar tablas para
+importar, y esto corrige un tipo que estaba mal para cualquier equipo, cargado o no.
+
+**Cómo**: la migración cambia el tipo, renombra la columna con su prefijo y rehace el `CHECK`; nada se
+pierde, porque todo entero cabe en `numeric(8,2)`. Los documentos congelados de los reportes cerrados
+guardan el voltaje como entero JSON y se siguen leyendo, con una prueba que lo fija. La escala se
+normaliza a dos decimales, como la del amperaje, para que 110 y 110,00 no cuenten como un cambio.

@@ -425,7 +425,6 @@ export interface components {
             tecnologia?: string;
             tipo?: string;
             uso?: string;
-            /** Format: int32 */
             voltaje?: number;
         };
         ReportDocumentOrden: {

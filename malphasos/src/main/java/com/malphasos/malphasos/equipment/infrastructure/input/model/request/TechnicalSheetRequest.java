@@ -19,7 +19,9 @@ public record TechnicalSheetRequest(
         @Size(max = 50, message = "La alimentacion no puede pasar de 50 caracteres")
         @Schema(description = "De donde toma la energia", example = "Red electrica")
         String alimentacion,
-        @Positive(message = "El voltaje es positivo") @Schema(description = "En V") Integer voltaje,
+        @Positive(message = "El voltaje es positivo")
+        @Digits(integer = 6, fraction = 2, message = "El voltaje admite dos decimales")
+        @Schema(description = "En V") BigDecimal voltaje,
         @Positive(message = "La potencia es positiva") @Schema(description = "En W") Integer potencia,
         @Positive(message = "El amperaje es positivo")
         @Digits(integer = 6, fraction = 2, message = "El amperaje admite dos decimales")

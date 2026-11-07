@@ -1195,10 +1195,7 @@ export interface components {
              * @enum {string}
              */
             riesgo?: "I" | "IIA" | "IIB" | "III";
-            /**
-             * Format: int32
-             * @description En V
-             */
+            /** @description En V */
             voltaje?: number;
         };
         TechnicalSheetResponse: {
@@ -1218,10 +1215,7 @@ export interface components {
             potencia?: number;
             /** @enum {string} */
             riesgo?: "I" | "IIA" | "IIB" | "III";
-            /**
-             * Format: int32
-             * @description En V
-             */
+            /** @description En V */
             voltaje?: number;
         };
         TypeVerificationRequest: {

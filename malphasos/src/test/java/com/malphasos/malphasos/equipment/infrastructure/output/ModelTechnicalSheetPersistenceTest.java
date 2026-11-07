@@ -68,13 +68,24 @@ class ModelTechnicalSheetPersistenceTest {
     @DisplayName("la ficha va y vuelve entera, con el riesgo y los dos decimales del amperaje")
     void vaYVuelve() {
         TechnicalSheet ficha = TechnicalSheet.of(
-                RiskClass.IIB, "Pantalla LCD", "Red electrica", 110, 45, new BigDecimal("2.5"), 60);
+                RiskClass.IIB, "Pantalla LCD", "Red electrica", new BigDecimal("110"), 45, new BigDecimal("2.5"), 60);
 
         Model guardado = guardar(ficha);
 
         // Igualdad de la ficha entera, y no campo a campo: el amperaje vuelve de numeric(8,2) como
         // 2.50, y la ficha lo normalizo a 2.50 al crearse, de modo que las dos son iguales.
         assertThat(modelAdapter.findById(guardado.getId()).orElseThrow().getFichaTecnica()).isEqualTo(ficha);
+    }
+
+    @Test
+    @DisplayName("un voltaje de 1,5 V va y vuelve con sus decimales: la columna es numeric desde V57")
+    void voltajeDecimal() {
+        TechnicalSheet ficha = TechnicalSheet.of(null, null, "Pila", new BigDecimal("1.5"), null, null, null);
+
+        Model guardado = guardar(ficha);
+
+        assertThat(modelAdapter.findById(guardado.getId()).orElseThrow().getFichaTecnica().voltaje())
+                .isEqualTo(new BigDecimal("1.50"));
     }
 
     @Test
@@ -97,7 +108,7 @@ class ModelTechnicalSheetPersistenceTest {
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("CHK_modelo_clase_riesgo");
         assertThatThrownBy(() -> jdbcTemplate.update(
-                        "UPDATE modelo SET i_voltaje = 0 WHERE k_id_modelo = ?", id))
+                        "UPDATE modelo SET d_voltaje = 0 WHERE k_id_modelo = ?", id))
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("CHK_modelo_voltaje");
     }

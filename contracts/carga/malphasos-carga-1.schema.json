@@ -427,9 +427,10 @@
               "maxLength": 50
             },
             "voltaje": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 2147483647
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "exclusiveMaximum": 1000000,
+              "description": "En V, mayor que cero y con dos decimales como mucho: un equipo a pila es de 1,5 V."
             },
             "potencia": {
               "type": "integer",

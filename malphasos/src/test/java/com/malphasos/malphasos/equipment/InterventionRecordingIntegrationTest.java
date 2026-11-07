@@ -404,7 +404,7 @@ class InterventionRecordingIntegrationTest {
         Contexto contexto = unBorrador("PREVENTIVO");
         jdbcTemplate.update(
                 """
-                UPDATE modelo SET n_clase_riesgo = 'IIA', i_voltaje = 110, d_amperaje = 2.5
+                UPDATE modelo SET n_clase_riesgo = 'IIA', d_voltaje = 110, d_amperaje = 2.5
                 WHERE k_id_modelo = (SELECT k_id_modelo FROM equipo_cliente WHERE k_id_equipo_cliente = ?)
                 """,
                 contexto.equipo());
@@ -431,7 +431,7 @@ class InterventionRecordingIntegrationTest {
         assertThat(hoja.identificacion().codigoInterno()).isEqualTo("BAL-07");
         assertThat(hoja.identificacion().proveedor()).isEqualTo("Distribuidora Medica");
         assertThat(hoja.tecnica().fichaTecnica().riesgo()).isEqualTo(RiskClass.IIA);
-        assertThat(hoja.tecnica().fichaTecnica().voltaje()).isEqualTo(110);
+        assertThat(hoja.tecnica().fichaTecnica().voltaje()).isEqualByComparingTo("110");
         assertThat(hoja.tecnica().fichaTecnica().amperaje()).isEqualByComparingTo("2.50");
         assertThat(hoja.tecnica().uso()).isEqualTo("Pesaje de pacientes");
     }

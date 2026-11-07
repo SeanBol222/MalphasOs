@@ -61,7 +61,7 @@ public record ReportDocumentResponse(
             String uso,
             @Schema(description = "Clase de riesgo: I, IIA, IIB o III; nula si no se sabe") String riesgo,
             String alimentacion,
-            Integer voltaje,
+            BigDecimal voltaje,
             Integer potencia,
             BigDecimal amperaje,
             Integer frecuencia) {

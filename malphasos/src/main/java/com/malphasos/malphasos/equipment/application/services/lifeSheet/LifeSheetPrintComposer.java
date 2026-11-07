@@ -99,7 +99,7 @@ public final class LifeSheetPrintComposer {
                         oRaya(tecnica.uso()),
                         oRaya(ficha.alimentacion()),
                         conUnidad(ficha.frecuencia(), "Hz"),
-                        conUnidad(ficha.voltaje(), "V"),
+                        ficha.voltaje() == null ? SIN_DATO + " V" : numero(ficha.voltaje()) + " V",
                         conUnidad(ficha.potencia(), "W"),
                         ficha.amperaje() == null ? SIN_DATO + " A" : numero(ficha.amperaje()) + " A",
                         oRaya(ficha.caracteristicas())),

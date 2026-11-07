@@ -2953,3 +2953,19 @@ con los nombres recortados a 120 caracteres**, mientras que la clave de un paso 
 una fila no casó con nada, y el conversor lo dijo porque cada regla avisa si no se usa. Ahora cada texto
 de la tabla se resuelve contra los completos, por igualdad o por comienzo, y avisa si casa con cero o
 con más de uno.
+
+## [2026-11-07] ingest | El voltaje del modelo, con decimales (`V57`)
+
+Los termómetros a pila de los informes reales son de 1,5 V, y la columna era entera: el conversor
+tomaba la parte entera y la hoja de vida habría dicho 1 V. El usuario eligió cambiar la columna antes
+que dejar el dato en las características. `V57` pasa `i_voltaje integer` a `d_voltaje numeric(8,2)`, como
+el amperaje, sin perder nada. El voltaje es decimal en el dominio, el API, el documento del informe, la
+pantalla de la ficha técnica y el formato de carga; la hoja de vida y el informe escriben «1,5 V».
+Ver [[decisiones-tecnicas-malphasos]].
+
+Los documentos congelados de reportes cerrados guardan el voltaje como entero JSON, y una prueba fija que
+se siguen leyendo. Tres mutaciones del backend y una del frontend, las cuatro mueren. **Y el arnés volvió a
+mentir**: contaba los fallos con `grep -c` sobre los informes de Surefire, que con un solo archivo no
+antepone su nombre, y el `awk` que sumaba el segundo campo daba siempre cero. Tres mutaciones «vivas» que
+estaban muertas. Se vio porque «1.50 V» no podía pasar por «1,5 V», y se confirmó corriendo una a mano. Es
+la tercera lección del arnés con otra cara: **su silencio se lee como un resultado**.
