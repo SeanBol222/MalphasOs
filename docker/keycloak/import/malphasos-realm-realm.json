@@ -513,6 +513,15 @@
           "clientRole": true,
           "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
           "attributes": {}
+        },
+        {
+          "id": "cb12c837-3ce1-4efc-850c-eeb3f0b46e4e",
+          "name": "super.data-load.write",
+          "description": "Validar y aplicar una carga de datos de otro sistema. Solo el super usuario.",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
         }
       ],
       "malphasos-frontend": [],

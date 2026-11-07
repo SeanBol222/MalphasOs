@@ -1,0 +1,172 @@
+{
+  "components" : {
+    "schemas" : {
+      "DataLoadProblemResponse" : {
+        "properties" : {
+          "archivo" : {
+            "description" : "El archivo, o nulo si es de la carga entera",
+            "type" : "string"
+          },
+          "mensaje" : {
+            "type" : "string"
+          },
+          "ruta" : {
+            "description" : "Dónde dentro del archivo, como puntero JSON: /catalogo/protocolos/9/nombre; nulo si es del archivo entero",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DataLoadReportResponse" : {
+        "properties" : {
+          "avisos" : {
+            "description" : "Lo que conviene leer y no detiene nada",
+            "items" : {
+              "$ref" : "#/components/schemas/DataLoadProblemResponse"
+            },
+            "type" : "array"
+          },
+          "errores" : {
+            "description" : "Lo que impide aplicarla",
+            "items" : {
+              "$ref" : "#/components/schemas/DataLoadProblemResponse"
+            },
+            "type" : "array"
+          },
+          "valida" : {
+            "description" : "Sin errores: se puede aplicar",
+            "type" : "boolean"
+          }
+        },
+        "type" : "object"
+      },
+      "GlobalErrorResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "details" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "bearer-jwt" : {
+        "bearerFormat" : "JWT",
+        "description" : "Alternativa: pegar un token obtenido por otro medio",
+        "scheme" : "bearer",
+        "type" : "http"
+      },
+      "keycloak-oauth" : {
+        "description" : "Inicia sesion en Keycloak y usa el token en cada peticion",
+        "flows" : {
+          "authorizationCode" : {
+            "authorizationUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/auth",
+            "scopes" : {
+              "email" : "Correo electronico",
+              "openid" : "Identificacion del usuario",
+              "profile" : "Datos basicos del perfil"
+            },
+            "tokenUrl" : "http://localhost:8080/realms/malphasos-realm/protocol/openid-connect/token"
+          }
+        },
+        "type" : "oauth2"
+      }
+    }
+  },
+  "info" : {
+    "description" : "API REST para la gestión de mantenimientos preventivos y clientes",
+    "license" : {
+      "name" : "GNU GPL v3",
+      "url" : "https://www.gnu.org/licenses/gpl-3.0.html"
+    },
+    "title" : "MalphasOS API",
+    "version" : "v0.0.1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/v1/api/data-loads/validation" : {
+      "post" : {
+        "description" : "De uno a tres archivos —el catálogo, un cliente y su historial—, como mucho uno de cada contenido. Responde qué impide aplicarla y qué conviene leer.",
+        "operationId" : "validate",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "archivos" : {
+                    "items" : {
+                      "format" : "binary",
+                      "type" : "string"
+                    },
+                    "type" : "array"
+                  }
+                },
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataLoadReportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Validar una carga sin aplicarla",
+        "tags" : [ "DataLoad" ]
+      }
+    }
+  },
+  "security" : [ {
+    "keycloak-oauth" : [ ]
+  }, {
+    "bearer-jwt" : [ ]
+  } ],
+  "servers" : [ {
+    "description" : "Generated server url",
+    "url" : "http://localhost"
+  } ],
+  "tags" : [ {
+    "description" : "La carga de datos de otro sistema, en el formato de contracts/carga",
+    "name" : "DataLoad"
+  } ]
+}

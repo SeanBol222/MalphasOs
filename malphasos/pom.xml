@@ -69,6 +69,13 @@
 			<artifactId>keycloak-admin-client</artifactId>
 			<version>${keycloak.version}</version>
 		</dependency>
+		<!-- La carga de datos valida cada archivo contra el esquema publicado en contracts/carga, el mismo
+		     que usa el conversor (2026-11-07). La 3.x usa Jackson 3, el de Spring Boot 4. -->
+		<dependency>
+			<groupId>com.networknt</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>3.0.9</version>
+		</dependency>
 
 		<!-- Flyway es el dueno del esquema de la base de datos: migraciones
 		     versionadas en src/main/resources/db/migration.
