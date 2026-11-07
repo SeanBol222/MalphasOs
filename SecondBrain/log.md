@@ -2918,3 +2918,21 @@ anterior fallan 126**, que es lo que demuestra que las pruebas distinguen entre 
 `multipleOf`, porque esa palabra divide en coma flotante: con `jsonschema` 4.26, `multipleOf: 0.0001`
 rechaza 0,3 y 0,7, y en una prueba con veinte mil lecturas de cuatro decimales rechazó **una de cada
 cuatro**, todas válidas.
+
+## [2026-11-07] ingest | Los puntos anteriores en el formato de carga
+
+El conversor declaraba **todas** las verificaciones con patrón y equipo variables: un atajo del borrador
+para que cupieran las lecturas, y el catálogo salía sin un solo punto. Los informes dicen otra cosa:
+básculas, grameras, tensiómetros y oxímetros se verifican en puntos fijos, y solo termómetros y
+termohigrómetro miden lo que marque el ambiente. **Pero los puntos cambian con los años** —un
+tensiómetro en 60–300 mmHg hasta 2023 y en 40–200 desde 2025—, y en MalphasOS cada lectura apunta a un
+punto de su verificación: con solo los de hoy, los reportes viejos no tendrían dónde apuntar.
+
+La base ya lo resuelve, sin migración: `punto_verificacion` tiene borrado lógico, y un punto retirado
+conserva sus lecturas, que es lo que pasa al cambiar los puntos de un tipo desde la pantalla. Faltaba
+decirlo en el formato: `puntosAnteriores`, que entran retirados. **Y queda una tarea para el cargador**:
+aceptar lecturas en un punto retirado y cerrar un reporte histórico que no cubre los puntos de hoy,
+cosas que `requireCompleteVerification` rechaza en un reporte normal, y con razón.
+
+Apareció además un tipo de error de captura: cinco informes de tensiómetros de junio de 2024 con las
+columnas de patrón y equipo invertidas —no siempre en todas las filas—, confirmado por el usuario.
