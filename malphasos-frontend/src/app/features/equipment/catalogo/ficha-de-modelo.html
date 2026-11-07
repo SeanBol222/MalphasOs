@@ -67,7 +67,8 @@
         id="voltaje"
         class="campo mt-1 min-h-tactil w-full"
         type="number"
-        inputmode="numeric"
+        step="0.01"
+        inputmode="decimal"
         formControlName="voltaje"
         [attr.aria-invalid]="malo('voltaje') || null"
       />
@@ -110,7 +111,7 @@
 
   @if (malo('voltaje') || malo('potencia') || malo('amperaje') || malo('frecuencia')) {
     <p class="mb-3 font-semibold text-accent-700">
-      Los datos eléctricos son positivos, y la corriente admite dos decimales.
+      Los datos eléctricos son positivos, y el voltaje y la corriente admiten dos decimales.
     </p>
   }
 

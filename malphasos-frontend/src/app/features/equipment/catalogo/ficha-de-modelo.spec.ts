@@ -129,13 +129,35 @@ describe('Ficha tecnica de un modelo', () => {
     expect(cache.getQueryState(['hoja-de-vida', 'cualquier-equipo'])?.isInvalidated).toBe(true);
   });
 
+  it('un voltaje de 1,5 V viaja con sus decimales: el de un equipo a pila', async () => {
+    await abrir({ riesgo: 'I' });
+    escribir('voltaje', '1.5');
+    await guardar();
+
+    const cambio = http.expectOne({ method: 'PATCH', url: URL_FICHA });
+    expect(cambio.request.body).toMatchObject({ voltaje: 1.5 });
+    cambio.flush(modelo({ voltaje: 1.5 }));
+    await asentar(fixture);
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+  });
+
+  it('un voltaje con tres decimales no llega al servidor', async () => {
+    await abrir();
+    escribir('voltaje', '1.555');
+    await guardar();
+
+    http.expectNone({ method: 'PATCH', url: URL_FICHA });
+    expect(raiz().textContent).toContain('el voltaje y la corriente admiten dos decimales');
+  });
+
   it('una corriente con tres decimales o un voltaje en cero no llegan al servidor', async () => {
     await abrir();
     escribir('amperaje', '1.255');
     await guardar();
 
     http.expectNone({ method: 'PATCH', url: URL_FICHA });
-    expect(raiz().textContent).toContain('la corriente admite dos decimales');
+    expect(raiz().textContent).toContain('la corriente admiten dos decimales');
 
     escribir('amperaje', '');
     escribir('voltaje', '0');

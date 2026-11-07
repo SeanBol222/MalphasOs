@@ -45,7 +45,11 @@ export class FichaDeModelo {
     riesgo: ['' as ClaseDeRiesgo | ''],
     caracteristicas: ['', Validators.maxLength(250)],
     alimentacion: ['', Validators.maxLength(50)],
-    voltaje: [null as number | null, Validators.min(1)],
+    // Decimal desde V57: un equipo a pila es de 1,5 V.
+    voltaje: [
+      null as number | null,
+      [Validators.min(0.01), Validators.pattern(/^\d+(\.\d{1,2})?$/)],
+    ],
     potencia: [null as number | null, Validators.min(1)],
     amperaje: [
       null as number | null,
