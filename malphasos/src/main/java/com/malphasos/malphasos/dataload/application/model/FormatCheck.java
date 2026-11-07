@@ -5,10 +5,11 @@ import java.util.List;
 /**
  * Lo que dice el esquema de un archivo: qué contiene —{@code catalogo}, {@code cliente} o
  * {@code historial}, o nulo si no se pudo saber—, lo que incumple, y las {@code ref} que declara y las
- * que usa, para comprobarlas mirando la carga entera.
+ * que usa, para comprobarlas mirando la carga entera. El documento leído solo está si el archivo cumple
+ * el esquema: las reglas que miran sus valores no tienen nada que mirar en uno que no lo cumple.
  */
 public record FormatCheck(String contenido, List<DataLoadProblem> errores, List<RefMention> declaradas,
-        List<RefMention> usadas) {
+        List<RefMention> usadas, LoadDocument documento) {
 
     public FormatCheck {
         errores = List.copyOf(errores);
@@ -18,6 +19,6 @@ public record FormatCheck(String contenido, List<DataLoadProblem> errores, List<
 
     /** Un archivo del que no se pudo leer nada: solo sus errores. */
     public static FormatCheck unreadable(List<DataLoadProblem> errores) {
-        return new FormatCheck(null, errores, List.of(), List.of());
+        return new FormatCheck(null, errores, List.of(), List.of(), null);
     }
 }

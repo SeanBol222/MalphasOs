@@ -3,6 +3,7 @@ package com.malphasos.malphasos.dataload.infrastructure.output.format;
 import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadProblem;
 import com.malphasos.malphasos.dataload.application.model.FormatCheck;
+import com.malphasos.malphasos.dataload.application.model.LoadDocument;
 import com.malphasos.malphasos.dataload.application.model.RefKind;
 import com.malphasos.malphasos.dataload.application.model.RefMention;
 import com.malphasos.malphasos.dataload.application.ports.output.LoadFormatPort;
@@ -72,7 +73,12 @@ public class JsonSchemaLoadFormatAdapter implements LoadFormatPort {
         refs.recorrer(documento);
         return new FormatCheck(CONTENIDOS.contains(contenido) ? contenido : null, incumplidos.stream()
                 .map(e -> new DataLoadProblem(archivo.nombre(), e.getInstanceLocation().toString(), e.getMessage()))
-                .toList(), refs.declaradas, refs.usadas);
+                .toList(), refs.declaradas, refs.usadas, incumplidos.isEmpty() ? leer(documento) : null);
+    }
+
+    /** El archivo, con la forma del esquema: si lo cumple, los nombres coinciden campo por campo. */
+    private LoadDocument leer(JsonNode documento) {
+        return json.treeToValue(documento, LoadDocument.class);
     }
 
     /**

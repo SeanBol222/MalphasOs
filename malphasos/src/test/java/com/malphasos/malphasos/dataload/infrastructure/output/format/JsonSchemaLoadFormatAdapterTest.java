@@ -26,6 +26,25 @@ class JsonSchemaLoadFormatAdapterTest {
     }
 
     @Test
+    @DisplayName("un archivo que cumple el esquema se lee entero, con sus fechas y sus decimales")
+    void seLee() {
+        var documento = adaptador.check(EjemplosDeCarga.archivo(EjemplosDeCarga.HISTORIAL)).documento();
+
+        assertThat(documento.ordenes()).isNotEmpty();
+        assertThat(documento.ordenes().getFirst().fecha()).isEqualTo(java.time.LocalDate.of(2025, 3, 10));
+        assertThat(documento.ordenes().getFirst().reportes().getFirst().verificaciones()).isNotEmpty();
+        assertThat(documento.catalogo().marcas()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("un archivo que incumple el esquema no se lee: sus valores no son de fiar")
+    void noSeLeeSiIncumple() {
+        String historial = EjemplosDeCarga.texto(EjemplosDeCarga.HISTORIAL).replaceFirst("\"fecha\": \"[0-9-]+\"", "\"fecha\": \"2025-02-30\"");
+
+        assertThat(adaptador.check(EjemplosDeCarga.archivo("historial.json", historial)).documento()).isNull();
+    }
+
+    @Test
     @DisplayName("un archivo que no es JSON es un error del archivo entero, sin contenido")
     void noEsJson() {
         FormatCheck revision = adaptador.check(EjemplosDeCarga.archivo("roto.json", "{ \"formato\": "));

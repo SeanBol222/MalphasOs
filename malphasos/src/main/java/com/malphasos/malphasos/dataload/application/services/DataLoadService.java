@@ -4,9 +4,11 @@ import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadProblem;
 import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
 import com.malphasos.malphasos.dataload.application.model.FormatCheck;
+import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.dataload.application.model.RefMention;
 import com.malphasos.malphasos.dataload.application.ports.input.DataLoadServicePort;
 import com.malphasos.malphasos.dataload.application.ports.output.LoadFormatPort;
+import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,6 +32,7 @@ public class DataLoadService implements DataLoadServicePort {
     static final int MAXIMO_DE_ARCHIVOS = 3;
 
     private final LoadFormatPort loadFormatPort;
+    private final LocationCatalogPort locationCatalogPort;
 
     @Override
     public DataLoadReport validate(List<DataLoadFile> archivos) {
@@ -45,11 +48,15 @@ public class DataLoadService implements DataLoadServicePort {
         boolean repetido = false;
         List<RefMention> declaradas = new ArrayList<>();
         List<RefMention> usadas = new ArrayList<>();
+        List<ReadFile> leidos = new ArrayList<>();
         for (DataLoadFile archivo : archivos) {
             FormatCheck revision = loadFormatPort.check(archivo);
             errores.addAll(revision.errores());
             declaradas.addAll(revision.declaradas());
             usadas.addAll(revision.usadas());
+            if (revision.documento() != null) {
+                leidos.add(new ReadFile(archivo.nombre(), revision.documento()));
+            }
 
             String otro = revision.contenido() == null ? null : porContenido.putIfAbsent(revision.contenido(), archivo.nombre());
             if (otro != null) {
@@ -59,10 +66,11 @@ public class DataLoadService implements DataLoadServicePort {
             }
         }
 
-        // Con un contenido repetido, cada ref del segundo archivo saldría duplicada: un error por ref que
-        // solo repetiría el de arriba.
+        // Con un contenido repetido, cada ref y cada patrón del segundo archivo saldrían duplicados: un
+        // error por cada uno, que solo repetiría el de arriba.
         if (!repetido) {
             errores.addAll(comprobarRefs(declaradas, usadas));
+            errores.addAll(new ContentRules(locationCatalogPort).check(leidos));
         }
 
         return new DataLoadReport(errores, List.of());
