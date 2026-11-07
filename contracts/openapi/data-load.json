@@ -33,9 +33,32 @@
             },
             "type" : "array"
           },
+          "resumen" : {
+            "description" : "Por sección, cuántos registros se crearían y cuántos se ignorarían porque ya existen",
+            "items" : {
+              "$ref" : "#/components/schemas/DataLoadSectionResponse"
+            },
+            "type" : "array"
+          },
           "valida" : {
             "description" : "Sin errores: se puede aplicar",
             "type" : "boolean"
+          }
+        },
+        "type" : "object"
+      },
+      "DataLoadSectionResponse" : {
+        "properties" : {
+          "existentes" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "nuevos" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "seccion" : {
+            "type" : "string"
           }
         },
         "type" : "object"

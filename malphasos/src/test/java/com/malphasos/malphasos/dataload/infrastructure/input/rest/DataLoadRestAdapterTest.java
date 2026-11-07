@@ -13,6 +13,7 @@ import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadProblem;
 import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
+import com.malphasos.malphasos.dataload.application.model.SectionCount;
 import com.malphasos.malphasos.dataload.application.ports.input.DataLoadServicePort;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -61,7 +62,8 @@ class DataLoadRestAdapterTest {
     void conErrores() throws Exception {
         when(servicio.validate(any())).thenReturn(new DataLoadReport(
                 List.of(new DataLoadProblem("1-catalogo.json", "/catalogo/protocolos/9/nombre", "es demasiado largo")),
-                List.of(DataLoadProblem.of("2-cliente.json", "un equipo recibira serie provisional"))));
+                List.of(DataLoadProblem.of("2-cliente.json", "un equipo recibira serie provisional")),
+                List.of(new SectionCount("marcas", 3, 2))));
 
         mockMvc.perform(multipart(RUTA)
                         .file(new MockMultipartFile("archivos", "1-catalogo.json", "application/json", "{}".getBytes())))
@@ -69,7 +71,10 @@ class DataLoadRestAdapterTest {
                 .andExpect(jsonPath("$.valida").value(false))
                 .andExpect(jsonPath("$.errores[0].archivo").value("1-catalogo.json"))
                 .andExpect(jsonPath("$.errores[0].ruta").value("/catalogo/protocolos/9/nombre"))
-                .andExpect(jsonPath("$.avisos[0].ruta").doesNotExist());
+                .andExpect(jsonPath("$.avisos[0].ruta").doesNotExist())
+                .andExpect(jsonPath("$.resumen[0].seccion").value("marcas"))
+                .andExpect(jsonPath("$.resumen[0].nuevos").value(3))
+                .andExpect(jsonPath("$.resumen[0].existentes").value(2));
     }
 
     @Test

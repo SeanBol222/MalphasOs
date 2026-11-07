@@ -6,7 +6,9 @@ import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
 import com.malphasos.malphasos.dataload.application.model.FormatCheck;
 import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.dataload.application.model.RefMention;
+import com.malphasos.malphasos.dataload.application.model.SectionCount;
 import com.malphasos.malphasos.dataload.application.ports.input.DataLoadServicePort;
+import com.malphasos.malphasos.dataload.application.ports.output.ExistingRecordsPort;
 import com.malphasos.malphasos.dataload.application.ports.output.LoadFormatPort;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ public class DataLoadService implements DataLoadServicePort {
 
     private final LoadFormatPort loadFormatPort;
     private final LocationCatalogPort locationCatalogPort;
+    private final ExistingRecordsPort existingRecordsPort;
 
     @Override
     public DataLoadReport validate(List<DataLoadFile> archivos) {
@@ -68,12 +71,20 @@ public class DataLoadService implements DataLoadServicePort {
 
         // Con un contenido repetido, cada ref y cada patrón del segundo archivo saldrían duplicados: un
         // error por cada uno, que solo repetiría el de arriba.
+        List<DataLoadProblem> avisos = new ArrayList<>();
+        List<SectionCount> resumen = List.of();
         if (!repetido) {
             errores.addAll(comprobarRefs(declaradas, usadas));
             errores.addAll(new ContentRules(locationCatalogPort).check(leidos));
+
+            NaturalKeys existentes = new NaturalKeys(existingRecordsPort.read());
+            existentes.check(leidos);
+            errores.addAll(existentes.errores);
+            avisos.addAll(existentes.avisos);
+            resumen = existentes.resumen();
         }
 
-        return new DataLoadReport(errores, List.of());
+        return new DataLoadReport(errores, avisos, resumen);
     }
 
     /**

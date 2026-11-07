@@ -10,7 +10,12 @@ import java.util.List;
 public record DataLoadReportResponse(
         @Schema(description = "Sin errores: se puede aplicar") boolean valida,
         @Schema(description = "Lo que impide aplicarla") List<Problema> errores,
-        @Schema(description = "Lo que conviene leer y no detiene nada") List<Problema> avisos) {
+        @Schema(description = "Lo que conviene leer y no detiene nada") List<Problema> avisos,
+        @Schema(description = "Por sección, cuántos registros se crearían y cuántos se ignorarían porque ya existen")
+        List<Seccion> resumen) {
+
+    @Schema(name = "DataLoadSectionResponse")
+    public record Seccion(String seccion, int nuevos, int existentes) {}
 
     @Schema(name = "DataLoadProblemResponse")
     public record Problema(
@@ -27,6 +32,7 @@ public record DataLoadReportResponse(
     public static DataLoadReportResponse from(DataLoadReport informe) {
         return new DataLoadReportResponse(informe.valida(),
                 informe.errores().stream().map(Problema::from).toList(),
-                informe.avisos().stream().map(Problema::from).toList());
+                informe.avisos().stream().map(Problema::from).toList(),
+                informe.resumen().stream().map(s -> new Seccion(s.seccion(), s.nuevos(), s.existentes())).toList());
     }
 }

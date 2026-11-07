@@ -6,6 +6,8 @@ import com.malphasos.malphasos.dataload.EjemplosDeCarga;
 import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadProblem;
 import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
+import com.malphasos.malphasos.dataload.application.model.ExistingRecords;
+import com.malphasos.malphasos.dataload.application.model.SectionCount;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
 import com.malphasos.malphasos.dataload.infrastructure.output.format.JsonSchemaLoadFormatAdapter;
 import java.util.Collections;
@@ -29,7 +31,22 @@ class DataLoadServiceTest {
         }
     };
 
-    private final DataLoadService servicio = new DataLoadService(new JsonSchemaLoadFormatAdapter(), UBICACION);
+    private static final ExistingRecords NADA = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(),
+            List.of(), List.of(), List.of(), List.of());
+
+    /** Lo que MalphasOS ya tiene en cada prueba: nada, salvo que la prueba lo cambie. */
+    private ExistingRecords existentes = NADA;
+
+    private final DataLoadService servicio = new DataLoadService(new JsonSchemaLoadFormatAdapter(), UBICACION,
+            () -> existentes);
+
+    private static int nuevos(DataLoadReport informe, String seccion) {
+        return informe.resumen().stream().filter(s -> s.seccion().equals(seccion)).findFirst().orElseThrow().nuevos();
+    }
+
+    private static int yaEstan(DataLoadReport informe, String seccion) {
+        return informe.resumen().stream().filter(s -> s.seccion().equals(seccion)).findFirst().orElseThrow().existentes();
+    }
 
     private DataLoadReport conCliente(String de, String a) {
         String cliente = EjemplosDeCarga.texto(EjemplosDeCarga.CLIENTE).replaceFirst(de, a);
@@ -42,12 +59,97 @@ class DataLoadServiceTest {
     private static final DataLoadFile HISTORIAL = EjemplosDeCarga.archivo(EjemplosDeCarga.HISTORIAL);
 
     @Test
-    @DisplayName("los tres ejemplos juntos son una carga valida, sin errores ni avisos")
+    @DisplayName("los tres ejemplos juntos son una carga valida, que en un MalphasOS vacio lo crea todo")
     void losTresEjemplos() {
         DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL));
 
         assertThat(informe.valida()).isTrue();
         assertThat(informe.errores()).isEmpty();
+        assertThat(informe.resumen()).extracting(SectionCount::seccion).containsExactly("marcas", "fabricantes",
+                "protocolos", "tiposEquipo", "modelos", "patrones", "personas", "clientes", "sedes", "areas", "equipos",
+                "ordenes", "reportes");
+        assertThat(informe.resumen()).allSatisfy(s -> assertThat(s.existentes()).isZero());
+        assertThat(nuevos(informe, "personas")).isEqualTo(2);
+        assertThat(nuevos(informe, "reportes")).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("lo que ya existe se reconoce por su llave natural, sin tildes ni mayusculas, y se cuenta aparte")
+    void loQueYaExiste() {
+        existentes = new ExistingRecords(List.of("WELCH ALLYN"), List.of(), List.of("desinfeccion tecnica inicial"),
+                List.of("Tensiometro analogo"), List.of(new ExistingRecords.ModelName("Tensiómetro análogo", "Welch Allyn", "ds44")),
+                List.of("md-0001"), List.of(" 1000000001 "),
+                List.of(new ExistingRecords.ExistingClient("900000001-1",
+                        List.of(new ExistingRecords.ExistingSite("PRINCIPAL", List.of("consultorio"))))),
+                List.of(new ExistingRecords.EquipmentName(
+                        new ExistingRecords.ModelName("Tensiómetro análogo", "Welch Allyn", "DS44"), "wa-123456")));
+        // Aquí solo se miran los conteos: el equipo sin serie de ese cliente da un error, que prueba
+        // sinSerieClienteQueYaEsta.
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE));
+
+        assertThat(yaEstan(informe, "marcas")).isEqualTo(1);
+        assertThat(nuevos(informe, "marcas")).isEqualTo(1);
+        assertThat(yaEstan(informe, "protocolos")).isEqualTo(1);
+        assertThat(yaEstan(informe, "tiposEquipo")).isEqualTo(1);
+        assertThat(yaEstan(informe, "modelos")).isEqualTo(1);
+        assertThat(yaEstan(informe, "patrones")).isEqualTo(1);
+        assertThat(yaEstan(informe, "personas")).isEqualTo(1);
+        assertThat(yaEstan(informe, "clientes")).isEqualTo(1);
+        assertThat(yaEstan(informe, "sedes")).isEqualTo(1);
+        assertThat(yaEstan(informe, "areas")).isEqualTo(1);
+        assertThat(nuevos(informe, "areas")).isEqualTo(1);
+        assertThat(yaEstan(informe, "equipos")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("un area se reconoce dentro de su sede, y una sede dentro de su cliente: el mismo nombre en otra es nuevo")
+    void cadaUnoEnLoSuyo() {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(new ExistingRecords.ExistingClient("900000001-1",
+                                List.of(new ExistingRecords.ExistingSite("Otra sede", List.of("Consultorio", "Enfermería")))),
+                        new ExistingRecords.ExistingClient("800000002-2",
+                                List.of(new ExistingRecords.ExistingSite("Principal", List.of())))),
+                List.of());
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE));
+
+        assertThat(yaEstan(informe, "clientes")).isEqualTo(1);
+        assertThat(yaEstan(informe, "sedes")).describedAs("«Principal» es de otro cliente").isZero();
+        assertThat(yaEstan(informe, "areas")).describedAs("«Consultorio» es de otra sede").isZero();
+    }
+
+    @Test
+    @DisplayName("un modelo es de su tipo y su marca: el mismo nombre en otra marca es otro modelo")
+    void unModeloEsDeSuMarca() {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(),
+                List.of(new ExistingRecords.ModelName("Tensiómetro análogo", "Otra marca", "DS44")),
+                List.of(), List.of(), List.of(), List.of());
+
+        assertThat(yaEstan(servicio.validate(List.of(CATALOGO)), "modelos")).isZero();
+    }
+
+    @Test
+    @DisplayName("un equipo sin serie de un cliente nuevo entra con aviso de serie provisional")
+    void sinSerieClienteNuevo() {
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE));
+
+        assertThat(informe.valida()).isTrue();
+        assertThat(informe.avisos()).singleElement().extracting(DataLoadProblem::mensaje).asString()
+                .contains("Un equipo entra sin serie").contains("provisional");
+    }
+
+    @Test
+    @DisplayName("un equipo sin serie de un cliente que ya existia se rechaza: no hay con que saber si ya esta")
+    void sinSerieClienteQueYaEsta() {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(new ExistingRecords.ExistingClient("900000001-1", List.of())), List.of());
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE));
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.ruta()).isEqualTo("/equipos/1");
+            assertThat(e.mensaje()).contains("«eq-0102»").contains("no tiene serie");
+        });
         assertThat(informe.avisos()).isEmpty();
     }
 
