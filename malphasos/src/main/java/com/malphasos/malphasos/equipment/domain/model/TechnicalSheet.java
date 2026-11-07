@@ -15,6 +15,9 @@ import java.math.RoundingMode;
  * original. Son del modelo —dos balanzas de marcas distintas no consumen lo mismo— y bajaron aquí con
  * {@code V15}, junto con los tres datos eléctricos que faltaban.
  *
+ * <p><b>El voltaje es decimal desde {@code V57}</b>, el 2026-11-07: un termómetro a pila es de 1,5 V, y
+ * con un entero la hoja de vida decía 1 V. Lo destapó la carga de los informes de la aplicación anterior.
+ *
  * @param riesgo          clasificación por riesgo del dispositivo médico
  * @param caracteristicas lo que distingue a este modelo de los otros de su tipo, en texto libre
  * @param alimentacion    de dónde toma la energía: «Red eléctrica», «Baterías»…
@@ -27,7 +30,7 @@ public record TechnicalSheet(
         RiskClass riesgo,
         String caracteristicas,
         String alimentacion,
-        Integer voltaje,
+        BigDecimal voltaje,
         Integer potencia,
         BigDecimal amperaje,
         Integer frecuencia) {
@@ -45,7 +48,7 @@ public record TechnicalSheet(
             RiskClass riesgo,
             String caracteristicas,
             String alimentacion,
-            Integer voltaje,
+            BigDecimal voltaje,
             Integer potencia,
             BigDecimal amperaje,
             Integer frecuencia) {
@@ -56,7 +59,7 @@ public record TechnicalSheet(
                 texto(alimentacion),
                 positivo(voltaje, "voltaje"),
                 positivo(potencia, "potencia"),
-                positivo(amperaje),
+                positivo(amperaje, "amperaje"),
                 positivo(frecuencia, "frecuencia"));
     }
 
@@ -77,18 +80,18 @@ public record TechnicalSheet(
      * cosmético: {@code BigDecimal.equals} distingue 2.5 de 2.50, y sin esto volver a mandar la misma
      * ficha contaría como un cambio y emitiría un evento por nada.
      */
-    private static BigDecimal positivo(BigDecimal amperaje) {
-        if (amperaje == null) {
+    private static BigDecimal positivo(BigDecimal valor, String campo) {
+        if (valor == null) {
             return null;
         }
-        if (amperaje.signum() <= 0) {
-            throw new IllegalArgumentException("El amperaje es positivo, y se recibio " + amperaje);
+        if (valor.signum() <= 0) {
+            throw new IllegalArgumentException("El " + campo + " es positivo, y se recibio " + valor);
         }
         try {
-            return amperaje.setScale(2, RoundingMode.UNNECESSARY);
+            return valor.setScale(2, RoundingMode.UNNECESSARY);
         } catch (ArithmeticException demasiadosDecimales) {
             throw new IllegalArgumentException(
-                    "El amperaje admite dos decimales, y se recibio " + amperaje.toPlainString());
+                    "El " + campo + " admite dos decimales, y se recibio " + valor.toPlainString());
         }
     }
 }

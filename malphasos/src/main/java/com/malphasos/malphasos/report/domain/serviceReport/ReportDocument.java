@@ -111,7 +111,7 @@ public record ReportDocument(
             String uso,
             String riesgo,
             String alimentacion,
-            Integer voltaje,
+            BigDecimal voltaje,
             Integer potencia,
             BigDecimal amperaje,
             Integer frecuencia) {

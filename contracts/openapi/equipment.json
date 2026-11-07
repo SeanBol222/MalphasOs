@@ -1181,8 +1181,7 @@
           },
           "voltaje" : {
             "description" : "En V",
-            "format" : "int32",
-            "type" : "integer"
+            "type" : "number"
           }
         },
         "type" : "object"
@@ -1215,8 +1214,7 @@
           },
           "voltaje" : {
             "description" : "En V",
-            "format" : "int32",
-            "type" : "integer"
+            "type" : "number"
           }
         },
         "type" : "object"

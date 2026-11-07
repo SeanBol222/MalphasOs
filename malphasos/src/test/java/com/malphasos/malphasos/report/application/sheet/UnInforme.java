@@ -68,6 +68,8 @@ public final class UnInforme {
             "Mantenimiento realizado bajo el protocolo de la empresa.", "FT-002 · Versión 1", null);
     public List<String> responsables = List.of("Carla Ruiz");
     public String ingeniero = "Ana Ruiz";
+    /** El voltaje del modelo, que desde V57 admite decimales. */
+    public BigDecimal voltaje = new BigDecimal("110");
     public DocumentImage logo;
     public DocumentImage firmaIngeniero;
     public DocumentImage firmaRecibe;
@@ -111,7 +113,7 @@ public final class UnInforme {
                 new ReportDocument.Cliente("Hospital Central", "900123456", "Sede Norte", "Calle 10 # 20 - 30",
                         "Bogotá", "Urgencias", responsables, List.of("3001112233"), List.of("compras@hospital.co")),
                 new ReportDocument.Equipo("Tensiómetro", "Welch Allyn", "ProBP 2400", "SN-0001", "HV-HCE-0007",
-                        "INV-77", "MON-03", "Electrónica", "Medir la presión arterial", "IIA", "AC", 110, null, null,
+                        "INV-77", "MON-03", "Electrónica", "Medir la presión arterial", "IIA", "AC", voltaje, null, null,
                         60),
                 verificaciones, empresa, ingeniero, null, textosDePasos,
                 patrones.stream()

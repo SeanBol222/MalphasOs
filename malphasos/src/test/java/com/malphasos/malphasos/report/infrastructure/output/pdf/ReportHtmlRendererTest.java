@@ -137,6 +137,17 @@ class ReportHtmlRendererTest {
     }
 
     @Test
+    @DisplayName("un voltaje con decimales sale con coma en la ficha del equipo: 1,5 V")
+    void voltajeConDecimales() {
+        UnInforme informe = new UnInforme();
+        informe.voltaje = new BigDecimal("1.50");
+        Map<String, String> fichas = pintar(informe).select("dt").stream()
+                .collect(Collectors.toMap(Element::text, dt -> dt.nextElementSibling().text()));
+
+        assertThat(fichas).containsEntry("Alimentación", "AC · 1,5 V · 60 Hz");
+    }
+
+    @Test
     @DisplayName("sin supervisor, sin teléfono y sin código interno, la raya")
     void laRaya() {
         UnInforme informe = new UnInforme();

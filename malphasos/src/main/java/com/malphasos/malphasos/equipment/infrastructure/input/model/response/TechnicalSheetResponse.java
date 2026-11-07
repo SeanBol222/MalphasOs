@@ -10,7 +10,7 @@ public record TechnicalSheetResponse(
         RiskClass riesgo,
         String caracteristicas,
         String alimentacion,
-        @Schema(description = "En V") Integer voltaje,
+        @Schema(description = "En V") BigDecimal voltaje,
         @Schema(description = "En W") Integer potencia,
         @Schema(description = "En A") BigDecimal amperaje,
         @Schema(description = "En Hz") Integer frecuencia) {

@@ -46,8 +46,8 @@ public class ModelEntity {
     @Column(name = "n_alimentacion")
     private String alimentacion;
 
-    @Column(name = "i_voltaje")
-    private Integer voltaje;
+    @Column(name = "d_voltaje")
+    private BigDecimal voltaje;
 
     @Column(name = "i_potencia")
     private Integer potencia;

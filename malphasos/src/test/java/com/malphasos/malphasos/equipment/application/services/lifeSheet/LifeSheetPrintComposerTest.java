@@ -69,6 +69,13 @@ class LifeSheetPrintComposerTest {
     }
 
     @Test
+    @DisplayName("un voltaje con decimales se escribe con coma y sin ceros de sobra: 1,5 V")
+    void voltajeConDecimales() {
+        // V57: el termometro a pila de los informes de la aplicacion anterior quedaba en «1 V».
+        assertThat(new UnaHojaDeVida().conVoltaje("1.50").impresa().caracteristicas().voltaje()).isEqualTo("1,5 V");
+    }
+
+    @Test
     @DisplayName("las recomendaciones de cuidado salen una por línea, sin las vacías")
     void cuidado() {
         LifeSheetPrint hoja = new UnaHojaDeVida().impresa();

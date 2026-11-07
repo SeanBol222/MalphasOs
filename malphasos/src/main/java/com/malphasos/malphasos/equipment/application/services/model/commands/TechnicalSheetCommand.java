@@ -14,7 +14,7 @@ public record TechnicalSheetCommand(
         RiskClass riesgo,
         String caracteristicas,
         String alimentacion,
-        Integer voltaje,
+        BigDecimal voltaje,
         Integer potencia,
         BigDecimal amperaje,
         Integer frecuencia) {
