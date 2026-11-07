@@ -2895,3 +2895,26 @@ Trece mutaciones en el backend, las trece mueren. En el frontend, diez, y la bat
   dentro de `@if (fila.serieProvisional)`, y cerrarlo a mano no cambia nada visible.
 
 Batería: **1619** en **136** clases; frontend, **816**.
+
+## [2026-11-05] ingest | Los largos del formato de carga, los de MalphasOS
+
+`contracts/carga/malphasos-carga-1.schema.json` dejaba **255 caracteres en todo texto y 4000 en los
+largos**, y la base admite bastante menos: 50 el nombre de un tipo de equipo, 120 el de un protocolo,
+500 los textos de un reporte. **Lo que el esquema aprobaba, la carga lo podía rechazar**, que es
+justo lo que un esquema existe para impedir. Ahora cada campo lleva el largo de su columna, medido
+sobre la base de desarrollo en `V56`. Y no eran solo textos: la cédula de una persona admite 10
+caracteres y el esquema dejaba 20, el documento de un cliente 11, el teléfono de una persona 10. La
+sigla dejaba empezar por dígito, que la base prohíbe; voltaje, potencia y frecuencia aceptaban cero, y
+la base y el API exigen que sean positivos. Una serie que empieza por `P:` pasaba la validación, y
+MalphasOS la rechaza. Un texto en blanco tampoco vale ya.
+
+**La corrección encontró un caso real en la primera pasada**: un reporte correctivo de 2024 trae unos
+procedimientos de **518** caracteres. Con el esquema anterior la validación lo aprobaba, y la carga
+habría fallado.
+
+Comprobado con 190 casos: en cada límite el valor justo pasa y uno de más falla. **Contra el esquema
+anterior fallan 126**, que es lo que demuestra que las pruebas distinguen entre los dos. Los decimales
+—cuatro en lecturas, puntos y tolerancia, dos en el amperaje— quedan dichos en la descripción y no en
+`multipleOf`, porque esa palabra divide en coma flotante: con `jsonschema` 4.26, `multipleOf: 0.0001`
+rechaza 0,3 y 0,7, y en una prueba con veinte mil lecturas de cuatro decimales rechazó **una de cada
+cuatro**, todas válidas.
