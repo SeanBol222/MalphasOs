@@ -2969,3 +2969,13 @@ mentir**: contaba los fallos con `grep -c` sobre los informes de Surefire, que c
 antepone su nombre, y el `awk` que sumaba el segundo campo daba siempre cero. Tres mutaciones «vivas» que
 estaban muertas. Se vio porque «1.50 V» no podía pasar por «1,5 V», y se confirmó corriendo una a mano. Es
 la tercera lección del arnés con otra cara: **su silencio se lee como un resultado**.
+
+## [2026-11-07] query | El plan del cargador
+
+Decididas con el usuario las piezas que faltaban para la tanda 3: **la carga no modifica los módulos**
+—`dataload` usa `rehydrate`, los puertos de persistencia y los dos compositores de documentos que ya
+existían—, solo el SuperUsuario, el ingeniero sin firma como error y los avisos que no bloquean. Se le
+propuso antes un puerto de carga por módulo y eligió tocar lo menos posible, sabiendo que `rehydrate` no
+valida. La hoja de ruta
+decía todavía «sin firmas: el documento dice que es importado», anulado el 2026-11-03: corregido dejando
+constancia.

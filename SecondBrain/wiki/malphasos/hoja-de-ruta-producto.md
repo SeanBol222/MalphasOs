@@ -663,8 +663,12 @@ mano. Decidido:
   `contracts/carga/`. MalphasOS no sabe nada del sistema de origen; el conversor vive al lado de él.
 - **Entra todo, historial incluido, y con los formatos actuales**: las órdenes ya ejecutadas y sus
   reportes cerrados se componen y se congelan como cualquier reporte de MalphasOS. **No se adjunta el PDF
-  original.** Sin firmas: el documento dice que es importado.
-- **Lo que ya existe se ignora**, y **la carga no añade nada al esquema**: ni tablas ni columnas. MalphasOS
+  original.** **Con la firma guardada del ingeniero, y el documento no dice que es importado**, decidido el
+  2026-11-03. (Aquí decía «sin firmas: el documento dice que es importado», que fue la primera idea y se
+  anuló ese mismo día; la hoja de ruta no se corrigió hasta el 2026-11-07.)
+- **Lo que ya existe se ignora**, y **la carga no añade nada al esquema**: ni tablas ni columnas. (`V57`,
+  el voltaje decimal del modelo, cambió un tipo que estaba mal para cualquier equipo; ver
+  [[decisiones-tecnicas-malphasos]].) MalphasOS
   hace el menor esfuerzo posible; el detalle va en los archivos.
 - **Validar antes de aplicar**, y aplicar todo o nada.
 - **Tres archivos y no uno**, pedido por el usuario: se monta cliente por cliente en el servidor de prueba,
@@ -674,13 +678,18 @@ Ver [[decisiones-tecnicas-malphasos]] para el porqué de las `ref`, y la guía p
 
 | # | Tanda | Estado |
 |---|---|---|
-| 1 | **El formato**, en **tres archivos** que se cargan en orden —el catálogo de la empresa con sus ingenieros, cada cliente con sus equipos, el historial de cada cliente—: el esquema, un ejemplo inventado de cada uno y la guía, probados convirtiendo 129 informes reales de un cliente | **Escrito el 2026-11-03**, en revisión del usuario |
+| 1 | **El formato**, en **tres archivos** que se cargan en orden —el catálogo de la empresa con sus ingenieros, cada cliente con sus equipos, el historial de cada cliente—: el esquema, un ejemplo inventado de cada uno y la guía, probados convirtiendo 129 informes reales de un cliente | **Escrito el 2026-11-03 y revisado con el usuario el 2026-11-07**: los largos de MalphasOS, los puntos anteriores, los pasos por versión de plantilla, los reportes sin lecturas y el voltaje decimal (`V57`) |
 | 2 | **La serie provisional**, regla del backend para todo equipo: sin serie, `P:` y el comienzo de su identificador. Sin migración | **Construida el 2026-11-03**: el agregado la pone, la ficha del área la marca y deja poner la real, y el alta ya no exige serie |
-| 3 | Validar: leer los archivos de una carga, resolver refs, comprobar reglas; sin escribir | — |
-| 4 | Aplicar, en orden de dependencias, en una transacción, ignorando lo que ya existe | — |
-| 5 | La pantalla «Importar datos», solo para el SuperUsuario | — |
-| 6 | La carga real en el servidor de prueba, con el conversor fuera del repositorio | — |
+| 3 | **Validar**, sin escribir, en un módulo nuevo, `dataload`, **sin modificar los demás**: el esquema publicado con una librería de JSON Schema, las `ref`, lo que ya existe por llave natural —con los puertos de lectura de cada módulo— y las reglas que el esquema no ve: ciudad del catálogo, serie de patrón repetida, historial en fechas ocupadas, ingeniero sin firma. `POST /data-loads/validation` responde qué se crearía, qué se ignoraría y cada problema con su archivo, `ref` y campo, **separando errores de avisos** | — |
+| 4 | **Aplicar**: `POST /data-loads` valida otra vez, construye cada agregado con su `rehydrate` —o su `create` donde encaja, como el equipo con su serie provisional— y lo guarda con el puerto de persistencia de su módulo, en una transacción. Después compone los documentos con lo que ya existe: `documentOf` para cada orden y `freezeClosedWithoutDocument()` para los reportes, que salen marcados tardíos, con el aviso en pantalla y no en el PDF. La base es la última barrera | — |
+| 5 | La pantalla «Importar datos», solo para el SuperUsuario: subir, leer el informe, aplicar sin errores | — |
+| 6 | La carga real en el servidor de prueba, con el conversor fuera del repositorio: el catálogo solo; «Dar acceso» a cada ingeniero y su firma; después catálogo, cliente e historial juntos | — |
 | 7 | `DESPLIEGUE.md` con la red local —el puerto, el Caddyfile por IP, el SuperUsuario en minúsculas—, el wiki y el `CHANGELOG` | — |
+
+**Decidido el 2026-11-07, antes de la tanda 3**: **la carga no modifica los módulos**, pedido por el usuario
+—«que todo el trabajo pesado esté en el JSON y el back no se tenga que preocupar»—; **solo el SuperUsuario**, con una autoridad nueva `super.data-load.write`; un ingeniero sin firma guardada
+**rechaza la carga**, porque un documento congelado ya no la recibe; y el informe separa errores de avisos.
+Ver [[decisiones-tecnicas-malphasos]].
 
 **Los informes reales viven en `raw/`, ignorado por git**, igual que `Documentation/raw/`. Ni el formato
 ni sus pruebas llevan un solo dato de ellos.
