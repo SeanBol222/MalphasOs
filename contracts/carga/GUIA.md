@@ -131,6 +131,8 @@ llave natural, comparando los nombres sin tildes, sin mayúsculas y sin espacios
   cambia los puntos de un tipo desde la pantalla: ningún reporte nuevo los pide, y las lecturas viejas
   siguen apuntándolos. Una lectura histórica se toma en uno u otro, y su reporte entra cerrado aunque
   no cubra los puntos de hoy: **se carga lo que se midió**, no lo que el tipo pediría ahora.
+- **Pasos de un reporte histórico**: entran los que trae, hechos o no aplica, aunque el tipo tenga hoy
+  otros. Un reporte nuevo copiará los del tipo; uno cargado no los recibe.
 
 ## Magnitudes y unidades
 
@@ -184,8 +186,14 @@ esquema no puede resolver por él.
 - **Las verificaciones al ingreso tienen conceptos que MalphasOS no tiene** —temperatura, amperaje—:
   van a las `observaciones` del reporte. Y hay **«no conforme» sin observación**, que MalphasOS no
   admite: el conversor tiene que poner una.
-- **Los pasos del protocolo son texto libre** en cada informe, con erratas que los multiplican —40
-  textos distintos—. Unificarlos en el catálogo antes de cargar ahorra protocolos repetidos.
+- **Los pasos del protocolo son texto libre** en cada informe, con erratas que los multiplican, y
+  **cambian con la versión de la plantilla**: el mismo paso se llamó «Limpieza técnica final» hasta 2024
+  y «Limpieza general» después, y el sistema neumático de un tensiómetro tuvo dos redacciones. Los 129
+  informes traían 52 textos distintos, que quedaron en 35 protocolos: cada redacción vieja de un paso que
+  sigue existiendo apunta al de hoy, y la que no tiene equivalente se queda con la suya. **Cada tipo lleva
+  los pasos de su informe más reciente**, que son los que se copiarán a un reporte nuevo; un reporte
+  histórico trae en `pasos` los que se hicieron entonces, aunque no sean los de hoy. Y **hubo una plantilla
+  equivocada**: un termómetro con los pasos de un autoclave y de un otoscopio, que se quitaron.
 - **Un patrón es su código interno**: la serie se escribe distinta de un informe a otro, o «NT», y el
   mismo instrumento aparece con varios certificados a lo largo de los años. Y **dos patrones distintos
   comparten serie**, que MalphasOS no admite.

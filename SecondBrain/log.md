@@ -2936,3 +2936,20 @@ cosas que `requireCompleteVerification` rechaza en un reporte normal, y con raz�
 
 Apareció además un tipo de error de captura: cinco informes de tensiómetros de junio de 2024 con las
 columnas de patrón y equipo invertidas —no siempre en todas las filas—, confirmado por el usuario.
+
+## [2026-11-07] ingest | Los protocolos de la carga, por versión de plantilla
+
+Los 129 informes reales traían **52 textos de paso** que eran bastante menos pasos: la plantilla cambió
+de versión y cada una redactó a su manera lo mismo —«Limpieza técnica final» hasta 2024, «Limpieza
+general» después—. Cada tipo acumulaba los de todas las versiones, y por eso **67 preventivos no marcaban
+todos los pasos de su tipo**. Decidido con el usuario: cada tipo lleva los de su informe más reciente, y
+cada redacción vieja apunta al paso de hoy cuando lo hay; quedaron **35 protocolos** y 26 preventivos
+viejos que no cubren los de hoy, que es historia y no un error.
+
+Dos cosas que conviene recordar. **El lector perdía los pasos de 34 informes**: una quinta plantilla los
+pone bajo «PROCEDIMIENTO REALIZADO» y no bajo «PROTOCOLO DE MANTENIMIENTO»; lo destapó contar los
+preventivos sin pasos, no el esquema, que los aceptaba vacíos. Y **la tabla de equivalencias se escribió
+con los nombres recortados a 120 caracteres**, mientras que la clave de un paso es su texto completo:
+una fila no casó con nada, y el conversor lo dijo porque cada regla avisa si no se usa. Ahora cada texto
+de la tabla se resuelve contra los completos, por igualdad o por comienzo, y avisa si casa con cero o
+con más de uno.
