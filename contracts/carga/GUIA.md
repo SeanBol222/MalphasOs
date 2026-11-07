@@ -133,6 +133,9 @@ llave natural, comparando los nombres sin tildes, sin mayúsculas y sin espacios
   no cubra los puntos de hoy: **se carga lo que se midió**, no lo que el tipo pediría ahora.
 - **Pasos de un reporte histórico**: entran los que trae, hechos o no aplica, aunque el tipo tenga hoy
   otros. Un reporte nuevo copiará los del tipo; uno cargado no los recibe.
+- **Lecturas de un reporte histórico**: un reporte puede entrar **sin lecturas** aunque su tipo se
+  verifique. Pasa con los informes llenados en una plantilla sin metrología. Al cerrar un reporte nuevo
+  se exigen; uno cargado entra con las que tiene.
 
 ## Magnitudes y unidades
 
