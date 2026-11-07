@@ -72,6 +72,15 @@ ausente es «no se sabe», y un texto como `"NT"` se guardaría tal cual y se im
 sistema de origen, por ejemplo, lo escribe el conversor en las `observaciones` del reporte —«N.º
 anterior: reporte 11118, orden 3511.»—: se ve en pantalla y en el PDF.
 
+**Los largos son los de MalphasOS.** Cada texto del esquema lleva el largo máximo de su columna —50
+el nombre de un tipo de equipo, 120 el de un protocolo, 500 los procedimientos de un reporte—, y
+cédula, documento, teléfono, sigla y números, el formato y el tamaño que MalphasOS admite. Un texto en
+blanco no vale. Así **lo que el esquema aprueba, la carga lo acepta**: un archivo que pasa la
+validación no puede fallar después por un largo. (Hasta el 2026-11-05 el esquema dejaba 255 y 4000
+caracteres en todos los textos, y un nombre de protocolo de 140 salía válido y la carga lo rechazaba.)
+Lo que se pase de largo **se arregla en el conversor**, no recortándolo a ciegas: un texto cortado se
+imprimiría a medias en el reporte.
+
 **Las fechas van en ISO**: `2025-03-10`. Las fechas con hora llevan su zona: `2025-03-10T15:30:00-05:00`.
 
 ## Lo que ya existe se ignora
