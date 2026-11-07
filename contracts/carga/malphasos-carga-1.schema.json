@@ -321,6 +321,17 @@
             "exclusiveMaximum": 100000000
           },
           "uniqueItems": true
+        },
+        "puntosAnteriores": {
+          "type": "array",
+          "description": "Los puntos que se usaron antes y ya no se usan: entran retirados, para que las lecturas de los reportes viejos tengan dónde apuntar. Ninguno puede estar también en puntos. Solo en las modalidades constantes. Con cuatro decimales como mucho.",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": -100000000,
+            "exclusiveMaximum": 100000000
+          },
+          "uniqueItems": true,
+          "minItems": 1
         }
       },
       "allOf": [
@@ -343,6 +354,11 @@
                 {
                   "required": [
                     "puntos"
+                  ]
+                },
+                {
+                  "required": [
+                    "puntosAnteriores"
                   ]
                 }
               ]
@@ -1006,7 +1022,7 @@
                   "properties": {
                     "punto": {
                       "type": "number",
-                      "description": "El punto de verificación en que se tomó. Obligatorio en las modalidades constantes. Con cuatro decimales como mucho.",
+                      "description": "El punto de verificación en que se tomó. Obligatorio en las modalidades constantes: uno de los puntos de la verificación o de sus puntosAnteriores. Con cuatro decimales como mucho.",
                       "exclusiveMinimum": -100000000,
                       "exclusiveMaximum": 100000000
                     },

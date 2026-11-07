@@ -126,6 +126,11 @@ llave natural, comparando los nombres sin tildes, sin mayúsculas y sin espacios
   importado**: sale como cualquier reporte, con los recuadros de las firmas que falten vacíos.
 - **Lecturas**: se califican contra la tolerancia de la verificación del tipo, igual que al cerrar un
   reporte. Sin tolerancia, no se califican.
+- **Puntos anteriores**: una verificación con puntos fijos declara en `puntos` los que se usan hoy y en
+  `puntosAnteriores` los que se usaron antes. Los anteriores entran **retirados**, como cuando alguien
+  cambia los puntos de un tipo desde la pantalla: ningún reporte nuevo los pide, y las lecturas viejas
+  siguen apuntándolos. Una lectura histórica se toma en uno u otro, y su reporte entra cerrado aunque
+  no cubra los puntos de hoy: **se carga lo que se midió**, no lo que el tipo pediría ahora.
 
 ## Magnitudes y unidades
 
@@ -189,6 +194,11 @@ esquema no puede resolver por él.
 - **Las personas aparecen solo por su nombre**, con variantes —con y sin segundo nombre—, y **sin
   cédula**, que MalphasOS exige. Hay que conseguirlas aparte.
 - **Casi ningún informe dice quién recibió**: el campo es opcional.
+- **Los puntos de verificación cambian con los años**: un tensiómetro se verificó en 60–300 mmHg hasta
+  2023 y en 40–200 desde 2025, y una gramera tiene un informe con 1800 g donde los demás dicen 1500.
+  Por eso existe `puntosAnteriores`. Y **hay informes con las columnas invertidas** —el patrón en la del
+  equipo—, que se reconocen porque el patrón de un punto fijo no marca valores redondos: el conversor
+  los voltea, pero tiene que saber cuáles son.
 
 ## Decisiones tomadas (2026-11-03)
 
