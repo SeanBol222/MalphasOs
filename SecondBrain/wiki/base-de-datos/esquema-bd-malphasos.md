@@ -78,11 +78,11 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-02 sobre `V56`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-02 sobre `V56` —`V57` no las mueve—
 
 | | |
 |---|---|
-| Migraciones aplicadas | **56** (`V1`…`V56`): la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada y `V56` en cascada las foráneas hacia `persona` |
+| Migraciones aplicadas | **57** (`V1`…`V57`): la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
 | Tablas de dominio | **35** — eran **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
 | Llaves foráneas | **48**, de las cuales **1 compuesta**, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
 | Restricciones `CHECK` propias | **70** — eran **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
@@ -558,7 +558,7 @@ erDiagram
         varchar n_clase_riesgo "I, IIA, IIB o III - V15"
         varchar t_caracteristicas
         varchar n_alimentacion
-        integer i_voltaje "bajo del tipo en V15"
+        numeric d_voltaje "bajo del tipo en V15, decimal desde V57"
         integer i_potencia
         numeric d_amperaje "bajo del tipo en V15"
         integer i_frecuencia
