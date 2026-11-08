@@ -1,0 +1,159 @@
+<div>
+  <h1 class="titulo-pagina">Importar datos</h1>
+  <p class="mt-1 max-w-[720px] text-neutral-800">
+    Los datos de otro sistema, en los archivos del formato <code>malphasos-carga/1</code>: el
+    catálogo, un cliente y su historial. Validar no escribe nada; aplicar escribe todo o nada.
+  </p>
+</div>
+
+@if (hayError()) {
+  <div class="mt-2 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+    <p class="font-semibold">{{ mensajeDeError() }}</p>
+  </div>
+}
+
+<section class="superficie mt-3 max-w-[720px]" aria-labelledby="importar-archivos">
+  <h2 id="importar-archivos" class="titulo-seccion">Archivos</h2>
+  <p class="mt-1 text-neutral-800">
+    De uno a tres archivos <code>.json</code>. Un cliente y su historial nombran el catálogo: se
+    suben con él aunque el catálogo ya esté cargado, y lo que ya existe se reconoce y no se toca.
+  </p>
+
+  <div class="mt-2 flex flex-wrap items-center gap-1.5">
+    <label
+      class="boton-secundario flex min-h-tactil cursor-pointer items-center"
+      for="importar-archivo"
+    >
+      Elegir archivos
+    </label>
+    <input
+      id="importar-archivo"
+      class="sr-only"
+      type="file"
+      accept="application/json,.json"
+      multiple
+      [disabled]="validacion.isPending() || aplicacion.isPending()"
+      (change)="elegir($event)"
+    />
+    <button
+      class="boton-primario min-h-tactil"
+      type="button"
+      [disabled]="!puedeValidar()"
+      (click)="validar()"
+    >
+      {{ validacion.isPending() ? 'Validando…' : 'Validar' }}
+    </button>
+  </div>
+
+  @if (archivos().length) {
+    <ul class="mt-2 list-disc pl-3" aria-label="Archivos elegidos" data-archivos>
+      @for (archivo of archivos(); track $index) {
+        <li>{{ archivo.name }}</li>
+      }
+    </ul>
+  } @else {
+    <p class="mt-2 text-neutral-700">Todavía no se ha elegido ningún archivo.</p>
+  }
+
+  @if (demasiados()) {
+    <p class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-1.5" role="alert" data-demasiados>
+      Se eligieron {{ archivos().length }} archivos y una carga lleva como mucho tres.
+    </p>
+  }
+</section>
+
+@if (informe(); as datos) {
+  <section class="superficie mt-3 max-w-[960px]" aria-labelledby="importar-informe" data-informe>
+    <h2 id="importar-informe" class="titulo-seccion">Informe</h2>
+
+    <p class="mt-1 text-lg font-bold" role="status" data-veredicto>
+      @if (aplicada()) {
+        Carga aplicada: los datos ya están en MalphasOS.
+      } @else if (rechazada()) {
+        MalphasOS rechazó la carga y no escribió nada.
+      } @else if (datos.valida) {
+        La carga es válida: se puede aplicar.
+      } @else {
+        La carga tiene errores: no se puede aplicar.
+      }
+    </p>
+
+    @if (datos.errores?.length) {
+      <h3 class="mt-2 font-bold">Errores ({{ datos.errores!.length }})</h3>
+      <ul class="mt-1 space-y-1" data-errores>
+        @for (problema of datos.errores; track $index) {
+          <li class="border-l-2 border-accent-700 pl-1.5">
+            <span class="block text-sm text-neutral-700">{{ dondeEsta(problema) }}</span>
+            {{ problema.mensaje }}
+          </li>
+        }
+      </ul>
+    }
+
+    @if (datos.avisos?.length) {
+      <h3 class="mt-2 font-bold">Avisos ({{ datos.avisos!.length }})</h3>
+      <ul class="mt-1 space-y-1" data-avisos>
+        @for (problema of datos.avisos; track $index) {
+          <li class="border-l-2 border-ink pl-1.5">
+            <span class="block text-sm text-neutral-700">{{ dondeEsta(problema) }}</span>
+            {{ problema.mensaje }}
+          </li>
+        }
+      </ul>
+    }
+
+    @if (datos.resumen?.length) {
+      <table class="tabla mt-2" data-resumen>
+        <caption class="sr-only">
+          Registros por sección
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Sección</th>
+            <th scope="col">{{ aplicada() ? 'Entraron' : 'Entran' }}</th>
+            <th scope="col">Ya estaban</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (seccion of datos.resumen; track seccion.seccion) {
+            <tr>
+              <td>{{ nombreDeSeccion(seccion.seccion) }}</td>
+              <td class="tabular-nums">{{ seccion.nuevos }}</td>
+              <td class="tabular-nums">{{ seccion.existentes }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    @if (puedeAplicar()) {
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        @if (confirmando()) {
+          <button class="boton-primario min-h-tactil" type="button" (click)="aplicar()">
+            Confirmar y aplicar
+          </button>
+          <button
+            class="boton-secundario min-h-tactil"
+            type="button"
+            (click)="confirmando.set(false)"
+          >
+            Cancelar
+          </button>
+        } @else {
+          <button class="boton-primario min-h-tactil" type="button" (click)="confirmando.set(true)">
+            Aplicar
+          </button>
+        }
+      </div>
+      @if (confirmando()) {
+        <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2" data-confirmacion>
+          Se escribe todo lo que el resumen cuenta como nuevo, en una sola operación. Si MalphasOS
+          rechaza algo, no se escribe nada.
+        </p>
+      }
+    }
+    @if (aplicacion.isPending()) {
+      <p class="mt-2 text-neutral-700" role="status">Aplicando la carga…</p>
+    }
+  </section>
+}
