@@ -4,6 +4,8 @@ import { provideRouter } from '@angular/router';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar } from '../../../../testing/pantalla';
+import { Component, input, output } from '@angular/core';
+import { EncuadreDeFoto } from '../../../shared/foto/encuadre-de-foto';
 import { REDUCIR_FOTO } from '../../../shared/foto/reducir-foto';
 import { HojaDeVida } from './hoja-de-vida';
 
@@ -160,6 +162,28 @@ describe('Hoja de vida', () => {
   });
 });
 
+/** Lo que el recorte devuelve en las pruebas: el encuadre real necesita un lienzo, que jsdom no tiene. */
+const RECORTE = new Blob(['recorte cuadrado'], { type: 'image/png' });
+
+/** El encuadre, sustituido: dice qué foto le llegó y guarda, cancela o falla a voluntad. */
+@Component({
+  selector: 'app-encuadre-de-foto',
+  template: `
+    <div data-encuadre [attr.data-archivo]="archivo().name">
+      <button type="button" (click)="listo.emit(recorte)">Guardar encuadre</button>
+      <button type="button" (click)="cancelado.emit()">Cancelar encuadre</button>
+      <button type="button" (click)="fallo.emit()">Fallar encuadre</button>
+    </div>
+  `,
+})
+class EncuadreFalso {
+  readonly archivo = input.required<File>();
+  readonly listo = output<Blob>();
+  readonly cancelado = output<void>();
+  readonly fallo = output<void>();
+  protected readonly recorte = RECORTE;
+}
+
 /** La foto del equipo (V58, 2026-11-08): se pone, se cambia y se quita desde la hoja de vida. */
 describe('Hoja de vida: la foto del equipo', () => {
   const URL_HOJA = `http://localhost:8081/v1/api/client-equipments/${ID}/life-sheet`;
@@ -188,6 +212,10 @@ describe('Hoja de vida: la foto del equipo', () => {
         ...proveerSesionFalsa({ autoridades }),
         { provide: REDUCIR_FOTO, useValue: (archivo: Blob) => reducir(archivo) },
       ],
+    });
+    TestBed.overrideComponent(HojaDeVida, {
+      remove: { imports: [EncuadreDeFoto] },
+      add: { imports: [EncuadreFalso] },
     });
     fixture = TestBed.createComponent(HojaDeVida);
     fixture.componentRef.setInput('id', ID);
@@ -223,6 +251,14 @@ describe('Hoja de vida: la foto del equipo', () => {
   async function abrir(foto: string | null = null): Promise<void> {
     fixture.detectChanges();
     await responderHoja(foto);
+  }
+
+  const encuadre = () => raiz().querySelector<HTMLElement>('[data-encuadre]');
+
+  /** Guarda el encuadre abierto: lo que se sube es su recorte. */
+  async function guardarEncuadre(): Promise<void> {
+    boton('Guardar encuadre')!.click();
+    await asentar(fixture);
   }
 
   async function elegir(archivo: File): Promise<void> {
@@ -264,14 +300,57 @@ describe('Hoja de vida: la foto del equipo', () => {
     expect(boton('Quitar')).toBeDefined();
   });
 
-  it('la foto elegida se reduce antes de subirla: sube el PNG reducido, no el original', async () => {
+  it('la foto elegida se encuadra primero, y no se sube nada hasta guardar el encuadre', async () => {
+    montar();
+    await abrir();
+
+    await elegir(new File(['foto de 4 MB'], 'IMG_0001.jpg', { type: 'image/jpeg' }));
+
+    expect(encuadre()!.dataset['archivo']).toBe('IMG_0001.jpg');
+    http.expectNone({ method: 'PATCH', url: URL_FOTO });
+    expect(reducidas).toEqual([]);
+    expect(raiz().querySelector<HTMLInputElement>('#hv-foto-archivo')!.disabled).toBe(true);
+  });
+
+  it('cancelar el encuadre no sube nada y deja la foto como estaba', async () => {
+    montar();
+    await abrir(FOTO);
+
+    await elegir(new File(['otra'], 'otra.jpg', { type: 'image/jpeg' }));
+    boton('Cancelar encuadre')!.click();
+    await asentar(fixture);
+
+    expect(encuadre()).toBeNull();
+    expect(reducidas).toEqual([]);
+    http.expectNone({ method: 'PATCH', url: URL_FOTO });
+    expect(bloque()!.querySelector('img')!.getAttribute('src')).toBe(FOTO);
+  });
+
+  it('si el encuadre no puede leer la imagen, lo dice y no sube nada', async () => {
+    montar();
+    await abrir();
+
+    await elegir(new File(['dañada'], 'foto.jpg', { type: 'image/jpeg' }));
+    boton('Fallar encuadre')!.click();
+    await asentar(fixture);
+
+    expect(encuadre()).toBeNull();
+    expect(bloque()!.querySelector('[role="alert"]')!.textContent?.trim()).toBe(
+      'No se pudo leer la foto. Elija una imagen.',
+    );
+    http.expectNone({ method: 'PATCH', url: URL_FOTO });
+  });
+
+  it('al guardar el encuadre se reduce su recorte y se sube, no la foto original', async () => {
     montar();
     await abrir();
     const original = new File(['foto de 4 MB'], 'IMG_0001.jpg', { type: 'image/jpeg' });
 
     await elegir(original);
+    await guardarEncuadre();
 
-    expect(reducidas).toEqual([original]);
+    expect(encuadre()).toBeNull();
+    expect(reducidas).toEqual([RECORTE]);
     const subida = http.expectOne({ method: 'PATCH', url: URL_FOTO });
     const enviado = (subida.request.body as FormData).get('archivo') as File;
     expect(enviado.size).toBe(REDUCIDA.size);
@@ -306,6 +385,7 @@ describe('Hoja de vida: la foto del equipo', () => {
     };
 
     await elegir(new File(['dañada'], 'foto.jpg', { type: 'image/jpeg' }));
+    await guardarEncuadre();
 
     expect(bloque()!.querySelector('[role="alert"]')!.textContent?.trim()).toBe(
       'No se pudo leer la foto. Elija una imagen.',
@@ -354,7 +434,9 @@ describe('Hoja de vida: la foto del equipo', () => {
 
     expect(suelta.defaultPrevented).toBe(true);
     expect(bloque()!.classList).not.toContain('outline-dashed');
-    expect(reducidas).toEqual([foto]);
+    expect(encuadre()!.dataset['archivo']).toBe('arrastrada.jpg');
+    await guardarEncuadre();
+    expect(reducidas).toEqual([RECORTE]);
     http.expectOne({ method: 'PATCH', url: URL_FOTO }).flush({ imagen: FOTO });
     await responderHoja(FOTO);
   });
@@ -369,7 +451,9 @@ describe('Hoja de vida: la foto del equipo', () => {
     await asentar(fixture);
 
     expect(pegado.defaultPrevented).toBe(true);
-    expect(reducidas).toEqual([captura]);
+    expect(encuadre()!.dataset['archivo']).toBe('image.png');
+    await guardarEncuadre();
+    expect(reducidas).toEqual([RECORTE]);
     http.expectOne({ method: 'PATCH', url: URL_FOTO }).flush({ imagen: FOTO });
     await responderHoja(FOTO);
   });
@@ -384,6 +468,19 @@ describe('Hoja de vida: la foto del equipo', () => {
 
     expect(pegado.defaultPrevented).toBe(false);
     expect(reducidas).toEqual([]);
+  });
+
+  it('con el encuadre abierto, pegar otra imagen no lo reemplaza', async () => {
+    montar();
+    await abrir();
+    await elegir(new File(['primera'], 'primera.jpg', { type: 'image/jpeg' }));
+
+    window.dispatchEvent(
+      evento('paste', 'clipboardData', [new File(['otra'], 'otra.png', { type: 'image/png' })]),
+    );
+    await asentar(fixture);
+
+    expect(encuadre()!.dataset['archivo']).toBe('primera.jpg');
   });
 
   it('pegar un archivo que no es una imagen tampoco se toca, ni avisa de nada', async () => {
@@ -421,6 +518,7 @@ describe('Hoja de vida: la foto del equipo', () => {
     await abrir();
 
     await elegir(new File(['x'], 'foto.png', { type: 'image/png' }));
+    await guardarEncuadre();
     http
       .expectOne({ method: 'PATCH', url: URL_FOTO })
       .flush({ code: 'ERR_EQUIPMENT_007' }, { status: 400, statusText: 'Bad Request' });
