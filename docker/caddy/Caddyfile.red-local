@@ -1,0 +1,21 @@
+# La puerta de MalphasOS en una red local, sin dominio: se entra por la IP del servidor (2026-11-08). Lo
+# elige MALPHASOS_CADDYFILE=Caddyfile.red-local en .env.prod; ver DESPLIEGUE.md.
+#
+# Lo enseñó el primer despliegue real, el 2026-11-03, y no la prueba con «localhost», que manda nombre:
+#
+# - Un navegador que entra por IP no dice a que nombre se conecta (no hay SNI), y Caddy, dentro de
+#   Docker, busca el certificado por la IP en la que recibio la conexion, que es la del contenedor. No
+#   encuentra ninguno y corta: «SSL_ERROR_INTERNAL_ERROR_ALERT». default_sni le dice cual usar.
+# - Y con una IP Caddy no crea la politica TLS de la que cuelga default_sni, y lo descarta sin avisar.
+#   tls internal la crea. Hacen falta las dos lineas: cada una sola falla.
+#
+# El certificado lo emite la autoridad propia de Caddy, porque Let's Encrypt no firma una IP privada.
+# Cada equipo que entre tiene que confiar en ella una vez: DESPLIEGUE.md dice como.
+{
+	default_sni {$MALPHASOS_IP}
+}
+
+{$MALPHASOS_DOMAIN} {
+	tls internal
+	import rutas.caddy
+}
