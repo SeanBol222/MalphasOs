@@ -2986,7 +2986,7 @@ Construida en cinco commits sobre el módulo nuevo `dataload`, sin tocar ningún
 networknt, las `ref` entre archivos, la ciudad y el país contra el catálogo de ubicación, la serie de
 patrón repetida, lo que ya existe por llave natural, el historial ya cargado y el ingeniero sin firma.
 `POST /data-loads/validation` responde con errores, avisos y un resumen por sección de cuántos entran y
-cuántos ya estaban. Los archivos del conversor pasan con cero errores. Entró la autoridad
+cuántos ya estaban. Los archivos del conversor pasaban con cero errores antes de la regla del ingeniero; con ella el historial se rechaza hasta que los cinco ingenieros estén cargados y con firma, como se decidió. Entró la autoridad
 `super.data-load.write`, que [[modelo-de-permisos]] no nombraba: corregido. Las decisiones del camino,
 en [[decisiones-tecnicas-malphasos]]. **1670** pruebas, 142 clases.
 
