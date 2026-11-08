@@ -87,7 +87,7 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__eq
 
 | Rama | Estado | Pruebas |
 |---|---|---|
-| `main` | **La versión 1.0.0**: los siete módulos, el modelo de permisos, la sincronización con Keycloak, órdenes de trabajo y reportes de servicio de extremo a extremo, **la firma digital y el PDF del servidor**, un frontend completo y **el despliegue de producción** —ver `DESPLIEGUE.md`— | **1725** medidos el 2026-11-08 |
+| `main` | **La versión 1.1.0**: la carga de datos de otro sistema con su pantalla, la foto de cada equipo y el despliegue en la red local, sobre la 1.0.0: los siete módulos, el modelo de permisos, la sincronización con Keycloak, órdenes de trabajo y reportes de servicio de extremo a extremo, **la firma digital y el PDF del servidor**, un frontend completo y **el despliegue de producción** —ver `DESPLIEGUE.md`— | **1725** medidos el 2026-11-08 |
 | ~~`feat/work-order-rest`~~ · ~~`fix/work-order-headquarter-scope`~~ · ~~`docs/wiki-work-order-modulo`~~ | **Mergeadas** el 2026-09-13 por `e69437d`, `1adc2fc` y `b9563a9`, y borradas | — |
 | ~~`feat/work-order-schema`~~ · ~~`feat/relocation-same-client`~~ | Mergeadas antes, por `49b6453` y `1ef55cf` | — |
 
@@ -136,6 +136,17 @@ a `1.0.0` con su `CHANGELOG.md`. RabbitMQ se retiró por el camino. **Lo que la 
 levantarla desde cero**: el realm versionado no se podía importar en una instalación nueva desde el
 2026-09-13 —un identificador de rol de 38 caracteres—, y nadie lo vio porque en desarrollo el import se
 salta un realm que ya existe. El tag `v1.0.0` lo pone el usuario.
+
+**Y la versión 1.1.0, decidida el 2026-11-03 y construida hasta el 2026-11-08**: traer los datos de la
+aplicación que la empresa usaba antes —**no** `bolivarbioingenieria-app`—, con historial, por un formato
+publicado en `contracts/carga/` y el módulo `dataload`, con su pantalla; la serie provisional; el voltaje
+decimal (`V57`); el despliegue en la red local, que es como se instaló la 1.0.0; y **la foto de cada
+equipo** en su hoja de vida (`V58`), que el usuario añadió a la versión el 2026-11-08. Ocho tandas; ver
+[[hoja-de-ruta-producto]]. **Lo que la carga real enseñó** lo dice [[decisiones-tecnicas-malphasos]]: dos
+reglas que el esquema no tenía, un advice que respondía por la causa, y una sesión del frontend que daba a
+un administrador las autoridades `super.`. El tag `v1.1.0` lo pone el usuario, tras una prueba más en local.
+**La tanda 6 cambió de sitio el 2026-11-08**: el servidor de la oficina se deja de lado y la carga real
+se hará en un servidor en línea, que el usuario está alquilando; hasta entonces todo es local.
 
 **Y la primera versión funcional, decidida el 2026-10-14 y construida hasta el 2026-10-16**: ejecutar una orden exige sus reportes cerrados, el reporte distingue el correctivo, y todo reporte con lecturas dice contra qué patrón se midió y si es conforme; el listado de órdenes, rehecho. Seis tandas y **el marcador no se mueve** —21—, porque ningún RF describe esos formatos. Ver [[hoja-de-ruta-producto]].
 
