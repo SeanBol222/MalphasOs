@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-11-03
+updated: 2026-11-08
 ---
 
 # Hoja de ruta del producto
@@ -683,7 +683,7 @@ Ver [[decisiones-tecnicas-malphasos]] para el porqué de las `ref`, y la guía p
 | 3 | **Validar**, sin escribir, en un módulo nuevo, `dataload`, **sin modificar los demás**: el esquema publicado con una librería de JSON Schema, las `ref`, lo que ya existe por llave natural —con los puertos de lectura de cada módulo— y las reglas que el esquema no ve: ciudad del catálogo, serie de patrón repetida, historial en fechas ocupadas, ingeniero sin firma. `POST /data-loads/validation` responde qué se crearía, qué se ignoraría y cada problema con su archivo, `ref` y campo, **separando errores de avisos** | **Construida el 2026-11-07**, en cinco commits. Los archivos reales que escribe el conversor pasaban con cero errores **antes de la regla del ingeniero**; desde ella el historial se rechaza mientras los cinco ingenieros no estén en MalphasOS con su firma, que es lo esperado hasta cargar el catálogo solo. Los datos provisionales —cédulas, correos, tres series de patrón— siguen pendientes del usuario |
 | 4 | **Aplicar**: `POST /data-loads` valida otra vez, construye cada agregado con su `rehydrate` —o su `create` donde encaja, como el equipo con su serie provisional— y lo guarda con el puerto de persistencia de su módulo, en una transacción. Después compone los documentos con lo que ya existe: `documentOf` para cada orden y `freezeClosedWithoutDocument()` para los reportes, que salen marcados tardíos, con el aviso en pantalla y no en el PDF. La base es la última barrera | **Construida el 2026-11-07**, en cuatro commits, más uno antes con las magnitudes en la validación. **Los reportes no usan `freezeClosedWithoutDocument()`**: entran como borradores y se cierran uno a uno con el compositor de reportes, porque el informe lee la hoja de vida y su historial exige documento en todo reporte cerrado; y cada informe lleva el certificado del patrón vigente el día del servicio. Ver [[decisiones-tecnicas-malphasos]] |
 | 5 | La pantalla «Importar datos», solo para el SuperUsuario: subir, leer el informe, aplicar sin errores | — |
-| 6 | La carga real en el servidor de prueba, con el conversor fuera del repositorio: el catálogo solo; «Dar acceso» a cada ingeniero y su firma; después catálogo, cliente e historial juntos | — |
+| 6 | La carga real en el servidor de prueba, con el conversor fuera del repositorio: el catálogo solo; «Dar acceso» a cada ingeniero y su firma; después catálogo, cliente e historial juntos | **Ensayada en desarrollo el 2026-11-07 y 08**, con el mismo orden: el catálogo solo, firmas provisionales en la base, y los tres archivos juntos. Entraron 40 órdenes y 129 reportes cerrados, cada uno con el certificado vigente el día del servicio —28 distintos—. Se rechazó dos veces al aplicar y no escribió nada ninguna: dos reglas que el esquema no tenía y ahora tiene, y el 409 del advice global. Falta el servidor de prueba |
 | 7 | `DESPLIEGUE.md` con la red local —el puerto, el Caddyfile por IP, el SuperUsuario en minúsculas—, el wiki y el `CHANGELOG` | — |
 
 **Decidido el 2026-11-07, antes de la tanda 3**: **la carga no modifica los módulos**, pedido por el usuario

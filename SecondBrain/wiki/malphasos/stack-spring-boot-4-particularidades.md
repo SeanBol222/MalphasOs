@@ -3,7 +3,7 @@ name: stack-spring-boot-4-particularidades
 description: Diferencias reales de Spring Boot 4 / Flyway 12 / Testcontainers 2 frente a lo que documenta el proyecto original — descubiertas al construir MalphasOS
 tags: [malphasos, stack, backend, hallazgo, "describe:malphasos"]
 source: malphasos/pom.xml (MalphasOS)
-updated: 2026-10-04
+updated: 2026-11-08
 ---
 
 # Particularidades de Spring Boot 4 y el stack moderno
@@ -118,6 +118,20 @@ habla del formato, no del recurso—, pero tiene una consecuencia en las pruebas
 cuerpo**, y por eso ninguna escritura con cuerpo de todo el sistema estaba en ella. Lo dice ahora un
 comentario en la propia lista. Que esas rutas lleven su autoridad lo garantiza otra prueba, la que exige
 `@PreAuthorize` en cada operación.
+
+## 9. Un advice sin orden puede responder por la causa de la excepción
+
+Encontrado el 2026-11-08 con la primera carga real. Spring recorre los `@RestControllerAdvice` en su
+orden y, en cada uno, busca un manejador para la excepción **o para su causa**. Sin `@Order`, ese orden no
+está definido. `DataLoadRejectedException` lleva dentro la `DataIntegrityViolationException` de la base,
+y el `GlobalControllerAdvice` —que no conoce el rechazo pero sí su causa— ganaba y respondía un **409**
+genérico donde el de la carga habría dado un **422** con el informe. El `assignableTypes` del advice de la
+carga no lo protege: acota a qué controladores atiende, no quién llega primero.
+
+**La regla**: un advice de módulo cuyas excepciones envuelven una causa que el global sabe manejar lleva
+`@Order(Ordered.HIGHEST_PRECEDENCE)`. Hoy es solo el de `dataload`; los demás lanzan excepciones sin
+causa. **Y la prueba de un rechazo tiene que llevar la causa real**: la que había lo lanzaba con `null` y
+pasaba. Ver [[manejo-global-excepciones]].
 
 ## Surefire da dos conteos distintos de la misma ejecución
 
