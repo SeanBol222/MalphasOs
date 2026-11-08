@@ -3035,3 +3035,21 @@ SuperUsuario** —se creó `dev.super`— y el client `admin-cli` emitía **toke
 `resource_access`, de modo que un token pedido por él no traía ningún rol de la API. Si el contenedor se
 recrea, las dos se pierden.
 
+## [2026-11-08] ingest | La pantalla de importar datos (tanda 5)
+
+Administración › **Importar datos**, solo para el SuperUsuario: de uno a tres archivos, «Validar», el
+informe —veredicto, errores con su archivo y su ruta, avisos y la tabla por sección— y «Aplicar» solo tras
+una validación limpia, con confirmación en la pantalla. Un 422 al aplicar se lee como otro informe. Ver
+[[hoja-de-ruta-producto]] y [[arquitectura-frontend-malphasos]].
+
+**Lo que salió antes de escribirla**: la sesión del frontend expandía `admin.full` a todo, y el backend
+expande en dos escalones desde el 2026-09-13 —`admin.full` no concede las `super.`—. Un administrador veía
+ya el alta de ingenieros y administradores y el servidor le respondía 403; la pantalla nueva lo habría
+repetido. Se reconoce el escalón por el prefijo, que es la convención del backend, sin copiar la lista.
+**Era la misma clase de desfase que el frontend persigue con su prueba contra el realm**, y esa prueba no
+lo podía ver: comprueba que las autoridades existen, no qué concede cada una.
+
+Dos mutaciones enseñaron algo: una regla de la pantalla —comparar los archivos validados con los
+elegidos— no podía actuar nunca, porque elegir otros ya borra el informe, y se quitó; y el reinicio de la
+confirmación cuando aplicar falla sin informe no tenía prueba. **840** pruebas en el frontend.
+

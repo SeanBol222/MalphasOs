@@ -4,7 +4,7 @@ description: Como se construye el frontend de MalphasOS -Angular, por modulo de 
 tags: [frontend, arquitectura, angular, "describe:malphasos"]
 source: Documentation/FrontendDesign/DeclaracionDeDisenoFrontend.tex
 estado: estable
-updated: 2026-10-11
+updated: 2026-11-08
 ---
 
 # Arquitectura del frontend de MalphasOS
@@ -230,6 +230,8 @@ Dos precisiones que evitan un malentendido peligroso:
 - **Y desde el 2026-09-26 hay prueba de que los literales de las rutas existen.** Ocurrió lo que la advertencia anterior anunciaba: las rutas de las sedes se escribieron con `headquarter.read` y `headquarter.write`, que **no existen** —las sedes las protege `client.*`—. Nada fallaba: el guard mandaba a `/sin-permiso` y la pantalla quedaba inalcanzable para todo el mundo, incluido el administrador. Una prueba lee ahora `app.routes.ts`, extrae cada `requiereAutoridad('…')` y exige que el realm conceda ese rol; otra comprueba que la lista no esté vacía, para que no pase en vacío. Es el equivalente de `RestAuthorizationCoverageTest` en el otro extremo de la línea.
 
 **Ocultar exige saber qué se puede**, y eso se lee con `Sesion.puede(...)` **como señal calculada**, no como booleano: las autoridades se releen en cada evento de Keycloak —renovación de token incluida—, y un valor calculado en el constructor se quedaría con el de entonces.
+
+**Y expande en dos escalones desde el 2026-11-08**, como `ApiAuthority.expand`: `super.admin.full` concede todo, y `admin.full` todo **menos lo que empieza por `super.`**. Hasta ese día la sesión conocía un solo escalón, y un administrador veía el alta de ingenieros y administradores —que exige `super.person.write`— para recibir un 403 del servidor. Lo destapó la pantalla de importar datos antes de escribirla. Se reconoce el escalón **por el prefijo**, la convención del backend, y no por una lista copiada. La prueba contra el realm no lo podía ver: comprueba que las autoridades existen, no qué concede cada una.
 
 **Lo que un grupo no puede leer no se disimula.** El grupo `clients` no tiene `location.read` ni `person.read`, de modo que para esos usuarios el catálogo de países y la lista de personas responden 403. La pantalla distingue entonces **«no tiene» de «no se pudo consultar»**: decir «sin país» de un cliente que sí lo tiene es afirmar algo falso, y es lo que hacía la primera versión.
 
