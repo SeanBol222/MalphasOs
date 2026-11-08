@@ -206,7 +206,12 @@ esquema no puede resolver por él.
 - **La periodicidad no viene**: se deduce de la fecha del próximo servicio.
 - **Las verificaciones al ingreso tienen conceptos que MalphasOS no tiene** —temperatura, amperaje—:
   van a las `observaciones` del reporte. Y hay **«no conforme» sin observación**, que MalphasOS no
-  admite: el conversor tiene que poner una.
+  admite: el conversor tiene que poner una. **También en los accesorios**: uno no conforme lleva su
+  `observacion`. El esquema lo exige desde el 2026-11-08; hasta entonces lo pedía solo para el estado
+  físico y el operativo, y la primera carga real pasó la validación y se rechazó al aplicarla.
+- **Un informe preventivo marcado también «garantía»**: en MalphasOS solo un correctivo va en garantía,
+  y el esquema lo exige desde el 2026-11-08. El conversor quita la garantía de una orden que no es
+  correctiva y lo avisa.
 - **Los pasos del protocolo son texto libre** en cada informe, con erratas que los multiplican, y
   **cambian con la versión de la plantilla**: el mismo paso se llamó «Limpieza técnica final» hasta 2024
   y «Limpieza general» después, y el sistema neumático de un tensiómetro tuvo dos redacciones. Los 129

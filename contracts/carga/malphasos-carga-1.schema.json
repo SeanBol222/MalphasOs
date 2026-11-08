@@ -833,7 +833,8 @@
         },
         "garantia": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Solo un correctivo va en garantía, como en MalphasOS."
         },
         "ingeniero": {
           "$ref": "#/$defs/ref"
@@ -843,6 +844,23 @@
           "minItems": 1,
           "items": {
             "$ref": "#/$defs/reporte"
+          }
+        }
+      },
+      "if": {
+        "required": [
+          "garantia"
+        ],
+        "properties": {
+          "garantia": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "tipoServicio": {
+            "const": "CORRECTIVO"
           }
         }
       }
@@ -943,6 +961,18 @@
                     "$ref": "#/$defs/texto",
                     "maxLength": 500
                   }
+                },
+                "if": {
+                  "properties": {
+                    "conforme": {
+                      "const": false
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "observacion"
+                  ]
                 }
               },
               "maxItems": 50

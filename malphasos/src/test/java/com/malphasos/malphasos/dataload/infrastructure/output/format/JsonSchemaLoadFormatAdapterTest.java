@@ -81,6 +81,57 @@ class JsonSchemaLoadFormatAdapterTest {
         assertThat(revision.errores()).extracting(DataLoadProblem::ruta).containsExactly("/ordenes/0/fecha");
     }
 
+    /*
+     * Las dos reglas que la primera carga real no vio hasta aplicar, el 2026-11-07: MalphasOS las rechaza al
+     * escribir, el agregado una y el CHECK de V34 la otra, y la validación las daba por buenas.
+     */
+
+    @Test
+    @DisplayName("un accesorio no conforme sin observacion no pasa: hay que decir por que")
+    void accesorioSinPorque() {
+        String historial = EjemplosDeCarga.texto(EjemplosDeCarga.HISTORIAL).replaceFirst("\"conforme\": true", "\"conforme\": false");
+        assertThat(historial).contains("\"conforme\": false");
+
+        FormatCheck revision = adaptador.check(EjemplosDeCarga.archivo("historial.json", historial));
+
+        assertThat(revision.errores()).extracting(DataLoadProblem::ruta)
+                .containsExactly("/ordenes/0/reportes/0/ingreso/accesorios/0");
+        assertThat(revision.errores().getFirst().mensaje()).contains("observacion");
+    }
+
+    @Test
+    @DisplayName("un accesorio no conforme con su observacion pasa")
+    void accesorioConPorque() {
+        String historial = EjemplosDeCarga.texto(EjemplosDeCarga.HISTORIAL)
+                .replaceFirst("\"conforme\": true", "\"conforme\": false, \"observacion\": \"Roto.\"");
+        assertThat(historial).contains("\"observacion\": \"Roto.\"");
+
+        assertThat(adaptador.check(EjemplosDeCarga.archivo("historial.json", historial)).errores()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("una orden preventiva en garantia no pasa: solo un correctivo la lleva")
+    void garantiaEnUnPreventivo() {
+        String historial = EjemplosDeCarga.texto(EjemplosDeCarga.HISTORIAL)
+                .replaceFirst("\"tipoServicio\": \"PREVENTIVO\",", "\"tipoServicio\": \"PREVENTIVO\", \"garantia\": true,");
+        assertThat(historial).contains("\"garantia\": true");
+
+        FormatCheck revision = adaptador.check(EjemplosDeCarga.archivo("historial.json", historial));
+
+        assertThat(revision.errores()).extracting(DataLoadProblem::ruta).containsExactly("/ordenes/0/tipoServicio");
+    }
+
+    @Test
+    @DisplayName("una orden correctiva en garantia pasa, y una preventiva que la niega tambien")
+    void garantiaEnUnCorrectivo() {
+        String historial = EjemplosDeCarga.texto(EjemplosDeCarga.HISTORIAL)
+                .replaceFirst("\"tipoServicio\": \"PREVENTIVO\",", "\"tipoServicio\": \"PREVENTIVO\", \"garantia\": false,")
+                .replaceFirst("\"tipoServicio\": \"CORRECTIVO\",", "\"tipoServicio\": \"CORRECTIVO\", \"garantia\": true,");
+        assertThat(historial).contains("\"garantia\": true").contains("\"garantia\": false");
+
+        assertThat(adaptador.check(EjemplosDeCarga.archivo("historial.json", historial)).errores()).isEmpty();
+    }
+
     @Test
     @DisplayName("un contenido que el formato no conoce no se toma como contenido")
     void contenidoDesconocido() {
