@@ -16,11 +16,12 @@ esquema de la base de datos**: usa lo que MalphasOS ya tiene.
 | `ejemplo-1-catalogo.json` · `ejemplo-2-cliente.json` · `ejemplo-3-historial.json` | Una carga completa con datos inventados. Recorre todas las secciones |
 | `GUIA.md` | Esto: lo que el esquema no puede decir |
 
-> **Estado, 2026-11-07.** Existen **el formato, la validación y la carga**, solo para el SuperUsuario:
-> `POST /v1/api/data-loads/validation` devuelve el informe sin escribir nada, y `POST /v1/api/data-loads`
-> valida otra vez y escribe todo en una transacción —200 con el informe, o 422 con él y nada escrito—.
-> **Falta la pantalla**, prevista para la versión 1.1.0: hoy se sube con el API. (Decía el 2026-11-03 que
-> solo existía el formato, y unas horas antes de esta nota, que no existía la carga.)
+> **Estado, 2026-11-08.** Existen **el formato, la validación, la carga y su pantalla**, solo para el
+> SuperUsuario: Administración › **Importar datos** sube los archivos, enseña el informe y solo ofrece
+> aplicar tras una validación limpia. Por debajo, `POST /v1/api/data-loads/validation` devuelve el informe
+> sin escribir nada, y `POST /v1/api/data-loads` valida otra vez y escribe todo en una transacción —200
+> con el informe, o 422 con él y nada escrito—. (Decía el 2026-11-07 que faltaba la pantalla; el
+> 2026-11-03, que solo existía el formato, y unas horas antes de esa nota, que no existía la carga.)
 
 ## Los tres archivos
 
@@ -47,7 +48,7 @@ resuelven dentro de la carga.
    uno congelado no la recibiría después. También se rechaza si el ingeniero no está aún en MalphasOS o
    si la persona de la orden no es ingeniero.
 4. **Por cada cliente, subir juntos** el catálogo, su archivo y su historial. MalphasOS los **valida**
-   sin escribir nada y devuelve un informe: cuántos registros de cada sección entrarían, cuántos se
+   sin escribir nada —en Administración › Importar datos, «Validar»— y devuelve un informe: cuántos registros de cada sección entrarían, cuántos se
    ignoran porque ya existen y cada error con su ruta —`ordenes[3].reportes[0].equipo: la ref «eq-2789»
    no está en la carga`—.
 5. **Corregir el conversor y repetir** hasta que el informe salga limpio. No se corrige el archivo a mano:

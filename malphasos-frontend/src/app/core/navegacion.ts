@@ -122,6 +122,14 @@ export const NAVEGACION: readonly EntradaDeNavegacion[] = [
   // La empresa que presta el servicio, del 2026-10-17: el membrete de los documentos. Va al final porque
   // se configura una vez y se toca poco.
   { ruta: 'empresa', etiqueta: 'Empresa', autoridad: 'company.read', grupo: 'administracion' },
+  // Solo el SuperUsuario (2026-11-08): admin.full no concede las autoridades super., y la sesion lo
+  // sabe desde ese mismo dia. Va la ultima porque se usa al arrancar una instalacion, no a diario.
+  {
+    ruta: 'importar',
+    etiqueta: 'Importar datos',
+    autoridad: 'super.data-load.write',
+    grupo: 'administracion',
+  },
 ] as const;
 
 /**
@@ -196,6 +204,8 @@ function cargarPagina(camino: string): Promise<Type<unknown>> {
       return import('../features/equipment/catalogo/patrones').then((m) => m.Patrones);
     case 'empresa':
       return import('../features/company/empresa').then((m) => m.Empresa);
+    case 'importar':
+      return import('../features/dataLoad/importar-datos').then((m) => m.ImportarDatos);
     default:
       throw new Error(`El destino de navegacion "${camino}" no tiene pagina asociada`);
   }

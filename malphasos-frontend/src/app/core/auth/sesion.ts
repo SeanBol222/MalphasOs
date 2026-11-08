@@ -1,7 +1,7 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import Keycloak from 'keycloak-js';
 import { KEYCLOAK_EVENT_SIGNAL, typeEventArgs, ReadyArgs, KeycloakEventType } from 'keycloak-angular';
-import { ADMINISTRADOR, autoridadesDe } from './autoridades';
+import { ADMINISTRADOR, autoridadesDe, PREFIJO_SUPER, SUPER_ADMINISTRADOR } from './autoridades';
 
 /**
  * Quien esta dentro y que puede hacer.
@@ -45,13 +45,20 @@ export class Sesion {
   /**
    * Si la sesion actual alcanza para una autoridad.
    *
-   * <p>Aqui vive la unica regla que el frontend conoce del modelo de permisos:
-   * {@code admin.full} expande a todo. Por eso no hace falta enumerar las 21.
+   * <p>Aqui vive la unica regla que el frontend conoce del modelo de permisos, en sus dos escalones:
+   * {@code admin.full} expande a todo menos lo que empieza por {@code super.}, y {@code super.admin.full}
+   * expande a todo. Por eso no hace falta enumerar las 24. (Hasta el 2026-11-08 era un solo escalón, y un
+   * administrador veía las pantallas del SuperUsuario.)
    */
   puede(autoridad: string): boolean {
     const autoridades = this.autoridades();
 
-    return autoridades.has(ADMINISTRADOR) || autoridades.has(autoridad);
+    if (autoridades.has(autoridad) || autoridades.has(SUPER_ADMINISTRADOR)) {
+      return true;
+    }
+
+    // El administrador lo puede todo menos el escalón de arriba, como en el backend.
+    return autoridades.has(ADMINISTRADOR) && !autoridad.startsWith(PREFIJO_SUPER);
   }
 
   entrar(): Promise<void> {

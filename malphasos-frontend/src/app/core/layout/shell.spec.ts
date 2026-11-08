@@ -15,7 +15,8 @@ describe('Armazón', () => {
 
   /**
    * Las autoridades de todos los destinos del menu: una sesion que lo ve entero. Son de lectura salvo
-   * {@code equipment.write}, que es la del catalogo desde el 2026-10-26.
+   * {@code equipment.write}, que es la del catalogo desde el 2026-10-26, y {@code super.data-load.write},
+   * la de importar datos desde el 2026-11-08.
    *
    * <p>Hacen falta desde el 2026-10-02: el menu oculta lo que la sesion no puede usar, de modo que sin
    * esto se pintaria solo «Inicio». Se nombran una a una en vez de usar {@code admin.full} a proposito
@@ -29,6 +30,7 @@ describe('Armazón', () => {
     'work-order.read',
     'person.read',
     'company.read',
+    'super.data-load.write',
   ];
 
   async function pintar(
@@ -141,7 +143,7 @@ describe('Armazón', () => {
       expect(rotulos(raiz)).toEqual(['Operación', 'Administración']);
       expect(bloques).toEqual([
         ['Inicio', 'Órdenes de trabajo', 'Equipos', 'Clientes'],
-        ['Personas', 'Catálogo', 'Empresa'],
+        ['Personas', 'Catálogo', 'Empresa', 'Importar datos'],
       ]);
     });
 
@@ -215,11 +217,26 @@ describe('Armazón', () => {
     });
   });
 
-  it('quien trae admin.full lo ve todo, sin nombrar una sola autoridad de recurso', async () => {
-    // La expansion la resuelve Sesion.puede en un solo sitio, igual que ApiAuthority en el backend.
+  it('quien trae admin.full lo ve todo menos lo del SuperUsuario, sin nombrar una sola autoridad', async () => {
+    // La expansion la resuelve Sesion.puede en un solo sitio, igual que ApiAuthority en el backend, y
+    // desde el 2026-11-08 en sus dos escalones: «Importar datos» exige super.data-load.write.
     const raiz = await pintar('/inicio', ['admin.full']);
+    const destinos = [...raiz.querySelectorAll('nav > ul > li')].map((li) =>
+      li.textContent?.trim(),
+    );
 
-    expect(raiz.querySelectorAll('nav > ul > li')).toHaveLength(NAVEGACION.length);
+    expect(destinos).toHaveLength(NAVEGACION.length - 1);
+    expect(destinos).not.toContain('Importar datos');
+  });
+
+  it('quien trae super.admin.full lo ve todo, «Importar datos» incluido', async () => {
+    const raiz = await pintar('/inicio', ['super.admin.full']);
+    const destinos = [...raiz.querySelectorAll('nav > ul > li')].map((li) =>
+      li.textContent?.trim(),
+    );
+
+    expect(destinos).toHaveLength(NAVEGACION.length);
+    expect(destinos).toContain('Importar datos');
   });
 
   describe('La entrada que se despliega', () => {

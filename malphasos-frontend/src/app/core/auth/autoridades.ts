@@ -28,6 +28,23 @@ export const CLIENT_API = 'malphasos-api';
  */
 export const ADMINISTRADOR = 'admin.full';
 
+/**
+ * El escalón de arriba: el SuperUsuario, que se otorga a mano en Keycloak.
+ *
+ * <p>Concede lo mismo que {@link ADMINISTRADOR} y además las autoridades con el prefijo
+ * {@link PREFIJO_SUPER}, como {@code ApiAuthority.expand} en el backend. Entró aquí el 2026-11-08: hasta
+ * entonces el frontend solo conocía el primer escalón y le ofrecía a un administrador las pantallas del
+ * SuperUsuario, que el servidor le respondía con un 403.
+ */
+export const SUPER_ADMINISTRADOR = 'super.admin.full';
+
+/**
+ * Lo que marca una autoridad que {@link ADMINISTRADOR} no concede. Es la convención del backend
+ * —«el prefijo {@code super.} marca lo que {@code admin.full} no concede»—, y por eso basta el prefijo
+ * para no copiar aquí la lista de esas autoridades.
+ */
+export const PREFIJO_SUPER = 'super.';
+
 /** Forma del claim del que salen las autoridades. */
 export interface TokenConRoles {
   readonly resource_access?: Readonly<Record<string, { readonly roles?: readonly string[] }>>;
