@@ -151,6 +151,7 @@ class CatalogWriter {
             refs.put(modelo.ref(), modelosQueEstan.computeIfAbsent(asociacion + "|" + Names.plano(modelo.nombre()), k ->
                     paso(f, "/catalogo/modelos/", n, () -> modelos.save(Model.create(modelo.nombre(), modelo.invima(),
                             refs.id(modelo.fabricante()), asociacion, ficha(modelo.fichaTecnica()))).getId())));
+            refs.putModel(refs.id(modelo.ref()), idTipo);
         }
 
         Map<String, UUID> patronesQueEstan = new HashMap<>();

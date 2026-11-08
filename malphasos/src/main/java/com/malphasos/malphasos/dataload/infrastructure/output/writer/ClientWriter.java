@@ -95,6 +95,7 @@ class ClientWriter {
             UUID yaEsta = equipo.serie() == null ? null : equiposQueEstan.get(idModelo + "|" + Names.plano(equipo.serie()));
             int n = i;
             refs.put(equipo.ref(), yaEsta != null ? yaEsta : paso(f, "/equipos/", n, () -> nuevoEquipo(equipo, idModelo, refs).getId()));
+            refs.putEquipment(refs.id(equipo.ref()), idModelo);
         }
     }
 

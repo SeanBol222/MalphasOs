@@ -26,7 +26,7 @@ class LoadWriterAdapterTest {
         doThrow(new PersistenceException("fallo", new RuntimeException("duplicate key value violates unique constraint")))
                 .when(entityManager).flush();
         LoadWriterAdapter adaptador = new LoadWriterAdapter(mock(CatalogWriter.class), mock(PeopleWriter.class),
-                mock(ClientWriter.class), entityManager);
+                mock(ClientWriter.class), mock(HistoryWriter.class), entityManager);
 
         assertThatThrownBy(() -> adaptador.write(List.of()))
                 .isInstanceOfSatisfying(DataLoadRejectedException.class, e -> assertThat(e.problema().mensaje())

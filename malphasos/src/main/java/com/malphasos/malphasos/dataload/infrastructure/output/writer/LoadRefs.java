@@ -22,6 +22,9 @@ final class LoadRefs {
     private final Map<String, UUID> ids = new HashMap<>();
     private final Map<String, VerificationRef> verificaciones = new HashMap<>();
     private final Map<String, StandardRef> patrones = new HashMap<>();
+    private final Map<UUID, StandardRef> patronPorId = new HashMap<>();
+    private final Map<UUID, UUID> tipoDelModelo = new HashMap<>();
+    private final Map<UUID, UUID> modeloDelEquipo = new HashMap<>();
 
     void put(String ref, UUID id) {
         ids.put(ref, id);
@@ -47,6 +50,29 @@ final class LoadRefs {
     void putStandard(String ref, StandardRef patron) {
         ids.put(ref, patron.id());
         patrones.put(ref, patron);
+        patronPorId.put(patron.id(), patron);
+    }
+
+    /** El patrón de la carga con ese identificador, para buscar el certificado vigente un día. */
+    StandardRef standardById(UUID id) {
+        return patronPorId.get(id);
+    }
+
+    void putModel(UUID idModelo, UUID idTipo) {
+        tipoDelModelo.put(idModelo, idTipo);
+    }
+
+    void putEquipment(UUID idEquipo, UUID idModelo) {
+        modeloDelEquipo.put(idEquipo, idModelo);
+    }
+
+    /** El tipo de un equipo de la carga: el informe se compone con las verificaciones y los pasos de su tipo. */
+    UUID typeOfEquipment(UUID idEquipo) {
+        UUID tipo = tipoDelModelo.get(modeloDelEquipo.get(idEquipo));
+        if (tipo == null) {
+            throw new IllegalStateException("El equipo " + idEquipo + " no es de un modelo de la carga");
+        }
+        return tipo;
     }
 
     StandardRef standard(String ref) {

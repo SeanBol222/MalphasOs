@@ -14,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Escribe una carga por contenidos, en el orden en que se nombran: el catálogo primero, porque un cliente
- * nombra sus modelos y un historial sus protocolos, y después el cliente. Los archivos pueden llegar en
- * cualquier orden.
+ * nombra sus modelos y un historial sus protocolos; después el cliente, y al final su historial, que
+ * nombra sus equipos. Los archivos pueden llegar en cualquier orden.
  */
 @Component
 @RequiredArgsConstructor
@@ -24,6 +24,7 @@ public class LoadWriterAdapter implements LoadWriterPort {
     private final CatalogWriter catalogo;
     private final PeopleWriter personas;
     private final ClientWriter clientes;
+    private final HistoryWriter historial;
     private final EntityManager entityManager;
 
     /**
@@ -44,6 +45,9 @@ public class LoadWriterAdapter implements LoadWriterPort {
             for (ReadFile archivo : de(archivos, "cliente")) {
                 personas.write(archivo, refs);
                 clientes.write(archivo, refs);
+            }
+            for (ReadFile archivo : de(archivos, "historial")) {
+                historial.write(archivo, refs);
             }
             entityManager.flush();
         } catch (PersistenceException | DataAccessException e) {
