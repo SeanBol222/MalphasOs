@@ -29,6 +29,32 @@ describe('Sesión', () => {
     }
   });
 
+  it('admin.full no concede el escalon de arriba: lo que empieza por super.', () => {
+    // El backend expande en dos escalones (ApiAuthority.expand). Con uno solo, un administrador veia
+    // las pantallas del SuperUsuario y el servidor le respondia 403.
+    const sesion = sesionCon(['admin.full']);
+
+    expect(sesion.puede('super.person.write')).toBe(false);
+    expect(sesion.puede('super.data-load.write')).toBe(false);
+  });
+
+  it('super.admin.full lo concede todo, el escalon de arriba y el de abajo', () => {
+    const sesion = sesionCon(['super.admin.full']);
+
+    for (const autoridad of [
+      'super.person.write',
+      'super.data-load.write',
+      'client.delete',
+      'work-order.write',
+    ]) {
+      expect(sesion.puede(autoridad)).toBe(true);
+    }
+  });
+
+  it('una autoridad super. que el token trae por si misma se reconoce', () => {
+    expect(sesionCon(['super.data-load.write']).puede('super.data-load.write')).toBe(true);
+  });
+
   it('quien no ha entrado no puede nada', () => {
     expect(sesionCon([], false).puede('work-order.read')).toBe(false);
   });

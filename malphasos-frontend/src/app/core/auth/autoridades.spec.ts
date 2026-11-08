@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { ADMINISTRADOR, CLIENT_API, autoridadesDe } from './autoridades';
+import { ADMINISTRADOR, CLIENT_API, SUPER_ADMINISTRADOR, autoridadesDe } from './autoridades';
 
 describe('Autoridades', () => {
   describe('Leer el token', () => {
@@ -53,6 +53,12 @@ describe('Autoridades', () => {
       const roles = realm.roles.client[CLIENT_API].map((r) => r.name);
 
       expect(roles).toContain(ADMINISTRADOR);
+    });
+
+    it('super.admin.full tambien es un rol real: la expansion del escalon de arriba depende de el', () => {
+      const roles = realm.roles.client[CLIENT_API].map((r) => r.name);
+
+      expect(roles).toContain(SUPER_ADMINISTRADOR);
     });
 
     it('toda autoridad que una ruta exige es un rol real del realm', () => {
