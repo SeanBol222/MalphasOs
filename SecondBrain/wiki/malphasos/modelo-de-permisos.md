@@ -37,11 +37,12 @@ Dos autoridades de mando, que no protegen ningún endpoint:
 | `admin.full` | Concede las **19** de recurso al expandirse. Es el permiso del grupo `admins`. (Decía 17: cierto hasta el **2026-09-27**, cuando entraron las dos de `report`) |
 | `super.admin.full` | Implica `admin.full` **y algo más desde el 2026-09-13**. Hasta esa fecha concedían lo mismo y esta tabla decía que se conservaban separados por si «un realm futuro» daba al segundo capacidades propias: ese futuro llegó. **Ningún grupo lo recibe**: un super usuario se crea a mano en Keycloak |
 
-Y una que **sí protege endpoints pero que `admin.full` no concede** — el escalón de arriba, desde el 2026-09-13:
+Y dos que **sí protegen endpoints pero que `admin.full` no concede** — el escalón de arriba, desde el 2026-09-13 —(decía «una» hasta el **2026-11-07**)—:
 
 | Autoridad | Operaciones | Notas |
 |---|---|---|
 | `super.person.write` | 2 | Alta de ingenieros y administradores. Las de editar y retirar no la nombran: dependen del tipo de la persona y delegan en un bean. Ver «La escalera de usuarios» |
+| `super.data-load.write` | 1 | **Desde el 2026-11-07**: la carga de datos de otro sistema, `POST /data-loads/validation` —y la de aplicar, cuando exista—. Del escalón de arriba porque una carga crea catálogo, personas e historial de golpe. Ver [[decisiones-tecnicas-malphasos]] |
 
 Las 17 de recurso, con las operaciones que protegen a fecha de hoy (contado sobre los controladores, no sobre el catálogo):
 

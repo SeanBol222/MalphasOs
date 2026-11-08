@@ -88,6 +88,13 @@ public final class ApiAuthority {
    */
   public static final String SUPER_PERSON_WRITE = "super.person.write";
 
+  /**
+   * Validar y aplicar una carga de datos de otro sistema (2026-11-07): el catálogo, los clientes y su
+   * historial de golpe, en el formato de {@code contracts/carga}. Solo el SuperUsuario, decidido por el
+   * usuario: una carga crea personas e historial que ningún administrador podría crear uno a uno.
+   */
+  public static final String SUPER_DATA_LOAD_WRITE = "super.data-load.write";
+
   public static final String PERSON_READ = "person.read";
   public static final String PERSON_WRITE = "person.write";
 
@@ -202,7 +209,7 @@ public final class ApiAuthority {
    * que parece correcto.
    */
   public static final Set<String> SUPER_AUTHORITIES = Collections
-      .unmodifiableSet(new LinkedHashSet<>(List.of(SUPER_PERSON_WRITE)));
+      .unmodifiableSet(new LinkedHashSet<>(List.of(SUPER_PERSON_WRITE, SUPER_DATA_LOAD_WRITE)));
 
   private ApiAuthority() {
   }

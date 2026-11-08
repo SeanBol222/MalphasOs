@@ -7,6 +7,14 @@ spring:
   application:
     name: malphasos
 
+  # La carga de datos sube sus archivos de una vez (2026-11-07). El historial de un cliente con 129
+  # reportes pesa 243 KB; el limite de Spring, 1 MB por archivo, lo pasaria un cliente grande. El logo de
+  # la empresa no cambia: su dominio lo limita a 512 KB.
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 50MB
+
   # La empresa que presta el servicio vive en la base desde el 2026-10-17, y la edita un administrador.
   # config/empresa.yaml —ignorado por git, porque MalphasOS no lleva datos de ninguna empresa en su
   # codigo— solo la siembra en una base que todavia no tiene ninguna. Opcional: sin el, la aplicacion

@@ -16,9 +16,11 @@ esquema de la base de datos**: usa lo que MalphasOS ya tiene.
 | `ejemplo-1-catalogo.json` · `ejemplo-2-cliente.json` · `ejemplo-3-historial.json` | Una carga completa con datos inventados. Recorre todas las secciones |
 | `GUIA.md` | Esto: lo que el esquema no puede decir |
 
-> **Estado, 2026-11-03.** Lo que existe es **el formato**. La validación, la carga y su pantalla están
-> **previstas para la versión 1.1.0** y no construidas: lo que esta guía dice que MalphasOS *hará* es el
-> diseño, no una descripción del código.
+> **Estado, 2026-11-07.** Existen **el formato y la validación**: `POST /v1/api/data-loads/validation`,
+> solo para el SuperUsuario, recibe los archivos y devuelve el informe sin escribir nada. **La carga y su
+> pantalla están previstas para la versión 1.1.0** y no construidas: lo que esta guía dice que MalphasOS
+> *hará* al aplicar es el diseño, no una descripción del código. (Decía el 2026-11-03 que solo existía el
+> formato.)
 
 ## Los tres archivos
 
@@ -41,7 +43,9 @@ resuelven dentro de la carga.
 2. **Cargar el catálogo solo**, primero. Así entran los ingenieros.
 3. **Dar acceso a los ingenieros** con «Dar acceso» y que **cada uno guarde su firma** en su cuenta. Los
    reportes del historial se cierran con la firma guardada del ingeniero de la orden, como cualquier
-   cierre: el que no la tenga guardada al cargar queda sin ella.
+   cierre, y **un historial cuyo ingeniero no la tenga se rechaza**: el reporte se congela al cargar, y
+   uno congelado no la recibiría después. También se rechaza si el ingeniero no está aún en MalphasOS o
+   si la persona de la orden no es ingeniero.
 4. **Por cada cliente, subir juntos** el catálogo, su archivo y su historial. MalphasOS los **valida**
    sin escribir nada y devuelve un informe: cuántos registros de cada sección entrarían, cuántos se
    ignoran porque ya existen y cada error con su ruta —`ordenes[3].reportes[0].equipo: la ref «eq-2789»
@@ -80,6 +84,12 @@ validación no puede fallar después por un largo. (Hasta el 2026-11-05 el esque
 caracteres en todos los textos, y un nombre de protocolo de 140 salía válido y la carga lo rechazaba.)
 Lo que se pase de largo **se arregla en el conversor**, no recortándolo a ciegas: un texto cortado se
 imprimiría a medias en el reporte.
+
+**Quien decide es el validador de MalphasOS**, no el de cada lenguaje. El esquema es el mismo, pero
+cada librería de JSON Schema interpreta a su manera los `format`: un correo `pend-001@x.invalid` pasa
+en Python y MalphasOS lo rechaza. Un conversor puede validar contra el esquema mientras se escribe, pero
+el archivo está bien cuando lo dice `data-loads/validation`. Para un dato provisional, un dominio que
+exista para eso: `example.com`.
 
 **Las fechas van en ISO**: `2025-03-10`. Las fechas con hora llevan su zona: `2025-03-10T15:30:00-05:00`.
 

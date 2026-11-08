@@ -2979,3 +2979,20 @@ propuso antes un puerto de carga por módulo y eligió tocar lo menos posible, s
 valida. La hoja de ruta
 decía todavía «sin firmas: el documento dice que es importado», anulado el 2026-11-03: corregido dejando
 constancia.
+
+## [2026-11-07] ingest | La validación de la carga de datos (tanda 3)
+
+Construida en cinco commits sobre el módulo nuevo `dataload`, sin tocar ningún otro: el esquema con
+networknt, las `ref` entre archivos, la ciudad y el país contra el catálogo de ubicación, la serie de
+patrón repetida, lo que ya existe por llave natural, el historial ya cargado y el ingeniero sin firma.
+`POST /data-loads/validation` responde con errores, avisos y un resumen por sección de cuántos entran y
+cuántos ya estaban. Los archivos del conversor pasan con cero errores. Entró la autoridad
+`super.data-load.write`, que [[modelo-de-permisos]] no nombraba: corregido. Las decisiones del camino,
+en [[decisiones-tecnicas-malphasos]]. **1670** pruebas, 142 clases.
+
+Dos cosas que recordar. **Una prueba pasaba sola y fallaba en la batería**: el adaptador de ubicación se
+probaba contra el país sembrado por `V7`, y otras clases borran `pais` y `ciudad`. La regla ya estaba
+escrita —no apoyarse en la siembra— y se volvió a pisar. Y **dos mutaciones sobrevivieron** a la llave
+natural —un área reconocida en cualquier sede, una sede en cualquier cliente— porque las pruebas solo
+tenían el caso en que todo coincide: hizo falta una con el mismo nombre en otro sitio. Las nueve de las
+dos últimas reglas murieron a la primera.

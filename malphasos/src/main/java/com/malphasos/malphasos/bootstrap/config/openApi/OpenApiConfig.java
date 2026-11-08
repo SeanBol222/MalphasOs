@@ -174,4 +174,13 @@ public class OpenApiConfig {
                 .pathsToMatch(API + "/company/**")
                 .build();
     }
+
+    /** La carga de datos de otro sistema, en el formato de contracts/carga (2026-11-07). */
+    @Bean
+    public GroupedOpenApi dataLoadApi() {
+        return GroupedOpenApi.builder()
+                .group("data-load")
+                .pathsToMatch(API + "/data-loads/**")
+                .build();
+    }
 }

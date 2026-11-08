@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,6 +38,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -224,7 +226,7 @@ class SecurityIntegrationTest {
      * responden 404, y eso ya demuestra que la petición llegó al dominio. Lo que sí se descarta es
      * un 5xx, para que un error interno no se cuele haciéndose pasar por acceso concedido.
      */
-    private void autorizado(MockHttpServletRequestBuilder peticion) throws Exception {
+    private void autorizado(RequestBuilder peticion) throws Exception {
         int estado = mockMvc.perform(peticion).andReturn().getResponse().getStatus();
 
         assertThat(estado)
@@ -233,7 +235,7 @@ class SecurityIntegrationTest {
                 .isLessThan(500);
     }
 
-    private void prohibido(MockHttpServletRequestBuilder peticion) throws Exception {
+    private void prohibido(RequestBuilder peticion) throws Exception {
         mockMvc.perform(peticion).andExpect(status().isForbidden());
     }
 
@@ -272,6 +274,18 @@ class SecurityIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(ALTA_VALIDA));
             }
+        }
+
+        @Test
+        @DisplayName("el administrador NO valida una carga de datos: es del escalon de arriba (2026-11-07)")
+        void elAdministradorNoCarga() throws Exception {
+            prohibido(multipart("/v1/api/data-loads/validation").with(comoElGrupo("admins")));
+        }
+
+        @Test
+        @DisplayName("el super usuario si valida una carga de datos")
+        void elSuperUsuarioCarga() throws Exception {
+            autorizado(multipart("/v1/api/data-loads/validation").with(conRoles(ApiAuthority.SUPER_ADMIN_FULL)));
         }
 
         @Test
