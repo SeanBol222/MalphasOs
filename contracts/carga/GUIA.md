@@ -16,11 +16,11 @@ esquema de la base de datos**: usa lo que MalphasOS ya tiene.
 | `ejemplo-1-catalogo.json` · `ejemplo-2-cliente.json` · `ejemplo-3-historial.json` | Una carga completa con datos inventados. Recorre todas las secciones |
 | `GUIA.md` | Esto: lo que el esquema no puede decir |
 
-> **Estado, 2026-11-07.** Existen **el formato y la validación**: `POST /v1/api/data-loads/validation`,
-> solo para el SuperUsuario, recibe los archivos y devuelve el informe sin escribir nada. **La carga y su
-> pantalla están previstas para la versión 1.1.0** y no construidas: lo que esta guía dice que MalphasOS
-> *hará* al aplicar es el diseño, no una descripción del código. (Decía el 2026-11-03 que solo existía el
-> formato.)
+> **Estado, 2026-11-07.** Existen **el formato, la validación y la carga**, solo para el SuperUsuario:
+> `POST /v1/api/data-loads/validation` devuelve el informe sin escribir nada, y `POST /v1/api/data-loads`
+> valida otra vez y escribe todo en una transacción —200 con el informe, o 422 con él y nada escrito—.
+> **Falta la pantalla**, prevista para la versión 1.1.0: hoy se sube con el API. (Decía el 2026-11-03 que
+> solo existía el formato, y unas horas antes de esta nota, que no existía la carga.)
 
 ## Los tres archivos
 
@@ -118,7 +118,7 @@ llave natural, comparando los nombres sin tildes, sin mayúsculas y sin espacios
 - **Un equipo sin serie para un cliente que ya existía**, porque no hay con qué saber si ya está. Un
   cliente nuevo se carga entero, con sus equipos sin serie.
 
-## Lo que MalphasOS hará con cada sección
+## Lo que MalphasOS hace con cada sección
 
 - **Personas**: entran como **fichas sin cuenta**. La cuenta se da después, persona por persona, con
   «Dar acceso». **Una carga nunca lleva contraseñas.** El primer correo será el de la cuenta.
@@ -146,6 +146,14 @@ llave natural, comparando los nombres sin tildes, sin mayúsculas y sin espacios
 - **Lecturas de un reporte histórico**: un reporte puede entrar **sin lecturas** aunque su tipo se
   verifique. Pasa con los informes llenados en una plantilla sin metrología. Al cerrar un reporte nuevo
   se exigen; uno cargado entra con las que tiene.
+- **Un tipo que ya existe no cambia**: la carga no le añade verificaciones ni protocolos. Si el archivo
+  le declara una magnitud que el tipo de MalphasOS no verifica, la carga se rechaza; se añade desde el
+  catálogo antes de cargar.
+
+**Lo que solo se ve al escribir.** La validación no lo puede ver todo, y la carga rechaza entera —422,
+nada escrito— con el sitio del archivo: una sigla que ya es de otro cliente, una lectura en un punto que
+no está ni en `puntos` ni en `puntosAnteriores`, una regla de un agregado —una calibración posterior al
+vencimiento de su certificado— o una restricción de la base, que llega con su mensaje.
 
 ## Magnitudes y unidades
 

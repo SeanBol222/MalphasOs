@@ -14,4 +14,13 @@ public interface DataLoadServicePort {
 
     /** Comprueba los archivos de una carga sin escribir nada. */
     DataLoadReport validate(List<DataLoadFile> archivos);
+
+    /**
+     * Valida y, si no hay errores, escribe la carga entera en una transacción: todo o nada. Devuelve el
+     * informe de la validación; si es válido, la carga quedó escrita.
+     *
+     * @throws com.malphasos.malphasos.dataload.application.exception.DataLoadRejectedException si al
+     *     escribir la rechaza una regla que la validación no ve; no queda nada escrito
+     */
+    DataLoadReport apply(List<DataLoadFile> archivos);
 }

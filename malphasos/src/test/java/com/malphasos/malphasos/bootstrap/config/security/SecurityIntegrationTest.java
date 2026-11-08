@@ -277,15 +277,17 @@ class SecurityIntegrationTest {
         }
 
         @Test
-        @DisplayName("el administrador NO valida una carga de datos: es del escalon de arriba (2026-11-07)")
+        @DisplayName("el administrador NO valida ni aplica una carga de datos: es del escalon de arriba (2026-11-07)")
         void elAdministradorNoCarga() throws Exception {
             prohibido(multipart("/v1/api/data-loads/validation").with(comoElGrupo("admins")));
+            prohibido(multipart("/v1/api/data-loads").with(comoElGrupo("admins")));
         }
 
         @Test
-        @DisplayName("el super usuario si valida una carga de datos")
+        @DisplayName("el super usuario si valida y aplica una carga de datos")
         void elSuperUsuarioCarga() throws Exception {
             autorizado(multipart("/v1/api/data-loads/validation").with(conRoles(ApiAuthority.SUPER_ADMIN_FULL)));
+            autorizado(multipart("/v1/api/data-loads").with(conRoles(ApiAuthority.SUPER_ADMIN_FULL)));
         }
 
         @Test

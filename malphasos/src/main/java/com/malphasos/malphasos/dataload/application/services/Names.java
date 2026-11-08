@@ -8,12 +8,14 @@ import java.util.Locale;
 /**
  * Cómo se comparan los nombres de una carga con los de MalphasOS: sin tildes, sin mayúsculas y sin
  * espacios de sobra, como dice la guía del formato. «Bogota D.C» y «Bogotá d.c» son el mismo nombre.
+ *
+ * <p>Pública porque el escritor de la carga, al aplicarla, reconoce lo que ya existe igual que la validación.
  */
-final class Names {
+public final class Names {
 
     private Names() {}
 
-    static String plano(String nombre) {
+    public static String plano(String nombre) {
         return Normalizer.normalize(nombre == null ? "" : nombre, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT)

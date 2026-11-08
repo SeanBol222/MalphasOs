@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
+import com.malphasos.malphasos.dataload.application.exception.DataLoadRejectedException;
 import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadProblem;
 import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
@@ -34,6 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class DataLoadRestAdapterTest {
 
     private static final String RUTA = "/v1/api/data-loads/validation";
+    private static final String APLICAR = "/v1/api/data-loads";
 
     @Autowired private MockMvc mockMvc;
 
@@ -88,12 +90,49 @@ class DataLoadRestAdapterTest {
     }
 
     @Test
+    @DisplayName("aplicar una carga valida responde 200 con su informe")
+    void aplicada() throws Exception {
+        when(servicio.apply(any())).thenReturn(new DataLoadReport(List.of(), List.of(), List.of(new SectionCount("marcas", 1, 0))));
+
+        mockMvc.perform(multipart(APLICAR)
+                        .file(new MockMultipartFile("archivos", "1-catalogo.json", "application/json", "{}".getBytes())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valida").value(true))
+                .andExpect(jsonPath("$.resumen[0].nuevos").value(1));
+    }
+
+    @Test
+    @DisplayName("aplicar una carga con errores responde 422: no se escribio nada")
+    void noAplicada() throws Exception {
+        when(servicio.apply(any())).thenReturn(new DataLoadReport(List.of(DataLoadProblem.of(null, "sin archivos")), List.of()));
+
+        mockMvc.perform(multipart(APLICAR))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.valida").value(false))
+                .andExpect(jsonPath("$.errores[0].mensaje").value("sin archivos"));
+    }
+
+    @Test
+    @DisplayName("una carga que MalphasOS rechaza al escribirla responde 422 con el mismo informe")
+    void rechazada() throws Exception {
+        when(servicio.apply(any())).thenThrow(new DataLoadRejectedException(
+                new DataLoadProblem("1-catalogo.json", "/catalogo/patrones/0", "MalphasOS no lo aceptó: fecha"), null));
+
+        mockMvc.perform(multipart(APLICAR)
+                        .file(new MockMultipartFile("archivos", "1-catalogo.json", "application/json", "{}".getBytes())))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.valida").value(false))
+                .andExpect(jsonPath("$.errores[0].ruta").value("/catalogo/patrones/0"))
+                .andExpect(jsonPath("$.errores[0].mensaje").value("MalphasOS no lo aceptó: fecha"));
+    }
+
+    @Test
     @DisplayName("el grupo data-load del contrato publica su ruta")
     void openApi() throws Exception {
         String docs = mockMvc.perform(get("/v3/api-docs/data-load"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(docs).contains("/v1/api/data-loads/validation");
+        assertThat(docs).contains("/v1/api/data-loads/validation").contains("\"/v1/api/data-loads\"");
     }
 }

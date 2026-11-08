@@ -7,13 +7,17 @@ import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadProblem;
 import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
 import com.malphasos.malphasos.dataload.application.model.ExistingRecords;
+import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.dataload.application.model.SectionCount;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
+import com.malphasos.malphasos.dataload.application.ports.output.MetrologyCatalogPort;
 import com.malphasos.malphasos.dataload.infrastructure.output.format.JsonSchemaLoadFormatAdapter;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -46,8 +50,17 @@ class DataLoadServiceTest {
     /** Lo que MalphasOS ya tiene en cada prueba: solo el ingeniero, salvo que la prueba lo cambie. */
     private ExistingRecords existentes = SOLO_EL_INGENIERO;
 
+    /** Las tres magnitudes de los ejemplos, con algunas de sus unidades. */
+    private static final MetrologyCatalogPort METROLOGIA = codigo -> Optional.ofNullable(Map.of(
+            "presion", List.of("mmHg", "kPa"),
+            "temperatura", List.of("°C", "°F"),
+            "humedad_relativa", List.of("%HR", "%")).get(codigo));
+
+    /** Lo que llegó a escribirse, si llegó: el escritor de verdad se prueba contra PostgreSQL. */
+    private List<ReadFile> escritos;
+
     private final DataLoadService servicio = new DataLoadService(new JsonSchemaLoadFormatAdapter(), UBICACION,
-            () -> existentes);
+            () -> existentes, METROLOGIA, archivos -> escritos = archivos);
 
     private static int nuevos(DataLoadReport informe, String seccion) {
         return informe.resumen().stream().filter(s -> s.seccion().equals(seccion)).findFirst().orElseThrow().nuevos();
@@ -363,6 +376,68 @@ class DataLoadServiceTest {
 
         assertThat(informe.errores()).singleElement().extracting(DataLoadProblem::mensaje).asString()
                 .contains("no es ingeniero").contains("ADMIN");
+    }
+
+    private DataLoadReport conCatalogo(String de, String a) {
+        String catalogo = EjemplosDeCarga.texto(EjemplosDeCarga.CATALOGO);
+        String cambiado = catalogo.replaceFirst(de, a);
+        assertThat(cambiado).describedAs("El ejemplo tiene que traer " + de).isNotEqualTo(catalogo);
+        return servicio.validate(List.of(EjemplosDeCarga.archivo("catalogo.json", cambiado)));
+    }
+
+    @Test
+    @DisplayName("una magnitud que no esta en el catalogo metrologico es un error, en su campo")
+    void magnitudDesconocida() {
+        assertThat(conCatalogo("\"magnitud\": \"presion\"", "\"magnitud\": \"presión\"").errores()).singleElement()
+                .satisfies(e -> {
+                    assertThat(e.ruta()).isEqualTo("/catalogo/tiposEquipo/0/verificaciones/0/magnitud");
+                    assertThat(e.mensaje()).contains("«presión»").contains("código");
+                });
+    }
+
+    @Test
+    @DisplayName("una unidad de otra magnitud es un error que dice cuales tiene la suya")
+    void unidadDeOtraMagnitud() {
+        assertThat(conCatalogo("\"unidad\": \"mmHg\"", "\"unidad\": \"°C\"").errores()).singleElement()
+                .satisfies(e -> {
+                    assertThat(e.ruta()).isEqualTo("/catalogo/tiposEquipo/0/verificaciones/0/unidad");
+                    assertThat(e.mensaje()).contains("«°C»").contains("mmHg, kPa");
+                });
+    }
+
+    @Test
+    @DisplayName("aplicar una carga valida escribe los archivos leidos, en el orden en que llegaron")
+    void aplicarEscribe() {
+        DataLoadReport informe = servicio.apply(List.of(HISTORIAL, CATALOGO, CLIENTE));
+
+        assertThat(informe.valida()).isTrue();
+        assertThat(escritos).extracting(ReadFile::nombre)
+                .containsExactly(EjemplosDeCarga.HISTORIAL, EjemplosDeCarga.CATALOGO, EjemplosDeCarga.CLIENTE);
+    }
+
+    @Test
+    @DisplayName("aplicar una carga con errores no escribe nada y devuelve el informe de la validacion")
+    void aplicarConErroresNoEscribe() {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(), List.of());
+
+        DataLoadReport informe = servicio.apply(List.of(CATALOGO, CLIENTE, HISTORIAL));
+
+        assertThat(informe.valida()).isFalse();
+        assertThat(informe.errores()).singleElement().extracting(DataLoadProblem::mensaje).asString()
+                .contains("todavía no está en MalphasOS");
+        assertThat(escritos).isNull();
+    }
+
+    @Test
+    @DisplayName("el supervisor de un cliente es un supervisor: un ingeniero del catalogo no vale")
+    void supervisorQueNoLoEs() {
+        DataLoadReport informe = conCliente("\"persona\": \"per-sup-1\"", "\"persona\": \"per-ing-1\"");
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.ruta()).isEqualTo("/clientes/0/supervisores/0/persona");
+            assertThat(e.mensaje()).contains("«per-ing-1»").contains("ENGINEER");
+        });
     }
 
     @Test
