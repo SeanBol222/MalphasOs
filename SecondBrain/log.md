@@ -3015,3 +3015,23 @@ huecos de las pruebas** —una carga repetida que se detenía en la validación 
 de certificados que no distinguían la regla, números aleatorios que nunca chocaban—: cada una pidió una
 prueba nueva. Una sexta es equivalente y se dejó dicha: la firma de una persona ya está en el almacén de
 imágenes al guardarla.
+
+## [2026-11-08] ingest | La primera carga real, en desarrollo
+
+El catálogo, el cliente y el historial de los 129 informes reales se cargaron en la base de desarrollo,
+en el orden de la guía: el catálogo solo, las firmas provisionales de los cinco ingenieros —solo en esa
+base, nunca en el repositorio— y los tres archivos juntos. Entraron 40 órdenes ejecutadas y 129 reportes
+cerrados, con 28 certificados distintos en sus documentos: cada informe con el vigente el día del
+servicio. Ver [[hoja-de-ruta-producto]].
+
+**Se rechazó dos veces al aplicar, sin escribir nada.** Un accesorio no conforme sin decir por qué, y una
+orden preventiva en garantía: las dos pasaron la validación porque el esquema no las tenía. Se corrigieron
+en el conversor y subieron al esquema. Y la segunda llegó como un **409** sin informe, porque el advice
+global ganaba al de la carga por la causa de la excepción: ver [[stack-spring-boot-4-particularidades]],
+sección 9. La prueba que lo cubría lanzaba el rechazo sin causa. **1712** pruebas, 149 clases.
+
+Dos cosas del entorno, fuera del repositorio: en el Keycloak de desarrollo **no había ningún
+SuperUsuario** —se creó `dev.super`— y el client `admin-cli` emitía **tokens ligeros**, sin
+`resource_access`, de modo que un token pedido por él no traía ningún rol de la API. Si el contenedor se
+recrea, las dos se pierden.
+

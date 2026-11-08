@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -124,6 +125,25 @@ class DataLoadRestAdapterTest {
                 .andExpect(jsonPath("$.valida").value(false))
                 .andExpect(jsonPath("$.errores[0].ruta").value("/catalogo/patrones/0"))
                 .andExpect(jsonPath("$.errores[0].mensaje").value("MalphasOS no lo aceptó: fecha"));
+    }
+
+    /**
+     * El rechazo de la base lleva su causa, y el advice global sabe responder a esa causa con un 409: sin
+     * orden entre los dos, Spring eligió el global por la causa. Lo destapó la primera carga real, el
+     * 2026-11-07; la prueba de arriba no lo veía porque su rechazo no tiene causa.
+     */
+    @Test
+    @DisplayName("un rechazo de la base responde 422 con el informe, no el 409 generico de su causa")
+    void rechazadaPorLaBase() throws Exception {
+        when(servicio.apply(any())).thenThrow(new DataLoadRejectedException(
+                DataLoadProblem.of(null, "La base de datos rechazó la carga, y no se escribió nada: CHK"),
+                new DataIntegrityViolationException("CHK_orden_trabajo_garantia")));
+
+        mockMvc.perform(multipart(APLICAR)
+                        .file(new MockMultipartFile("archivos", "1-catalogo.json", "application/json", "{}".getBytes())))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.valida").value(false))
+                .andExpect(jsonPath("$.errores[0].mensaje").value("La base de datos rechazó la carga, y no se escribió nada: CHK"));
     }
 
     @Test

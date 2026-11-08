@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-11-02
+updated: 2026-11-08
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -789,3 +789,10 @@ cierto, y el aviso está fuera del PDF. Aceptado por el usuario: es lo que deja 
 - **La validación aprendió dos reglas al escribir**: la magnitud y la unidad de cada verificación están en
   el catálogo metrológico, y el supervisor de un cliente es un supervisor. Las dos se habrían descubierto
   al aplicar, sin un mensaje que dijera dónde.
+- **Lo que la primera carga real enseñó, el 2026-11-08**: pasó la validación y se rechazó dos veces al
+  aplicarla —un accesorio no conforme sin decir por qué y una orden preventiva en garantía—. Las dos son
+  reglas de forma, y van **en el esquema publicado**, con `if`/`then`, junto a las del ingreso no conforme
+  y el paso que no aplica: así las ve también el conversor antes de subir nada. Y el rechazo de la base
+  respondía un 409 sin informe, porque el advice global ganaba por la causa; ver
+  [[stack-spring-boot-4-particularidades]]. Es el precio anunciado arriba —`rehydrate` no valida—, y se
+  paga como estaba previsto: lo que se escapa lo para la base, todo o nada, y la regla sube al esquema.
