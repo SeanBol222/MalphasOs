@@ -9,11 +9,14 @@ import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
 import com.malphasos.malphasos.dataload.application.model.ExistingRecords;
 import com.malphasos.malphasos.dataload.application.model.SectionCount;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
+import com.malphasos.malphasos.dataload.application.ports.output.MetrologyCatalogPort;
 import com.malphasos.malphasos.dataload.infrastructure.output.format.JsonSchemaLoadFormatAdapter;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -46,8 +49,14 @@ class DataLoadServiceTest {
     /** Lo que MalphasOS ya tiene en cada prueba: solo el ingeniero, salvo que la prueba lo cambie. */
     private ExistingRecords existentes = SOLO_EL_INGENIERO;
 
+    /** Las tres magnitudes de los ejemplos, con algunas de sus unidades. */
+    private static final MetrologyCatalogPort METROLOGIA = codigo -> Optional.ofNullable(Map.of(
+            "presion", List.of("mmHg", "kPa"),
+            "temperatura", List.of("°C", "°F"),
+            "humedad_relativa", List.of("%HR", "%")).get(codigo));
+
     private final DataLoadService servicio = new DataLoadService(new JsonSchemaLoadFormatAdapter(), UBICACION,
-            () -> existentes);
+            () -> existentes, METROLOGIA);
 
     private static int nuevos(DataLoadReport informe, String seccion) {
         return informe.resumen().stream().filter(s -> s.seccion().equals(seccion)).findFirst().orElseThrow().nuevos();
@@ -363,6 +372,33 @@ class DataLoadServiceTest {
 
         assertThat(informe.errores()).singleElement().extracting(DataLoadProblem::mensaje).asString()
                 .contains("no es ingeniero").contains("ADMIN");
+    }
+
+    private DataLoadReport conCatalogo(String de, String a) {
+        String catalogo = EjemplosDeCarga.texto(EjemplosDeCarga.CATALOGO);
+        String cambiado = catalogo.replaceFirst(de, a);
+        assertThat(cambiado).describedAs("El ejemplo tiene que traer " + de).isNotEqualTo(catalogo);
+        return servicio.validate(List.of(EjemplosDeCarga.archivo("catalogo.json", cambiado)));
+    }
+
+    @Test
+    @DisplayName("una magnitud que no esta en el catalogo metrologico es un error, en su campo")
+    void magnitudDesconocida() {
+        assertThat(conCatalogo("\"magnitud\": \"presion\"", "\"magnitud\": \"presión\"").errores()).singleElement()
+                .satisfies(e -> {
+                    assertThat(e.ruta()).isEqualTo("/catalogo/tiposEquipo/0/verificaciones/0/magnitud");
+                    assertThat(e.mensaje()).contains("«presión»").contains("código");
+                });
+    }
+
+    @Test
+    @DisplayName("una unidad de otra magnitud es un error que dice cuales tiene la suya")
+    void unidadDeOtraMagnitud() {
+        assertThat(conCatalogo("\"unidad\": \"mmHg\"", "\"unidad\": \"°C\"").errores()).singleElement()
+                .satisfies(e -> {
+                    assertThat(e.ruta()).isEqualTo("/catalogo/tiposEquipo/0/verificaciones/0/unidad");
+                    assertThat(e.mensaje()).contains("«°C»").contains("mmHg, kPa");
+                });
     }
 
     @Test

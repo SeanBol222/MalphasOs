@@ -11,6 +11,7 @@ import com.malphasos.malphasos.dataload.application.ports.input.DataLoadServiceP
 import com.malphasos.malphasos.dataload.application.ports.output.ExistingRecordsPort;
 import com.malphasos.malphasos.dataload.application.ports.output.LoadFormatPort;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
+import com.malphasos.malphasos.dataload.application.ports.output.MetrologyCatalogPort;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +37,7 @@ public class DataLoadService implements DataLoadServicePort {
     private final LoadFormatPort loadFormatPort;
     private final LocationCatalogPort locationCatalogPort;
     private final ExistingRecordsPort existingRecordsPort;
+    private final MetrologyCatalogPort metrologyCatalogPort;
 
     @Override
     public DataLoadReport validate(List<DataLoadFile> archivos) {
@@ -75,7 +77,7 @@ public class DataLoadService implements DataLoadServicePort {
         List<SectionCount> resumen = List.of();
         if (!repetido) {
             errores.addAll(comprobarRefs(declaradas, usadas));
-            errores.addAll(new ContentRules(locationCatalogPort).check(leidos));
+            errores.addAll(new ContentRules(locationCatalogPort, metrologyCatalogPort).check(leidos));
 
             NaturalKeys existentes = new NaturalKeys(existingRecordsPort.read());
             existentes.check(leidos);
