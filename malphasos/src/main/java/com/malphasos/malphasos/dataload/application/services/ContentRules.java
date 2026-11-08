@@ -15,7 +15,8 @@ import java.util.Optional;
 /**
  * Las reglas que el esquema no puede ver porque miran valores, y no la forma: que un país y una ciudad
  * estén en el catálogo de MalphasOS, que la magnitud y la unidad de cada verificación estén en el
- * catálogo metrológico, y que dos patrones de la carga no compartan serie.
+ * catálogo metrológico, que el supervisor de un cliente sea una persona de tipo supervisor, y que dos
+ * patrones de la carga no compartan serie.
  *
  * <p>Solo mira los archivos que cumplieron el esquema: en uno que no lo cumple no hay valores en los
  * que confiar, y el esquema ya dijo por qué.
@@ -36,6 +37,10 @@ final class ContentRules {
     List<DataLoadProblem> check(List<ReadFile> archivos) {
         List<DataLoadProblem> errores = new ArrayList<>();
         Map<String, String> series = new LinkedHashMap<>();
+        // El esquema solo deja supervisores en el archivo del cliente, pero un cliente puede nombrar a una
+        // persona del catálogo: un ingeniero no supervisa a un cliente, como en la pantalla.
+        Map<String, LoadDocument.Person> personaPorRef = new HashMap<>();
+        archivos.forEach(a -> a.documento().personas().forEach(p -> personaPorRef.put(p.ref(), p)));
 
         for (ReadFile archivo : archivos) {
             LoadDocument documento = archivo.documento();
@@ -63,6 +68,14 @@ final class ContentRules {
             for (int c = 0; c < documento.clientes().size(); c++) {
                 LoadDocument.Client cliente = documento.clientes().get(c);
                 pais(cliente.pais(), nombre, "/clientes/" + c + "/pais", errores);
+                for (int s = 0; s < cliente.supervisores().size(); s++) {
+                    LoadDocument.Person persona = personaPorRef.get(cliente.supervisores().get(s).persona());
+                    if (persona != null && !"SUPERVISOR".equals(persona.tipo())) {
+                        errores.add(new DataLoadProblem(nombre, "/clientes/" + c + "/supervisores/" + s + "/persona",
+                                "«" + persona.ref() + "» no es supervisor sino " + persona.tipo()
+                                        + ": el supervisor de un cliente es una persona del cliente, y va en su archivo"));
+                    }
+                }
                 for (int s = 0; s < cliente.sedes().size(); s++) {
                     ciudad(cliente.sedes().get(s).ciudad(), nombre, "/clientes/" + c + "/sedes/" + s + "/ciudad", errores);
                 }

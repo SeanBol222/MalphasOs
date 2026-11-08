@@ -430,6 +430,17 @@ class DataLoadServiceTest {
     }
 
     @Test
+    @DisplayName("el supervisor de un cliente es un supervisor: un ingeniero del catalogo no vale")
+    void supervisorQueNoLoEs() {
+        DataLoadReport informe = conCliente("\"persona\": \"per-sup-1\"", "\"persona\": \"per-ing-1\"");
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.ruta()).isEqualTo("/clientes/0/supervisores/0/persona");
+            assertThat(e.mensaje()).contains("«per-ing-1»").contains("ENGINEER");
+        });
+    }
+
+    @Test
     @DisplayName("los errores de cada archivo llegan al informe con el nombre de su archivo")
     void losErroresDeCadaArchivo() {
         DataLoadReport informe = servicio.validate(List.of(CATALOGO, EjemplosDeCarga.archivo("roto.json", "no es json")));

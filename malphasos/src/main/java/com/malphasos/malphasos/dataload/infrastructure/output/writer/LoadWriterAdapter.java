@@ -14,13 +14,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Escribe una carga por contenidos, en el orden en que se nombran: el catálogo primero, porque un cliente
- * nombra sus modelos y un historial sus protocolos. Los archivos pueden llegar en cualquier orden.
+ * nombra sus modelos y un historial sus protocolos, y después el cliente. Los archivos pueden llegar en
+ * cualquier orden.
  */
 @Component
 @RequiredArgsConstructor
 public class LoadWriterAdapter implements LoadWriterPort {
 
     private final CatalogWriter catalogo;
+    private final PeopleWriter personas;
+    private final ClientWriter clientes;
     private final EntityManager entityManager;
 
     /**
@@ -33,7 +36,15 @@ public class LoadWriterAdapter implements LoadWriterPort {
     public void write(List<ReadFile> archivos) {
         LoadRefs refs = new LoadRefs();
         try {
-            de(archivos, "catalogo").forEach(archivo -> catalogo.write(archivo, refs));
+            for (ReadFile archivo : de(archivos, "catalogo")) {
+                catalogo.write(archivo, refs);
+                personas.write(archivo, refs);
+            }
+            // Los supervisores antes que su cliente: el cliente los nombra.
+            for (ReadFile archivo : de(archivos, "cliente")) {
+                personas.write(archivo, refs);
+                clientes.write(archivo, refs);
+            }
             entityManager.flush();
         } catch (PersistenceException | DataAccessException e) {
             throw new DataLoadRejectedException(DataLoadProblem.of(null, "La base de datos rechazó la carga, y no se"

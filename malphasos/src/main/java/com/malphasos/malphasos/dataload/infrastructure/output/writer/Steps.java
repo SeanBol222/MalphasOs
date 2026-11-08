@@ -13,10 +13,14 @@ final class Steps {
     private Steps() {}
 
     static <T> T paso(String archivo, String seccion, int indice, Supplier<T> escritura) {
+        return paso(archivo, seccion + indice, escritura);
+    }
+
+    static <T> T paso(String archivo, String ruta, Supplier<T> escritura) {
         try {
             return escritura.get();
         } catch (IllegalArgumentException | IllegalStateException e) {
-            throw rechazo(archivo, seccion + indice, "MalphasOS no lo aceptó: " + e.getMessage());
+            throw rechazo(archivo, ruta, "MalphasOS no lo aceptó: " + e.getMessage());
         }
     }
 
