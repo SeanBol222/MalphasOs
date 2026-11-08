@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.dataload.EjemplosDeCarga;
+import com.malphasos.malphasos.dataload.UbicacionDelEjemplo;
 import com.malphasos.malphasos.dataload.application.exception.DataLoadRejectedException;
 import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
@@ -68,11 +69,8 @@ class CatalogLoadIntegrationTest {
     @Autowired private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
-    void elPaisDelEjemplo() {
-        jdbcTemplate.update("""
-                INSERT INTO pais (k_id_pais, k_codigo_iso, n_nombre_pais)
-                SELECT gen_random_uuid(), 'USA', 'Estados Unidos'
-                WHERE NOT EXISTS (SELECT 1 FROM pais WHERE k_codigo_iso = 'USA')""");
+    void laUbicacionDelEjemplo() {
+        UbicacionDelEjemplo.crear(jdbcTemplate);
     }
 
     private static final DataLoadFile CATALOGO = EjemplosDeCarga.archivo(EjemplosDeCarga.CATALOGO);

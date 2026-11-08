@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.client.application.ports.output.ClientPersistencePort;
 import com.malphasos.malphasos.dataload.EjemplosDeCarga;
+import com.malphasos.malphasos.dataload.UbicacionDelEjemplo;
 import com.malphasos.malphasos.dataload.application.exception.DataLoadRejectedException;
 import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.ports.input.DataLoadServicePort;
@@ -70,17 +71,7 @@ class HistoryLoadIntegrationTest {
     /** La ubicación del ejemplo, si otra clase la borró; el catálogo cargado; y la firma de su ingeniero. */
     @BeforeEach
     void elCatalogoYLaFirma() {
-        for (String[] pais : new String[][] {{"USA", "Estados Unidos"}, {"COL", "Colombia"}}) {
-            jdbcTemplate.update("""
-                    INSERT INTO pais (k_id_pais, k_codigo_iso, n_nombre_pais)
-                    SELECT gen_random_uuid(), ?, ? WHERE NOT EXISTS (SELECT 1 FROM pais WHERE k_codigo_iso = ?)""",
-                    pais[0], pais[1], pais[0]);
-        }
-        jdbcTemplate.update("""
-                INSERT INTO ciudad (k_id_ciudad, n_nombre_ciudad, k_id_pais)
-                SELECT gen_random_uuid(), 'Bogotá', k_id_pais FROM pais WHERE k_codigo_iso = 'COL'
-                AND NOT EXISTS (SELECT 1 FROM ciudad c JOIN pais p ON p.k_id_pais = c.k_id_pais
-                                WHERE p.k_codigo_iso = 'COL' AND c.n_nombre_ciudad = 'Bogotá')""");
+        UbicacionDelEjemplo.crear(jdbcTemplate);
 
         assertThat(carga.apply(List.of(CATALOGO)).errores()).isEmpty();
         firmas.save(ingeniero().getIdentificador(), new PersonSignature(FIRMA, LocalDateTime.of(2026, 11, 7, 9, 0)));
