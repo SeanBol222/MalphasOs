@@ -4,7 +4,7 @@ description: El esquema de MalphasOS hoy — 35 tablas, 48 foráneas, con diagra
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-11-02
+updated: 2026-11-08
 ---
 
 # El esquema de MalphasOS, hoy
@@ -78,19 +78,19 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-02 sobre `V56` —`V57` no las mueve—
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-08 sobre `V58`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **57** (`V1`…`V57`): la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
-| Tablas de dominio | **35** — eran **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
-| Llaves foráneas | **48**, de las cuales **1 compuesta**, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
+| Migraciones aplicadas | **58** (`V1`…`V58`): `V58` la foto de cada equipo del cliente, el 2026-11-08 —decía **57** hasta entonces—; la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
+| Tablas de dominio | **36** — eran **35** hasta `V57`, **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
+| Llaves foráneas | **50** —**48** hasta `V57`; `V58` añade las dos de la foto—, de las cuales **1 compuesta**, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
 | Restricciones `CHECK` propias | **70** — eran **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **11** — eran **10** hasta `V54`, **9** hasta `V51` y **10** hasta `V48` |
 | Foráneas sin ningún índice que las encabece | **0** desde `V52`, que quitó la última con su tabla, `intervencion` — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
-| Tablas con borrado lógico | **31 de 35** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona` e `imagen_documento` no lo llevan |
+| Tablas con borrado lógico | **31 de 36** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona`, `imagen_documento` y, desde `V58`, `foto_equipo_cliente` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
 > `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
@@ -298,6 +298,7 @@ graph TD
 
     company -->|ciudad| location
     company -->|logo| shared
+    equipment -->|foto, V58| shared
     person -->|firma| shared
     report -->|logo y firmas congeladas| shared
 
@@ -534,6 +535,7 @@ erDiagram
     equipo ||--o{ modelo : "concreta"
     fabricante ||--o{ modelo : "fabrica"
     modelo ||--o{ equipo_cliente : "se instala como"
+    equipo_cliente ||--o| foto_equipo_cliente : "su foto, V58"
     tipo_equipo {
         uuid k_id_tipo_equipo PK
         varchar n_nombre_tipo_equipo UK
@@ -575,7 +577,17 @@ erDiagram
         varchar n_proveedor "V16"
         boolean b_estado_activo
     }
+    foto_equipo_cliente {
+        uuid k_id_equipo_cliente PK "y FK"
+        varchar k_huella FK "imagen_documento, desde V58"
+        timestamp f_actualizada
+    }
 ```
+
+**`foto_equipo_cliente`** (`V58`, 2026-11-08) es la foto de cada unidad para su hoja de vida: solo PNG,
+y los bytes en `imagen_documento`, como la firma. Va en tabla aparte de `equipo_cliente` para que el
+equipo y sus listados no carguen nunca la foto. **No tiene borrado lógico**, como `firma_persona`:
+quitar la foto borra la fila y deja la imagen, que el almacén no borra.
 
 **`modelo` tiene nombre desde `V11`**, y hasta entonces no lo tenía: lo único legible que llevaba era
 su registro INVIMA, que es un número de trámite **y es anulable**, de modo que cabía un modelo sin nada

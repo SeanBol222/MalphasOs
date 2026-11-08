@@ -4,7 +4,7 @@ description: Todo lo que hace falta para producir en la aplicación la hoja de v
 tags: [malphasos, hoja-de-vida, frontend, impresion, diseno, "describe:malphasos"]
 source: el lienzo de diseño «Hoja de vida de equipos — propuestas», propuesta C2; malphasos/.../equipment/application/services/lifeSheet/LifeSheetService.java
 estado: incompleto
-updated: 2026-10-11
+updated: 2026-11-08
 ---
 
 # La hoja de vida impresa: qué hace falta para producirla
@@ -14,7 +14,8 @@ aprobó el **2026-10-05**. Es un plan y no una descripción: **están construida
 pantalla con el diseño y su impresión, mergeada por `ac9c2592`; los datos sin migración, por
 `9516327e`; los campos nuevos del catálogo, por `86b39bbc`; el historial completo, por
 `26e64149`; y la numeración, por `d2793614`, todas el mismo día—. **Lo que queda es lo que espera
-a otra cosa**: la foto, a que se decida dónde guardar archivos —el protocolo esperaba a RF-14 y
+a otra cosa**: la foto, a que se decida dónde guardar archivos —**decidido y construido el
+2026-11-08**, ver «La foto, decidida» abajo; el protocolo esperaba a RF-14 y
 **se construyó el 2026-10-11**, por `83eec61a`; ver [[hoja-de-vida]]— y lo demás sigue pendiente,
 salvo lo que la tabla de campos marca como «ya sale». (Decía «nada de lo que sigue está construido»:
 cierto hasta esa tarde.) La hoja de vida que existe hoy —el
@@ -123,7 +124,7 @@ definición técnica, recomendaciones de cuidado, y del historial la fecha, el t
 | Proveedor | **Unidad** | Quién le vendió **esa** máquina. Texto libre: un catálogo de proveedores no lo pide nadie todavía |
 | Número de hoja de vida («HV-0001») | **Unidad**, con una secuencia | **Decisión abierta**: consecutivo global o por cliente. Una secuencia de PostgreSQL da el global sin carreras; por cliente exige un contador por cliente con bloqueo |
 | Fecha de actualización | — | **Decisión abierta**. Ninguna tabla guarda cuándo cambió por última vez: no hay columnas de auditoría en todo el esquema. Las opciones son la fecha de **generación** —la de impresión, que no exige nada—, la del **último servicio**, o añadir auditoría, que es un cambio transversal |
-| Foto del equipo | **Modelo** | Una foto por modelo sirve a todas sus unidades. ⚠️ **El backend no guarda archivos**: no hay subida, ni almacenamiento, ni columnas binarias. Es una decisión de infraestructura por sí sola —en la base, en disco o en un almacén de objetos— |
+| Foto del equipo | **Unidad** — **decidido por el usuario el 2026-11-08**, y no por modelo como se previó aquí | Cada equipo del cliente con la suya, en PNG, en `foto_equipo_cliente` (`V58`). Ver «La foto, decidida» abajo. (Esta fila decía «Modelo» y que **el backend no guarda archivos**: lo segundo **dejó de ser cierto con `V37` y `V45`**, que trajeron el almacén de imágenes del logo y las firmas, y nadie volvió aquí. Lo que seguía era:) Una foto por modelo sirve a todas sus unidades. ⚠️ **El backend no guarda archivos**: no hay subida, ni almacenamiento, ni columnas binarias. Es una decisión de infraestructura por sí sola —en la base, en disco o en un almacén de objetos— |
 | Protocolo preventivo | Los **protocolos** de RF-14, por el **tipo** | **Ya sale desde el 2026-10-11** (`83eec61a`): lista numerada por prioridad, con la indicación del tipo. Un tipo sin protocolos sigue diciendo «Sin protocolo registrado». (Decía «no se inventa una tabla aquí… mientras no exista, la sección sale vacía»: cierto hasta ese día; la tabla la trajo `V21`) |
 
 ### Voltaje y amperaje dejan el tipo (decidido el 2026-10-05)
@@ -276,7 +277,8 @@ Cada tanda deja la batería en verde y algo usable.
 5. ~~**Los datos de Bolívar en configuración**~~ — **construida el 2026-10-05** con la 1. Ver abajo.
 6. ~~**La pantalla con el diseño y la impresión**~~ — **construida el 2026-10-05, la primera**, por
    decisión del usuario, con «—» en lo que falta. Ver «La pantalla, construida» abajo.
-7. **Lo que espera una decisión de infraestructura**: la foto (almacenamiento de archivos), el QR
+7. **Lo que espera una decisión de infraestructura**: ~~la foto (almacenamiento de archivos)~~ —**hecha el
+   2026-11-08**—, el QR
    público (enlace firmado) y el PDF del servidor (junto con RF-17).
 8. ~~**Lo que espera otro requisito**: el protocolo preventivo, con RF-14.~~ **Construido el
    2026-10-11** con los protocolos, por `83eec61a`.
@@ -424,7 +426,7 @@ que dicen las secciones de arriba** donde no coincidan; las secciones conservan 
 | 3 | ¿Datos eléctricos en el tipo o en el modelo? | **En el modelo, los cinco**, moviendo voltaje y amperaje desde el tipo |
 | 4 | ¿Cómo se numera la hoja? | **`HV-<sigla>-0001`**: una **sigla nueva por cliente** y el consecutivo **por cliente**. Ver abajo |
 | 5 | ¿Qué es la fecha de actualización? | **La fecha de impresión.** Sin migración |
-| 6 | ¿Dónde se guarda la foto? | **Aplazada.** El recuadro sale vacío y no frena nada |
+| 6 | ¿Dónde se guarda la foto? | **En la base, por unidad, solo PNG** — decidido el 2026-11-08; estuvo **aplazada** desde el 2026-10-05, con el recuadro vacío. Ver «La foto, decidida» |
 | 7 | ¿Descripción y responsable del historial? | **Procedimientos** del reporte, y el **nombre del ingeniero** de la orden, los dos congelados al cerrar |
 | 8 | ¿Qué precios se imprimen? | **Solo el valor de compra.** El valor unitario de mantenimiento no sale: es precio interno |
 | 9 | ¿El QR se abre sin cuenta? | **No.** Abre la hoja en la aplicación y pide iniciar sesión. Nada nuevo de seguridad |
@@ -505,3 +507,29 @@ la pena si cambiaran a menudo o si el sistema sirviera algún día a más de una
 ## Notas relacionadas
 
 [[hoja-de-vida]] · [[congelar-una-referencia-historica]] · [[dominio-equipo-mantenimiento]] · [[dominio-reporte-servicio]] · [[filtrado-por-dueno]] · [[sistema-de-diseno-malphasos]] · [[hoja-de-ruta-producto]] · [[esquema-bd-malphasos]]
+
+## La foto, decidida (2026-11-08)
+
+Tres respuestas del usuario: **en la base** —en `imagen_documento`, junto al logo y las firmas, y no en un
+volumen ni en un almacén de objetos—, **de cada unidad** —no del modelo— y **una**. Y dos más al
+construirla: **solo PNG**, y que **el navegador la deje lo más pequeña posible**.
+
+- **Dónde vive.** Los bytes, en `imagen_documento`, que está en la base y por tanto en el volumen de
+  PostgreSQL y en el respaldo diario. Una tabla propia, `foto_equipo_cliente` (`V58`), dice de qué equipo
+  es, como `firma_persona` dice de quién es una firma: el equipo y sus listados no cargan nunca la foto.
+- **Cómo llega.** Desde la pantalla de la hoja de vida, a quien tiene `equipment.write` —el ingeniero, en
+  campo—: se elige —en un teléfono, la cámara—, se arrastra hasta el bloque o se pega con Ctrl+V. Se abre
+  un **encuadre** cuadrado, `ngx-image-cropper`, donde se mueve y se acerca; al guardar sale un PNG de
+  **400 × 400**. 400 px bastan para imprimir nítido un recuadro de 132.
+- **Por qué 400 y no más.** El PNG no pierde calidad y por eso con una foto pesa mucho por píxel. Medidas
+  sobre tres fotos reales: de **60 a 180 KB** a 400 px, y de **460 KB a 1,9 MB** a 1.280, donde muchas no
+  cabrían en los 512 KB del almacén. En JPEG serían unas diez veces menos; el usuario eligió PNG.
+- **La seguridad**, que el usuario preguntó. El servidor **no abre la imagen**: mira que empiece como un
+  PNG y su tamaño, y la guarda. El archivo original no sale del equipo: el navegador redibuja los píxeles y
+  genera un PNG nuevo, lo que descarta los metadatos —el GPS de una foto de teléfono— y cualquier cosa que
+  el original llevara escondida. Queda que quien se salte la pantalla y llame al API con
+  `equipment.write` suba algo que solo empiece como un PNG; lo abriría el Chromium de Gotenberg al
+  componer el PDF. Se le propuso comprobar el PNG entero en el servidor y prefirió dejarlo así.
+- **Lo que no hace.** El informe de mantenimiento no lleva la foto: solo la hoja de vida, que se compone
+  al pedirla. Quitar o cambiar la foto no borra la imagen vieja del almacén —un documento congelado podría
+  usarla—: ver [[deuda-tecnica-y-riesgos]]. Y la carga de datos no trae fotos.
