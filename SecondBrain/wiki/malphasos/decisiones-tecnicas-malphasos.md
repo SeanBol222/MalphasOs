@@ -750,3 +750,20 @@ cierto, y el aviso está fuera del PDF. Aceptado por el usuario: es lo que deja 
   y uno congelado sin firma no la recibiría nunca.
 - **El informe separa errores de avisos**: un error impide aplicar; un aviso —un equipo que recibirá serie
   provisional— se lee y no detiene nada.
+
+**Y las que salieron al construir la validación**, el mismo día:
+
+- **Un historial ya cargado se reconoce por el día, no por el rango**: se rechaza si su cliente ya tiene
+  una orden activa **el mismo día** que una del archivo. Con el rango, el pasado de un cliente que ya
+  trabaja con MalphasOS chocaría con sus órdenes nuevas; con el día, cargar dos veces el mismo historial
+  choca en todas. Las canceladas no cuentan, y una orden de otro cliente ese día tampoco.
+- **El ingeniero de una orden tiene que serlo**: el formato admite administradores en el catálogo, y una
+  `ref` a una persona no distingue el tipo. Junto a «no está en MalphasOS» y «no tiene firma», es el
+  tercer motivo de rechazo del ingeniero.
+- **Un error por causa, no por aparición**: una `ref` sin destino se dice una vez con cuántas veces se
+  usa, un ingeniero una vez con cuántas órdenes lo nombran, y las fechas ocupadas una vez con la primera.
+  El historial subido sin el catálogo daba 1041 errores y da 98. Y con dos archivos del mismo contenido
+  no se miran ni las `ref` ni las reglas de contenido: saldría cada una duplicada.
+- **Manda el validador de MalphasOS, no el de cada lenguaje**: un correo `@x.invalid` pasaba el esquema
+  en Python y la librería de Java lo rechaza por su `format`. La guía lo dice, y los datos provisionales
+  usan `example.com`.
