@@ -120,6 +120,74 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/v1/api/data-loads" : {
+      "post" : {
+        "description" : "Valida otra vez y, sin errores, escribe la carga entera en una transacción: todo o nada. Lo que ya existe se reconoce por su llave natural y no se toca. Con errores responde 422 con el informe y no escribe nada.",
+        "operationId" : "apply",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "archivos" : {
+                    "items" : {
+                      "format" : "binary",
+                      "type" : "string"
+                    },
+                    "type" : "array"
+                  }
+                },
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataLoadReportResponse"
+                }
+              }
+            },
+            "description" : "La carga quedó escrita; el informe dice qué entró y qué ya estaba"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "422" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataLoadReportResponse"
+                }
+              }
+            },
+            "description" : "No se escribió nada; el informe dice por qué"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Aplicar una carga",
+        "tags" : [ "DataLoad" ]
+      }
+    },
     "/v1/api/data-loads/validation" : {
       "post" : {
         "description" : "De uno a tres archivos —el catálogo, un cliente y su historial—, como mucho uno de cada contenido. Responde qué impide aplicarla y qué conviene leer.",
@@ -162,6 +230,16 @@
               }
             },
             "description" : "Conflict"
+          },
+          "422" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataLoadReportResponse"
+                }
+              }
+            },
+            "description" : "Unprocessable Content"
           },
           "500" : {
             "content" : {

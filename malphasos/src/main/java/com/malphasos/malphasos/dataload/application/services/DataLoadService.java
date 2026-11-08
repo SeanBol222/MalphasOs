@@ -10,6 +10,7 @@ import com.malphasos.malphasos.dataload.application.model.SectionCount;
 import com.malphasos.malphasos.dataload.application.ports.input.DataLoadServicePort;
 import com.malphasos.malphasos.dataload.application.ports.output.ExistingRecordsPort;
 import com.malphasos.malphasos.dataload.application.ports.output.LoadFormatPort;
+import com.malphasos.malphasos.dataload.application.ports.output.LoadWriterPort;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
 import com.malphasos.malphasos.dataload.application.ports.output.MetrologyCatalogPort;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Valida una carga: primero cada archivo contra el esquema, después lo que solo se ve mirando los
@@ -38,15 +40,38 @@ public class DataLoadService implements DataLoadServicePort {
     private final LocationCatalogPort locationCatalogPort;
     private final ExistingRecordsPort existingRecordsPort;
     private final MetrologyCatalogPort metrologyCatalogPort;
+    private final LoadWriterPort loadWriterPort;
+
+    /** Lo que dice la validación, y los archivos leídos que la cumplieron. */
+    private record Revision(DataLoadReport informe, List<ReadFile> leidos) {}
 
     @Override
+    @Transactional(readOnly = true)
     public DataLoadReport validate(List<DataLoadFile> archivos) {
+        return revisar(archivos).informe();
+    }
+
+    /**
+     * Valida otra vez y, sin errores, escribe todo en una transacción. Se valida otra vez porque entre
+     * validar y aplicar pudo cambiar lo que hay, y porque nada impide llamar a aplicar sin haber validado.
+     */
+    @Override
+    @Transactional
+    public DataLoadReport apply(List<DataLoadFile> archivos) {
+        Revision revision = revisar(archivos);
+        if (revision.informe().valida()) {
+            loadWriterPort.write(revision.leidos());
+        }
+        return revision.informe();
+    }
+
+    private Revision revisar(List<DataLoadFile> archivos) {
         List<DataLoadProblem> errores = new ArrayList<>();
 
         if (archivos.isEmpty() || archivos.size() > MAXIMO_DE_ARCHIVOS) {
             errores.add(DataLoadProblem.of(null, "Una carga lleva de uno a tres archivos: el catálogo, un cliente"
                     + " y su historial. Se recibieron " + archivos.size()));
-            return new DataLoadReport(errores, List.of());
+            return new Revision(new DataLoadReport(errores, List.of()), List.of());
         }
 
         Map<String, String> porContenido = new LinkedHashMap<>();
@@ -86,7 +111,7 @@ public class DataLoadService implements DataLoadServicePort {
             resumen = existentes.resumen();
         }
 
-        return new DataLoadReport(errores, avisos, resumen);
+        return new Revision(new DataLoadReport(errores, avisos, resumen), leidos);
     }
 
     /**

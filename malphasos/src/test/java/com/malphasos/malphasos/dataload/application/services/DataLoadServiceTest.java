@@ -7,6 +7,7 @@ import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadProblem;
 import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
 import com.malphasos.malphasos.dataload.application.model.ExistingRecords;
+import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.dataload.application.model.SectionCount;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
 import com.malphasos.malphasos.dataload.application.ports.output.MetrologyCatalogPort;
@@ -55,8 +56,11 @@ class DataLoadServiceTest {
             "temperatura", List.of("°C", "°F"),
             "humedad_relativa", List.of("%HR", "%")).get(codigo));
 
+    /** Lo que llegó a escribirse, si llegó: el escritor de verdad se prueba contra PostgreSQL. */
+    private List<ReadFile> escritos;
+
     private final DataLoadService servicio = new DataLoadService(new JsonSchemaLoadFormatAdapter(), UBICACION,
-            () -> existentes, METROLOGIA);
+            () -> existentes, METROLOGIA, archivos -> escritos = archivos);
 
     private static int nuevos(DataLoadReport informe, String seccion) {
         return informe.resumen().stream().filter(s -> s.seccion().equals(seccion)).findFirst().orElseThrow().nuevos();
@@ -399,6 +403,30 @@ class DataLoadServiceTest {
                     assertThat(e.ruta()).isEqualTo("/catalogo/tiposEquipo/0/verificaciones/0/unidad");
                     assertThat(e.mensaje()).contains("«°C»").contains("mmHg, kPa");
                 });
+    }
+
+    @Test
+    @DisplayName("aplicar una carga valida escribe los archivos leidos, en el orden en que llegaron")
+    void aplicarEscribe() {
+        DataLoadReport informe = servicio.apply(List.of(HISTORIAL, CATALOGO, CLIENTE));
+
+        assertThat(informe.valida()).isTrue();
+        assertThat(escritos).extracting(ReadFile::nombre)
+                .containsExactly(EjemplosDeCarga.HISTORIAL, EjemplosDeCarga.CATALOGO, EjemplosDeCarga.CLIENTE);
+    }
+
+    @Test
+    @DisplayName("aplicar una carga con errores no escribe nada y devuelve el informe de la validacion")
+    void aplicarConErroresNoEscribe() {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(), List.of());
+
+        DataLoadReport informe = servicio.apply(List.of(CATALOGO, CLIENTE, HISTORIAL));
+
+        assertThat(informe.valida()).isFalse();
+        assertThat(informe.errores()).singleElement().extracting(DataLoadProblem::mensaje).asString()
+                .contains("todavía no está en MalphasOS");
+        assertThat(escritos).isNull();
     }
 
     @Test
