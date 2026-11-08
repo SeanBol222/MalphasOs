@@ -56,7 +56,7 @@ export class ImportarDatos {
   protected readonly aplicacion = this.api.aplicar();
 
   protected readonly archivos = signal<readonly File[]>([]);
-  protected readonly demasiados = signal(false);
+  protected readonly demasiados = computed(() => this.archivos().length > MAXIMO_DE_ARCHIVOS);
   protected readonly confirmando = signal(false);
 
   /** El último informe que hay que leer: el de aplicar si se aplicó, y si no el de validar. */
@@ -90,10 +90,29 @@ export class ImportarDatos {
   protected readonly nombreDeSeccion = nombreDeSeccion;
   protected readonly dondeEsta = dondeEsta;
 
+  /**
+   * Lo elegido se suma a lo que ya había (2026-11-08): el catálogo y el par de cada cliente viven en
+   * carpetas distintas, y el diálogo del navegador elige de una sola. El mismo archivo dos veces no se
+   * repite. El campo se vacía después, para que volver a elegir el que se acaba de quitar dispare otra vez.
+   */
   protected elegir(evento: Event): void {
-    const elegidos = [...((evento.target as HTMLInputElement).files ?? [])];
-    this.archivos.set(elegidos);
-    this.demasiados.set(elegidos.length > MAXIMO_DE_ARCHIVOS);
+    const campo = evento.target as HTMLInputElement;
+    const nuevos = [...(campo.files ?? [])].filter(
+      (archivo) => !this.archivos().some((ya) => mismoArchivo(ya, archivo)),
+    );
+    campo.value = '';
+    if (nuevos.length) {
+      this.cambiarArchivos([...this.archivos(), ...nuevos]);
+    }
+  }
+
+  protected quitar(indice: number): void {
+    this.cambiarArchivos(this.archivos().filter((_, i) => i !== indice));
+  }
+
+  /** Otros archivos son otra carga: el informe de antes ya no dice nada de ella. */
+  private cambiarArchivos(archivos: readonly File[]): void {
+    this.archivos.set(archivos);
     this.confirmando.set(false);
     this.validacion.reset();
     this.aplicacion.reset();
@@ -110,4 +129,9 @@ export class ImportarDatos {
     this.confirmando.set(false);
     this.aplicacion.mutate(this.archivos());
   }
+}
+
+/** El navegador no da la ruta: el mismo archivo es el mismo nombre, tamaño y fecha de modificación. */
+function mismoArchivo(a: File, b: File): boolean {
+  return a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 }

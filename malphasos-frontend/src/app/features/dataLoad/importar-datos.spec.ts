@@ -52,8 +52,8 @@ describe('Importar datos', () => {
       HTMLButtonElement | undefined;
   const texto = (selector: string) => raiz().querySelector(selector)?.textContent?.trim() ?? '';
 
-  async function elegir(...nombres: string[]): Promise<File[]> {
-    const archivos = nombres.map(json);
+  async function elegir(...nombres: (string | File)[]): Promise<File[]> {
+    const archivos = nombres.map((n) => (typeof n === 'string' ? json(n) : n));
     const entrada = raiz().querySelector<HTMLInputElement>('#importar-archivo')!;
     Object.defineProperty(entrada, 'files', { value: archivos, configurable: true });
     entrada.dispatchEvent(new Event('change'));
@@ -133,11 +133,11 @@ describe('Importar datos', () => {
     expect(boton('Aplicar')).toBeDefined();
   });
 
-  it('elegir otros archivos tras validar obliga a validar otra vez', async () => {
+  it('añadir otro archivo tras validar obliga a validar otra vez', async () => {
     await elegir('1-catalogo.json');
     await validar(VALIDA);
 
-    await elegir('1-catalogo.json', '2-cliente.json');
+    await elegir('2-cliente.json');
 
     expect(raiz().querySelector('[data-informe]')).toBeNull();
     expect(boton('Aplicar')).toBeUndefined();
@@ -178,6 +178,67 @@ describe('Importar datos', () => {
     expect(raiz().querySelector('[role="alert"]')).not.toBeNull();
     expect(boton('Confirmar y aplicar')).toBeUndefined();
     expect(boton('Aplicar')).toBeDefined();
+  });
+
+  it('añadir suma a lo ya elegido sin quitarlo: el catálogo y el par del cliente viven en carpetas distintas', async () => {
+    await elegir('1-catalogo.json');
+    await elegir('2-cliente.json', '3-historial.json');
+
+    const nombres = [...raiz().querySelectorAll('[data-archivos] li span')].map((s) =>
+      s.textContent?.trim(),
+    );
+    expect(nombres).toEqual(['1-catalogo.json', '2-cliente.json', '3-historial.json']);
+    expect(raiz().querySelector('label[for="importar-archivo"]')?.textContent?.trim()).toBe(
+      'Añadir archivos',
+    );
+
+    boton('Validar')!.click();
+    await asentar(fixture);
+    const peticion = http.expectOne({ method: 'POST', url: `${URL}/validation` });
+    expect((peticion.request.body as FormData).getAll('archivos')).toHaveLength(3);
+    peticion.flush(VALIDA);
+    await asentar(fixture);
+  });
+
+  it('el mismo archivo elegido dos veces no se repite', async () => {
+    const catalogo = json('1-catalogo.json');
+    await elegir(catalogo);
+    await elegir(catalogo);
+
+    expect(raiz().querySelectorAll('[data-archivos] li')).toHaveLength(1);
+  });
+
+  it('quitar un archivo lo saca de la lista, y el informe que había deja de valer', async () => {
+    await elegir('1-catalogo.json', '2-cliente.json');
+    await validar(VALIDA);
+
+    raiz().querySelector<HTMLButtonElement>('[aria-label="Quitar 2-cliente.json"]')!.click();
+    await asentar(fixture);
+
+    expect(texto('[data-archivos]')).not.toContain('2-cliente.json');
+    expect(texto('[data-archivos]')).toContain('1-catalogo.json');
+    expect(raiz().querySelector('[data-informe]')).toBeNull();
+    expect(boton('Aplicar')).toBeUndefined();
+  });
+
+  it('quitar el que sobra deja validar otra vez', async () => {
+    await elegir('a.json', 'b.json', 'c.json', 'd.json');
+    expect(boton('Validar')!.disabled).toBe(true);
+
+    raiz().querySelector<HTMLButtonElement>('[aria-label="Quitar d.json"]')!.click();
+    await asentar(fixture);
+
+    expect(raiz().querySelector('[data-demasiados]')).toBeNull();
+    expect(boton('Validar')!.disabled).toBe(false);
+  });
+
+  it('quitar el último vuelve a decir que no hay archivos', async () => {
+    await elegir('1-catalogo.json');
+    raiz().querySelector<HTMLButtonElement>('[aria-label="Quitar 1-catalogo.json"]')!.click();
+    await asentar(fixture);
+
+    expect(raiz().querySelector('[data-archivos]')).toBeNull();
+    expect(boton('Validar')!.disabled).toBe(true);
   });
 
   it('más de tres archivos no se validan, y lo dice', async () => {

@@ -17,6 +17,7 @@
   <p class="mt-1 text-neutral-800">
     De uno a tres archivos <code>.json</code>. Un cliente y su historial nombran el catálogo: se
     suben con él aunque el catálogo ya esté cargado, y lo que ya existe se reconoce y no se toca.
+    Cada vez que se eligen se suman a la lista, de modo que pueden venir de carpetas distintas.
   </p>
 
   <div class="mt-2 flex flex-wrap items-center gap-1.5">
@@ -24,7 +25,7 @@
       class="boton-secundario flex min-h-tactil cursor-pointer items-center"
       for="importar-archivo"
     >
-      Elegir archivos
+      {{ archivos().length ? 'Añadir archivos' : 'Elegir archivos' }}
     </label>
     <input
       id="importar-archivo"
@@ -46,9 +47,20 @@
   </div>
 
   @if (archivos().length) {
-    <ul class="mt-2 list-disc pl-3" aria-label="Archivos elegidos" data-archivos>
+    <ul class="mt-2 divide-y divide-neutral-200" aria-label="Archivos elegidos" data-archivos>
       @for (archivo of archivos(); track $index) {
-        <li>{{ archivo.name }}</li>
+        <li class="flex items-center justify-between gap-1.5 py-0.5">
+          <span class="break-all">{{ archivo.name }}</span>
+          <button
+            class="min-h-tactil px-1 underline"
+            type="button"
+            [attr.aria-label]="'Quitar ' + archivo.name"
+            [disabled]="validacion.isPending() || aplicacion.isPending()"
+            (click)="quitar($index)"
+          >
+            Quitar
+          </button>
+        </li>
       }
     </ul>
   } @else {
