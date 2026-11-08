@@ -2996,3 +2996,22 @@ escrita —no apoyarse en la siembra— y se volvió a pisar. Y **dos mutaciones
 natural —un área reconocida en cualquier sede, una sede en cualquier cliente— porque las pruebas solo
 tenían el caso en que todo coincide: hizo falta una con el mismo nombre en otro sitio. Las nueve de las
 dos últimas reglas murieron a la primera.
+
+## [2026-11-07] ingest | Aplicar la carga de datos (tanda 4)
+
+`POST /data-loads` valida otra vez y escribe la carga en una transacción: el catálogo y el cliente por el
+`create` de cada agregado, el historial por `rehydrate`, y los documentos con los compositores que ya
+existían. Cinco commits de código; una prueba de extremo a extremo sube el ejemplo por el API en el orden de la guía y
+lo lee por la hoja de vida y el informe. Las decisiones, en [[decisiones-tecnicas-malphasos]]. **1707**
+pruebas, 149 clases.
+
+Lo que conviene recordar. **Las restricciones de la base dictaron el orden**, y se descubrieron
+ejecutando: una orden ejecutada sin documento, un reporte cerrado sin documento leído por la hoja de vida,
+y las asignaciones de protocolos escritas con JDBC antes de que JPA vaciara el tipo. Ninguna la habría
+visto una prueba con dobles. **La siembra de países volvió a morder**: el catálogo nombra `USA`, nueve
+clases borran `pais`, y la prueba pasaba sola; ahora las pruebas de la carga crean su ubicación con un
+ayudante, en vez de copiarlo, que es como se reproduce un defecto. Y **cinco mutaciones sobrevivieron por
+huecos de las pruebas** —una carga repetida que se detenía en la validación y no llegaba a escribir, datos
+de certificados que no distinguían la regla, números aleatorios que nunca chocaban—: cada una pidió una
+prueba nueva. Una sexta es equivalente y se dejó dicha: la firma de una persona ya está en el almacén de
+imágenes al guardarla.

@@ -767,3 +767,25 @@ cierto, y el aviso está fuera del PDF. Aceptado por el usuario: es lo que deja 
 - **Manda el validador de MalphasOS, no el de cada lenguaje**: un correo `@x.invalid` pasaba el esquema
   en Python y la librería de Java lo rechaza por su `format`. La guía lo dice, y los datos provisionales
   usan `example.com`.
+
+**Y las de aplicarla, el mismo día** (tanda 4):
+
+- **El certificado del patrón es el del día del servicio**, decidido por el usuario: el catálogo guarda uno
+  solo, el más reciente, y el informe de un reporte histórico lleva el vigente ese día —si ninguno lo
+  estaba, el último calibrado antes; si fue antes de toda calibración, el primero—. Los certificados viejos
+  solo quedan dentro de los informes, que es donde se imprimen. La otra opción era que todos imprimieran el
+  último, y un informe de 2023 habría dicho que se midió con un certificado de 2025.
+- **Lo nuevo del catálogo y del cliente entra por el `create` de su agregado**, que valida como la pantalla;
+  solo el historial entra por `rehydrate`, porque un reporte no se cierra en el pasado. Lo que la validación
+  no ve y un agregado o la base rechazan llega como un 422 con el sitio del archivo, y no escribe nada.
+- **Dos restricciones fijan el orden dentro de la transacción**, y ninguna se relajó. Una orden ejecutada
+  tiene que tener documento (`V49`) y el documento se compone con sus reportes: la orden entra en ejecución
+  y se ejecuta al final. Y el informe lee la hoja de vida del equipo, cuyo historial exige documento en
+  todo reporte cerrado (`V51`): los reportes entran como borradores y se cierran uno a uno. **Por eso no
+  se usa `freezeClosedWithoutDocument()`**, que el plan nombraba: se usa el compositor de reportes que ese
+  método usa, y sigue sin tocarse ningún módulo.
+- **Un tipo que ya existe no cambia**: si la carga le declara una magnitud que no verifica, se rechaza. Es
+  la misma regla que el cliente: lo que ya está se reconoce y no se toca.
+- **La validación aprendió dos reglas al escribir**: la magnitud y la unidad de cada verificación están en
+  el catálogo metrológico, y el supervisor de un cliente es un supervisor. Las dos se habrían descubierto
+  al aplicar, sin un mensaje que dijera dónde.
