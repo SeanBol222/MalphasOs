@@ -43,7 +43,8 @@ public record LifeSheetResponse(
             @Schema(description = "Encargados del area, o de la sede si el area no tiene; vacia si ninguno")
             List<String> responsables,
             @Schema(description = "Telefonos vigentes del cliente") List<String> telefonosCliente,
-            @Schema(description = "Correos vigentes del cliente") List<String> correosCliente) {
+            @Schema(description = "Correos vigentes del cliente") List<String> correosCliente,
+            @Schema(description = "La foto del equipo, PNG como data: URI; nula si no tiene") String foto) {
     }
 
     @Schema(name = "LifeSheetTecnica")

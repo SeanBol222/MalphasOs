@@ -200,7 +200,8 @@ opcionales: una orden puede no tener ingeniero. `V18` los rellenó en las línea
 El **2026-10-05** el usuario aprobó un diseño nuevo para la hoja de vida, pensado para imprimir y con la
 marca de Bolívar Bioingeniería. Pide datos que hoy no existen —riesgo, uso, datos eléctricos completos,
 número de hoja, foto— y una descripción y un responsable en cada línea del historial. El plan entero
-está en [[hoja-de-vida-formato-impreso]].
+está en [[hoja-de-vida-formato-impreso]]. (Todos existen ya: la foto fue la última, el **2026-11-08**, con `V58`
+—una por unidad, en PNG—.)
 
 ## La línea de un preventivo con protocolo (2026-10-10)
 

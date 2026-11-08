@@ -90,6 +90,7 @@ public final class LifeSheetPrintComposer {
                         lista(id.telefonosCliente()),
                         lista(id.correosCliente())),
                 oRaya(tecnica.definicionTecnica()),
+                id.foto(),
                 "Fabricante " + oRaya(hoja.fabricante().nombre()) + " · " + oRaya(hoja.fabricante().pais())
                         + " · Proveedor " + oRaya(id.proveedor())
                         + " · Compra " + fecha(id.fechaCompra())

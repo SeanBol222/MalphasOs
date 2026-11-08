@@ -186,6 +186,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/client-equipments/{id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Quitar la foto
+         * @description La hoja de vida vuelve a mostrar el recuadro vacío. 404 si el equipo no existe.
+         */
+        delete: operations["removePhoto"];
+        options?: never;
+        head?: never;
+        /**
+         * Poner o cambiar la foto
+         * @description Solo PNG, de hasta 512 KB; el tipo se mira en los bytes. El navegador la reduce antes de subirla. 404 si el equipo no existe.
+         */
+        patch: operations["changePhoto"];
+        trace?: never;
+    };
     "/v1/api/client-equipments/{id}/service-area/{idAreaServicio}": {
         parameters: {
             query?: never;
@@ -812,6 +836,15 @@ export interface components {
              */
             ultimoServicio?: string;
         };
+        EquipmentPhotoResponse: {
+            /**
+             * Format: date-time
+             * @description Cuando se subio
+             */
+            actualizada?: string;
+            /** @description La foto, PNG como data: URI */
+            imagen?: string;
+        };
         EquipmentResponse: {
             estadoActivo?: boolean;
             /** Format: uuid */
@@ -953,6 +986,8 @@ export interface components {
             estadoActivo?: boolean;
             /** Format: date */
             fechaCompra?: string;
+            /** @description La foto del equipo, PNG como data: URI; nula si no tiene */
+            foto?: string;
             /** Format: uuid */
             idEquipoCliente?: string;
             /**
@@ -2209,6 +2244,147 @@ export interface operations {
                 };
                 content: {
                     "application/pdf": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+        };
+    };
+    removePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del equipo instalado */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+        };
+    };
+    changePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del equipo instalado */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    archivo: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentPhotoResponse"];
                 };
             };
             /** @description Bad Request */

@@ -48,7 +48,9 @@ public record LifeSheet(
             boolean estadoActivo,
             List<String> responsables,
             List<String> telefonosCliente,
-            List<String> correosCliente) {
+            List<String> correosCliente,
+            /** La foto del equipo como {@code data:} URI (V58), o nula si no tiene. */
+            String foto) {
     }
 
     /** Qué es el equipo: su tipo, su marca y su modelo, con lo que el tipo declara. */

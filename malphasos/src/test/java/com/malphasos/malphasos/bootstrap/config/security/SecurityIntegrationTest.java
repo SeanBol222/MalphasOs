@@ -528,6 +528,9 @@ class SecurityIntegrationTest {
             "DELETE, /v1/api/equipments/" + ID,
             "DELETE, /v1/api/client-equipments/" + ID,
             "PATCH, /v1/api/client-equipments/" + ID + "/service-area/" + ID,
+            // La foto del equipo, del 2026-11-08 (V58). Su PATCH lleva un archivo: por lo mismo que la
+            // asignacion de abajo, no esta.
+            "DELETE, /v1/api/client-equipments/" + ID + "/photo",
             // Los protocolos, del 2026-10-10: el catalogo y su asignacion a un tipo.
             "GET, /v1/api/protocols",
             "DELETE, /v1/api/protocols/" + ID,
@@ -727,6 +730,9 @@ class SecurityIntegrationTest {
         @DisplayName("con equipment.write se corrige y se da de baja, pero no se vincula ni se traslada")
         void equipmentWriteNoVinculaNiTraslada() throws Exception {
             autorizado(delete("/v1/api/client-equipments/" + ID).with(conRoles("equipment.write")));
+            // la foto se pone y se quita con equipment.write: la toma el ingeniero en campo (V58)
+            autorizado(delete("/v1/api/client-equipments/" + ID + "/photo").with(conRoles("equipment.write")));
+            prohibido(delete("/v1/api/client-equipments/" + ID + "/photo").with(conRoles("equipment.read")));
 
             prohibido(patch("/v1/api/client-equipments/" + ID + "/service-area/" + ID)
                     .with(conRoles("equipment.write")));

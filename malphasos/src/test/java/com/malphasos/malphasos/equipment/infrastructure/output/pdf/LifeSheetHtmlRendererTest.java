@@ -57,6 +57,22 @@ class LifeSheetHtmlRendererTest {
     }
 
     @Test
+    @DisplayName("la foto del equipo va en el recuadro de «Qué es» (V58), y sin ella el recuadro dice que falta")
+    void laFoto() {
+        String foto = "data:image/png;base64,iVBORw0KGgo=";
+
+        Element conFoto = pintar(new UnaHojaDeVida().conFoto(foto)).selectFirst(".hv-que-es .hv-foto");
+        Element sinFoto = pintar(new UnaHojaDeVida()).selectFirst(".hv-que-es .hv-foto");
+
+        assertThat(conFoto.tagName()).isEqualTo("img");
+        assertThat(conFoto.attr("src")).isEqualTo(foto);
+        assertThat(conFoto.attr("alt")).isEqualTo("Foto del equipo");
+        assertThat(sinFoto.tagName()).isEqualTo("div");
+        assertThat(sinFoto.text()).isEqualTo("Foto del equipo");
+        assertThat(pintar(new UnaHojaDeVida()).select(".hv-que-es img")).isEmpty();
+    }
+
+    @Test
     @DisplayName("la hoja 1 solo lleva lo de tamaño fijo; el protocolo, el cuidado y el historial van en la 2")
     void queVaEnCadaHoja() {
         // Decidido por el usuario el 2026-10-17: el protocolo crece con cada paso y desbordaba la hoja 1.

@@ -6,10 +6,14 @@ import {
   inject,
   input,
   OnDestroy,
+  signal,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
+import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
+import { EncuadreDeFoto } from '../../../shared/foto/encuadre-de-foto';
+import { REDUCIR_FOTO } from '../../../shared/foto/reducir-foto';
 import { EquipoApi } from '../equipo-api';
 
 /**
@@ -23,10 +27,15 @@ import { EquipoApi } from '../equipo-api';
  *
  * <p><b>Es un documento, no un formulario</b>: cada dato se corrige donde vive, que es la decisión tomada
  * sobre RF-24.
+ *
+ * <p><b>Salvo la foto del equipo</b> (V58, 2026-11-08), que se pone aquí porque aquí se ve su recuadro. La
+ * pone quien tiene {@code equipment.write} —el ingeniero, en campo, con la cámara del teléfono—, eligiéndola,
+ * soltándola o pegándola. Antes de subirla se encuadra en un recuadro cuadrado —se mueve y se acerca—, el
+ * navegador la deja en PNG de 400 px, y el PDF se recarga solo con ella.
  */
 @Component({
   selector: 'app-hoja-de-vida',
-  imports: [RouterLink],
+  imports: [RouterLink, EncuadreDeFoto],
   template: `
     <div class="flex flex-wrap items-center gap-2">
       <h2 class="titulo-seccion">Hoja de vida</h2>
@@ -45,6 +54,92 @@ import { EquipoApi } from '../equipo-api';
       <a class="font-semibold underline" routerLink="/equipos">Volver a los equipos</a>
     </div>
 
+    @if (puedeCambiarFoto()) {
+      <!--
+        Se suelta una foto en cualquier parte del bloque, no solo en el recuadro: es un blanco más fácil de
+        acertar, y el bloque entero se marca mientras se arrastra encima.
+      -->
+      <section
+        class="superficie mt-3 flex flex-wrap items-center gap-2"
+        [class.outline-2]="encima()"
+        [class.outline-dashed]="encima()"
+        [class.outline-ink]="encima()"
+        aria-labelledby="hv-foto"
+        data-foto
+        (dragover)="arrastrarEncima($event)"
+        (dragleave)="encima.set(false)"
+        (drop)="soltar($event)"
+      >
+        @if (foto.data(); as imagen) {
+          <img
+            class="h-[132px] w-[132px] border border-neutral-300 object-cover"
+            [src]="imagen"
+            alt="Foto del equipo"
+          />
+        } @else {
+          <div
+            class="flex h-[132px] w-[132px] items-center justify-center border border-neutral-300 text-sm text-neutral-700"
+            data-sin-foto
+          >
+            Sin foto
+          </div>
+        }
+        <div>
+          <h3 id="hv-foto" class="font-bold">Foto del equipo</h3>
+          <p class="text-sm text-neutral-700">
+            Elíjala, arrástrela hasta aquí o péguela con Ctrl+V. Se reduce y se guarda en PNG antes
+            de subirla.
+          </p>
+          <div class="mt-1 flex flex-wrap items-center gap-1.5">
+            <label
+              class="boton-secundario flex min-h-tactil cursor-pointer items-center"
+              for="hv-foto-archivo"
+            >
+              {{ foto.data() ? 'Cambiar foto' : 'Subir foto' }}
+            </label>
+            <input
+              id="hv-foto-archivo"
+              class="sr-only"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              [disabled]="ocupado()"
+              (change)="elegirFoto($event)"
+            />
+            @if (foto.data()) {
+              <button
+                class="min-h-tactil px-1 underline"
+                type="button"
+                [disabled]="ocupado()"
+                (click)="quitarFoto()"
+              >
+                Quitar
+              </button>
+            }
+          </div>
+          @if (ocupado()) {
+            <p class="mt-1 text-neutral-700" role="status">
+              {{ reduciendo() ? 'Reduciendo la foto…' : 'Guardando…' }}
+            </p>
+          }
+          @if (errorDeFoto(); as mensaje) {
+            <p class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-1.5" role="alert">
+              {{ mensaje }}
+            </p>
+          }
+        </div>
+      </section>
+    }
+
+    @if (porEncuadrar(); as archivo) {
+      <app-encuadre-de-foto
+        [archivo]="archivo"
+        (listo)="encuadrada($event)"
+        (cancelado)="porEncuadrar.set(null)"
+        (fallo)="noSeLeyo()"
+      />
+    }
+
     @if (pdf.isPending()) {
       <p class="mt-3 text-neutral-700" role="status">Preparando el PDF…</p>
     } @else if (pdf.isError()) {
@@ -61,11 +156,43 @@ import { EquipoApi } from '../equipo-api';
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Pegar vale en toda la pantalla: no hay otro sitio donde pegar en ella.
+  host: { '(window:paste)': 'pegar($event)' },
 })
 export class HojaDeVida implements OnDestroy {
   readonly id = input.required<string>();
 
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly api = inject(EquipoApi);
+  private readonly reducir = inject(REDUCIR_FOTO);
+
+  private readonly sesion = inject(Sesion);
+  protected readonly puedeCambiarFoto = computed(() => this.sesion.puede('equipment.write'));
+  protected readonly foto = this.api.fotoDe(this.id, this.puedeCambiarFoto);
+  private readonly puesta = this.api.ponerFoto();
+  private readonly quitada = this.api.quitarFoto();
+  protected readonly reduciendo = signal(false);
+  /** Lo que se dice cuando lo elegido no se puede usar: no es una imagen, o no se pudo leer. */
+  private readonly aviso = signal<string | null>(null);
+  /** Si se está arrastrando algo encima del bloque. */
+  protected readonly encima = signal(false);
+  /** La foto elegida, mientras se encuadra: todavía no se ha subido nada. */
+  protected readonly porEncuadrar = signal<File | null>(null);
+  protected readonly ocupado = computed(
+    () =>
+      !!this.porEncuadrar() ||
+      this.reduciendo() ||
+      this.puesta.isPending() ||
+      this.quitada.isPending(),
+  );
+  protected readonly errorDeFoto = computed(() => {
+    const aviso = this.aviso();
+    if (aviso) {
+      return aviso;
+    }
+    const fallo = this.puesta.error() ?? this.quitada.error();
+    return fallo ? traducirError(fallo) : null;
+  });
 
   protected readonly pdf = inject(EquipoApi).hojaDeVidaEnPdf(this.id);
   protected readonly mensajeDeError = computed(() => traducirError(this.pdf.error()));
@@ -92,6 +219,90 @@ export class HojaDeVida implements OnDestroy {
       this.liberar();
       this.anterior = direccion;
     });
+  }
+
+  protected elegirFoto(evento: Event): void {
+    const campo = evento.target as HTMLInputElement;
+    const archivo = campo.files?.[0];
+    // vacío, para que elegir otra vez la misma foto dispare de nuevo
+    campo.value = '';
+    if (archivo) {
+      this.subir(archivo);
+    }
+  }
+
+  /** Sin esto el navegador abre el archivo soltado en lugar de dejarlo aquí. */
+  protected arrastrarEncima(evento: DragEvent): void {
+    evento.preventDefault();
+    this.encima.set(true);
+  }
+
+  protected soltar(evento: DragEvent): void {
+    evento.preventDefault();
+    this.encima.set(false);
+    const archivo = evento.dataTransfer?.files?.[0];
+    if (archivo && !this.ocupado()) {
+      this.subir(archivo);
+    }
+  }
+
+  /**
+   * Ctrl+V con una imagen en el portapapeles —una captura, una foto copiada— la pone como foto. Un pegado
+   * sin imagen no se toca: sigue su camino.
+   */
+  protected pegar(evento: ClipboardEvent): void {
+    if (!this.puedeCambiarFoto() || this.ocupado()) {
+      return;
+    }
+    const imagen = [...(evento.clipboardData?.files ?? [])].find((f) =>
+      f.type.startsWith('image/'),
+    );
+    if (imagen) {
+      evento.preventDefault();
+      this.subir(imagen);
+    }
+  }
+
+  /** Lo elegido, soltado o pegado se encuadra antes de subirlo; lo que no es una imagen, ni eso. */
+  private subir(archivo: File): void {
+    this.puesta.reset();
+    this.quitada.reset();
+    if (!archivo.type.startsWith('image/')) {
+      this.aviso.set('Eso no es una imagen. Elija una foto.');
+      return;
+    }
+    this.aviso.set(null);
+    this.porEncuadrar.set(archivo);
+  }
+
+  /**
+   * El recuadro ya encuadrado, en PNG de 400 px: pasa todavía por la reducción, que solo actúa si por algo
+   * pasara del máximo del servidor.
+   */
+  protected async encuadrada(recorte: Blob): Promise<void> {
+    this.porEncuadrar.set(null);
+    this.reduciendo.set(true);
+    let png: Blob;
+    try {
+      png = await this.reducir(recorte);
+    } catch {
+      this.noSeLeyo();
+      return;
+    } finally {
+      this.reduciendo.set(false);
+    }
+    this.puesta.mutate({ id: this.id(), png });
+  }
+
+  protected noSeLeyo(): void {
+    this.porEncuadrar.set(null);
+    this.aviso.set('No se pudo leer la foto. Elija una imagen.');
+  }
+
+  protected quitarFoto(): void {
+    this.aviso.set(null);
+    this.puesta.reset();
+    this.quitada.mutate(this.id());
   }
 
   ngOnDestroy(): void {

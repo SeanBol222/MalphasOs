@@ -22,6 +22,8 @@ public record LifeSheetPrint(
         Identificacion identificacion,
         Cliente datosDelCliente,
         String definicion,
+        /** La foto del equipo como {@code data:} URI (V58), o nula: el recuadro sale vacío. */
+        String foto,
         String notaDeCompra,
         Caracteristicas caracteristicas,
         List<Paso> protocolo,

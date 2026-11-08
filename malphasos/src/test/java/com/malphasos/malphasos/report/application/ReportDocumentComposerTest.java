@@ -76,7 +76,7 @@ class ReportDocumentComposerTest {
         return new LifeSheet(
                 new LifeSheet.Identificacion(EQUIPO, "HV-CDN-0007", "SN-77", "INV-1", "BAS-3", null, null, null,
                         "Clínica del Norte", "900.111.222-3", "Sede Norte", "Calle 1", "Ciudad", "Urgencias", true,
-                        List.of("Ana Encargada"), List.of("601 1"), List.of("c@n.example")),
+                        List.of("Ana Encargada"), List.of("601 1"), List.of("c@n.example"), null),
                 new LifeSheet.Tecnica("Báscula", null, "Electrónica", null, "Pesar pacientes", null, "Kern",
                         "MS-200", null,
                         new TechnicalSheet(RiskClass.IIA, null, "AC", new BigDecimal("110"), 20, new BigDecimal("0.5"), 60),

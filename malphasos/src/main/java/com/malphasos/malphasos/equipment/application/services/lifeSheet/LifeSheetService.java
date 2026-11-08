@@ -20,7 +20,9 @@ import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServic
 import com.malphasos.malphasos.equipment.application.ports.input.ManufacturerServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
+import com.malphasos.malphasos.equipment.application.ports.output.EquipmentPhotoPersistencePort;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
+import com.malphasos.malphasos.equipment.domain.clientEquipment.EquipmentPhoto;
 import com.malphasos.malphasos.equipment.domain.equipment.Equipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.manufacturer.Manufacturer;
@@ -69,6 +71,8 @@ public class LifeSheetService implements LifeSheetServicePort {
     private final CountryServicePort countryServicePort;
     private final ClientSupervisorPort clientSupervisorPort;
     private final ProtocolServicePort protocolServicePort;
+    /** La foto de la unidad (V58): solo la lee la hoja de vida, y por eso no va con el equipo. */
+    private final EquipmentPhotoPersistencePort equipmentPhotoPersistencePort;
 
     @Override
     @Transactional(readOnly = true)
@@ -109,7 +113,8 @@ public class LifeSheetService implements LifeSheetServicePort {
                         cliente.getCorreos().stream()
                                 .filter(EmailClient::isEstadoActivo)
                                 .map(EmailClient::getCorreo)
-                                .toList()),
+                                .toList(),
+                        equipmentPhotoPersistencePort.find(unidad.getId()).map(EquipmentPhoto::dataUri).orElse(null)),
                 new LifeSheet.Tecnica(
                         tipo.getNombre(),
                         tipo.getDefinicionTecnica(),

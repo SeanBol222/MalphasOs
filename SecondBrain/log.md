@@ -3053,3 +3053,19 @@ Dos mutaciones enseñaron algo: una regla de la pantalla —comparar los archivo
 elegidos— no podía actuar nunca, porque elegir otros ya borra el informe, y se quitó; y el reinicio de la
 confirmación cuando aplicar falla sin informe no tenía prueba. **840** pruebas en el frontend.
 
+## [2026-11-08] ingest | La foto de cada equipo, en su hoja de vida (`V58`)
+
+El recuadro de la foto llevaba vacío desde el 2026-10-05, a la espera de decidir dónde guardar archivos.
+Decidido por el usuario: **en la base, por unidad, una, solo PNG**. `V58` trae `foto_equipo_cliente`, que
+apunta a una imagen de `imagen_documento`; la hoja de vida la trae y el PDF la pinta. Se pone desde la
+hoja de vida con `equipment.write`: elegida, arrastrada o pegada, **encuadrada** en un recuadro cuadrado
+con `ngx-image-cropper` y reducida a PNG de 400 px en el navegador. Ver
+[[decisiones-tecnicas-malphasos]] y [[hoja-de-vida-formato-impreso]], «La foto, decidida».
+
+**Una afirmación del wiki era falsa desde `V37` y `V45`**: [[hoja-de-vida-formato-impreso]] decía que el
+backend no guardaba archivos, y desde el 2026-10-17 guardaba el logo y las firmas. Corregida dejando
+constancia. **Y una trampa conocida volvió a salir**: el `test-compile` incremental dio por buenas tres
+pruebas que construían la hoja de vida con un argumento de menos; borrar `target/test-classes` las
+destapó. **1725** pruebas en el backend y **868** en el frontend; la deuda abierta sube a **49**, con la
+de las imágenes que el almacén no borra.
+

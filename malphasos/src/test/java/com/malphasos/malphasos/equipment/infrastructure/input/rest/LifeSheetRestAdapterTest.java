@@ -55,7 +55,7 @@ class LifeSheetRestAdapterTest {
         return new LifeSheet(
                 new LifeSheet.Identificacion(id, "HV-CDN-0001", "SN-1", null, null, null, null, null,
                         "Clínica del Norte", "900.111.222-3", "Sede Norte", "Calle 1", "Bogotá", "Urgencias", true,
-                        List.of(), List.of(), List.of()),
+                        List.of(), List.of(), List.of(), null),
                 new LifeSheet.Tecnica("Báscula", null, null, null, null, null, "Kern", "MS-200", null,
                         TechnicalSheet.EMPTY, List.of()),
                 new LifeSheet.Fabricante("Kern", null),

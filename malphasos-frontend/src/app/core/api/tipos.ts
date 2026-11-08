@@ -182,6 +182,8 @@ export type CambioDeEquipoDeCliente = equipos['schemas']['ClientEquipmentUpdateR
  * corrige donde vive, no aqui.
  */
 export type HojaDeVida = equipos['schemas']['LifeSheetResponse'];
+/** La foto de un equipo (V58, 2026-11-08): un PNG como data: URI y cuándo se subió. */
+export type FotoDeEquipo = equipos['schemas']['EquipmentPhotoResponse'];
 export type ResumenDeEquipos = equipos['schemas']['EquipmentOverviewResponse'];
 export type EquiposDeArea = equipos['schemas']['EquipmentAreaSummaryResponse'];
 export type ProtocolosDeTipo = equipos['schemas']['ProtocolsOfTypeResponse'];

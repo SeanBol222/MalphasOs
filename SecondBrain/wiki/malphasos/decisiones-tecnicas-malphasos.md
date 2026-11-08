@@ -720,6 +720,37 @@ pierde, porque todo entero cabe en `numeric(8,2)`. Los documentos congelados de 
 guardan el voltaje como entero JSON y se siguen leyendo, con una prueba que lo fija. La escala se
 normaliza a dos decimales, como la del amperaje, para que 110 y 110,00 no cuenten como un cambio.
 
+## La foto de un equipo: en la base, por unidad, solo PNG y encuadrada en el navegador (2026-11-08, `V58`)
+
+**Decisión**, del usuario: la foto de la hoja de vida es **de cada unidad** —no del modelo, como se
+previó el 2026-10-05—, **una**, **solo PNG** y **guardada en la base**. Los bytes van al almacén común,
+`imagen_documento`, como el logo y las firmas, y una tabla propia, `foto_equipo_cliente`, dice de qué
+equipo es. Se pone desde la hoja de vida con `equipment.write`: se elige —en el teléfono, la cámara—, se
+arrastra o se pega, se **encuadra** en un recuadro cuadrado con `ngx-image-cropper` y sale un PNG de
+400 × 400.
+
+**Por qué en la base**: es lo que ya hacían el logo y las firmas, entra en el respaldo diario sin tocar
+nada y se escribe en la misma transacción. Un volumen habría pedido respaldarlo aparte, con rutas que
+pueden quedar sin archivo, y un almacén de objetos es un servicio más. El usuario preguntó si PostgreSQL
+guarda la foto o solo su dirección: **guarda los bytes**, en una columna `bytea`, dentro de su volumen.
+
+**Por qué tabla aparte y no una columna en `equipo_cliente`**: el equipo se lee en listados, en la orden,
+en la carga; con la huella al lado no cargaría los bytes, pero cada lectura del agregado tendría que
+ignorarla. Así solo la lee la hoja de vida. Es el mismo trato que `firma_persona`.
+
+**Por qué el navegador reduce y por qué 400 px**: con solo PNG, la resolución es lo único que deja la foto
+pequeña —de 60 a 180 KB a 400 px, frente a más de 512 KB a 1.280—, y el recuadro mide 132. El servidor
+no abre la imagen: mira su firma y su tamaño. Ver [[hoja-de-vida-formato-impreso]], «La foto, decidida»,
+con la respuesta a la pregunta del usuario sobre la seguridad de JPEG.
+
+**Por qué `ngx-image-cropper`**: componente independiente de Angular, MIT, sin más dependencia que
+`tslib`, al día —9.1.7, agosto de 2026— y con lo pedido: recuadro fijo, mover la foto y acercarla.
+Cropper.js 2 es más potente pero no es de Angular, y habría que envolverlo.
+
+**El precio**: una foto cambiada deja la vieja en el almacén, que no borra —ver
+[[deuda-tecnica-y-riesgos]]—; y una excepción a «los puertos no declaran `delete`»: quitar una foto borra
+su fila, porque no es historia de nada. Lo dice `V58`.
+
 ## El cargador no toca los módulos: el trabajo pesado es del JSON (2026-11-07)
 
 **Decisión**: la carga la hace un módulo nuevo, `dataload`, **sin modificar los demás**. Valida el archivo

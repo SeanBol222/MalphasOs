@@ -229,6 +229,12 @@ Dos precisiones que evitan un malentendido peligroso:
 - **El vocabulario de autoridades no se duplica a mano.** Sale del token y se contrasta con el del backend. Dos listas escritas por separado se desincronizan, y este proyecto ya tiene precedentes documentados de eso.
 - **Y desde el 2026-09-26 hay prueba de que los literales de las rutas existen.** Ocurrió lo que la advertencia anterior anunciaba: las rutas de las sedes se escribieron con `headquarter.read` y `headquarter.write`, que **no existen** —las sedes las protege `client.*`—. Nada fallaba: el guard mandaba a `/sin-permiso` y la pantalla quedaba inalcanzable para todo el mundo, incluido el administrador. Una prueba lee ahora `app.routes.ts`, extrae cada `requiereAutoridad('…')` y exige que el realm conceda ese rol; otra comprueba que la lista no esté vacía, para que no pase en vacío. Es el equivalente de `RestAuthorizationCoverageTest` en el otro extremo de la línea.
 
+**La foto de un equipo se encuadra con `ngx-image-cropper`** (2026-11-08), la primera librería de imagen
+del frontend, fijada en 9.1.7: el encuadre vive en `shared/foto/encuadre-de-foto.ts`, y en las pruebas de
+la hoja de vida se sustituye por uno falso con el mismo selector, porque necesita un lienzo que jsdom no
+tiene. La reducción a PNG de 400 px, `shared/foto/reducir-foto.ts`, es inyectable por lo mismo. Ver
+[[decisiones-tecnicas-malphasos]].
+
 **Ocultar exige saber qué se puede**, y eso se lee con `Sesion.puede(...)` **como señal calculada**, no como booleano: las autoridades se releen en cada evento de Keycloak —renovación de token incluida—, y un valor calculado en el constructor se quedaría con el de entonces.
 
 **Y expande en dos escalones desde el 2026-11-08**, como `ApiAuthority.expand`: `super.admin.full` concede todo, y `admin.full` todo **menos lo que empieza por `super.`**. Hasta ese día la sesión conocía un solo escalón, y un administrador veía el alta de ingenieros y administradores —que exige `super.person.write`— para recibir un 403 del servidor. Lo destapó la pantalla de importar datos antes de escribirla. Se reconoce el escalón **por el prefijo**, la convención del backend, y no por una lista copiada. La prueba contra el realm no lo podía ver: comprueba que las autoridades existen, no qué concede cada una.

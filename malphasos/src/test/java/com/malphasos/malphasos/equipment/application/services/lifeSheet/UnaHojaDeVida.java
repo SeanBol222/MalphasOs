@@ -35,6 +35,7 @@ public class UnaHojaDeVida {
     private BigDecimal voltaje = new BigDecimal("110");
     private final List<Intervention> historial = new ArrayList<>();
     private Optional<ServiceCompany> empresa = Optional.of(empresa(null));
+    private String foto;
 
     public UnaHojaDeVida deBaja() {
         activo = false;
@@ -64,6 +65,12 @@ public class UnaHojaDeVida {
         return this;
     }
 
+    /** La foto del equipo, como la trae la hoja de vida desde V58: un {@code data:} URI. */
+    public UnaHojaDeVida conFoto(String dataUri) {
+        foto = dataUri;
+        return this;
+    }
+
     public UnaHojaDeVida sinEmpresa() {
         empresa = Optional.empty();
         return this;
@@ -79,7 +86,7 @@ public class UnaHojaDeVida {
                 new LifeSheet.Identificacion(ID, "HV-CDN-0001", "SN-1", null, "INT-7", "Proveedor Ejemplo",
                         LocalDate.of(2024, 3, 5), 1_250_000L, "Clínica de Ejemplo", "900.111.222-3", "Sede Norte",
                         "Calle 1 # 2-3", "Ciudad de Ejemplo", "Urgencias", activo, List.of("Grace Hopper"),
-                        List.of("601 000 0000"), List.of("contacto@clinica.example")),
+                        List.of("601 000 0000"), List.of("contacto@clinica.example"), foto),
                 new LifeSheet.Tecnica("Báscula", "Mide la masa de un paciente", "Electrónica",
                         "No exponer a humedad\n\n  Limpiar la pantalla con un paño seco  ", "Clínico",
                         "Paño con alcohol al 70 %", "Kern", "MS-200", "INVIMA 2020DM-0001",
