@@ -14,6 +14,8 @@ import {
   ConsultaDeEquipos,
   EquipoDeCliente,
   EquiposDeArea,
+  FotoDeEquipo,
+  HojaDeVida,
   NuevoEquipoDeCliente,
   ResumenDeEquipos,
 } from '../../core/api/tipos';
@@ -91,6 +93,47 @@ export class EquipoApi {
           'hoja-de-vida.pdf',
         ),
       enabled: !!id(),
+    }));
+  }
+
+  /**
+   * La foto del equipo, que viaja en la hoja de vida (V58): un {@code data:} URI, o nula. Cuelga de la
+   * clave de la hoja de vida, como su PDF, de modo que poner o quitar la foto caduca los dos. Solo se pide
+   * si {@code activa}: quien no puede cambiarla ya la ve en el PDF.
+   */
+  fotoDe(id: Signal<string>, activa: Signal<boolean>) {
+    return injectQuery(() => ({
+      queryKey: [...EquipoApi.CLAVE_HOJA_DE_VIDA, id(), 'foto'],
+      queryFn: async () => {
+        const hoja = await firstValueFrom(
+          this.http.get<HojaDeVida>(`${this.api}/client-equipments/${id()}/life-sheet`),
+        );
+        return hoja.identificacion?.foto ?? null;
+      },
+      enabled: !!id() && activa(),
+    }));
+  }
+
+  /** Pone o cambia la foto: un PNG ya reducido, en el campo {@code archivo}. */
+  ponerFoto() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, png }: { id: string; png: Blob }) => {
+        const formulario = new FormData();
+        formulario.append('archivo', png, 'foto.png');
+
+        return firstValueFrom(
+          this.http.patch<FotoDeEquipo>(`${this.api}/client-equipments/${id}/photo`, formulario),
+        );
+      },
+      onSuccess: () => this.invalidarHojaDeVida(),
+    }));
+  }
+
+  quitarFoto() {
+    return injectMutation(() => ({
+      mutationFn: (id: string) =>
+        firstValueFrom(this.http.delete<void>(`${this.api}/client-equipments/${id}/photo`)),
+      onSuccess: () => this.invalidarHojaDeVida(),
     }));
   }
 
@@ -232,6 +275,10 @@ export class EquipoApi {
         firstValueFrom(this.http.delete<void>(`${this.api}/client-equipments/${id}`)),
       onSuccess: () => this.invalidar(),
     }));
+  }
+
+  private async invalidarHojaDeVida(): Promise<void> {
+    await this.queryClient.invalidateQueries({ queryKey: EquipoApi.CLAVE_HOJA_DE_VIDA });
   }
 
   private async invalidar(): Promise<void> {
