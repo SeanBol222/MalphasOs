@@ -17,6 +17,7 @@ import com.malphasos.malphasos.equipment.application.ports.input.InterventionSer
 import com.malphasos.malphasos.equipment.application.ports.input.ManufacturerServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
+import com.malphasos.malphasos.equipment.application.ports.output.EquipmentPhotoPersistencePort;
 import com.malphasos.malphasos.equipment.application.services.lifeSheet.LifeSheetService;
 import com.malphasos.malphasos.equipment.domain.exception.ClientEquipmentNotFoundException;
 import com.malphasos.malphasos.location.application.ports.input.CityServicePort;
@@ -65,6 +66,8 @@ class LifeSheetServiceTest {
     @Mock private CountryServicePort countryServicePort;
     @Mock private ClientSupervisorPort clientSupervisorPort;
     @Mock private ProtocolServicePort protocolServicePort;
+    /** La foto (V58): sin estubar devuelve vacío, que es un equipo sin foto. */
+    @Mock private EquipmentPhotoPersistencePort equipmentPhotoPersistencePort;
 
     @InjectMocks private LifeSheetService service;
 

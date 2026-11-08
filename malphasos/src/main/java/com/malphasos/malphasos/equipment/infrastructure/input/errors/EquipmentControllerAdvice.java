@@ -22,6 +22,7 @@ import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeEx
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.BrandRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ClientEquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentOverviewRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentPhotoRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeRestAdapter;
@@ -63,7 +64,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             // de vida y en su historial, porque sus errores no llegaban a este manejador.
             LifeSheetRestAdapter.class,
             InterventionRestAdapter.class,
-            EquipmentOverviewRestAdapter.class
+            EquipmentOverviewRestAdapter.class,
+            EquipmentPhotoRestAdapter.class
         })
 public class EquipmentControllerAdvice {
 

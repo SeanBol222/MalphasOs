@@ -118,7 +118,8 @@ public class LifeSheetRestAdapter {
                         hoja.identificacion().estadoActivo(),
                         hoja.identificacion().responsables(),
                         hoja.identificacion().telefonosCliente(),
-                        hoja.identificacion().correosCliente()),
+                        hoja.identificacion().correosCliente(),
+                        hoja.identificacion().foto()),
                 new LifeSheetResponse.Tecnica(
                         hoja.tecnica().tipoEquipo(),
                         hoja.tecnica().definicionTecnica(),

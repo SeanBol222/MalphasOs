@@ -317,7 +317,8 @@
         margin-top: 8px;
       }
 
-      /* El recuadro de la foto: aplazada el 2026-10-05 hasta decidir dónde se guardan los archivos. */
+      /* El recuadro de la foto: vacío hasta el 2026-11-08 (V58), y vacío todavía en un equipo sin ella. La
+         foto se recorta al cuadrado sin deformarse. */
       .hv-foto {
         display: flex;
         align-items: center;
@@ -330,6 +331,9 @@
         font-size: 12px;
         color: #605d5d;
         text-align: center;
+      }
+      img.hv-foto {
+        object-fit: cover;
       }
 
       .hv-rejilla {
@@ -594,7 +598,8 @@
         </div>
 
         <section class="hv-que-es">
-          <div class="hv-foto">Foto del equipo</div>
+          <div class="hv-foto" th:if="${hoja.foto == null}">Foto del equipo</div>
+          <img class="hv-foto" th:if="${hoja.foto != null}" th:src="${hoja.foto}" alt="Foto del equipo" />
           <div>
             <h2>Qué es</h2>
             <p th:text="${hoja.definicion}">—</p>

@@ -361,6 +361,20 @@
         },
         "type" : "object"
       },
+      "EquipmentPhotoResponse" : {
+        "properties" : {
+          "actualizada" : {
+            "description" : "Cuando se subio",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "imagen" : {
+            "description" : "La foto, PNG como data: URI",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "EquipmentResponse" : {
         "properties" : {
           "estadoActivo" : {
@@ -688,6 +702,10 @@
           },
           "fechaCompra" : {
             "format" : "date",
+            "type" : "string"
+          },
+          "foto" : {
+            "description" : "La foto del equipo, PNG como data: URI; nula si no tiene",
             "type" : "string"
           },
           "idEquipoCliente" : {
@@ -2529,6 +2547,173 @@
         },
         "summary" : "La hoja de vida en PDF",
         "tags" : [ "LifeSheet" ]
+      }
+    },
+    "/v1/api/client-equipments/{id}/photo" : {
+      "delete" : {
+        "description" : "La hoja de vida vuelve a mostrar el recuadro vacío. 404 si el equipo no existe.",
+        "operationId" : "removePhoto",
+        "parameters" : [ {
+          "description" : "Identificador del equipo instalado",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Quitar la foto",
+        "tags" : [ "EquipmentPhoto" ]
+      },
+      "patch" : {
+        "description" : "Solo PNG, de hasta 512 KB; el tipo se mira en los bytes. El navegador la reduce antes de subirla. 404 si el equipo no existe.",
+        "operationId" : "changePhoto",
+        "parameters" : [ {
+          "description" : "Identificador del equipo instalado",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "archivo" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "archivo" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentPhotoResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Poner o cambiar la foto",
+        "tags" : [ "EquipmentPhoto" ]
       }
     },
     "/v1/api/client-equipments/{id}/service-area/{idAreaServicio}" : {
@@ -5708,6 +5893,9 @@
     "url" : "http://localhost"
   } ],
   "tags" : [ {
+    "description" : "La foto de un equipo instalado, para su hoja de vida",
+    "name" : "EquipmentPhoto"
+  }, {
     "description" : "Gestion de tipos de equipo",
     "name" : "EquipmentType"
   }, {
@@ -5717,14 +5905,8 @@
     "description" : "Hoja de vida de un equipo instalado",
     "name" : "LifeSheet"
   }, {
-    "description" : "Magnitudes y unidades con las que se verifica",
-    "name" : "MetrologyCatalog"
-  }, {
     "description" : "Gestion de fabricantes de equipos",
     "name" : "Manufacturer"
-  }, {
-    "description" : "Listado de equipos instalados",
-    "name" : "EquipmentOverview"
   }, {
     "description" : "Inventario de equipos de los clientes",
     "name" : "ClientEquipment"
@@ -5732,16 +5914,22 @@
     "description" : "Asociacion entre marcas y tipos de equipo",
     "name" : "Equipment"
   }, {
-    "description" : "Historial de intervenciones de un equipo",
-    "name" : "Intervention"
-  }, {
-    "description" : "Gestion de marcas de equipos",
-    "name" : "Brand"
-  }, {
     "description" : "Catalogo de protocolos de mantenimiento preventivo",
     "name" : "Protocol"
   }, {
     "description" : "Catalogo de equipos patron",
     "name" : "ReferenceStandard"
+  }, {
+    "description" : "Magnitudes y unidades con las que se verifica",
+    "name" : "MetrologyCatalog"
+  }, {
+    "description" : "Listado de equipos instalados",
+    "name" : "EquipmentOverview"
+  }, {
+    "description" : "Historial de intervenciones de un equipo",
+    "name" : "Intervention"
+  }, {
+    "description" : "Gestion de marcas de equipos",
+    "name" : "Brand"
   } ]
 }
