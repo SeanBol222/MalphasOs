@@ -3053,6 +3053,26 @@ Dos mutaciones enseñaron algo: una regla de la pantalla —comparar los archivo
 elegidos— no podía actuar nunca, porque elegir otros ya borra el informe, y se quitó; y el reinicio de la
 confirmación cuando aplicar falla sin informe no tenía prueba. **840** pruebas en el frontend.
 
+## [2026-11-08] ingest | La red local y la versión 1.1.0 (tanda 7)
+
+Lo que el primer despliegue de la 1.0.0 resolvió a mano en el servidor del usuario, el 2026-11-03, entra
+al repositorio: **un `Caddyfile.red-local`** —`default_sni` con la IP y `tls internal`, que hacen falta las
+dos: con una IP Caddy no crea la política TLS de la que cuelga `default_sni`, y lo descarta sin avisar—,
+**los puertos de Caddy configurables** para un servidor con otro proxy en el 80 y el 443, y **el guion del
+SuperUsuario en minúsculas**. Las rutas pasaron a `rutas.caddy`, que importan los dos Caddyfile, y el
+compose monta la carpeta y no el archivo suelto, que un editor reemplaza y Docker deja de ver. Todo en
+`DESPLIEGUE.md`, sección «En la red local, sin dominio».
+
+**Probado con la imagen de Caddy por separado, no con la pila entera**: por IP, el de la red local da la
+conexión y el de dominio la corta como en el servidor; y el de dominio produce la misma configuración que
+antes del cambio, comparada en JSON. Que Keycloak, el backend y el frontend funcionan con una IP y un
+puerto en `MALPHASOS_DOMAIN` solo lo ha visto el servidor del usuario.
+
+Las versiones de los tres proyectos pasan a `1.1.0`, con su entrada en `CHANGELOG.md` y una nota para
+actualizar un servidor donde el compose o el Caddyfile se editaron a mano. **El tag lo pone el usuario**,
+tras una prueba más en local. Y **el servidor de la oficina se deja de lado**: la carga real irá a un
+servidor en línea que el usuario está alquilando, con un dominio, que es el caso principal de la guía.
+
 ## [2026-11-08] ingest | La foto de cada equipo, en su hoja de vida (`V58`)
 
 El recuadro de la foto llevaba vacío desde el 2026-10-05, a la espera de decidir dónde guardar archivos.
@@ -3069,3 +3089,5 @@ pruebas que construían la hoja de vida con un argumento de menos; borrar `targe
 destapó. **1725** pruebas en el backend y **868** en el frontend; la deuda abierta sube a **49**, con la
 de las imágenes que el almacén no borra.
 
+**Y entra en la 1.1.0**, decidido por el usuario el mismo día: no estaba en su plan, que era la carga de
+datos, y se añade como tanda 8 en [[hoja-de-ruta-producto]] y en `CHANGELOG.md`.

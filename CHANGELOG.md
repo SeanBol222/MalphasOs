@@ -3,6 +3,63 @@
 Lo que trae cada versión, para quien usa y despliega MalphasOS. El detalle de cada decisión y de cómo se
 construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/`.
 
+## [1.1.0] — 2026-11-08
+
+Traer los datos de la aplicación que la empresa usaba antes, con su historial, sin pasarlos a mano; la
+foto de cada equipo en su hoja de vida; y desplegar en la red local de una oficina, sin dominio, que es
+como se instaló la 1.0.0 por primera vez.
+
+### Importar datos de otro sistema
+
+- **Un formato publicado**, `malphasos-carga/1`, en `contracts/carga/`: el esquema, un ejemplo inventado
+  de cada archivo y la guía. MalphasOS no sabe nada del sistema de origen; el conversor vive a su lado.
+  Son **tres archivos**: el catálogo de la empresa con sus ingenieros, cada cliente con sus equipos, y el
+  historial de cada cliente.
+- **Administración › Importar datos**, solo para el SuperUsuario: se suben los archivos —se van
+  añadiendo, aunque estén en carpetas distintas, y se quita el que se eligió mal—, se **validan
+  sin escribir nada** y el informe dice cada error con su archivo y su ruta, los avisos y cuántos
+  registros entran y cuántos ya estaban. Se aplica tras una validación limpia, **todo o nada**.
+- **Lo que ya existe se reconoce y no se toca**, por su llave natural: se puede volver a subir el
+  catálogo con cada cliente. **Un historial no se carga dos veces.**
+- **El historial entra ejecutado y cerrado**: cada orden y cada informe con su documento, la firma
+  guardada del ingeniero y **el certificado del patrón que estaba vigente el día del servicio**, no el de
+  hoy. Antes de cargarlo, cada ingeniero tiene que estar en MalphasOS con su firma.
+
+### Equipos
+
+- **Cada equipo tiene su foto en la hoja de vida**: se pone desde la propia hoja de vida —se elige, en el
+  teléfono con la cámara; se arrastra; o se pega con Ctrl+V—, se encuadra moviéndola y acercándola en un
+  recuadro cuadrado, y se guarda en PNG de 400 px, de modo que una foto ocupa unos 60 a 180 KB. La ponen
+  quienes editan equipos: los ingenieros y los administradores. El PDF de la hoja de vida la imprime.
+- **Un equipo se registra aunque no traiga serie**: recibe una provisional, `P:` y el comienzo de su
+  identificador, que se reemplaza una vez por la de la placa desde la ficha del área.
+- **El voltaje del modelo admite decimales**: un equipo a pila es de 1,5 V.
+
+### Permisos
+
+- **Un administrador ya no ve las pantallas del SuperUsuario**, como el alta de ingenieros y
+  administradores, que le respondían «sin permiso». La pantalla y el servidor aplican ahora la misma
+  regla.
+
+### Despliegue
+
+- **En la red local, sin dominio**: un `Caddyfile` para entrar por la IP del servidor, con el certificado
+  de la autoridad propia de Caddy, y los puertos configurables para un servidor que ya tiene otro proxy en
+  el 80 y el 443. Se elige en `.env.prod`; cómo, y cómo confiar en el certificado desde cada equipo, en
+  `DESPLIEGUE.md`.
+- **El guion del primer SuperUsuario** pasa el nombre a minúsculas: con mayúsculas, dejaba el usuario
+  creado sin contraseña y sin rol.
+
+### Actualizar desde la 1.0.0
+
+- El backend aplica dos migraciones al arrancar: el voltaje decimal y la tabla de las fotos. No hay que
+  hacer nada con los datos: ningún equipo tiene foto hasta que se le pone.
+- **Si en el servidor se editaron a mano `docker-compose.prod.yaml` o `docker/caddy/Caddyfile`** —para
+  entrar por IP o cambiar los puertos—, esos cambios pasan ahora a `.env.prod`. Antes del `git pull` se
+  devuelven los dos archivos a como estaban (`git checkout -- docker-compose.prod.yaml
+  docker/caddy/Caddyfile`) y después se ponen en `.env.prod` las variables de la red local. La dirección
+  no cambia, así que el realm ya importado sigue valiendo.
+
 ## [1.0.0] — 2026-11-02
 
 La primera versión para producción: la gestión de clientes, equipos y mantenimientos de una empresa de
