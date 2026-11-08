@@ -165,14 +165,23 @@ services:
 
   caddy:
     image: caddy:2.10-alpine
+    # El Caddyfile se elige en .env.prod: el de un dominio, o el de la red local, que entra por IP
+    # (2026-11-08). Ver DESPLIEGUE.md.
+    command: caddy run --config /etc/caddy/${MALPHASOS_CADDYFILE:-Caddyfile} --adapter caddyfile
     environment:
       MALPHASOS_DOMAIN: ${MALPHASOS_DOMAIN}
+      MALPHASOS_IP: ${MALPHASOS_IP:-}
+    # Los puertos se pueden cambiar en .env.prod cuando el servidor ya tiene el 80 y el 443 ocupados por
+    # otro proxy. El de HTTPS tiene que ser el mismo dentro y fuera, y el mismo que lleve MALPHASOS_DOMAIN:
+    # Caddy escucha en el puerto que dice la direccion del sitio.
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "${MALPHASOS_HTTP_PORT:-80}:80"
+      - "${MALPHASOS_HTTPS_PORT:-443}:${MALPHASOS_HTTPS_PORT:-443}"
+      - "${MALPHASOS_HTTPS_PORT:-443}:${MALPHASOS_HTTPS_PORT:-443}/udp"
     volumes:
-      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # La carpeta y no un archivo suelto: los dos Caddyfile importan rutas.caddy, y un archivo montado
+      # suelto deja de verse cuando un editor lo reemplaza en lugar de escribir encima.
+      - ./docker/caddy:/etc/caddy:ro
       # Los certificados y la cuenta de Let's Encrypt: perderlos obliga a pedirlos otra vez, y hay un
       # limite de peticiones por semana.
       - caddy-data:/data

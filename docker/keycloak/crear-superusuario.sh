@@ -17,12 +17,25 @@ if [ "$#" -ne 4 ]; then
   exit 2
 fi
 
+# Keycloak guarda el nombre de usuario siempre en minusculas: con «superAdmin» creaba «superadmin», y los
+# dos pasos siguientes, que lo buscan por el nombre tal como se escribio, no lo encontraban. El guion se
+# detenia con el usuario creado y sin contrasena ni rol (2026-11-03, en el primer despliegue real). Se pasa
+# a minusculas aqui, para que los tres pasos usen el nombre que Keycloak guarda.
+USUARIO="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+# tr no pasa a minusculas una letra con tilde, y Keycloak si: con una «Ñ» volveria a quedar a medias.
+case "$USUARIO" in
+  *[!a-z0-9._-]*|'')
+    echo "El usuario solo puede llevar letras sin tilde, numeros, punto, guion y guion bajo: $1" >&2
+    exit 2
+    ;;
+esac
+
 ENV_FILE="${ENV_FILE:-.env.prod}"
 COMPOSE="docker compose -f docker-compose.prod.yaml --env-file $ENV_FILE"
 TEMPORAL="$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-16)"
 
 $COMPOSE exec -T \
-  -e NUEVO_USUARIO="$1" -e NUEVO_CORREO="$2" -e NUEVO_NOMBRE="$3" -e NUEVO_APELLIDO="$4" \
+  -e NUEVO_USUARIO="$USUARIO" -e NUEVO_CORREO="$2" -e NUEVO_NOMBRE="$3" -e NUEVO_APELLIDO="$4" \
   -e NUEVA_CLAVE="$TEMPORAL" \
   keycloak sh -eu -c '
     kc=/opt/keycloak/bin/kcadm.sh
@@ -36,5 +49,5 @@ $COMPOSE exec -T \
       --rolename super.admin.full
   '
 
-echo "SuperUsuario $1 creado. Contrasena temporal, que se cambia al primer inicio de sesion:"
+echo "SuperUsuario $USUARIO creado. Contrasena temporal, que se cambia al primer inicio de sesion:"
 echo "  $TEMPORAL"
