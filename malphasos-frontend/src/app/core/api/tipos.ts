@@ -5,6 +5,7 @@ import { components as equipos } from './equipment.contrato';
 import { components as ordenes } from './work-order.contrato';
 import { components as reportes } from './reports.contrato';
 import { components as compania } from './company.contrato';
+import { components as carga } from './data-load.contrato';
 
 /**
  * Nombres legibles para lo que el contrato genera.
@@ -526,3 +527,12 @@ export type Empresa = compania['schemas']['ServiceCompanyResponse'];
 /** La firma de quien llama, que copian los informes que cierra (V38, 2026-10-17). */
 export type MiFirma = personas['schemas']['PersonSignatureResponse'];
 export type DatosDeEmpresa = compania['schemas']['ServiceCompanyRequest'];
+
+/**
+ * El informe de una carga de datos (2026-11-08): lo que impide aplicarla, lo que conviene leer y, por
+ * sección, cuántos registros entran y cuántos ya estaban. Es la misma forma al validar y al aplicar, y
+ * también la del 422 de una carga rechazada.
+ */
+export type InformeDeCarga = carga['schemas']['DataLoadReportResponse'];
+export type ProblemaDeCarga = carga['schemas']['DataLoadProblemResponse'];
+export type SeccionDeCarga = carga['schemas']['DataLoadSectionResponse'];
