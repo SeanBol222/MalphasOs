@@ -10,6 +10,8 @@ import com.malphasos.malphasos.dataload.application.model.ExistingRecords;
 import com.malphasos.malphasos.dataload.application.model.SectionCount;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
 import com.malphasos.malphasos.dataload.infrastructure.output.format.JsonSchemaLoadFormatAdapter;
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -31,11 +33,18 @@ class DataLoadServiceTest {
         }
     };
 
-    private static final ExistingRecords NADA = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(),
-            List.of(), List.of(), List.of(), List.of());
+    /** La cédula del ingeniero de las órdenes del ejemplo. */
+    private static final String INGENIERO = "1000000001";
 
-    /** Lo que MalphasOS ya tiene en cada prueba: nada, salvo que la prueba lo cambie. */
-    private ExistingRecords existentes = NADA;
+    /**
+     * Lo que hay cuando se sube un historial: el catálogo se cargó solo antes, y su ingeniero recibió cuenta y
+     * guardó su firma. Nada más.
+     */
+    private static final ExistingRecords SOLO_EL_INGENIERO = new ExistingRecords(List.of(), List.of(), List.of(),
+            List.of(), List.of(), List.of(), List.of(INGENIERO), List.of(), List.of(), List.of(INGENIERO));
+
+    /** Lo que MalphasOS ya tiene en cada prueba: solo el ingeniero, salvo que la prueba lo cambie. */
+    private ExistingRecords existentes = SOLO_EL_INGENIERO;
 
     private final DataLoadService servicio = new DataLoadService(new JsonSchemaLoadFormatAdapter(), UBICACION,
             () -> existentes);
@@ -59,7 +68,7 @@ class DataLoadServiceTest {
     private static final DataLoadFile HISTORIAL = EjemplosDeCarga.archivo(EjemplosDeCarga.HISTORIAL);
 
     @Test
-    @DisplayName("los tres ejemplos juntos son una carga valida, que en un MalphasOS vacio lo crea todo")
+    @DisplayName("los tres ejemplos juntos son una carga valida, que con solo su ingeniero en MalphasOS crea lo demas")
     void losTresEjemplos() {
         DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL));
 
@@ -68,8 +77,10 @@ class DataLoadServiceTest {
         assertThat(informe.resumen()).extracting(SectionCount::seccion).containsExactly("marcas", "fabricantes",
                 "protocolos", "tiposEquipo", "modelos", "patrones", "personas", "clientes", "sedes", "areas", "equipos",
                 "ordenes", "reportes");
-        assertThat(informe.resumen()).allSatisfy(s -> assertThat(s.existentes()).isZero());
-        assertThat(nuevos(informe, "personas")).isEqualTo(2);
+        assertThat(informe.resumen()).filteredOn(s -> !s.seccion().equals("personas"))
+                .allSatisfy(s -> assertThat(s.existentes()).isZero());
+        assertThat(nuevos(informe, "personas")).isEqualTo(1);
+        assertThat(yaEstan(informe, "personas")).isEqualTo(1);
         assertThat(nuevos(informe, "reportes")).isEqualTo(3);
     }
 
@@ -271,6 +282,87 @@ class DataLoadServiceTest {
             assertThat(e.ruta()).isEqualTo("/catalogo/patrones/1/serie");
             assertThat(e.mensaje()).contains("catalogo.json, /catalogo/patrones/0/serie");
         });
+    }
+
+    private DataLoadReport conClienteQueYaTieneOrdenes(String documento, String... fechas) {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(INGENIERO),
+                List.of(new ExistingRecords.ExistingClient(documento, List.of(),
+                        Arrays.stream(fechas).map(LocalDate::parse).toList())),
+                List.of(), List.of(INGENIERO));
+        return servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL));
+    }
+
+    private static List<DataLoadProblem> deLasOrdenes(DataLoadReport informe) {
+        return informe.errores().stream().filter(e -> e.ruta() != null && e.ruta().startsWith("/ordenes")).toList();
+    }
+
+    @Test
+    @DisplayName("un historial en un dia en que su cliente ya tiene una orden se rechaza: ya se cargo")
+    void historialEnFechaOcupada() {
+        DataLoadReport informe = conClienteQueYaTieneOrdenes("900000001-1", "2025-05-02");
+
+        assertThat(deLasOrdenes(informe)).singleElement().satisfies(e -> {
+            assertThat(e.archivo()).isEqualTo(EjemplosDeCarga.HISTORIAL);
+            assertThat(e.ruta()).isEqualTo("/ordenes/1");
+            assertThat(e.mensaje()).contains("Clínica Los Almendros").contains("2025-05-02").contains("no se carga dos veces")
+                    .doesNotContain("otras");
+        });
+    }
+
+    @Test
+    @DisplayName("si chocan varias ordenes se dice la primera y cuantas mas, en un solo error")
+    void historialConVariasFechasOcupadas() {
+        DataLoadReport informe = conClienteQueYaTieneOrdenes("900000001-1", "2025-05-02", "2025-03-10");
+
+        assertThat(deLasOrdenes(informe)).singleElement().satisfies(e -> {
+            assertThat(e.ruta()).isEqualTo("/ordenes/0");
+            assertThat(e.mensaje()).contains("2025-03-10").contains("otras 1 órdenes");
+        });
+    }
+
+    @Test
+    @DisplayName("las ordenes de otro dia, o de otro cliente en el mismo dia, no ocupan la fecha")
+    void fechaLibre() {
+        assertThat(deLasOrdenes(conClienteQueYaTieneOrdenes("900000001-1", "2025-03-11", "2025-05-01"))).isEmpty();
+        assertThat(deLasOrdenes(conClienteQueYaTieneOrdenes("800000002-2", "2025-03-10", "2025-05-02"))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("el ingeniero que no esta en MalphasOS rechaza el historial, una vez por ingeniero")
+    void ingenieroQueNoEsta() {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(), List.of());
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL));
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.ruta()).isEqualTo("/ordenes/0/ingeniero");
+            assertThat(e.mensaje()).contains("«per-ing-1»").contains("todavía no está en MalphasOS")
+                    .contains("Lo nombran 2 órdenes");
+        });
+    }
+
+    @Test
+    @DisplayName("el ingeniero sin firma guardada rechaza el historial: el reporte se congela al cargar")
+    void ingenieroSinFirma() {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(INGENIERO),
+                List.of(), List.of(), List.of("1000000002"));
+
+        assertThat(servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL)).errores()).singleElement()
+                .extracting(DataLoadProblem::mensaje).asString().contains("no tiene su firma guardada");
+    }
+
+    @Test
+    @DisplayName("una orden la hace un ingeniero: un administrador con firma no vale")
+    void ingenieroQueNoEsIngeniero() {
+        String catalogo = EjemplosDeCarga.texto(EjemplosDeCarga.CATALOGO);
+        String conAdmin = catalogo.replace("\"tipo\": \"ENGINEER\"", "\"tipo\": \"ADMIN\"");
+        assertThat(conAdmin).describedAs("El ejemplo tiene que traer un ingeniero").isNotEqualTo(catalogo);
+
+        DataLoadReport informe = servicio.validate(List.of(EjemplosDeCarga.archivo("catalogo.json", conAdmin), CLIENTE, HISTORIAL));
+
+        assertThat(informe.errores()).singleElement().extracting(DataLoadProblem::mensaje).asString()
+                .contains("no es ingeniero").contains("ADMIN");
     }
 
     @Test

@@ -5,6 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
 import com.malphasos.malphasos.dataload.application.model.ExistingRecords;
+import com.malphasos.malphasos.person.application.ports.output.PersonSignaturePersistencePort;
+import com.malphasos.malphasos.person.domain.person.PersonSignature;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,13 +32,18 @@ import org.springframework.test.context.jdbc.Sql;
         statements = {
             "DELETE FROM equipo_cliente WHERE k_serie LIKE 'CARGA-%'",
             "DELETE FROM modelo WHERE n_nombre_modelo LIKE 'Carga %'",
-            "DELETE FROM equipo_patron WHERE k_serie LIKE 'CARGA-%'"
+            "DELETE FROM equipo_patron WHERE k_serie LIKE 'CARGA-%'",
+            "DELETE FROM firma_persona WHERE k_identificador IN (SELECT k_identificador FROM persona WHERE n_primer_nombre = 'Carga')",
+            "DELETE FROM persona WHERE n_primer_nombre = 'Carga'"
         },
         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class ExistingRecordsAdapterTest {
 
     @Autowired private ExistingRecordsAdapter adaptador;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private PersonSignaturePersistencePort firmas;
+
+    private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 7};
 
     private static String unico() {
         return String.format("%010d", Math.floorMod(System.nanoTime(), 10_000_000_000L));
@@ -74,6 +84,14 @@ class ExistingRecordsAdapterTest {
         jdbcTemplate.update("INSERT INTO equipo_cliente (k_id_equipo_cliente, k_serie, k_id_modelo, k_id_area_servicio) VALUES (?, ?, ?, ?)",
                 UUID.randomUUID(), "CARGA-" + u, modelo, area);
 
+        jdbcTemplate.update("""
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede, f_fecha_mantenimiento, n_periodicidad, t_tipo_servicio)
+                VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO')""", UUID.randomUUID(), sede, LocalDate.of(2025, 3, 10));
+        jdbcTemplate.update("""
+                INSERT INTO orden_trabajo (k_id_orden_trabajo, k_id_sede, f_fecha_mantenimiento, n_periodicidad,
+                                           t_tipo_servicio, b_estado_activo)
+                VALUES (?, ?, ?, 'MENSUAL', 'PREVENTIVO', false)""", UUID.randomUUID(), sede, LocalDate.of(2025, 4, 1));
+
         ExistingRecords existentes = adaptador.read();
 
         ExistingRecords.ModelName nombre = new ExistingRecords.ModelName("Tipo " + u, "Marca " + u, "Carga " + u);
@@ -82,8 +100,35 @@ class ExistingRecordsAdapterTest {
         assertThat(existentes.marcas()).contains("Marca " + u);
         assertThat(existentes.tiposEquipo()).contains("Tipo " + u);
         assertThat(existentes.fabricantes()).contains("Fabricante " + u);
-        assertThat(existentes.clientes()).contains(new ExistingRecords.ExistingClient(u,
-                java.util.List.of(new ExistingRecords.ExistingSite("Sede " + u, java.util.List.of("Area " + u)))));
+        assertThat(existentes.clientes()).describedAs("con el día de su orden activa, y no el de la cancelada")
+                .contains(new ExistingRecords.ExistingClient(u,
+                        List.of(new ExistingRecords.ExistingSite("Sede " + u, List.of("Area " + u))),
+                        List.of(LocalDate.of(2025, 3, 10))));
+    }
+
+    private String unaPersona(String tipo, boolean conFirma) {
+        UUID id = UUID.randomUUID();
+        String cedula = unico();
+        jdbcTemplate.update("""
+                INSERT INTO persona (k_identificador, k_cedula, n_primer_nombre, n_primer_apellido, t_tipo_persona)
+                VALUES (?, ?, 'Carga', 'Prueba', ?)""", id, cedula, tipo);
+        if (conFirma) {
+            firmas.save(id, new PersonSignature(PNG, LocalDateTime.of(2026, 11, 7, 9, 0)));
+        }
+        return cedula;
+    }
+
+    @Test
+    @DisplayName("con firma cuentan solo los ingenieros que la guardaron: un supervisor con firma no hace una orden")
+    void lasFirmas() {
+        String conFirma = unaPersona("ENGINEER", true);
+        String sinFirma = unaPersona("ENGINEER", false);
+        String supervisor = unaPersona("SUPERVISOR", true);
+
+        ExistingRecords existentes = adaptador.read();
+
+        assertThat(existentes.cedulas()).contains(conFirma, sinFirma, supervisor);
+        assertThat(existentes.cedulasConFirma()).contains(conFirma).doesNotContain(sinFirma, supervisor);
     }
 
     @Test

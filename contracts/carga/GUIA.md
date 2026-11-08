@@ -41,7 +41,9 @@ resuelven dentro de la carga.
 2. **Cargar el catálogo solo**, primero. Así entran los ingenieros.
 3. **Dar acceso a los ingenieros** con «Dar acceso» y que **cada uno guarde su firma** en su cuenta. Los
    reportes del historial se cierran con la firma guardada del ingeniero de la orden, como cualquier
-   cierre: el que no la tenga guardada al cargar queda sin ella.
+   cierre, y **un historial cuyo ingeniero no la tenga se rechaza**: el reporte se congela al cargar, y
+   uno congelado no la recibiría después. También se rechaza si el ingeniero no está aún en MalphasOS o
+   si la persona de la orden no es ingeniero.
 4. **Por cada cliente, subir juntos** el catálogo, su archivo y su historial. MalphasOS los **valida**
    sin escribir nada y devuelve un informe: cuántos registros de cada sección entrarían, cuántos se
    ignoran porque ya existen y cada error con su ruta —`ordenes[3].reportes[0].equipo: la ref «eq-2789»

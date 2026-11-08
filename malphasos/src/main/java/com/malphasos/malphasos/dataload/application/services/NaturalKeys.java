@@ -5,6 +5,7 @@ import com.malphasos.malphasos.dataload.application.model.ExistingRecords;
 import com.malphasos.malphasos.dataload.application.model.LoadDocument;
 import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.dataload.application.model.SectionCount;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -20,7 +21,11 @@ import java.util.stream.Collectors;
  *
  * <p>Las órdenes y los reportes no tienen llave natural y siempre son nuevos. Un equipo sin serie
  * tampoco la tiene: de un cliente nuevo entra con serie provisional, y de uno que ya existía se rechaza,
- * porque no hay con qué saber si ya está.
+ * porque no hay con qué saber si ya está. Por eso también un historial no entra en días en que su
+ * cliente ya tiene órdenes: sería la misma carga dos veces.
+ *
+ * <p>Y el ingeniero de cada orden tiene que estar ya en MalphasOS, como ingeniero y con su firma
+ * guardada: el reporte se congela al cargar, y uno congelado sin firma no la recibe nunca.
  */
 final class NaturalKeys {
 
@@ -56,8 +61,12 @@ final class NaturalKeys {
         Map<String, String> nombrePorRef = new HashMap<>();
         Map<String, ExistingRecords.ModelName> modeloPorRef = new HashMap<>();
         Map<String, LoadDocument.Client> clientePorArea = new HashMap<>();
+        Map<String, LoadDocument.Client> clientePorRef = new HashMap<>();
+        Map<String, LoadDocument.Person> personaPorRef = new HashMap<>();
         for (ReadFile archivo : archivos) {
             LoadDocument.Catalog catalogo = archivo.documento().catalogo();
+            archivo.documento().personas().forEach(p -> personaPorRef.put(p.ref(), p));
+            archivo.documento().clientes().forEach(c -> clientePorRef.put(c.ref(), c));
             catalogo.marcas().forEach(m -> nombrePorRef.put(m.ref(), m.nombre()));
             catalogo.tiposEquipo().forEach(t -> nombrePorRef.put(t.ref(), t.nombre()));
             for (LoadDocument.Client cliente : archivo.documento().clientes()) {
@@ -115,11 +124,74 @@ final class NaturalKeys {
             documento.ordenes().forEach(o -> contar("reportes", o.reportes(), r -> false));
         }
 
+        Set<String> conFirma = existentes.cedulasConFirma().stream().map(String::trim).collect(Collectors.toSet());
+        for (ReadFile archivo : archivos) {
+            fechasOcupadas(archivo, clientePorRef, clientes);
+            ingenieros(archivo, personaPorRef, cedulas, conFirma);
+        }
+
         if (sinSerie > 0) {
             avisos.add(DataLoadProblem.of(null, sinSerie == 1
                     ? "Un equipo entra sin serie y recibirá una provisional, P: y el comienzo de su identificador"
                     : sinSerie + " equipos entran sin serie y recibirán una provisional, P: y el comienzo de su identificador"));
         }
+    }
+
+    /** Una orden del historial en un día en que su cliente ya tiene otra: se dice la primera y cuántas son. */
+    private void fechasOcupadas(ReadFile archivo, Map<String, LoadDocument.Client> clientePorRef,
+            Map<String, ExistingRecords.ExistingClient> clientes) {
+        LoadDocument documento = archivo.documento();
+        LoadDocument.Client cliente = documento.cliente() == null ? null : clientePorRef.get(documento.cliente());
+        ExistingRecords.ExistingClient yaEsta = cliente == null ? null : clientes.get(cliente.documento().trim());
+        if (yaEsta == null) {
+            return;
+        }
+        Set<LocalDate> ocupadas = Set.copyOf(yaEsta.fechasDeOrdenes());
+        List<Integer> chocan = new ArrayList<>();
+        for (int i = 0; i < documento.ordenes().size(); i++) {
+            if (ocupadas.contains(documento.ordenes().get(i).fecha())) {
+                chocan.add(i);
+            }
+        }
+        if (chocan.isEmpty()) {
+            return;
+        }
+        LoadDocument.Order primera = documento.ordenes().get(chocan.getFirst());
+        errores.add(new DataLoadProblem(archivo.nombre(), "/ordenes/" + chocan.getFirst(), "El cliente «"
+                + cliente.razonSocial() + "» ya tiene una orden el " + primera.fecha()
+                + (chocan.size() > 1 ? ", y otras " + (chocan.size() - 1) + " órdenes de este historial caen en días con órdenes suyas" : "")
+                + ": parece que este historial ya se cargó. Un historial no se carga dos veces"));
+    }
+
+    /** Cada ingeniero se dice una vez, en la primera orden que lo nombra, con cuántas lo nombran. */
+    private void ingenieros(ReadFile archivo, Map<String, LoadDocument.Person> personaPorRef, Set<String> cedulas,
+            Set<String> conFirma) {
+        Map<String, List<Integer>> ordenesPorIngeniero = new LinkedHashMap<>();
+        List<LoadDocument.Order> ordenes = archivo.documento().ordenes();
+        for (int i = 0; i < ordenes.size(); i++) {
+            ordenesPorIngeniero.computeIfAbsent(ordenes.get(i).ingeniero(), r -> new ArrayList<>()).add(i);
+        }
+        ordenesPorIngeniero.forEach((ref, indices) -> {
+            LoadDocument.Person persona = personaPorRef.get(ref);
+            if (persona == null) {
+                return; // la ref sin destino ya es un error de las refs
+            }
+            String problema;
+            if (!"ENGINEER".equals(persona.tipo())) {
+                problema = "no es ingeniero: el tipo de la persona es " + persona.tipo();
+            } else if (!cedulas.contains(persona.cedula().trim())) {
+                problema = "todavía no está en MalphasOS. El catálogo se carga primero, solo, y el ingeniero recibe"
+                        + " su cuenta y guarda su firma antes del historial";
+            } else if (!conFirma.contains(persona.cedula().trim())) {
+                problema = "no tiene su firma guardada. La guarda en su cuenta antes del historial: el reporte se"
+                        + " congela al cargar y no la recibiría después";
+            } else {
+                return;
+            }
+            errores.add(new DataLoadProblem(archivo.nombre(), "/ordenes/" + indices.getFirst() + "/ingeniero",
+                    "El ingeniero «" + ref + "» " + problema
+                    + (indices.size() > 1 ? ". Lo nombran " + indices.size() + " órdenes de este historial" : "")));
+        });
     }
 
     private <T> void contar(String seccion, List<T> registros, Predicate<T> existe) {

@@ -25,7 +25,12 @@ import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.equipment.domain.protocol.Protocol;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
 import com.malphasos.malphasos.person.application.ports.output.PersonPersistencePort;
+import com.malphasos.malphasos.person.application.ports.output.PersonSignaturePersistencePort;
 import com.malphasos.malphasos.person.domain.person.Person;
+import com.malphasos.malphasos.person.domain.person.PersonType;
+import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderPersistencePort;
+import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -52,6 +57,8 @@ public class ExistingRecordsAdapter implements ExistingRecordsPort {
     private final ReferenceStandardPersistencePort patrones;
     private final ClientEquipmentPersistencePort equipos;
     private final PersonPersistencePort personas;
+    private final PersonSignaturePersistencePort firmas;
+    private final WorkOrderPersistencePort ordenes;
     private final ClientPersistencePort clientes;
     private final HeadquarterPersistencePort sedes;
     private final ServiceAreaPersistencePort areas;
@@ -76,6 +83,10 @@ public class ExistingRecordsAdapter implements ExistingRecordsPort {
                 .collect(Collectors.groupingBy(ServiceArea::getIdSede));
         Map<UUID, List<Headquarter>> sedesPorCliente = sedes.findAll().stream().filter(Headquarter::isEstadoActivo)
                 .collect(Collectors.groupingBy(Headquarter::getIdCliente));
+        Map<UUID, List<LocalDate>> fechasPorCliente = ordenes.findAll().stream().filter(WorkOrder::isEstadoActivo)
+                .collect(Collectors.groupingBy(WorkOrder::getIdCliente,
+                        Collectors.mapping(WorkOrder::getFechaMantenimiento, Collectors.toList())));
+        List<Person> activas = personas.findAll().stream().filter(Person::isEstadoActivo).toList();
 
         return new ExistingRecords(
                 List.copyOf(marcaPorId.values()),
@@ -84,16 +95,19 @@ public class ExistingRecordsAdapter implements ExistingRecordsPort {
                 List.copyOf(tipoPorId.values()),
                 List.copyOf(modeloPorId.values()),
                 patrones.findAll().stream().filter(ReferenceStandard::isEstadoActivo).map(ReferenceStandard::getSerie).toList(),
-                personas.findAll().stream().filter(Person::isEstadoActivo).map(Person::getCedula).toList(),
+                activas.stream().map(Person::getCedula).toList(),
                 clientes.findAll().stream().filter(Client::isEstadoActivo).map(c -> new ExistingRecords.ExistingClient(
                         c.getDocumento(), sedesPorCliente.getOrDefault(c.getId(), List.of()).stream()
                                 .map(s -> new ExistingRecords.ExistingSite(s.getNombre(), areasPorSede
                                         .getOrDefault(s.getId(), List.of()).stream().map(ServiceArea::getNombre).toList()))
-                                .toList()))
+                                .toList(), fechasPorCliente.getOrDefault(c.getId(), List.of())))
                         .toList(),
                 equipos.findAll().stream().filter(ClientEquipment::isEstadoActivo)
                         .filter(e -> modeloPorId.containsKey(e.getIdModelo()))
                         .map(e -> new ExistingRecords.EquipmentName(modeloPorId.get(e.getIdModelo()), e.getSerie()))
-                        .toList());
+                        .toList(),
+                // Solo los ingenieros, que son los que una orden nombra: una consulta por cada uno.
+                activas.stream().filter(p -> p.getTipoPersona() == PersonType.ENGINEER)
+                        .filter(p -> firmas.find(p.getIdentificador()).isPresent()).map(Person::getCedula).toList());
     }
 }
