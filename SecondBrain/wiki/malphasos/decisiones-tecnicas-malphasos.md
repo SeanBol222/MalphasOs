@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-11-08
+updated: 2026-11-16
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -827,3 +827,38 @@ cierto, y el aviso está fuera del PDF. Aceptado por el usuario: es lo que deja 
   respondía un 409 sin informe, porque el advice global ganaba por la causa; ver
   [[stack-spring-boot-4-particularidades]]. Es el precio anunciado arriba —`rehydrate` no valida—, y se
   paga como estaba previsto: lo que se escapa lo para la base, todo o nada, y la regla sube al esquema.
+
+## Una sola carga para todo un sistema (2026-11-16)
+
+**Decisión del usuario**, al cargar el catálogo de dieciséis clientes: «eso de primero el catálogo y luego
+meter otra vez el catálogo y los clientes está muy mal». Con la regla de que una `ref` solo enlaza dentro
+de una carga y la de que un ingeniero tenía que tener **guardada** su firma, cargar un sistema entero eran
+dieciocho pasos: el catálogo solo, las firmas —a mano, por SQL en desarrollo—, y cada cliente con el
+catálogo otra vez. Ahora es **una carga**: validar y aplicar.
+
+- **Una carga lleva el catálogo y cualquier número de clientes con su historial.** Como mucho un
+  catálogo, y cada cliente —por su documento— y cada historial —por su cliente— una vez; repetido
+  cualquiera de los tres, no se miran las `ref` ni las reglas, que saldrían duplicadas.
+- **Sueltos o en un ZIP**, que el servicio abre antes de validar —`LoadPackage`—: cada archivo se nombra
+  por su ruta dentro del ZIP, que es como el informe y la pantalla los agrupan. Se ignora lo que no es
+  `.json`, con un aviso, y los metadatos de un Mac en silencio. Con tope: 500 archivos y 200 MB
+  descomprimidos, porque un ZIP pequeño puede abrirse en gigas. **Se abre en la aplicación y no en el
+  adaptador REST** para que un ZIP roto sea un error del informe y no una excepción.
+- **La firma del ingeniero puede venir en la carga**, en `personas[].firma`, un PNG en base64. La valida el
+  mismo `PersonSignature` que guarda la de una cuenta —PNG y 256 KB—, y solo la lleva la gente de la casa.
+  **La que ya está guardada manda**: la carga no la sustituye. Con esto la regla del ingeniero sin firma
+  sigue entera —el reporte se congela al cargar—, y deja de exigir que el ingeniero ya esté en MalphasOS.
+- **Tres reglas que la base imponía y la validación no veía**, encontradas con la carga real: dos equipos
+  con el mismo modelo y la misma serie (`UQ_equipo_cliente_serie_por_modelo` es de toda la base, no por
+  cliente), uno de la carga con los de un equipo que **ya es de otro cliente** —la carga lo tomaba por
+  ese, y el historial habría quedado en el cliente equivocado, sin error—, y dos reportes del mismo equipo
+  en una orden (`UQ_reporte_servicio_activo`). Las tres se rechazan al validar; la segunda era un defecto
+  que existía desde el 2026-11-07, y lo habría producido cargar uno tras otro dos clientes que compartían un
+  termómetro.
+- **Aplicar sigue siendo una petición**, y se midió antes de decidirlo: la carga real —16 clientes, 1253
+  equipos, 3827 reportes— **tardaba 686 s**, y el costo crecía con el cuadrado: con todo en una
+  transacción, cada consulta intermedia vaciaba el contexto de persistencia revisando todas las entidades
+  acumuladas. `HistoryWriter` lo vacía y lo suelta cada 25 registros y `LoadWriterAdapter` tras cada
+  historial, y tarda **53 s** (67 s con tramos de 100). Se puede soltar porque entre un registro y otro la
+  carga solo guarda agregados e identificadores, no entidades. Por debajo del minuto no hacía falta un
+  trabajo en segundo plano con su avance, que era la alternativa.

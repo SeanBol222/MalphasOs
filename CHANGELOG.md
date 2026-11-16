@@ -13,17 +13,21 @@ como se instaló la 1.0.0 por primera vez.
 
 - **Un formato publicado**, `malphasos-carga/1`, en `contracts/carga/`: el esquema, un ejemplo inventado
   de cada archivo y la guía. MalphasOS no sabe nada del sistema de origen; el conversor vive a su lado.
-  Son **tres archivos**: el catálogo de la empresa con sus ingenieros, cada cliente con sus equipos, y el
-  historial de cada cliente.
+  Son el catálogo de la empresa con sus ingenieros —y la firma de cada uno—, cada cliente con sus
+  equipos, y el historial de cada cliente, **todos en una sola carga**: sueltos o en **un ZIP**, que es
+  lo que conviene que entregue el conversor.
 - **Administración › Importar datos**, solo para el SuperUsuario: se suben los archivos —se van
   añadiendo, aunque estén en carpetas distintas, y se quita el que se eligió mal—, se **validan
-  sin escribir nada** y el informe dice cada error con su archivo y su ruta, los avisos y cuántos
+  sin escribir nada** y el informe agrupa los errores y avisos por archivo, con su ruta, y dice cuántos
   registros entran y cuántos ya estaban. Se aplica tras una validación limpia, **todo o nada**.
-- **Lo que ya existe se reconoce y no se toca**, por su llave natural: se puede volver a subir el
-  catálogo con cada cliente. **Un historial no se carga dos veces.**
+- **Lo que ya existe se reconoce y no se toca**, por su llave natural: un cliente que se carga después
+  se sube con el catálogo otra vez. **Un historial no se carga dos veces.** Y la validación rechaza lo
+  que la base rechazaría al aplicar: dos equipos con el mismo modelo y la misma serie, uno que ya es de
+  otro cliente, y dos reportes del mismo equipo en una orden.
 - **El historial entra ejecutado y cerrado**: cada orden y cada informe con su documento, la firma
-  guardada del ingeniero y **el certificado del patrón que estaba vigente el día del servicio**, no el de
-  hoy. Antes de cargarlo, cada ingeniero tiene que estar en MalphasOS con su firma.
+  del ingeniero y **el certificado del patrón que estaba vigente el día del servicio**, no el de hoy. La
+  firma puede estar guardada en su cuenta o venir en la carga; la guardada manda. La carga real de
+  dieciséis clientes —3827 informes— se aplica en menos de un minuto.
 
 ### Equipos
 
