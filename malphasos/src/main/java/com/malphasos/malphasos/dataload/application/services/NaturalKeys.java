@@ -24,8 +24,12 @@ import java.util.stream.Collectors;
  * porque no hay con qué saber si ya está. Por eso también un historial no entra en días en que su
  * cliente ya tiene órdenes: sería la misma carga dos veces.
  *
- * <p>Y el ingeniero de cada orden tiene que estar ya en MalphasOS, como ingeniero y con su firma
- * guardada: el reporte se congela al cargar, y uno congelado sin firma no la recibe nunca.
+ * <p>Un modelo y una serie son de un solo equipo en toda la base, no por cliente: dos equipos de la carga
+ * con los mismos se rechazan, y uno que ya es de otro cliente también, porque la carga lo tomaría por el
+ * mismo equipo y el historial quedaría en el cliente equivocado.
+ *
+ * <p>Y el ingeniero de cada orden tiene firma, guardada en MalphasOS o en la carga: el reporte se congela
+ * al cargar, y uno congelado sin firma no la recibe nunca.
  */
 final class NaturalKeys {
 
@@ -54,8 +58,9 @@ final class NaturalKeys {
         Set<String> cedulas = existentes.cedulas().stream().map(String::trim).collect(Collectors.toSet());
         Map<String, ExistingRecords.ExistingClient> clientes = existentes.clientes().stream()
                 .collect(Collectors.toMap(c -> c.documento().trim(), c -> c, (a, b) -> a));
-        Set<String> equipos = existentes.equipos().stream().filter(e -> e.serie() != null)
-                .map(e -> clave(e.modelo()) + "|" + Names.plano(e.serie())).collect(Collectors.toSet());
+        Map<String, ExistingRecords.EquipmentName> equipos = existentes.equipos().stream().filter(e -> e.serie() != null)
+                .collect(Collectors.toMap(e -> clave(e.modelo()) + "|" + Names.plano(e.serie()), e -> e, (a, b) -> a));
+        Map<String, String> equiposDeLaCarga = new HashMap<>();
 
         // Lo que cada ref nombra, en toda la carga: un equipo nombra su modelo, el modelo su tipo y su marca.
         Map<String, String> nombrePorRef = new HashMap<>();
@@ -89,6 +94,8 @@ final class NaturalKeys {
             contar("modelos", catalogo.modelos(), m -> modelos.contains(clave(modeloPorRef.get(m.ref()))));
             contar("patrones", catalogo.patrones(), p -> series.contains(Names.plano(p.serie())));
             contar("personas", documento.personas(), p -> cedulas.contains(p.cedula().trim()));
+            contar("firmas", documento.personas().stream().filter(p -> p.firma() != null).toList(),
+                    p -> conFirmaGuardada(p));
 
             for (LoadDocument.Client cliente : documento.clientes()) {
                 ExistingRecords.ExistingClient yaEsta = clientes.get(cliente.documento().trim());
@@ -104,12 +111,27 @@ final class NaturalKeys {
 
             for (int i = 0; i < documento.equipos().size(); i++) {
                 LoadDocument.Equipment equipo = documento.equipos().get(i);
+                LoadDocument.Client cliente = clientePorArea.get(equipo.area());
                 if (equipo.serie() != null) {
-                    contar("equipos", List.of(equipo),
-                            e -> equipos.contains(clave(modeloPorRef.get(e.modelo())) + "|" + Names.plano(e.serie())));
+                    String llave = clave(modeloPorRef.get(equipo.modelo())) + "|" + Names.plano(equipo.serie());
+                    String ruta = "/equipos/" + i + "/serie";
+                    String otro = equiposDeLaCarga.putIfAbsent(llave, archivo.nombre() + ", " + ruta);
+                    ExistingRecords.EquipmentName queEsta = equipos.get(llave);
+                    if (otro != null) {
+                        errores.add(new DataLoadProblem(archivo.nombre(), ruta, "El equipo «" + equipo.ref()
+                                + "» tiene el mismo modelo y la misma serie, «" + equipo.serie() + "», que el de " + otro
+                                + ". En MalphasOS un modelo y una serie son de un solo equipo: si son dos, a uno se le"
+                                + " quita la serie en el archivo y recibe la provisional"));
+                    } else if (queEsta != null && queEsta.documentoCliente() != null && cliente != null
+                            && !queEsta.documentoCliente().trim().equals(cliente.documento().trim())) {
+                        errores.add(new DataLoadProblem(archivo.nombre(), ruta, "El equipo «" + equipo.ref()
+                                + "» tiene el modelo y la serie, «" + equipo.serie() + "», de un equipo que ya es del"
+                                + " cliente " + queEsta.documentoCliente() + ": la carga lo tomaría por ese, y su historial"
+                                + " quedaría en otro cliente. Se le quita la serie en el archivo, o se corrige"));
+                    }
+                    contar("equipos", List.of(equipo), e -> queEsta != null);
                     continue;
                 }
-                LoadDocument.Client cliente = clientePorArea.get(equipo.area());
                 if (cliente != null && clientes.containsKey(cliente.documento().trim())) {
                     errores.add(new DataLoadProblem(archivo.nombre(), "/equipos/" + i, "El equipo «" + equipo.ref()
                             + "» no tiene serie y su cliente ya está en MalphasOS: sin serie no hay con qué saber si ya está."
@@ -124,10 +146,9 @@ final class NaturalKeys {
             documento.ordenes().forEach(o -> contar("reportes", o.reportes(), r -> false));
         }
 
-        Set<String> conFirma = existentes.cedulasConFirma().stream().map(String::trim).collect(Collectors.toSet());
         for (ReadFile archivo : archivos) {
             fechasOcupadas(archivo, clientePorRef, clientes);
-            ingenieros(archivo, personaPorRef, cedulas, conFirma);
+            ingenieros(archivo, personaPorRef);
         }
 
         if (sinSerie > 0) {
@@ -163,9 +184,13 @@ final class NaturalKeys {
                 + ": parece que este historial ya se cargó. Un historial no se carga dos veces"));
     }
 
+    /** Ya tiene firma en MalphasOS: la de la carga no la sustituye. */
+    private boolean conFirmaGuardada(LoadDocument.Person persona) {
+        return existentes.cedulasConFirma().stream().anyMatch(c -> c.trim().equals(persona.cedula().trim()));
+    }
+
     /** Cada ingeniero se dice una vez, en la primera orden que lo nombra, con cuántas lo nombran. */
-    private void ingenieros(ReadFile archivo, Map<String, LoadDocument.Person> personaPorRef, Set<String> cedulas,
-            Set<String> conFirma) {
+    private void ingenieros(ReadFile archivo, Map<String, LoadDocument.Person> personaPorRef) {
         Map<String, List<Integer>> ordenesPorIngeniero = new LinkedHashMap<>();
         List<LoadDocument.Order> ordenes = archivo.documento().ordenes();
         for (int i = 0; i < ordenes.size(); i++) {
@@ -179,12 +204,10 @@ final class NaturalKeys {
             String problema;
             if (!"ENGINEER".equals(persona.tipo())) {
                 problema = "no es ingeniero: el tipo de la persona es " + persona.tipo();
-            } else if (!cedulas.contains(persona.cedula().trim())) {
-                problema = "todavía no está en MalphasOS. El catálogo se carga primero, solo, y el ingeniero recibe"
-                        + " su cuenta y guarda su firma antes del historial";
-            } else if (!conFirma.contains(persona.cedula().trim())) {
-                problema = "no tiene su firma guardada. La guarda en su cuenta antes del historial: el reporte se"
-                        + " congela al cargar y no la recibiría después";
+            } else if (persona.firma() == null && !conFirmaGuardada(persona)) {
+                problema = "no tiene firma, ni guardada en MalphasOS ni en la carga. Se pone en su campo firma del"
+                        + " catálogo, o la guarda en su cuenta antes de cargar: el reporte se congela al cargar y no la"
+                        + " recibiría después";
             } else {
                 return;
             }

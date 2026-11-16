@@ -5,7 +5,10 @@ import com.malphasos.malphasos.dataload.application.model.LoadDocument;
 import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.dataload.application.ports.output.LocationCatalogPort;
 import com.malphasos.malphasos.dataload.application.ports.output.MetrologyCatalogPort;
+import com.malphasos.malphasos.person.domain.person.PersonSignature;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,8 +18,9 @@ import java.util.Optional;
 /**
  * Las reglas que el esquema no puede ver porque miran valores, y no la forma: que un país y una ciudad
  * estén en el catálogo de MalphasOS, que la magnitud y la unidad de cada verificación estén en el
- * catálogo metrológico, que el supervisor de un cliente sea una persona de tipo supervisor, y que dos
- * patrones de la carga no compartan serie.
+ * catálogo metrológico, que el supervisor de un cliente sea una persona de tipo supervisor, que dos
+ * patrones de la carga no compartan serie, que la firma de una persona sea un PNG que MalphasOS admita,
+ * de alguien de la casa, y que una orden no traiga dos reportes del mismo equipo.
  *
  * <p>Solo mira los archivos que cumplieron el esquema: en uno que no lo cumple no hay valores en los
  * que confiar, y el esquema ya dijo por qué.
@@ -65,6 +69,12 @@ final class ContentRules {
                             + " entre los patrones, y se corrige en el archivo"));
                 }
             }
+            for (int p = 0; p < documento.personas().size(); p++) {
+                firma(documento.personas().get(p), nombre, "/personas/" + p + "/firma", errores);
+            }
+            for (int o = 0; o < documento.ordenes().size(); o++) {
+                unReportePorEquipo(documento.ordenes().get(o), nombre, "/ordenes/" + o, errores);
+            }
             for (int c = 0; c < documento.clientes().size(); c++) {
                 LoadDocument.Client cliente = documento.clientes().get(c);
                 pais(cliente.pais(), nombre, "/clientes/" + c + "/pais", errores);
@@ -82,6 +92,45 @@ final class ContentRules {
             }
         }
         return errores;
+    }
+
+    /**
+     * Una orden tiene un reporte activo por equipo (UQ_reporte_servicio_activo, V9). Lo encontró la carga real
+     * el 2026-11-16 al aplicar, con la validación limpia: dos visitas al mismo equipo con el mismo número de
+     * orden. Son dos órdenes, y se parten en el archivo.
+     */
+    private static void unReportePorEquipo(LoadDocument.Order orden, String archivo, String ruta, List<DataLoadProblem> errores) {
+        Map<String, Integer> primero = new HashMap<>();
+        for (int r = 0; r < orden.reportes().size(); r++) {
+            String equipo = orden.reportes().get(r).equipo();
+            Integer anterior = primero.putIfAbsent(equipo, r);
+            if (anterior != null) {
+                errores.add(new DataLoadProblem(archivo, ruta + "/reportes/" + r + "/equipo", "La orden «" + orden.ref()
+                        + "» trae otro reporte del equipo «" + equipo + "», el " + ruta + "/reportes/" + anterior
+                        + ". Una orden tiene un reporte por equipo: si son dos visitas, son dos órdenes"));
+            }
+        }
+    }
+
+    /**
+     * La firma la lee el mismo registro que guarda la de una cuenta, con sus reglas: PNG y hasta 256 KB. Un
+     * supervisor no firma reportes, y su firma no tendría dónde usarse.
+     */
+    private static void firma(LoadDocument.Person persona, String archivo, String ruta, List<DataLoadProblem> errores) {
+        if (persona.firma() == null) {
+            return;
+        }
+        if (!"ENGINEER".equals(persona.tipo()) && !"ADMIN".equals(persona.tipo())) {
+            errores.add(new DataLoadProblem(archivo, ruta, "«" + persona.ref() + "» es " + persona.tipo()
+                    + " y solo la gente de la casa, ingenieros y administradores, lleva firma"));
+            return;
+        }
+        try {
+            new PersonSignature(Base64.getDecoder().decode(persona.firma()), LocalDateTime.now());
+        } catch (IllegalArgumentException e) {
+            errores.add(new DataLoadProblem(archivo, ruta, "La firma de «" + persona.ref() + "» no se puede guardar: "
+                    + e.getMessage()));
+        }
     }
 
     /** La unidad se compara tal cual: «%» y «%HR» son dos símbolos, y el catálogo tiene los dos. */

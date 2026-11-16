@@ -57,6 +57,14 @@ public record ExistingRecords(List<String> marcas, List<String> fabricantes, Lis
         }
     }
 
-    /** Un equipo se reconoce por su modelo y su serie. */
-    public record EquipmentName(ModelName modelo, String serie) {}
+    /**
+     * Un equipo se reconoce por su modelo y su serie, que son únicos en toda la base y no por cliente. El
+     * documento de su cliente dice si el de la carga es el mismo equipo o el de otro cliente; nulo si no se
+     * sabe.
+     */
+    public record EquipmentName(ModelName modelo, String serie, String documentoCliente) {
+        public EquipmentName(ModelName modelo, String serie) {
+            this(modelo, serie, null);
+        }
+    }
 }

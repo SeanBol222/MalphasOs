@@ -127,26 +127,49 @@ class HistoryWriter {
                 Parts partes = paso(f, rutaReporte, () -> partes(reporte, idReporte, idOrden, refs, f, rutaReporte));
                 paso(f, rutaReporte, () -> reportes.save(reporte(partes, refs, ReportState.BORRADOR, null)));
                 escritos.add(partes);
+                aligerar(escritos.size());
             }
         }
 
         // Los compositores leen con consultas, y algunas son de JDBC: sin vaciar no verían lo escrito.
         entityManager.flush();
+        entityManager.clear();
 
         // Los reportes entraron como borradores y se cierran ahora, cada uno con su documento: el informe lee
         // la hoja de vida de su equipo, cuyo historial exige que todo reporte cerrado tenga documento (V51),
         // y mientras se compone el primero los demás todavía no lo tienen.
-        for (Parts partes : escritos) {
+        for (int k = 0; k < escritos.size(); k++) {
+            Parts partes = escritos.get(k);
             paso(f, partes.ruta(), () -> {
                 ServiceReport cerrado = reporte(partes, refs, ReportState.FINALIZADO, null);
                 return reportes.save(reporte(partes, refs, ReportState.FINALIZADO, congelar(cerrado, refs)));
             });
+            aligerar(k + 1);
         }
-        for (Written escrita : escritas) {
+        for (int k = 0; k < escritas.size(); k++) {
+            Written escrita = escritas.get(k);
             paso(f, escrita.ruta(), () -> {
                 WorkOrderDocument hoy = ordenesServicio.documentOf(escrita.orden());
                 return ordenes.save(orden(escrita.deLaCarga(), escrita.orden().getId(), idCliente, refs, hoy));
             });
+            aligerar(k + 1);
+        }
+    }
+
+    /** Cada cuántos registros se vacía y se suelta el contexto de persistencia. */
+    static final int TRAMO = 25;
+
+    /**
+     * Vacía lo escrito y suelta el contexto de persistencia cada {@link #TRAMO} registros (2026-11-16). Con
+     * todo el historial de un sistema en una transacción, cada consulta —el número libre, lo que lee el
+     * compositor— vaciaba antes revisando todas las entidades acumuladas, y el costo crecía con el cuadrado:
+     * la carga real de 3827 reportes tardaba once minutos. Se puede soltar porque nada de lo que la carga
+     * guarda entre un registro y otro es una entidad: son agregados y sus identificadores.
+     */
+    private void aligerar(int escritos) {
+        if (escritos % TRAMO == 0) {
+            entityManager.flush();
+            entityManager.clear();
         }
     }
 

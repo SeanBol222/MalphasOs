@@ -14,7 +14,6 @@ import com.malphasos.malphasos.dataload.application.ports.output.MetrologyCatalo
 import com.malphasos.malphasos.dataload.infrastructure.output.format.JsonSchemaLoadFormatAdapter;
 import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -178,25 +177,117 @@ class DataLoadServiceTest {
     }
 
     @Test
-    @DisplayName("sin archivos, o con mas de tres, es un error de la carga entera")
-    void cuantosArchivos() {
+    @DisplayName("sin archivos es un error de la carga entera")
+    void sinArchivos() {
         assertThat(servicio.validate(List.of()).errores()).singleElement()
                 .satisfies(e -> assertThat(e.archivo()).isNull())
-                .extracting(DataLoadProblem::mensaje).asString().contains("de uno a tres archivos");
-        assertThat(servicio.validate(Collections.nCopies(4, CATALOGO)).valida()).isFalse();
+                .extracting(DataLoadProblem::mensaje).asString().contains("Una carga lleva de 1 a");
     }
 
     @Test
-    @DisplayName("dos archivos con el mismo contenido son un error, que nombra a los dos")
-    void dosDelMismoContenido() {
+    @DisplayName("el catalogo dos veces es un error, que nombra a los dos archivos")
+    void dosCatalogos() {
         DataLoadFile otro = new DataLoadFile("otro-catalogo.json", CATALOGO.contenido());
 
         DataLoadReport informe = servicio.validate(List.of(CATALOGO, otro));
 
         assertThat(informe.errores()).singleElement().satisfies(e -> {
             assertThat(e.archivo()).isEqualTo("otro-catalogo.json");
-            assertThat(e.mensaje()).contains("dos archivos de catalogo").contains(EjemplosDeCarga.CATALOGO);
+            assertThat(e.mensaje()).contains("el catálogo dos veces").contains(EjemplosDeCarga.CATALOGO);
         });
+    }
+
+    /** El cliente del ejemplo convertido en otro: otras refs, otro documento, otra serie y otra gente. */
+    private static String otro(String texto) {
+        return texto.replace("almendros", "robles").replace("Almendros", "Robles").replace("eq-01", "eq-02")
+                .replace("per-sup-1", "per-sup-2").replace("900000001-1", "900000002-2").replace("1000000002", "1000000012")
+                .replace("1000000003", "1000000013").replace("WA-123456", "WA-654321").replace("ot-5", "ot-6")
+                .replace("rep-9", "rep-8").replace("laura.diaz@", "otra@");
+    }
+
+    private static final DataLoadFile OTRO_CLIENTE = EjemplosDeCarga.archivo("robles/cliente.json",
+            otro(EjemplosDeCarga.texto(EjemplosDeCarga.CLIENTE)));
+    private static final DataLoadFile OTRO_HISTORIAL = EjemplosDeCarga.archivo("robles/historial.json",
+            otro(EjemplosDeCarga.texto(EjemplosDeCarga.HISTORIAL)));
+
+    @Test
+    @DisplayName("una carga lleva el catalogo y varios clientes con su historial, y los cuenta todos")
+    void variosClientes() {
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL, OTRO_CLIENTE, OTRO_HISTORIAL));
+
+        assertThat(informe.errores()).isEmpty();
+        assertThat(nuevos(informe, "clientes")).isEqualTo(2);
+        assertThat(nuevos(informe, "reportes")).isEqualTo(6);
+    }
+
+    @Test
+    @DisplayName("el mismo cliente dos veces es un error, aunque venga con otras refs")
+    void elMismoClienteDosVeces() {
+        DataLoadFile mismoDocumento = EjemplosDeCarga.archivo("robles/cliente.json",
+                otro(EjemplosDeCarga.texto(EjemplosDeCarga.CLIENTE)).replace("900000002-2", "900000001-1"));
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, mismoDocumento));
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.archivo()).isEqualTo("robles/cliente.json");
+            assertThat(e.mensaje()).contains("900000001-1").contains("dos veces");
+        });
+    }
+
+    @Test
+    @DisplayName("el historial de un cliente dos veces es un error")
+    void elMismoHistorialDosVeces() {
+        DataLoadFile otraVez = new DataLoadFile("otra-vez.json", HISTORIAL.contenido());
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL, otraVez));
+
+        assertThat(informe.errores()).singleElement().extracting(DataLoadProblem::mensaje).asString()
+                .contains("historial del cliente «cli-almendros» dos veces");
+    }
+
+    @Test
+    @DisplayName("dos equipos de la carga con el mismo modelo y la misma serie son un error, aunque sean de dos clientes")
+    void mismaSerieEnLaCarga() {
+        DataLoadFile mismaSerie = EjemplosDeCarga.archivo("robles/cliente.json",
+                otro(EjemplosDeCarga.texto(EjemplosDeCarga.CLIENTE)).replace("WA-654321", "wa-123456 "));
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, mismaSerie));
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.archivo()).isEqualTo("robles/cliente.json");
+            assertThat(e.ruta()).isEqualTo("/equipos/0/serie");
+            assertThat(e.mensaje()).contains("«eq-0201»").contains(EjemplosDeCarga.CLIENTE + ", /equipos/0/serie");
+        });
+    }
+
+    @Test
+    @DisplayName("un equipo con el modelo y la serie de uno de otro cliente es un error: su historial iria a ese")
+    void mismaSerieQueOtroCliente() {
+        ExistingRecords.ModelName ds44 = new ExistingRecords.ModelName("Tensiómetro análogo", "Welch Allyn", "DS44");
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(ds44), List.of(),
+                List.of(INGENIERO), List.of(), List.of(new ExistingRecords.EquipmentName(ds44, "WA-123456", "800000009-9")),
+                List.of(INGENIERO));
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL));
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.ruta()).isEqualTo("/equipos/0/serie");
+            assertThat(e.mensaje()).contains("800000009-9").contains("otro cliente");
+        });
+    }
+
+    @Test
+    @DisplayName("el mismo equipo de su mismo cliente es el que ya esta: no es error")
+    void mismaSerieMismoCliente() {
+        ExistingRecords.ModelName ds44 = new ExistingRecords.ModelName("Tensiómetro análogo", "Welch Allyn", "DS44");
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(ds44), List.of(),
+                List.of(INGENIERO), List.of(new ExistingRecords.ExistingClient("900000001-1", List.of())),
+                List.of(new ExistingRecords.EquipmentName(ds44, "WA-123456", "900000001-1")), List.of(INGENIERO));
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE));
+
+        assertThat(informe.errores()).extracting(DataLoadProblem::ruta).doesNotContain("/equipos/0/serie");
+        assertThat(yaEstan(informe, "equipos")).isEqualTo(1);
     }
 
     @Test
@@ -341,8 +432,23 @@ class DataLoadServiceTest {
     }
 
     @Test
-    @DisplayName("el ingeniero que no esta en MalphasOS rechaza el historial, una vez por ingeniero")
-    void ingenieroQueNoEsta() {
+    @DisplayName("una orden con dos reportes del mismo equipo es un error en el segundo, que nombra el primero")
+    void dosReportesDelMismoEquipo() {
+        String historial = EjemplosDeCarga.texto(EjemplosDeCarga.HISTORIAL).replace("\"equipo\": \"eq-0102\"", "\"equipo\": \"eq-0101\"");
+        assertThat(historial).describedAs("El ejemplo tiene que traer el equipo eq-0102").doesNotContain("eq-0102");
+
+        DataLoadReport informe = servicio.validate(List.of(CATALOGO, CLIENTE, EjemplosDeCarga.archivo("historial.json", historial)));
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.archivo()).isEqualTo("historial.json");
+            assertThat(e.ruta()).matches("/ordenes/\\d+/reportes/\\d+/equipo");
+            assertThat(e.mensaje()).contains("«eq-0101»").contains("dos órdenes");
+        });
+    }
+
+    @Test
+    @DisplayName("el ingeniero nuevo sin firma en la carga rechaza el historial, una vez por ingeniero")
+    void ingenieroNuevoSinFirma() {
         existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of());
 
@@ -350,19 +456,128 @@ class DataLoadServiceTest {
 
         assertThat(informe.errores()).singleElement().satisfies(e -> {
             assertThat(e.ruta()).isEqualTo("/ordenes/0/ingeniero");
-            assertThat(e.mensaje()).contains("«per-ing-1»").contains("todavía no está en MalphasOS")
+            assertThat(e.mensaje()).contains("«per-ing-1»").contains("no tiene firma").contains("ni en la carga")
                     .contains("Lo nombran 2 órdenes");
         });
     }
 
     @Test
-    @DisplayName("el ingeniero sin firma guardada rechaza el historial: el reporte se congela al cargar")
+    @DisplayName("el ingeniero que ya esta sin firma guardada rechaza el historial: el reporte se congela al cargar")
     void ingenieroSinFirma() {
         existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(INGENIERO),
                 List.of(), List.of(), List.of("1000000002"));
 
         assertThat(servicio.validate(List.of(CATALOGO, CLIENTE, HISTORIAL)).errores()).singleElement()
-                .extracting(DataLoadProblem::mensaje).asString().contains("no tiene su firma guardada");
+                .extracting(DataLoadProblem::mensaje).asString().contains("no tiene firma");
+    }
+
+    /** Un PNG de un punto: lo justo para que sea un PNG. */
+    private static final String PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+    private static DataLoadFile catalogoConFirma(String tipo, String firma) {
+        String catalogo = EjemplosDeCarga.texto(EjemplosDeCarga.CATALOGO);
+        String conFirma = catalogo.replace("\"tipo\": \"ENGINEER\",", "\"tipo\": \"" + tipo + "\",\n      \"firma\": \"" + firma + "\",");
+        assertThat(conFirma).describedAs("El ejemplo tiene que traer un ingeniero").isNotEqualTo(catalogo);
+        return EjemplosDeCarga.archivo("catalogo.json", conFirma);
+    }
+
+    @Test
+    @DisplayName("el ingeniero nuevo con su firma en la carga hace valido el historial, todo en una carga")
+    void ingenieroNuevoConFirma() {
+        existentes = new ExistingRecords(List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(), List.of());
+
+        DataLoadReport informe = servicio.validate(List.of(catalogoConFirma("ENGINEER", PNG), CLIENTE, HISTORIAL));
+
+        assertThat(informe.errores()).isEmpty();
+        assertThat(nuevos(informe, "firmas")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("la firma de quien ya tiene una se cuenta como existente: la guardada manda")
+    void firmaDeQuienYaTiene() {
+        DataLoadReport informe = servicio.validate(List.of(catalogoConFirma("ENGINEER", PNG), CLIENTE, HISTORIAL));
+
+        assertThat(informe.errores()).isEmpty();
+        assertThat(yaEstan(informe, "firmas")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("una firma que no es un PNG se rechaza en su campo")
+    void firmaQueNoEsPng() {
+        String noPng = java.util.Base64.getEncoder().encodeToString("no es una imagen".getBytes());
+
+        assertThat(servicio.validate(List.of(catalogoConFirma("ENGINEER", noPng))).errores()).singleElement()
+                .satisfies(e -> {
+                    assertThat(e.ruta()).isEqualTo("/personas/0/firma");
+                    assertThat(e.mensaje()).contains("PNG");
+                });
+    }
+
+    @Test
+    @DisplayName("un supervisor no lleva firma")
+    void supervisorConFirma() {
+        DataLoadReport informe = conCliente("\"tipo\": \"SUPERVISOR\",", "\"tipo\": \"SUPERVISOR\",\n      \"firma\": \"" + PNG + "\",");
+
+        assertThat(informe.errores()).singleElement().satisfies(e -> {
+            assertThat(e.ruta()).isEqualTo("/personas/0/firma");
+            assertThat(e.mensaje()).contains("SUPERVISOR").contains("ingenieros y administradores");
+        });
+    }
+
+    private static DataLoadFile zip(String nombre, Map<String, byte[]> archivos) {
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream salida = new java.util.zip.ZipOutputStream(bytes)) {
+            for (Map.Entry<String, byte[]> archivo : archivos.entrySet()) {
+                salida.putNextEntry(new java.util.zip.ZipEntry(archivo.getKey()));
+                salida.write(archivo.getValue());
+                salida.closeEntry();
+            }
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        return new DataLoadFile(nombre, bytes.toByteArray());
+    }
+
+    @Test
+    @DisplayName("un ZIP se lee como sus archivos sueltos, cada uno por su ruta dentro del ZIP")
+    void unZip() {
+        Map<String, byte[]> dentro = new java.util.LinkedHashMap<>();
+        dentro.put("catalogo.json", CATALOGO.contenido());
+        dentro.put("clientes/almendros/cliente.json", CLIENTE.contenido());
+        dentro.put("clientes/almendros/historial.json", HISTORIAL.contenido());
+        dentro.put("clientes/robles/cliente.json", OTRO_CLIENTE.contenido());
+        dentro.put("clientes/robles/historial.json", OTRO_HISTORIAL.contenido());
+        dentro.put("__MACOSX/clientes/historial.json", new byte[] {1});
+        dentro.put("clientes/.DS_Store.json", new byte[] {1});
+        dentro.put("LEEME.txt", "hola".getBytes());
+
+        DataLoadReport informe = servicio.apply(List.of(zip("carga.zip", dentro)));
+
+        assertThat(informe.errores()).isEmpty();
+        assertThat(nuevos(informe, "clientes")).isEqualTo(2);
+        assertThat(informe.avisos()).extracting(DataLoadProblem::mensaje).anySatisfy(m -> assertThat(m).contains("LEEME.txt"));
+        assertThat(escritos).extracting(ReadFile::nombre).containsExactly("catalogo.json", "clientes/almendros/cliente.json",
+                "clientes/almendros/historial.json", "clientes/robles/cliente.json", "clientes/robles/historial.json");
+    }
+
+    @Test
+    @DisplayName("un error de un archivo del ZIP dice su ruta dentro del ZIP")
+    void errorDentroDelZip() {
+        DataLoadReport informe = servicio.validate(List.of(zip("carga.zip", Map.of("clientes/x/roto.json", "no es json".getBytes()))));
+
+        assertThat(informe.errores()).extracting(DataLoadProblem::archivo).containsExactly("clientes/x/roto.json");
+    }
+
+    @Test
+    @DisplayName("un ZIP que no se puede abrir es un error del ZIP, no una excepcion")
+    void zipRoto() {
+        byte[] roto = Arrays.copyOf(zip("x.zip", Map.of("catalogo.json", CATALOGO.contenido())).contenido(), 40);
+
+        DataLoadReport informe = servicio.validate(List.of(new DataLoadFile("roto.zip", roto)));
+
+        assertThat(informe.valida()).isFalse();
+        assertThat(informe.errores()).extracting(DataLoadProblem::archivo).contains("roto.zip");
     }
 
     @Test
@@ -425,7 +640,7 @@ class DataLoadServiceTest {
 
         assertThat(informe.valida()).isFalse();
         assertThat(informe.errores()).singleElement().extracting(DataLoadProblem::mensaje).asString()
-                .contains("todavía no está en MalphasOS");
+                .contains("no tiene firma");
         assertThat(escritos).isNull();
     }
 

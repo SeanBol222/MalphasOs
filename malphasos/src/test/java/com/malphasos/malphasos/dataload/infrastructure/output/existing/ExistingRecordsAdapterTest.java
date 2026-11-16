@@ -96,7 +96,8 @@ class ExistingRecordsAdapterTest {
 
         ExistingRecords.ModelName nombre = new ExistingRecords.ModelName("Tipo " + u, "Marca " + u, "Carga " + u);
         assertThat(existentes.modelos()).contains(nombre);
-        assertThat(existentes.equipos()).contains(new ExistingRecords.EquipmentName(nombre, "CARGA-" + u));
+        assertThat(existentes.equipos()).describedAs("con el documento de su cliente, que dice si es el mismo equipo")
+                .contains(new ExistingRecords.EquipmentName(nombre, "CARGA-" + u, u));
         assertThat(existentes.marcas()).contains("Marca " + u);
         assertThat(existentes.tiposEquipo()).contains("Tipo " + u);
         assertThat(existentes.fabricantes()).contains("Fabricante " + u);
@@ -119,16 +120,17 @@ class ExistingRecordsAdapterTest {
     }
 
     @Test
-    @DisplayName("con firma cuentan solo los ingenieros que la guardaron: un supervisor con firma no hace una orden")
+    @DisplayName("con firma cuenta la gente de la casa que la guardo: un supervisor no firma, y su firma no cuenta")
     void lasFirmas() {
         String conFirma = unaPersona("ENGINEER", true);
         String sinFirma = unaPersona("ENGINEER", false);
+        String administrador = unaPersona("ADMIN", true);
         String supervisor = unaPersona("SUPERVISOR", true);
 
         ExistingRecords existentes = adaptador.read();
 
-        assertThat(existentes.cedulas()).contains(conFirma, sinFirma, supervisor);
-        assertThat(existentes.cedulasConFirma()).contains(conFirma).doesNotContain(sinFirma, supervisor);
+        assertThat(existentes.cedulas()).contains(conFirma, sinFirma, administrador, supervisor);
+        assertThat(existentes.cedulasConFirma()).contains(conFirma, administrador).doesNotContain(sinFirma, supervisor);
     }
 
     @Test
