@@ -3,9 +3,6 @@ import { traducirError } from '../../core/errores/traducir';
 import { InformeDeCarga, ProblemaDeCarga } from '../../core/api/tipos';
 import { CargaApi } from './carga-api';
 
-/** Una carga lleva de uno a tres archivos: el catálogo, un cliente y su historial. */
-export const MAXIMO_DE_ARCHIVOS = 3;
-
 /** Cómo se llama en pantalla cada sección del resumen; la clave es la del formato. */
 const SECCIONES: Readonly<Record<string, string>> = {
   marcas: 'Marcas',
@@ -15,6 +12,7 @@ const SECCIONES: Readonly<Record<string, string>> = {
   modelos: 'Modelos',
   patrones: 'Patrones',
   personas: 'Personas',
+  firmas: 'Firmas',
   clientes: 'Clientes',
   sedes: 'Sedes',
   areas: 'Áreas',
@@ -27,15 +25,32 @@ export function nombreDeSeccion(seccion: string | undefined): string {
   return (seccion && SECCIONES[seccion]) ?? seccion ?? '';
 }
 
-/** Dónde está un problema: el archivo y la ruta dentro de él, o la carga entera si no dice ninguno. */
-export function dondeEsta(problema: ProblemaDeCarga): string {
-  const lugar = [problema.archivo, problema.ruta].filter(Boolean).join(' · ');
-  return lugar || 'La carga entera';
+/** Los problemas de un archivo, o de la carga entera si el archivo es nulo. */
+export interface ProblemasDeUnArchivo {
+  readonly archivo: string | undefined;
+  readonly problemas: readonly ProblemaDeCarga[];
+}
+
+/**
+ * Los problemas agrupados por archivo, en el orden en que aparece cada uno (2026-11-16): una carga entera
+ * son decenas de archivos, y una lista plana mezcla los de un cliente con los de otro.
+ */
+export function porArchivo(
+  problemas: readonly ProblemaDeCarga[] | undefined,
+): ProblemasDeUnArchivo[] {
+  const grupos = new Map<string | undefined, ProblemaDeCarga[]>();
+  for (const problema of problemas ?? []) {
+    const archivo = problema.archivo || undefined;
+    grupos.set(archivo, [...(grupos.get(archivo) ?? []), problema]);
+  }
+  return [...grupos].map(([archivo, deEse]) => ({ archivo, problemas: deEse }));
 }
 
 /**
  * Importar datos de otro sistema (2026-11-08), solo para el SuperUsuario: los archivos del formato
- * {@code malphasos-carga/1} que publica {@code contracts/carga/}.
+ * {@code malphasos-carga/1} que publica {@code contracts/carga/}. Desde el 2026-11-16, lo normal es un
+ * solo ZIP con todo, el que escribe el conversor; los JSON sueltos siguen valiendo, y cuántos caben lo
+ * dice el servidor.
  *
  * <p><b>Validar no escribe nada, y aplicar exige haber validado esos mismos archivos sin errores.</b>
  * Elegir otros borra el informe, de modo que hay que volver a validar: el botón de aplicar responde a lo
@@ -56,7 +71,6 @@ export class ImportarDatos {
   protected readonly aplicacion = this.api.aplicar();
 
   protected readonly archivos = signal<readonly File[]>([]);
-  protected readonly demasiados = computed(() => this.archivos().length > MAXIMO_DE_ARCHIVOS);
   protected readonly confirmando = signal(false);
 
   /** El último informe que hay que leer: el de aplicar si se aplicó, y si no el de validar. */
@@ -68,10 +82,7 @@ export class ImportarDatos {
 
   protected readonly puedeValidar = computed(
     () =>
-      this.archivos().length > 0 &&
-      !this.demasiados() &&
-      !this.validacion.isPending() &&
-      !this.aplicacion.isPending(),
+      this.archivos().length > 0 && !this.validacion.isPending() && !this.aplicacion.isPending(),
   );
   protected readonly puedeAplicar = computed(
     () =>
@@ -79,6 +90,9 @@ export class ImportarDatos {
       !this.aplicacion.data() &&
       !this.aplicacion.isPending(),
   );
+
+  protected readonly erroresPorArchivo = computed(() => porArchivo(this.informe()?.errores));
+  protected readonly avisosPorArchivo = computed(() => porArchivo(this.informe()?.avisos));
 
   protected readonly hayError = computed(
     () => this.validacion.isError() || this.aplicacion.isError(),
@@ -88,7 +102,6 @@ export class ImportarDatos {
   );
 
   protected readonly nombreDeSeccion = nombreDeSeccion;
-  protected readonly dondeEsta = dondeEsta;
 
   /**
    * Lo elegido se suma a lo que ya había (2026-11-08): el catálogo y el par de cada cliente viven en

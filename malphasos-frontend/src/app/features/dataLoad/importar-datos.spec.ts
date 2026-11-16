@@ -3,7 +3,7 @@ import { HttpTestingController } from '@angular/common/http/testing';
 import { proveerApiSimulado } from '../../../testing/entorno';
 import { asentar } from '../../../testing/pantalla';
 import { InformeDeCarga } from '../../core/api/tipos';
-import { dondeEsta, ImportarDatos, nombreDeSeccion } from './importar-datos';
+import { ImportarDatos, nombreDeSeccion, porArchivo } from './importar-datos';
 
 const URL = 'http://localhost:8081/v1/api/data-loads';
 
@@ -97,7 +97,8 @@ describe('Importar datos', () => {
     await validar(CON_ERRORES);
 
     expect(texto('[data-veredicto]')).toBe('La carga tiene errores: no se puede aplicar.');
-    expect(texto('[data-errores]')).toContain('2-cliente.json · /equipos/0/modelo');
+    expect(texto('[data-errores] [data-grupo]')).toBe('2-cliente.json (1)');
+    expect(texto('[data-errores]')).toContain('/equipos/0/modelo');
     expect(boton('Aplicar')).toBeUndefined();
   });
 
@@ -221,17 +222,6 @@ describe('Importar datos', () => {
     expect(boton('Aplicar')).toBeUndefined();
   });
 
-  it('quitar el que sobra deja validar otra vez', async () => {
-    await elegir('a.json', 'b.json', 'c.json', 'd.json');
-    expect(boton('Validar')!.disabled).toBe(true);
-
-    raiz().querySelector<HTMLButtonElement>('[aria-label="Quitar d.json"]')!.click();
-    await asentar(fixture);
-
-    expect(raiz().querySelector('[data-demasiados]')).toBeNull();
-    expect(boton('Validar')!.disabled).toBe(false);
-  });
-
   it('quitar el último vuelve a decir que no hay archivos', async () => {
     await elegir('1-catalogo.json');
     raiz().querySelector<HTMLButtonElement>('[aria-label="Quitar 1-catalogo.json"]')!.click();
@@ -241,11 +231,37 @@ describe('Importar datos', () => {
     expect(boton('Validar')!.disabled).toBe(true);
   });
 
-  it('más de tres archivos no se validan, y lo dice', async () => {
-    await elegir('a.json', 'b.json', 'c.json', 'd.json');
+  it('el ZIP del conversor se elige como un archivo más, y se valida solo', async () => {
+    const zip = new File(['PK'], 'carga.zip', { type: 'application/zip' });
+    expect(raiz().querySelector('#importar-archivo')!.getAttribute('accept')).toContain('.zip');
+    await elegir(zip);
 
-    expect(raiz().querySelector('[data-demasiados]')).not.toBeNull();
-    expect(boton('Validar')!.disabled).toBe(true);
+    expect(boton('Validar')!.disabled).toBe(false);
+    await validar(VALIDA);
+    expect(texto('[data-veredicto]')).toContain('se puede aplicar');
+  });
+
+  it('los errores de una carga entera se agrupan por archivo, cada uno con cuántos tiene', async () => {
+    await elegir('carga.zip');
+    await validar({
+      valida: false,
+      errores: [
+        { archivo: 'clientes/fana/historial.json', ruta: '/ordenes/0/ingeniero', mensaje: 'a' },
+        { archivo: 'clientes/servimed/cliente.json', ruta: '/equipos/3/serie', mensaje: 'b' },
+        { archivo: 'clientes/fana/historial.json', ruta: '/ordenes/9/sede', mensaje: 'c' },
+        { mensaje: 'd' },
+      ],
+      avisos: [],
+      resumen: [],
+    });
+
+    expect(
+      [...raiz().querySelectorAll('[data-errores] [data-grupo]')].map((g) => g.textContent?.trim()),
+    ).toEqual([
+      'clientes/fana/historial.json (2)',
+      'clientes/servimed/cliente.json (1)',
+      'La carga entera (1)',
+    ]);
   });
 
   it('un fallo que no es un informe se avisa como error', async () => {
@@ -267,8 +283,19 @@ describe('Cómo se nombra cada cosa del informe', () => {
     expect(nombreDeSeccion('facturas')).toBe('facturas');
   });
 
-  it('un problema sin archivo ni ruta es de la carga entera', () => {
-    expect(dondeEsta({ mensaje: 'x' })).toBe('La carga entera');
-    expect(dondeEsta({ archivo: 'a.json', mensaje: 'x' })).toBe('a.json');
+  it('los problemas se agrupan por archivo en el orden en que aparece cada uno; sin archivo, los de la carga', () => {
+    const grupos = porArchivo([
+      { archivo: 'b.json', mensaje: '1' },
+      { mensaje: '2' },
+      { archivo: 'a.json', mensaje: '3' },
+      { archivo: 'b.json', mensaje: '4' },
+    ]);
+
+    expect(grupos.map((g) => [g.archivo, g.problemas.map((p) => p.mensaje)])).toEqual([
+      ['b.json', ['1', '4']],
+      [undefined, ['2']],
+      ['a.json', ['3']],
+    ]);
+    expect(porArchivo(undefined)).toEqual([]);
   });
 });

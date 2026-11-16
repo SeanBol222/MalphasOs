@@ -48,6 +48,9 @@ public class LoadWriterAdapter implements LoadWriterPort {
             }
             for (ReadFile archivo : de(archivos, "historial")) {
                 historial.write(archivo, refs);
+                // Cada historial suelta lo suyo antes del siguiente: ver HistoryWriter#aligerar.
+                entityManager.flush();
+                entityManager.clear();
             }
             entityManager.flush();
         } catch (PersistenceException | DataAccessException e) {

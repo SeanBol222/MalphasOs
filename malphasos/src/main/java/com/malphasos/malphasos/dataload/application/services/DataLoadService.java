@@ -4,6 +4,7 @@ import com.malphasos.malphasos.dataload.application.model.DataLoadFile;
 import com.malphasos.malphasos.dataload.application.model.DataLoadProblem;
 import com.malphasos.malphasos.dataload.application.model.DataLoadReport;
 import com.malphasos.malphasos.dataload.application.model.FormatCheck;
+import com.malphasos.malphasos.dataload.application.model.LoadDocument;
 import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.dataload.application.model.RefMention;
 import com.malphasos.malphasos.dataload.application.model.SectionCount;
@@ -25,16 +26,14 @@ import org.springframework.transaction.annotation.Transactional;
  * Valida una carga: primero cada archivo contra el esquema, después lo que solo se ve mirando los
  * archivos juntos.
  *
- * <p>Una carga lleva de uno a tres archivos, y como mucho uno de cada contenido: el catálogo, un
- * cliente y su historial. Los que se nombran entre sí se suben juntos, porque una {@code ref} solo
- * enlaza dentro de una carga: por eso el historial de un cliente se sube con el catálogo y con ese
- * cliente, aunque ya se hubieran cargado antes.
+ * <p>Una carga lleva el catálogo, como mucho uno, y cualquier número de clientes con su historial, sueltos
+ * o en un ZIP. Desde el 2026-11-16 la carga entera de un sistema es <b>una</b> carga: hasta entonces eran
+ * de uno a tres archivos, y el catálogo se subía otra vez con cada cliente, porque una {@code ref} solo
+ * enlaza dentro de una carga. Sigue siendo así, y por eso conviene subirlo todo junto.
  */
 @Service
 @RequiredArgsConstructor
 public class DataLoadService implements DataLoadServicePort {
-
-    static final int MAXIMO_DE_ARCHIVOS = 3;
 
     private final LoadFormatPort loadFormatPort;
     private final LocationCatalogPort locationCatalogPort;
@@ -65,16 +64,24 @@ public class DataLoadService implements DataLoadServicePort {
         return revision.informe();
     }
 
-    private Revision revisar(List<DataLoadFile> archivos) {
-        List<DataLoadProblem> errores = new ArrayList<>();
+    private Revision revisar(List<DataLoadFile> subidos) {
+        LoadPackage paquete = new LoadPackage(subidos);
+        List<DataLoadFile> archivos = paquete.archivos;
+        List<DataLoadProblem> errores = new ArrayList<>(paquete.errores);
+        List<DataLoadProblem> avisos = new ArrayList<>(paquete.avisos);
 
-        if (archivos.isEmpty() || archivos.size() > MAXIMO_DE_ARCHIVOS) {
-            errores.add(DataLoadProblem.of(null, "Una carga lleva de uno a tres archivos: el catálogo, un cliente"
-                    + " y su historial. Se recibieron " + archivos.size()));
-            return new Revision(new DataLoadReport(errores, List.of()), List.of());
+        if (archivos.isEmpty() || archivos.size() > LoadPackage.MAXIMO_DE_ARCHIVOS) {
+            errores.add(DataLoadProblem.of(null, "Una carga lleva de 1 a " + LoadPackage.MAXIMO_DE_ARCHIVOS
+                    + " archivos: el catálogo y cada cliente con su historial, sueltos o en un ZIP. Se recibieron "
+                    + archivos.size()));
+        }
+        if (!errores.isEmpty()) {
+            return new Revision(new DataLoadReport(errores, avisos), List.of());
         }
 
-        Map<String, String> porContenido = new LinkedHashMap<>();
+        // Lo que una carga no puede traer dos veces: el catálogo, un cliente o el historial de un cliente.
+        // Repetido, cada ref suya saldría duplicada: un error por cada una, que solo repetiría este.
+        Map<String, String> unicos = new LinkedHashMap<>();
         boolean repetido = false;
         List<RefMention> declaradas = new ArrayList<>();
         List<RefMention> usadas = new ArrayList<>();
@@ -88,17 +95,16 @@ public class DataLoadService implements DataLoadServicePort {
                 leidos.add(new ReadFile(archivo.nombre(), revision.documento()));
             }
 
-            String otro = revision.contenido() == null ? null : porContenido.putIfAbsent(revision.contenido(), archivo.nombre());
-            if (otro != null) {
-                repetido = true;
-                errores.add(DataLoadProblem.of(archivo.nombre(), "La carga trae dos archivos de " + revision.contenido()
-                        + ": este y " + otro + ". Una carga lleva como mucho uno de cada contenido"));
+            for (String[] clave : unicos(revision)) {
+                String otro = unicos.putIfAbsent(clave[0], archivo.nombre());
+                if (otro != null) {
+                    repetido = true;
+                    errores.add(DataLoadProblem.of(archivo.nombre(), "La carga trae " + clave[1] + " dos veces: aquí y en "
+                            + otro + ". Cada cosa va en un solo archivo"));
+                }
             }
         }
 
-        // Con un contenido repetido, cada ref y cada patrón del segundo archivo saldrían duplicados: un
-        // error por cada uno, que solo repetiría el de arriba.
-        List<DataLoadProblem> avisos = new ArrayList<>();
         List<SectionCount> resumen = List.of();
         if (!repetido) {
             errores.addAll(comprobarRefs(declaradas, usadas));
@@ -112,6 +118,24 @@ public class DataLoadService implements DataLoadServicePort {
         }
 
         return new Revision(new DataLoadReport(errores, avisos, resumen), leidos);
+    }
+
+    /** Lo que de un archivo no puede estar en otro, con cómo decirlo: la llave y su descripción. */
+    private static List<String[]> unicos(FormatCheck revision) {
+        List<String[]> claves = new ArrayList<>();
+        if ("catalogo".equals(revision.contenido())) {
+            claves.add(new String[] {"catalogo", "el catálogo"});
+        }
+        LoadDocument documento = revision.documento();
+        if (documento == null) {
+            return claves;
+        }
+        if ("historial".equals(revision.contenido()) && documento.cliente() != null) {
+            claves.add(new String[] {"historial|" + documento.cliente(), "el historial del cliente «" + documento.cliente() + "»"});
+        }
+        documento.clientes().forEach(c -> claves.add(new String[] {"cliente|" + c.documento().trim(),
+                "el cliente con documento " + c.documento().trim()}));
+        return claves;
     }
 
     /**

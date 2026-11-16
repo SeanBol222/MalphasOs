@@ -5,11 +5,15 @@ import static com.malphasos.malphasos.dataload.infrastructure.output.writer.Step
 import com.malphasos.malphasos.dataload.application.model.LoadDocument;
 import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.person.application.ports.output.PersonPersistencePort;
+import com.malphasos.malphasos.person.application.ports.output.PersonSignaturePersistencePort;
 import com.malphasos.malphasos.person.domain.person.EmailPerson;
 import com.malphasos.malphasos.person.domain.person.Person;
 import com.malphasos.malphasos.person.domain.person.PersonType;
+import com.malphasos.malphasos.person.domain.person.PersonSignature;
 import com.malphasos.malphasos.person.domain.person.PhonePerson;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,12 +27,16 @@ import org.springframework.stereotype.Component;
  * contraseñas. El primer correo es el de la cuenta (V40), como en un alta.
  *
  * <p>Una persona que ya está —por su cédula— no se toca: la carga solo aprende su identificador.
+ *
+ * <p>La firma de la carga se guarda como la de una cuenta, y solo si la persona no tiene ya una: la que
+ * alguien dibujó en MalphasOS manda sobre la que trae otro sistema.
  */
 @Component
 @RequiredArgsConstructor
 class PeopleWriter {
 
     private final PersonPersistencePort personas;
+    private final PersonSignaturePersistencePort firmas;
 
     void write(ReadFile archivo, LoadRefs refs) {
         Map<String, UUID> queEstan = personas.findAll().stream().filter(Person::isEstadoActivo)
@@ -38,8 +46,13 @@ class PeopleWriter {
         for (int i = 0; i < deLaCarga.size(); i++) {
             LoadDocument.Person persona = deLaCarga.get(i);
             int n = i;
-            refs.put(persona.ref(), queEstan.computeIfAbsent(persona.cedula().trim(),
-                    k -> paso(archivo.nombre(), "/personas/", n, () -> personas.save(ficha(persona)).getIdentificador())));
+            UUID id = queEstan.computeIfAbsent(persona.cedula().trim(),
+                    k -> paso(archivo.nombre(), "/personas/", n, () -> personas.save(ficha(persona)).getIdentificador()));
+            refs.put(persona.ref(), id);
+            if (persona.firma() != null && firmas.find(id).isEmpty()) {
+                paso(archivo.nombre(), "/personas/" + n + "/firma", () -> firmas.save(id,
+                        new PersonSignature(Base64.getDecoder().decode(persona.firma()), LocalDateTime.now())));
+            }
         }
     }
 

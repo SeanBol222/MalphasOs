@@ -87,6 +87,15 @@ public class ExistingRecordsAdapter implements ExistingRecordsPort {
                 .collect(Collectors.groupingBy(WorkOrder::getIdCliente,
                         Collectors.mapping(WorkOrder::getFechaMantenimiento, Collectors.toList())));
         List<Person> activas = personas.findAll().stream().filter(Person::isEstadoActivo).toList();
+        List<Client> clientesActivos = clientes.findAll().stream().filter(Client::isEstadoActivo).toList();
+        Map<UUID, String> documentoPorCliente = clientesActivos.stream()
+                .collect(Collectors.toMap(Client::getId, Client::getDocumento));
+        Map<UUID, UUID> clientePorSede = sedesPorCliente.values().stream().flatMap(List::stream)
+                .collect(Collectors.toMap(Headquarter::getId, Headquarter::getIdCliente));
+        Map<UUID, String> documentoPorArea = areasPorSede.values().stream().flatMap(List::stream)
+                .filter(a -> clientePorSede.containsKey(a.getIdSede()))
+                .collect(Collectors.toMap(ServiceArea::getId, a -> documentoPorCliente
+                        .getOrDefault(clientePorSede.get(a.getIdSede()), "")));
 
         return new ExistingRecords(
                 List.copyOf(marcaPorId.values()),
@@ -96,7 +105,7 @@ public class ExistingRecordsAdapter implements ExistingRecordsPort {
                 List.copyOf(modeloPorId.values()),
                 patrones.findAll().stream().filter(ReferenceStandard::isEstadoActivo).map(ReferenceStandard::getSerie).toList(),
                 activas.stream().map(Person::getCedula).toList(),
-                clientes.findAll().stream().filter(Client::isEstadoActivo).map(c -> new ExistingRecords.ExistingClient(
+                clientesActivos.stream().map(c -> new ExistingRecords.ExistingClient(
                         c.getDocumento(), sedesPorCliente.getOrDefault(c.getId(), List.of()).stream()
                                 .map(s -> new ExistingRecords.ExistingSite(s.getNombre(), areasPorSede
                                         .getOrDefault(s.getId(), List.of()).stream().map(ServiceArea::getNombre).toList()))
@@ -104,10 +113,11 @@ public class ExistingRecordsAdapter implements ExistingRecordsPort {
                         .toList(),
                 equipos.findAll().stream().filter(ClientEquipment::isEstadoActivo)
                         .filter(e -> modeloPorId.containsKey(e.getIdModelo()))
-                        .map(e -> new ExistingRecords.EquipmentName(modeloPorId.get(e.getIdModelo()), e.getSerie()))
+                        .map(e -> new ExistingRecords.EquipmentName(modeloPorId.get(e.getIdModelo()), e.getSerie(),
+                                documentoPorArea.get(e.getIdAreaServicio())))
                         .toList(),
-                // Solo los ingenieros, que son los que una orden nombra: una consulta por cada uno.
-                activas.stream().filter(p -> p.getTipoPersona() == PersonType.ENGINEER)
+                // Solo la gente de la casa, que es la que firma: una consulta por cada uno.
+                activas.stream().filter(p -> p.getTipoPersona() == PersonType.ENGINEER || p.getTipoPersona() == PersonType.ADMIN)
                         .filter(p -> firmas.find(p.getIdentificador()).isPresent()).map(Person::getCedula).toList());
     }
 }

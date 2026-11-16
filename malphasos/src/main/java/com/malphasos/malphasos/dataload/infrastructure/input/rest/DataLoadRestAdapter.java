@@ -39,8 +39,8 @@ public class DataLoadRestAdapter {
     private final DataLoadServicePort dataLoadServicePort;
 
     @Operation(summary = "Validar una carga sin aplicarla",
-            description = "De uno a tres archivos —el catálogo, un cliente y su historial—, como mucho uno de cada"
-                    + " contenido. Responde qué impide aplicarla y qué conviene leer.")
+            description = "El catálogo, como mucho uno, y cada cliente con su historial, sueltos o en un ZIP que"
+                    + " los lleve dentro. Responde qué impide aplicarla y qué conviene leer.")
     @PreAuthorize("hasAuthority('super.data-load.write')")
     @PostMapping(path = "/validation", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public DataLoadReportResponse validate(

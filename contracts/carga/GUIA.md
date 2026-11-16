@@ -16,14 +16,16 @@ esquema de la base de datos**: usa lo que MalphasOS ya tiene.
 | `ejemplo-1-catalogo.json` · `ejemplo-2-cliente.json` · `ejemplo-3-historial.json` | Una carga completa con datos inventados. Recorre todas las secciones |
 | `GUIA.md` | Esto: lo que el esquema no puede decir |
 
-> **Estado, 2026-11-08.** Existen **el formato, la validación, la carga y su pantalla**, solo para el
-> SuperUsuario: Administración › **Importar datos** sube los archivos, enseña el informe y solo ofrece
-> aplicar tras una validación limpia. Por debajo, `POST /v1/api/data-loads/validation` devuelve el informe
+> **Estado, 2026-11-16.** Existen **el formato, la validación, la carga y su pantalla**, solo para el
+> SuperUsuario: Administración › **Importar datos** sube los archivos —o el ZIP que los lleva todos—,
+> enseña el informe agrupado por archivo y solo ofrece aplicar tras una validación limpia. Por debajo, `POST /v1/api/data-loads/validation` devuelve el informe
 > sin escribir nada, y `POST /v1/api/data-loads` valida otra vez y escribe todo en una transacción —200
 > con el informe, o 422 con él y nada escrito—. (Decía el 2026-11-07 que faltaba la pantalla; el
-> 2026-11-03, que solo existía el formato, y unas horas antes de esa nota, que no existía la carga.)
+> 2026-11-03, que solo existía el formato, y unas horas antes de esa nota, que no existía la carga. Hasta
+> el 2026-11-16 una carga era de uno a tres archivos, y la de un sistema entero llevaba un paso por
+> cliente y otro, a mano, para las firmas: ver «Cómo se usa».)
 
-## Los tres archivos
+## Los archivos
 
 Cada archivo dice qué es en `contenido`, y el esquema rechaza lo que no le corresponde.
 
@@ -33,28 +35,53 @@ Cada archivo dice qué es en `contenido`, y el esquema rechaza lo que no le corr
 | `cliente` | **Un** cliente con sus supervisores, sedes, áreas y equipos | Uno por cliente |
 | `historial` | Las órdenes ejecutadas de **un** cliente, con sus reportes. Dice de qué cliente es en `cliente` | Uno por cliente |
 
-**Los archivos que se nombran entre sí se suben juntos**, en una sola carga: un equipo nombra su modelo,
-una orden su ingeniero, un reporte su equipo, y MalphasOS no recuerda las refs de una carga a otra. Por
-eso cada cliente se sube **con el catálogo**: lo que del catálogo ya está se ignora, y las refs se
-resuelven dentro de la carga.
+**Una carga lleva el catálogo y cualquier número de clientes, cada uno con su historial**: como mucho
+un catálogo, y cada cliente y cada historial una sola vez. **Los archivos que se nombran entre sí van en
+la misma carga**: un equipo nombra su modelo, una orden su ingeniero, un reporte su equipo, y MalphasOS
+no recuerda las refs de una carga a otra. Lo más sencillo es **subirlo todo junto**; si un cliente se
+carga después, se sube con el catálogo, y lo que del catálogo ya está se ignora.
 
-## Cómo se usará
+**El paquete.** Los archivos se suben sueltos o dentro de **un ZIP**, que es lo que conviene que escriba
+el conversor: un solo archivo, de una sola conversión, que no se puede subir a medias. Dentro, la
+carpeta no importa —solo los `.json`, y lo demás se ignora con un aviso—, pero el informe nombra cada
+archivo por su ruta dentro del ZIP, así que vale la pena que diga de quién es:
 
-1. **Convertir.** El conversor escribe el catálogo y, por cliente, su archivo y su historial.
-2. **Cargar el catálogo solo**, primero. Así entran los ingenieros.
-3. **Dar acceso a los ingenieros** con «Dar acceso» y que **cada uno guarde su firma** en su cuenta. Los
-   reportes del historial se cierran con la firma guardada del ingeniero de la orden, como cualquier
-   cierre, y **un historial cuyo ingeniero no la tenga se rechaza**: el reporte se congela al cargar, y
-   uno congelado no la recibiría después. También se rechaza si el ingeniero no está aún en MalphasOS o
-   si la persona de la orden no es ingeniero.
-4. **Por cada cliente, subir juntos** el catálogo, su archivo y su historial. MalphasOS los **valida**
-   sin escribir nada —en Administración › Importar datos, «Validar»— y devuelve un informe: cuántos registros de cada sección entrarían, cuántos se
-   ignoran porque ya existen y cada error con su ruta —`ordenes[3].reportes[0].equipo: la ref «eq-2789»
-   no está en la carga`—.
-5. **Corregir el conversor y repetir** hasta que el informe salga limpio. No se corrige el archivo a mano:
+```
+carga.zip
+├── catalogo.json
+└── clientes/
+    ├── clinica-los-almendros/cliente.json
+    ├── clinica-los-almendros/historial.json
+    └── …
+```
+
+Hasta 500 archivos y 200 MB descomprimidos. El tamaño de la subida lo fija el servidor (20 MB por
+archivo).
+
+## Cómo se usa
+
+1. **Convertir.** El conversor escribe el paquete: el catálogo, **con la firma de cada ingeniero**, y por
+   cliente su archivo y su historial.
+2. **Validar** el paquete en Administración › Importar datos. No escribe nada, y devuelve un informe:
+   cuántos registros de cada sección entrarían, cuántos se ignoran porque ya existen, y cada error con su
+   archivo y su ruta —`clientes/fana/historial.json · /ordenes/3/reportes/0/equipo: la ref «eq-2789» no
+   está declarada`—.
+3. **Corregir el conversor y repetir** hasta que el informe salga limpio. No se corrige el archivo a mano:
    así la próxima conversión sale bien sola.
-6. **Aplicar.** Todo o nada, en una sola transacción: una carga que falla no deja nada, y se puede
+4. **Aplicar.** Todo o nada, en una sola transacción: una carga que falla no deja nada, y se puede
    repetir. Antes, un respaldo (`respaldo.sh ahora`, ver `DESPLIEGUE.md`).
+
+**La firma del ingeniero.** Los reportes del historial se cierran al cargar con la firma del ingeniero
+de la orden, como cualquier cierre, y **un historial cuyo ingeniero no tenga firma se rechaza**: el
+reporte se congela, y uno congelado no la recibiría después. La firma puede estar **guardada en
+MalphasOS** —el ingeniero ya tenía cuenta y la dibujó— o **venir en la carga**, en el campo `firma` de su
+persona en el catálogo: un PNG de hasta 256 KB, en base64. Si la persona ya tiene una, se queda con la
+suya. Se rechaza también si la persona de la orden no es ingeniero.
+
+(Hasta el 2026-11-16 la firma solo podía estar guardada, y por eso la carga de un sistema eran tres
+pasos por lo menos: el catálogo solo, que cada ingeniero recibiera cuenta y dibujara su firma, y después
+cada cliente con el catálogo otra vez. Con dieciséis clientes eran dieciocho pasos.)
+
 7. **Completar las firmas de quien recibe**, si se quiere: un reporte cerrado admite la firma de quien
    recibe después, desde su pantalla, como cualquier reporte —con la opción de firmar todos los de la
    orden o del área a la vez—. Y el supervisor puede aprobar las órdenes.
@@ -119,10 +146,17 @@ llave natural, comparando los nombres sin tildes, sin mayúsculas y sin espacios
 - **Un equipo sin serie para un cliente que ya existía**, porque no hay con qué saber si ya está. Un
   cliente nuevo se carga entero, con sus equipos sin serie.
 
+**Y un modelo y una serie son de un solo equipo en toda la base**, no por cliente. Se rechazan dos
+equipos de la carga con los mismos —aunque sean de dos clientes— y uno que ya es de **otro** cliente:
+la carga lo tomaría por ese, y su historial quedaría en el cliente equivocado. Si de verdad son dos
+aparatos, a uno se le quita la serie en el archivo y recibe la provisional.
+
 ## Lo que MalphasOS hace con cada sección
 
 - **Personas**: entran como **fichas sin cuenta**. La cuenta se da después, persona por persona, con
-  «Dar acceso». **Una carga nunca lleva contraseñas.** El primer correo será el de la cuenta.
+  «Dar acceso». **Una carga nunca lleva contraseñas.** El primer correo será el de la cuenta. La
+  **firma** de un ingeniero o un administrador se guarda como si la hubiera dibujado en su cuenta, si no
+  tiene ya una; un supervisor no lleva firma.
 - **Clientes**: si no traen `sigla`, se genera de la razón social, como en la pantalla.
 - **Equipos**: reciben su número de hoja de vida, `HV-<sigla>-0001`, como en un alta normal. **Uno sin
   serie recibe una provisional**, `P:` y los seis primeros caracteres de su identificador —`P:3f9a1c`—,
@@ -221,6 +255,17 @@ esquema no puede resolver por él.
   los pasos de su informe más reciente**, que son los que se copiarán a un reporte nuevo; un reporte
   histórico trae en `pasos` los que se hicieron entonces, aunque no sean los de hoy. Y **hubo una plantilla
   equivocada**: un termómetro con los pasos de un autoclave y de un otoscopio, que se quitaron.
+- **Las series de relleno**: «N/R», «NR», «SN», «NT-LILA». No son series —dicen que no la hay, a veces
+  con el color de la etiqueta— y se omiten. Y **la misma serie en dos equipos del mismo modelo**, catorce
+  veces en dieciséis clientes, una de ellas en dos clientes distintos: el conversor deja la serie en el de
+  consecutivo más bajo y los demás entran con la provisional, avisados. Unirlos sería adivinar que son el
+  mismo aparato.
+- **El mismo equipo dos veces en una orden**: dos visitas, un mes aparte, con el mismo número. En
+  MalphasOS una orden tiene un reporte por equipo, y el conversor la parte en una por visita. La validación
+  no lo veía hasta el 2026-11-16, y la base lo rechazó al aplicar.
+- **La unidad escrita no casa con los valores**: básculas pesa bebé marcadas «Kg» con lecturas de 100 a
+  1800, y «g» con lecturas de 0,1 a 10. El conversor las lleva todas a gramos por la escala de los valores,
+  porque un tipo se verifica una sola vez en cada magnitud.
 - **Un patrón es su código interno**: la serie se escribe distinta de un informe a otro, o «NT», y el
   mismo instrumento aparece con varios certificados a lo largo de los años. Y **dos patrones distintos
   comparten serie**, que MalphasOS no admite.
@@ -247,7 +292,8 @@ Todas las decidió el usuario.
 4. **El número anterior va en las observaciones** del reporte.
 5. **El ingeniero firma con su firma guardada, al cargar**: por eso el catálogo entra primero y los
    ingenieros guardan su firma antes del historial. **La de quien recibe se pone después**, como en
-   cualquier reporte cerrado.
+   cualquier reporte cerrado. **Corregida el 2026-11-16**: la firma del ingeniero puede venir también en
+   la carga, y el catálogo ya no entra solo antes (ver la 11).
 6. **El documento no dice que es importado**: sale como cualquier reporte.
 7. **Un certificado sin vencimiento conocido**: el conversor pone la fecha de calibración **más un año**.
 8. **Dos patrones con la misma serie**: la validación **los rechaza**, y quien carga corrige la serie en
@@ -256,3 +302,12 @@ Todas las decidió el usuario.
    El conversor lleva una tabla de equivalencias. Nunca se elige una ciudad sola.
 10. **Todo equipo sin serie recibe una provisional**, `P:` y el comienzo de su identificador, en la
     carga y en el alta desde la pantalla. La `P` dice que no es la de la placa.
+
+### Y del 2026-11-16
+
+11. **Una sola carga para todo**, pedida por el usuario tras cargar el primer catálogo de dieciséis
+    clientes: el catálogo y todos los clientes juntos, en un ZIP, con la firma de cada ingeniero dentro.
+    Validar y aplicar, y nada más. Los archivos sueltos siguen valiendo.
+12. **La firma de la carga no sustituye a una guardada**: la que alguien dibujó en MalphasOS manda.
+13. **Un modelo y una serie, o un equipo en una orden, que se repiten se rechazan al validar**, como todo
+    lo que la base rechazaría al aplicar: lo que el esquema y la validación aprueban, la carga lo acepta.

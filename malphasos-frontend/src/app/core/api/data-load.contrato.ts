@@ -35,7 +35,7 @@ export interface paths {
         put?: never;
         /**
          * Validar una carga sin aplicarla
-         * @description De uno a tres archivos —el catálogo, un cliente y su historial—, como mucho uno de cada contenido. Responde qué impide aplicarla y qué conviene leer.
+         * @description El catálogo, como mucho uno, y cada cliente con su historial, sueltos o en un ZIP que los lleve dentro. Responde qué impide aplicarla y qué conviene leer.
          */
         post: operations["validate"];
         delete?: never;

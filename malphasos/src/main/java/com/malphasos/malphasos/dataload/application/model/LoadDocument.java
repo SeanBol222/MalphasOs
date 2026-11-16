@@ -78,8 +78,9 @@ public record LoadDocument(String formato, String contenido, String cliente, Str
 
     public record Certificate(String numero, LocalDate fechaCalibracion, LocalDate vencimiento, String empresaCalibradora) {}
 
+    /** {@code firma} es el PNG en base64, solo de la gente de la casa: la que firman los reportes. */
     public record Person(String ref, String cedula, String tipo, String primerNombre, String segundoNombre,
-            String primerApellido, String segundoApellido, List<String> correos, List<String> telefonos) {
+            String primerApellido, String segundoApellido, List<String> correos, List<String> telefonos, String firma) {
         public Person {
             correos = lista(correos);
             telefonos = lista(telefonos);

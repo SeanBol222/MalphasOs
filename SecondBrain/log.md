@@ -3091,3 +3091,17 @@ de las imágenes que el almacén no borra.
 
 **Y entra en la 1.1.0**, decidido por el usuario el mismo día: no estaba en su plan, que era la carga de
 datos, y se añade como tanda 8 en [[hoja-de-ruta-producto]] y en `CHANGELOG.md`.
+
+## [2026-11-16] ingest | Una sola carga para todo un sistema
+
+El usuario pidió dejar de subir el catálogo con cada cliente. La carga lleva ahora **el catálogo y todos
+los clientes juntos**, sueltos o en un ZIP, con la **firma de cada ingeniero en el catálogo**: validar y
+aplicar, y nada más. Ver [[decisiones-tecnicas-malphasos]], «Una sola carga para todo un sistema», y
+`contracts/carga/GUIA.md`.
+
+**La carga real destapó tres reglas que la base imponía y la validación no veía** —modelo y serie
+repetidos, el equipo de otro cliente y dos reportes de un equipo en una orden—, y la segunda era un
+defecto silencioso: el historial de un equipo habría quedado en otro cliente. **Y un costo cuadrático**:
+aplicar los 3827 reportes tardaba 686 s y tarda 53, soltando el contexto de persistencia por tramos.
+Medido en una prueba temporal contra PostgreSQL, que no se commitea porque lee datos reales.
+
