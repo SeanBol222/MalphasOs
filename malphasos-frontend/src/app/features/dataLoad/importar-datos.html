@@ -1,8 +1,8 @@
 <div>
   <h1 class="titulo-pagina">Importar datos</h1>
   <p class="mt-1 max-w-[720px] text-neutral-800">
-    Los datos de otro sistema, en los archivos del formato <code>malphasos-carga/1</code>: el
-    catálogo, un cliente y su historial. Validar no escribe nada; aplicar escribe todo o nada.
+    Los datos de otro sistema, en el formato <code>malphasos-carga/1</code>: el catálogo y cada
+    cliente con su historial. Validar no escribe nada; aplicar escribe todo o nada.
   </p>
 </div>
 
@@ -15,9 +15,10 @@
 <section class="superficie mt-3 max-w-[720px]" aria-labelledby="importar-archivos">
   <h2 id="importar-archivos" class="titulo-seccion">Archivos</h2>
   <p class="mt-1 text-neutral-800">
-    De uno a tres archivos <code>.json</code>. Un cliente y su historial nombran el catálogo: se
-    suben con él aunque el catálogo ya esté cargado, y lo que ya existe se reconoce y no se toca.
-    Cada vez que se eligen se suman a la lista, de modo que pueden venir de carpetas distintas.
+    El <code>.zip</code> que escribe el conversor, con todo dentro, o los
+    <code>.json</code> sueltos. Un cliente y su historial nombran el catálogo, así que se suben con
+    él aunque el catálogo ya esté cargado; lo que ya existe se reconoce y no se toca. Cada vez que
+    se eligen se suman a la lista.
   </p>
 
   <div class="mt-2 flex flex-wrap items-center gap-1.5">
@@ -31,7 +32,7 @@
       id="importar-archivo"
       class="sr-only"
       type="file"
-      accept="application/json,.json"
+      accept="application/json,.json,application/zip,.zip"
       multiple
       [disabled]="validacion.isPending() || aplicacion.isPending()"
       (change)="elegir($event)"
@@ -66,12 +67,6 @@
   } @else {
     <p class="mt-2 text-neutral-700">Todavía no se ha elegido ningún archivo.</p>
   }
-
-  @if (demasiados()) {
-    <p class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-1.5" role="alert" data-demasiados>
-      Se eligieron {{ archivos().length }} archivos y una carga lleva como mucho tres.
-    </p>
-  }
 </section>
 
 @if (informe(); as datos) {
@@ -92,26 +87,44 @@
 
     @if (datos.errores?.length) {
       <h3 class="mt-2 font-bold">Errores ({{ datos.errores!.length }})</h3>
-      <ul class="mt-1 space-y-1" data-errores>
-        @for (problema of datos.errores; track $index) {
-          <li class="border-l-2 border-accent-700 pl-1.5">
-            <span class="block text-sm text-neutral-700">{{ dondeEsta(problema) }}</span>
-            {{ problema.mensaje }}
-          </li>
+      <div data-errores>
+        @for (grupo of erroresPorArchivo(); track $index) {
+          <h4 class="mt-1.5 break-all font-semibold" data-grupo>
+            {{ grupo.archivo ?? 'La carga entera' }} ({{ grupo.problemas.length }})
+          </h4>
+          <ul class="mt-0.5 space-y-1">
+            @for (problema of grupo.problemas; track $index) {
+              <li class="border-l-2 border-accent-700 pl-1.5">
+                @if (problema.ruta) {
+                  <span class="block text-sm text-neutral-700">{{ problema.ruta }}</span>
+                }
+                {{ problema.mensaje }}
+              </li>
+            }
+          </ul>
         }
-      </ul>
+      </div>
     }
 
     @if (datos.avisos?.length) {
       <h3 class="mt-2 font-bold">Avisos ({{ datos.avisos!.length }})</h3>
-      <ul class="mt-1 space-y-1" data-avisos>
-        @for (problema of datos.avisos; track $index) {
-          <li class="border-l-2 border-ink pl-1.5">
-            <span class="block text-sm text-neutral-700">{{ dondeEsta(problema) }}</span>
-            {{ problema.mensaje }}
-          </li>
+      <div data-avisos>
+        @for (grupo of avisosPorArchivo(); track $index) {
+          <h4 class="mt-1.5 break-all font-semibold" data-grupo>
+            {{ grupo.archivo ?? 'La carga entera' }} ({{ grupo.problemas.length }})
+          </h4>
+          <ul class="mt-0.5 space-y-1">
+            @for (problema of grupo.problemas; track $index) {
+              <li class="border-l-2 border-ink pl-1.5">
+                @if (problema.ruta) {
+                  <span class="block text-sm text-neutral-700">{{ problema.ruta }}</span>
+                }
+                {{ problema.mensaje }}
+              </li>
+            }
+          </ul>
         }
-      </ul>
+      </div>
     }
 
     @if (datos.resumen?.length) {
@@ -160,12 +173,15 @@
       @if (confirmando()) {
         <p class="mt-2 border-l-2 border-ink bg-neutral-200 p-2" data-confirmacion>
           Se escribe todo lo que el resumen cuenta como nuevo, en una sola operación. Si MalphasOS
-          rechaza algo, no se escribe nada.
+          rechaza algo, no se escribe nada. Una carga entera tarda alrededor de un minuto: no cierre
+          la página mientras se aplica.
         </p>
       }
     }
     @if (aplicacion.isPending()) {
-      <p class="mt-2 text-neutral-700" role="status">Aplicando la carga…</p>
+      <p class="mt-2 text-neutral-700" role="status">
+        Aplicando la carga… Puede tardar alrededor de un minuto.
+      </p>
     }
   </section>
 }
