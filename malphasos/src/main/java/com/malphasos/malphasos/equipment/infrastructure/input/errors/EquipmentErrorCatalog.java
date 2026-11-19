@@ -53,7 +53,11 @@ public enum EquipmentErrorCatalog {
 
     // V50: como CROSS_CLIENT_RELOCATION, el area de destino es valida y lo que choca es el estado de la
     // unidad, que esta en una orden sin ejecutar.
-    RELOCATION_DURING_WORK_ORDER("ERR_EQUIPMENT_021", "The unit is in a work order that has not been executed");
+    RELOCATION_DURING_WORK_ORDER("ERR_EQUIPMENT_021", "The unit is in a work order that has not been executed"),
+
+    // V60: los patrones de cada verificacion. Una verificacion que no es de ese tipo es "no existe", con
+    // codigo propio para no confundirla con el tipo que si existe.
+    VERIFICATION_NOT_FOUND("ERR_EQUIPMENT_022", "The equipment type has no such verification");
 
     private final String code;
     private final String message;

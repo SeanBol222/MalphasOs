@@ -84,6 +84,15 @@
                 >
                   Verificación
                 </button>
+                @if (tipo.estadoActivo && tipo.verificaciones?.length) {
+                  <a
+                    class="inline-flex min-h-tactil items-center px-1 underline"
+                    [routerLink]="['/catalogo/tipos', tipo.id, 'patrones']"
+                    [attr.aria-label]="'Patrones de ' + tipo.nombre"
+                  >
+                    Patrones
+                  </a>
+                }
                 @if (tipo.estadoActivo) {
                   <button
                     class="min-h-tactil px-1 underline"

@@ -75,6 +75,9 @@ export type Patron = equipos['schemas']['ReferenceStandardResponse'];
 export type NuevoPatron = equipos['schemas']['ReferenceStandardRequest'];
 export type ProtocoloAsignado = equipos['schemas']['AssignedProtocolResponse'];
 export type AsignacionDeProtocolos = equipos['schemas']['AssignProtocolsRequest'];
+/** Los patrones con que se hace cada verificación de un tipo (V60), por identificador. */
+export type PatronesDeVerificacion = equipos['schemas']['VerificationStandardsResponse'];
+export type AsignacionDePatrones = equipos['schemas']['AssignVerificationStandardsRequest'];
 export type NuevoTipoDeEquipo = equipos['schemas']['EquipmentTypeCreateRequest'];
 export type CambioDeTipoDeEquipo = equipos['schemas']['EquipmentTypeUpdateRequest'];
 

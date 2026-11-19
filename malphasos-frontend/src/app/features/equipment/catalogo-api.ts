@@ -8,6 +8,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  AsignacionDePatrones,
   AsignacionDeProtocolos,
   CambioDeTipoDeEquipo,
   EquipoDeCatalogo,
@@ -24,6 +25,7 @@ import {
   NuevoPatron,
   NuevoProtocolo,
   Patron,
+  PatronesDeVerificacion,
   NuevoTipoDeEquipo,
   Protocolo,
   ProtocoloAsignado,
@@ -332,6 +334,42 @@ export class CatalogoApi {
         firstValueFrom(
           this.http.patch<ProtocoloAsignado[]>(
             `${this.api}/equipment-types/${id}/protocols`,
+            asignacion,
+          ),
+        ),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
+  /** Los patrones de cada verificación vigente de un tipo (V60), una entrada por verificación. */
+  patronesDeVerificaciones(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...CatalogoApi.clave('tipos'), id(), 'patrones'],
+      queryFn: () =>
+        firstValueFrom(
+          this.http.get<PatronesDeVerificacion[]>(
+            `${this.api}/equipment-types/${id()}/reference-standards`,
+          ),
+        ),
+      enabled: !!id(),
+    }));
+  }
+
+  /** Fija los patrones de una verificación: la lista entera. Vacía, los quita todos. */
+  asignarPatrones() {
+    return injectMutation(() => ({
+      mutationFn: ({
+        id,
+        idVerificacion,
+        asignacion,
+      }: {
+        id: string;
+        idVerificacion: string;
+        asignacion: AsignacionDePatrones;
+      }) =>
+        firstValueFrom(
+          this.http.patch<PatronesDeVerificacion>(
+            `${this.api}/equipment-types/${id}/verifications/${idVerificacion}/reference-standards`,
             asignacion,
           ),
         ),

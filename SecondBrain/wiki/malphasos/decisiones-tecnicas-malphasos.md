@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-11-16
+updated: 2026-11-19
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -915,3 +915,25 @@ una orden ejecutada no los cambie. Una foránea no puede decir «alguna verifica
 **Ninguna de las dos tablas lleva borrado lógico**, como `foto_equipo_cliente`: quitar un patrón de una
 verificación o de una orden abierta no es historia de nada. La historia está en el documento de cada reporte
 cerrado y en el de la orden ejecutada.
+
+### El catálogo, construido el mismo día (tanda 1)
+
+**Un agregado propio por verificación**, `VerificationStandards`, y no una colección más de
+`TypeVerification`: por lo mismo que los protocolos de un tipo, cambia por motivos distintos —se compra un
+patrón, se retira otro— y no necesita al tipo para validarse. Es un conjunto: sin orden y sin repetidos.
+
+**Declarar las verificaciones de un tipo las rehace con identificador nuevo**, aunque solo cambie una
+tolerancia —`declareVerifications` retira todas las vigentes y crea las pedidas—, y los patrones cuelgan de
+ese identificador. Sin hacer nada, cada edición del tipo los habría perdido en silencio. **La nueva de cada
+magnitud hereda los patrones de la que retira**, en `EquipmentTypeService`: un tipo no declara dos veces la
+misma magnitud, así que es la misma cosa medida. La pantalla va en página propia por la misma razón.
+
+**Un patrón retirado no se añade, pero el que ya estaba puede quedarse.** Exigir quitarlo antes haría que la
+pantalla no pudiera guardar ningún otro cambio de esa verificación; elegirlo en un reporte ya lo impide estar
+retirado. La pantalla lo enseña marcado, para quitarlo.
+
+**La carga de datos anota los pares** de cada reporte histórico, sumados a los que había: es el relleno de
+`V60` aplicado a lo que entre después.
+
+De lo que «el esquema no expresa», arriba, queda construido que el patrón exista y esté vigente al ponerlo en
+una verificación vigente de ese tipo. Lo del reporte y lo de la orden sigue por hacer —tandas 2 a 4—.

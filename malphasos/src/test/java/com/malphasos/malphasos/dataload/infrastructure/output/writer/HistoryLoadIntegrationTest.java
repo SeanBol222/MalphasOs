@@ -142,6 +142,22 @@ class HistoryLoadIntegrationTest {
     }
 
     @Test
+    @DisplayName("cada patron que un reporte uso queda como patron de su verificacion, una vez, como hizo V60")
+    void losPatronesDeCadaVerificacion() {
+        assertThat(carga.apply(List.of(CATALOGO, CLIENTE, HISTORIAL)).errores()).isEmpty();
+
+        List<java.util.Map<String, Object>> usados = jdbcTemplate.queryForList("""
+                SELECT DISTINCT (v ->> 'id')::uuid AS verificacion, (p ->> 'id')::uuid AS patron
+                FROM reporte_servicio r, jsonb_array_elements(r.t_contenido -> 'verificaciones') v,
+                     jsonb_array_elements(v -> 'patrones') p
+                """);
+        assertThat(usados).isNotEmpty();
+        assertThat(jdbcTemplate.queryForList(
+                        "SELECT k_id_verificacion AS verificacion, k_id_equipo_patron AS patron FROM patron_verificacion"))
+                .containsExactlyInAnyOrderElementsOf(usados);
+    }
+
+    @Test
     @DisplayName("el informe lleva el certificado del patron que estaba vigente el dia del servicio")
     void elCertificadoDeEseDia() {
         DataLoadFile de2024 = historial("\"finalizado\": \"2025-03-10\"", "\"finalizado\": \"2024-06-01\"");

@@ -5,6 +5,8 @@ import static com.malphasos.malphasos.dataload.infrastructure.output.writer.Step
 import com.malphasos.malphasos.dataload.application.model.LoadDocument;
 import com.malphasos.malphasos.dataload.application.model.ReadFile;
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentTypePersistencePort;
+import com.malphasos.malphasos.equipment.application.ports.output.VerificationStandardsPersistencePort;
+import com.malphasos.malphasos.equipment.domain.verificationStandards.VerificationStandards;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
@@ -40,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -76,19 +79,21 @@ class HistoryWriter {
     private final ReportDocumentComposer compositor;
     private final DocumentImageStorePort imagenes;
     private final EquipmentTypePersistencePort tipos;
+    private final VerificationStandardsPersistencePort patronesPorVerificacion;
     private final EntityManager entityManager;
     private final ZoneId zona;
 
     HistoryWriter(WorkOrderPersistencePort ordenes, ServiceReportPersistencePort reportes,
             WorkOrderServicePort ordenesServicio, ReportDocumentComposer compositor, DocumentImageStorePort imagenes,
-            EquipmentTypePersistencePort tipos, EntityManager entityManager,
-            @Value("${app.time-zone:America/Bogota}") String zona) {
+            EquipmentTypePersistencePort tipos, VerificationStandardsPersistencePort patronesPorVerificacion,
+            EntityManager entityManager, @Value("${app.time-zone:America/Bogota}") String zona) {
         this.ordenes = ordenes;
         this.reportes = reportes;
         this.ordenesServicio = ordenesServicio;
         this.compositor = compositor;
         this.imagenes = imagenes;
         this.tipos = tipos;
+        this.patronesPorVerificacion = patronesPorVerificacion;
         this.entityManager = entityManager;
         this.zona = ZoneId.of(zona);
     }
@@ -134,6 +139,7 @@ class HistoryWriter {
         // Los compositores leen con consultas, y algunas son de JDBC: sin vaciar no verían lo escrito.
         entityManager.flush();
         entityManager.clear();
+        anotarPatrones(escritos);
 
         // Los reportes entraron como borradores y se cierran ahora, cada uno con su documento: el informe lee
         // la hoja de vida de su equipo, cuyo historial exige que todo reporte cerrado tenga documento (V51),
@@ -154,6 +160,24 @@ class HistoryWriter {
             });
             aligerar(k + 1);
         }
+    }
+
+    /**
+     * Cada patrón que un reporte histórico usó en una verificación queda como patrón de esa verificación
+     * (2026-11-19), sumado a los que ya tenía: es el mismo relleno que hizo {@code V60} con los reportes que
+     * había, para que lo cargado después no quede fuera del catálogo. Va con SQL, así que después de vaciar.
+     */
+    private void anotarPatrones(List<Parts> escritos) {
+        Map<UUID, Set<UUID>> usados = new LinkedHashMap<>();
+        escritos.forEach(partes -> partes.patrones().forEach(p ->
+                usados.computeIfAbsent(p.idVerificacion(), v -> new HashSet<>()).add(p.idEquipoPatron())));
+
+        usados.forEach((verificacion, patrones) -> {
+            Set<UUID> todos = new HashSet<>(patronesPorVerificacion.findByVerification(verificacion).getPatrones());
+            if (todos.addAll(patrones)) {
+                patronesPorVerificacion.save(VerificationStandards.rehydrate(verificacion, todos));
+            }
+        });
     }
 
     /** Cada cuántos registros se vacía y se suelta el contexto de persistencia. */

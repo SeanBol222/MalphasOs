@@ -3147,3 +3147,20 @@ borra la fila—, sino para no copiar el cliente. Corregida dejando constancia.
 **Lo que queda**: ninguna línea de código usa todavía las dos tablas. Siguen el catálogo de patrones por
 verificación con su pantalla, el filtro y la regla en el reporte, los patrones de la orden con su asignación
 automática y sus pantallas. Ver [[hoja-de-ruta-producto]].
+
+## [2026-11-19] ingest | El catálogo de patrones por verificación (tanda 1)
+
+La tanda 1 de [[hoja-de-ruta-producto]]: el agregado `VerificationStandards`, dos rutas bajo el tipo de
+equipo, Catálogo › Tipos › «Patrones» con una casilla por patrón en cada verificación, y dos piezas que nadie
+pidió y sin las que la lista se rompía: **la verificación que se rehace al redeclarar hereda los patrones de la
+de su magnitud**, y **la carga de datos anota los pares** de cada reporte histórico, como hizo `V60`. Ver
+[[decisiones-tecnicas-malphasos]].
+
+**1756** pruebas en el backend, 157 clases, y **874** en el frontend, cero fallos. Cuatro mutaciones, las
+cuatro muertas: sin la herencia, sin el rechazo del retirado, sin la anotación de la carga y con un filtro que
+escondía un patrón elegido.
+
+**Lo que queda**: el reporte sigue ofreciendo todos los patrones —tanda 2—, y el par del monitor de signos
+vitales con el simulador de SpO2 lo quita el usuario desde la pantalla, cuando la base de desarrollo pase a
+`V60`.
+

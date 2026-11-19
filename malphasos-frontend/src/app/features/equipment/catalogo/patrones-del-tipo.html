@@ -1,0 +1,104 @@
+<h1 class="titulo-pagina">Patrones de {{ tipo.data()?.nombre ?? 'tipo de equipo' }}</h1>
+<p class="mt-1 max-w-[720px] text-neutral-700">
+  Con qué equipos patrón se hace cada verificación. Son los que el ingeniero podrá elegir al tomar
+  las lecturas de un equipo de este tipo.
+</p>
+
+@if (mensajeDeError()) {
+  <div class="mt-2 max-w-[720px] border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+    <p class="font-semibold">{{ mensajeDeError() }}</p>
+  </div>
+}
+
+@if (cargando()) {
+  <p class="mt-2 text-neutral-700" role="status">Cargando patrones…</p>
+} @else if (!bloques().length) {
+  <p class="mt-2 text-neutral-700">
+    Este tipo no tiene verificaciones: no hay nada que medir con un patrón.
+  </p>
+  <a class="boton-secundario mt-2 inline-flex min-h-tactil items-center" routerLink="/catalogo"
+    >Volver</a
+  >
+} @else {
+  <div class="superficie mt-3 max-w-[720px]">
+    <label class="block font-semibold" for="filtroPatrones">Buscar patrón</label>
+    <input
+      id="filtroPatrones"
+      class="campo mt-1 min-h-tactil w-full"
+      type="search"
+      placeholder="Nombre, marca, serie o código interno"
+      [value]="filtro()"
+      (input)="filtro.set($any($event.target).value)"
+    />
+    <p class="mt-1 text-sm text-neutral-700">
+      Los elegidos se ven siempre, aunque no casen con la búsqueda.
+    </p>
+
+    @for (bloque of bloques(); track bloque.verificacion.id) {
+      <fieldset class="mt-3" [attr.data-verificacion]="bloque.verificacion.id">
+        <legend class="titulo-seccion">
+          {{ bloque.titulo }}
+          <span class="text-sm font-normal text-neutral-700">
+            ·
+            {{
+              bloque.cuantos === 0
+                ? 'ninguno elegido'
+                : bloque.cuantos === 1
+                  ? '1 elegido'
+                  : bloque.cuantos + ' elegidos'
+            }}
+          </span>
+        </legend>
+
+        @if (!bloque.candidatos.length) {
+          <p class="mt-1 text-neutral-700">Ningún patrón vigente casa con la búsqueda.</p>
+        }
+        <ul class="mt-1">
+          @for (candidato of bloque.candidatos; track candidato.patron.id) {
+            <li [attr.data-patron]="candidato.patron.id">
+              <label class="flex min-h-tactil cursor-pointer items-start gap-2 py-1">
+                <input
+                  class="mt-1"
+                  type="checkbox"
+                  [checked]="candidato.elegido"
+                  (change)="alternar(bloque.verificacion.id!, candidato.patron.id!)"
+                />
+                <span>
+                  <span class="block" [class.font-bold]="candidato.elegido">{{
+                    candidato.patron.nombre
+                  }}</span>
+                  <span class="block text-sm text-neutral-700">
+                    Serie {{ candidato.patron.serie }}
+                    @if (candidato.patron.codigoInterno) {
+                      · {{ candidato.patron.codigoInterno }}
+                    }
+                    ·
+                    @if (!candidato.patron.estadoActivo) {
+                      <span class="font-extrabold">Retirado</span>
+                    } @else if (candidato.vencido) {
+                      <span class="font-extrabold">Vencido el {{ candidato.vence }}</span>
+                    } @else {
+                      vence el {{ candidato.vence }}
+                    }
+                  </span>
+                </span>
+              </label>
+            </li>
+          }
+        </ul>
+      </fieldset>
+    }
+
+    <div class="mt-3 flex gap-2">
+      <button
+        class="boton-primario min-h-tactil"
+        type="button"
+        [disabled]="enviando() || !hayCambios()"
+        (click)="guardar()"
+      >
+        {{ enviando() ? 'Guardando…' : 'Guardar cambios' }}
+      </button>
+      <a class="boton-secundario flex min-h-tactil items-center" routerLink="/catalogo">Cancelar</a>
+    </div>
+  </div>
+}
