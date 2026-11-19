@@ -19,15 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Guarda y recupera reportes de servicio.
  *
- * <p>Al guardar busca antes la fila existente y se la pasa al mapper, por lo mismo que los
- * adaptadores de {@code client} y de {@code work-order}: sin ella el mapper construiría una entidad
- * nueva en cada guardado y Hibernate insertaría duplicados de las lecturas.
+ * <p>Al guardar busca antes la fila existente y se la pasa al mapper, para que Hibernate la ponga al día en
+ * vez de intentar insertarla otra vez. Desde V59 el reporte es una sola fila: lo que dice va entero en
+ * {@code t_contenido}, sin tablas hijas que conciliar.
  *
- * <p><b>Los métodos llevan {@code @Transactional}</b> porque el mapeo recorre las lecturas, que son
- * una colección perezosa: sin transacción abierta lanzaría {@code LazyInitializationException},
- * porque {@code open-in-view} está desactivado en este proyecto. Es el quinto adaptador con colección
- * propia y el segundo que lo lleva desde el primer día — en {@code work-order} faltó cuatro tandas y
- * no se vio hasta que una prueba llamó al adaptador por su cuenta.
+ * <p>Los métodos llevan {@code @Transactional} por lo mismo que el resto de adaptadores: la lectura y la
+ * escritura de un reporte son una unidad, y los que solo leen van en {@code readOnly}.
  */
 @Component
 @RequiredArgsConstructor
@@ -36,31 +33,13 @@ public class ServiceReportPersistenceAdapter implements ServiceReportPersistence
     private final ServiceReportRepository serviceReportRepository;
     private final ServiceReportPersistenceMapper mapper;
 
-    /**
-     * Guarda el reporte en <b>dos escrituras cuando ya existía</b>, y el orden es obligatorio.
-     *
-     * <p>Primero se vuelca lo que ya está en la base —incluida la lectura que se retira— y se vacía la
-     * sesión; solo después se insertan las lecturas nuevas. Sin ese orden, corregir una lectura choca
-     * contra {@code UQ_dato_verificacion_activo}: Hibernate vacía los {@code INSERT} antes que los
-     * {@code UPDATE}, de modo que la base vería por un instante dos lecturas activas del mismo punto
-     * con el mismo número. Lo destapó la prueba de este adaptador, y con dobles no habría aparecido.
-     *
-     * <p>Un reporte nuevo no paga nada: sin fila previa no hay nada que vaciar antes.
-     */
     @Override
     @Transactional
     public ServiceReport save(ServiceReport reporte) {
         ServiceReportEntity existente =
                 serviceReportRepository.findById(reporte.getId()).orElse(null);
-        ServiceReportEntity entity = mapper.toEntity(reporte, existente);
 
-        if (existente != null) {
-            serviceReportRepository.saveAndFlush(entity);
-        }
-
-        mapper.addNewReadings(reporte, entity);
-
-        return mapper.toDomain(serviceReportRepository.save(entity));
+        return mapper.toDomain(serviceReportRepository.save(mapper.toEntity(reporte, existente)));
     }
 
     @Override

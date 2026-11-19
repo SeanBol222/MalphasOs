@@ -400,6 +400,18 @@ class ServiceReportTest {
         }
 
         @Test
+        @DisplayName("un valor tiene como mucho ocho cifras enteras: lo que era numeric(12,4) es regla desde V59")
+        void acotaLasCifrasDelValor() {
+            assertThatIllegalArgumentException().isThrownBy(() -> VerificationReading.of(
+                    VERIFICACION, PUNTO, 1, new BigDecimal("100000000"), new BigDecimal("1")));
+            assertThatIllegalArgumentException().isThrownBy(() -> VerificationReading.of(
+                    VERIFICACION, PUNTO, 1, new BigDecimal("1"), new BigDecimal("-100000000")));
+            assertThatCode(() -> VerificationReading.of(
+                            VERIFICACION, PUNTO, 1, new BigDecimal("99999999.9999"), new BigDecimal("-99999999.9999")))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
         @DisplayName("el error es equipo menos patron, con su signo")
         void error() {
             assertThat(unaLectura("100", "100.3").error()).isEqualByComparingTo("0.3");

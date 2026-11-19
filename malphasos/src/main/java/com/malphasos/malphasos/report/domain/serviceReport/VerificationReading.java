@@ -49,6 +49,14 @@ public record VerificationReading(
     /** El tope de lecturas por punto que declara {@code verificacion_tipo_equipo.i_cantidad_datos}. */
     public static final int MAXIMA_SECUENCIA = 100;
 
+    /**
+     * Cuántas cifras enteras cabe en un valor. Era el {@code numeric(12,4)} de {@code dato_verificacion}, y
+     * desde V59, que guarda las lecturas en JSON, es esta regla: el JSON acepta cualquier número.
+     */
+    static final int CIFRAS_ENTERAS = 8;
+
+    private static final BigDecimal LIMITE = BigDecimal.TEN.pow(CIFRAS_ENTERAS);
+
     public VerificationReading {
         if (idVerificacion == null) {
             throw new IllegalArgumentException(
@@ -62,6 +70,10 @@ public record VerificationReading(
         if (valorPatron == null || valorEquipo == null) {
             throw new IllegalArgumentException(
                     "Una lectura necesita el valor del patron y el del equipo: el reporte imprime los dos");
+        }
+        if (valorPatron.abs().compareTo(LIMITE) >= 0 || valorEquipo.abs().compareTo(LIMITE) >= 0) {
+            throw new IllegalArgumentException(
+                    "Un valor de lectura tiene como mucho " + CIFRAS_ENTERAS + " cifras enteras");
         }
     }
 

@@ -33,9 +33,6 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM paso_reporte",
-            "DELETE FROM dato_verificacion",
-            "DELETE FROM accesorio_reporte",
             "DELETE FROM reporte_servicio",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
@@ -167,10 +164,11 @@ class ReceiptByPersonIntegrationTest {
 
         for (UUID reporte : new UUID[] {e.uno(), e.dos()}) {
             assertThat(jdbcTemplate.queryForMap(
-                            "SELECT k_id_recibe, n_recibe_nombre, k_huella_firma_recibe FROM reporte_servicio WHERE k_id_reporte_servicio = ?",
+                            "SELECT k_id_recibe, t_contenido ->> 'recibe' AS recibe, k_huella_firma_recibe"
+                                    + " FROM reporte_servicio WHERE k_id_reporte_servicio = ?",
                             reporte))
                     .containsEntry("k_id_recibe", e.supervisor())
-                    .containsEntry("n_recibe_nombre", null)
+                    .containsEntry("recibe", null)
                     .doesNotContainEntry("k_huella_firma_recibe", null);
         }
     }
@@ -217,7 +215,9 @@ class ReceiptByPersonIntegrationTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("no las dos cosas");
         assertThatThrownBy(() -> jdbcTemplate.update(
-                        "UPDATE reporte_servicio SET k_id_recibe = ?, n_recibe_nombre = 'Luis' WHERE k_id_reporte_servicio = ?",
+                        "UPDATE reporte_servicio SET k_id_recibe = ?, t_contenido = jsonb_set(t_contenido, '{recibe}',"
+                                + " '{\"nombre\": \"Luis\", \"cedula\": null, \"cargo\": null}')"
+                                + " WHERE k_id_reporte_servicio = ?",
                         e.supervisor(), e.uno()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }

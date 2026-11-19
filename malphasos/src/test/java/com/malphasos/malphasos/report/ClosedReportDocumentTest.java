@@ -42,10 +42,6 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM paso_reporte",
-            "DELETE FROM dato_verificacion",
-            "DELETE FROM patron_verificacion_reporte",
-            "DELETE FROM accesorio_reporte",
             "DELETE FROM reporte_servicio",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
@@ -228,30 +224,33 @@ class ClosedReportDocumentTest {
      * insertado al revés de como lo lista el documento.
      */
     private void sembrarElBorrador(Datos d) {
+        // Desde V59 lo que el reporte dice va en t_contenido; el orden de los arreglos no importa aquí, porque
+        // lo que se compara es el documento congelado, que ordena por su cuenta.
         jdbcTemplate.update(
                 """
                 INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
-                                              t_resultado, t_ingreso_fisico, t_ingreso_operativo)
-                VALUES (?, ?, ?, 'OPERATIVO', 'CONFORME', 'CONFORME')
+                                              t_resultado, t_contenido)
+                VALUES (?, ?, ?, 'OPERATIVO', jsonb_build_object(
+                    'version', 1, 'falla', NULL, 'diagnostico', NULL, 'causa', NULL, 'repuestos', NULL,
+                    'procedimientos', NULL, 'observaciones', NULL,
+                    'ingreso', jsonb_build_object(
+                        'fisico', jsonb_build_object('estado', 'CONFORME', 'observacion', NULL),
+                        'operativo', jsonb_build_object('estado', 'CONFORME', 'observacion', NULL)),
+                    'recibe', NULL,
+                    'pasos', jsonb_build_array(
+                        jsonb_build_object('protocolo', ?::uuid, 'estado', 'HECHO', 'nota', NULL),
+                        jsonb_build_object('protocolo', ?::uuid, 'estado', 'HECHO', 'nota', NULL)),
+                    'accesorios', '[]'::jsonb,
+                    'verificaciones', jsonb_build_array(jsonb_build_object(
+                        'id', ?::uuid,
+                        'patrones', jsonb_build_array(
+                            jsonb_build_object('id', ?::uuid, 'desdeOrden', false),
+                            jsonb_build_object('id', ?::uuid, 'desdeOrden', false)),
+                        'lecturas', jsonb_build_array(jsonb_build_object(
+                            'punto', NULL, 'secuencia', 1, 'patron', 100, 'equipo', 100.4))))))
                 """,
-                d.reporte(), d.orden(), d.unidad());
-        jdbcTemplate.update("INSERT INTO paso_reporte (k_id_paso_reporte, k_id_reporte_servicio, k_id_protocolo,"
-                + " t_estado_paso) VALUES (?, ?, ?, 'HECHO')", d.pasoElectrico(), d.reporte(), d.electrico());
-        jdbcTemplate.update("INSERT INTO paso_reporte (k_id_paso_reporte, k_id_reporte_servicio, k_id_protocolo,"
-                + " t_estado_paso) VALUES (?, ?, ?, 'HECHO')", d.pasoLimpieza(), d.reporte(), d.limpieza());
-        jdbcTemplate.update(
-                """
-                INSERT INTO dato_verificacion (k_id_dato_verificacion, k_id_reporte_servicio, k_id_verificacion,
-                                               i_secuencia, d_valor_patron, d_valor_equipo)
-                VALUES (?, ?, ?, 1, 100, 100.4)
-                """,
-                d.lectura(), d.reporte(), d.presion());
-        for (UUID[] uso : new UUID[][] {{d.usoConFicha(), d.conFicha()}, {d.usoSinFicha(), d.sinFicha()}}) {
-            jdbcTemplate.update(
-                    "INSERT INTO patron_verificacion_reporte (k_id_patron_verificacion_reporte, k_id_reporte_servicio,"
-                            + " k_id_verificacion, k_id_equipo_patron) VALUES (?, ?, ?, ?)",
-                    uso[0], d.reporte(), d.presion(), uso[1]);
-        }
+                d.reporte(), d.orden(), d.unidad(), d.electrico(), d.limpieza(), d.presion(), d.conFicha(),
+                d.sinFicha());
     }
 
     /**

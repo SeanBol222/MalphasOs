@@ -31,7 +31,6 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM paso_reporte",
             "DELETE FROM reporte_servicio",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
@@ -160,8 +159,8 @@ class WorkOrderReportsAdapterTest {
 
         assertThat(activos(orden, sitio.equipo())).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
-                        "SELECT count(*) FROM paso_reporte p JOIN reporte_servicio r USING (k_id_reporte_servicio)"
-                                + " WHERE r.k_id_orden_trabajo = ? AND p.b_estado_activo",
+                        "SELECT sum(jsonb_array_length(t_contenido -> 'pasos')) FROM reporte_servicio"
+                                + " WHERE k_id_orden_trabajo = ?",
                         Integer.class, orden))
                 .isEqualTo(2);
     }

@@ -50,9 +50,6 @@ import org.springframework.test.context.jdbc.Sql;
         statements = {
             "DELETE FROM aprobacion_orden",
             "DELETE FROM firma_persona",
-            "DELETE FROM paso_reporte",
-            "DELETE FROM dato_verificacion",
-            "DELETE FROM accesorio_reporte",
             "DELETE FROM reporte_servicio",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
