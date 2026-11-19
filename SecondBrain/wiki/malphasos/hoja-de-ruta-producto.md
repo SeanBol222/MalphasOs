@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-11-08
+updated: 2026-11-19
 ---
 
 # Hoja de ruta del producto
@@ -708,7 +708,7 @@ el 2026-11-19 al revisar el esquema por demasiado acoplado. Ver [[esquema-bd-mal
 | Tanda | Qué | Estado |
 |---|---|---|
 | 0 · Esquema | `V59`, el reporte en un documento, y `V60`, `patron_verificacion` y `patron_orden_trabajo` con el catálogo rellenado del historial | **Construida el 2026-11-19** |
-| 1 · Catálogo | El dominio de los patrones de cada verificación y su pantalla en el catálogo, donde se quita el par erróneo del monitor | Por hacer |
+| 1 · Catálogo | El dominio de los patrones de cada verificación y su pantalla en el catálogo, donde se quita el par erróneo del monitor | **Construida el 2026-11-19**: el agregado `VerificationStandards`, `GET /equipment-types/{id}/reference-standards` y su `PATCH` por verificación, Catálogo › Tipos › «Patrones», la herencia al redeclarar y la carga que anota los pares. **El par del monitor sigue ahí**: lo quita el usuario desde la pantalla |
 | 2 · Reporte | El reporte ofrece solo los patrones de su verificación, y el servidor rechaza los demás | Por hacer |
 | 3 · Orden | Los patrones de la orden por tipo, el automático cuando hay uno solo vigente, y que lleguen a sus reportes marcados `desdeOrden` sin tocar los puestos a mano | Por hacer |
 | 4 · Pantallas de la orden | Elegirlos al armar la orden, cambiables hasta ejecutarla | Por hacer |
