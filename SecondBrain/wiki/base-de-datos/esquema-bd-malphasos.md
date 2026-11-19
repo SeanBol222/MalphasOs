@@ -1,6 +1,6 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 32 tablas, 41 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 34 tablas, 46 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
@@ -78,19 +78,19 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-19 sobre `V59`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-19 sobre `V60`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **59** (`V1`…`V59`): `V59` muda lo que el reporte dice a un documento JSON, el 2026-11-19 —decía **58** hasta entonces—; `V58` la foto de cada equipo del cliente, el 2026-11-08 —decía **57** hasta entonces—; la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
-| Tablas de dominio | **32** — eran **36** hasta `V58`: `V59` quitó las cuatro hijas del reporte; **35** hasta `V57`, **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
-| Llaves foráneas | **41** —**50** hasta `V58`, que añadió las dos de la foto; `V59` se llevó nueve con las tablas hijas del reporte—, **ninguna compuesta** desde `V59` —la última, la de la lectura con su punto, salió con `dato_verificacion`—, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
+| Migraciones aplicadas | **60** (`V1`…`V60`): `V60` los patrones de cada verificación y de cada orden, el 2026-11-19; `V59` muda lo que el reporte dice a un documento JSON, el 2026-11-19 —decía **58** hasta entonces—; `V58` la foto de cada equipo del cliente, el 2026-11-08 —decía **57** hasta entonces—; la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
+| Tablas de dominio | **34** — `V60` añade `patron_verificacion` y `patron_orden_trabajo`; **32** con `V59`; eran **36** hasta `V58`: `V59` quitó las cuatro hijas del reporte; **35** hasta `V57`, **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
+| Llaves foráneas | **46** —`V60` añade cinco, todas simples; **41** con `V59`; **50** hasta `V58`, que añadió las dos de la foto; `V59` se llevó nueve con las tablas hijas del reporte—, **ninguna compuesta** desde `V59` —la última, la de la lectura con su punto, salió con `dato_verificacion`—, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
 | Restricciones `CHECK` propias | **57** — eran **70** hasta `V58`: `V59` quitó las de las tablas hijas y las de los textos del reporte, rehízo dos que mezclaban columna y documento y añadió la de la forma del documento; **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **8** — eran **11** hasta `V58`: `V59` se llevó los de lecturas, patrones y pasos del reporte; **10** hasta `V54`, **9** hasta `V51` y **10** hasta `V48` |
 | Foráneas sin ningún índice que las encabece | **0** desde `V52`, que quitó la última con su tabla, `intervencion` — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
-| Tablas con borrado lógico | **27 de 32** — las cuatro que `V59` quitó lo llevaban; ya no es universal: `empresa`, `telefono_empresa`, `firma_persona`, `imagen_documento` y, desde `V58`, `foto_equipo_cliente` no lo llevan |
+| Tablas con borrado lógico | **27 de 34** — las dos de `V60` no lo llevan, como `foto_equipo_cliente`; las cuatro que `V59` quitó lo llevaban; ya no es universal: `empresa`, `telefono_empresa`, `firma_persona`, `imagen_documento` y, desde `V58`, `foto_equipo_cliente` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
 > `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
@@ -647,11 +647,17 @@ tolerancia» en lugar de inventarse una. Pero la regla de conformidad **no vive 
 reporte copia la tolerancia al tomarse, por la misma razón que copia la unidad. Ver el apartado de
 `report`.
 
-### Los equipos patrón — 1 tabla, desde `V25`
+### Los equipos patrón — 2 tablas: el patrón desde `V25` y con qué verificaciones se usa desde `V60`
 
 ```mermaid
 erDiagram
     equipo_patron ||--o{ reporte_servicio : "se usa en: por su id dentro de t_contenido, desde V59"
+    equipo_patron ||--o{ patron_verificacion : "sirve para, desde V60"
+    verificacion_tipo_equipo ||--o{ patron_verificacion : "se hace con, desde V60"
+    patron_verificacion {
+        uuid k_id_verificacion PK "FK"
+        uuid k_id_equipo_patron PK "FK, con indice propio"
+    }
     equipo_patron {
         uuid k_id_equipo_patron PK
         varchar n_nombre
@@ -679,6 +685,15 @@ fecha que RF-40 y RF-41 necesitan; **quién la vigila sigue sin existir**. Ver
 patrones ya registrados no la tienen y uno hecho en casa no tiene modelo ni empresa calibradora. **El
 código interno no es único**, y es una pregunta abierta y no una decisión: la serie ya lo es entre los
 vigentes, y nadie ha dicho si el código de inventario puede repetirse. Ver [[deuda-tecnica-y-riesgos]].
+
+**Desde `V60` (2026-11-19) el catálogo dice con qué patrones se hace cada verificación**, en
+`patron_verificacion`, y un reporte solo ofrece esos. Decidido por el usuario: el ingeniero escogía entre
+todos los patrones. Va a la **verificación** y no al tipo, porque un monitor tiene tres y cada patrón cae en
+la suya, ni a la **magnitud**, porque dos tipos que miden masa no usan las mismas pesas y un patrón de apoyo
+—el termohigrómetro de las pipetas— no mide la magnitud que se verifica. **Nació con los 83 pares que el
+historial ya usó**, leídos del documento de cada reporte; el error que trae —el simulador de SpO2 en la
+presión del monitor— se quita en el catálogo, porque una migración no distingue un error de un uso raro.
+Sin borrado lógico: quitar un patrón de una verificación no es historia de nada.
 
 ### Los protocolos de mantenimiento — 2 tablas, desde `V21`
 
@@ -719,11 +734,19 @@ erDiagram
   del tipo y se reactivan con su prioridad nueva, en la misma transacción. Es la tercera vez que un
   índice parcial obliga a imponer el orden en el adaptador.
 
-## `work-order` — 2 tablas
+## `work-order` — 3 tablas
 
 ```mermaid
 erDiagram
     orden_trabajo ||--o{ aprobacion_orden : "una vigente, desde V54"
+    orden_trabajo ||--o{ patron_orden_trabajo : "lleva a su visita, desde V60"
+    tipo_equipo ||--o{ patron_orden_trabajo : "para los equipos de"
+    equipo_patron ||--o{ patron_orden_trabajo : "se lleva en"
+    patron_orden_trabajo {
+        uuid k_id_orden_trabajo PK "FK"
+        uuid k_id_tipo_equipo PK "FK, con indice propio"
+        uuid k_id_equipo_patron PK "FK, con indice propio"
+    }
     orden_trabajo {
         uuid k_id_orden_trabajo PK
         uuid k_id_sede FK "y por ella su cliente, desde V47"
@@ -753,6 +776,21 @@ cuenta con la firma guardada. **No se copia nada**: el nombre está en `persona`
 `supervisor_cliente` y la forma se deduce comparando operador y supervisor. La foránea del supervisor va
 a `persona` y no a `supervisor_cliente` para que la aprobación siga valiendo si después lo relevan; que
 lo fuera **al aprobar** lo comprueba el servicio. Ver [[dominio-orden-trabajo]].
+
+> **Corregido el 2026-11-19: esa razón no se sostiene.** `supervisor_cliente` tiene borrado lógico, así que
+> relevar a alguien no borra su fila y una foránea compuesta (supervisor, cliente) seguiría siendo válida. La
+> razón que sí vale es otra: apuntar al par obligaría a copiar en la aprobación el cliente, que ya sale de la
+> orden por su sede, y esa copia podría contradecirla. Lo vio el usuario preguntando por qué la tabla lleva dos
+> foráneas a `persona`, y se dejó como está.
+
+**Desde `V60` (2026-11-19) la orden dice qué patrones lleva a su visita, por tipo de equipo**, en
+`patron_orden_trabajo`: las pesas de 5 kg para las pesa bebé y las de 20 kg para las de piso, en la misma
+orden. Decidido por el usuario, que también decidió **dejar el tipo en la llave** aunque se pueda deducir del
+equipo de cada reporte: es lo que deja repartir dos patrones del mismo uso entre dos tipos. Se cambian hasta
+ejecutarla, y lo que el esquema no expresa vive en el servicio: que el patrón esté permitido para alguna
+verificación activa de ese tipo, que esté activo y que el tipo tenga equipos en la orden. Cada patrón que
+llega así a un reporte va marcado `desdeOrden` en su documento, y cambiar los de la orden solo toca esos.
+**Todavía no hay código que la use**: es la tabla, con sus llaves; el servicio y las pantallas vienen después.
 
 **Sus equipos no tienen tabla desde `V50`**: un equipo está en una orden si y solo si tiene en ella un
 reporte activo, y el reporte apunta a la orden y al equipo. Hasta entonces los guardaba
