@@ -65,6 +65,8 @@ import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.VerificationStandardsServicePort;
+import com.malphasos.malphasos.equipment.domain.verificationStandards.VerificationStandards;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandard;
 import com.malphasos.malphasos.equipment.domain.referenceStandard.ReferenceStandardSheet;
 import com.malphasos.malphasos.report.application.services.serviceReport.commands.UseReferenceStandardCommand;
@@ -132,6 +134,7 @@ class ServiceReportServiceTest {
     @Mock private EventDispatcherPort eventDispatcherPort;
     @Mock private ProtocolServicePort protocolServicePort;
     @Mock private ReferenceStandardServicePort referenceStandardServicePort;
+    @Mock private VerificationStandardsServicePort verificationStandardsServicePort;
     @Mock private ReportDocumentComposer reportDocumentComposer;
     @Mock private DocumentImageStorePort documentImageStorePort;
     @Mock private ReportPdfPort reportPdfPort;
@@ -241,6 +244,15 @@ class ServiceReportServiceTest {
         when(equipmentServicePort.findById(EQUIPO_CATALOGO)).thenReturn(
                 Equipment.rehydrate(EQUIPO_CATALOGO, TIPO, UUID.randomUUID(), true));
         when(equipmentTypeServicePort.findById(TIPO)).thenReturn(tipo);
+    }
+
+    /** Lo que el catálogo admite para cada verificación del tipo (V60): estos patrones en esta, nada en las demás. */
+    private void admitir(EquipmentType tipo, UUID idVerificacion, UUID... patrones) {
+        when(verificationStandardsServicePort.standardsOf(tipo.getId())).thenReturn(
+                tipo.verificacionesActivas().stream()
+                        .map(v -> VerificationStandards.rehydrate(v.id(),
+                                v.id().equals(idVerificacion) ? List.of(patrones) : List.<UUID>of()))
+                        .toList());
     }
 
     /** Los protocolos del tipo del equipo, con la cadena del catálogo estubada hasta llegar a él. */
@@ -1073,6 +1085,7 @@ class ServiceReportServiceTest {
             estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
             when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+            admitir(tipo, verificacion, patron.getId());
 
             service.useReferenceStandard(
                     new UseReferenceStandardCommand(reporte.getId(), verificacion, patron.getId()));
@@ -1124,6 +1137,52 @@ class ServiceReportServiceTest {
         }
 
         @Test
+        @DisplayName("un patron que el catalogo no admite para esa verificacion no se pone, y no se guarda nada")
+        void patronFueraDelCatalogo() {
+            EquipmentType tipo = unTipo(VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of());
+            UUID verificacion = laVerificacionDe(tipo).id();
+            ServiceReport reporte = unReporte();
+            ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Simulador de SpO2", null,
+                    "S-9", "CAL-9", LocalDate.now().plusYears(1), ReferenceStandardSheet.VACIA, true);
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+            lenient().when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+            // El catalogo admite otro patron en esta verificacion: la guarda es la del catalogo, no la de vacio.
+            admitir(tipo, verificacion, UUID.randomUUID());
+
+            assertThatThrownBy(() -> service.useReferenceStandard(
+                            new UseReferenceStandardCommand(reporte.getId(), verificacion, patron.getId())))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("no es de los que el catalogo admite");
+            assertThat(reporte.getPatrones()).isEmpty();
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("el catalogo admite por verificacion: el de otra verificacion del mismo tipo no se pone")
+        void patronDeOtraVerificacion() {
+            EquipmentType tipo = tipoCon(List.of(
+                    TypeVerification.of(PRESION, MMHG, VerificationMode.PATRON_EQUIPO_VARIABLE, null, List.of()),
+                    TypeVerification.of(TEMPERATURA, GRADOS, VerificationMode.PATRON_EQUIPO_VARIABLE, null,
+                            List.of())));
+            UUID primera = tipo.verificacionesActivas().getFirst().id();
+            UUID segunda = tipo.verificacionesActivas().get(1).id();
+            ServiceReport reporte = unReporte();
+            ReferenceStandard patron = ReferenceStandard.rehydrate(UUID.randomUUID(), "Simulador de SpO2", null,
+                    "S-9", "CAL-9", LocalDate.now().plusYears(1), ReferenceStandardSheet.VACIA, true);
+            estubarReporte(reporte);
+            estubarCadenaDelCatalogo(tipo);
+            when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+            admitir(tipo, primera, patron.getId());
+
+            assertThatThrownBy(() -> service.useReferenceStandard(
+                            new UseReferenceStandardCommand(reporte.getId(), segunda, patron.getId())))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("no es de los que el catalogo admite");
+            verify(serviceReportPersistencePort, never()).save(any());
+        }
+
+        @Test
         @DisplayName("uno vencido si se puede poner: lo que no deja es cerrar")
         void patronVencidoSePone() {
             // Decision tomada a proposito: la vigencia se juzga el dia del cierre, que es el del servicio.
@@ -1135,6 +1194,7 @@ class ServiceReportServiceTest {
             estubarCadenaDelCatalogo(tipo);
             estubarGuardado();
             when(referenceStandardServicePort.findById(patron.getId())).thenReturn(patron);
+            admitir(tipo, laVerificacionDe(tipo).id(), patron.getId());
 
             service.useReferenceStandard(new UseReferenceStandardCommand(
                     reporte.getId(), laVerificacionDe(tipo).id(), patron.getId()));

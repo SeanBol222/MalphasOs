@@ -15,6 +15,7 @@ import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeSe
 import com.malphasos.malphasos.equipment.application.ports.input.ModelServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ProtocolServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ReferenceStandardServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.VerificationStandardsServicePort;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
 import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
@@ -120,6 +121,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final EquipmentTypeServicePort equipmentTypeServicePort;
     private final ProtocolServicePort protocolServicePort;
     private final ReferenceStandardServicePort referenceStandardServicePort;
+    private final VerificationStandardsServicePort verificationStandardsServicePort;
     private final EventDispatcherPort eventDispatcherPort;
     private final ReportDocumentComposer reportDocumentComposer;
     private final DocumentImageStorePort documentImageStorePort;
@@ -477,17 +479,34 @@ public class ServiceReportService implements ServiceReportServicePort {
      * <p>Uno retirado no se puede elegir: dejó de usarse. Uno vencido sí, a propósito —se rechaza al
      * cerrar, contra el día del cierre—, porque elegirlo no certifica nada todavía, y el ingeniero puede
      * tenerlo delante con el certificado renovado en papel y aún sin cargar.
+     *
+     * <p><b>Y tiene que ser uno de los que el catálogo admite para esa verificación</b> (V60, 2026-11-19):
+     * con qué se mide cada verificación de un tipo lo dice Catálogo › Tipos › «Patrones», y el ingeniero
+     * ya no escoge entre todos. Una verificación sin ninguno declarado no admite ninguno: se declara en el
+     * catálogo, no se improvisa en el reporte. Solo vale al poner: los que un borrador ya tenía se quedan.
      */
     @Override
     @Transactional
     public ServiceReport useReferenceStandard(UseReferenceStandardCommand command) {
         ServiceReport reporte = paraEscribir(command.id());
-        requireActiveVerification(tipoDelEquipo(reporte.getIdEquipoCliente()), command.idVerificacion());
+        EquipmentType tipo = tipoDelEquipo(reporte.getIdEquipoCliente());
+        TypeVerification verificacion = requireActiveVerification(tipo, command.idVerificacion());
         ReferenceStandard patron = referenceStandardServicePort.findById(command.idEquipoPatron());
 
         if (!patron.isEstadoActivo()) {
             throw new IllegalArgumentException("El patron " + patron.getNombre() + " (" + patron.getSerie()
                     + ") esta retirado: no se pueden tomar lecturas con el");
+        }
+
+        boolean admitido = verificationStandardsServicePort.standardsOf(tipo.getId()).stream()
+                .anyMatch(declarados -> declarados.getIdVerificacion().equals(verificacion.id())
+                        && declarados.admite(patron.getId()));
+
+        if (!admitido) {
+            throw new IllegalArgumentException("El patron " + patron.getNombre() + " (" + patron.getSerie()
+                    + ") no es de los que el catalogo admite para la verificacion de "
+                    + verificacion.magnitud().nombre() + " de " + tipo.getNombre()
+                    + ": hay que declararlo antes en los patrones del tipo, en el catalogo");
         }
 
         reporte.useReferenceStandard(command.idVerificacion(), patron.getId());
