@@ -63,6 +63,14 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('equipment.write')],
       },
       {
+        // Con que patrones se hace cada verificacion del tipo (V60): pagina propia, porque la
+        // verificacion se redeclara en la lista y los patrones cuelgan de la que ya existe.
+        path: 'catalogo/tipos/:id/patrones',
+        loadComponent: () =>
+          import('./features/equipment/catalogo/patrones-del-tipo').then((m) => m.PatronesDelTipo),
+        canActivate: [requiereAutoridad('equipment.write')],
+      },
+      {
         // La ficha tecnica de un modelo, con pagina propia como la edicion de un tipo: siete datos que
         // se leen de la placa del equipo. Entro el 2026-10-05 para la hoja de vida impresa.
         path: 'catalogo/modelos/:id/ficha',

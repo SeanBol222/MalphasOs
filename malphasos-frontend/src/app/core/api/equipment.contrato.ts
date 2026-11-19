@@ -52,7 +52,7 @@ export interface paths {
             cookie?: never;
         };
         /** Listar todas las unidades */
-        get: operations["getAll_9"];
+        get: operations["getAll_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -294,7 +294,27 @@ export interface paths {
          * Fijar los protocolos de un tipo de equipo
          * @description La lista entera, en el orden de su prioridad: el primero es la prioridad 1. Vacia, los quita todos.
          */
-        patch: operations["assign"];
+        patch: operations["assign_1"];
+        trace?: never;
+    };
+    "/v1/api/equipment-types/{id}/reference-standards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los patrones de cada verificacion de un tipo de equipo
+         * @description Una entrada por verificacion vigente, en su orden, aunque no tenga ningun patron.
+         */
+        get: operations["getAll_9"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/api/equipment-types/{id}/verifications": {
@@ -315,6 +335,26 @@ export interface paths {
          * @description Una lista vacia significa que el tipo deja de verificarse. Las verificaciones anteriores se retiran, no se borran.
          */
         patch: operations["declareVerifications"];
+        trace?: never;
+    };
+    "/v1/api/equipment-types/{id}/verifications/{idVerificacion}/reference-standards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Fijar los patrones de una verificacion
+         * @description La lista entera. Vacia, los quita todos. Un patron retirado no se anade, pero el que ya estaba puede quedarse.
+         */
+        patch: operations["assign"];
         trace?: never;
     };
     "/v1/api/equipments": {
@@ -682,6 +722,9 @@ export interface components {
         };
         AssignProtocolsRequest: {
             protocolos: components["schemas"]["AssignProtocolsItem"][];
+        };
+        AssignVerificationStandardsRequest: {
+            patrones: string[];
         };
         AssignedProtocolResponse: {
             descripcion?: string;
@@ -1330,6 +1373,12 @@ export interface components {
              */
             valor?: number;
         };
+        VerificationStandardsResponse: {
+            /** Format: uuid */
+            idVerificacion?: string;
+            /** @description Vigentes y retirados; vacía si no tiene ninguno */
+            patrones?: string[];
+        };
     };
     responses: never;
     parameters: never;
@@ -1676,7 +1725,7 @@ export interface operations {
             };
         };
     };
-    getAll_9: {
+    getAll_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -2906,7 +2955,7 @@ export interface operations {
             };
         };
     };
-    assign: {
+    assign_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2928,6 +2977,73 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AssignedProtocolResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+        };
+    };
+    getAll_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VerificationStandardsResponse"][];
                 };
             };
             /** @description Bad Request */
@@ -2999,6 +3115,78 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EquipmentTypeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+        };
+    };
+    assign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                idVerificacion: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignVerificationStandardsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VerificationStandardsResponse"];
                 };
             };
             /** @description Bad Request */
