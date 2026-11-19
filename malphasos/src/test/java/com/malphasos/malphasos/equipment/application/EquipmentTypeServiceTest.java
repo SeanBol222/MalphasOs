@@ -9,18 +9,22 @@ import static org.mockito.Mockito.when;
 
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentTypePersistencePort;
 import com.malphasos.malphasos.equipment.application.ports.output.MetrologyCatalogPersistencePort;
+import com.malphasos.malphasos.equipment.application.ports.output.VerificationStandardsPersistencePort;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.EquipmentTypeService;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.TypeVerificationCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.VerificationPointCommand;
 import com.malphasos.malphasos.equipment.domain.equipmentType.EquipmentType;
+import com.malphasos.malphasos.equipment.domain.equipmentType.TypeVerification;
+import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationPoint;
 import com.malphasos.malphasos.equipment.domain.equipmentType.VerificationMode;
 import com.malphasos.malphasos.equipment.domain.exception.MagnitudeNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.MeasurementUnitNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeException;
 import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
 import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
+import com.malphasos.malphasos.equipment.domain.verificationStandards.VerificationStandards;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,6 +33,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -74,9 +79,10 @@ class EquipmentTypeServiceTest {
     @Mock private EquipmentTypePersistencePort typePort;
     @Mock private MetrologyCatalogPersistencePort catalogPort;
     @Mock private EventDispatcherPort dispatcher;
+    @Mock private VerificationStandardsPersistencePort standardsPort;
 
     private EquipmentTypeService service() {
-        return new EquipmentTypeService(typePort, catalogPort, dispatcher);
+        return new EquipmentTypeService(typePort, catalogPort, standardsPort, dispatcher);
     }
 
     /** Un alta con la verificación que se le pase, para no repetir los seis campos obligatorios. */
@@ -207,5 +213,63 @@ class EquipmentTypeServiceTest {
         assertThat(guardado.isVerificable()).isFalse();
         // Sin verificaciones no hay nada que consultar: pedir el catalogo seria trabajo inutil.
         verify(catalogPort, never()).findMagnitudeById(any());
+    }
+
+    /** Un tensiómetro guardado con una verificación de presión a 100 mmHg y esta tolerancia. */
+    private EquipmentType tensiometroConPresion(UUID id, TypeVerification presion) {
+        return EquipmentType.rehydrate(
+                id, "Tensiometro", "D", "C", "E", null, null, List.of(presion), 1000L, true);
+    }
+
+    @Test
+    @DisplayName("cambiar la tolerancia rehace la verificacion, y la nueva hereda los patrones de la vieja")
+    void lasNuevasHeredanLosPatrones() {
+        // Declarar retira y crea con identificador nuevo aunque solo cambie la tolerancia. Sin heredar,
+        // cada edicion del tipo dejaria sus verificaciones sin patrones (V60).
+        UUID id = UUID.randomUUID();
+        TypeVerification vieja = TypeVerification.rehydrate(UUID.randomUUID(), PRESION, MMHG,
+                VerificationMode.PATRON_CONSTANTE, 3, List.of(VerificationPoint.of(new BigDecimal("100"))), true,
+                new BigDecimal("2"));
+        UUID simulador = UUID.randomUUID();
+        when(typePort.findById(id)).thenReturn(Optional.of(tensiometroConPresion(id, vieja)));
+        when(catalogPort.findMagnitudeById(ID_PRESION)).thenReturn(Optional.of(PRESION));
+        when(catalogPort.findUnitById(MMHG.id())).thenReturn(Optional.of(MMHG));
+        when(catalogPort.findMagnitudeById(ID_TEMPERATURA)).thenReturn(Optional.of(TEMPERATURA));
+        when(catalogPort.findUnitById(CELSIUS.id())).thenReturn(Optional.of(CELSIUS));
+        when(typePort.save(any(EquipmentType.class))).thenAnswer(i -> i.getArgument(0));
+        when(standardsPort.findByVerification(vieja.id()))
+                .thenReturn(VerificationStandards.rehydrate(vieja.id(), List.of(simulador)));
+
+        EquipmentType guardado = service().declareVerifications(new DeclareVerificationsCommand(id, List.of(
+                new TypeVerificationCommand(ID_PRESION, MMHG.id(), VerificationMode.PATRON_CONSTANTE, 3,
+                        List.of(new VerificationPointCommand(new BigDecimal("100"))), new BigDecimal("3")),
+                enPresion(ID_TEMPERATURA, CELSIUS.id()))));
+
+        TypeVerification nueva = guardado.verificacionesActivas().stream()
+                .filter(v -> v.magnitud().id().equals(ID_PRESION)).findFirst().orElseThrow();
+        assertThat(nueva.id()).isNotEqualTo(vieja.id());
+
+        // Una sola vez: la de temperatura no tenia antecesora y no hereda nada.
+        ArgumentCaptor<VerificationStandards> guardados = ArgumentCaptor.forClass(VerificationStandards.class);
+        verify(standardsPort).save(guardados.capture());
+        assertThat(guardados.getValue().getIdVerificacion()).isEqualTo(nueva.id());
+        assertThat(guardados.getValue().getPatrones()).containsExactly(simulador);
+    }
+
+    @Test
+    @DisplayName("declarar lo mismo no rehace nada, y no toca los patrones")
+    void declararLoMismoNoHereda() {
+        UUID id = UUID.randomUUID();
+        TypeVerification actual = TypeVerification.rehydrate(UUID.randomUUID(), PRESION, MMHG,
+                VerificationMode.PATRON_CONSTANTE, 3, List.of(VerificationPoint.of(new BigDecimal("100"))), true);
+        when(typePort.findById(id)).thenReturn(Optional.of(tensiometroConPresion(id, actual)));
+        when(catalogPort.findMagnitudeById(ID_PRESION)).thenReturn(Optional.of(PRESION));
+        when(catalogPort.findUnitById(MMHG.id())).thenReturn(Optional.of(MMHG));
+        when(typePort.save(any(EquipmentType.class))).thenAnswer(i -> i.getArgument(0));
+
+        service().declareVerifications(new DeclareVerificationsCommand(id, List.of(enPresion(ID_PRESION, MMHG.id()))));
+
+        verify(standardsPort, never()).findByVerification(any());
+        verify(standardsPort, never()).save(any());
     }
 }

@@ -30,6 +30,19 @@
         "required" : [ "protocolos" ],
         "type" : "object"
       },
+      "AssignVerificationStandardsRequest" : {
+        "properties" : {
+          "patrones" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "patrones" ],
+        "type" : "object"
+      },
       "AssignedProtocolResponse" : {
         "properties" : {
           "descripcion" : {
@@ -1353,6 +1366,23 @@
           }
         },
         "type" : "object"
+      },
+      "VerificationStandardsResponse" : {
+        "properties" : {
+          "idVerificacion" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "patrones" : {
+            "description" : "Vigentes y retirados; vacía si no tiene ninguno",
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
       }
     },
     "securitySchemes" : {
@@ -1775,7 +1805,7 @@
     },
     "/v1/api/client-equipments" : {
       "get" : {
-        "operationId" : "getAll_9",
+        "operationId" : "getAll_10",
         "responses" : {
           "200" : {
             "content" : {
@@ -3270,7 +3300,7 @@
       },
       "patch" : {
         "description" : "La lista entera, en el orden de su prioridad: el primero es la prioridad 1. Vacia, los quita todos.",
-        "operationId" : "assign",
+        "operationId" : "assign_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -3356,6 +3386,88 @@
           }
         },
         "summary" : "Fijar los protocolos de un tipo de equipo",
+        "tags" : [ "EquipmentType" ]
+      }
+    },
+    "/v1/api/equipment-types/{id}/reference-standards" : {
+      "get" : {
+        "description" : "Una entrada por verificacion vigente, en su orden, aunque no tenga ningun patron.",
+        "operationId" : "getAll_9",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/VerificationStandardsResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Listar los patrones de cada verificacion de un tipo de equipo",
         "tags" : [ "EquipmentType" ]
       }
     },
@@ -3445,6 +3557,103 @@
           }
         },
         "summary" : "Declarar que se verifica en el tipo",
+        "tags" : [ "EquipmentType" ]
+      }
+    },
+    "/v1/api/equipment-types/{id}/verifications/{idVerificacion}/reference-standards" : {
+      "patch" : {
+        "description" : "La lista entera. Vacia, los quita todos. Un patron retirado no se anade, pero el que ya estaba puede quedarse.",
+        "operationId" : "assign",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "idVerificacion",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignVerificationStandardsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VerificationStandardsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Fijar los patrones de una verificacion",
         "tags" : [ "EquipmentType" ]
       }
     },

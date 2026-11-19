@@ -3,6 +3,7 @@ package com.malphasos.malphasos.equipment.application.services.equipmentType;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
 import com.malphasos.malphasos.equipment.application.ports.output.EquipmentTypePersistencePort;
 import com.malphasos.malphasos.equipment.application.ports.output.MetrologyCatalogPersistencePort;
+import com.malphasos.malphasos.equipment.application.ports.output.VerificationStandardsPersistencePort;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.CreateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeactivateEquipmentTypeCommand;
 import com.malphasos.malphasos.equipment.application.services.equipmentType.commands.DeclareVerificationsCommand;
@@ -18,9 +19,13 @@ import com.malphasos.malphasos.equipment.domain.exception.MeasurementUnitNotFoun
 import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeException;
 import com.malphasos.malphasos.equipment.domain.magnitude.Magnitude;
 import com.malphasos.malphasos.equipment.domain.magnitude.MeasurementUnit;
+import com.malphasos.malphasos.equipment.domain.verificationStandards.VerificationStandards;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +37,7 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
 
     private final EquipmentTypePersistencePort equipmentTypePersistencePort;
     private final MetrologyCatalogPersistencePort metrologyCatalogPersistencePort;
+    private final VerificationStandardsPersistencePort verificationStandardsPersistencePort;
     private final EventDispatcherPort eventDispatcherPort;
 
     @Override
@@ -81,9 +87,43 @@ public class EquipmentTypeService implements EquipmentTypeServicePort {
     @Transactional
     public EquipmentType declareVerifications(DeclareVerificationsCommand command) {
         EquipmentType tipo = findById(command.id());
+        Map<UUID, UUID> anterioresPorMagnitud = tipo.verificacionesActivas().stream()
+                .collect(Collectors.toMap(v -> v.magnitud().id(), TypeVerification::id));
         tipo.declareVerifications(verificacionesDe(command.verificaciones()));
 
-        return persistAndPublish(tipo);
+        EquipmentType guardado = persistAndPublish(tipo);
+        heredarPatrones(anterioresPorMagnitud, guardado);
+
+        return guardado;
+    }
+
+    /**
+     * Declarar retira las verificaciones vigentes y crea otras con identificador nuevo, aunque solo haya
+     * cambiado una tolerancia. Los patrones de cada una (V60) cuelgan de ese identificador, así que sin
+     * esto se perderían en cada edición: la nueva de una magnitud hereda los de la que retiró, que es la
+     * misma cosa medida —un tipo no declara dos veces la misma magnitud—.
+     */
+    private void heredarPatrones(Map<UUID, UUID> anterioresPorMagnitud, EquipmentType tipo) {
+        Set<UUID> anteriores = Set.copyOf(anterioresPorMagnitud.values());
+
+        for (TypeVerification nueva : tipo.verificacionesActivas()) {
+            UUID anterior = anterioresPorMagnitud.get(nueva.magnitud().id());
+
+            if (anterior == null || anteriores.contains(nueva.id())) {
+                continue;
+            }
+
+            Set<UUID> heredados = verificationStandardsPersistencePort.findByVerification(anterior).getPatrones();
+
+            if (heredados.isEmpty()) {
+                continue;
+            }
+
+            VerificationStandards patrones = VerificationStandards.empty(nueva.id());
+            patrones.assign(List.copyOf(heredados));
+            verificationStandardsPersistencePort.save(patrones);
+            eventDispatcherPort.dispatchAll(patrones.pullEvents());
+        }
     }
 
     /**

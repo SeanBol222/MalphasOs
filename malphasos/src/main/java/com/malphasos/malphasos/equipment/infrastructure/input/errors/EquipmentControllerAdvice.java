@@ -19,6 +19,7 @@ import com.malphasos.malphasos.equipment.domain.exception.ManufacturerNotFoundEx
 import com.malphasos.malphasos.equipment.domain.exception.MeasurementUnitNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ModelNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.UnitOutsideMagnitudeException;
+import com.malphasos.malphasos.equipment.domain.exception.VerificationNotFoundException;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.BrandRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ClientEquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentOverviewRestAdapter;
@@ -26,6 +27,7 @@ import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentPhot
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeStandardsRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.InterventionRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.LifeSheetRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ManufacturerRestAdapter;
@@ -59,6 +61,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             MetrologyCatalogRestAdapter.class,
             ProtocolRestAdapter.class,
             EquipmentTypeProtocolRestAdapter.class,
+            EquipmentTypeStandardsRestAdapter.class,
             ReferenceStandardRestAdapter.class,
             // Las tres que faltaban: hasta el 2026-10-18, un equipo que no existe respondía 500 en su hoja
             // de vida y en su historial, porque sus errores no llegaban a este manejador.
@@ -208,6 +211,14 @@ public class EquipmentControllerAdvice {
     public EquipmentErrorResponse handleReferenceStandard(ReferenceStandardNotFoundException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.REFERENCE_STANDARD_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** La verificación no existe en ese tipo de equipo, aunque el tipo sí. */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(VerificationNotFoundException.class)
+    public EquipmentErrorResponse handleVerification(VerificationNotFoundException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.VERIFICATION_NOT_FOUND, List.of(ex.getMessage()));
     }
 
     /** Otro equipo patrón vigente ya tiene esa serie. */
