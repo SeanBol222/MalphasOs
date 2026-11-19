@@ -3164,3 +3164,16 @@ escondía un patrón elegido.
 vitales con el simulador de SpO2 lo quita el usuario desde la pantalla, cuando la base de desarrollo pase a
 `V60`.
 
+
+## [2026-11-19] ingest | El reporte admite solo los patrones del catálogo (tanda 2)
+
+La tanda 2 de [[hoja-de-ruta-producto]]: poner un patrón en una verificación de un reporte exige que el
+catálogo lo admita **en esa verificación**, por el puerto de entrada de `equipment`; una verificación sin
+ninguno declarado no admite ninguno, y lo que un borrador ya tenía se queda. La tabla de verificación ofrece
+solo los admitidos y vigentes, y avisa cuando el catálogo no declara ninguno. Ver
+[[decisiones-tecnicas-malphasos]].
+
+**1758** pruebas en el backend, 157 clases, y **875** en el frontend, cero fallos. Tres mutaciones, las tres
+muertas: sin la guarda, sin comparar la verificación y sin el filtro de la pantalla.
+
+**Lo que queda**: los patrones de la orden por tipo —tanda 3— y sus pantallas —tanda 4—.

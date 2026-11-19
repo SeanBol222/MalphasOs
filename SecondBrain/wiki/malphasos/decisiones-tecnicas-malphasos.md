@@ -937,3 +937,21 @@ retirado. La pantalla lo enseña marcado, para quitarlo.
 
 De lo que «el esquema no expresa», arriba, queda construido que el patrón exista y esté vigente al ponerlo en
 una verificación vigente de ese tipo. Lo del reporte y lo de la orden sigue por hacer —tandas 2 a 4—.
+
+### El reporte, también ese día (tanda 2)
+
+**Poner un patrón en una verificación de un reporte exige que el catálogo lo admita en ella.** Es la cuarta
+comprobación de `useReferenceStandard`, tras la verificación vigente del tipo, que el patrón exista y que no
+esté retirado, y va por el puerto de entrada de `equipment`, `VerificationStandardsServicePort`: el reporte no
+lee tablas ajenas. **El rechazo es de la verificación, no del tipo**: un patrón declarado para la presión de
+un monitor no se pone en su frecuencia.
+
+**Una verificación sin ningún patrón declarado no admite ninguno.** La otra lectura —«sin declarar, todo
+vale»— dejaría la regla apagada justo en los tipos nuevos, y el catálogo se rellenó del historial con `V60`,
+así que solo queda vacío lo que nunca se midió. La pantalla lo dice en esa verificación y manda al catálogo.
+
+**Solo vale al poner.** Lo que un borrador ya tenía se queda, y cerrar no lo vuelve a juzgar: el patrón era
+válido cuando se eligió, y el informe congela lo que se usó. Quitar uno no consulta nada, como antes.
+
+**La pantalla filtra con la misma lista** —`GET /equipment-types/{id}/reference-standards`, la de la tanda
+1— y sigue ofreciendo solo los vigentes: uno vencido el servidor lo deja poner y no deja cerrar.
