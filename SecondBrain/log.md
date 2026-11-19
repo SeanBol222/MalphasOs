@@ -3105,3 +3105,26 @@ defecto silencioso: el historial de un equipo habría quedado en otro cliente. *
 aplicar los 3827 reportes tardaba 686 s y tarda 53, soltando el contexto de persistencia por tramos.
 Medido en una prueba temporal contra PostgreSQL, que no se commitea porque lee datos reales.
 
+
+## [2026-11-19] ingest | Lo que el reporte dice, en un solo documento (`V59`)
+
+El usuario pidió revisar el esquema por demasiado acoplado, y se trabajó sobre un artifact con el diagrama
+entero —antes, cambios y después, cada cambio con su casilla y su SQL—, que quiere usar para todo cambio de
+base futuro. Salió `V59`: **el reporte es una fila** y lo que dice va en `t_contenido`. Salen
+`dato_verificacion`, `patron_verificacion_reporte`, `paso_reporte` y `accesorio_reporte` y quince columnas;
+el esquema pasa de **36 tablas, 50 foráneas, 70 `CHECK` y 11 índices únicos parciales** a **32, 41, 57 y 8**,
+y se queda **sin ninguna foránea compuesta**. Ver [[esquema-bd-malphasos]], [[dominio-reporte-servicio]] y
+[[decisiones-tecnicas-malphasos]].
+
+**Ensayada sobre una copia de desarrollo antes de escribir el código**: las 9761 lecturas vigentes, 2711
+patrones, 19 931 pasos y 3121 accesorios pasan sin perder un valor, comparados uno a uno. **Y el ensayo cazó
+un defecto de la propia migración**: el `CHECK` de la forma del documento dejaba pasar uno sin `pasos`,
+porque `jsonb_typeof` de una clave que falta es `NULL` —la trampa que este proyecto ya pagó en `V8`—.
+
+**El API y el frontend no cambian**: el agregado tampoco, salvo el tope de ocho cifras enteras de una
+lectura, que era el `numeric(12,4)` de la tabla. **1728** pruebas en el backend, 152 clases, cero fallos
+—eran **1741**: salieron las que probaban restricciones de las tablas quitadas, cuyas reglas ya tenían
+prueba en el dominio—. Una mutación del filtro de lo vigente la mató `laLecturaCorregidaSeRetira`.
+
+**Lo que queda**: los patrones por verificación y por orden, que esperaban sobre la `V59` anterior, se
+rehacen como `V60` sobre este modelo —`desdeOrden` va dentro del documento—.

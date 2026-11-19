@@ -862,3 +862,32 @@ catálogo otra vez. Ahora es **una carga**: validar y aplicar.
   historial, y tarda **53 s** (67 s con tramos de 100). Se puede soltar porque entre un registro y otro la
   carga solo guarda agregados e identificadores, no entidades. Por debajo del minuto no hacía falta un
   trabajo en segundo plano con su avance, que era la alternativa.
+
+## Lo que el reporte dice, en un solo documento JSON (2026-11-19, `V59`)
+
+**Decidido por el usuario** al revisar el esquema completo sobre un artifact que dibuja cada cambio en el
+diagrama, antes de escribir una línea: el reporte se lee y se escribe entero, y lo reconstruían cuatro
+tablas hijas y quince columnas que nadie consulta campo a campo. Desde `V59` va en
+`reporte_servicio.t_contenido`. Ver [[esquema-bd-malphasos]], «`report` — 1 tabla», y
+[[dominio-reporte-servicio]].
+
+**El criterio para lo que se queda como columna**: lo que la base **usa** —una foránea, un índice, un
+`CHECK` o una consulta en SQL—. Por eso `t_resultado` no entró en el documento aunque es un texto del
+reporte: el listado de equipos filtra por él. Y por eso la firma de quien recibe y su fecha, y el documento
+congelado con su marca de tardío, siguen siendo columnas: dos `CHECK` los atan.
+
+**Tres decisiones dentro de la decisión**, las tres del usuario:
+
+1. **Solo lo vigente.** Una lectura corregida o un accesorio quitado no se guardan: es la primera excepción
+   consciente a «aquí nada se borra». Lo retirado lo era dentro de un borrador, el informe nunca lo imprimió,
+   y un reporte cerrado no se edita: se sustituye, y el sustituido se queda entero.
+2. **La conformidad no se guarda.** Con la lectura y la tolerancia congelada se recalcula siempre igual;
+   guardarla sería el mismo dato dos veces.
+3. **`t_contenido` y `t_documento` son dos columnas**, no una: lo que el reporte dice se edita mientras es
+   borrador y la copia del catálogo nace al cerrar y no cambia. Separadas, «un borrador no tiene documento»
+   la sigue cuidando un `CHECK`.
+
+**Lo que cuesta**: la base deja de garantizar la última foránea compuesta del esquema —la lectura en un
+punto de su verificación—, que las piezas nombren algo que existe y que no se repitan. Lo cuida el agregado,
+que ya lo hacía. Y cambiar la forma del documento ya no pide migración pero sí que el código lea las
+versiones viejas: el mapper se niega a interpretar una versión que no conoce.
