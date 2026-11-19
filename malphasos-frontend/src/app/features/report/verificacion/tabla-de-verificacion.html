@@ -149,6 +149,12 @@
                 Se guarda al elegirlo. El reporte copia su certificado de hoy: renovarlo después en
                 el catálogo no cambia este reporte.
               </p>
+              @if (sinPatronesEnElCatalogo(grupo.idVerificacion)) {
+                <p class="mt-1 font-semibold" data-sin-patrones-en-catalogo>
+                  El catálogo no dice con qué patrones se mide {{ grupo.magnitud }} en este tipo de
+                  equipo. Se declaran en Catálogo › Tipos › «Patrones».
+                </p>
+              }
             }
           </div>
 

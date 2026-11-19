@@ -20,10 +20,20 @@ import {
   URL_TIPOS,
 } from '../../../../testing/catalogo';
 import { ID_REPORTE, URL_REPORTES, urlVerificacion } from '../../../../testing/reportes';
-import { LecturaDeVerificacion } from '../../../core/api/tipos';
+import { LecturaDeVerificacion, PatronesDeVerificacion } from '../../../core/api/tipos';
 import { TablaDeVerificacion } from './tabla-de-verificacion';
 
 const URL_EQUIPOS_DE_CLIENTE = 'http://localhost:8081/v1/api/client-equipments';
+
+/** Con qué patrones se mide cada verificación del tipo de ejemplo, según el catálogo (V60). */
+const URL_PATRONES_DEL_TIPO = `${URL_TIPOS}/${ID_TIPO}/reference-standards`;
+
+/** Lo que el catálogo dice por defecto: toda verificación del tipo admite todos los patrones. */
+const todosAdmitidos = (tipos: readonly object[]): PatronesDeVerificacion[] =>
+  ((tipos[0] as { verificaciones?: { id?: string }[] })?.verificaciones ?? []).map((v) => ({
+    idVerificacion: v.id,
+    patrones: PATRONES.map((p) => p.id),
+  }));
 
 /** El punto que la verificacion del tipo de ejemplo declara: 100 mmHg, con tres lecturas. */
 const ID_PUNTO = 'pv1';
@@ -86,6 +96,7 @@ describe('Tabla de verificación de un reporte', () => {
   async function abrir(
     lecturas: readonly LecturaDeVerificacion[] = [],
     tipos: readonly object[] = TIPOS,
+    admitidos: PatronesDeVerificacion[] = todosAdmitidos(tipos),
   ): Promise<void> {
     fixture.componentRef.setInput('lecturas', lecturas);
     fixture.detectChanges();
@@ -96,6 +107,9 @@ describe('Tabla de verificación de un reporte', () => {
     http.match(URL_EQUIPOS_DE_CATALOGO).forEach((p) => p.flush(EQUIPOS_DE_CATALOGO));
     http.match(URL_TIPOS).forEach((p) => p.flush(tipos));
     http.match(URL_PATRONES).forEach((p) => p.flush(PATRONES));
+    await asentar(fixture);
+    // Con el tipo ya conocido, lo que su catálogo admite en cada verificación.
+    http.match(URL_PATRONES_DEL_TIPO).forEach((p) => p.flush(admitidos));
     await asentar(fixture);
   }
 
@@ -582,6 +596,38 @@ describe('Tabla de verificación de un reporte', () => {
       expect(bloque('ver2')).toContain('Patrones de Temperatura');
       expect(bloque('ver2')).toContain('Juego de pesas clase F1');
       expect(opciones('ver2')).toEqual(['No quedan patrones vigentes por añadir']);
+    });
+
+    it('ofrece solo los que el catálogo admite para cada verificación, y dice si no admite ninguno', async () => {
+      // V60: el servidor rechaza un patrón que el catálogo no declara para esa verificación.
+      const verificacion = TIPOS[0].verificaciones[0];
+      const conTres = [
+        {
+          ...TIPOS[0],
+          verificaciones: [
+            verificacion,
+            { ...verificacion, id: 'ver2', magnitud: 'Temperatura', unidad: '°C' },
+            { ...verificacion, id: 'ver3', magnitud: 'Humedad', unidad: '%HR' },
+          ],
+        },
+      ];
+      await abrir([], conTres, [
+        { idVerificacion: ID_VERIFICACION, patrones: [ID_PATRON] },
+        { idVerificacion: 'ver2', patrones: [] },
+        // Solo el retirado: no se ofrece, pero el catálogo sí declara uno.
+        { idVerificacion: 'ver3', patrones: ['pat3'] },
+      ]);
+
+      expect(opciones()).toContain('Juego de pesas clase F1 · serie KF1-2024-118');
+      expect(opciones('ver2')).toEqual(['No quedan patrones vigentes por añadir']);
+      expect(opciones('ver3')).toEqual(['No quedan patrones vigentes por añadir']);
+
+      const avisa = (id: string) =>
+        !!raiz().querySelector(`[data-patrones="${id}"] [data-sin-patrones-en-catalogo]`);
+      expect(avisa(ID_VERIFICACION)).toBe(false);
+      expect(avisa('ver2')).toBe(true);
+      expect(bloque('ver2')).toContain('Catálogo › Tipos › «Patrones»');
+      expect(avisa('ver3')).toBe(false);
     });
 
     it('dice el error y si es conforme mientras se escribe, con el borde dentro', async () => {

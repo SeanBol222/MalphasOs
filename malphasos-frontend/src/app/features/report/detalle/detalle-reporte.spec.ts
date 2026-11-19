@@ -110,6 +110,13 @@ describe('Ficha de un reporte de servicio', () => {
    * son cuatro eslabones del catálogo: unidad → modelo → equipo del catálogo → tipo. El backend camina
    * la misma cadena por la misma razón — ninguna tabla intermedia guarda un atajo hacia el tipo.
    */
+  /** Lo que el catálogo admite en cada verificación del tipo (V60): aquí, todos los patrones en todas. */
+  const URL_PATRONES_DEL_TIPO = `${URL_TIPOS}/${TIPOS[0].id}/reference-standards`;
+  const ADMITIDOS = TIPOS[0].verificaciones.map((v) => ({
+    idVerificacion: v.id,
+    patrones: PATRONES.map((p) => p.id),
+  }));
+
   async function abrir(datos: object = reporte(), laOrden: object = EMPEZADA): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, urlReporte(ID_REPORTE), datos);
@@ -124,6 +131,7 @@ describe('Ficha de un reporte de servicio', () => {
     http.match(URL_PERSONAS).forEach((peticion) => peticion.flush(PERSONAS));
     await asentar(fixture);
     http.match(urlSede(ID_SEDE)).forEach((peticion) => peticion.flush(SEDE));
+    http.match(URL_PATRONES_DEL_TIPO).forEach((peticion) => peticion.flush(ADMITIDOS));
     await asentar(fixture);
   }
 
@@ -147,6 +155,7 @@ describe('Ficha de un reporte de servicio', () => {
       [URL_CLIENTES, CLIENTES],
       [URL_PERSONAS, PERSONAS],
       [urlSede(ID_SEDE), SEDE],
+      [URL_PATRONES_DEL_TIPO, ADMITIDOS],
     ];
 
     // Se dan todas las vueltas, sin salir en la primera que no encuentre nada: la recarga tarda en

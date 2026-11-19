@@ -175,11 +175,31 @@ export class TablaDeVerificacion {
     return this.patrones().filter((usado) => usado.idVerificacion === idVerificacion);
   }
 
-  /** Los elegibles que esa verificación todavía no tiene: el mismo patrón dos veces no suma nada. */
+  /**
+   * Los elegibles que el catálogo admite para esa verificación y que todavía no tiene: el mismo patrón
+   * dos veces no suma nada. Desde V60 el catálogo dice con qué se mide cada verificación, y el servidor
+   * rechaza los demás; ofrecerlos sería ofrecer un error.
+   */
   protected elegiblesPara(idVerificacion: string) {
+    const admitidos = this.admitidosEn(idVerificacion);
     const puestos = new Set(this.patronesDe(idVerificacion).map((usado) => usado.id));
 
-    return this.elegibles().filter((patron) => !puestos.has(patron.id));
+    return this.elegibles().filter(
+      (patron) => admitidos.has(patron.id ?? '') && !puestos.has(patron.id),
+    );
+  }
+
+  /** Si el catálogo, ya leído, no declara ningún patrón para esa verificación. */
+  protected sinPatronesEnElCatalogo(idVerificacion: string): boolean {
+    return this.patronesDelTipo.isSuccess() && this.admitidosEn(idVerificacion).size === 0;
+  }
+
+  private admitidosEn(idVerificacion: string): ReadonlySet<string> {
+    const declarados = (this.patronesDelTipo.data() ?? []).find(
+      (verificacion) => verificacion.idVerificacion === idVerificacion,
+    );
+
+    return new Set(declarados?.patrones ?? []);
   }
 
   /** Si una verificación tiene lecturas guardadas: entonces le hace falta al menos un patrón. */
@@ -217,6 +237,11 @@ export class TablaDeVerificacion {
   protected readonly tipo = this.cadena.tipo;
 
   protected readonly cargando = this.cadena.cargando;
+
+  /** Con qué patrones se mide cada verificación del tipo, según el catálogo (V60). */
+  private readonly patronesDelTipo = this.catalogo.patronesDeVerificaciones(
+    computed(() => this.tipo()?.id ?? ''),
+  );
 
   /** Un tipo sin verificaciones no se verifica: no hay nada que medirle, y el API lo rechazaría. */
   protected readonly seVerifica = computed(() => !!this.tipo()?.verificaciones?.length);
