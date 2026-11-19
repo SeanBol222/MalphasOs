@@ -1,10 +1,10 @@
 ---
 name: dominio-reporte-servicio
-description: El modulo de reportes de servicio de MalphasOS, backend completo el 2026-09-27 y frontend el 2026-09-28; uno por equipo de la orden, distinto por tipo de servicio desde el 2026-10-14 (correctivo, patron y conformidad), con el formato que la empresa entrega desde el 2026-10-16 (numero, patrones por verificacion, ingreso, entrega y el documento imprimible), con sus seis reglas cruzadas, el choque de orden entre Hibernate y un indice unico parcial, y las cuatro pantallas que cierran RF-11
+description: El modulo de reportes de servicio de MalphasOS, backend completo el 2026-09-27 y frontend el 2026-09-28; uno por equipo de la orden, distinto por tipo de servicio desde el 2026-10-14 (correctivo, patron y conformidad), con el formato que la empresa entrega desde el 2026-10-16 (numero, patrones por verificacion, ingreso, entrega y el documento imprimible), con sus seis reglas cruzadas, el choque de orden entre Hibernate y un indice unico parcial, y las cuatro pantallas que cierran RF-11; desde V59 (2026-11-19) lo que el reporte dice va en un solo documento JSON
 tags: [dominio, reportes, esquema, mantenimiento, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/report/, malphasos/src/main/resources/db/migration/V9__service_report.sql y malphasos-frontend/src/app/features/report/
 estado: estable
-updated: 2026-11-02
+updated: 2026-11-19
 ---
 
 # Reportes de servicio — el módulo completo
@@ -29,6 +29,10 @@ orden_trabajo ──┐
                 ├──> reporte_servicio ──> dato_verificacion ──> punto_verificacion
 equipo_cliente ─┘     (que se hizo)        (que se midio)      (donde se mide, V8)
 ```
+
+> **Desde `V59` (2026-11-19) no hay `dato_verificacion`**: lo que se midió va dentro de
+> `reporte_servicio.t_contenido`, y cada lectura nombra su punto por identificador. El dibujo de arriba es
+> el de `V9` a `V58`. Ver «El reporte en un solo documento», al final.
 
 **Desde `V50` el reporte es también lo que pone a su equipo en la orden**: no hay tabla puente, un equipo
 está en una orden si y solo si tiene en ella un reporte activo, y el borrador nace al añadir el equipo. Ver
@@ -500,6 +504,10 @@ campo desapareció: ya no hay forma de enviarla, de modo que no hay forma de con
 
 ## El hallazgo: Hibernate vacía los INSERT antes que los UPDATE
 
+> **Histórico desde `V59` (2026-11-19).** Las lecturas ya no tienen tabla ni índice único, y el adaptador
+> guarda el reporte en una sola escritura. La lección general de abajo sigue valiendo para cualquier tabla
+> con índice único parcial.
+
 **Lo encontró la prueba de persistencia antes de que pasara ninguna vez**, y no habría aparecido nunca con dobles.
 
 Corregir una lectura retira la vieja —misma fila, `b_estado_activo` a falso— e inserta la nueva. Hibernate ordena su descarga por categorías y **los `INSERT` van antes que los `UPDATE`**, de modo que la base ve por un instante **dos lecturas activas del mismo punto con el mismo número** y `UQ_dato_verificacion_activo` salta.
@@ -618,3 +626,33 @@ imprime desde el navegador, y **no lo cierra**: el requisito pide el PDF firmado
 ## Notas relacionadas
 
 [[dominio-orden-trabajo]] · [[dominio-equipo-mantenimiento]] · [[dominio-reportes]] · [[arquitectura-frontend-malphasos]] · [[congelar-una-referencia-historica]] · [[modelo-de-permisos]] · [[deuda-tecnica-y-riesgos]] · [[hoja-de-ruta-producto]] · [[patron-catalogo-errores-por-contexto]] · [[openapi-swagger]]
+
+## El reporte en un solo documento (2026-11-19, `V59`)
+
+**Lo que el reporte dice va en `t_contenido`**, un documento JSON con su versión dentro: los seis textos, las
+dos verificaciones al ingreso, quien recibe sin cuenta, los pasos del protocolo, los accesorios y, por
+verificación, sus patrones y sus lecturas. Salieron `dato_verificacion`, `patron_verificacion_reporte`,
+`paso_reporte` y `accesorio_reporte`, y quince columnas de `reporte_servicio`. Decidido por el usuario al
+revisar el esquema: el reporte se lee y se escribe entero y nadie lo consulta campo a campo. La forma y
+qué se quedó como columna están en [[esquema-bd-malphasos]].
+
+**El agregado no cambió.** `ServiceReport` sigue reteniendo en memoria lo que se retira mientras dura la
+operación —sus reglas lo usan—, y el cambio vive en la persistencia: `ReportContentJson` es la forma del
+documento y `ServiceReportPersistenceMapper` lo escribe y lo lee. Tres decisiones del mapper:
+
+- **Solo lo vigente llega al documento.** Una lectura corregida, un patrón quitado o un accesorio sustituido
+  no se guardan. Excepción consciente a «aquí nada se borra», decidida por el usuario: lo retirado lo era
+  dentro de un borrador, y un reporte cerrado se sustituye, no se edita. Una mutación que dejaba pasar las
+  lecturas retiradas la mató `laLecturaCorregidaSeRetira`.
+- **Los identificadores de las piezas se derivan**, no se guardan: `UUID.nameUUIDFromBytes` sobre el reporte
+  y lo que hace única a la pieza. El API sigue devolviendo un `id` por lectura, estable entre lecturas.
+- **El orden de los arreglos es fijo** —identificadores comparados como texto, como los ordena la
+  migración—, y `ReportContentMigrationTest` exige que el documento que escribe `V59` sea el mismo que
+  escribe el mapper.
+
+**Una regla nueva en el dominio**: un valor de lectura tiene como mucho ocho cifras enteras
+(`VerificationReading.CIFRAS_ENTERAS`). Era el `numeric(12,4)` de la tabla; el JSON acepta cualquier número.
+Las demás reglas que la base cuidaba —lectura en un punto de su verificación, sin repetir, paso «no aplica»
+con nota, accesorio no conforme con observación, cédula con nombre— **ya las validaba el agregado**, y sus
+pruebas de esquema salieron con las tablas.
+

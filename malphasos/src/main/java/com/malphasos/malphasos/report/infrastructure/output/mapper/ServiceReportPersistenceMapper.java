@@ -5,103 +5,117 @@ import com.malphasos.malphasos.report.domain.serviceReport.IntakeCheck;
 import com.malphasos.malphasos.report.domain.serviceReport.IntakeState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReceiptSignature;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportAccessory;
-import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportDocument;
+import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportStep;
-import com.malphasos.malphasos.report.domain.serviceReport.StepState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceResult;
+import com.malphasos.malphasos.report.domain.serviceReport.StepState;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.report.domain.serviceReport.VerificationStandard;
-import com.malphasos.malphasos.report.infrastructure.output.entities.ReportAccessoryEntity;
-import com.malphasos.malphasos.report.infrastructure.output.entities.ReportStepEntity;
+import com.malphasos.malphasos.report.infrastructure.output.entities.ReportContentJson;
 import com.malphasos.malphasos.report.infrastructure.output.entities.ServiceReportEntity;
-import com.malphasos.malphasos.report.infrastructure.output.entities.VerificationReadingEntity;
-import com.malphasos.malphasos.report.infrastructure.output.entities.VerificationStandardEntity;
-import java.util.LinkedHashMap;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Traduce entre el reporte y sus filas.
+ * Traduce entre el reporte y su fila.
  *
  * <p>A mano y no con MapStruct: el agregado se construye por {@code rehydrate} y no ofrece setters ni
  * builder a propósito.
  *
- * <p><b>La conciliación de las lecturas va en dos pasos, y el orden no es estético.</b> El agregado
- * conserva sus lecturas retiradas con el mismo identificador —{@code deactivated()} devuelve la misma
- * lectura con el estado en falso— y añade la corregida al lado, de modo que durante un instante hay
- * dos lecturas del mismo punto con el mismo número. <b>Hibernate vacía los {@code INSERT} antes que
- * los {@code UPDATE}</b>, así que en ese instante las dos están activas y el índice único parcial
- * {@code UQ_dato_verificacion_activo} salta. Lo destapó
- * {@code ServiceReportPersistenceAdapterTest.laLecturaCorregidaSeRetira}, y no habría aparecido nunca
- * con dobles.
+ * <p><b>Desde V59 lo que el reporte dice va en un solo documento</b>, {@code t_contenido}, con la forma de
+ * {@link ReportContentJson}. Hasta entonces eran cuatro tablas hijas que este mapper conciliaba fila por
+ * fila, con un orden de escritura obligatorio para no chocar contra un índice único parcial; con el documento
+ * no hay filas que conciliar ni orden que imponer: se escribe entero.
  *
- * <p>Por eso {@link #toEntity} <b>solo pone al día las filas que ya están</b> —incluida la que se
- * retira— y las nuevas las inserta {@link #addNewReadings}, que el adaptador llama <b>después</b> de
- * vaciar la sesión. Un índice único parcial no se puede declarar diferido en PostgreSQL —{@code
- * DEFERRABLE} es de las restricciones, no de los índices—, así que el orden hay que imponerlo aquí.
+ * <p><b>Solo se guarda lo vigente.</b> El agregado sigue reteniendo en memoria lo que se retira —la lectura
+ * corregida, el accesorio quitado— porque sus reglas lo usan mientras dura la operación, pero lo retirado no
+ * llega al documento. Decidido por el usuario con V59: lo retirado lo era dentro de un borrador y el informe
+ * nunca lo imprimió.
+ *
+ * <p><b>Los identificadores de las piezas no se guardan: se derivan.</b> El documento identifica cada pieza
+ * por lo que ya la hace única —un paso por su protocolo, un patrón por su verificación y él mismo, una lectura
+ * por su verificación, su punto y su número, un accesorio por su posición— y el identificador que el agregado
+ * y el API esperan se calcula de eso y del reporte con {@link UUID#nameUUIDFromBytes}. Así es el mismo en cada
+ * lectura del reporte sin ocupar sitio en el documento.
+ *
+ * <p>Los arreglos se escriben en un orden fijo —los identificadores comparados como texto, que es como los
+ * ordena V59— para que guardar dos veces lo mismo dé el mismo documento.
  */
 @Component
 public class ServiceReportPersistenceMapper {
 
     /**
-     * Para el informe congelado (V37). Propio y no el de Spring: lo que se guarda no puede cambiar de forma
-     * porque alguien configure la serialización del API, que es para otra cosa.
+     * Para los dos documentos, el informe congelado (V37) y el contenido (V59). Propio y no el de Spring: lo
+     * que se guarda no puede cambiar de forma porque alguien configure la serialización del API.
      */
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
+    private static final Comparator<UUID> COMO_TEXTO = Comparator.comparing(UUID::toString);
+
     public ServiceReport toDomain(ServiceReportEntity entity) {
-        // Todas las lecturas, retiradas incluidas: el agregado distingue unas de otras y una lectura
-        // corregida sigue formando parte de lo que paso.
-        List<VerificationReading> lecturas = entity.getLecturas().stream()
-                .map(fila -> VerificationReading.rehydrate(
-                        fila.getId(),
-                        fila.getIdVerificacion(),
-                        fila.getIdPuntoVerificacion(),
-                        fila.getSecuencia(),
-                        fila.getValorPatron(),
-                        fila.getValorEquipo(),
-                        fila.isEstadoActivo()))
+        ReportContentJson contenido = leer(entity);
+        UUID id = entity.getId();
+
+        List<VerificationReading> lecturas = new ArrayList<>();
+        List<VerificationStandard> patrones = new ArrayList<>();
+        for (ReportContentJson.Verificacion verificacion : contenido.verificaciones()) {
+            for (ReportContentJson.Patron patron : verificacion.patrones()) {
+                patrones.add(new VerificationStandard(
+                        derivado(id, "patron", verificacion.id(), patron.id()),
+                        verificacion.id(), patron.id(), true));
+            }
+            for (ReportContentJson.Lectura lectura : verificacion.lecturas()) {
+                lecturas.add(VerificationReading.rehydrate(
+                        derivado(id, "lectura", verificacion.id(), lectura.punto(), lectura.secuencia()),
+                        verificacion.id(), lectura.punto(), lectura.secuencia(),
+                        lectura.patron(), lectura.equipo(), true));
+            }
+        }
+
+        List<ReportAccessory> accesorios = new ArrayList<>();
+        for (int i = 0; i < contenido.accesorios().size(); i++) {
+            ReportContentJson.Accesorio accesorio = contenido.accesorios().get(i);
+            accesorios.add(new ReportAccessory(derivado(id, "accesorio", i + 1), i + 1, accesorio.nombre(),
+                    accesorio.conforme(), accesorio.observacion(), true));
+        }
+
+        List<ReportStep> pasos = contenido.pasos().stream()
+                .map(paso -> new ReportStep(derivado(id, "paso", paso.protocolo()), paso.protocolo(),
+                        StepState.valueOf(paso.estado()), paso.nota()))
                 .toList();
 
+        ReportContentJson.Ingreso ingreso = contenido.ingreso();
+        ReportContentJson.Recibe recibe = contenido.recibe();
+
         return ServiceReport.rehydrate(
-                entity.getId(),
+                id,
                 entity.getIdOrdenTrabajo(),
                 entity.getIdEquipoCliente(),
                 ReportState.valueOf(entity.getEstado()),
-                entity.getFallaReportada(),
-                entity.getDiagnostico(),
-                entity.getProcedimientos(),
-                entity.getObservaciones(),
-                entity.getCausa(),
-                entity.getRepuestos(),
-                entity.getPatrones().stream()
-                        .map(fila -> new VerificationStandard(
-                                fila.getId(), fila.getIdVerificacion(), fila.getIdEquipoPatron(), fila.isEstadoActivo()))
-                        .toList(),
-                ingreso(entity.getIngresoFisico(), entity.getIngresoFisicoObservacion()),
-                ingreso(entity.getIngresoOperativo(), entity.getIngresoOperativoObservacion()),
-                entity.getAccesorios().stream()
-                        .map(fila -> new ReportAccessory(fila.getId(), fila.getOrden(), fila.getNombre(),
-                                fila.isConforme(), fila.getObservacion(), fila.isEstadoActivo()))
-                        .toList(),
-                entity.getRecibeNombre() == null
-                        ? null
-                        : new Handover(entity.getRecibeNombre(), entity.getRecibeCedula(), entity.getRecibeCargo()),
+                contenido.falla(),
+                contenido.diagnostico(),
+                contenido.procedimientos(),
+                contenido.observaciones(),
+                contenido.causa(),
+                contenido.repuestos(),
+                patrones,
+                ingreso == null ? null : aIngreso(ingreso.fisico()),
+                ingreso == null ? null : aIngreso(ingreso.operativo()),
+                accesorios,
+                recibe == null ? null : new Handover(recibe.nombre(), recibe.cedula(), recibe.cargo()),
                 entity.getResultado() == null ? null : ServiceResult.valueOf(entity.getResultado()),
                 entity.getFinalizado(),
                 lecturas,
-                entity.getPasos().stream()
-                        .map(fila -> new ReportStep(
-                                fila.getId(),
-                                fila.getIdProtocolo(),
-                                StepState.valueOf(fila.getEstado()),
-                                fila.getNota()))
-                        .toList(),
+                pasos,
                 entity.isEstadoActivo(),
                 entity.getDocumento() == null ? null : JSON.readValue(entity.getDocumento(), ReportDocument.class),
                 entity.isDocumentoTardio(),
@@ -111,21 +125,13 @@ public class ServiceReportPersistenceMapper {
                 entity.getIdRecibe());
     }
 
-    private static IntakeCheck ingreso(String estado, String observacion) {
-        return estado == null ? null : new IntakeCheck(IntakeState.valueOf(estado), observacion);
-    }
-
     public List<ServiceReport> toDomainList(List<ServiceReportEntity> entities) {
         return entities.stream().map(this::toDomain).toList();
     }
 
     /**
-     * Vuelca el reporte sobre su fila.
-     *
-     * <p>Recibe la entidad existente cuando la hay, para conservar las filas hijas que JPA ya gestiona
-     * y limitarse a ponerlas al día. Construir una entidad nueva en cada guardado haría que Hibernate
-     * insertara duplicados de las lecturas, que es lo que le pasó al adaptador de clientes con sus
-     * contactos y al de órdenes con su alcance.
+     * Vuelca el reporte sobre su fila. Recibe la existente cuando la hay, para que Hibernate la ponga al día
+     * en vez de intentar insertarla otra vez.
      */
     public ServiceReportEntity toEntity(ServiceReport reporte, ServiceReportEntity existente) {
         ServiceReportEntity entity = existente != null ? existente : new ServiceReportEntity();
@@ -134,22 +140,6 @@ public class ServiceReportPersistenceMapper {
         entity.setIdOrdenTrabajo(reporte.getIdOrdenTrabajo());
         entity.setIdEquipoCliente(reporte.getIdEquipoCliente());
         entity.setEstado(reporte.getEstado().name());
-        entity.setFallaReportada(reporte.getFallaReportada());
-        entity.setDiagnostico(reporte.getDiagnostico());
-        entity.setProcedimientos(reporte.getProcedimientos());
-        entity.setObservaciones(reporte.getObservaciones());
-        entity.setCausa(reporte.getCausa());
-        entity.setRepuestos(reporte.getRepuestos());
-        IntakeCheck fisico = reporte.getIngresoFisico();
-        entity.setIngresoFisico(fisico == null ? null : fisico.estado().name());
-        entity.setIngresoFisicoObservacion(fisico == null ? null : fisico.observacion());
-        IntakeCheck operativo = reporte.getIngresoOperativo();
-        entity.setIngresoOperativo(operativo == null ? null : operativo.estado().name());
-        entity.setIngresoOperativoObservacion(operativo == null ? null : operativo.observacion());
-        Handover recibe = reporte.getRecibe();
-        entity.setRecibeNombre(recibe == null ? null : recibe.nombre());
-        entity.setRecibeCedula(recibe == null ? null : recibe.cedula());
-        entity.setRecibeCargo(recibe == null ? null : recibe.cargo());
         entity.setResultado(reporte.getResultado() == null ? null : reporte.getResultado().name());
         entity.setFinalizado(reporte.getFinalizado());
         entity.setEstadoActivo(reporte.isEstadoActivo());
@@ -159,150 +149,93 @@ public class ServiceReportPersistenceMapper {
         entity.setHuellaFirmaRecibe(firma == null ? null : firma.huella());
         entity.setFirmaRecibe(firma == null ? null : firma.firmada());
         entity.setIdRecibe(reporte.getIdRecibe());
-
-        actualizarLecturasExistentes(reporte, entity);
-        volcarPasos(reporte, entity);
-        volcarPatrones(reporte, entity);
-        volcarAccesorios(reporte, entity);
+        entity.setContenido(JSON.writeValueAsString(contenido(reporte)));
 
         return entity;
     }
 
-    /**
-     * Los accesorios (V31), en una sola pasada: los retirados conservan su fila y los nuevos llegan con
-     * identificador nuevo. Sin índice único sobre el orden no hay nada con que choquen, y el orden de los
-     * {@code INSERT} y los {@code UPDATE} da igual.
-     */
-    private void volcarAccesorios(ServiceReport reporte, ServiceReportEntity entity) {
-        Map<UUID, ReportAccessoryEntity> porId = new LinkedHashMap<>();
-        entity.getAccesorios().forEach(fila -> porId.put(fila.getId(), fila));
+    /** El documento de un reporte, con lo vigente y en el orden fijo. */
+    static ReportContentJson contenido(ServiceReport reporte) {
+        Handover recibe = reporte.getRecibe();
 
-        for (ReportAccessory accesorio : reporte.getAccesorios()) {
-            ReportAccessoryEntity fila = porId.get(accesorio.id());
+        return new ReportContentJson(
+                ReportContentJson.VERSION,
+                reporte.getFallaReportada(),
+                reporte.getDiagnostico(),
+                reporte.getCausa(),
+                reporte.getRepuestos(),
+                reporte.getProcedimientos(),
+                reporte.getObservaciones(),
+                new ReportContentJson.Ingreso(
+                        aEstado(reporte.getIngresoFisico()), aEstado(reporte.getIngresoOperativo())),
+                recibe == null ? null : new ReportContentJson.Recibe(recibe.nombre(), recibe.cedula(), recibe.cargo()),
+                reporte.getPasos().stream()
+                        .sorted(Comparator.comparing(ReportStep::idProtocolo, COMO_TEXTO))
+                        .map(paso -> new ReportContentJson.Paso(paso.idProtocolo(), paso.estado().name(), paso.nota()))
+                        .toList(),
+                reporte.accesoriosActivos().stream()
+                        .map(a -> new ReportContentJson.Accesorio(a.nombre(), a.conforme(), a.observacion()))
+                        .toList(),
+                verificaciones(reporte));
+    }
 
-            if (fila == null) {
-                fila = new ReportAccessoryEntity();
-                fila.setId(accesorio.id());
-                fila.setReporte(entity);
-                entity.getAccesorios().add(fila);
-            }
+    /** Las verificaciones con algo registrado: un patrón o una lectura vigentes. */
+    private static List<ReportContentJson.Verificacion> verificaciones(ServiceReport reporte) {
+        Map<UUID, List<ReportContentJson.Patron>> patrones = new TreeMap<>(COMO_TEXTO);
+        Map<UUID, List<ReportContentJson.Lectura>> lecturas = new TreeMap<>(COMO_TEXTO);
 
-            fila.setOrden(accesorio.orden());
-            fila.setNombre(accesorio.nombre());
-            fila.setConforme(accesorio.conforme());
-            fila.setObservacion(accesorio.observacion());
-            fila.setEstadoActivo(accesorio.estadoActivo());
+        reporte.getPatrones().stream()
+                .filter(VerificationStandard::estadoActivo)
+                .sorted(Comparator.comparing(VerificationStandard::idEquipoPatron, COMO_TEXTO))
+                .forEach(usado -> patrones.computeIfAbsent(usado.idVerificacion(), v -> new ArrayList<>())
+                        .add(new ReportContentJson.Patron(usado.idEquipoPatron(), false)));
+
+        reporte.getLecturas().stream()
+                .filter(VerificationReading::estadoActivo)
+                .sorted(Comparator.comparing(VerificationReading::idPuntoVerificacion,
+                                Comparator.nullsFirst(COMO_TEXTO))
+                        .thenComparingInt(VerificationReading::secuencia))
+                .forEach(lectura -> lecturas.computeIfAbsent(lectura.idVerificacion(), v -> new ArrayList<>())
+                        .add(new ReportContentJson.Lectura(lectura.idPuntoVerificacion(), lectura.secuencia(),
+                                lectura.valorPatron(), lectura.valorEquipo())));
+
+        TreeMap<UUID, Boolean> ids = new TreeMap<>(COMO_TEXTO);
+        patrones.keySet().forEach(v -> ids.put(v, true));
+        lecturas.keySet().forEach(v -> ids.put(v, true));
+
+        return ids.keySet().stream()
+                .map(v -> new ReportContentJson.Verificacion(
+                        v, patrones.getOrDefault(v, List.of()), lecturas.getOrDefault(v, List.of())))
+                .toList();
+    }
+
+    private static ReportContentJson leer(ServiceReportEntity entity) {
+        ReportContentJson contenido = JSON.readValue(entity.getContenido(), ReportContentJson.class);
+
+        // Una versión que este código no conoce no se interpreta a ciegas: se dice.
+        if (contenido.version() != ReportContentJson.VERSION) {
+            throw new IllegalStateException("El contenido del reporte " + entity.getId() + " es de la version "
+                    + contenido.version() + " y este codigo lee la " + ReportContentJson.VERSION);
         }
+
+        return contenido;
     }
 
-    /**
-     * Los patrones de cada verificación (V30), en una sola pasada como los pasos: quitar uno lo retira
-     * y volver a ponerlo reactiva la misma fila, así que nunca hay dos filas activas compitiendo por el
-     * índice único parcial y el orden de los {@code INSERT} y los {@code UPDATE} da igual.
-     */
-    private void volcarPatrones(ServiceReport reporte, ServiceReportEntity entity) {
-        Map<UUID, VerificationStandardEntity> porId = new LinkedHashMap<>();
-        entity.getPatrones().forEach(fila -> porId.put(fila.getId(), fila));
+    private static IntakeCheck aIngreso(ReportContentJson.Estado estado) {
+        return estado == null ? null : new IntakeCheck(IntakeState.valueOf(estado.estado()), estado.observacion());
+    }
 
-        for (VerificationStandard usado : reporte.getPatrones()) {
-            VerificationStandardEntity fila = porId.get(usado.id());
+    private static ReportContentJson.Estado aEstado(IntakeCheck ingreso) {
+        return ingreso == null ? null : new ReportContentJson.Estado(ingreso.estado().name(), ingreso.observacion());
+    }
 
-            if (fila == null) {
-                fila = new VerificationStandardEntity();
-                fila.setId(usado.id());
-                fila.setReporte(entity);
-                fila.setIdVerificacion(usado.idVerificacion());
-                fila.setIdEquipoPatron(usado.idEquipoPatron());
-                entity.getPatrones().add(fila);
-            }
-
-            fila.setEstadoActivo(usado.estadoActivo());
+    /** El identificador de una pieza del reporte, derivado de lo que la hace única dentro de él. */
+    static UUID derivado(UUID idReporte, String pieza, Object... partes) {
+        StringBuilder clave = new StringBuilder(idReporte.toString()).append('/').append(pieza);
+        for (Object parte : partes) {
+            clave.append('/').append(parte);
         }
-    }
 
-    /**
-     * Los pasos del protocolo: se insertan al abrir el reporte y después solo cambian de estado y de
-     * nota. Por eso no tienen el problema de orden de las lecturas —nunca hay dos filas activas
-     * compitiendo por el mismo sitio— y van en una sola pasada: se pone al día la fila que ya está y
-     * se añade la que falta.
-     */
-    private void volcarPasos(ServiceReport reporte, ServiceReportEntity entity) {
-        Map<UUID, ReportStepEntity> porId = new LinkedHashMap<>();
-        entity.getPasos().forEach(fila -> porId.put(fila.getId(), fila));
-
-        for (ReportStep paso : reporte.getPasos()) {
-            ReportStepEntity fila = porId.get(paso.id());
-
-            if (fila == null) {
-                fila = new ReportStepEntity();
-                fila.setId(paso.id());
-                fila.setReporte(entity);
-                fila.setIdProtocolo(paso.idProtocolo());
-                entity.getPasos().add(fila);
-            }
-
-            fila.setEstado(paso.estado().name());
-            fila.setNota(paso.nota());
-        }
-    }
-
-    /**
-     * Inserta las lecturas que el reporte trae y la fila todavía no tiene.
-     *
-     * <p>Va aparte de {@link #toEntity} a propósito: el adaptador vacía la sesión entre las dos
-     * llamadas para que los {@code UPDATE} que retiran una lectura lleguen a la base <b>antes</b> que
-     * el {@code INSERT} de la que la sustituye. Ver el javadoc de esta clase.
-     */
-    public void addNewReadings(ServiceReport reporte, ServiceReportEntity entity) {
-        Map<UUID, VerificationReadingEntity> porId = indexarPorId(entity);
-
-        for (VerificationReading lectura : reporte.getLecturas()) {
-            if (porId.containsKey(lectura.id())) {
-                continue;
-            }
-
-            VerificationReadingEntity fila = new VerificationReadingEntity();
-            fila.setId(lectura.id());
-            fila.setReporte(entity);
-            volcar(lectura, fila);
-
-            entity.getLecturas().add(fila);
-        }
-    }
-
-    /**
-     * Pone al día las filas de lecturas que ya existen, y solo esas.
-     *
-     * <p>Lo que cambia aquí es sobre todo el estado: una lectura pasa de activa a retirada cuando la
-     * verificación se corrige. <b>Nada se borra</b>, y para eso no hace falta ninguna regla, porque el
-     * agregado nunca quita una lectura de su lista.
-     */
-    private void actualizarLecturasExistentes(ServiceReport reporte, ServiceReportEntity entity) {
-        Map<UUID, VerificationReading> porId = new LinkedHashMap<>();
-        reporte.getLecturas().forEach(lectura -> porId.put(lectura.id(), lectura));
-
-        for (VerificationReadingEntity fila : entity.getLecturas()) {
-            VerificationReading lectura = porId.get(fila.getId());
-
-            if (lectura != null) {
-                volcar(lectura, fila);
-            }
-        }
-    }
-
-    private Map<UUID, VerificationReadingEntity> indexarPorId(ServiceReportEntity entity) {
-        Map<UUID, VerificationReadingEntity> porId = new LinkedHashMap<>();
-        entity.getLecturas().forEach(fila -> porId.put(fila.getId(), fila));
-
-        return porId;
-    }
-
-    private void volcar(VerificationReading lectura, VerificationReadingEntity fila) {
-        fila.setIdVerificacion(lectura.idVerificacion());
-        fila.setIdPuntoVerificacion(lectura.idPuntoVerificacion());
-        fila.setSecuencia(lectura.secuencia());
-        fila.setValorPatron(lectura.valorPatron());
-        fila.setValorEquipo(lectura.valorEquipo());
-        fila.setEstadoActivo(lectura.estadoActivo());
+        return UUID.nameUUIDFromBytes(clave.toString().getBytes(StandardCharsets.UTF_8));
     }
 }

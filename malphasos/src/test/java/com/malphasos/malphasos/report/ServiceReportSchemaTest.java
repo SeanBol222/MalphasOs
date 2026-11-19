@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.CodigoIsoLibre;
 import com.malphasos.malphasos.TestcontainersConfiguration;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -45,8 +44,10 @@ import org.springframework.test.context.jdbc.Sql;
  *   <li>Cambiar la foránea compuesta por dos sueltas —una a {@code orden_trabajo} y otra a
  *       {@code equipo_cliente}—: fallaba {@code reporteDeUnEquipoAjenoALaOrdenFalla}. Es lo que
  *       {@code V50} hizo a propósito, y esa prueba salió con ella.
- *   <li>Quitar {@code NULLS NOT DISTINCT} del índice único de lecturas: falla
- *       {@code secuenciaRepetidaSinPuntoFalla}.
+ *   <li>Quitar {@code NULLS NOT DISTINCT} del índice único de lecturas: fallaba
+ *       {@code secuenciaRepetidaSinPuntoFalla}. <b>Desde {@code V59} las lecturas no tienen tabla</b>: van en
+ *       {@code t_contenido}, y no repetir una lectura lo cuida el agregado. Las pruebas de lecturas de esta
+ *       clase salieron con la tabla; la forma del documento la prueba {@code ReportContentMigrationTest}.
  *   <li>Sustituir el {@code CASE} del cierre por dos ramas unidas por {@code OR}: <b>no falla
  *       ninguna</b>, y eso es un hallazgo, no un hueco. La trampa que V8 pagó —un {@code CHECK} que
  *       devuelve {@code NULL} se considera satisfecho— necesita que la columna que discrimina sea
@@ -59,7 +60,6 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM dato_verificacion",
             "DELETE FROM reporte_servicio",
             "DELETE FROM orden_trabajo",
             "DELETE FROM equipo_cliente",
@@ -78,6 +78,13 @@ import org.springframework.test.context.jdbc.Sql;
         },
         executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class ServiceReportSchemaTest {
+
+    /** El contenido de un reporte recién abierto, el mismo que pone el valor por defecto de V59. */
+    private static final String CONTENIDO_VACIO = """
+            {"version": 1, "falla": null, "diagnostico": null, "causa": null, "repuestos": null,
+             "procedimientos": null, "observaciones": null, "ingreso": {"fisico": null, "operativo": null},
+             "recibe": null, "pasos": [], "accesorios": [], "verificaciones": []}
+            """;
 
     @Autowired private JdbcTemplate jdbcTemplate;
 
@@ -150,55 +157,6 @@ class ServiceReportSchemaTest {
                 id, "Tipo " + unico());
 
         return id;
-    }
-
-    /**
-     * Una verificación con su tipo de equipo detrás, y el punto que le cuelga.
-     *
-     * <p>La unidad se <b>lee del catálogo sembrado por {@code V10}</b>, buscada por su magnitud: no se
-     * puede inventar, porque el esquema exige que exista.
-     */
-    private Verificacion insertVerification(String codigoMagnitud, String simbolo, String valor) {
-        UUID tipo = insertType();
-        UUID verificacion = UUID.randomUUID();
-        jdbcTemplate.update(
-                """
-                INSERT INTO verificacion_tipo_equipo (k_id_verificacion, k_id_tipo_equipo,
-                                                      k_id_unidad_medida,
-                                                      n_modalidad_verificacion, i_cantidad_datos)
-                SELECT ?, ?, u.k_id_unidad_medida, 'patron_constante', 3
-                FROM magnitud m JOIN unidad_medida u USING (k_id_magnitud)
-                WHERE m.n_codigo_magnitud = ? AND u.n_simbolo_unidad = ?
-                """,
-                verificacion, tipo, codigoMagnitud, simbolo);
-
-        UUID punto = null;
-
-        if (valor != null) {
-            punto = UUID.randomUUID();
-            jdbcTemplate.update(
-                    """
-                    INSERT INTO punto_verificacion (k_id_punto_verificacion, k_id_verificacion, d_valor)
-                    VALUES (?, ?, CAST(? AS numeric))
-                    """,
-                    punto, verificacion, valor);
-        }
-
-        return new Verificacion(verificacion, punto);
-    }
-
-    /** Una verificación de presión con un punto, que es lo que piden casi todas las pruebas. */
-    private Verificacion unaVerificacion() {
-        return insertVerification("presion", "mmHg", "50.0000");
-    }
-
-    /** Una verificación sin puntos, para las lecturas que no los llevan. */
-    private Verificacion unaVerificacionSinPuntos() {
-        return insertVerification("presion", "mmHg", null);
-    }
-
-    /** Lo que hace falta nombrar para escribir una lectura: su verificación y, si hay, su punto. */
-    private record Verificacion(UUID id, UUID punto) {
     }
 
     private UUID insertClientEquipment(UUID area) {
@@ -288,64 +246,64 @@ class ServiceReportSchemaTest {
         jdbcTemplate.update(
                 """
                 INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo, k_id_equipo_cliente,
-                                              t_estado_reporte, t_procedimientos, t_resultado, f_finalizado)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                                              t_estado_reporte, t_resultado, f_finalizado, t_contenido)
+                VALUES (?, ?, ?, ?, ?, ?, jsonb_set(?::jsonb, '{procedimientos}',
+                                                       coalesce(to_jsonb(?::text), 'null'::jsonb)))
                 """,
-                id, orden, equipo, estado, procedimientos, resultado, finalizado);
-
-        return id;
-    }
-
-    /**
-     * Una lectura. <b>Lleva su verificación desde {@code V10}</b>, y es obligatoria: con dos magnitudes
-     * variables el punto nulo no distingue cuál se midió.
-     */
-    private UUID insertReading(UUID reporte, UUID verificacion, UUID punto, int secuencia, String valor) {
-
-        UUID id = UUID.randomUUID();
-        jdbcTemplate.update(
-                """
-                INSERT INTO dato_verificacion (k_id_dato_verificacion, k_id_reporte_servicio,
-                                               k_id_verificacion, k_id_punto_verificacion, i_secuencia,
-                                               d_valor_patron, d_valor_equipo)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                id, reporte, verificacion, punto, secuencia, new BigDecimal(valor),
-                new BigDecimal(valor));
+                id, orden, equipo, estado, resultado, finalizado, CONTENIDO_VACIO, procedimientos);
 
         return id;
     }
 
     @Test
-    @DisplayName("las dos tablas del modulo existen tras la migracion")
-    void migracionCreaLasTablas() {
-        Integer tablas = jdbcTemplate.queryForObject(
-                """
-                SELECT count(*) FROM information_schema.tables
-                WHERE table_schema = 'public'
-                  AND table_name IN ('reporte_servicio', 'dato_verificacion')
-                """,
-                Integer.class);
-
-        assertThat(tablas).isEqualTo(2);
+    @DisplayName("desde V59 el modulo es una sola tabla: lo que el reporte dice va en t_contenido")
+    void unaSolaTabla() {
+        // Las lecturas, los patrones, los pasos y los accesorios eran cuatro tablas hijas. Que no vuelvan: con
+        // ellas habria otra vez dos sitios para lo mismo.
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT count(*) FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                          AND table_name IN ('dato_verificacion', 'patron_verificacion_reporte', 'paso_reporte',
+                                             'accesorio_reporte')
+                        """,
+                        Integer.class))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT count(*) FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = 'reporte_servicio'
+                          AND column_name IN ('t_falla_reportada', 't_diagnostico', 't_procedimientos',
+                                              't_observaciones', 't_causa', 't_repuestos', 't_ingreso_fisico',
+                                              'n_recibe_nombre')
+                        """,
+                        Integer.class))
+                .isZero();
     }
 
     @Test
-    @DisplayName("los cinco campos que enumera RF-15 tienen columna, y todos son anulables")
-    void losCincoCamposDeRf15TienenColumnaAnulable() {
-        // La nota de requisitos decia "ninguno de esos cinco campos tiene columna en el esquema". Esta
-        // prueba es lo que hace falsa esa frase, y por eso nombra los cinco uno a uno.
-        Integer anulables = jdbcTemplate.queryForObject(
-                """
-                SELECT count(*) FROM information_schema.columns
-                WHERE table_name = 'reporte_servicio'
-                  AND column_name IN ('t_falla_reportada', 't_diagnostico', 't_procedimientos',
-                                      't_observaciones', 't_resultado')
-                  AND is_nullable = 'YES'
-                """,
-                Integer.class);
+    @DisplayName("los cinco campos que enumera RF-15 siguen ahi: el resultado como columna, los textos en el documento")
+    void losCincoCamposDeRf15() {
+        // El resultado se queda como columna porque el listado de equipos lo filtra en SQL; los otros cuatro
+        // nacen nulos dentro del documento de un reporte recien abierto.
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT is_nullable FROM information_schema.columns
+                        WHERE table_name = 'reporte_servicio' AND column_name = 't_resultado'
+                        """,
+                        String.class))
+                .isEqualTo("YES");
 
-        assertThat(anulables).isEqualTo(5);
+        UUID[] alcance = insertEquipmentInOrder();
+        UUID reporte = insertDraft(alcance[0], alcance[1]);
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT jsonb_exists_all(t_contenido, ARRAY['falla', 'diagnostico', 'procedimientos', 'observaciones'])
+                           AND t_contenido ->> 'falla' IS NULL AND t_contenido ->> 'procedimientos' IS NULL
+                        FROM reporte_servicio WHERE k_id_reporte_servicio = ?
+                        """,
+                        Boolean.class, reporte))
+                .isTrue();
     }
 
     @Test
@@ -489,16 +447,6 @@ class ServiceReportSchemaTest {
     }
 
     @Test
-    @DisplayName("unos procedimientos en blanco no cierran el reporte: el CHECK recorta")
-    void finalizarConProcedimientosEnBlancoFalla() {
-        UUID[] alcance = insertEquipmentInOrder();
-
-        assertThatThrownBy(() -> insertReport(
-                        alcance[0], alcance[1], "FINALIZADO", "   ", "OPERATIVO", LocalDateTime.now()))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
     @DisplayName("finalizar sin resultado falla: la hoja de vida y las alertas cuelgan de ese dato")
     void finalizarSinResultadoFalla() {
         UUID[] alcance = insertEquipmentInOrder();
@@ -541,93 +489,6 @@ class ServiceReportSchemaTest {
     }
 
     @Test
-    @DisplayName("un campo de texto en blanco falla: o trae algo o esta nulo")
-    void textoEnBlancoFalla() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID id = UUID.randomUUID();
-
-        assertThatThrownBy(() -> jdbcTemplate.update(
-                        """
-                        INSERT INTO reporte_servicio (k_id_reporte_servicio, k_id_orden_trabajo,
-                                                      k_id_equipo_cliente, t_falla_reportada)
-                        VALUES (?, ?, ?, '   ')
-                        """,
-                        id, alcance[0], alcance[1]))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    // ---- Datos de verificacion ----
-
-    @Test
-    @DisplayName("una lectura se guarda con su punto, y tambien sin punto: la modalidad variable no tiene")
-    void lecturaConPuntoYSinPunto() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion verificacion = unaVerificacion();
-        Verificacion sinPuntos = unaVerificacionSinPuntos();
-
-        assertThatCode(() -> insertReading(
-                        reporte, verificacion.id(), verificacion.punto(), 1, "50.2000"))
-                .doesNotThrowAnyException();
-        assertThatCode(() -> insertReading(reporte, sinPuntos.id(), null, 1, "12.3400"))
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("una lectura sin verificacion falla: es lo que la distingue cuando no hay punto")
-    void lecturaSinVerificacionFalla() {
-        // La columna entro en V10 para tapar el agujero que el cambio de ese dia abria: con dos
-        // magnitudes variables, dos lecturas sin punto eran indistinguibles y el reporte no sabia en
-        // que columna imprimirlas.
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-
-        assertThatThrownBy(() -> insertReading(reporte, null, null, 1, "1.0000"))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("el punto tiene que ser de SU verificacion, y eso si lo puede comprobar el esquema")
-    void puntoDeOtraVerificacionFalla() {
-        // V9 decia que el esquema no puede exigir que el punto pertenezca al tipo del equipo
-        // reportado, porque son cuatro saltos hasta tipo_equipo. Eso sigue siendo verdad para el
-        // equipo; pero que el punto sea de SU verificacion es un solo salto, y lo impone una foranea
-        // compuesta.
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion una = unaVerificacion();
-        Verificacion otra = insertVerification("temperatura", "°C", "37.0000");
-
-        assertThatThrownBy(() -> insertReading(
-                        reporte, una.id(), otra.punto(), 1, "50.1000"))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("un valor negativo se admite: un congelador se verifica a -20 grados")
-    void valorNegativoSeAdmite() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion sinPuntos = unaVerificacionSinPuntos();
-
-        assertThatCode(() -> insertReading(reporte, sinPuntos.id(), null, 1, "-20.5000"))
-                .doesNotThrowAnyException();
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {0, -1, 101})
-    @DisplayName("la secuencia esta entre 1 y 100, el mismo tope que la cantidad de datos")
-    void secuenciaFueraDeRangoFalla(int secuencia) {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion sinPuntos = unaVerificacionSinPuntos();
-
-        assertThatThrownBy(() -> insertReading(
-                        reporte, sinPuntos.id(), null, secuencia, "1.0000"))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
     @DisplayName("el historial ya no tiene tabla: sale de los reportes, con un indice para el ultimo cierre (V52)")
     void sinTablaDeIntervenciones() {
         // intervencion copiaba de cada reporte cerrado lo que una linea de la hoja de vida dice. Que no vuelva:
@@ -643,134 +504,5 @@ class ServiceReportSchemaTest {
                         String.class))
                 .contains("k_id_equipo_cliente, f_finalizado DESC")
                 .contains("WHERE");
-    }
-
-    @Test
-    @DisplayName("ni la lectura ni el paso ni el patron guardan copias del catalogo desde V51")
-    void sinCopiasDelCatalogo() {
-        // La unidad y la tolerancia son de la verificacion, el texto y la posicion de un paso son de su
-        // protocolo, y la ficha de un patron es del catalogo: en un borrador se leen en vivo, y en uno cerrado
-        // las lleva su documento. Que no quede la columna es lo que impide volver a tener dos fuentes.
-        Integer copias = jdbcTemplate.queryForObject(
-                """
-                SELECT count(*) FROM information_schema.columns
-                WHERE table_schema = 'public'
-                  AND (table_name, column_name) IN (('dato_verificacion', 'n_unidad'),
-                                                    ('dato_verificacion', 'd_tolerancia'),
-                                                    ('paso_reporte', 'i_orden'), ('paso_reporte', 'n_nombre'),
-                                                    ('paso_reporte', 't_descripcion'), ('paso_reporte', 't_indicacion'),
-                                                    ('patron_verificacion_reporte', 'n_nombre'),
-                                                    ('patron_verificacion_reporte', 'n_certificado'),
-                                                    ('patron_verificacion_reporte', 'f_vencimiento'))
-                """,
-                Integer.class);
-
-        assertThat(copias).isZero();
-    }
-
-    @Test
-    @DisplayName("dos lecturas con la misma secuencia en el mismo punto son la misma lectura dos veces")
-    void secuenciaRepetidaEnElMismoPuntoFalla() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion verificacion = unaVerificacion();
-        insertReading(reporte, verificacion.id(), verificacion.punto(), 1, "50.1000");
-
-        assertThatThrownBy(() -> insertReading(
-                        reporte, verificacion.id(), verificacion.punto(), 1, "50.9000"))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("sin punto la secuencia tampoco se repite: es lo que hace NULLS NOT DISTINCT")
-    void secuenciaRepetidaSinPuntoFalla() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion sinPuntos = unaVerificacionSinPuntos();
-        insertReading(reporte, sinPuntos.id(), null, 1, "1.0000");
-
-        // Por defecto PostgreSQL considera dos NULL distintos, y sin la clausula la modalidad variable
-        // -- la unica que deja el punto nulo -- seria la unica que admitiria duplicados.
-        assertThatThrownBy(() -> insertReading(reporte, sinPuntos.id(), null, 1, "2.0000"))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    @DisplayName("sin punto, dos VERIFICACIONES distintas si pueden repetir la secuencia")
-    void mismaSecuenciaSinPuntoEnVerificacionesDistintas() {
-        // ESTE ES EL CASO QUE V10 ARREGLA. El indice de V9 era (reporte, punto, secuencia) con NULLS
-        // NOT DISTINCT: correcto entonces, porque habia una sola modalidad por tipo y una lectura sin
-        // punto solo podia ser de la unica verificacion que existia. Con dos magnitudes variables, la
-        // lectura 1 de temperatura y la 1 de humedad tenian las dos el punto nulo y el mismo numero, de
-        // modo que la segunda chocaba contra la primera aunque midieran cosas distintas.
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion una = unaVerificacionSinPuntos();
-        Verificacion otra = insertVerification("temperatura", "°C", null);
-        insertReading(reporte, una.id(), null, 1, "1.0000");
-
-        assertThatCode(() -> insertReading(reporte, otra.id(), null, 1, "37.0000"))
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("la misma secuencia en dos puntos distintos si se admite: son dos medidas")
-    void mismaSecuenciaEnPuntosDistintos() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion una = unaVerificacion();
-        Verificacion otra = insertVerification("presion", "kPa", "150.0000");
-        insertReading(reporte, una.id(), una.punto(), 1, "50.1000");
-
-        assertThatCode(() -> insertReading(
-                        reporte, otra.id(), otra.punto(), 1, "150.4000"))
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("retirar una lectura deja volver a tomarla: el indice unico tambien es parcial")
-    void retirarLaLecturaDejaVolverATomarla() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion verificacion = unaVerificacion();
-        UUID primera = insertReading(
-                reporte, verificacion.id(), verificacion.punto(), 1, "50.1000");
-        jdbcTemplate.update(
-                "UPDATE dato_verificacion SET b_estado_activo = false WHERE k_id_dato_verificacion = ?",
-                primera);
-
-        assertThatCode(() -> insertReading(
-                        reporte, verificacion.id(), verificacion.punto(), 1, "50.2000"))
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("un punto retirado sigue siendo referenciable: con el se hicieron los reportes viejos")
-    void puntoRetiradoSigueSiendoReferenciable() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion verificacion = unaVerificacion();
-        jdbcTemplate.update(
-                "UPDATE punto_verificacion SET b_estado_activo = false WHERE k_id_punto_verificacion = ?",
-                verificacion.punto());
-
-        assertThatCode(() -> insertReading(
-                        reporte, verificacion.id(), verificacion.punto(), 1, "50.1000"))
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("una verificacion retirada sigue siendo referenciable, por lo mismo")
-    void verificacionRetiradaSigueSiendoReferenciable() {
-        UUID[] alcance = insertEquipmentInOrder();
-        UUID reporte = insertDraft(alcance[0], alcance[1]);
-        Verificacion verificacion = unaVerificacion();
-        jdbcTemplate.update(
-                "UPDATE verificacion_tipo_equipo SET b_estado_activo = false WHERE k_id_verificacion = ?",
-                verificacion.id());
-
-        assertThatCode(() -> insertReading(
-                        reporte, verificacion.id(), verificacion.punto(), 1, "50.1000"))
-                .doesNotThrowAnyException();
     }
 }

@@ -1,10 +1,10 @@
 ---
 name: esquema-bd-malphasos
-description: El esquema de MalphasOS hoy — 35 tablas, 48 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
+description: El esquema de MalphasOS hoy — 32 tablas, 41 foráneas, con diagrama por módulo y un guion que comprueba que las columnas existen
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-11-08
+updated: 2026-11-19
 ---
 
 # El esquema de MalphasOS, hoy
@@ -78,19 +78,19 @@ Devuelve 0 si todo cuadra y 1 nombrando lo que sobra. **Se vio fallar** cambiand
 `encargado` no la habría cazado. Caza la clase de error que de hecho se cometió —nombres de columna— y
 lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
-## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-08 sobre `V58`
+## Las cifras, medidas el 2026-10-27 y recontadas el 2026-11-19 sobre `V59`
 
 | | |
 |---|---|
-| Migraciones aplicadas | **58** (`V1`…`V58`): `V58` la foto de cada equipo del cliente, el 2026-11-08 —decía **57** hasta entonces—; la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
-| Tablas de dominio | **36** — eran **35** hasta `V57`, **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
-| Llaves foráneas | **50** —**48** hasta `V57`; `V58` añade las dos de la foto—, de las cuales **1 compuesta**, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
-| Restricciones `CHECK` propias | **70** — eran **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
+| Migraciones aplicadas | **59** (`V1`…`V59`): `V59` muda lo que el reporte dice a un documento JSON, el 2026-11-19 —decía **58** hasta entonces—; `V58` la foto de cada equipo del cliente, el 2026-11-08 —decía **57** hasta entonces—; la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
+| Tablas de dominio | **32** — eran **36** hasta `V58`: `V59` quitó las cuatro hijas del reporte; **35** hasta `V57`, **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
+| Llaves foráneas | **41** —**50** hasta `V58`, que añadió las dos de la foto; `V59` se llevó nueve con las tablas hijas del reporte—, **ninguna compuesta** desde `V59` —la última, la de la lectura con su punto, salió con `dato_verificacion`—, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
+| Restricciones `CHECK` propias | **57** — eran **70** hasta `V58`: `V59` quitó las de las tablas hijas y las de los textos del reporte, rehízo dos que mezclaban columna y documento y añadió la de la forma del documento; **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
-| Índices únicos **parciales** | **11** — eran **10** hasta `V54`, **9** hasta `V51` y **10** hasta `V48` |
+| Índices únicos **parciales** | **8** — eran **11** hasta `V58`: `V59` se llevó los de lecturas, patrones y pasos del reporte; **10** hasta `V54`, **9** hasta `V51` y **10** hasta `V48` |
 | Foráneas sin ningún índice que las encabece | **0** desde `V52`, que quitó la última con su tabla, `intervencion` — eran **13** antes de `V42`, **3** después, y `V47` y `V48` quitaron una cada una |
-| Tablas con borrado lógico | **31 de 36** — ya no es universal: `empresa`, `telefono_empresa`, `firma_persona`, `imagen_documento` y, desde `V58`, `foto_equipo_cliente` no lo llevan |
+| Tablas con borrado lógico | **27 de 32** — las cuatro que `V59` quitó lo llevaban; ya no es universal: `empresa`, `telefono_empresa`, `firma_persona`, `imagen_documento` y, desde `V58`, `foto_equipo_cliente` no lo llevan |
 
 > **Recontado el 2026-10-27 sobre la base con `V41`**, con las consultas de arriba más `pg_constraint` y
 > `pg_index`. **La tabla anterior llevaba caducada desde `V36`, el 2026-10-17**: la versión 1.0.0 añadió
@@ -651,7 +651,7 @@ reporte copia la tolerancia al tomarse, por la misma razón que copia la unidad.
 
 ```mermaid
 erDiagram
-    equipo_patron ||--o{ patron_verificacion_reporte : "se usa en, desde V30"
+    equipo_patron ||--o{ reporte_servicio : "se usa en: por su id dentro de t_contenido, desde V59"
     equipo_patron {
         uuid k_id_equipo_patron PK
         varchar n_nombre
@@ -760,135 +760,133 @@ reporte activo, y el reporte apunta a la orden y al equipo. Hasta entonces los g
 el área la guarda ahora el documento de la orden al ejecutarse, y mientras no se ejecuta sus equipos no se
 trasladan —regla del servicio—.
 
-## `report` — 5 tablas
+## `report` — 1 tabla, desde `V59`
 
 ```mermaid
 erDiagram
     orden_trabajo ||--o{ reporte_servicio : "pone sus equipos, desde V50"
     persona |o--o{ reporte_servicio : "recibe, desde V55"
     equipo_cliente ||--o{ reporte_servicio : "se reporta en"
-    reporte_servicio ||--o{ dato_verificacion : "registra"
-    reporte_servicio ||--o{ paso_reporte : "lleva, desde V22"
-    reporte_servicio ||--o{ patron_verificacion_reporte : "se midio contra, desde V30"
-    reporte_servicio ||--o{ accesorio_reporte : "llego con, desde V31"
-    patron_verificacion_reporte {
-        uuid k_id_patron_verificacion_reporte PK
-        uuid k_id_reporte_servicio FK "UK parcial con verificacion y patron"
-        uuid k_id_verificacion FK "simple: el tipo lo comprueba el servicio"
-        uuid k_id_equipo_patron FK
-        boolean b_estado_activo "quitar retira, volver a poner reactiva"
-    }
-    accesorio_reporte {
-        uuid k_id_accesorio_reporte PK
-        uuid k_id_reporte_servicio FK
-        integer i_orden "SIN indice unico, a proposito"
-        varchar n_nombre
-        boolean b_conforme
-        varchar t_observacion "obligatoria si no es conforme"
-        boolean b_estado_activo
-    }
-    paso_reporte {
-        uuid k_id_paso_reporte PK
-        uuid k_id_reporte_servicio FK
-        uuid k_id_protocolo FK "UK parcial con el reporte, desde V51"
-        varchar t_estado_paso "PENDIENTE, HECHO, NO_APLICA"
-        varchar t_nota "obligatoria con NO_APLICA"
-        boolean b_estado_activo "desde V23"
-    }
+    imagen_documento |o--o{ reporte_servicio : "firma de quien recibe, desde V39"
     reporte_servicio {
-        uuid k_id_reporte_servicio PK
+        uuid k_id_reporte_servicio PK "su prefijo es el numero, V28"
         uuid k_id_orden_trabajo FK "UK parcial con el equipo: uno activo"
         uuid k_id_equipo_cliente FK "simple desde V50"
-        varchar t_estado_reporte
-        varchar t_falla_reportada
-        varchar t_diagnostico
-        varchar t_procedimientos
-        varchar t_observaciones
-        varchar t_causa "V24, del correctivo"
-        varchar t_repuestos "V24"
-        varchar t_ingreso_fisico "CONFORME, NO_CONFORME, NO_APLICA - V31"
-        varchar t_ingreso_fisico_observacion "obligatoria si NO_CONFORME"
-        varchar t_ingreso_operativo "V31"
-        varchar t_ingreso_operativo_observacion
-        varchar n_recibe_nombre "texto libre - V31"
-        varchar k_recibe_cedula "sin nombre, nada"
-        varchar n_recibe_cargo
-        uuid k_id_recibe FK "persona registrada, V55; con ella el texto va nulo"
-        varchar t_resultado
-        timestamp f_finalizado
+        varchar t_estado_reporte "BORRADOR o FINALIZADO"
+        varchar t_resultado "columna: el listado de equipos lo filtra"
+        timestamp f_finalizado "indice de la hoja de vida, V52"
         boolean b_estado_activo
-    }
-    dato_verificacion {
-        uuid k_id_dato_verificacion PK
-        uuid k_id_reporte_servicio FK
-        uuid k_id_verificacion FK "obligatoria"
-        uuid k_id_punto_verificacion FK "anulable"
-        integer i_secuencia "1 a 100"
-        numeric d_valor_patron
-        numeric d_valor_equipo
-        boolean b_estado_activo
+        jsonb t_documento "el informe congelado al cerrar, V37 y V51"
+        boolean b_documento_tardio
+        varchar k_huella_firma_recibe FK "V39"
+        timestamp f_firma_recibe "va con la huella"
+        uuid k_id_recibe FK "persona registrada, V55"
+        jsonb t_contenido "lo que el reporte dice, V59"
     }
 ```
 
-**Ninguna fila del reporte copia el catálogo desde `V51`.** Hasta entonces la unidad de una lectura, su
-tolerancia, la ficha de cada patrón y el texto y la posición de cada paso eran copias congeladas en las
-filas, para que reconfigurar un tipo o renovar un certificado no cambiara un reporte ya firmado. Eso lo
-garantiza ahora el documento del reporte, que lo guarda al cerrar —ver [[dominio-reporte-servicio]]—, y
-mientras es borrador se lee en vivo: una sola fuente para cada momento. El patrón conserva su
-identificador con una foránea **simple** —un patrón nunca se borra—, que es lo que contesta con un join
-«¿en qué reportes se usó?». (Esta nota decía que esas copias eran deliberadas: cierto hasta `V51`. Ver
-[[congelar-una-referencia-historica]] para la decisión de entonces.)
+**Desde `V59` (2026-11-19) el reporte es una fila.** Lo que dice —los seis textos, las dos verificaciones al
+ingreso, quien recibe sin cuenta, los pasos del protocolo, los accesorios y, por verificación, sus patrones y
+sus lecturas— va en **`t_contenido`**, un documento con su versión dentro. Hasta entonces eran cuatro tablas
+hijas —`dato_verificacion` (`V9`), `paso_reporte` (`V22`), `patron_verificacion_reporte` (`V30`) y
+`accesorio_reporte` (`V31`)— y quince columnas, que el adaptador conciliaba fila por fila con un orden de
+escritura obligatorio. Decidido por el usuario al revisar el esquema completo, con un artifact que dibuja
+cada cambio sobre el diagrama: el reporte se lee y se escribe entero, y nadie lo consulta campo a campo.
 
-> **Corregido el 2026-10-16, por la noche.** Este párrafo seguía: «y un `CHECK` de **todo o nada**: sin
-> identificador no hay copia». **Falso desde `V30`**, el mismo día: un reporte no tiene ya un patrón
-> sino **varios por cada verificación**, y las columnas de `V27` salieron de `reporte_servicio` hacia
-> `patron_verificacion_reporte`, con la ficha entera de `V29` copiada. La copia sigue siendo copia y la
-> foránea sigue siendo simple; lo que cambió es dónde viven.
+```json
+{ "version": 1,
+  "falla": null, "diagnostico": null, "causa": null, "repuestos": null,
+  "procedimientos": "...", "observaciones": "...",
+  "ingreso": { "fisico": {"estado": "CONFORME", "observacion": null}, "operativo": null },
+  "recibe": { "nombre": "...", "cedula": "...", "cargo": "..." },
+  "pasos": [ {"protocolo": "<uuid>", "estado": "HECHO", "nota": null} ],
+  "accesorios": [ {"nombre": "Estuche", "conforme": true, "observacion": null} ],
+  "verificaciones": [ {"id": "<uuid>",
+                       "patrones": [ {"id": "<uuid>", "desdeOrden": false} ],
+                       "lecturas": [ {"punto": "<uuid> o null", "secuencia": 1, "patron": 98.0, "equipo": 95.0} ]} ] }
+```
 
-**Quién recibe el equipo es texto y no una foránea a `persona`**, decidido por el usuario: muchas veces
-es la jefa de enfermería de turno, que no está registrada. Y **las dos verificaciones al ingreso son
-columnas fijas**, no filas, porque todo reporte las lleva —estructura física y estado operativo—; lo que
-es lista libre son los accesorios.
+**Qué se queda como columna, y por qué**: solo lo que la base usa. El identificador —su prefijo es el número
+impreso, con índice único—, la orden y el equipo —foráneas y un reporte activo por equipo de la orden—, el
+estado y la fecha de cierre —el `CHECK` del cierre y el índice del último cierre de la hoja de vida—, el
+**resultado** —el listado de equipos filtra en SQL los `FUERA_DE_SERVICIO`—, quien recibe registrado y su
+firma con su fecha —foráneas a `persona` e `imagen_documento`; por la segunda el almacén sabe qué huella
+está en uso— y el documento congelado con su marca de tardío.
 
-**Los pasos del protocolo también son una copia**, por lo mismo: nombre, descripción e indicación son
-los del día en que se abrió el reporte. Pero aquí **sí** hay foránea al protocolo, y no contradice lo
-anterior: un protocolo nunca se borra, solo se retira, así que la foránea dice de cuál salió el paso sin
-congelar nada. Ver [[dominio-reporte-servicio]].
+**Una sola fuente para cada momento, sin ningún dato dos veces.** `t_contenido` dice lo que es del reporte
+—qué se midió, con qué patrón, qué paso se marcó—; lo que es del catálogo —el nombre de un paso, la unidad,
+la tolerancia, el valor de un punto, la ficha de un patrón— se lee en vivo mientras es borrador y de
+`t_documento` al cerrarse. Es la regla de `V51` llevada a todo el reporte.
 
-## La foránea compuesta, que es una regla y no un adorno
+**Solo lo vigente**, y es una excepción consciente a «aquí nada se borra», decidida por el usuario: una
+lectura corregida o un accesorio quitado no se guardan. Lo retirado lo era dentro de un borrador, el informe
+nunca lo imprimió, y un reporte cerrado no se edita: se sustituye, y el sustituido se queda entero. En
+desarrollo eran 58 lecturas retiradas, y ningún paso, patrón ni accesorio.
 
-Una foránea compuesta impone en el esquema algo que con dos foráneas sueltas quedaría abierto. Queda
-una, y tapa un estado que de otro modo se podría escribir. (Eran **dos** hasta `V50`, el 2026-10-28: la
-del reporte contra el puente impedía un reporte de un equipo que la orden no incluyó, y salió con el
-puente: desde entonces es el reporte el que incluye al equipo, y que sea de la sede de la orden lo
-comprueba el servicio al añadirlo.) (Eran **cuatro** hasta `V47`, el
-2026-10-28: la de la orden con su cliente impedía una orden en una sede de otro cliente, y dejó de hacer
-falta cuando la orden dejó de guardar su cliente —ya no hay dos datos que puedan contradecirse—. Y
-**tres** hasta `V48`, ese mismo día: la de la verificación con su magnitud impedía medir temperatura en
-%HR, y salió por lo mismo: la verificación guarda solo la unidad, y la magnitud es la suya.)
+**Los identificadores de las piezas no se guardan: se derivan** de lo que ya las hace únicas dentro del
+reporte —un paso por su protocolo, un patrón por su verificación, una lectura por verificación, punto y
+número, un accesorio por su posición— con `UUID.nameUUIDFromBytes`, de modo que el API sigue devolviendo el
+mismo `id` de cada lectura sin ocupar sitio en el documento.
 
-| Tabla | El par | Lo que impide |
-|---|---|---|
-| `dato_verificacion` | (verificación, punto) → `punto_verificacion` | Una lectura en un punto **de otra verificación** |
+**Lo que la base dejó de garantizar** y vive en el agregado: que la lectura esté en un punto de su
+verificación —era la última foránea compuesta del esquema—, que la verificación, el patrón y el protocolo
+existan, que no se repita una lectura ni un paso, que los textos no estén en blanco y los valores del
+ingreso sean los suyos, y que un valor quepa en ocho cifras enteras —era el `numeric(12,4)` de la tabla, y
+es regla de `VerificationReading` desde ese día—. **Lo que sigue mirando**: la forma del documento
+—`CHK_reporte_servicio_contenido` exige la versión numérica y los tres arreglos— y dos `CHECK` que cruzan
+columna y documento: quien recibe es una persona registrada **o** un nombre escrito, y una firma lleva su
+fecha y a alguien que la diera.
 
-**Y admite el caso nulo sin una regla extra**: una foránea compuesta con alguna columna
-nula **no se comprueba** —es `MATCH SIMPLE`, lo que PostgreSQL hace por omisión—, de modo que la
-lectura sin punto pasa y la que trae punto queda atada.
+> **La trampa del `NULL`, otra vez.** La primera versión de esos `CHECK` comparaba
+> `jsonb_typeof(t_contenido -> 'pasos') = 'array'`, y un documento **sin** la clave entraba: `jsonb_typeof`
+> de una clave que falta es `NULL`, y un `CHECK` que da `NULL` pasa. Lo cazó el ensayo de la migración sobre
+> una copia de desarrollo, no una lectura; va con `IS NOT DISTINCT FROM`.
 
-## Los 10 índices únicos parciales, y por qué son parciales
+**«¿En qué reportes se usó este patrón?»**, que `V51` quiso poder contestar si un certificado resulta malo,
+se contesta con `@>` sobre `IX_reporte_servicio_contenido`, un índice GIN `jsonb_path_ops`. Sobre la copia de
+desarrollo da los mismos 175 reportes que el join de antes.
 
-`UQ_reporte_servicio_activo`, `UQ_punto_verificacion_activo`, `UQ_dato_verificacion_activo`, desde `V11`
+**Y una prueba ata la migración al código**: `ReportContentMigrationTest` sube un esquema a `V58` con un
+reporte que tiene de todo, aplica `V59` y exige que el documento que escribe la migración sea **igual** al
+que escribe `ServiceReportPersistenceMapper` al leerlo y volver a guardarlo.
+
+> **Lo que esta sección decía hasta `V59`**: cinco tablas, con las dos verificaciones al ingreso como
+> columnas fijas «porque todo reporte las lleva», quien recibe como texto libre en tres columnas, y las
+> filas de lecturas, patrones y accesorios retiradas en lugar de borradas. Las decisiones de fondo siguen
+> —el ingreso son dos entradas fijas, quien recibe puede no estar registrado—; lo que cambió es dónde
+> viven. Ver [[dominio-reporte-servicio]] y [[decisiones-tecnicas-malphasos]].
+
+## Las foráneas compuestas: ya no queda ninguna
+
+**Desde `V59` (2026-11-19) el esquema no tiene ninguna.** La última era la de `dato_verificacion` con
+(verificación, punto) → `punto_verificacion`, que impedía una lectura en el punto de otra verificación, y
+salió con la tabla: las lecturas viven en el documento del reporte y esa regla es del agregado. Admitía el
+caso nulo sin regla extra —`MATCH SIMPLE` no comprueba una foránea compuesta con alguna columna nula—, que
+es lo que dejaba pasar la lectura sin punto de la modalidad variable.
+
+(Eran **dos** hasta `V50`, el 2026-10-28: la del reporte contra el puente impedía un reporte de un equipo
+que la orden no incluyó, y salió con el puente. **Cuatro** hasta `V47`: la de la orden con su cliente
+impedía una orden en una sede de otro cliente, y dejó de hacer falta cuando la orden dejó de guardar su
+cliente. Y **tres** hasta `V48`: la de la verificación con su magnitud impedía medir temperatura en %HR, y
+salió porque la magnitud es la de la unidad. Las cuatro salieron por lo mismo: dejó de haber dos datos que
+pudieran contradecirse.)
+
+## Los 8 índices únicos parciales, y por qué son parciales
+
+`UQ_reporte_servicio_activo`, `UQ_punto_verificacion_activo`, desde `V11`
 `UQ_modelo_nombre_activo_por_equipo`, desde `V21` `UQ_protocolo_clave_activo` y
-`UQ_protocolo_tipo_equipo_prioridad_activa`, desde `V25` `UQ_equipo_patron_serie_activo`, desde `V30`
-`UQ_patron_verificacion_reporte_activo`, desde `V35` `UQ_equipo_patron_codigo_interno_activo` y desde
-`V51` `UQ_paso_reporte_protocolo` —un reporte no repite protocolo—.
+`UQ_protocolo_tipo_equipo_prioridad_activa`, desde `V25` `UQ_equipo_patron_serie_activo`, desde `V35`
+`UQ_equipo_patron_codigo_interno_activo` y desde `V54` `UQ_aprobacion_orden_activa`. (**Corregido el
+2026-11-19**: hasta `V59` estaban también `UQ_dato_verificacion_activo`, `UQ_patron_verificacion_reporte_activo`
+y `UQ_paso_reporte_protocolo`, que salieron con sus tablas; y la lista no nombraba el de `V54`, que la tabla
+de cifras sí contaba.)
 (Decía **cinco**: cierto hasta el **2026-10-10**; **siete** hasta el **2026-10-14**, y **ocho** hasta el
 **2026-10-16**. **Corregido el 2026-10-28**: la lista nombraba nueve y no traía el de `V35`, de modo que
 eran diez desde el 2026-10-17, como ya decía la tabla de cifras. Vuelven a ser nueve con `V48`, que quitó
 `UQ_verificacion_magnitud_activa_por_tipo` con la magnitud de la verificación: esa regla vive ahora solo
 en el agregado. Y diez otra vez con `V51`.) **`UQ_reporte_servicio_numero`, de `V28`,
 no está en la lista y no es un olvido**: es único y no parcial, porque un número impreso no se recicla.
-Los nueve llevan `WHERE b_estado_activo`, y la razón es la misma
+Los ocho llevan `WHERE b_estado_activo`, y la razón es la misma
 en todos: **aquí nada se borra**. Una restricción normal impediría volver a dar de alta algo que se
 retiró, de modo que reconfigurar hacia atrás sería imposible.
 
@@ -907,7 +905,7 @@ un índice único parcial. `V40` la usa para el correo principal —`EX_correo_p
 porque cambiar de principal son dos `UPDATE` en el mismo flush y Hibernate no garantiza su orden: diferida,
 se comprueba al confirmar. **Hay una prueba que lo demuestra quitando el `DEFERRABLE`**, y su primera
 versión no lo demostraba: con el correo nuevo detrás en la lista Hibernate actualizaba primero el viejo y
-pasaba igual sin diferir. Los nueve índices de arriba podrían migrarse a esta forma; no se ha hecho.
+pasaba igual sin diferir. Los ocho índices de arriba podrían migrarse a esta forma; no se ha hecho.
 
 **Y otra corrección del mismo día**, que el guion de esta nota cazó al volver a pasarlo: el diagrama de
 `equipment` seguía dibujando `tipo_equipo.t_formato_reporte`, que `V33` retiró el 2026-10-16 al

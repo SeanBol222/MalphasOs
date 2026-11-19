@@ -1,15 +1,10 @@
 package com.malphasos.malphasos.report.infrastructure.output.entities;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -50,46 +45,6 @@ public class ServiceReportEntity {
     @Column(name = "t_estado_reporte", nullable = false)
     private String estado;
 
-    @Column(name = "t_falla_reportada")
-    private String fallaReportada;
-
-    @Column(name = "t_diagnostico")
-    private String diagnostico;
-
-    @Column(name = "t_procedimientos")
-    private String procedimientos;
-
-    @Column(name = "t_observaciones")
-    private String observaciones;
-
-    @Column(name = "t_causa")
-    private String causa;
-
-    @Column(name = "t_repuestos")
-    private String repuestos;
-
-    /** Las verificaciones al ingreso y quién recibe, desde V31. El estado es el nombre del enum. */
-    @Column(name = "t_ingreso_fisico")
-    private String ingresoFisico;
-
-    @Column(name = "t_ingreso_fisico_observacion")
-    private String ingresoFisicoObservacion;
-
-    @Column(name = "t_ingreso_operativo")
-    private String ingresoOperativo;
-
-    @Column(name = "t_ingreso_operativo_observacion")
-    private String ingresoOperativoObservacion;
-
-    @Column(name = "n_recibe_nombre")
-    private String recibeNombre;
-
-    @Column(name = "k_recibe_cedula")
-    private String recibeCedula;
-
-    @Column(name = "n_recibe_cargo")
-    private String recibeCargo;
-
     @Column(name = "t_resultado")
     private String resultado;
 
@@ -119,18 +74,11 @@ public class ServiceReportEntity {
     @Column(name = "k_id_recibe")
     private UUID idRecibe;
 
-    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<VerificationReadingEntity> lecturas = new ArrayList<>();
-
-    /** Los pasos del protocolo, desde V22. */
-    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ReportStepEntity> pasos = new ArrayList<>();
-
-    /** Los patrones de cada verificación, desde V30. */
-    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<VerificationStandardEntity> patrones = new ArrayList<>();
-
-    /** Los accesorios con que llegó el equipo, desde V31. */
-    @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ReportAccessoryEntity> accesorios = new ArrayList<>();
+    /**
+     * Lo que el reporte dice, en JSON (V59): textos, ingreso, quien recibe sin cuenta, pasos, accesorios y,
+     * por verificación, sus patrones y sus lecturas. Lo escribe y lo lee el mapper.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "t_contenido", nullable = false)
+    private String contenido;
 }

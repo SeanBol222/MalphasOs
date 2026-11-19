@@ -75,10 +75,6 @@ import org.springframework.test.context.jdbc.Sql;
 @Import(TestcontainersConfiguration.class)
 @Sql(
         statements = {
-            "DELETE FROM dato_verificacion",
-            "DELETE FROM paso_reporte",
-            "DELETE FROM patron_verificacion_reporte",
-            "DELETE FROM accesorio_reporte",
             "DELETE FROM protocolo",
             "DELETE FROM reporte_servicio",
             "DELETE FROM imagen_documento",
@@ -236,20 +232,20 @@ class ServiceReportPersistenceAdapterTest {
     private record Alcance(UUID orden, UUID equipo, UUID verificacion, UUID punto) {
     }
 
-    /** Las filas de lecturas de un reporte, activas e inactivas, que es lo que la tabla guarda. */
-    private Integer filasDeLecturas(UUID reporte) {
-        return jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM dato_verificacion WHERE k_id_reporte_servicio = ?",
-                Integer.class, reporte);
-    }
+    /**
+     * Cuántos elementos tiene un arreglo del documento del reporte (V59): {@code pasos}, {@code accesorios}, o
+     * los {@code lecturas} y {@code patrones} de todas sus verificaciones.
+     */
+    private Integer enElDocumento(UUID reporte, String arreglo) {
+        String sql = switch (arreglo) {
+            case "lecturas", "patrones" -> "SELECT count(*) FROM reporte_servicio,"
+                    + " jsonb_array_elements(t_contenido -> 'verificaciones') v,"
+                    + " jsonb_array_elements(v -> '" + arreglo + "') WHERE k_id_reporte_servicio = ?";
+            default -> "SELECT jsonb_array_length(t_contenido -> '" + arreglo + "') FROM reporte_servicio"
+                    + " WHERE k_id_reporte_servicio = ?";
+        };
 
-    private Integer filasActivasDeLecturas(UUID reporte) {
-        return jdbcTemplate.queryForObject(
-                """
-                SELECT count(*) FROM dato_verificacion
-                WHERE k_id_reporte_servicio = ? AND b_estado_activo
-                """,
-                Integer.class, reporte);
+        return jdbcTemplate.queryForObject(sql, Integer.class, reporte);
     }
 
     // ---------------------------------------------------------------------------
@@ -437,6 +433,10 @@ class ServiceReportPersistenceAdapterTest {
             assertThat(adapter.findById(reporte.getId()).orElseThrow().getFirmaRecibe()).isNull();
         }
 
+        /** Quien recibe con su nombre escrito: desde V59 va en el documento y no en una columna. */
+        private static final String RECIBE_ANA = "t_contenido = jsonb_set(t_contenido, '{recibe}',"
+                + " '{\"nombre\": \"Ana\", \"cedula\": null, \"cargo\": null}')";
+
         @Test
         @DisplayName("la base impide una firma sin imagen guardada, sin fecha o sin nombre")
         void laBaseLoImpide() {
@@ -445,11 +445,11 @@ class ServiceReportPersistenceAdapterTest {
             imagenes.store(FIRMA);
 
             // Una huella que no está en imagen_documento.
-            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET n_recibe_nombre = 'Ana',"
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET " + RECIBE_ANA + ","
                             + " k_huella_firma_recibe = ?, f_firma_recibe = now() WHERE k_id_reporte_servicio = ?",
                             "c".repeat(64), reporte.getId()))
                     .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET n_recibe_nombre = 'Ana',"
+            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET " + RECIBE_ANA + ","
                             + " k_huella_firma_recibe = ? WHERE k_id_reporte_servicio = ?",
                             FIRMA.huella(), reporte.getId()))
                     .isInstanceOf(DataIntegrityViolationException.class);
@@ -462,7 +462,7 @@ class ServiceReportPersistenceAdapterTest {
                             + " WHERE k_id_reporte_servicio = ?", reporte.getId()))
                     .isInstanceOf(DataIntegrityViolationException.class);
             // Y con todo, entra: lo de arriba falla por lo que dice y no por otra cosa.
-            assertThat(jdbcTemplate.update("UPDATE reporte_servicio SET n_recibe_nombre = 'Ana',"
+            assertThat(jdbcTemplate.update("UPDATE reporte_servicio SET " + RECIBE_ANA + ","
                             + " k_huella_firma_recibe = ?, f_firma_recibe = now() WHERE k_id_reporte_servicio = ?",
                     FIRMA.huella(), reporte.getId())).isEqualTo(1);
         }
@@ -583,11 +583,6 @@ class ServiceReportPersistenceAdapterTest {
             return patron;
         }
 
-        private long filasDePatron(UUID reporte, boolean activas) {
-            return jdbcTemplate.queryForObject("SELECT count(*) FROM patron_verificacion_reporte"
-                    + " WHERE k_id_reporte_servicio = ? AND b_estado_activo = ?", Long.class, reporte, activas);
-        }
-
         @Test
         @DisplayName("los patrones vuelven por su verificacion y su identificador: la ficha no es del reporte (V51)")
         void vuelvenPorSuIdentificador() {
@@ -616,7 +611,7 @@ class ServiceReportPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("quitar uno retira su fila sin borrarla, y volver a ponerlo reactiva la misma")
+        @DisplayName("quitar uno lo saca del documento, y volver a ponerlo lo devuelve (V59: solo lo vigente)")
         void quitarYVolver() {
             Alcance alcance = unAlcance();
             UUID patron = unPatronEnElCatalogo();
@@ -627,35 +622,15 @@ class ServiceReportPersistenceAdapterTest {
             ServiceReport leido = adapter.findById(reporte.getId()).orElseThrow();
             leido.removeReferenceStandard(alcance.verificacion(), patron);
             adapter.save(leido);
-            assertThat(filasDePatron(reporte.getId(), false)).isEqualTo(1);
+            assertThat(enElDocumento(reporte.getId(), "patrones")).isZero();
             assertThat(adapter.findById(reporte.getId()).orElseThrow().patronesActivos()).isEmpty();
 
             ServiceReport otraVez = adapter.findById(reporte.getId()).orElseThrow();
             otraVez.useReferenceStandard(alcance.verificacion(), patron);
             adapter.save(otraVez);
-            assertThat(filasDePatron(reporte.getId(), true)).isEqualTo(1);
-            assertThat(filasDePatron(reporte.getId(), false)).isZero();
+            assertThat(enElDocumento(reporte.getId(), "patrones")).isEqualTo(1);
         }
 
-        @Test
-        @DisplayName("la base no deja el mismo patron activo dos veces en la misma verificacion")
-        void unoPorVerificacion() {
-            Alcance alcance = unAlcance();
-            UUID idPatron = unPatronEnElCatalogo();
-            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
-            reporte.useReferenceStandard(alcance.verificacion(), idPatron);
-            adapter.save(reporte);
-            String otra = "INSERT INTO patron_verificacion_reporte (k_id_patron_verificacion_reporte,"
-                    + " k_id_reporte_servicio, k_id_verificacion, k_id_equipo_patron, b_estado_activo)"
-                    + " VALUES (?, ?, ?, ?, ?)";
-
-            assertThatThrownBy(() -> jdbcTemplate.update(
-                            otra, UUID.randomUUID(), reporte.getId(), alcance.verificacion(), idPatron, true))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            // Retirada si cabe: el indice es parcial, y las retiradas son historia.
-            assertThat(jdbcTemplate.update(
-                    otra, UUID.randomUUID(), reporte.getId(), alcance.verificacion(), idPatron, false)).isEqualTo(1);
-        }
     }
 
     @Nested
@@ -663,7 +638,7 @@ class ServiceReportPersistenceAdapterTest {
     class LaRecepcion {
 
         @Test
-        @DisplayName("todo va y vuelve, y los accesorios sustituidos quedan retirados en la tabla")
+        @DisplayName("todo va y vuelve, y los accesorios sustituidos salen del documento (V59: solo lo vigente)")
         void idaYVuelta() {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
@@ -686,9 +661,7 @@ class ServiceReportPersistenceAdapterTest {
                     List.of(ReportAccessory.of(1, "Brazalete", true, null)));
             adapter.save(leido);
 
-            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM accesorio_reporte"
-                    + " WHERE k_id_reporte_servicio = ? AND NOT b_estado_activo", Long.class, reporte.getId()))
-                    .isEqualTo(2);
+            assertThat(enElDocumento(reporte.getId(), "accesorios")).isEqualTo(1);
             assertThat(adapter.findById(reporte.getId()).orElseThrow().accesoriosActivos())
                     .extracting(ReportAccessory::nombre).containsExactly("Brazalete");
         }
@@ -707,31 +680,6 @@ class ServiceReportPersistenceAdapterTest {
             assertThat(leido.getRecibe()).isNull();
         }
 
-        @Test
-        @DisplayName("la base no deja un no conforme sin observacion, ni una cedula sin nombre")
-        void reglasEnLaBase() {
-            Alcance alcance = unAlcance();
-            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
-            adapter.save(reporte);
-            UUID id = reporte.getId();
-
-            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET t_ingreso_fisico ="
-                    + " 'NO_CONFORME' WHERE k_id_reporte_servicio = ?", id))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET t_ingreso_operativo ="
-                    + " 'ROTO' WHERE k_id_reporte_servicio = ?", id))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update("UPDATE reporte_servicio SET k_recibe_cedula ="
-                    + " '52123456' WHERE k_id_reporte_servicio = ?", id))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update("INSERT INTO accesorio_reporte (k_id_accesorio_reporte,"
-                    + " k_id_reporte_servicio, i_orden, n_nombre, b_conforme) VALUES (?, ?, 1, 'Sonda', false)",
-                    UUID.randomUUID(), id))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            // Conforme con observacion si cabe, y no conforme con ella tambien.
-            assertThat(jdbcTemplate.update("UPDATE reporte_servicio SET t_ingreso_fisico = 'CONFORME',"
-                    + " t_ingreso_fisico_observacion = 'Limpio' WHERE k_id_reporte_servicio = ?", id)).isEqualTo(1);
-        }
     }
 
     @Nested
@@ -817,7 +765,7 @@ class ServiceReportPersistenceAdapterTest {
     class AlGuardarDosVeces {
 
         @Test
-        @DisplayName("no duplica las lecturas: el adaptador lee la fila antes de volcar")
+        @DisplayName("no duplica las lecturas ni la fila: el adaptador lee la fila antes de volcar")
         void noDuplicaLasLecturas() {
             // Sin la lectura previa, el mapper construiria una entidad nueva en cada guardado y
             // Hibernate insertaria las lecturas otra vez. Le paso al adaptador de clientes con sus
@@ -830,11 +778,11 @@ class ServiceReportPersistenceAdapterTest {
 
             adapter.save(reporte);
 
-            assertThat(filasDeLecturas(reporte.getId())).isEqualTo(1);
+            assertThat(enElDocumento(reporte.getId(), "lecturas")).isEqualTo(1);
         }
 
         @Test
-        @DisplayName("una lectura corregida deja la anterior inactiva en vez de borrarla")
+        @DisplayName("una lectura corregida sustituye a la anterior en el documento (V59: solo lo vigente)")
         void laLecturaCorregidaSeRetira() {
             Alcance alcance = unAlcance();
             ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
@@ -846,9 +794,9 @@ class ServiceReportPersistenceAdapterTest {
                     alcance.verificacion(), alcance.punto(), 1, new BigDecimal("50"), new BigDecimal("51.9"))));
             adapter.save(reporte);
 
-            // Dos filas: la corregida sigue ahi, retirada. Aqui nada se borra.
-            assertThat(filasDeLecturas(reporte.getId())).isEqualTo(2);
-            assertThat(filasActivasDeLecturas(reporte.getId())).isEqualTo(1);
+            // Una: la corregida no se guarda. Hasta V59 se quedaba retirada en su fila; decidido por el
+            // usuario que el documento solo lleve lo vigente.
+            assertThat(enElDocumento(reporte.getId(), "lecturas")).isEqualTo(1);
             assertThat(adapter.findById(reporte.getId()).orElseThrow()
                             .lecturasActivas().getFirst().valorEquipo())
                     .isEqualByComparingTo(new BigDecimal("51.9"));
@@ -893,7 +841,7 @@ class ServiceReportPersistenceAdapterTest {
                             "SELECT b_estado_activo FROM reporte_servicio WHERE k_id_reporte_servicio = ?",
                             Boolean.class, reporte.getId()))
                     .isFalse();
-            assertThat(filasDeLecturas(reporte.getId())).isEqualTo(1);
+            assertThat(enElDocumento(reporte.getId(), "lecturas")).isEqualTo(1);
         }
     }
 
@@ -984,7 +932,7 @@ class ServiceReportPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("marcar un paso se guarda sobre la misma fila, sin duplicarla")
+        @DisplayName("marcar un paso se guarda sobre el mismo paso, sin duplicarlo")
         void marcarPersiste() {
             Alcance alcance = unAlcance();
             UUID bateria = unProtocolo("Batería");
@@ -996,38 +944,12 @@ class ServiceReportPersistenceAdapterTest {
             leido.markStep(bateria, StepState.NO_APLICA, "No tiene batería");
             adapter.save(leido);
 
-            assertThat(jdbcTemplate.queryForObject(
-                            "SELECT count(*) FROM paso_reporte WHERE k_id_reporte_servicio = ? AND b_estado_activo",
-                            Integer.class, reporte.getId()))
-                    .describedAs("una fila, y vigente: desde V23 la tabla tiene borrado logico como todas")
+            assertThat(enElDocumento(reporte.getId(), "pasos"))
+                    .describedAs("un paso por protocolo: marcarlo lo pone al dia, no lo repite")
                     .isEqualTo(1);
             assertThat(adapter.findById(reporte.getId()).orElseThrow().getPasos().getFirst())
                     .extracting(ReportStep::estado, ReportStep::nota)
                     .containsExactly(StepState.NO_APLICA, "No tiene batería");
-        }
-
-        @Test
-        @DisplayName("la base tampoco deja un «no aplica» sin nota, ni dos pasos activos del mismo protocolo (V51)")
-        void restricciones() {
-            Alcance alcance = unAlcance();
-            ServiceReport reporte = ServiceReport.open(alcance.orden(), alcance.equipo());
-            adapter.save(reporte);
-            UUID protocolo = unProtocolo("Limpieza");
-            String insertar = "INSERT INTO paso_reporte (k_id_paso_reporte, k_id_reporte_servicio, k_id_protocolo,"
-                    + " t_estado_paso, t_nota, b_estado_activo) VALUES (?, ?, ?, ?, ?, ?)";
-
-            assertThatThrownBy(() -> jdbcTemplate.update(insertar,
-                            UUID.randomUUID(), reporte.getId(), protocolo, "NO_APLICA", null, true))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-
-            jdbcTemplate.update(insertar, UUID.randomUUID(), reporte.getId(), protocolo, "HECHO", null, true);
-            assertThatThrownBy(() -> jdbcTemplate.update(insertar,
-                            UUID.randomUUID(), reporte.getId(), protocolo, "HECHO", null, true))
-                    .isInstanceOf(DataIntegrityViolationException.class)
-                    .hasMessageContaining("UQ_paso_reporte_protocolo");
-            // Retirado sí cabe: el índice es parcial, como el resto de los del reporte.
-            assertThat(jdbcTemplate.update(insertar,
-                    UUID.randomUUID(), reporte.getId(), protocolo, "HECHO", null, false)).isEqualTo(1);
         }
     }
 }
