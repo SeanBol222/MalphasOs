@@ -3128,3 +3128,22 @@ prueba en el dominio—. Una mutación del filtro de lo vigente la mató `laLect
 
 **Lo que queda**: los patrones por verificación y por orden, que esperaban sobre la `V59` anterior, se
 rehacen como `V60` sobre este modelo —`desdeOrden` va dentro del documento—.
+
+## [2026-11-19] ingest | Los patrones de cada verificación y de cada orden (`V60`)
+
+Lo que el usuario pidió al principio de la sesión: que el ingeniero deje de escoger entre todos los patrones.
+`V60` trae las dos tablas, escritas el día anterior como `V59` y rehechas sobre el reporte en un documento:
+`patron_verificacion`, que nace con los **83** pares del historial leídos de `t_contenido` —los mismos que
+daban las filas de antes—, y `patron_orden_trabajo`, vacía. La marca de origen no pidió columna: `V59` ya
+escribe `desdeOrden` en cada patrón. Ver [[decisiones-tecnicas-malphasos]] y [[esquema-bd-malphasos]]; el
+esquema pasa a **34** tablas y **46** foráneas.
+
+**La batería cazó lo que el ensayo no**: la foránea de la orden al tipo no tenía índice que la encabezara, y
+`ForeignKeyIndexContractTest` lo exige desde `V42`. El borrador del día anterior traía el mismo hueco.
+**1732** pruebas en el backend, 153 clases, cero fallos. **Y una razón de [[esquema-bd-malphasos]] era
+falsa**: la aprobación de una orden no apunta a `persona` «para seguir valiendo si lo relevan» —relevar no
+borra la fila—, sino para no copiar el cliente. Corregida dejando constancia.
+
+**Lo que queda**: ninguna línea de código usa todavía las dos tablas. Siguen el catálogo de patrones por
+verificación con su pantalla, el filtro y la regla en el reporte, los patrones de la orden con su asignación
+automática y sus pantallas. Ver [[hoja-de-ruta-producto]].

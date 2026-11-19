@@ -695,6 +695,28 @@ Ver [[decisiones-tecnicas-malphasos]].
 **Los informes reales viven en `raw/`, ignorado por git**, igual que `Documentation/raw/`. Ni el formato
 ni sus pruebas llevan un solo dato de ellos.
 
+## Los patrones que trae la orden (decidido el 2026-11-18 y el 2026-11-19)
+
+**El problema, del usuario**: en cada verificación de cada reporte el ingeniero escoge entre todos los
+patrones. **La decisión**: el catálogo dice con qué patrones se hace cada verificación de un tipo, la orden
+elige los suyos por tipo de equipo, y cada reporte recibe los de su orden que su verificación admite. Ver
+[[decisiones-tecnicas-malphasos]], «Los patrones van a la verificación en el catálogo y al tipo en la orden».
+
+Antes de construirla se rehízo el reporte: **`V59` guarda lo que dice en un solo documento JSON**, decidido
+el 2026-11-19 al revisar el esquema por demasiado acoplado. Ver [[esquema-bd-malphasos]].
+
+| Tanda | Qué | Estado |
+|---|---|---|
+| 0 · Esquema | `V59`, el reporte en un documento, y `V60`, `patron_verificacion` y `patron_orden_trabajo` con el catálogo rellenado del historial | **Construida el 2026-11-19** |
+| 1 · Catálogo | El dominio de los patrones de cada verificación y su pantalla en el catálogo, donde se quita el par erróneo del monitor | Por hacer |
+| 2 · Reporte | El reporte ofrece solo los patrones de su verificación, y el servidor rechaza los demás | Por hacer |
+| 3 · Orden | Los patrones de la orden por tipo, el automático cuando hay uno solo vigente, y que lleguen a sus reportes marcados `desdeOrden` sin tocar los puestos a mano | Por hacer |
+| 4 · Pantallas de la orden | Elegirlos al armar la orden, cambiables hasta ejecutarla | Por hacer |
+
+**Lo que el ensayo de `V60` dejó para el usuario**: con los certificados de hoy, **28** tipos tendrían un solo
+patrón vigente, **10** varios y **5** ninguno —cuatro con el certificado vencido y la báscula de mesa tipo
+reloj, que nunca se midió—. Probablemente faltan certificados renovados que el sistema anterior no registró.
+
 ## El orden propuesto
 
 | # | Bloque | Desbloquea | Estado de sus dependencias |

@@ -891,3 +891,27 @@ congelado con su marca de tardío, siguen siendo columnas: dos `CHECK` los atan.
 punto de su verificación—, que las piezas nombren algo que existe y que no se repitan. Lo cuida el agregado,
 que ya lo hacía. Y cambiar la forma del documento ya no pide migración pero sí que el código lea las
 versiones viejas: el mapper se niega a interpretar una versión que no conoce.
+
+## Los patrones van a la verificación en el catálogo y al tipo en la orden (2026-11-19, `V60`)
+
+**El problema, del usuario**: el ingeniero escogía entre todos los patrones en cada verificación de cada
+reporte. **Lo que se decidió**, en tres pasos y con dos cambios de rumbo:
+
+1. Primero se propuso unir el patrón a la **magnitud**. Se descartó: dos tipos que miden masa no usan las
+   mismas pesas, y un patrón de apoyo —el termohigrómetro con que se corrige la pesada de una pipeta— no mide
+   la magnitud que se verifica.
+2. El catálogo une el patrón a cada **verificación de un tipo** (`patron_verificacion`), y la orden elige los
+   que lleva **por tipo de equipo** (`patron_orden_trabajo`). Si para un tipo el catálogo permite un solo
+   patrón vigente, el servicio lo pondrá solo; si permite varios, cada reporte de ese tipo recibe todos los
+   de la orden y el ingeniero quita los que no usó.
+3. Se preguntó si el tipo sobraba en la orden, porque cada reporte lo deduce de su equipo. **El usuario lo
+   dejó**: sin él, la orden no puede repartir dos patrones del mismo uso entre dos tipos.
+
+**Lo que el esquema no expresa** vive en el servicio, y está por construir: que el patrón de un reporte esté
+permitido para su verificación y tenga el certificado vigente el día del servicio; que el de una orden esté
+permitido para alguna verificación activa del tipo, esté activo y que el tipo tenga equipos en la orden; y que
+una orden ejecutada no los cambie. Una foránea no puede decir «alguna verificación de este tipo».
+
+**Ninguna de las dos tablas lleva borrado lógico**, como `foto_equipo_cliente`: quitar un patrón de una
+verificación o de una orden abierta no es historia de nada. La historia está en el documento de cada reporte
+cerrado y en el de la orden ejecutada.
