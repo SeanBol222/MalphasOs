@@ -170,7 +170,7 @@
                   }
                   <!-- Retirar pregunta antes: ninguna pantalla devuelve un modelo retirado. -->
                   @if (confirmandoRetiro() === fila.id) {
-                    <span class="mr-2 font-semibold" role="alert" [attr.data-confirmar]="fila.id"
+                    <span class="font-semibold md:mr-2" role="alert" [attr.data-confirmar]="fila.id"
                       >¿Seguro que quiere retirar?</span
                     >
                     <button

@@ -140,7 +140,7 @@
                   <!-- Retirar pregunta antes: ninguna pantalla devuelve una marca retirada. -->
                   @if (marca.estadoActivo) {
                     @if (confirmandoRetiro() === marca.id) {
-                      <span class="mr-2 font-semibold" role="alert"
+                      <span class="font-semibold md:mr-2" role="alert"
                         >¿Seguro que quiere retirar?</span
                       >
                       <button

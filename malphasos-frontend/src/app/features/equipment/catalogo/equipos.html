@@ -111,7 +111,9 @@
                 @if (fila.estadoActivo) {
                   <!-- Retirar pregunta antes: ninguna pantalla lo devuelve. -->
                   @if (confirmandoRetiro() === fila.id) {
-                    <span class="mr-2 font-semibold" role="alert">¿Seguro que quiere retirar?</span>
+                    <span class="font-semibold md:mr-2" role="alert"
+                      >¿Seguro que quiere retirar?</span
+                    >
                     <button
                       data-confirmar-retiro
                       class="boton-primario min-h-tactil"
