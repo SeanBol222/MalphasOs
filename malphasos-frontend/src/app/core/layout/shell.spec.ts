@@ -63,6 +63,17 @@ describe('Armazón', () => {
     expect(raiz.querySelectorAll('nav > ul > li > button')).toHaveLength(desplegables.length);
   });
 
+  it('cada destino del menú lleva su dibujo', async () => {
+    // «Empresa» no lo tuvo hasta el 2026-11-20: un icono que falta no rompe nada y nadie lo ve en
+    // las pruebas, solo en la barra.
+    const raiz = await pintar('/inicio', ['super.admin.full']);
+    const sinDibujo = [...raiz.querySelectorAll('nav > ul > li')]
+      .filter((li) => !li.querySelector('svg path'))
+      .map((li) => li.textContent?.trim());
+
+    expect(sinDibujo).toEqual([]);
+  });
+
   it('no pinta el destino que la sesión no puede usar', async () => {
     // Es el caso real del grupo `clients` del realm: tiene client.read y equipment.read, y NO tiene
     // person.read. Antes del 2026-10-02 el menu le ofrecia «Personas», que responde 403.
