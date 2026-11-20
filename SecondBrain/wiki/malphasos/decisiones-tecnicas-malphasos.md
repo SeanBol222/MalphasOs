@@ -990,3 +990,17 @@ consulta con dos uniones.
 
 **Lo que no se hizo**: la vigencia no se vuelve a mirar en la orden —un patrón que vence después de elegido
 sigue en ella, y lo que no deja es cerrar el reporte—, y las pantallas son la tanda 4.
+
+### Las pantallas de la orden, también ese día (tanda 4)
+
+**Una página propia, `ordenes/:id/patrones`**, con `work-order.write`, y un bloque por tipo de la orden: cada
+uno pregunta al catálogo qué admite su tipo y **se guarda con su propio botón**, porque el servidor fija los
+de un tipo por petición y cada guardado llega en el acto a los reportes abiertos de ese tipo. Se eligen
+**varios** —las pesas de 5, 10 y 20 kg de una báscula a la vez—; se ofrecen los admitidos vigentes, y los ya
+elegidos aunque estén retirados, vencidos o fuera del catálogo del tipo, marcados para poder quitarlos. Con la
+orden ejecutada se ven sin poder cambiarse.
+
+**La ficha de la orden enseña «Patrones de la visita»**, por tipo y con nombres, y el enlace para elegirlos
+mientras no se ejecute. **Solo con `equipment.read`**: los nombres salen del catálogo de equipos, y sin esa
+autoridad se pintarían identificadores. Por la misma razón vive en un componente aparte, con su prueba, y la
+de la ficha solo comprueba que aparece con la autoridad y no sin ella.
