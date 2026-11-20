@@ -96,24 +96,68 @@
       <tbody>
         @for (fabricante of visibles(); track fabricante.id) {
           <tr [attr.data-fabricante]="fabricante.id">
-            <td [class.font-bold]="fabricante.estadoActivo">
-              {{ fabricante.nombre }}{{ fabricante.estadoActivo ? '' : ' · Retirado' }}
-            </td>
-            <td data-etiqueta="País">{{ pais(fabricante.idPais) }}</td>
-            @if (puedeEscribir()) {
-              <td data-acciones class="text-right whitespace-nowrap">
-                @if (fabricante.estadoActivo) {
+            @if (renombrando() === fabricante.id) {
+              <td colspan="3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <label class="sr-only" [attr.for]="'fabricante-' + fabricante.id">
+                    Nuevo nombre del fabricante
+                  </label>
+                  <input
+                    class="campo min-h-tactil grow"
+                    [id]="'fabricante-' + fabricante.id"
+                    [formControl]="nombreEditado"
+                    maxlength="50"
+                  />
                   <button
-                    class="min-h-tactil px-1 underline"
+                    class="boton-primario min-h-tactil"
                     type="button"
-                    [attr.aria-label]="'Retirar ' + fabricante.nombre"
-                    [disabled]="baja.isPending()"
-                    (click)="retirar(fabricante.id!)"
+                    [disabled]="cambio.isPending()"
+                    (click)="renombrar(fabricante.id!)"
                   >
-                    Retirar
+                    Guardar
                   </button>
+                  <button
+                    class="boton-secundario min-h-tactil"
+                    type="button"
+                    (click)="renombrando.set(null)"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                @if (nombreEditado.invalid && nombreEditado.touched) {
+                  <p class="mt-1 font-semibold text-accent-700">
+                    El nombre es obligatorio y no pasa de 50 caracteres.
+                  </p>
                 }
               </td>
+            } @else {
+              <td [class.font-bold]="fabricante.estadoActivo">
+                {{ fabricante.nombre }}{{ fabricante.estadoActivo ? '' : ' · Retirado' }}
+              </td>
+              <td data-etiqueta="País">{{ pais(fabricante.idPais) }}</td>
+              @if (puedeEscribir()) {
+                <td data-acciones class="text-right whitespace-nowrap">
+                  <button
+                    class="min-h-tactil px-1 font-bold underline"
+                    type="button"
+                    [attr.aria-label]="'Renombrar ' + fabricante.nombre"
+                    (click)="empezarARenombrar(fabricante.id!, fabricante.nombre)"
+                  >
+                    Renombrar
+                  </button>
+                  @if (fabricante.estadoActivo) {
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      [attr.aria-label]="'Retirar ' + fabricante.nombre"
+                      [disabled]="baja.isPending()"
+                      (click)="retirar(fabricante.id!)"
+                    >
+                      Retirar
+                    </button>
+                  }
+                </td>
+              }
             }
           </tr>
         }

@@ -37,6 +37,17 @@ export class Fabricantes {
   protected readonly opcionesDePais = computed(() => opcionesDe(this.paises.data()));
   protected readonly alta = this.api.crearFabricante();
   protected readonly baja = this.api.retirarFabricante();
+  protected readonly cambio = this.api.editarFabricante();
+
+  /**
+   * El fabricante que se esta renombrando, en su propia fila, como las marcas (2026-11-20, pedido por el
+   * usuario). Solo viaja el nombre: el pais se queda como estaba.
+   */
+  protected readonly renombrando = signal<string | null>(null);
+  protected readonly nombreEditado = inject(FormBuilder).nonNullable.control('', [
+    Validators.required,
+    Validators.maxLength(50),
+  ]);
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
@@ -82,11 +93,35 @@ export class Fabricantes {
   }
 
   protected readonly hayError = computed(
-    () => this.fabricantes.isError() || this.alta.isError() || this.baja.isError(),
+    () =>
+      this.fabricantes.isError() ||
+      this.alta.isError() ||
+      this.cambio.isError() ||
+      this.baja.isError(),
   );
   protected readonly mensajeDeError = computed(() =>
-    traducirError(this.fabricantes.error() ?? this.alta.error() ?? this.baja.error()),
+    traducirError(
+      this.fabricantes.error() ?? this.alta.error() ?? this.cambio.error() ?? this.baja.error(),
+    ),
   );
+
+  protected empezarARenombrar(id: string, nombre: string | undefined): void {
+    this.nombreEditado.setValue(nombre ?? '');
+    this.renombrando.set(id);
+  }
+
+  protected renombrar(id: string): void {
+    if (this.nombreEditado.invalid) {
+      this.nombreEditado.markAsTouched();
+
+      return;
+    }
+
+    this.cambio.mutate(
+      { id, cambio: { nombre: this.nombreEditado.value.trim() } },
+      { onSuccess: () => this.renombrando.set(null) },
+    );
+  }
 
   /** El pais de cada fabricante, en palabras. Sin catalogo no se inventa: se dice que no esta. */
   protected pais(idPais: string | undefined): string {

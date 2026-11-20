@@ -153,6 +153,46 @@ describe('Fabricantes del catalogo', () => {
     await asentar(fixture);
   });
 
+  it('renombrar llega con el nombre actual puesto y manda solo el nombre: el país se queda', async () => {
+    await abrir();
+    pulsar('Renombrar');
+
+    const campo = raiz().querySelector<HTMLInputElement>(`#fabricante-${FABRICANTES[0].id}`)!;
+    expect(campo.value).toBe('Medtronic');
+
+    escribir(`fabricante-${FABRICANTES[0].id}`, ' Medtronic plc ');
+    pulsar('Guardar');
+    await asentar(fixture);
+
+    const cambio = http.expectOne({ method: 'PATCH', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` });
+    expect(cambio.request.body).toEqual({ nombre: 'Medtronic plc' });
+    cambio.flush({ ...FABRICANTES[0], nombre: 'Medtronic plc' });
+    await asentar(fixture);
+    // La recarga trae el fabricante otra vez: si la fila desaparece es porque el campo se cerró, no
+    // porque la lista llegó vacía.
+    http.match(URL_FABRICANTES).forEach((p) => p.flush(FABRICANTES));
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+
+    expect(raiz().querySelector(`#fabricante-${FABRICANTES[0].id}`)).toBeNull();
+    expect(raiz().querySelector(`[data-fabricante="${FABRICANTES[0].id}"]`)).not.toBeNull();
+  });
+
+  it('renombrar con el nombre vacío no llega al servidor, y Cancelar deja la fila como estaba', async () => {
+    await abrir();
+    pulsar('Renombrar');
+    escribir(`fabricante-${FABRICANTES[0].id}`, '');
+    pulsar('Guardar');
+    await asentar(fixture);
+
+    http.expectNone({ method: 'PATCH', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` });
+    expect(texto()).toContain('El nombre es obligatorio');
+
+    pulsar('Cancelar');
+    expect(raiz().querySelector(`#fabricante-${FABRICANTES[0].id}`)).toBeNull();
+    expect(texto()).toContain('Medtronic');
+  });
+
   afterEach(() => {
     // En finally a proposito: si verify() lanza por una peticion abierta, sin esto el doble de
     // localStorage se queda instalado y el fichero SIGUIENTE hereda lo que este guardo. Es la variante
