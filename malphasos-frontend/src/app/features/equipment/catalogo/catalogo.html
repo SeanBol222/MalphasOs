@@ -1,25 +1,36 @@
 <header class="superficie pb-0">
-  <h1 class="titulo-pagina">Catálogo de equipos</h1>
-  <p class="mt-1 text-neutral-800">Lo que se configura una vez y usan todos los clientes</p>
+  <!-- En un telefono el titulo cabe en una linea: a su tamano de escritorio se partia en dos. -->
+  <h1 class="titulo-pagina max-md:text-[1.625rem] max-md:leading-tight max-md:whitespace-nowrap">
+    Catálogo de equipos
+  </h1>
+  <p class="mt-1 text-neutral-800">Configuración común a todos los clientes.</p>
 
   <!--
     Subnavegacion propia de la seccion, ademas del desplegable del menu: una vez dentro, saltar de marcas
     a fabricantes no deberia exigir volver a la cabecera. aria-current lo pone routerLinkActive, no un
     calculo propio. Desde el rediseño cada pestaña dice cuántos hay.
+
+    En un telefono (2026-11-20) las siete van en una sola fila que se desliza de lado, con el numero al
+    lado del nombre: envueltas ocupaban cuatro filas antes del contenido. La fila sale hasta los bordes
+    del recuadro, y la ultima pestaña cortada en el borde dice que hay mas.
   -->
-  <nav aria-label="Piezas del catálogo" class="mt-2">
-    <ul class="flex list-none flex-wrap">
+  <nav
+    aria-label="Piezas del catálogo"
+    class="mt-2 max-md:-mx-3 max-md:overflow-x-auto max-md:px-1.5"
+  >
+    <ul class="flex list-none flex-nowrap md:flex-wrap">
       @for (pieza of piezas; track pieza.ruta) {
         <li>
           <a
-            class="flex min-h-tactil min-w-[7.5rem] flex-col justify-center border-b-4 border-transparent px-2 py-1 text-neutral-800 hover:text-ink"
+            class="flex min-h-tactil flex-none items-center gap-0.5 border-b-4 border-transparent px-1.5 whitespace-nowrap text-neutral-800 hover:text-ink md:min-w-[7.5rem] md:flex-col md:items-start md:justify-center md:gap-0 md:px-2 md:py-1"
             routerLinkActive="border-accent! bg-neutral-100 font-bold text-ink"
             ariaCurrentWhenActive="page"
             [routerLink]="['/catalogo', pieza.ruta]"
           >
-            <span class="text-2xl leading-none font-extrabold tabular-nums">{{
-              cuantos()[pieza.ruta] || '·'
-            }}</span>
+            <span
+              class="order-last text-sm font-bold tabular-nums md:order-none md:text-2xl md:leading-none md:font-extrabold"
+              >{{ cuantos()[pieza.ruta] || '·' }}</span
+            >
             <span class="text-sm">{{ pieza.etiqueta }}</span>
           </a>
         </li>

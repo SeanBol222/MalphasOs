@@ -67,7 +67,14 @@
   } @else if (!visibles().length) {
     <p class="mt-2 text-neutral-700">Ningún fabricante coincide con «{{ busqueda() }}».</p>
   } @else {
-    <table class="tabla mt-2">
+    <!-- En un telefono la tabla se lee como tarjetas, y el orden y el contador van encima. -->
+    <app-orden-movil
+      etiqueta="Fabricante"
+      [sentido]="sentido()"
+      [cuantos]="visibles().length"
+      (invertir)="invertirOrden()"
+    />
+    <table class="tabla tabla-tarjetas mt-2">
       <caption class="sr-only">
         Fabricantes del catálogo
       </caption>
@@ -92,9 +99,9 @@
             <td [class.font-bold]="fabricante.estadoActivo">
               {{ fabricante.nombre }}{{ fabricante.estadoActivo ? '' : ' · Retirado' }}
             </td>
-            <td>{{ pais(fabricante.idPais) }}</td>
+            <td data-etiqueta="País">{{ pais(fabricante.idPais) }}</td>
             @if (puedeEscribir()) {
-              <td class="text-right whitespace-nowrap">
+              <td data-acciones class="text-right whitespace-nowrap">
                 @if (fabricante.estadoActivo) {
                   <button
                     class="min-h-tactil px-1 underline"

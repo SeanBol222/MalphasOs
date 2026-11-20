@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoApi } from '../catalogo-api';
 import { normalizar } from '../../../core/texto';
 import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
 import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
@@ -19,7 +20,7 @@ import { traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-equipos-de-catalogo',
-  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable],
+  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable, OrdenMovil],
   templateUrl: './equipos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

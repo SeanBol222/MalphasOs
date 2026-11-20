@@ -23,6 +23,7 @@ import { fechaCorta, fechaIso, HOY } from '../../../core/fechas';
 import { Patron } from '../../../core/api/tipos';
 import { normalizar } from '../../../core/texto';
 import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
 import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 
 /** Cuántos días antes del vencimiento se avisa. Es el umbral de RF-41, que todavía no se construye. */
@@ -61,7 +62,7 @@ const opcional = (valor: string) => valor.trim() || undefined;
  */
 @Component({
   selector: 'app-patrones',
-  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable],
+  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable, OrdenMovil],
   templateUrl: './patrones.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

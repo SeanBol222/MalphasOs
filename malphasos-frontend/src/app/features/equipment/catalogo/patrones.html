@@ -201,7 +201,14 @@
   } @else if (!filas().length) {
     <p class="mt-2 text-neutral-700">Ningún patrón coincide con «{{ busqueda() }}».</p>
   } @else {
-    <table class="tabla mt-2">
+    <!-- En un telefono la tabla se lee como tarjetas, y el orden y el contador van encima. -->
+    <app-orden-movil
+      etiqueta="Patrón"
+      [sentido]="sentido()"
+      [cuantos]="filas().length"
+      (invertir)="invertirOrden()"
+    />
+    <table class="tabla tabla-tarjetas mt-2">
       <caption class="sr-only">Equipos patrón de la empresa</caption>
       <thead>
         <tr>
@@ -230,19 +237,19 @@
                 fila.marcaYModelo
               }}{{ fila.patron.estadoActivo ? '' : ' · Retirado' }}</span>
             </td>
-            <td class="tabular-nums">
+            <td data-etiqueta="Serie" class="tabular-nums">
               <span class="block">{{ fila.patron.serie }}</span>
               @if (fila.patron.codigoInterno) {
                 &ngsp;<span class="block text-sm text-neutral-700">Cód. {{ fila.patron.codigoInterno }}</span>
               }
             </td>
-            <td class="tabular-nums">
+            <td data-etiqueta="Certificado" class="tabular-nums">
               <span class="block">{{ fila.patron.certificado }}</span>
               @if (fila.patron.empresaCalibradora) {
                 &ngsp;<span class="block text-sm text-neutral-700">{{ fila.patron.empresaCalibradora }}</span>
               }
             </td>
-            <td class="whitespace-nowrap tabular-nums">
+            <td data-etiqueta="Vence" class="whitespace-nowrap tabular-nums">
               <span class="block">{{ fila.vence }}</span>&ngsp;<span
                 class="block text-sm"
                 [class]="fila.peso"
@@ -250,7 +257,7 @@
               >
             </td>
             @if (puedeEscribir()) {
-              <td class="whitespace-nowrap text-right">
+              <td data-acciones class="whitespace-nowrap text-right">
                 @if (fila.patron.estadoActivo) {
                   @if (confirmandoRetiro() === fila.patron.id) {
                     <button

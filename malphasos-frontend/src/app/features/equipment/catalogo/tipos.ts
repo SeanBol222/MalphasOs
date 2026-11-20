@@ -10,6 +10,7 @@ import { RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
 import { normalizar } from '../../../core/texto';
 import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
 import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 import { Sesion } from '../../../core/auth/sesion';
 import {
@@ -39,7 +40,7 @@ import { traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-tipos-de-equipo',
-  imports: [RouterLink, Verificacion, CabeceraDePieza, ColumnaOrdenable],
+  imports: [RouterLink, Verificacion, CabeceraDePieza, ColumnaOrdenable, OrdenMovil],
   templateUrl: './tipos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

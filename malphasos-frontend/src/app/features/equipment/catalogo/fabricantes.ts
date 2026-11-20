@@ -6,6 +6,7 @@ import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 import { normalizar } from '../../../core/texto';
 import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
 import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
 
@@ -22,7 +23,7 @@ import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
  */
 @Component({
   selector: 'app-fabricantes',
-  imports: [ReactiveFormsModule, Buscador, CabeceraDePieza, ColumnaOrdenable],
+  imports: [ReactiveFormsModule, Buscador, CabeceraDePieza, ColumnaOrdenable, OrdenMovil],
   templateUrl: './fabricantes.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -175,6 +175,28 @@ describe('Equipos del catalogo', () => {
       ]);
     });
 
+    it('en un telefono, encima de las tarjetas, dice cuantos hay y el boton de orden lo invierte', async () => {
+      const cuantos = () => raiz().querySelector('[data-cuantos]')!.textContent!.trim();
+      expect(cuantos()).toBe('3 resultados');
+      expect(raiz().querySelector('[data-ordenar-movil]')!.textContent).toContain('de la A a la Z');
+
+      raiz().querySelector<HTMLButtonElement>('[data-ordenar-movil]')!.click();
+      await asentar(fixture);
+
+      expect(filas()[0]).toBe('Tensiómetro · Welch Allyn');
+      expect(raiz().querySelector('[data-ordenar-movil]')!.textContent).toContain('de la Z a la A');
+
+      await buscar('bascula');
+      expect(cuantos()).toBe('1 resultado');
+    });
+
+    it('la tabla se lee como tarjetas en un telefono: cada dato lleva su etiqueta', async () => {
+      expect(raiz().querySelector('table')!.classList).toContain('tabla-tarjetas');
+      const fila = raiz().querySelector('tbody tr')!;
+      expect(fila.querySelector('td:nth-child(2)')!.getAttribute('data-etiqueta')).toBe('Marca');
+      expect(fila.querySelector('td[data-acciones]')!.textContent).toContain('Retirar');
+    });
+
     it('cerrar la lupa borra lo buscado y vuelve a ensenar todo', async () => {
       await buscar('bascula');
       expect(filas()).toHaveLength(1);

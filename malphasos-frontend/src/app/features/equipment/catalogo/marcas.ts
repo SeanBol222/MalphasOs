@@ -5,6 +5,7 @@ import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 import { normalizar } from '../../../core/texto';
 import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
 import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 
 /**
@@ -18,7 +19,7 @@ import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-orde
  */
 @Component({
   selector: 'app-marcas',
-  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable],
+  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable, OrdenMovil],
   templateUrl: './marcas.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

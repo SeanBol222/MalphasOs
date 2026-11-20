@@ -14,6 +14,7 @@ import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 import { normalizar } from '../../../core/texto';
 import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
 import { Buscador, Opcion, opcionesDe } from '../../../shared/buscador/buscador';
 import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 
@@ -35,7 +36,14 @@ import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-orde
  */
 @Component({
   selector: 'app-modelos',
-  imports: [ReactiveFormsModule, RouterLink, CabeceraDePieza, ColumnaOrdenable, Buscador],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    CabeceraDePieza,
+    ColumnaOrdenable,
+    Buscador,
+    OrdenMovil,
+  ],
   templateUrl: './modelos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

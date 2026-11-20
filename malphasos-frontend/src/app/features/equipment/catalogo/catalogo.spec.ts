@@ -48,6 +48,18 @@ describe('Catálogo de equipos', () => {
     expect(texto(raiz)).toContain('Tipos de equipo');
   });
 
+  it('se describe en una línea, y en un teléfono el título y las pestañas no se parten (2026-11-20)', async () => {
+    const raiz = await abrir('/catalogo/tipos');
+
+    expect(texto(raiz)).toContain('Configuración común a todos los clientes.');
+    // El tamaño y la fila que se desliza los decide el CSS con el ancho de la pantalla, que el entorno
+    // de pruebas no tiene: lo que se fija es que las clases estén puestas.
+    expect(raiz.querySelector('h1')!.className).toContain('max-md:whitespace-nowrap');
+    const fila = raiz.querySelector('nav[aria-label="Piezas del catálogo"]')!;
+    expect(fila.className).toContain('max-md:overflow-x-auto');
+    expect(fila.querySelector('ul')!.className).toContain('flex-nowrap');
+  });
+
   it('cada pieza tiene su propia dirección', async () => {
     const raiz = await abrir('/catalogo/fabricantes');
 

@@ -160,8 +160,13 @@ describe('Marcas del catalogo', () => {
 
     expect(texto()).toContain('Welch Allyn');
     expect(texto()).not.toContain('Nueva marca');
-    // Solo queda la lupa y la cabecera que ordena: buscar y ordenar no tocan nada.
-    expect([...raiz().querySelectorAll('button:not([data-lupa]):not([data-ordenar])')]).toHaveLength(0);
+    // Solo queda la lupa y lo que ordena —la cabecera y, en un telefono, el boton de encima—: buscar y
+    // ordenar no tocan nada.
+    expect([
+      ...raiz().querySelectorAll(
+        'button:not([data-lupa]):not([data-ordenar]):not([data-ordenar-movil])',
+      ),
+    ]).toHaveLength(0);
   });
 
   it('un fallo del API se ensena traducido, con el codigo real del modulo', async () => {
