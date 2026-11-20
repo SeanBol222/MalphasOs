@@ -16,6 +16,9 @@ import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderPersistencePort;
 import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderReportsPort;
+import com.malphasos.malphasos.workorder.application.ports.output.WorkOrderStandardsPersistencePort;
+import com.malphasos.malphasos.workorder.application.services.workOrderStandards.WorkOrderStandardsCatalog;
+import com.malphasos.malphasos.workorder.domain.workOrderStandards.WorkOrderStandards;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AddEquipmentToWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.AssignWorkOrderCommand;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.CancelWorkOrderCommand;
@@ -32,7 +35,9 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +73,8 @@ public class WorkOrderService implements WorkOrderServicePort {
     private final EventDispatcherPort eventDispatcherPort;
     private final WorkOrderReportsPort workOrderReportsPort;
     private final WorkOrderDocumentComposer workOrderDocumentComposer;
+    private final WorkOrderStandardsPersistencePort workOrderStandardsPersistencePort;
+    private final WorkOrderStandardsCatalog workOrderStandardsCatalog;
 
     // ---------------------------------------------------------------------------
     // Consultas
@@ -236,6 +243,10 @@ public class WorkOrderService implements WorkOrderServicePort {
      * <p>El borrador nace aunque la orden no haya empezado, y no se rellena hasta que empiece: lo
      * comprueba {@code report} en cada escritura. La orden no cambia, así que no se guarda ni emite nada:
      * el hecho es el reporte abierto, y lo publica su módulo.
+     *
+     * <p><b>Y recibe los patrones que la orden lleva para su tipo</b> (V60). Si es el primer equipo de ese
+     * tipo en la orden y el catálogo admite para él un solo patrón vigente, la orden lo pone sola antes de
+     * abrir el borrador: así llega también a este.
      */
     @Override
     @Transactional
@@ -254,9 +265,46 @@ public class WorkOrderService implements WorkOrderServicePort {
         requireEquipmentInScopeOf(unidad, orden);
         orden.requireScopeChangeable("anadir equipos");
 
-        workOrderReportsPort.openDraft(orden.getId(), orden.getTipoServicio(), unidad.getId());
+        workOrderReportsPort.openDraft(orden.getId(), orden.getTipoServicio(), unidad.getId(),
+                patronesAlEntrar(orden, unidad.getId()));
 
         return orden;
+    }
+
+    /**
+     * Los patrones que la orden lleva para el tipo de un equipo que entra, poniendo el único vigente si el
+     * tipo entra ahora. Un tipo que ya estaba conserva lo que la orden eligió para él, también si es nada.
+     */
+    private Set<UUID> patronesAlEntrar(WorkOrder orden, UUID idEquipoCliente) {
+        List<UUID> presentes = equiposEn(orden);
+        Map<UUID, UUID> tipos = clientEquipmentServicePort.equipmentTypesOf(
+                Stream.concat(presentes.stream(), Stream.of(idEquipoCliente))
+                        .distinct().toList());
+        UUID tipo = tipos.get(idEquipoCliente);
+
+        if (tipo == null) {
+            return Set.of();
+        }
+
+        WorkOrderStandards actuales = workOrderStandardsPersistencePort.find(orden.getId(), tipo);
+        boolean tipoNuevo = presentes.stream().noneMatch(equipo -> tipo.equals(tipos.get(equipo)));
+
+        if (tipoNuevo && actuales.getPatrones().isEmpty()) {
+            workOrderStandardsCatalog.onlyCurrent(tipo).ifPresent(unico -> {
+                actuales.assign(List.of(unico));
+                workOrderStandardsPersistencePort.save(actuales);
+                actuales.pullEvents().forEach(eventDispatcherPort::dispatch);
+            });
+        }
+
+        return actuales.getPatrones();
+    }
+
+    /** Los equipos de la orden: los de sus reportes activos (V50). */
+    private List<UUID> equiposEn(WorkOrder orden) {
+        return workOrderReportsPort.activeReports(orden.getId()).stream()
+                .map(WorkOrderReportsPort.ActiveReport::idEquipoCliente)
+                .toList();
     }
 
     /**
@@ -270,8 +318,33 @@ public class WorkOrderService implements WorkOrderServicePort {
         orden.requireScopeChangeable("retirar equipos");
 
         workOrderReportsPort.retireDraft(orden.getId(), command.idEquipoCliente());
+        soltarPatronesSiSaleElTipo(orden, command.idEquipoCliente());
 
         return orden;
+    }
+
+    /**
+     * Si con este equipo sale el último de su tipo, la orden deja de llevar patrones para él (V60): los
+     * patrones de una orden son de los tipos que tiene. No hay reportes de ese tipo a los que avisar.
+     */
+    private void soltarPatronesSiSaleElTipo(WorkOrder orden, UUID idEquipoCliente) {
+        List<UUID> presentes = equiposEn(orden);
+        Map<UUID, UUID> tipos = clientEquipmentServicePort.equipmentTypesOf(
+                Stream.concat(presentes.stream(), Stream.of(idEquipoCliente))
+                        .distinct().toList());
+        UUID tipo = tipos.get(idEquipoCliente);
+
+        if (tipo == null || presentes.stream().anyMatch(equipo -> tipo.equals(tipos.get(equipo)))) {
+            return;
+        }
+
+        WorkOrderStandards actuales = workOrderStandardsPersistencePort.find(orden.getId(), tipo);
+
+        if (!actuales.getPatrones().isEmpty()) {
+            actuales.assign(List.of());
+            workOrderStandardsPersistencePort.save(actuales);
+            actuales.pullEvents().forEach(eventDispatcherPort::dispatch);
+        }
     }
 
     @Override

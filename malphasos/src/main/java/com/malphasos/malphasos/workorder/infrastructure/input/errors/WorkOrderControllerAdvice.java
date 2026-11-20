@@ -11,6 +11,8 @@ import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEngine
 import com.malphasos.malphasos.workorder.domain.exception.WorkOrderWithoutEquipmentException;
 import com.malphasos.malphasos.workorder.infrastructure.input.rest.WorkOrderApprovalRestAdapter;
 import com.malphasos.malphasos.workorder.infrastructure.input.rest.WorkOrderRestAdapter;
+import com.malphasos.malphasos.workorder.infrastructure.input.rest.WorkOrderStandardsRestAdapter;
+import com.malphasos.malphasos.equipment.domain.exception.ReferenceStandardNotFoundException;
 import com.malphasos.malphasos.workorder.domain.exception.NoSavedSignatureException;
 import com.malphasos.malphasos.workorder.domain.exception.NotSupervisorOfClientException;
 import java.util.List;
@@ -27,7 +29,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * tanda del traslado por no declarar una de ellas. Cada una lleva su propio código: el 404 dice que
  * algo no existe, y el código dice qué.
  */
-@RestControllerAdvice(assignableTypes = {WorkOrderRestAdapter.class, WorkOrderApprovalRestAdapter.class})
+@RestControllerAdvice(assignableTypes = {
+        WorkOrderRestAdapter.class, WorkOrderApprovalRestAdapter.class, WorkOrderStandardsRestAdapter.class})
 public class WorkOrderControllerAdvice {
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -63,6 +66,14 @@ public class WorkOrderControllerAdvice {
     public WorkOrderErrorResponse handleClientEquipment(ClientEquipmentNotFoundException ex) {
         return WorkOrderErrorResponse.of(
                 WorkOrderErrorCatalog.CLIENT_EQUIPMENT_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** Un patrón pedido para la orden que el catálogo no tiene (V60). */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(ReferenceStandardNotFoundException.class)
+    public WorkOrderErrorResponse handleReferenceStandard(ReferenceStandardNotFoundException ex) {
+        return WorkOrderErrorResponse.of(
+                WorkOrderErrorCatalog.REFERENCE_STANDARD_NOT_FOUND, List.of(ex.getMessage()));
     }
 
     @ResponseStatus(HttpStatus.NOT_FOUND)

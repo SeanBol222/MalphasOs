@@ -19,6 +19,8 @@ import com.malphasos.malphasos.equipment.domain.exception.RelocationDuringWorkOr
 import com.malphasos.malphasos.equipment.domain.model.Model;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import java.util.List;
+import java.util.Map;
+import java.util.Collection;
 import java.util.Set;
 import java.util.Objects;
 import java.util.UUID;
@@ -93,6 +95,12 @@ public class ClientEquipmentService implements ClientEquipmentServicePort {
         }
 
         return unidad;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, UUID> equipmentTypesOf(Collection<UUID> idsEquipos) {
+        return clientEquipmentPersistencePort.findEquipmentTypes(idsEquipos);
     }
 
     @Override

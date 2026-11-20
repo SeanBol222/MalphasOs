@@ -59,6 +59,8 @@ class ServiceReportDraftsTest {
     @Mock private EquipmentServicePort equipmentServicePort;
     @Mock private ProtocolServicePort protocolServicePort;
     @Mock private EventDispatcherPort eventDispatcherPort;
+    @Mock private com.malphasos.malphasos.report.application.services.serviceReport.WorkOrderStandardsDistributor
+            workOrderStandardsDistributor;
 
     @InjectMocks private ServiceReportDrafts drafts;
 
@@ -85,7 +87,7 @@ class ServiceReportDraftsTest {
         estubarProtocolos();
         estubarGuardado();
 
-        ServiceReport reporte = drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO);
+        ServiceReport reporte = drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO, java.util.Set.of());
 
         assertThat(reporte.getEstado()).isEqualTo(ReportState.BORRADOR);
         assertThat(reporte.getIdOrdenTrabajo()).isEqualTo(ORDEN);
@@ -104,7 +106,7 @@ class ServiceReportDraftsTest {
             return consultados.size() == 1;
         });
 
-        ServiceReport reporte = drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO);
+        ServiceReport reporte = drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO, java.util.Set.of());
 
         assertThat(consultados).hasSize(2);
         assertThat(reporte.numero()).isEqualTo(consultados.get(1)).isNotEqualTo(consultados.get(0));
@@ -119,7 +121,7 @@ class ServiceReportDraftsTest {
         when(serviceReportPersistencePort.numberTaken(any())).thenReturn(true);
 
         assertThatIllegalStateException()
-                .isThrownBy(() -> drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO))
+                .isThrownBy(() -> drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO, java.util.Set.of()))
                 .withMessageContaining("numero de reporte libre");
         verify(serviceReportPersistencePort, times(10)).numberTaken(any());
         verify(serviceReportPersistencePort, never()).save(any());
@@ -136,7 +138,7 @@ class ServiceReportDraftsTest {
                 new AssignedProtocolDetail(electrico, 2, null));
         estubarGuardado();
 
-        ServiceReport reporte = drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO);
+        ServiceReport reporte = drafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO, java.util.Set.of());
 
         assertThat(reporte.getPasos())
                 .extracting(ReportStep::idProtocolo, ReportStep::estado)
@@ -161,9 +163,40 @@ class ServiceReportDraftsTest {
                 Equipment.rehydrate(EQUIPO_CATALOGO, TIPO, UUID.randomUUID(), true));
         estubarGuardado();
 
-        ServiceReport reporte = drafts.open(ORDEN, ServiceType.CORRECTIVO, EQUIPO);
+        ServiceReport reporte = drafts.open(ORDEN, ServiceType.CORRECTIVO, EQUIPO, java.util.Set.of());
 
         assertThat(reporte.getPasos()).isEmpty();
         verify(protocolServicePort, never()).protocolsOf(any());
+    }
+
+    @Test
+    @DisplayName("recibe los patrones que la orden lleva para su tipo, tambien en un correctivo (V60)")
+    void recibeLosDeLaOrden() {
+        // Un correctivo no copia pasos, pero sus lecturas se toman igual contra un patron.
+        when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(
+                ClientEquipment.rehydrate(EQUIPO, "SN-1", MODELO, UUID.randomUUID(), null, null, null, null, null,
+                        null, true));
+        when(modelServicePort.findById(MODELO)).thenReturn(
+                Model.rehydrate(MODELO, "IdeaPad 3", null, UUID.randomUUID(), EQUIPO_CATALOGO, TechnicalSheet.EMPTY, true));
+        when(equipmentServicePort.findById(EQUIPO_CATALOGO)).thenReturn(
+                Equipment.rehydrate(EQUIPO_CATALOGO, TIPO, UUID.randomUUID(), true));
+        estubarGuardado();
+        java.util.Set<UUID> deLaOrden = java.util.Set.of(UUID.randomUUID());
+
+        ServiceReport reporte = drafts.open(ORDEN, ServiceType.CORRECTIVO, EQUIPO, deLaOrden);
+
+        verify(workOrderStandardsDistributor).apply(reporte, TIPO, deLaOrden, java.util.Set.of());
+        verify(serviceReportPersistencePort).save(reporte);
+    }
+
+    @Test
+    @DisplayName("sin patrones de la orden, un correctivo no camina la cadena del catalogo")
+    void sinPatronesNiCadena() {
+        estubarGuardado();
+
+        drafts.open(ORDEN, ServiceType.CORRECTIVO, EQUIPO, java.util.Set.of());
+
+        verify(clientEquipmentServicePort, never()).findById(any(), any());
+        verify(workOrderStandardsDistributor, never()).apply(any(), any(), any(), any());
     }
 }

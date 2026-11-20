@@ -12,6 +12,7 @@ import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.workorder.domain.workOrder.ServiceType;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
@@ -42,11 +43,23 @@ public class ServiceReportDrafts {
     private final EquipmentServicePort equipmentServicePort;
     private final ProtocolServicePort protocolServicePort;
     private final EventDispatcherPort eventDispatcherPort;
+    private final WorkOrderStandardsDistributor workOrderStandardsDistributor;
 
-    /** Abre y guarda el borrador, y publica que se abrió. */
-    public ServiceReport open(UUID idOrdenTrabajo, ServiceType tipoServicio, UUID idEquipoCliente) {
-        List<ReportStep> pasos = pasosDelProtocolo(tipoServicio, idEquipoCliente);
+    /**
+     * Abre y guarda el borrador, y publica que se abrió.
+     *
+     * @param patrones los que la orden lleva para el tipo del equipo (V60): el borrador los recibe marcados
+     *                 {@code desdeOrden}, en las verificaciones que el catálogo les permite
+     */
+    public ServiceReport open(
+            UUID idOrdenTrabajo, ServiceType tipoServicio, UUID idEquipoCliente, Set<UUID> patrones) {
+        UUID idTipo = tipoServicio == ServiceType.PREVENTIVO || !patrones.isEmpty() ? tipoDe(idEquipoCliente) : null;
+        List<ReportStep> pasos = pasosDelProtocolo(tipoServicio, idTipo);
         ServiceReport reporte = conNumeroLibre(() -> ServiceReport.open(idOrdenTrabajo, idEquipoCliente, pasos));
+
+        if (!patrones.isEmpty()) {
+            workOrderStandardsDistributor.apply(reporte, idTipo, patrones, Set.of());
+        }
 
         ServiceReport guardado = serviceReportPersistencePort.save(reporte);
         reporte.pullEvents().forEach(eventDispatcherPort::dispatch);
@@ -87,17 +100,21 @@ public class ServiceReportDrafts {
      * <p>Camina la cadena unidad → modelo → equipo del catálogo hasta el tipo, como
      * {@code ServiceReportService.tipoDelEquipo}; aquí solo hace falta su identificador.
      */
-    private List<ReportStep> pasosDelProtocolo(ServiceType tipoServicio, UUID idEquipoCliente) {
+    private List<ReportStep> pasosDelProtocolo(ServiceType tipoServicio, UUID idTipo) {
         if (tipoServicio != ServiceType.PREVENTIVO) {
             return List.of();
         }
 
-        ClientEquipment unidad = clientEquipmentServicePort.findById(idEquipoCliente, ReadScope.unrestricted());
-        UUID idEquipoCatalogo = modelServicePort.findById(unidad.getIdModelo()).getIdEquipo();
-        UUID idTipo = equipmentServicePort.findById(idEquipoCatalogo).getIdTipoEquipo();
-
         return protocolServicePort.protocolsOf(idTipo).stream()
                 .map(asignado -> ReportStep.pending(asignado.protocolo().getId()))
                 .toList();
+    }
+
+    /** El tipo del equipo, caminando unidad → modelo → equipo del catálogo. */
+    private UUID tipoDe(UUID idEquipoCliente) {
+        ClientEquipment unidad = clientEquipmentServicePort.findById(idEquipoCliente, ReadScope.unrestricted());
+        UUID idEquipoCatalogo = modelServicePort.findById(unidad.getIdModelo()).getIdEquipo();
+
+        return equipmentServicePort.findById(idEquipoCatalogo).getIdTipoEquipo();
     }
 }

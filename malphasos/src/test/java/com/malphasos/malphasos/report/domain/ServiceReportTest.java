@@ -487,6 +487,86 @@ class ServiceReportTest {
         }
 
         @Test
+        @DisplayName("el que llega de la orden queda marcado, y el puesto a mano no (V60)")
+        void deDondeVino() {
+            ServiceReport reporte = unReporte();
+            UUID aMano = UUID.randomUUID();
+            UUID deLaOrden = UUID.randomUUID();
+
+            reporte.useReferenceStandard(VERIFICACION, aMano);
+            reporte.receiveFromWorkOrder(VERIFICACION, deLaOrden);
+
+            assertThat(reporte.patronesActivos())
+                    .extracting(VerificationStandard::idEquipoPatron, VerificationStandard::desdeOrden)
+                    .containsExactly(org.assertj.core.groups.Tuple.tuple(aMano, false),
+                            org.assertj.core.groups.Tuple.tuple(deLaOrden, true));
+            assertThat(tiposDe(reporte)).containsExactly(
+                    ServiceReportStandardChosenEvent.TYPE, ServiceReportStandardChosenEvent.TYPE);
+        }
+
+        @Test
+        @DisplayName("la orden no se apropia de lo puesto a mano, ni al ponerlo ni al quitarlo")
+        void loPuestoAManoSeQueda() {
+            ServiceReport reporte = unReporte();
+            UUID patron = UUID.randomUUID();
+            reporte.useReferenceStandard(VERIFICACION, patron);
+            reporte.pullEvents();
+
+            reporte.receiveFromWorkOrder(VERIFICACION, patron);
+            reporte.withdrawFromWorkOrder(VERIFICACION, patron);
+
+            assertThat(reporte.patronesActivos()).singleElement()
+                    .satisfies(usado -> assertThat(usado.desdeOrden()).isFalse());
+            assertThat(tiposDe(reporte)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("devolverlo a la orden quita el que vino de ella, una vez, y volver a recibirlo lo reactiva")
+        void devolverYRecibir() {
+            ServiceReport reporte = unReporte();
+            UUID patron = UUID.randomUUID();
+            reporte.receiveFromWorkOrder(VERIFICACION, patron);
+            UUID fila = reporte.getPatrones().getFirst().id();
+            reporte.pullEvents();
+
+            reporte.withdrawFromWorkOrder(VERIFICACION, patron);
+            reporte.withdrawFromWorkOrder(VERIFICACION, patron);
+            assertThat(tiposDe(reporte)).containsExactly(ServiceReportStandardRemovedEvent.TYPE);
+            assertThat(reporte.patronesActivos()).isEmpty();
+
+            reporte.receiveFromWorkOrder(VERIFICACION, patron);
+            assertThat(reporte.patronesActivos()).singleElement().satisfies(usado -> {
+                assertThat(usado.id()).isEqualTo(fila);
+                assertThat(usado.desdeOrden()).isTrue();
+            });
+        }
+
+        @Test
+        @DisplayName("quitado de la orden y puesto despues a mano, ya es del ingeniero")
+        void reactivadoAMano() {
+            ServiceReport reporte = unReporte();
+            UUID patron = UUID.randomUUID();
+            reporte.receiveFromWorkOrder(VERIFICACION, patron);
+            reporte.withdrawFromWorkOrder(VERIFICACION, patron);
+
+            reporte.useReferenceStandard(VERIFICACION, patron);
+
+            assertThat(reporte.patronesActivos()).singleElement()
+                    .satisfies(usado -> assertThat(usado.desdeOrden()).isFalse());
+        }
+
+        @Test
+        @DisplayName("un reporte cerrado no recibe ni devuelve patrones de la orden")
+        void cerradoNoRecibe() {
+            ServiceReport reporte = unReporteCerrado();
+
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> reporte.receiveFromWorkOrder(VERIFICACION, UUID.randomUUID()));
+            assertThatIllegalStateException()
+                    .isThrownBy(() -> reporte.withdrawFromWorkOrder(VERIFICACION, UUID.randomUUID()));
+        }
+
+        @Test
         @DisplayName("una verificacion admite varios, y cada verificacion tiene los suyos")
         void variosPorVerificacion() {
             ServiceReport reporte = unReporte();

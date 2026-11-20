@@ -955,3 +955,38 @@ válido cuando se eligió, y el informe congela lo que se usó. Quitar uno no co
 
 **La pantalla filtra con la misma lista** —`GET /equipment-types/{id}/reference-standards`, la de la tanda
 1— y sigue ofreciendo solo los vigentes: uno vencido el servidor lo deja poner y no deja cerrar.
+
+### La orden, también ese día (tanda 3)
+
+**Un agregado por orden y tipo**, `WorkOrderStandards`, en `work-order`, con su identidad en una sola `Clave`
+—orden y tipo—: `AggregateIdentityContractTest` exige un solo campo incluido, y se respetó el contrato en vez
+de ensancharlo. Es un conjunto sin borrado lógico, como el del catálogo, y se guarda con SQL.
+
+**Las reglas que el esquema no expresa, construidas**: el tipo tiene que tener equipos en la orden; cada
+patrón existe, está activo —o ya lo llevaba— y el catálogo lo admite en **alguna** verificación vigente del
+tipo; y una orden ejecutada o retirada no los cambia. `GET /work-orders/{id}/reference-standards` da uno por
+tipo de la orden, vacío si no lleva ninguno, y `PATCH /work-orders/{id}/equipment-types/{idTipo}/reference-standards`
+fija la lista, con `work-order.write`, como añadir equipos.
+
+**El automático es por tipo y al entrar el tipo.** Si entre todos los patrones que el catálogo admite para el
+tipo hay **uno solo vigente** —activo y con el certificado al día en Bogotá—, la orden lo pone sola **cuando
+entra el primer equipo de ese tipo**, antes de abrir su borrador. Se leyó «un solo patrón vigente» por tipo,
+como dice la decisión y como contó el ensayo de `V60`; un monitor con un patrón distinto en cada una de sus
+tres verificaciones tiene tres y no se rellena solo. Y solo al entrar: si alguien vació la lista a propósito,
+añadir otro equipo del mismo tipo no se la vuelve a poner. **Con el último equipo de un tipo salen sus
+patrones**, porque los de una orden son de los tipos que tiene.
+
+**Cambiar los patrones de la orden llega a los borradores de ese tipo**, en las verificaciones que el
+catálogo les permite —el simulador a la presión del monitor y no a su frecuencia, si así está declarado—, y
+marcados `desdeOrden`, que desde hoy vive en el dominio del reporte y en su respuesta del API. Solo se lleva
+**la diferencia**: los añadidos se ponen, los quitados salen **de donde llegaron por la orden**. Lo puesto a
+mano no se toca nunca, aunque sea el mismo patrón, y los reportes cerrados tampoco. Un borrador nuevo —al
+añadir el equipo o al sustituir un cerrado— nace con lo que la orden lleva hoy para su tipo.
+
+**El reparto vive en `report`**, en `WorkOrderStandardsDistributor`, y la orden lo pide por
+`WorkOrderReportsPort`, la misma inversión que abrir un borrador. Para saber el tipo de los equipos de una
+orden sin caminar la cadena uno por uno entró `ClientEquipmentServicePort.equipmentTypesOf`, una sola
+consulta con dos uniones.
+
+**Lo que no se hizo**: la vigencia no se vuelve a mirar en la orden —un patrón que vence después de elegido
+sigue en ella, y lo que no deja es cerrar el reporte—, y las pantallas son la tanda 4.

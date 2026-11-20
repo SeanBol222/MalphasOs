@@ -85,6 +85,10 @@ class WorkOrderServiceTest {
     @Mock private EventDispatcherPort eventDispatcherPort;
     @Mock private WorkOrderReportsPort workOrderReportsPort;
     @Mock private WorkOrderDocumentComposer workOrderDocumentComposer;
+    @Mock private com.malphasos.malphasos.workorder.application.ports.output.WorkOrderStandardsPersistencePort
+            workOrderStandardsPersistencePort;
+    @Mock private com.malphasos.malphasos.workorder.application.services.workOrderStandards.WorkOrderStandardsCatalog
+            workOrderStandardsCatalog;
 
     @InjectMocks private WorkOrderService service;
 
@@ -220,7 +224,7 @@ class WorkOrderServiceTest {
             assertThatIllegalArgumentException().isThrownBy(() -> service.schedule(elComando()))
                     .withMessageContaining("cerrada");
 
-            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any(), any());
         }
 
         @Test
@@ -261,7 +265,7 @@ class WorkOrderServiceTest {
 
             service.addEquipment(elComando());
 
-            verify(workOrderReportsPort).openDraft(orden.getId(), ServiceType.PREVENTIVO, EQUIPO);
+            verify(workOrderReportsPort).openDraft(orden.getId(), ServiceType.PREVENTIVO, EQUIPO, java.util.Set.of());
             // La orden no cambia: no se guarda ni emite nada. El hecho es el reporte, y lo publica su modulo.
             verify(workOrderPersistencePort, never()).save(any());
             verify(eventDispatcherPort, never()).dispatch(any());
@@ -278,7 +282,7 @@ class WorkOrderServiceTest {
             assertThatIllegalStateException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("ya ejecutada");
 
-            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any(), any());
         }
 
         @Test
@@ -290,7 +294,7 @@ class WorkOrderServiceTest {
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("dada de baja");
 
-            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any(), any());
         }
 
         @Test
@@ -317,7 +321,7 @@ class WorkOrderServiceTest {
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("es del cliente");
 
-            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any(), any());
         }
 
         @Test
@@ -335,7 +339,7 @@ class WorkOrderServiceTest {
             assertThatIllegalArgumentException().isThrownBy(() -> service.addEquipment(elComando()))
                     .withMessageContaining("se presta en la sede");
 
-            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any(), any());
         }
 
         @Test
@@ -354,7 +358,7 @@ class WorkOrderServiceTest {
                     .withMessageContaining("es del cliente")
                     .withMessageNotContaining("se presta en la sede");
 
-            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any(), any());
         }
 
         @Test
@@ -366,7 +370,7 @@ class WorkOrderServiceTest {
                     .isThrownBy(() -> service.addEquipment(elComando()));
 
             verify(clientEquipmentServicePort, never()).findById(any(), any());
-            verify(workOrderReportsPort, never()).openDraft(any(), any(), any());
+            verify(workOrderReportsPort, never()).openDraft(any(), any(), any(), any());
         }
     }
 
@@ -659,6 +663,121 @@ class WorkOrderServiceTest {
 
             Assertions.assertThatExceptionOfType(WorkOrderNotFoundException.class)
                     .isThrownBy(() -> service.findById(desconocida, ReadScope.unrestricted()));
+        }
+    }
+
+    @Nested
+    @DisplayName("Los patrones del tipo al entrar y salir un equipo (V60)")
+    class LosPatronesDelTipo {
+
+        private static final UUID TIPO = UUID.randomUUID();
+        private static final UUID OTRO_EQUIPO = UUID.randomUUID();
+        private static final UUID PATRON = UUID.randomUUID();
+
+        private void unEquipoQueCabe() {
+            laOrdenExiste();
+            when(clientEquipmentServicePort.findById(EQUIPO, ReadScope.unrestricted())).thenReturn(unaUnidad(AREA, true));
+            when(serviceAreaServicePort.findById(AREA, ReadScope.unrestricted())).thenReturn(unArea(true));
+            when(serviceAreaServicePort.findOwningClient(AREA)).thenReturn(CLIENTE);
+        }
+
+        /** Los equipos que ya estan en la orden, y el tipo de cada uno y del que entra o sale. */
+        private void enLaOrden(java.util.Map<UUID, UUID> tipos, UUID... presentes) {
+            when(workOrderReportsPort.activeReports(orden.getId())).thenReturn(java.util.Arrays.stream(presentes)
+                    .map(e -> new WorkOrderReportsPort.ActiveReport(UUID.randomUUID(), e, "ABC123", false))
+                    .toList());
+            when(clientEquipmentServicePort.equipmentTypesOf(any())).thenReturn(tipos);
+        }
+
+        private void laOrdenLleva(UUID... patrones) {
+            when(workOrderStandardsPersistencePort.find(orden.getId(), TIPO)).thenReturn(
+                    com.malphasos.malphasos.workorder.domain.workOrderStandards.WorkOrderStandards.rehydrate(
+                            orden.getId(), TIPO, List.of(patrones)));
+        }
+
+        @Test
+        @DisplayName("el primer equipo de un tipo con un solo patron vigente lo pone en la orden y en su borrador")
+        void elUnicoVigenteSePoneSolo() {
+            unEquipoQueCabe();
+            enLaOrden(java.util.Map.of(EQUIPO, TIPO));
+            laOrdenLleva();
+            when(workOrderStandardsCatalog.onlyCurrent(TIPO)).thenReturn(Optional.of(PATRON));
+
+            service.addEquipment(new AddEquipmentToWorkOrderCommand(orden.getId(), EQUIPO));
+
+            verify(workOrderStandardsPersistencePort).save(org.mockito.ArgumentMatchers.argThat(
+                    guardados -> guardados.getPatrones().equals(Set.of(PATRON))));
+            verify(eventDispatcherPort).dispatch(any());
+            verify(workOrderReportsPort).openDraft(orden.getId(), ServiceType.PREVENTIVO, EQUIPO, Set.of(PATRON));
+        }
+
+        @Test
+        @DisplayName("con varios vigentes no elige: el borrador nace sin patrones de la orden")
+        void conVariosNoElige() {
+            unEquipoQueCabe();
+            enLaOrden(java.util.Map.of(EQUIPO, TIPO));
+            laOrdenLleva();
+            when(workOrderStandardsCatalog.onlyCurrent(TIPO)).thenReturn(Optional.empty());
+
+            service.addEquipment(new AddEquipmentToWorkOrderCommand(orden.getId(), EQUIPO));
+
+            verify(workOrderStandardsPersistencePort, never()).save(any());
+            verify(workOrderReportsPort).openDraft(orden.getId(), ServiceType.PREVENTIVO, EQUIPO, Set.of());
+        }
+
+        @Test
+        @DisplayName("un tipo que ya estaba conserva lo elegido, tambien si es nada: no vuelve a poner el unico")
+        void unTipoQueYaEstaba() {
+            unEquipoQueCabe();
+            enLaOrden(java.util.Map.of(EQUIPO, TIPO, OTRO_EQUIPO, TIPO), OTRO_EQUIPO);
+            laOrdenLleva();
+            // Si la guarda faltara, la orden volveria a poner el unico que alguien quito a proposito.
+            lenient().when(workOrderStandardsCatalog.onlyCurrent(TIPO)).thenReturn(Optional.of(PATRON));
+
+            service.addEquipment(new AddEquipmentToWorkOrderCommand(orden.getId(), EQUIPO));
+
+            verify(workOrderStandardsPersistencePort, never()).save(any());
+            verify(workOrderReportsPort).openDraft(orden.getId(), ServiceType.PREVENTIVO, EQUIPO, Set.of());
+        }
+
+        @Test
+        @DisplayName("el borrador recibe lo que la orden ya lleva para su tipo")
+        void recibeLoQueLleva() {
+            unEquipoQueCabe();
+            enLaOrden(java.util.Map.of(EQUIPO, TIPO, OTRO_EQUIPO, TIPO), OTRO_EQUIPO);
+            laOrdenLleva(PATRON);
+
+            service.addEquipment(new AddEquipmentToWorkOrderCommand(orden.getId(), EQUIPO));
+
+            verify(workOrderReportsPort).openDraft(orden.getId(), ServiceType.PREVENTIVO, EQUIPO, Set.of(PATRON));
+        }
+
+        @Test
+        @DisplayName("con el ultimo equipo de un tipo salen sus patrones de la orden")
+        void conElUltimoSalen() {
+            laOrdenExiste();
+            enLaOrden(java.util.Map.of(EQUIPO, TIPO));
+            laOrdenLleva(PATRON);
+
+            service.removeEquipment(new RemoveEquipmentFromWorkOrderCommand(orden.getId(), EQUIPO));
+
+            verify(workOrderStandardsPersistencePort).save(org.mockito.ArgumentMatchers.argThat(
+                    guardados -> guardados.getPatrones().isEmpty()));
+            verify(eventDispatcherPort).dispatch(any());
+        }
+
+        @Test
+        @DisplayName("si queda otro del mismo tipo, sus patrones se quedan")
+        void siQuedaOtroSeQuedan() {
+            laOrdenExiste();
+            enLaOrden(java.util.Map.of(EQUIPO, TIPO, OTRO_EQUIPO, TIPO), OTRO_EQUIPO);
+            lenient().when(workOrderStandardsPersistencePort.find(orden.getId(), TIPO)).thenReturn(
+                    com.malphasos.malphasos.workorder.domain.workOrderStandards.WorkOrderStandards.rehydrate(
+                            orden.getId(), TIPO, List.of(PATRON)));
+
+            service.removeEquipment(new RemoveEquipmentFromWorkOrderCommand(orden.getId(), EQUIPO));
+
+            verify(workOrderStandardsPersistencePort, never()).save(any());
         }
     }
 }

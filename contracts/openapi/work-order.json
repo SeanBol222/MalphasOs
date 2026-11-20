@@ -1,6 +1,19 @@
 {
   "components" : {
     "schemas" : {
+      "AssignWorkOrderStandardsRequest" : {
+        "properties" : {
+          "patrones" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "patrones" ],
+        "type" : "object"
+      },
       "GlobalErrorResponse" : {
         "properties" : {
           "code" : {
@@ -311,6 +324,24 @@
           }
         },
         "required" : [ "fechaMantenimiento", "idCliente", "idSede", "periodicidad", "tipoServicio" ],
+        "type" : "object"
+      },
+      "WorkOrderStandardsResponse" : {
+        "properties" : {
+          "idTipoEquipo" : {
+            "description" : "Un tipo de equipo con equipos en la orden",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "patrones" : {
+            "description" : "Los patrones que lleva para el, ordenados por identificador; vacia si ninguno",
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
         "type" : "object"
       }
     },
@@ -944,7 +975,7 @@
     "/v1/api/work-orders/{id}/engineer/{idIngeniero}" : {
       "patch" : {
         "description" : "La persona debe estar activa y ser de tipo ingeniero.",
-        "operationId" : "assign",
+        "operationId" : "assign_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1015,6 +1046,93 @@
           }
         },
         "summary" : "Poner la orden en manos de un ingeniero",
+        "tags" : [ "WorkOrder" ]
+      }
+    },
+    "/v1/api/work-orders/{id}/equipment-types/{idTipoEquipo}/reference-standards" : {
+      "patch" : {
+        "description" : "La lista entera, que sustituye la anterior. El tipo debe tener equipos en la orden, y cada patron estar activo y admitido por el catalogo en alguna verificacion del tipo. Los que se anaden llegan a los reportes abiertos de ese tipo y los que se quitan salen de ellos, sin tocar los que el ingeniero puso a mano. No se cambian en una orden ejecutada.",
+        "operationId" : "assign",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "idTipoEquipo",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignWorkOrderStandardsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderStandardsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Fijar los patrones que la orden lleva para un tipo",
         "tags" : [ "WorkOrder" ]
       }
     },
@@ -1240,6 +1358,78 @@
           }
         },
         "summary" : "Dar el trabajo por terminado",
+        "tags" : [ "WorkOrder" ]
+      }
+    },
+    "/v1/api/work-orders/{id}/reference-standards" : {
+      "get" : {
+        "description" : "Uno por cada tipo con equipos en la orden, con la lista vacia si no lleva ninguno.",
+        "operationId" : "standardsOf",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/WorkOrderStandardsResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Los patrones de la orden por tipo de equipo",
         "tags" : [ "WorkOrder" ]
       }
     },

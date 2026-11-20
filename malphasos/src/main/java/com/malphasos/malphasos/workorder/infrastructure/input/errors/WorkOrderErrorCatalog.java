@@ -33,7 +33,9 @@ public enum WorkOrderErrorCatalog {
     WORK_ORDER_WITHOUT_EQUIPMENT("ERR_WORK_ORDER_011", "Work order has no equipment"),
     // La aprobacion (V54). Dos conflictos y no datos invalidos: la persona y la orden existen.
     NOT_SUPERVISOR_OF_CLIENT("ERR_WORK_ORDER_012", "That person does not supervise the client of this work order"),
-    NO_SAVED_SIGNATURE("ERR_WORK_ORDER_013", "No saved signature to approve with");
+    NO_SAVED_SIGNATURE("ERR_WORK_ORDER_013", "No saved signature to approve with"),
+    // Los patrones de la orden (V60): uno pedido que el catalogo no tiene.
+    REFERENCE_STANDARD_NOT_FOUND("ERR_WORK_ORDER_014", "Reference standard not found");
 
     private final String code;
     private final String message;

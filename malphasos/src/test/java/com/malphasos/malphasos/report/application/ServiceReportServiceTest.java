@@ -127,6 +127,7 @@ class ServiceReportServiceTest {
     @Mock private ServiceReportPersistencePort serviceReportPersistencePort;
     @Mock private WorkOrderServicePort workOrderServicePort;
     @Mock private WorkOrderApprovalServicePort workOrderApprovalServicePort;
+    @Mock private com.malphasos.malphasos.workorder.application.ports.input.WorkOrderStandardsServicePort workOrderStandardsServicePort;
     @Mock private ClientEquipmentServicePort clientEquipmentServicePort;
     @Mock private ModelServicePort modelServicePort;
     @Mock private EquipmentServicePort equipmentServicePort;
@@ -360,17 +361,32 @@ class ServiceReportServiceTest {
             when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
                     .thenReturn(unaOrden(ServiceType.CORRECTIVO, ExecutionState.EJECUTADA, true));
             estubarGuardado();
-            when(serviceReportDrafts.open(ORDEN, ServiceType.CORRECTIVO, EQUIPO)).thenReturn(borrador);
+            when(serviceReportDrafts.open(ORDEN, ServiceType.CORRECTIVO, EQUIPO, java.util.Set.of())).thenReturn(borrador);
 
             assertThat(service.replace(new ReplaceServiceReportCommand(cerrado.getId()))).isSameAs(borrador);
 
             // Retirado y guardado antes de abrir el borrador: si no, el indice unico parcial veria dos activos.
             var orden = org.mockito.Mockito.inOrder(serviceReportPersistencePort, serviceReportDrafts);
             orden.verify(serviceReportPersistencePort).save(cerrado);
-            orden.verify(serviceReportDrafts).open(ORDEN, ServiceType.CORRECTIVO, EQUIPO);
+            orden.verify(serviceReportDrafts).open(ORDEN, ServiceType.CORRECTIVO, EQUIPO, java.util.Set.of());
             assertThat(cerrado.isEstadoActivo()).isFalse();
             // V54: el supervisor aprobó un documento que ya no es el mismo.
             verify(workOrderApprovalServicePort).withdraw(ORDEN);
+        }
+
+        @Test
+        @DisplayName("el borrador nuevo recibe los patrones que la orden lleva hoy para el tipo del equipo (V60)")
+        void elSustitutoRecibeLosDeLaOrden() {
+            ServiceReport cerrado = unCerrado();
+            ServiceReport borrador = ServiceReport.open(ORDEN, EQUIPO);
+            java.util.Set<UUID> deLaOrden = java.util.Set.of(PATRON_VIGENTE.id());
+            when(workOrderServicePort.findById(ORDEN, ReadScope.unrestricted()))
+                    .thenReturn(unaOrden(ServiceType.PREVENTIVO, ExecutionState.EN_EJECUCION, true));
+            estubarGuardado();
+            when(workOrderStandardsServicePort.standardsForEquipment(ORDEN, EQUIPO)).thenReturn(deLaOrden);
+            when(serviceReportDrafts.open(ORDEN, ServiceType.PREVENTIVO, EQUIPO, deLaOrden)).thenReturn(borrador);
+
+            assertThat(service.replace(new ReplaceServiceReportCommand(cerrado.getId()))).isSameAs(borrador);
         }
 
         @Test
@@ -382,7 +398,7 @@ class ServiceReportServiceTest {
             assertThatIllegalStateException()
                     .isThrownBy(() -> service.replace(new ReplaceServiceReportCommand(borrador.getId())))
                     .withMessageContaining("borrador");
-            verify(serviceReportDrafts, never()).open(any(), any(), any());
+            verify(serviceReportDrafts, never()).open(any(), any(), any(), any());
             verify(serviceReportPersistencePort, never()).save(any());
             verify(workOrderApprovalServicePort, never()).withdraw(any());
         }
@@ -404,7 +420,7 @@ class ServiceReportServiceTest {
             assertThatIllegalStateException()
                     .isThrownBy(() -> service.replace(new ReplaceServiceReportCommand(cerrado.getId())))
                     .withMessageContaining("cancelada");
-            verify(serviceReportDrafts, never()).open(any(), any(), any());
+            verify(serviceReportDrafts, never()).open(any(), any(), any(), any());
         }
     }
 

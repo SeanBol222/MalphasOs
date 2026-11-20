@@ -130,6 +130,26 @@ export interface paths {
          * Poner la orden en manos de un ingeniero
          * @description La persona debe estar activa y ser de tipo ingeniero.
          */
+        patch: operations["assign_1"];
+        trace?: never;
+    };
+    "/v1/api/work-orders/{id}/equipment-types/{idTipoEquipo}/reference-standards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Fijar los patrones que la orden lleva para un tipo
+         * @description La lista entera, que sustituye la anterior. El tipo debe tener equipos en la orden, y cada patron estar activo y admitido por el catalogo en alguna verificacion del tipo. Los que se anaden llegan a los reportes abiertos de ese tipo y los que se quitan salen de ellos, sin tocar los que el ingeniero puso a mano. No se cambian en una orden ejecutada.
+         */
         patch: operations["assign"];
         trace?: never;
     };
@@ -193,6 +213,26 @@ export interface paths {
         patch: operations["execute"];
         trace?: never;
     };
+    "/v1/api/work-orders/{id}/reference-standards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Los patrones de la orden por tipo de equipo
+         * @description Uno por cada tipo con equipos en la orden, con la lista vacia si no lleva ninguno.
+         */
+        get: operations["standardsOf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/work-orders/{id}/start": {
         parameters: {
             query?: never;
@@ -217,6 +257,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AssignWorkOrderStandardsRequest: {
+            patrones: string[];
+        };
         GlobalErrorResponse: {
             code?: string;
             details?: string[];
@@ -362,6 +405,15 @@ export interface components {
             periodicidad: "MENSUAL" | "TRIMESTRAL" | "SEMESTRAL" | "ANUAL";
             /** @enum {string} */
             tipoServicio: "PREVENTIVO" | "CORRECTIVO" | "CALIBRACION";
+        };
+        WorkOrderStandardsResponse: {
+            /**
+             * Format: uuid
+             * @description Un tipo de equipo con equipos en la orden
+             */
+            idTipoEquipo?: string;
+            /** @description Los patrones que lleva para el, ordenados por identificador; vacia si ninguno */
+            patrones?: string[];
         };
     };
     responses: never;
@@ -849,7 +901,7 @@ export interface operations {
             };
         };
     };
-    assign: {
+    assign_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -868,6 +920,69 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WorkOrderResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    assign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                idTipoEquipo: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignWorkOrderStandardsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderStandardsResponse"];
                 };
             };
             /** @description Bad Request */
@@ -1047,6 +1162,64 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WorkOrderResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    standardsOf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderStandardsResponse"][];
                 };
             };
             /** @description Bad Request */

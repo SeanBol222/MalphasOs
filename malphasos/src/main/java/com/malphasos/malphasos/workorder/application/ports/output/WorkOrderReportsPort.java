@@ -34,9 +34,17 @@ public interface WorkOrderReportsPort {
 
     /**
      * Pone el equipo en la orden abriendo su borrador, con los pasos del protocolo si el servicio es
-     * preventivo. Si ya tiene uno activo no hace nada.
+     * preventivo y con los patrones que la orden lleva para su tipo (V60), marcados {@code desdeOrden}. Si
+     * ya tiene uno activo no hace nada.
      */
-    void openDraft(UUID idOrdenTrabajo, ServiceType tipoServicio, UUID idEquipoCliente);
+    void openDraft(UUID idOrdenTrabajo, ServiceType tipoServicio, UUID idEquipoCliente, Set<UUID> patrones);
+
+    /**
+     * Lleva un cambio de los patrones de la orden a los borradores de ese tipo (V60): pone los añadidos,
+     * marcados {@code desdeOrden}, en las verificaciones que el catálogo les permite, y quita los quitados
+     * de donde llegaron por la orden. Lo puesto a mano no se toca, y los reportes cerrados tampoco.
+     */
+    void applyStandards(UUID idOrdenTrabajo, UUID idTipoEquipo, Set<UUID> puestos, Set<UUID> quitados);
 
     /**
      * Saca el equipo de la orden retirando su borrador. Si no tiene reporte activo no hace nada; si el
