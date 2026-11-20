@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  Injector,
+  signal,
+  viewChild,
+} from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -140,6 +150,9 @@ export class Patrones {
     { validators: calibracionAntesDelVencimiento },
   );
 
+  private readonly injector = inject(Injector);
+  private readonly formularioEnPantalla = viewChild<ElementRef<HTMLElement>>('formularioDePatron');
+
   /** El patrón que se está corrigiendo, o nulo si el formulario es de alta. */
   protected readonly editando = signal<string | null>(null);
 
@@ -189,6 +202,16 @@ export class Patrones {
       vencimientoCertificado: patron.vencimientoCertificado ?? '',
     });
     this.editando.set(patron.id!);
+    // El formulario se abre encima de la tabla: si se pulso «Editar» en una fila de abajo, quedaria
+    // fuera de la vista. Se sube hasta el en cuanto existe (2026-11-20, pedido por el usuario).
+    afterNextRender(
+      () =>
+        this.formularioEnPantalla()?.nativeElement.scrollIntoView?.({
+          behavior: 'smooth',
+          block: 'start',
+        }),
+      { injector: this.injector },
+    );
   }
 
   protected cancelar(): void {

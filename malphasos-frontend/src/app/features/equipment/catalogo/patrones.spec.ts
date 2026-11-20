@@ -349,6 +349,26 @@ describe('Equipos patrón', () => {
     http.match(URL).forEach((p) => p.flush(PATRONES));
   });
 
+  it('editar sube hasta el formulario, que se abre encima de la tabla', async () => {
+    // Pedido el 2026-11-20: con la tabla larga, «Editar» en una fila de abajo dejaba el formulario
+    // fuera de la vista.
+    const original = Element.prototype.scrollIntoView;
+    const subir = vi.fn();
+    Element.prototype.scrollIntoView = subir;
+    try {
+      montar();
+      await abrir();
+      boton('Editar Manómetro').click();
+      await asentar(fixture);
+
+      expect(subir).toHaveBeenCalledTimes(1);
+      const formulario = raiz().querySelector('[data-columna="aparato"]')!.parentElement;
+      expect(subir.mock.contexts[0]).toBe(formulario);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it('editar uno con ficha la carga entera', async () => {
     montar();
     await abrir();
