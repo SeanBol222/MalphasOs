@@ -4,6 +4,7 @@ import { CatalogoApi } from '../catalogo-api';
 import { normalizar } from '../../../core/texto';
 import { CabeceraDePieza } from './cabecera-de-pieza';
 import { OrdenMovil } from './orden-movil';
+import { Buscador, Opcion, opcionesDe } from '../../../shared/buscador/buscador';
 import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
@@ -18,9 +19,14 @@ import { traducirError } from '../../../core/errores/traducir';
  * <p>La respuesta solo trae identificadores, de modo que cada fila se compone cruzando las listas de
  * tipos y marcas. Es la misma ausencia que tenían los encargados: el API no devuelve nombres.
  */
+/** Una copia de las opciones en orden alfabetico, en castellano. */
+function alfabetico(opciones: readonly Opcion[]): readonly Opcion[] {
+  return [...opciones].sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, 'es'));
+}
+
 @Component({
   selector: 'app-equipos-de-catalogo',
-  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable, OrdenMovil],
+  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable, OrdenMovil, Buscador],
   templateUrl: './equipos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -94,6 +100,14 @@ export class EquiposDeCatalogo {
   });
 
   /** Solo se ofrecen piezas activas: el backend rechaza una referencia retirada. */
+  /**
+   * Tipo y marca se escriben y se eligen de lo que casa, o se recorren enteros al abrir el campo
+   * (2026-11-20, pedido por el usuario), como en el alta de un modelo: con cientos, un desplegable
+   * obligaba a recorrerlo. En orden alfabetico.
+   */
+  protected readonly opcionesDeTipo = computed(() => alfabetico(opcionesDe(this.tiposActivos())));
+  protected readonly opcionesDeMarca = computed(() => alfabetico(opcionesDe(this.marcasActivas())));
+
   protected readonly tiposActivos = computed(() =>
     (this.tipos.data() ?? []).filter((t) => t.estadoActivo),
   );

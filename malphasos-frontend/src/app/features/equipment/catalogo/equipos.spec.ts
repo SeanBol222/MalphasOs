@@ -2,7 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
-import { asentar } from '../../../../testing/pantalla';
+import { asentar, elegirEnBuscador, escribirEnBuscador } from '../../../../testing/pantalla';
+import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
 import {
   EQUIPOS,
   ID_MARCA,
@@ -21,7 +22,11 @@ describe('Equipos del catalogo', () => {
   let fixture: ComponentFixture<EquiposDeCatalogo>;
   let http: HttpTestingController;
 
+  let desinstalarAlmacenamiento: () => void;
+
   beforeEach(() => {
+    // Los campos que predicen guardan lo ya elegido en localStorage.
+    desinstalarAlmacenamiento = instalarAlmacenamiento();
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -41,13 +46,6 @@ describe('Equipos del catalogo', () => {
 
   function pulsar(etiqueta: string): void {
     [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === etiqueta)!.click();
-    fixture.detectChanges();
-  }
-
-  function escribir(id: string, valor: string): void {
-    const campo = raiz().querySelector<HTMLSelectElement>(`#${id}`)!;
-    campo.value = valor;
-    campo.dispatchEvent(new Event('change'));
     fixture.detectChanges();
   }
 
@@ -88,21 +86,31 @@ describe('Equipos del catalogo', () => {
     expect(raiz().querySelector('form')).toBeNull();
   });
 
-  it('solo ofrece tipos y marcas activos: el backend rechaza una referencia retirada', async () => {
-    await abrir();
+  it('tipo y marca ofrecen su lista entera al hacer clic, solo con lo activo', async () => {
+    // Desde el 2026-11-20 son campos que predicen y se recorren al abrirlos, como en el alta de un
+    // modelo. El backend rechaza una referencia retirada, así que la retirada no se ofrece.
+    await abrir({ marcas: [...MARCAS, { id: 'm3', nombre: 'Omron', estadoActivo: true }] });
     pulsar('Nuevo equipo');
+    const ofrecidas = (campo: string) =>
+      [...raiz().querySelectorAll(`#${campo}-lista [role="option"]`)].map((o) =>
+        o.textContent?.trim(),
+      );
 
-    const marcas = [...raiz().querySelectorAll<HTMLOptionElement>('#marcaDelEquipo option')];
+    await escribirEnBuscador(fixture, 'tipoDelEquipo', '');
+    expect(ofrecidas('tipoDelEquipo')).toEqual(['Tensiómetro']);
 
-    expect(marcas.map((o) => o.textContent?.trim())).toEqual(['Elija una marca', 'Welch Allyn']);
-    expect(texto()).not.toContain('Marca retirada');
+    await escribirEnBuscador(fixture, 'marcaDelEquipo', '');
+    expect(ofrecidas('marcaDelEquipo')).toEqual(['Omron', 'Welch Allyn']);
+
+    await escribirEnBuscador(fixture, 'marcaDelEquipo', 'we');
+    expect(ofrecidas('marcaDelEquipo')).toEqual(['Welch Allyn']);
   });
 
   it('combinar manda los dos identificadores y nada mas, y cierra el formulario', async () => {
     await abrir();
     pulsar('Nuevo equipo');
-    escribir('tipoDelEquipo', ID_TIPO);
-    escribir('marcaDelEquipo', ID_MARCA);
+    await elegirEnBuscador(fixture, 'tipoDelEquipo', 'Tensiómetro');
+    await elegirEnBuscador(fixture, 'marcaDelEquipo', 'Welch Allyn');
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
     await asentar(fixture);
 
@@ -236,5 +244,12 @@ describe('Equipos del catalogo', () => {
     });
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    // En finally: si verify() lanza, el doble de localStorage no debe pasar al fichero siguiente.
+    try {
+      http.verify();
+    } finally {
+      desinstalarAlmacenamiento();
+    }
+  });
 });

@@ -28,38 +28,29 @@
         [formGroup]="formulario"
         (ngSubmit)="agregar()"
       >
-        <div class="grow">
-          <label class="block font-semibold" for="tipoDelEquipo">
-            Tipo <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <select
-            id="tipoDelEquipo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="idTipoEquipo"
-            aria-required="true"
-          >
-            <option value="">Elija un tipo</option>
-            @for (tipo of tiposActivos(); track tipo.id) {
-              <option [value]="tipo.id">{{ tipo.nombre }}</option>
-            }
-          </select>
-        </div>
-        <div class="grow">
-          <label class="block font-semibold" for="marcaDelEquipo">
-            Marca <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <select
-            id="marcaDelEquipo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="idMarca"
-            aria-required="true"
-          >
-            <option value="">Elija una marca</option>
-            @for (marca of marcasActivas(); track marca.id) {
-              <option [value]="marca.id">{{ marca.nombre }}</option>
-            }
-          </select>
-        </div>
+        <!--
+          Se escriben y se eligen de lo que casa, o se recorren enteros al hacer clic, como en el alta
+          de un modelo. En un telefono cada campo ocupa todo el ancho; desde 640 px van lado a lado,
+          con 240 px como minimo (la escala es de 8 px: min-w-60 serian 480).
+        -->
+        <app-buscador
+          class="w-full sm:w-auto sm:min-w-[15rem] sm:flex-1"
+          formControlName="idTipoEquipo"
+          campo="tipoDelEquipo"
+          etiqueta="Tipo"
+          historial="tipoDeEquipo"
+          [todasAlAbrir]="true"
+          [opciones]="opcionesDeTipo()"
+        />
+        <app-buscador
+          class="w-full sm:w-auto sm:min-w-[15rem] sm:flex-1"
+          formControlName="idMarca"
+          campo="marcaDelEquipo"
+          etiqueta="Marca"
+          historial="marca"
+          [todasAlAbrir]="true"
+          [opciones]="opcionesDeMarca()"
+        />
         <button class="boton-primario min-h-tactil" type="submit" [disabled]="alta.isPending()">
           Combinar
         </button>
