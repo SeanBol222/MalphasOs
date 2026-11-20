@@ -1007,6 +1007,22 @@ describe('Ficha de una orden de trabajo', () => {
     });
   });
 
+  describe('Los patrones de la visita (V60)', () => {
+    it('salen con equipment.read, que es lo que los nombra, y sin ella no', async () => {
+      await abrir();
+      expect(raiz().querySelector('[data-patrones-visita]')).toBeNull();
+
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'equipment.read']);
+      await abrir();
+      http.match(() => true).forEach((p) => p.flush([]));
+      await asentar(fixture);
+
+      expect(raiz().querySelector('[data-patrones-visita]')).not.toBeNull();
+      expect(texto()).toContain('Elegir patrones');
+    });
+  });
+
   afterEach(() => {
     // En finally a proposito: si verify() lanza por una peticion abierta, sin esto el doble de
     // localStorage se queda instalado y el fichero SIGUIENTE hereda lo que este guardo. Es la variante

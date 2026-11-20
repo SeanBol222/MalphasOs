@@ -1,0 +1,30 @@
+<section class="superficie" aria-labelledby="patrones-visita" data-patrones-visita>
+  <h2 id="patrones-visita" class="titulo-seccion">Patrones de la visita</h2>
+  @if (cargando()) {
+    <p class="mt-1 text-neutral-700" role="status">Cargando…</p>
+  } @else if (!filas().length) {
+    <p class="mt-1 text-neutral-700">Se eligen por tipo de equipo cuando la orden tiene equipos.</p>
+  } @else {
+    <dl class="mt-1">
+      @for (fila of filas(); track fila.idTipo) {
+        <div class="mt-1" [attr.data-tipo]="fila.idTipo">
+          <dt class="font-semibold">{{ fila.tipo }}</dt>
+          <dd class="text-neutral-800">
+            @if (fila.patrones.length) {
+              {{ fila.patrones.join(' — ') }}
+            } @else {
+              <span class="font-semibold">Ninguno elegido</span>
+            }
+          </dd>
+        </div>
+      }
+    </dl>
+  }
+  @if (cambiables()) {
+    <a
+      class="boton-secundario mt-2 inline-flex min-h-tactil items-center"
+      [routerLink]="['/ordenes', idOrden(), 'patrones']"
+      >Elegir patrones</a
+    >
+  }
+</section>

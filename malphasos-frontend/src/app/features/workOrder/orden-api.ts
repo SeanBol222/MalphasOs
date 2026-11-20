@@ -7,7 +7,13 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AprobacionDeOrden, NuevaOrdenDeTrabajo, OrdenDeTrabajo } from '../../core/api/tipos';
+import {
+  AprobacionDeOrden,
+  AsignacionDePatronesDeLaOrden,
+  NuevaOrdenDeTrabajo,
+  OrdenDeTrabajo,
+  PatronesDeLaOrden,
+} from '../../core/api/tipos';
 
 /**
  * La unica puerta al servidor para las ordenes de trabajo.
@@ -216,6 +222,43 @@ export class OrdenApi {
    * <p>Es la segunda vez que este proyecto lo paga —la primera fue {@code CatalogoApi} con el panel que
    * crea un modelo—, asi que conviene saberlo antes de escribir el tercer servicio con una cadena.
    */
+  /** Los patrones que la orden lleva por tipo de equipo (V60): uno por tipo de la orden, vacío si ninguno. */
+  patrones(id: Signal<string>) {
+    return injectQuery(() => ({
+      queryKey: [...OrdenApi.claveDetalle(id()), 'patrones'] as const,
+      queryFn: () =>
+        firstValueFrom(
+          this.http.get<PatronesDeLaOrden[]>(`${this.url}/${id()}/reference-standards`),
+        ),
+      enabled: !!id(),
+    }));
+  }
+
+  /**
+   * Fija los patrones de un tipo en la orden: la lista entera. Llegan a los borradores de ese tipo, así
+   * que caducan también los reportes.
+   */
+  asignarPatrones() {
+    return injectMutation(() => ({
+      mutationFn: ({
+        id,
+        idTipoEquipo,
+        asignacion,
+      }: {
+        id: string;
+        idTipoEquipo: string;
+        asignacion: AsignacionDePatronesDeLaOrden;
+      }) =>
+        firstValueFrom(
+          this.http.patch<PatronesDeLaOrden>(
+            `${this.url}/${id}/equipment-types/${idTipoEquipo}/reference-standards`,
+            asignacion,
+          ),
+        ),
+      onSuccess: () => this.invalidarConLosReportes(),
+    }));
+  }
+
   private invalidar(): void {
     void this.queryClient.invalidateQueries({ queryKey: OrdenApi.CLAVE });
   }

@@ -23,6 +23,7 @@ import { Buscador, Opcion } from '../../../shared/buscador/buscador';
 import { traducirError } from '../../../core/errores/traducir';
 import { guardarArchivo } from '../../../core/api/pdf';
 import { LienzoDeFirma } from '../../../shared/lienzo-de-firma/lienzo-de-firma';
+import { PatronesDeLaVisita } from '../patrones/patrones-de-la-visita';
 
 /**
  * Una orden de trabajo: sus datos, su alcance y su ciclo de vida.
@@ -47,7 +48,7 @@ import { LienzoDeFirma } from '../../../shared/lienzo-de-firma/lienzo-de-firma';
  */
 @Component({
   selector: 'app-detalle-orden',
-  imports: [ReactiveFormsModule, RouterLink, Buscador, LienzoDeFirma],
+  imports: [ReactiveFormsModule, RouterLink, Buscador, LienzoDeFirma, PatronesDeLaVisita],
   templateUrl: './detalle-orden.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -101,6 +102,12 @@ export class DetalleOrden {
 
   /** Los supervisores del cliente se ven con {@code client.read}: vienen en la ficha del cliente. */
   protected readonly puedeVerSupervisores = computed(() => this.sesion.puede('client.read'));
+
+  /**
+   * Los patrones de la visita (V60) se nombran con el catálogo de equipos, que pide equipment.read: sin
+   * ella el resumen no se pinta, en vez de pintar identificadores.
+   */
+  protected readonly puedeLeerEquipos = computed(() => this.sesion.puede('equipment.read'));
 
   private readonly reporteApi = inject(ReporteApi);
   private readonly reportes = this.reporteApi.porOrden(this.id);

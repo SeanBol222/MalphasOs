@@ -107,6 +107,15 @@ export const routes: Routes = [
         canActivate: [requiereAutoridad('work-order.write')],
       },
       {
+        // Los patrones que la orden lleva por tipo de equipo (V60, 2026-11-19).
+        path: 'ordenes/:id/patrones',
+        loadComponent: () =>
+          import('./features/workOrder/patrones/patrones-de-la-orden').then(
+            (m) => m.PatronesDeLaOrden,
+          ),
+        canActivate: [requiereAutoridad('work-order.write')],
+      },
+      {
         path: 'ordenes/:id/equipos',
         loadComponent: () =>
           import('./features/workOrder/equipos/agregar-equipos').then((m) => m.AgregarEquipos),
