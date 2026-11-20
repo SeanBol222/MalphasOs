@@ -6,7 +6,9 @@ import com.malphasos.malphasos.equipment.application.services.clientEquipment.co
 import com.malphasos.malphasos.equipment.application.services.clientEquipment.commands.UpdateClientEquipmentCommand;
 import com.malphasos.malphasos.equipment.domain.clientEquipment.ClientEquipment;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** Casos de uso sobre las unidades que poseen los clientes. */
@@ -27,6 +29,13 @@ public interface ClientEquipmentServicePort {
      *     no existe o si queda fuera del alcance
      */
     ClientEquipment findById(UUID id, ReadScope alcance);
+
+    /**
+     * El tipo de equipo de cada unidad, en una consulta: lo que una orden necesita para repartir sus
+     * patrones por tipo (V60). Sin restricción —resuelve la forma del catálogo, no datos de un
+     * cliente— y sin las que no existen.
+     */
+    Map<UUID, UUID> equipmentTypesOf(Collection<UUID> idsEquipos);
 
     /** Inventario de un área de servicio. */
     /**
