@@ -175,11 +175,16 @@
               <td data-etiqueta="Qué hacer" class="text-neutral-800">
                 {{ protocolo.descripcion }}
               </td>
-              <td data-etiqueta="Estado" [class.font-semibold]="protocolo.estadoActivo">
+              <!-- El estado y los botones van centrados en la altura de la fila (2026-11-20, pedido por el usuario). -->
+              <td
+                data-etiqueta="Estado"
+                class="align-middle"
+                [class.font-semibold]="protocolo.estadoActivo"
+              >
                 {{ protocolo.estadoActivo ? 'Vigente' : 'Retirado' }}
               </td>
               @if (puedeEscribir()) {
-                <td data-acciones class="whitespace-nowrap">
+                <td data-acciones class="whitespace-nowrap align-middle">
                   @if (protocolo.estadoActivo) {
                     @if (confirmandoRetiro() === protocolo.id) {
                       <span class="mr-2 font-semibold" role="alert"
@@ -211,7 +216,7 @@
                         Editar
                       </button>
                       <button
-                        class="min-h-tactil px-1 font-semibold underline"
+                        class="min-h-tactil px-1 underline"
                         type="button"
                         (click)="confirmandoRetiro.set(protocolo.id!)"
                       >

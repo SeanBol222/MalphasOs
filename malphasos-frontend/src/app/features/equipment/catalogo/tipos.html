@@ -97,7 +97,7 @@
                     Editar
                   </a>
                   <button
-                    class="min-h-tactil px-1 underline"
+                    class="min-h-tactil px-1 font-bold underline"
                     type="button"
                     [attr.aria-label]="'Verificación de ' + tipo.nombre"
                     (click)="empezarACambiar(tipo)"
@@ -106,7 +106,7 @@
                   </button>
                   @if (tipo.estadoActivo && tipo.verificaciones?.length) {
                     <a
-                      class="inline-flex min-h-tactil items-center px-1 underline"
+                      class="inline-flex min-h-tactil items-center px-1 font-bold underline"
                       [routerLink]="['/catalogo/tipos', tipo.id, 'patrones']"
                       [attr.aria-label]="'Patrones de ' + tipo.nombre"
                     >
