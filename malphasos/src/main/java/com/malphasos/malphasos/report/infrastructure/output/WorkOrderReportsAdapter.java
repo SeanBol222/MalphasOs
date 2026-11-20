@@ -3,6 +3,10 @@ package com.malphasos.malphasos.report.infrastructure.output;
 import com.malphasos.malphasos.report.application.model.ActiveReportSummary;
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.services.serviceReport.ServiceReportDrafts;
+import com.malphasos.malphasos.report.application.services.serviceReport.WorkOrderStandardsDistributor;
+import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
+import com.malphasos.malphasos.shared.domain.events.DomainEvent;
+import com.malphasos.malphasos.shared.domain.events.Payload;
 import com.malphasos.malphasos.report.domain.serviceReport.ReportState;
 import com.malphasos.malphasos.report.domain.serviceReport.ServiceReport;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
@@ -36,6 +40,8 @@ public class WorkOrderReportsAdapter implements WorkOrderReportsPort {
     private final ServiceReportPersistencePort serviceReportPersistencePort;
     private final ServiceReportDrafts serviceReportDrafts;
     private final EventDispatcherPort eventDispatcherPort;
+    private final WorkOrderStandardsDistributor workOrderStandardsDistributor;
+    private final ClientEquipmentServicePort clientEquipmentServicePort;
 
     @Override
     @Transactional(readOnly = true)
@@ -63,13 +69,41 @@ public class WorkOrderReportsAdapter implements WorkOrderReportsPort {
 
     @Override
     @Transactional
-    public void openDraft(UUID idOrdenTrabajo, ServiceType tipoServicio, UUID idEquipoCliente) {
+    public void openDraft(UUID idOrdenTrabajo, ServiceType tipoServicio, UUID idEquipoCliente, Set<UUID> patrones) {
         if (serviceReportPersistencePort.findActiveByWorkOrderAndEquipment(idOrdenTrabajo, idEquipoCliente)
                 .isPresent()) {
             return;
         }
 
-        serviceReportDrafts.open(idOrdenTrabajo, tipoServicio, idEquipoCliente);
+        serviceReportDrafts.open(idOrdenTrabajo, tipoServicio, idEquipoCliente, patrones);
+    }
+
+    /**
+     * Los borradores de la orden con equipos de ese tipo reciben el cambio (V60). Los cerrados no: cuentan
+     * lo que se usó. Solo se guarda el reporte que cambió.
+     */
+    @Override
+    @Transactional
+    public void applyStandards(UUID idOrdenTrabajo, UUID idTipoEquipo, Set<UUID> puestos, Set<UUID> quitados) {
+        List<ServiceReport> borradores = serviceReportPersistencePort.findByWorkOrder(idOrdenTrabajo).stream()
+                .filter(reporte -> reporte.isEstadoActivo() && reporte.getEstado() != ReportState.FINALIZADO)
+                .toList();
+        Map<UUID, UUID> tipos = clientEquipmentServicePort.equipmentTypesOf(
+                borradores.stream().map(ServiceReport::getIdEquipoCliente).toList());
+
+        for (ServiceReport reporte : borradores) {
+            if (!idTipoEquipo.equals(tipos.get(reporte.getIdEquipoCliente()))) {
+                continue;
+            }
+
+            workOrderStandardsDistributor.apply(reporte, idTipoEquipo, puestos, quitados);
+            List<DomainEvent<? extends Payload>> eventos = reporte.pullEvents();
+
+            if (!eventos.isEmpty()) {
+                serviceReportPersistencePort.save(reporte);
+                eventos.forEach(eventDispatcherPort::dispatch);
+            }
+        }
     }
 
     @Override

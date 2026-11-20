@@ -675,6 +675,10 @@
             "description" : "Nulo si el catalogo no lo tenia",
             "type" : "string"
           },
+          "desdeOrden" : {
+            "description" : "Si lo puso la orden, que reparte sus patrones por tipo de equipo; falso si se puso a mano",
+            "type" : "boolean"
+          },
           "empresaCalibradora" : {
             "description" : "Nula si el catalogo no la tenia",
             "type" : "string"

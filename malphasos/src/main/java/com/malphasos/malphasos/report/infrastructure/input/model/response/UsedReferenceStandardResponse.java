@@ -23,5 +23,7 @@ public record UsedReferenceStandardResponse(
         @Schema(description = "Nulo si el catalogo no lo tenia") String rango,
         @Schema(description = "Nula si el catalogo no la tenia") String resolucion,
         @Schema(description = "Nula si el catalogo no la tenia") LocalDate fechaCalibracion,
-        @Schema(description = "Nula si el catalogo no la tenia") String empresaCalibradora) {
+        @Schema(description = "Nula si el catalogo no la tenia") String empresaCalibradora,
+        @Schema(description = "Si lo puso la orden, que reparte sus patrones por tipo de equipo; falso si se"
+                + " puso a mano") boolean desdeOrden) {
 }

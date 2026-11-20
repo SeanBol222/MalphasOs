@@ -68,7 +68,7 @@ public class ServiceReportRestMapper {
                 .causa(reporte.getCausa())
                 .repuestos(reporte.getRepuestos())
                 .patrones(reporte.patronesActivos().stream()
-                        .map(usado -> patron(usado.idVerificacion(),
+                        .map(usado -> patron(usado.idVerificacion(), usado.desdeOrden(),
                                 catalogo.patron(usado.idVerificacion(), usado.idEquipoPatron()).orElseThrow(() ->
                                         new IllegalStateException("El catalogo del reporte " + reporte.numero()
                                                 + " no trae la ficha del patron " + usado.idEquipoPatron()))))
@@ -112,9 +112,11 @@ public class ServiceReportRestMapper {
         return verificacion == null ? null : new IntakeCheckResponse(verificacion.estado(), verificacion.observacion());
     }
 
-    private static UsedReferenceStandardResponse patron(UUID idVerificacion, UsedReferenceStandard ficha) {
+    private static UsedReferenceStandardResponse patron(
+            UUID idVerificacion, boolean desdeOrden, UsedReferenceStandard ficha) {
         return new UsedReferenceStandardResponse(idVerificacion, ficha.id(), ficha.nombre(), ficha.marca(),
                 ficha.serie(), ficha.certificado(), ficha.vencimiento(), ficha.modelo(), ficha.codigoInterno(),
-                ficha.rango(), ficha.resolucion(), ficha.fechaCalibracion(), ficha.empresaCalibradora());
+                ficha.rango(), ficha.resolucion(), ficha.fechaCalibracion(), ficha.empresaCalibradora(),
+                desdeOrden);
     }
 }

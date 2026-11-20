@@ -660,7 +660,37 @@ public class ServiceReport extends AggregateRoot {
      * reporte se cierre, y al revés no importa.
      */
     public void useReferenceStandard(UUID idVerificacion, UUID idEquipoPatron) {
-        exigirModificable("elegir un patron");
+        ponerPatron(idVerificacion, idEquipoPatron, false, "elegir un patron");
+    }
+
+    /**
+     * Recibe un patrón de la orden (V60): queda marcado {@code desdeOrden}. Si la verificación ya lo tiene,
+     * puesto a mano o por la orden, no hace nada: lo que el ingeniero puso no cambia de dueño.
+     */
+    public void receiveFromWorkOrder(UUID idVerificacion, UUID idEquipoPatron) {
+        ponerPatron(idVerificacion, idEquipoPatron, true, "recibir un patron de la orden");
+    }
+
+    /**
+     * Devuelve a la orden un patrón que vino de ella: lo quita si llegó por la orden y sigue puesto. Uno
+     * puesto a mano se queda, aunque sea el mismo patrón.
+     */
+    public void withdrawFromWorkOrder(UUID idVerificacion, UUID idEquipoPatron) {
+        exigirModificable("quitar un patron de la orden");
+
+        int indice = indiceDe(idVerificacion, idEquipoPatron);
+
+        if (indice < 0 || !patrones.get(indice).estadoActivo() || !patrones.get(indice).desdeOrden()) {
+            return;
+        }
+
+        patrones.set(indice, patrones.get(indice).deactivated());
+        registerEvent(new ServiceReportStandardRemovedEvent(
+                metadataFor(ServiceReportStandardRemovedEvent.TYPE), payload()));
+    }
+
+    private void ponerPatron(UUID idVerificacion, UUID idEquipoPatron, boolean porLaOrden, String accion) {
+        exigirModificable(accion);
 
         if (idVerificacion == null) {
             throw new IllegalArgumentException("Hay que decir en que verificacion se uso el patron");
@@ -672,13 +702,13 @@ public class ServiceReport extends AggregateRoot {
         int indice = indiceDe(idVerificacion, idEquipoPatron);
 
         if (indice < 0) {
-            patrones.add(VerificationStandard.of(idVerificacion, idEquipoPatron));
+            patrones.add(VerificationStandard.of(idVerificacion, idEquipoPatron, porLaOrden));
         } else {
             VerificationStandard actual = patrones.get(indice);
             if (actual.estadoActivo()) {
                 return;
             }
-            patrones.set(indice, actual.reactivated());
+            patrones.set(indice, actual.reactivated(porLaOrden));
         }
 
         registerEvent(new ServiceReportStandardChosenEvent(

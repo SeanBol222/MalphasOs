@@ -70,7 +70,7 @@ public record ReportContentJson(
     /**
      * Un patrón elegido en la verificación.
      *
-     * @param desdeOrden si llegó de los patrones de la orden; hasta que existan, siempre falso
+     * @param desdeOrden si llegó de los patrones de la orden (V60); los de antes, todos falsos
      */
     public record Patron(UUID id, boolean desdeOrden) {
     }

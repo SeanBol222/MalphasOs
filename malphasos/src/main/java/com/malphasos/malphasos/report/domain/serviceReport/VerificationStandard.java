@@ -15,8 +15,18 @@ import java.util.UUID;
  * <p>No es un agregado: vive y muere con su reporte, como las lecturas. <b>Quitarlo lo retira y volver
  * a ponerlo lo reactiva</b>, con el mismo identificador: así nunca compiten dos filas activas por el
  * mismo sitio, que es la trampa de Hibernate con los índices únicos parciales.
+ *
+ * <p><b>Dice de dónde vino</b> desde {@code V60} (2026-11-19): {@code desdeOrden} si lo puso la orden, que
+ * reparte sus patrones por tipo de equipo entre sus reportes. Cambiar los de la orden pone y quita los
+ * suyos, y nunca los que el ingeniero puso a mano.
  */
-public record VerificationStandard(UUID id, UUID idVerificacion, UUID idEquipoPatron, boolean estadoActivo) {
+public record VerificationStandard(
+        UUID id, UUID idVerificacion, UUID idEquipoPatron, boolean desdeOrden, boolean estadoActivo) {
+
+    /** Uno puesto a mano. */
+    public VerificationStandard(UUID id, UUID idVerificacion, UUID idEquipoPatron, boolean estadoActivo) {
+        this(id, idVerificacion, idEquipoPatron, false, estadoActivo);
+    }
 
     public VerificationStandard {
         if (id == null || idVerificacion == null || idEquipoPatron == null) {
@@ -25,8 +35,8 @@ public record VerificationStandard(UUID id, UUID idVerificacion, UUID idEquipoPa
         }
     }
 
-    static VerificationStandard of(UUID idVerificacion, UUID idEquipoPatron) {
-        return new VerificationStandard(UUID.randomUUID(), idVerificacion, idEquipoPatron, true);
+    static VerificationStandard of(UUID idVerificacion, UUID idEquipoPatron, boolean desdeOrden) {
+        return new VerificationStandard(UUID.randomUUID(), idVerificacion, idEquipoPatron, desdeOrden, true);
     }
 
     /** Si es este patrón en esta verificación, esté activo o retirado. */
@@ -34,11 +44,12 @@ public record VerificationStandard(UUID id, UUID idVerificacion, UUID idEquipoPa
         return idVerificacion.equals(verificacion) && idEquipoPatron.equals(idPatron);
     }
 
-    VerificationStandard reactivated() {
-        return new VerificationStandard(id, idVerificacion, idEquipoPatron, true);
+    /** Vuelve a valer, y dice de dónde vino esta vez. */
+    VerificationStandard reactivated(boolean porLaOrden) {
+        return new VerificationStandard(id, idVerificacion, idEquipoPatron, porLaOrden, true);
     }
 
     VerificationStandard deactivated() {
-        return new VerificationStandard(id, idVerificacion, idEquipoPatron, false);
+        return new VerificationStandard(id, idVerificacion, idEquipoPatron, desdeOrden, false);
     }
 }

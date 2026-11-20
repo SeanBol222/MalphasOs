@@ -65,6 +65,7 @@ import com.malphasos.malphasos.report.domain.serviceReport.VerificationReading;
 import com.malphasos.malphasos.shared.application.ports.output.EventDispatcherPort;
 import com.malphasos.malphasos.shared.application.model.ReadScope;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderApprovalServicePort;
+import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderStandardsServicePort;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
 import com.malphasos.malphasos.workorder.application.services.workOrder.commands.RemoveEquipmentFromWorkOrderCommand;
 import com.malphasos.malphasos.workorder.domain.workOrder.ExecutionState;
@@ -112,6 +113,7 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final ServiceReportPersistencePort serviceReportPersistencePort;
     private final WorkOrderServicePort workOrderServicePort;
     private final WorkOrderApprovalServicePort workOrderApprovalServicePort;
+    private final WorkOrderStandardsServicePort workOrderStandardsServicePort;
     private final PersonCommunicationPort personCommunicationPort;
     private final ClientOwnershipPort clientOwnershipPort;
     private final ClientServicePort clientServicePort;
@@ -243,7 +245,9 @@ public class ServiceReportService implements ServiceReportServicePort {
         persistAndPublish(cerrado);
         workOrderApprovalServicePort.withdraw(orden.getId());
 
-        return serviceReportDrafts.open(orden.getId(), orden.getTipoServicio(), cerrado.getIdEquipoCliente());
+        // El borrador nuevo recibe lo que la orden lleva hoy para su tipo, como cualquier borrador (V60).
+        return serviceReportDrafts.open(orden.getId(), orden.getTipoServicio(), cerrado.getIdEquipoCliente(),
+                workOrderStandardsServicePort.standardsForEquipment(orden.getId(), cerrado.getIdEquipoCliente()));
     }
 
     // ---------------------------------------------------------------------------

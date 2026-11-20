@@ -154,8 +154,8 @@ class WorkOrderReportsAdapterTest {
         Sitio sitio = unSitio();
         UUID orden = unaOrden(sitio.sede(), "CREADA");
 
-        adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo());
-        adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo());
+        adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo(), java.util.Set.of());
+        adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo(), java.util.Set.of());
 
         assertThat(activos(orden, sitio.equipo())).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
@@ -170,7 +170,7 @@ class WorkOrderReportsAdapterTest {
     void retirarUnBorrador() {
         Sitio sitio = unSitio();
         UUID orden = unaOrden(sitio.sede(), "EN_EJECUCION");
-        adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo());
+        adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo(), java.util.Set.of());
 
         adapter.retireDraft(orden, sitio.equipo());
         adapter.retireDraft(orden, sitio.equipo());
@@ -184,7 +184,7 @@ class WorkOrderReportsAdapterTest {
     void unCerradoNoSeRetira() {
         Sitio sitio = unSitio();
         UUID orden = unaOrden(sitio.sede(), "EN_EJECUCION");
-        adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo());
+        adapter.openDraft(orden, ServiceType.PREVENTIVO, sitio.equipo(), java.util.Set.of());
         cerrar(orden, sitio.equipo());
 
         assertThatIllegalStateException().isThrownBy(() -> adapter.retireDraft(orden, sitio.equipo()))
@@ -199,10 +199,10 @@ class WorkOrderReportsAdapterTest {
         UUID una = unaOrden(sitio.sede(), "EN_EJECUCION");
         UUID otra = unaOrden(sitio.sede(), "EN_EJECUCION");
         UUID sinEquipos = unaOrden(sitio.sede(), "CREADA");
-        adapter.openDraft(una, ServiceType.PREVENTIVO, sitio.equipo());
-        adapter.openDraft(una, ServiceType.PREVENTIVO, sitio.otroEquipo());
+        adapter.openDraft(una, ServiceType.PREVENTIVO, sitio.equipo(), java.util.Set.of());
+        adapter.openDraft(una, ServiceType.PREVENTIVO, sitio.otroEquipo(), java.util.Set.of());
         cerrar(una, sitio.otroEquipo());
-        adapter.openDraft(otra, ServiceType.PREVENTIVO, sitio.equipo());
+        adapter.openDraft(otra, ServiceType.PREVENTIVO, sitio.equipo(), java.util.Set.of());
         adapter.retireDraft(otra, sitio.equipo());
 
         var porOrden = adapter.activeReports(List.of(una, otra, sinEquipos));
@@ -224,7 +224,7 @@ class WorkOrderReportsAdapterTest {
     void enUnaOrdenSinEjecutar() {
         Sitio sitio = unSitio();
         UUID creada = unaOrden(sitio.sede(), "CREADA");
-        adapter.openDraft(creada, ServiceType.PREVENTIVO, sitio.equipo());
+        adapter.openDraft(creada, ServiceType.PREVENTIVO, sitio.equipo(), java.util.Set.of());
 
         assertThat(attendance.inUnexecutedWorkOrder(sitio.equipo())).isTrue();
         assertThat(attendance.inUnexecutedWorkOrder(sitio.otroEquipo())).isFalse();
@@ -238,9 +238,9 @@ class WorkOrderReportsAdapterTest {
     void ejecutadaOCanceladaNoRetiene() {
         Sitio sitio = unSitio();
         UUID ejecutada = unaOrden(sitio.sede(), "EJECUTADA");
-        adapter.openDraft(ejecutada, ServiceType.PREVENTIVO, sitio.equipo());
+        adapter.openDraft(ejecutada, ServiceType.PREVENTIVO, sitio.equipo(), java.util.Set.of());
         UUID cancelada = unaOrden(sitio.sede(), "EN_EJECUCION");
-        adapter.openDraft(cancelada, ServiceType.PREVENTIVO, sitio.otroEquipo());
+        adapter.openDraft(cancelada, ServiceType.PREVENTIVO, sitio.otroEquipo(), java.util.Set.of());
         jdbcTemplate.update("UPDATE orden_trabajo SET b_estado_activo = false WHERE k_id_orden_trabajo = ?", cancelada);
 
         assertThat(attendance.inUnexecutedWorkOrder(sitio.equipo())).isFalse();

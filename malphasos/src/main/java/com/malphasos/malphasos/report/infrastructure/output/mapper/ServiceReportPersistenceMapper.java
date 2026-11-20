@@ -71,7 +71,7 @@ public class ServiceReportPersistenceMapper {
             for (ReportContentJson.Patron patron : verificacion.patrones()) {
                 patrones.add(new VerificationStandard(
                         derivado(id, "patron", verificacion.id(), patron.id()),
-                        verificacion.id(), patron.id(), true));
+                        verificacion.id(), patron.id(), patron.desdeOrden(), true));
             }
             for (ReportContentJson.Lectura lectura : verificacion.lecturas()) {
                 lecturas.add(VerificationReading.rehydrate(
@@ -188,7 +188,7 @@ public class ServiceReportPersistenceMapper {
                 .filter(VerificationStandard::estadoActivo)
                 .sorted(Comparator.comparing(VerificationStandard::idEquipoPatron, COMO_TEXTO))
                 .forEach(usado -> patrones.computeIfAbsent(usado.idVerificacion(), v -> new ArrayList<>())
-                        .add(new ReportContentJson.Patron(usado.idEquipoPatron(), false)));
+                        .add(new ReportContentJson.Patron(usado.idEquipoPatron(), usado.desdeOrden())));
 
         reporte.getLecturas().stream()
                 .filter(VerificationReading::estadoActivo)
