@@ -3194,3 +3194,16 @@ que decide y está probada. Se quitó el duplicado en vez de escribirle una prue
 `Clave`, sin tocar la prueba.
 
 **Lo que queda**: las pantallas de la orden —tanda 4—. El frontend ya tiene los tipos regenerados.
+
+## [2026-11-19] ingest | Las pantallas de los patrones de la orden (tanda 4)
+
+La tanda 4 y última de [[hoja-de-ruta-producto]] en el plan de los patrones: `ordenes/:id/patrones`, con un
+bloque por tipo que pregunta al catálogo qué admite y se guarda solo, varios patrones por tipo, y «Patrones de
+la visita» en la ficha de la orden, con nombres y con el enlace mientras no se ejecute —solo con
+`equipment.read`—. Ver [[decisiones-tecnicas-malphasos]].
+
+**886** pruebas en el frontend, 65 archivos, cero fallos; el backend no cambió (**1797**). Ocho mutaciones,
+las ocho muertas, tras afianzar una prueba que no habría visto ofrecer un patrón que el catálogo no admite.
+
+**Con esto el plan de los patrones está completo**: el catálogo por verificación, el reporte que solo admite
+esos, la orden que los reparte por tipo y sus pantallas.

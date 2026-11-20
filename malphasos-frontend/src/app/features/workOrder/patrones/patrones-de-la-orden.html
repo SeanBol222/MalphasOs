@@ -1,0 +1,50 @@
+<h1 class="titulo-pagina">
+  Patrones de la orden
+  @if (orden.data(); as datos) {
+    N.º {{ datos.numero }}
+  }
+</h1>
+<p class="mt-1 max-w-[720px] text-neutral-700">
+  Los patrones que el ingeniero lleva a la visita, por tipo de equipo. Cada reporte de ese tipo los
+  recibe en las verificaciones que el catálogo les permite, y el ingeniero quita los que no use. Lo
+  que ponga a mano en un reporte no cambia al guardar aquí.
+</p>
+
+@if (mensajeDeError()) {
+  <div class="mt-2 max-w-[720px] border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
+    <p class="font-semibold">{{ mensajeDeError() }}</p>
+  </div>
+}
+
+@if (cargando()) {
+  <p class="mt-2 text-neutral-700" role="status">Cargando patrones…</p>
+} @else {
+  @if (!editable()) {
+    <p class="mt-2 max-w-[720px] font-semibold" data-no-editable>
+      La orden está ejecutada o anulada: sus patrones ya no cambian.
+    </p>
+  }
+  @if (!bloques().length) {
+    <p class="mt-2 text-neutral-700">
+      La orden no tiene equipos todavía: los patrones se eligen para los tipos que lleva.
+    </p>
+  } @else {
+    <div class="superficie mt-3 max-w-[720px]">
+      @for (bloque of bloques(); track bloque.idTipo) {
+        <app-patrones-de-un-tipo
+          [idOrden]="id()"
+          [idTipo]="bloque.idTipo"
+          [nombre]="bloque.nombre"
+          [guardados]="bloque.guardados"
+          [patrones]="patrones.data() ?? []"
+          [editable]="editable()"
+        />
+      }
+    </div>
+  }
+  <a
+    class="boton-secundario mt-3 inline-flex min-h-tactil items-center"
+    [routerLink]="['/ordenes', id()]"
+    >Volver a la orden</a
+  >
+}

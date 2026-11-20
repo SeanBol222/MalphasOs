@@ -253,6 +253,9 @@ export type NuevaOrdenDeTrabajo = ordenes['schemas']['WorkOrderScheduleRequest']
 export type EquipoDeOrden = ordenes['schemas']['WorkOrderEquipmentResponse'];
 /** La aprobación de una orden ejecutada por el supervisor de su cliente (V54): lo que permite facturarla. */
 export type AprobacionDeOrden = ordenes['schemas']['WorkOrderApprovalResponse'];
+/** Los patrones que una orden lleva para un tipo de equipo de los que tiene (V60). */
+export type PatronesDeLaOrden = ordenes['schemas']['WorkOrderStandardsResponse'];
+export type AsignacionDePatronesDeLaOrden = ordenes['schemas']['AssignWorkOrderStandardsRequest'];
 
 export type EstadoDeEjecucion = NonNullable<OrdenDeTrabajo['estadoEjecucion']>;
 export type Periodicidad = NonNullable<NuevaOrdenDeTrabajo['periodicidad']>;

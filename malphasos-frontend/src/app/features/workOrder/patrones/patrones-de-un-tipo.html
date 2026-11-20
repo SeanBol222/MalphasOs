@@ -1,0 +1,87 @@
+<fieldset class="mt-3" [attr.data-tipo]="idTipo()">
+  <legend class="titulo-seccion">
+    {{ nombre() }}
+    <span class="text-sm font-normal text-neutral-700">
+      ·
+      {{
+        cuantos() === 0
+          ? 'ninguno elegido'
+          : cuantos() === 1
+            ? '1 elegido'
+            : cuantos() + ' elegidos'
+      }}
+    </span>
+  </legend>
+
+  @if (errorDelCatalogo()) {
+    <p class="mt-1 font-semibold" role="alert">{{ errorDelCatalogo() }}</p>
+  } @else if (cargando()) {
+    <p class="mt-1 text-neutral-700" role="status">Cargando el catálogo del tipo…</p>
+  } @else {
+    @if (sinCatalogo()) {
+      <p class="mt-1 font-semibold" data-sin-catalogo>
+        El catálogo no dice con qué patrones se mide este tipo. Se declaran en Catálogo › Tipos ›
+        «Patrones».
+      </p>
+    } @else if (!candidatos().length) {
+      <p class="mt-1 text-neutral-700">Ninguno de los patrones del catálogo está vigente hoy.</p>
+    }
+    <ul class="mt-1">
+      @for (candidato of candidatos(); track candidato.patron.id) {
+        <li [attr.data-patron]="candidato.patron.id">
+          <label class="flex min-h-tactil cursor-pointer items-start gap-2 py-1">
+            <input
+              class="mt-1"
+              type="checkbox"
+              [checked]="candidato.elegido"
+              [disabled]="!editable() || asignacion.isPending()"
+              (change)="alternar(candidato.patron.id!)"
+            />
+            <span>
+              <span class="block" [class.font-bold]="candidato.elegido">{{
+                candidato.patron.nombre
+              }}</span>
+              <span class="block text-sm text-neutral-700">
+                Serie {{ candidato.patron.serie }}
+                @if (candidato.patron.codigoInterno) {
+                  · {{ candidato.patron.codigoInterno }}
+                }
+                ·
+                @if (!candidato.patron.estadoActivo) {
+                  <span class="font-extrabold">Retirado</span>
+                } @else if (candidato.vencido) {
+                  <span class="font-extrabold">Vencido el {{ candidato.vence }}</span>
+                } @else {
+                  vence el {{ candidato.vence }}
+                }
+                @if (candidato.fueraDelCatalogo) {
+                  · <span class="font-extrabold">Ya no está en el catálogo del tipo</span>
+                }
+              </span>
+            </span>
+          </label>
+        </li>
+      }
+    </ul>
+    @if (editable()) {
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <button
+          class="boton-primario min-h-tactil"
+          type="button"
+          [disabled]="asignacion.isPending() || !hayCambios()"
+          (click)="guardar()"
+        >
+          {{ asignacion.isPending() ? 'Guardando…' : 'Guardar ' + nombre() }}
+        </button>
+        @if (guardadoAhora() && !hayCambios()) {
+          <span class="font-semibold" role="status"
+            >Guardado. Ya llegó a los reportes abiertos.</span
+          >
+        }
+      </div>
+      @if (fallo()) {
+        <p class="mt-1 font-semibold" role="alert">{{ fallo() }}</p>
+      }
+    }
+  }
+</fieldset>

@@ -312,6 +312,13 @@
           }
         </section>
 
+        @if (puedeLeerEquipos()) {
+          <app-patrones-de-la-visita
+            [idOrden]="id()"
+            [cambiables]="puedeEscribir() && cambiaDeEquipos()"
+          />
+        }
+
         @if (puedeVerSupervisores()) {
           <section class="superficie" aria-labelledby="supervisores">
             <h2 id="supervisores" class="titulo-seccion">Supervisores del cliente</h2>
