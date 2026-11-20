@@ -3207,3 +3207,19 @@ las ocho muertas, tras afianzar una prueba que no habría visto ofrecer un patr�
 
 **Con esto el plan de los patrones está completo**: el catálogo por verificación, el reporte que solo admite
 esos, la orden que los reparte por tipo y sus pantallas.
+
+## [2026-11-20] ingest | El catálogo, rehecho para cientos de filas
+
+Mejoras del frontend pedidas una a una por el usuario tras probar la versión con los patrones: buscadores en
+equipos del catálogo, tipos y modelos; los tipos ordenables en los dos sentidos; los formularios de alta tras
+un botón; el modelo que se crea eligiendo tipo y luego marca, y crea la combinación si falta; el alta de un
+tipo con sus marcas y modelos, y en dos columnas. Antes, el favicon de MalphasOS. Ver
+[[decisiones-tecnicas-malphasos]].
+
+**921** pruebas en el frontend, 65 archivos, cero fallos; el backend no cambió (**1797**). Cada cambio se
+mutó: **dos supervivientes** —que la marca vuelva a desactivarse al quitar el tipo, y que plegar una sección
+la oculte de verdad— y las dos tienen ya su prueba. Una mutación no compiló y se repitió de otra forma, porque
+un arnés que no mide nada no puede contar como muerte.
+
+**La rama sigue abierta**: el usuario tiene más cambios del frontend en la misma línea.
+
