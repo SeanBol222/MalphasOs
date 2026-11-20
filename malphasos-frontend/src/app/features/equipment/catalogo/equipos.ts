@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoApi } from '../catalogo-api';
+import { normalizar } from '../../../core/texto';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 
@@ -32,7 +34,12 @@ export class EquiposDeCatalogo {
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
-  protected readonly formulario = inject(FormBuilder).nonNullable.group({
+  private readonly formBuilder = inject(FormBuilder);
+
+  /** El formulario de la combinacion se abre con «Nuevo equipo» y se cierra al combinar o cancelar. */
+  protected readonly abierto = signal(false);
+
+  protected readonly formulario = this.formBuilder.nonNullable.group({
     idTipoEquipo: ['', Validators.required],
     idMarca: ['', Validators.required],
   });
@@ -51,6 +58,26 @@ export class EquiposDeCatalogo {
       tipo: tipos.get(equipo.idTipoEquipo!) ?? 'Tipo no disponible',
       marca: marcas.get(equipo.idMarca!) ?? 'Marca no disponible',
     }));
+  });
+
+  protected readonly filtro = this.formBuilder.nonNullable.control('');
+  private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
+
+  /**
+   * Las filas que casan con lo buscado, sin tildes ni mayusculas, y en orden alfabetico por tipo y
+   * marca. Cada palabra puede caer en el tipo o en la marca: «tensiometro welch» encuentra la
+   * combinacion aunque ninguna de las dos piezas contenga la frase entera.
+   */
+  protected readonly visibles = computed(() => {
+    const palabras = normalizar(this.textoDelFiltro()).split(' ').filter(Boolean);
+
+    return this.filas()
+      .filter((fila) => {
+        const texto = normalizar(`${fila.tipo} ${fila.marca}`);
+
+        return palabras.every((palabra) => texto.includes(palabra));
+      })
+      .sort((a, b) => a.tipo.localeCompare(b.tipo, 'es') || a.marca.localeCompare(b.marca, 'es'));
   });
 
   /** Solo se ofrecen piezas activas: el backend rechaza una referencia retirada. */
@@ -76,8 +103,18 @@ export class EquiposDeCatalogo {
     }
 
     this.alta.mutate(this.formulario.getRawValue(), {
-      onSuccess: () => this.formulario.reset(),
+      onSuccess: () => this.cancelar(),
     });
+  }
+
+  protected abrir(): void {
+    this.formulario.reset();
+    this.abierto.set(true);
+  }
+
+  protected cancelar(): void {
+    this.formulario.reset();
+    this.abierto.set(false);
   }
 
   protected retirar(id: string): void {

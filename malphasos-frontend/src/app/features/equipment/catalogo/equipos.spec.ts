@@ -38,6 +38,11 @@ describe('Equipos del catalogo', () => {
     await responderAlCatalogo(fixture, http, datos);
   }
 
+  function pulsar(etiqueta: string): void {
+    [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === etiqueta)!.click();
+    fixture.detectChanges();
+  }
+
   function escribir(id: string, valor: string): void {
     const campo = raiz().querySelector<HTMLSelectElement>(`#${id}`)!;
     campo.value = valor;
@@ -70,8 +75,22 @@ describe('Equipos del catalogo', () => {
     expect(texto()).toContain('Tipo no disponible');
   });
 
+  it('el formulario no esta a la vista: se abre con «Nuevo equipo» y se cierra con «Cancelar»', async () => {
+    await abrir();
+    expect(raiz().querySelector('form')).toBeNull();
+
+    pulsar('Nuevo equipo');
+    expect(raiz().querySelector('form')).not.toBeNull();
+    // Abierto, el boton sobra: ya se esta creando uno.
+    expect(texto()).not.toContain('Nuevo equipo');
+
+    pulsar('Cancelar');
+    expect(raiz().querySelector('form')).toBeNull();
+  });
+
   it('solo ofrece tipos y marcas activos: el backend rechaza una referencia retirada', async () => {
     await abrir();
+    pulsar('Nuevo equipo');
 
     const marcas = [...raiz().querySelectorAll<HTMLOptionElement>('#marcaDelEquipo option')];
 
@@ -79,8 +98,9 @@ describe('Equipos del catalogo', () => {
     expect(texto()).not.toContain('Marca retirada');
   });
 
-  it('combinar manda los dos identificadores y nada mas', async () => {
+  it('combinar manda los dos identificadores y nada mas, y cierra el formulario', async () => {
     await abrir();
+    pulsar('Nuevo equipo');
     escribir('tipoDelEquipo', ID_TIPO);
     escribir('marcaDelEquipo', ID_MARCA);
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
@@ -97,15 +117,78 @@ describe('Equipos del catalogo', () => {
       http.match(url).forEach((p) => p.flush(url === URL_MARCAS ? MARCAS : url === URL_TIPOS ? TIPOS : EQUIPOS));
     }
     await asentar(fixture);
+    expect(raiz().querySelector('form')).toBeNull();
+  });
+
+  it('sin permiso de escritura no hay boton para crear', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [...proveerApiSimulado(), ...proveerSesionFalsa({ autoridades: ['equipment.read'] })],
+    });
+    fixture = TestBed.createComponent(EquiposDeCatalogo);
+    http = TestBed.inject(HttpTestingController);
+    await abrir();
+
+    expect(texto()).not.toContain('Nuevo equipo');
   });
 
   it('sin elegir las dos piezas no llega al servidor', async () => {
     await abrir();
+    pulsar('Nuevo equipo');
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
     await asentar(fixture);
 
     http.expectNone({ method: 'POST', url: URL_EQUIPOS });
     expect(texto()).toContain('Elija un tipo y una marca');
+  });
+
+  describe('el buscador', () => {
+    const DOS_TIPOS = [...TIPOS, { ...TIPOS[0], id: 't2', nombre: 'Báscula' }];
+    const TRES_EQUIPOS = [
+      ...EQUIPOS,
+      { id: 'e2', idTipoEquipo: 't2', idMarca: ID_MARCA, estadoActivo: true },
+      { id: 'e3', idTipoEquipo: ID_TIPO, idMarca: 'm3', estadoActivo: true },
+    ];
+    const TRES_MARCAS = [...MARCAS, { id: 'm3', nombre: 'Omron', estadoActivo: true }];
+
+    const filas = () =>
+      [...raiz().querySelectorAll('li > span')].map((s) => s.textContent!.replace(/\s+/g, ' ').trim());
+
+    async function buscar(valor: string): Promise<void> {
+      const campo = raiz().querySelector<HTMLInputElement>('#filtroEquipos')!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      await asentar(fixture);
+    }
+
+    beforeEach(() => abrir({ tipos: DOS_TIPOS, equipos: TRES_EQUIPOS, marcas: TRES_MARCAS }));
+
+    it('sin buscar ensena todos, por tipo y luego por marca', () => {
+      expect(filas()).toEqual([
+        'Báscula · Welch Allyn',
+        'Tensiómetro · Omron',
+        'Tensiómetro · Welch Allyn',
+      ]);
+    });
+
+    it('encuentra sin tildes ni mayusculas', async () => {
+      await buscar('BASCULA');
+
+      expect(filas()).toEqual(['Báscula · Welch Allyn']);
+    });
+
+    it('cada palabra puede caer en el tipo o en la marca', async () => {
+      await buscar('tensiometro welch');
+
+      expect(filas()).toEqual(['Tensiómetro · Welch Allyn']);
+    });
+
+    it('si nada coincide, lo dice con lo buscado', async () => {
+      await buscar('desfibrilador');
+
+      expect(filas()).toEqual([]);
+      expect(texto()).toContain('Ningún equipo coincide con «desfibrilador»');
+    });
   });
 
   afterEach(() => http.verify());

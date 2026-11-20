@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
@@ -8,6 +9,8 @@ import { ConfiguracionDeVerificacion, Verificacion } from './verificacion';
 import { ProtocolosDelTipo } from './protocolos-del-tipo';
 import { AsignacionDeProtocolos } from '../../../core/api/tipos';
 import { tecnologiasAutorizadas } from './tecnologias';
+import { ConfiguracionDeModelos, MarcasYModelos, PiezaElegida } from './marcas-y-modelos';
+import { normalizar } from '../../../core/texto';
 
 /**
  * Alta de un tipo de equipo, la unica pieza del catalogo con ficha tecnica.
@@ -22,7 +25,7 @@ import { tecnologiasAutorizadas } from './tecnologias';
  */
 @Component({
   selector: 'app-nuevo-tipo',
-  imports: [ReactiveFormsModule, RouterLink, Buscador, Verificacion, ProtocolosDelTipo],
+  imports: [ReactiveFormsModule, RouterLink, Buscador, Verificacion, ProtocolosDelTipo, MarcasYModelos],
   templateUrl: './nuevo-tipo.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -33,6 +36,52 @@ export class NuevoTipo {
 
   protected readonly alta = this.api.crearTipo();
   protected readonly asignacion = this.api.asignarProtocolos();
+  private readonly altaDeMarca = this.api.crearMarca();
+  private readonly altaDeFabricante = this.api.crearFabricante();
+  private readonly altaDeEquipo = this.api.crearEquipo();
+  private readonly altaDeModelo = this.api.crearModelo();
+
+  /**
+   * Las marcas y los modelos que el tipo trae desde su alta, plegados por defecto (2026-11-19). El
+   * bloque no se crea hasta que se abre —no pide marcas ni fabricantes si nadie lo usa— y una vez
+   * creado se conserva al plegarlo, para no perder lo escrito.
+   */
+  protected readonly modelosAbiertos = signal(false);
+  protected readonly modelosAbiertosAlgunaVez = signal(false);
+  protected readonly modelos = signal<ConfiguracionDeModelos>({ modelos: [], valida: true });
+  private readonly bloqueDeModelos = viewChild(MarcasYModelos);
+
+  /** Las otras dos secciones plegadas de la columna de lo opcional (2026-11-20). */
+  protected readonly verificacionAbierta = signal(false);
+  protected readonly fichaAbierta = signal(false);
+
+  /** Lo que lleva cada seccion, dicho en su cabecera para que se vea aun plegada. */
+  protected readonly resumenDeVerificacion = computed(() => {
+    const cuantas = this.verificacion().verificaciones.length;
+
+    return cuantas ? `${cuantas} ${cuantas === 1 ? 'magnitud' : 'magnitudes'}` : 'Sin verificación';
+  });
+  protected readonly resumenDeModelos = computed(() => {
+    const cuantos = this.modelos().modelos.length;
+
+    return cuantos ? `${cuantos} ${cuantos === 1 ? 'modelo' : 'modelos'}` : 'Ninguno';
+  });
+  protected readonly resumenDeFicha = computed(() => {
+    const valores = this.valores();
+    const llenos = [
+      valores.uso?.trim(),
+      valores.limpiezaCotidiana?.trim(),
+      valores.valorUnitarioMantenimiento !== null && valores.valorUnitarioMantenimiento !== undefined,
+    ].filter(Boolean).length;
+
+    return llenos ? `${llenos} de 3` : 'Sin completar';
+  });
+
+  /** Mientras dura la cadena entera: el tipo, sus protocolos y sus modelos. */
+  private readonly guardando = signal(false);
+
+  /** Si un modelo falla, el tipo ya existe: se dice cuantos quedaron, como con los protocolos. */
+  private readonly falloDeModelos = signal('');
 
   /** Los protocolos del preventivo, en orden. Se guardan despues del tipo, con el mismo boton. */
   protected readonly protocolos = signal<AsignacionDeProtocolos>({ protocolos: [] });
@@ -72,7 +121,14 @@ export class NuevoTipo {
     valorUnitarioMantenimiento: [null as number | null],
   });
 
-  protected readonly enviando = computed(() => this.alta.isPending() || this.asignacion.isPending());
+  /** Los valores como senal: un formulario reactivo no lo es, y el resumen de la ficha depende de ellos. */
+  private readonly valores = toSignal(this.formulario.valueChanges, {
+    initialValue: this.formulario.getRawValue(),
+  });
+
+  protected readonly enviando = computed(
+    () => this.guardando() || this.alta.isPending() || this.asignacion.isPending(),
+  );
 
   /**
    * Si fallan los protocolos el tipo ya existe: se dice asi, para que no se intente crearlo otra vez y
@@ -86,6 +142,9 @@ export class NuevoTipo {
     if (this.asignacion.isError()) {
       return `El tipo se creó, pero sus protocolos no se guardaron: ${traducirError(this.asignacion.error())} Asígnelos desde su edición.`;
     }
+    if (this.falloDeModelos()) {
+      return this.falloDeModelos();
+    }
 
     return '';
   });
@@ -97,57 +156,160 @@ export class NuevoTipo {
     return !!control && control.invalid && control.touched;
   }
 
-  protected enviar(): void {
+  protected alternarModelos(): void {
+    this.modelosAbiertos.update((abiertos) => !abiertos);
+    this.modelosAbiertosAlgunaVez.set(true);
+  }
+
+  protected async enviar(): Promise<void> {
     const verificacion = this.verificacion();
 
-    if (this.formulario.invalid || !verificacion.valida) {
+    if (this.formulario.invalid || !verificacion.valida || !this.modelos().valida) {
       this.formulario.markAllAsTouched();
-      // Que el bloque pinte sus propios errores: hasta que se intenta guardar no se le reprocha nada.
+      // Que los bloques pinten sus propios errores: hasta que se intenta guardar no se les reprocha nada.
       this.bloqueDeVerificacion()?.marcarIntento();
+      this.bloqueDeModelos()?.marcarIntento();
+      // Un error en una seccion plegada no se veria: se abre la que lo tenga.
+      if (!verificacion.valida) {
+        this.verificacionAbierta.set(true);
+      }
+      if (!this.modelos().valida) {
+        this.modelosAbiertos.set(true);
+      }
 
       return;
     }
 
     const datos = this.formulario.getRawValue();
 
+    this.guardando.set(true);
+    this.falloDeModelos.set('');
+
+    try {
+      const creado = await this.alta.mutateAsync(this.cuerpo(datos, verificacion));
+
+      if (!(await this.guardarProtocolos(creado.id!))) {
+        return;
+      }
+      if (!(await this.guardarModelos(creado.id!))) {
+        return;
+      }
+
+      void this.router.navigate(['/catalogo']);
+    } catch {
+      // El alta del tipo fallo: lo dice su propio estado de error, y no hay nada mas que deshacer.
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  private cuerpo(
+    datos: ReturnType<NuevoTipo['formulario']['getRawValue']>,
+    verificacion: ConfiguracionDeVerificacion,
+  ) {
     // Los opcionales que nadie relleno no viajan. Un cero no es lo mismo que "no se sabe", y mandar
     // null o cadena vacia haria que el backend guardara un dato inventado.
-    this.alta.mutate(
-      {
-        nombre: datos.nombre,
-        tecnologiaPredominante: datos.tecnologiaPredominante,
-        definicionTecnica: datos.definicionTecnica,
-        recomendacionesCuidado: datos.recomendacionesCuidado,
-        // La lista entera o nada: una lista vacia significa que a este tipo no se le verifica nada,
-        // y entonces ni se manda el campo.
-        ...(verificacion.verificaciones.length
-          ? { verificaciones: [...verificacion.verificaciones] }
-          : {}),
-        ...(datos.uso.trim() ? { uso: datos.uso.trim() } : {}),
-        ...(datos.limpiezaCotidiana.trim()
-          ? { limpiezaCotidiana: datos.limpiezaCotidiana.trim() }
-          : {}),
-        ...(datos.valorUnitarioMantenimiento === null
-          ? {}
-          : { valorUnitarioMantenimiento: datos.valorUnitarioMantenimiento }),
-      },
-      { onSuccess: (creado) => this.guardarProtocolos(creado.id!) },
-    );
+    return {
+      nombre: datos.nombre,
+      tecnologiaPredominante: datos.tecnologiaPredominante,
+      definicionTecnica: datos.definicionTecnica,
+      recomendacionesCuidado: datos.recomendacionesCuidado,
+      // La lista entera o nada: una lista vacia significa que a este tipo no se le verifica nada,
+      // y entonces ni se manda el campo.
+      ...(verificacion.verificaciones.length
+        ? { verificaciones: [...verificacion.verificaciones] }
+        : {}),
+      ...(datos.uso.trim() ? { uso: datos.uso.trim() } : {}),
+      ...(datos.limpiezaCotidiana.trim()
+        ? { limpiezaCotidiana: datos.limpiezaCotidiana.trim() }
+        : {}),
+      ...(datos.valorUnitarioMantenimiento === null
+        ? {}
+        : { valorUnitarioMantenimiento: datos.valorUnitarioMantenimiento }),
+    };
   }
 
   /** Sin protocolos no hay nada que mandar: un tipo nuevo ya nace sin ninguno. */
-  private guardarProtocolos(id: string): void {
+  private async guardarProtocolos(id: string): Promise<boolean> {
     const asignacion = this.protocolos();
 
     if (!asignacion.protocolos?.length) {
-      void this.router.navigate(['/catalogo']);
-
-      return;
+      return true;
     }
 
-    this.asignacion.mutate(
-      { id, asignacion },
-      { onSuccess: () => void this.router.navigate(['/catalogo']) },
-    );
+    try {
+      await this.asignacion.mutateAsync({ id, asignacion });
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Cada modelo con su marca, su fabricante y su combinacion con el tipo, en serie: cada paso necesita
+   * el identificador del anterior. Una marca o un fabricante nuevos que se repiten en dos filas se
+   * crean una vez, y uno escrito con el nombre de uno que ya existe se reutiliza en vez de duplicarlo.
+   */
+  private async guardarModelos(idTipo: string): Promise<boolean> {
+    const modelos = this.modelos().modelos;
+    const marcas = new Map<string, string>();
+    const fabricantes = new Map<string, string>();
+    const combinaciones = new Map<string, string>();
+    let creados = 0;
+
+    try {
+      for (const modelo of modelos) {
+        const idMarca = await this.resolver(modelo.marca, marcas, (nombre) =>
+          this.altaDeMarca.mutateAsync({ nombre }),
+        );
+        const idFabricante = await this.resolver(modelo.fabricante, fabricantes, (nombre) =>
+          this.altaDeFabricante.mutateAsync({ nombre }),
+        );
+        // El tipo es nuevo: ninguna combinacion suya existe todavia, salvo la de una fila anterior.
+        const idEquipo =
+          combinaciones.get(idMarca) ??
+          (await this.altaDeEquipo.mutateAsync({ idTipoEquipo: idTipo, idMarca })).id!;
+        combinaciones.set(idMarca, idEquipo);
+
+        await this.altaDeModelo.mutateAsync({
+          nombre: modelo.nombre,
+          idEquipo,
+          idFabricante,
+          ...(modelo.invima ? { invima: modelo.invima } : {}),
+        });
+        creados++;
+      }
+
+      return true;
+    } catch (fallo) {
+      this.falloDeModelos.set(
+        `El tipo se creó, y ${creados} de ${modelos.length} modelos, pero el siguiente no se guardó: ${traducirError(fallo)} Agréguelo desde Catálogo › Modelos.`,
+      );
+
+      return false;
+    }
+  }
+
+  /** El identificador de una pieza elegida, o de la creada con ese nombre si no existia. */
+  private async resolver(
+    pieza: PiezaElegida,
+    creadas: Map<string, string>,
+    crear: (nombre: string) => Promise<{ id?: string }>,
+  ): Promise<string> {
+    if ('id' in pieza) {
+      return pieza.id;
+    }
+
+    const clave = normalizar(pieza.nombre);
+    const existente = creadas.get(clave);
+    if (existente) {
+      return existente;
+    }
+
+    const id = (await crear(pieza.nombre)).id!;
+    creadas.set(clave, id);
+
+    return id;
   }
 }

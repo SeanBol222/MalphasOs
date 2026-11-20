@@ -1,10 +1,12 @@
 <h1 class="titulo-pagina">Nuevo tipo de equipo</h1>
 
-<form class="superficie mt-3 max-w-[720px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
-
-  <p class="mb-3 text-neutral-700">
-    Los campos marcados con <span class="text-accent-700" aria-hidden="true">*</span> son obligatorios.
-  </p>
+<!--
+  Dos columnas desde el 2026-11-20, sobre la maqueta que aprobó el usuario: a la izquierda los datos
+  generales —los cuatro obligatorios y el protocolo preventivo— con los botones al pie, y a la derecha
+  lo opcional en secciones plegadas, cada una con su resumen para que se vea qué lleva sin abrirla. En
+  una pantalla estrecha la derecha baja debajo de la izquierda.
+-->
+<form class="mt-3 max-w-[1200px]" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
   @if (mensajeDeError()) {
     <div class="mb-3 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
       <p class="font-semibold">{{ mensajeDeError() }}</p>
@@ -18,127 +20,209 @@
     </div>
   }
 
-  <div class="mb-3">
-    <label class="block font-semibold" for="nombre">Nombre <span class="text-accent-700" aria-hidden="true">*</span></label>
-    <input
-      id="nombre"
-      class="campo mt-1 min-h-tactil w-full"
-      formControlName="nombre"
-      maxlength="50"
-      [attr.aria-invalid]="malo('nombre') || null"
-      aria-required="true"
-    />
-  </div>
+  <div class="grid items-start gap-3 lg:grid-cols-2">
+    <section class="superficie" aria-labelledby="datosGenerales">
+      <h2 id="datosGenerales" class="titulo-seccion mb-1">Datos generales</h2>
+      <p class="mb-3 text-neutral-700">
+        Los campos con <span class="text-accent-700" aria-hidden="true">*</span> son obligatorios.
+      </p>
 
-  <div class="mb-3">
-    <!--
-      Lista cerrada: solo se admite una tecnologia autorizada. El truco es que el identificador de cada
-      opcion ES su nombre -el backend guarda texto-, de modo que el formulario sigue enviando la
-      tecnologia tal cual y a la vez rechaza lo que no este en la lista.
-    -->
-    <app-buscador
-      formControlName="tecnologiaPredominante"
-      campo="tecnologiaPredominante"
-      etiqueta="Tecnología predominante"
-      historial="tecnologia"
-      [opciones]="tecnologias()"
-    />
-  </div>
+      <div class="mb-3">
+        <label class="block font-semibold" for="nombre">
+          Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <input
+          id="nombre"
+          class="campo mt-1 min-h-tactil w-full"
+          formControlName="nombre"
+          maxlength="50"
+          [attr.aria-invalid]="malo('nombre') || null"
+          aria-required="true"
+        />
+      </div>
 
-  <div class="mb-3">
-    <label class="block font-semibold" for="definicionTecnica">Definición técnica <span class="text-accent-700" aria-hidden="true">*</span></label>
-    <textarea
-      id="definicionTecnica"
-      class="campo mt-1 min-h-tactil w-full"
-      rows="3"
-      formControlName="definicionTecnica"
-      maxlength="250"
-      [attr.aria-invalid]="malo('definicionTecnica') || null"
-      aria-required="true"
-    ></textarea>
-  </div>
+      <div class="mb-3">
+        <!--
+          Lista cerrada: solo se admite una tecnologia autorizada. El truco es que el identificador de
+          cada opcion ES su nombre -el backend guarda texto-, de modo que el formulario sigue enviando la
+          tecnologia tal cual y a la vez rechaza lo que no este en la lista.
+        -->
+        <app-buscador
+          formControlName="tecnologiaPredominante"
+          campo="tecnologiaPredominante"
+          etiqueta="Tecnología predominante"
+          historial="tecnologia"
+          [opciones]="tecnologias()"
+        />
+      </div>
 
-  <div class="mb-3">
-    <label class="block font-semibold" for="recomendacionesCuidado">Recomendaciones de cuidado <span class="text-accent-700" aria-hidden="true">*</span></label>
-    <textarea
-      id="recomendacionesCuidado"
-      class="campo mt-1 min-h-tactil w-full"
-      rows="3"
-      formControlName="recomendacionesCuidado"
-      maxlength="250"
-      [attr.aria-invalid]="malo('recomendacionesCuidado') || null"
-      aria-required="true"
-    ></textarea>
-  </div>
+      <div class="mb-3">
+        <label class="block font-semibold" for="definicionTecnica">
+          Definición técnica <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <textarea
+          id="definicionTecnica"
+          class="campo mt-1 min-h-tactil w-full"
+          rows="3"
+          formControlName="definicionTecnica"
+          maxlength="250"
+          [attr.aria-invalid]="malo('definicionTecnica') || null"
+          aria-required="true"
+        ></textarea>
+      </div>
 
-  @if (
-    malo('nombre') ||
-    malo('tecnologiaPredominante') ||
-    malo('definicionTecnica') ||
-    malo('recomendacionesCuidado')
-  ) {
-    <p class="mb-3 font-semibold text-accent-700">
-      El nombre, la tecnología, la definición técnica y las recomendaciones son obligatorios.
-    </p>
-  }
+      <div class="mb-3">
+        <label class="block font-semibold" for="recomendacionesCuidado">
+          Recomendaciones de cuidado <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <textarea
+          id="recomendacionesCuidado"
+          class="campo mt-1 min-h-tactil w-full"
+          rows="3"
+          formControlName="recomendacionesCuidado"
+          maxlength="250"
+          [attr.aria-invalid]="malo('recomendacionesCuidado') || null"
+          aria-required="true"
+        ></textarea>
+      </div>
 
-  <h2 class="titulo-seccion mb-1">Datos opcionales</h2>
-  <p class="mb-2 text-neutral-700">Se pueden completar después; ninguno impide guardar.</p>
+      @if (
+        malo('nombre') ||
+        malo('tecnologiaPredominante') ||
+        malo('definicionTecnica') ||
+        malo('recomendacionesCuidado')
+      ) {
+        <p class="mb-3 font-semibold text-accent-700">
+          El nombre, la tecnología, la definición técnica y las recomendaciones son obligatorios.
+        </p>
+      }
 
-  <app-verificacion (cambio)="verificacion.set($event)" />
+      <!-- El protocolo es opcional, pero va con los datos generales: es lo que se hace en cada preventivo. -->
+      <app-protocolos-del-tipo (cambio)="protocolos.set($event)" />
 
-  <app-protocolos-del-tipo (cambio)="protocolos.set($event)" />
+      <div class="flex flex-wrap gap-2 border-t border-neutral-200 pt-2">
+        <button class="boton-primario min-h-tactil" type="submit" [disabled]="enviando()">
+          {{ enviando() ? 'Guardando…' : 'Guardar tipo' }}
+        </button>
 
-  <!--
-    Voltaje y amperaje estaban aqui hasta el 2026-10-05: son de cada modelo y no del tipo, y se
-    anotan en su ficha tecnica, en Catalogo > Modelos.
-  -->
-  <div class="mb-3">
-    <label class="block font-semibold" for="uso">Uso</label>
-    <textarea
-      id="uso"
-      class="campo mt-1 min-h-tactil w-full"
-      rows="2"
-      formControlName="uso"
-      maxlength="250"
-    ></textarea>
-  </div>
+        <a class="boton-secundario flex min-h-tactil items-center" routerLink="/catalogo">
+          Cancelar
+        </a>
+      </div>
+    </section>
 
-  <div class="mb-3">
-    <label class="block font-semibold" for="limpiezaCotidiana">Limpieza cotidiana</label>
-    <textarea
-      id="limpiezaCotidiana"
-      class="campo mt-1 min-h-tactil w-full"
-      rows="2"
-      formControlName="limpiezaCotidiana"
-      maxlength="250"
-    ></textarea>
-  </div>
+    <section class="superficie" aria-labelledby="datosOpcionales">
+      <h2 id="datosOpcionales" class="titulo-seccion mb-1">Datos opcionales</h2>
+      <p class="mb-2 text-neutral-700">Se pueden completar después; ninguno impide guardar.</p>
 
-  <div class="mb-3 grid gap-3 sm:grid-cols-3">
-    <div>
-      <label class="block font-semibold" for="valorUnitarioMantenimiento">Valor mantenimiento</label>
-      <input
-        id="valorUnitarioMantenimiento"
-        class="campo mt-1 min-h-tactil w-full"
-        type="number"
-        inputmode="numeric"
-        formControlName="valorUnitarioMantenimiento"
-      />
-    </div>
-  </div>
+      <!--
+        La verificacion y la ficha se montan siempre y solo se ocultan: el bloque de verificacion pide el
+        catalogo metrologico al montarse y valida lo que tiene, y plegarlo no debe perder nada. Las
+        marcas y los modelos, en cambio, no se crean hasta abrirlos: piden marcas y fabricantes, y la
+        mayoria de las altas no los usan.
+      -->
+      <div class="border-b border-neutral-300">
+        <button
+          class="flex min-h-tactil w-full items-center gap-1 text-left font-semibold"
+          type="button"
+          data-seccion="verificacion"
+          aria-controls="seccionVerificacion"
+          [attr.aria-expanded]="verificacionAbierta()"
+          (click)="verificacionAbierta.set(!verificacionAbierta())"
+        >
+          <span class="inline-block w-[1em]" aria-hidden="true">{{
+            verificacionAbierta() ? '▾' : '▸'
+          }}</span>
+          <span class="grow">Verificación</span>
+          <span class="font-normal text-neutral-700">{{ resumenDeVerificacion() }}</span>
+        </button>
+        <div id="seccionVerificacion" class="pb-2" [hidden]="!verificacionAbierta()">
+          <app-verificacion (cambio)="verificacion.set($event)" />
+        </div>
+      </div>
 
-  <div class="flex gap-2">
-    <button
-      class="boton-primario min-h-tactil"
-      type="submit"
-      [disabled]="enviando()"
-    >
-      {{ enviando() ? 'Guardando…' : 'Guardar tipo' }}
-    </button>
+      <div class="border-b border-neutral-300">
+        <button
+          class="flex min-h-tactil w-full items-center gap-1 text-left font-semibold"
+          type="button"
+          data-seccion="modelos"
+          aria-controls="marcasYModelos"
+          [attr.aria-expanded]="modelosAbiertos()"
+          (click)="alternarModelos()"
+        >
+          <span class="inline-block w-[1em]" aria-hidden="true">{{
+            modelosAbiertos() ? '▾' : '▸'
+          }}</span>
+          <span class="grow">Marcas y modelos</span>
+          <span class="font-normal text-neutral-700">{{ resumenDeModelos() }}</span>
+        </button>
+        @if (modelosAbiertosAlgunaVez()) {
+          <div id="marcasYModelos" class="pb-2" [hidden]="!modelosAbiertos()">
+            <p class="mb-2 text-neutral-700">
+              Se crean con el tipo. Una marca o un fabricante que no exista se crea escribiendo su
+              nombre.
+            </p>
+            <app-marcas-y-modelos (cambio)="modelos.set($event)" />
+          </div>
+        }
+      </div>
 
-    <a class="boton-secundario flex min-h-tactil items-center" routerLink="/catalogo">
-      Cancelar
-    </a>
+      <!--
+        Voltaje y amperaje estaban aqui hasta el 2026-10-05: son de cada modelo y no del tipo, y se
+        anotan en su ficha tecnica, en Catalogo > Modelos.
+      -->
+      <div>
+        <button
+          class="flex min-h-tactil w-full items-center gap-1 text-left font-semibold"
+          type="button"
+          data-seccion="ficha"
+          aria-controls="seccionFicha"
+          [attr.aria-expanded]="fichaAbierta()"
+          (click)="fichaAbierta.set(!fichaAbierta())"
+        >
+          <span class="inline-block w-[1em]" aria-hidden="true">{{
+            fichaAbierta() ? '▾' : '▸'
+          }}</span>
+          <span class="grow">Uso, limpieza y valor</span>
+          <span class="font-normal text-neutral-700">{{ resumenDeFicha() }}</span>
+        </button>
+        <div id="seccionFicha" class="pb-2" [hidden]="!fichaAbierta()">
+          <div class="mb-3">
+            <label class="block font-semibold" for="uso">Uso</label>
+            <textarea
+              id="uso"
+              class="campo mt-1 min-h-tactil w-full"
+              rows="2"
+              formControlName="uso"
+              maxlength="250"
+            ></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="block font-semibold" for="limpiezaCotidiana">Limpieza cotidiana</label>
+            <textarea
+              id="limpiezaCotidiana"
+              class="campo mt-1 min-h-tactil w-full"
+              rows="2"
+              formControlName="limpiezaCotidiana"
+              maxlength="250"
+            ></textarea>
+          </div>
+
+          <div class="max-w-[240px]">
+            <label class="block font-semibold" for="valorUnitarioMantenimiento">
+              Valor mantenimiento
+            </label>
+            <input
+              id="valorUnitarioMantenimiento"
+              class="campo mt-1 min-h-tactil w-full"
+              type="number"
+              inputmode="numeric"
+              formControlName="valorUnitarioMantenimiento"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </form>

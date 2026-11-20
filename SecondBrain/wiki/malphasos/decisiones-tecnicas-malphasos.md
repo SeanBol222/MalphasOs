@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-11-19
+updated: 2026-11-20
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -1004,3 +1004,38 @@ orden ejecutada se ven sin poder cambiarse.
 mientras no se ejecute. **Solo con `equipment.read`**: los nombres salen del catálogo de equipos, y sin esa
 autoridad se pintarían identificadores. Por la misma razón vive en un componente aparte, con su prueba, y la
 de la ficha solo comprueba que aparece con la autoridad y no sin ella.
+
+## El catálogo, rehecho para cientos de filas (2026-11-19 y 20)
+
+**Lo que lo pidió**: la carga de datos llenó el catálogo y sus pantallas, pensadas para unas pocas filas, dejaron
+de servir. Las decisiones son del usuario, una por una, sobre la rama `feat/frontend-improvements`.
+
+**Un buscador en cada lista** —equipos del catálogo, tipos y modelos—, el mismo que tenían los protocolos: sin
+tildes ni mayúsculas, y **cada palabra puede caer en cualquier dato de la fila**, de modo que «tensiometro
+omron» encuentra los tensiómetros de Omron aunque el modelo no lo diga. Las tres se ordenan alfabéticamente, y
+**los tipos se ordenan en los dos sentidos** desde la cabecera, como el listado de órdenes.
+
+**Los formularios de alta se abren con un botón**, «Nuevo equipo» y «Nuevo modelo», encima de la lista: con
+cientos de filas el formulario quedaba al final de la página. Y la lista de modelos dejó de tener un alto fijo.
+
+**Un modelo se crea eligiendo tipo y después marca**, no una combinación de una lista con todas: las marcas
+que ya fabrican ese tipo arriba, el resto debajo. **Si la combinación no existe se crea al guardar**, como en
+el alta de un equipo —decidido por el usuario frente a ofrecer solo las asociadas—. El equipo del catálogo
+sigue siendo el eslabón que el modelo necesita; lo que cambió es que ya no hay que pasar por él a mano.
+
+**El alta de un tipo trae sus marcas y modelos**, en una sección plegada con una fila por modelo; la marca y
+el fabricante se eligen o se crean escribiendo su nombre. Al guardar se crean en serie después del tipo y
+sus protocolos, **sin duplicar**: una marca nueva repetida en dos filas se crea una vez, y una escrita con el
+nombre de una que existe es esa. El fabricante nuevo se crea sin país, que se completa en su pantalla. **El
+bloque no se crea hasta que se abre la sección**: pide marcas y fabricantes, y la mayoría de las altas no lo
+usan. No hay transacción entre tantas llamadas, así que si un modelo falla se dice cuántos quedaron, igual que
+con los protocolos.
+
+**Y el alta de un tipo va en dos columnas**, sobre una maqueta que el usuario aprobó: a la izquierda los datos
+generales —los cuatro obligatorios y el protocolo preventivo, que el usuario quiso ahí aunque es opcional—
+con los botones al pie, y a la derecha lo opcional en tres secciones plegadas con su resumen en la cabecera.
+**Plegar no pierde nada**: la verificación y la ficha se montan siempre y solo se ocultan, y un error en una
+sección plegada la abre al guardar.
+
+**La pestaña del navegador lleva la marca de MalphasOS** desde el 2026-11-19 —antes, el escudo de Angular que
+dejó la plantilla—, y el título y el idioma del documento dejaron de ser los de la plantilla.

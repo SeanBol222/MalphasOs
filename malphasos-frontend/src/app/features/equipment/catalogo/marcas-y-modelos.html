@@ -1,0 +1,105 @@
+<!--
+  Una fila por modelo. La marca y el fabricante se eligen de los que hay o se crean escribiendo su
+  nombre, como en el alta de un equipo; el modelo se nombra.
+-->
+@for (fila of filas.controls; track fila; let i = $index) {
+  <fieldset
+    class="mb-2 border-l-2 border-neutral-300 pl-2"
+    [formGroup]="fila"
+    [attr.data-fila-modelo]="i"
+  >
+    <legend class="font-semibold">Modelo {{ i + 1 }}</legend>
+    <div class="grid gap-2 sm:grid-cols-2">
+      <div>
+        <label class="block font-semibold" [for]="'marcaDeModelo' + i">
+          Marca <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <select
+          [id]="'marcaDeModelo' + i"
+          class="campo mt-1 min-h-tactil w-full"
+          formControlName="idMarca"
+          aria-required="true"
+        >
+          <option value="">Elija una marca</option>
+          @for (marca of marcasActivas(); track marca.id) {
+            <option [value]="marca.id">{{ marca.nombre }}</option>
+          }
+          <option [value]="NUEVO">Crear una marca nueva…</option>
+        </select>
+        @if (creando(i, 'idMarca')) {
+          <label class="mt-1 block font-semibold" [for]="'nombreDeMarca' + i">
+            Nombre de la marca
+          </label>
+          <input
+            [id]="'nombreDeMarca' + i"
+            class="campo mt-1 min-h-tactil w-full"
+            formControlName="nombreDeMarca"
+            maxlength="50"
+          />
+        }
+      </div>
+      <div>
+        <label class="block font-semibold" [for]="'fabricanteDeModelo' + i">
+          Fabricante <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <select
+          [id]="'fabricanteDeModelo' + i"
+          class="campo mt-1 min-h-tactil w-full"
+          formControlName="idFabricante"
+          aria-required="true"
+        >
+          <option value="">Elija un fabricante</option>
+          @for (fabricante of fabricantesActivos(); track fabricante.id) {
+            <option [value]="fabricante.id">{{ fabricante.nombre }}</option>
+          }
+          <option [value]="NUEVO">Crear un fabricante nuevo…</option>
+        </select>
+        @if (creando(i, 'idFabricante')) {
+          <label class="mt-1 block font-semibold" [for]="'nombreDeFabricante' + i">
+            Nombre del fabricante
+          </label>
+          <input
+            [id]="'nombreDeFabricante' + i"
+            class="campo mt-1 min-h-tactil w-full"
+            formControlName="nombreDeFabricante"
+            maxlength="50"
+          />
+        }
+      </div>
+      <div>
+        <label class="block font-semibold" [for]="'nombreDeModelo' + i">
+          Modelo <span class="text-accent-700" aria-hidden="true">*</span>
+        </label>
+        <input
+          [id]="'nombreDeModelo' + i"
+          class="campo mt-1 min-h-tactil w-full"
+          formControlName="nombre"
+          maxlength="50"
+          aria-required="true"
+          placeholder="Connex Spot"
+        />
+      </div>
+      <div>
+        <label class="block font-semibold" [for]="'invimaDeModelo' + i">INVIMA</label>
+        <input
+          [id]="'invimaDeModelo' + i"
+          class="campo mt-1 min-h-tactil w-full"
+          formControlName="invima"
+          maxlength="50"
+        />
+      </div>
+    </div>
+    @if (incompleta(i)) {
+      <p class="mt-1 font-semibold text-accent-700">
+        Elija o escriba la marca y el fabricante, y escriba el nombre del modelo.
+      </p>
+    }
+    <button class="mt-1 min-h-tactil px-1 underline" type="button" (click)="quitar(i)">
+      Quitar este modelo
+    </button>
+  </fieldset>
+}
+
+<button class="boton-secundario min-h-tactil" type="button" (click)="agregar()">
+  Agregar {{ filas.length ? 'otro modelo' : 'un modelo' }}
+</button>
