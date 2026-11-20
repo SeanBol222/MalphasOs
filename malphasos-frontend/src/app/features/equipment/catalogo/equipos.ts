@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoApi } from '../catalogo-api';
 import { normalizar } from '../../../core/texto';
+import { CabeceraDePieza } from './cabecera-de-pieza';
+import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 
@@ -18,7 +19,7 @@ import { traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-equipos-de-catalogo',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable],
   templateUrl: './equipos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -60,8 +61,15 @@ export class EquiposDeCatalogo {
     }));
   });
 
-  protected readonly filtro = this.formBuilder.nonNullable.control('');
-  private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
+  /** Lo escrito en la lupa de la cabecera. */
+  protected readonly busqueda = signal('');
+
+  /** El sentido del orden por tipo —y dentro de cada tipo, por marca—: de la A a la Z por defecto. */
+  protected readonly sentido = signal<Sentido>('asc');
+
+  protected invertirOrden(): void {
+    this.sentido.update(invertido);
+  }
 
   /**
    * Las filas que casan con lo buscado, sin tildes ni mayusculas, y en orden alfabetico por tipo y
@@ -69,7 +77,7 @@ export class EquiposDeCatalogo {
    * combinacion aunque ninguna de las dos piezas contenga la frase entera.
    */
   protected readonly visibles = computed(() => {
-    const palabras = normalizar(this.textoDelFiltro()).split(' ').filter(Boolean);
+    const palabras = normalizar(this.busqueda()).split(' ').filter(Boolean);
 
     return this.filas()
       .filter((fila) => {
@@ -77,7 +85,11 @@ export class EquiposDeCatalogo {
 
         return palabras.every((palabra) => texto.includes(palabra));
       })
-      .sort((a, b) => a.tipo.localeCompare(b.tipo, 'es') || a.marca.localeCompare(b.marca, 'es'));
+      .sort(
+        (a, b) =>
+          compararEn(this.sentido(), a.tipo, b.tipo) ||
+          compararEn(this.sentido(), a.marca, b.marca),
+      );
   });
 
   /** Solo se ofrecen piezas activas: el backend rechaza una referencia retirada. */

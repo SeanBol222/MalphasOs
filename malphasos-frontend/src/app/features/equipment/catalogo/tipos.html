@@ -1,15 +1,13 @@
 <section>
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <h2 class="titulo-seccion">Tipos de equipo</h2>
-    @if (puedeEscribir()) {
-      <a class="boton-primario flex min-h-tactil items-center" routerLink="/catalogo/tipos/nuevo">
-        Nuevo tipo
-      </a>
-    }
-  </div>
-  <p class="text-neutral-700">
-    Qué clase de aparato es, cómo se verifica y qué se le hace en cada preventivo.
-  </p>
+  <app-cabecera-de-pieza
+    titulo="Tipos de equipo"
+    descripcion="Qué es cada aparato y cómo se mantiene."
+    campo="filtroTipos"
+    pista="Nombre, tecnología o magnitud"
+    enlace="/catalogo/tipos/nuevo"
+    [boton]="puedeEscribir() ? 'Nuevo tipo' : null"
+    (busqueda)="busqueda.set($event)"
+  />
 
   @if (hayError()) {
     <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
@@ -17,23 +15,12 @@
     </div>
   }
 
-  <div class="mt-2 max-w-[480px]">
-    <label class="block font-semibold" for="filtroTipos">Buscar</label>
-    <input
-      id="filtroTipos"
-      class="campo mt-1 min-h-tactil w-full"
-      type="search"
-      placeholder="Nombre, tecnología o magnitud"
-      [formControl]="filtro"
-    />
-  </div>
-
   @if (tipos.isPending()) {
     <p class="mt-1 text-neutral-700" role="status">Cargando tipos…</p>
   } @else if (!tipos.data()?.length) {
     <p class="mt-1 text-neutral-700">Todavía no hay tipos de equipo registrados.</p>
   } @else if (!visibles().length) {
-    <p class="mt-2 text-neutral-700">Ningún tipo coincide con «{{ filtro.value }}».</p>
+    <p class="mt-2 text-neutral-700">Ningún tipo coincide con «{{ busqueda() }}».</p>
   } @else {
     <table class="tabla mt-2">
       <caption class="sr-only">
@@ -41,29 +28,13 @@
       </caption>
       <thead>
         <tr>
-          <!--
-            La cabecera ordena por nombre: de la A a la Z por defecto, y cada pulsacion invierte el
-            sentido. La flecha lo dibuja y aria-sort lo dice a un lector de pantalla, como en el listado
-            de ordenes.
-          -->
-          <th scope="col" [attr.aria-sort]="sentido() === 'asc' ? 'ascending' : 'descending'">
-            <button
-              class="inline-flex min-h-tactil items-center gap-0.5 font-[inherit] underline-offset-2 hover:underline"
-              type="button"
-              data-ordenar="nombre"
-              [attr.aria-label]="
-                sentido() === 'asc'
-                  ? 'Tipo, de la A a la Z. Ordenar de la Z a la A'
-                  : 'Tipo, de la Z a la A. Ordenar de la A a la Z'
-              "
-              (click)="invertirOrden()"
-            >
-              Tipo
-              <span class="inline-block w-[1em] text-center" aria-hidden="true">{{
-                sentido() === 'asc' ? '▲' : '▼'
-              }}</span>
-            </button>
-          </th>
+          <th
+            scope="col"
+            app-columna-ordenable
+            etiqueta="Tipo"
+            [sentido]="sentido()"
+            (invertir)="invertirOrden()"
+          ></th>
           <th scope="col">Verificación</th>
           <th scope="col">Protocolo preventivo</th>
           <th scope="col" class="text-right">Modelos</th>

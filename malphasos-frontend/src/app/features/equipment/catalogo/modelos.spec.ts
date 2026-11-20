@@ -15,6 +15,7 @@ import {
   TIPOS,
   URL_EQUIPOS,
   URL_MODELOS,
+  buscarConLaLupa,
 } from '../../../../testing/catalogo';
 import { Modelos } from './modelos';
 
@@ -86,22 +87,27 @@ describe('Modelos del catalogo', () => {
     expect(enlace?.getAttribute('href')).toBe(`/catalogo/modelos/${MODELOS[0].id}/ficha`);
   });
 
-  it('dice que un modelo es lo unico que se puede instalar', async () => {
-    // Es la causa mas probable de que el alta de un equipo aparezca sin opciones.
+  it('dice en una linea que es: lo que se instala en un cliente', async () => {
+    // Es la causa mas probable de que el alta de un equipo aparezca sin opciones. La frase se acorto el
+    // 2026-11-20, pedido por el usuario: la cabecera lleva una linea.
     await abrir();
 
-    expect(texto()).toContain('Es lo único que se puede instalar');
+    expect(texto()).toContain('Lo que se instala en un cliente.');
   });
 
   it('una fila se lee cruzando cuatro listas: tipo, marca, fabricante e INVIMA', async () => {
     await abrir();
 
-    const fila = raiz().querySelector('li')!.textContent ?? '';
+    const celdas = [...raiz().querySelectorAll('tbody tr:first-child td')].map((td) =>
+      td.textContent!.trim(),
+    );
 
-    expect(fila).toContain('Tensiómetro');
-    expect(fila).toContain('Welch Allyn');
-    expect(fila).toContain('Medtronic');
-    expect(fila).toContain('INVIMA INV-1');
+    expect(celdas.slice(0, 4)).toEqual([
+      'Connex Spot',
+      'Tensiómetro · Welch Allyn',
+      'Medtronic',
+      'INV-1',
+    ]);
   });
 
   it('el formulario no esta a la vista: se abre con «Nuevo modelo» y se cierra con «Cancelar»', async () => {
@@ -263,14 +269,16 @@ describe('Modelos del catalogo', () => {
     ];
 
     const nombres = () =>
-      [...raiz().querySelectorAll('li > span')].map((s) => s.firstChild!.textContent!.trim());
+      [...raiz().querySelectorAll('tbody tr td:first-child')].map((td) => td.textContent!.trim());
 
-    async function buscar(valor: string): Promise<void> {
-      const campo = raiz().querySelector<HTMLInputElement>('#filtroModelos')!;
-      campo.value = valor;
-      campo.dispatchEvent(new Event('input'));
+    const buscar = (valor: string) => buscarConLaLupa(fixture, 'filtroModelos', valor);
+
+    it('la cabecera invierte el orden por nombre', async () => {
+      raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
       await asentar(fixture);
-    }
+
+      expect(nombres()).toEqual(['Vital Signs', 'Connex Spot', 'Accutorr 7']);
+    });
 
     beforeEach(() => abrir({ modelos: TRES_MODELOS, equipos: DOS_EQUIPOS, marcas: CON_OMRON }));
 

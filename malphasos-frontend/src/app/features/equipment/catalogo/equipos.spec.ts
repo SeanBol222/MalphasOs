@@ -13,6 +13,7 @@ import {
   URL_EQUIPOS,
   URL_MARCAS,
   URL_TIPOS,
+  buscarConLaLupa,
 } from '../../../../testing/catalogo';
 import { EquiposDeCatalogo } from './equipos';
 
@@ -50,12 +51,11 @@ describe('Equipos del catalogo', () => {
     fixture.detectChanges();
   }
 
-  it('dice que un equipo del catalogo no es una maquina', async () => {
-    // Es la confusion mas probable de la pantalla, y quien la sufra buscara aqui su tensiometro.
+  it('dice en una linea que es: que marcas hacen cada tipo', async () => {
+    // La descripcion se acorto el 2026-11-20, pedido por el usuario: la cabecera lleva una linea.
     await abrir();
 
-    expect(texto()).toContain('no una máquina');
-    expect(texto()).toContain('se registra en un área');
+    expect(texto()).toContain('Qué marcas hacen cada tipo.');
   });
 
   it('cada fila se compone cruzando tipos y marcas, porque el API devuelve identificadores', async () => {
@@ -151,17 +151,40 @@ describe('Equipos del catalogo', () => {
     ];
     const TRES_MARCAS = [...MARCAS, { id: 'm3', nombre: 'Omron', estadoActivo: true }];
 
+    /** Cada fila como «tipo · marca», sin las acciones. */
     const filas = () =>
-      [...raiz().querySelectorAll('li > span')].map((s) => s.textContent!.replace(/\s+/g, ' ').trim());
+      [...raiz().querySelectorAll('tbody tr')].map((tr) =>
+        [...tr.querySelectorAll('td')]
+          .slice(0, 2)
+          .map((td) => td.textContent!.trim())
+          .join(' · '),
+      );
 
-    async function buscar(valor: string): Promise<void> {
-      const campo = raiz().querySelector<HTMLInputElement>('#filtroEquipos')!;
-      campo.value = valor;
-      campo.dispatchEvent(new Event('input'));
-      await asentar(fixture);
-    }
+    const buscar = (valor: string) => buscarConLaLupa(fixture, 'filtroEquipos', valor);
 
     beforeEach(() => abrir({ tipos: DOS_TIPOS, equipos: TRES_EQUIPOS, marcas: TRES_MARCAS }));
+
+    it('la cabecera invierte el orden, por tipo y dentro de cada tipo por marca', async () => {
+      raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
+      await asentar(fixture);
+
+      expect(filas()).toEqual([
+        'Tensiómetro · Welch Allyn',
+        'Tensiómetro · Omron',
+        'Báscula · Welch Allyn',
+      ]);
+    });
+
+    it('cerrar la lupa borra lo buscado y vuelve a ensenar todo', async () => {
+      await buscar('bascula');
+      expect(filas()).toHaveLength(1);
+
+      raiz().querySelector<HTMLButtonElement>('[data-lupa]')!.click();
+      await asentar(fixture);
+
+      expect(raiz().querySelector('#filtroEquipos')).toBeNull();
+      expect(filas()).toHaveLength(3);
+    });
 
     it('sin buscar ensena todos, por tipo y luego por marca', () => {
       expect(filas()).toEqual([

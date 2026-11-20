@@ -1,8 +1,13 @@
 <section>
-  <h2 class="titulo-seccion">Fabricantes</h2>
-  <p class="text-neutral-700">
-    Quién produce el equipo, y en qué país. No es lo mismo que la marca: un modelo junta las dos cosas.
-  </p>
+  <app-cabecera-de-pieza
+    titulo="Fabricantes"
+    descripcion="Quién lo produce y en qué país."
+    campo="filtroFabricantes"
+    pista="Nombre o país"
+    [boton]="puedeEscribir() && !abierto() ? 'Nuevo fabricante' : null"
+    (busqueda)="busqueda.set($event)"
+    (nuevo)="abrir()"
+  />
 
   @if (hayError()) {
     <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
@@ -10,67 +15,102 @@
     </div>
   }
 
-  @if (fabricantes.isPending()) {
-    <p class="mt-1 text-neutral-700" role="status">Cargando fabricantes…</p>
-  } @else if (!fabricantes.data()?.length) {
-    <p class="mt-1 text-neutral-700">Todavía no hay fabricantes registrados.</p>
-  } @else {
-    <ul class="mt-1 max-h-64 overflow-y-auto">
-      @for (fabricante of fabricantes.data(); track fabricante.id) {
-        <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
-          <span class="grow" [class.font-semibold]="fabricante.estadoActivo">
-            {{ fabricante.nombre }}
-            <span class="font-normal text-neutral-700">· {{ pais(fabricante.idPais) }}</span>
-          </span>
-          @if (puedeEscribir() && fabricante.estadoActivo) {
-            <button
-              class="min-h-tactil px-1 font-semibold underline"
-              type="button"
-              [disabled]="baja.isPending()"
-              (click)="retirar(fabricante.id!)"
-            >
-              Retirar
-            </button>
-          }
-        </li>
+  @if (puedeEscribir() && abierto()) {
+    <div class="mt-2 border-l-2 border-ink bg-neutral-100 p-2">
+      <h3 class="font-bold">Nuevo fabricante</h3>
+      <form
+        class="mt-1 flex flex-wrap items-end gap-2"
+        [formGroup]="formulario"
+        (ngSubmit)="agregar()"
+      >
+        <div class="grow">
+          <label class="block font-semibold" for="fabricanteNuevo">
+            Nombre del fabricante <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="fabricanteNuevo"
+            class="campo mt-1 min-h-tactil w-full"
+            formControlName="nombre"
+            maxlength="50"
+            aria-required="true"
+          />
+        </div>
+        <div class="grow">
+          <app-buscador
+            formControlName="idPais"
+            campo="paisFabricante"
+            etiqueta="País"
+            historial="pais"
+            [opciones]="opcionesDePais()"
+            [opcional]="true"
+          />
+        </div>
+        <button class="boton-primario min-h-tactil" type="submit" [disabled]="alta.isPending()">
+          Añadir
+        </button>
+        <button class="boton-secundario min-h-tactil" type="button" (click)="cancelar()">
+          Cancelar
+        </button>
+      </form>
+      @if (formulario.get('nombre')!.invalid && formulario.get('nombre')!.touched) {
+        <p class="mt-1 font-semibold text-accent-700">
+          El nombre es obligatorio y no pasa de 50 caracteres.
+        </p>
       }
-    </ul>
+    </div>
   }
 
-  @if (puedeEscribir()) {
-    <form class="mt-2 flex flex-wrap items-end gap-2" [formGroup]="formulario" (ngSubmit)="agregar()">
-      <div class="grow">
-        <label class="block font-semibold" for="fabricanteNuevo">Nombre del fabricante <span class="text-accent-700" aria-hidden="true">*</span></label>
-        <input
-          id="fabricanteNuevo"
-          class="campo mt-1 min-h-tactil w-full"
-          formControlName="nombre"
-          maxlength="50"
-      aria-required="true"
-        />
-      </div>
-      <div class="grow">
-        <app-buscador
-          formControlName="idPais"
-          campo="paisFabricante"
-          etiqueta="País"
-          historial="pais"
-          [opciones]="opcionesDePais()"
-          [opcional]="true"
-        />
-      </div>
-      <button
-        class="boton-primario min-h-tactil"
-        type="submit"
-        [disabled]="alta.isPending()"
-      >
-        Añadir
-      </button>
-    </form>
-    @if (formulario.get('nombre')!.invalid && formulario.get('nombre')!.touched) {
-      <p class="mt-1 font-semibold text-accent-700">
-        El nombre es obligatorio y no pasa de 50 caracteres.
-      </p>
-    }
+  @if (fabricantes.isPending()) {
+    <p class="mt-2 text-neutral-700" role="status">Cargando fabricantes…</p>
+  } @else if (!fabricantes.data()?.length) {
+    <p class="mt-2 text-neutral-700">Todavía no hay fabricantes registrados.</p>
+  } @else if (!visibles().length) {
+    <p class="mt-2 text-neutral-700">Ningún fabricante coincide con «{{ busqueda() }}».</p>
+  } @else {
+    <table class="tabla mt-2">
+      <caption class="sr-only">
+        Fabricantes del catálogo
+      </caption>
+      <thead>
+        <tr>
+          <th
+            scope="col"
+            app-columna-ordenable
+            etiqueta="Fabricante"
+            [sentido]="sentido()"
+            (invertir)="invertirOrden()"
+          ></th>
+          <th scope="col">País</th>
+          @if (puedeEscribir()) {
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (fabricante of visibles(); track fabricante.id) {
+          <tr [attr.data-fabricante]="fabricante.id">
+            <td [class.font-bold]="fabricante.estadoActivo">
+              {{ fabricante.nombre }}{{ fabricante.estadoActivo ? '' : ' · Retirado' }}
+            </td>
+            <td>{{ pais(fabricante.idPais) }}</td>
+            @if (puedeEscribir()) {
+              <td class="text-right whitespace-nowrap">
+                @if (fabricante.estadoActivo) {
+                  <button
+                    class="min-h-tactil px-1 underline"
+                    type="button"
+                    [attr.aria-label]="'Retirar ' + fabricante.nombre"
+                    [disabled]="baja.isPending()"
+                    (click)="retirar(fabricante.id!)"
+                  >
+                    Retirar
+                  </button>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
   }
 </section>

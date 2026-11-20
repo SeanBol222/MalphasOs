@@ -20,6 +20,7 @@ import {
   URL_PROTOCOLOS,
   URL_TIPOS,
   URL_UNIDADES_DE,
+  buscarConLaLupa,
 } from '../../../../testing/catalogo';
 import { TiposDeEquipo } from './tipos';
 
@@ -244,12 +245,7 @@ describe('Tipos de equipo', () => {
         s.textContent!.trim(),
       );
 
-    async function buscar(valor: string): Promise<void> {
-      const campo = raiz().querySelector<HTMLInputElement>('#filtroTipos')!;
-      campo.value = valor;
-      campo.dispatchEvent(new Event('input'));
-      await asentar(fixture);
-    }
+    const buscar = (valor: string) => buscarConLaLupa(fixture, 'filtroTipos', valor);
 
     beforeEach(() => abrir({ tipos: TRES_TIPOS }));
 
@@ -280,7 +276,7 @@ describe('Tipos de equipo', () => {
     it('la cabecera invierte el orden, y otra pulsacion lo devuelve de la A a la Z', async () => {
       const cabecera = () => raiz().querySelector<HTMLElement>('th[aria-sort]')!;
       const ordenar = async () => {
-        raiz().querySelector<HTMLButtonElement>('[data-ordenar="nombre"]')!.click();
+        raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
         await asentar(fixture);
       };
 
@@ -296,7 +292,7 @@ describe('Tipos de equipo', () => {
     });
 
     it('el orden elegido se mantiene al buscar', async () => {
-      raiz().querySelector<HTMLButtonElement>('[data-ordenar="nombre"]')!.click();
+      raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
       await buscar('electronica');
 
       expect(nombres()).toEqual(['Termohigrómetro', 'Tensiómetro']);

@@ -5,6 +5,8 @@ import { CatalogoApi } from '../catalogo-api';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 import { mismoNombreQue, normalizar, parecidosA } from './parecidos';
+import { CabeceraDePieza } from './cabecera-de-pieza';
+import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 
 /**
  * El catalogo de protocolos de mantenimiento preventivo (RF-14), del 2026-10-10.
@@ -19,7 +21,7 @@ import { mismoNombreQue, normalizar, parecidosA } from './parecidos';
  */
 @Component({
   selector: 'app-protocolos',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable],
   templateUrl: './protocolos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -35,22 +37,45 @@ export class Protocolos {
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
-  protected readonly filtro = this.formBuilder.nonNullable.control('');
-  private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
+  /** Lo escrito en la lupa de la cabecera. */
+  protected readonly busqueda = signal('');
 
-  /** Filtrados por nombre o descripcion, sin tildes ni mayusculas; los vigentes primero. */
+  /** El sentido del orden por nombre: de la A a la Z por defecto, y la cabecera lo invierte. */
+  protected readonly sentido = signal<Sentido>('asc');
+
+  /** El alta se abre con «Nuevo protocolo» y se cierra al crear o al cancelar. */
+  protected readonly abierto = signal(false);
+
+  /**
+   * Filtrados por nombre o descripcion, sin tildes ni mayusculas —cada palabra puede caer en cualquiera
+   * de los dos—, por nombre en el orden elegido. Hasta el 2026-11-20 iban los vigentes primero; desde
+   * entonces el catalogo entero ordena por su primera columna, y el retirado se distingue por peso.
+   */
   protected readonly visibles = computed(() => {
-    const buscado = normalizar(this.textoDelFiltro());
+    const palabras = normalizar(this.busqueda()).split(' ').filter(Boolean);
 
     return [...(this.protocolos.data() ?? [])]
-      .filter(
-        (protocolo) =>
-          !buscado ||
-          normalizar(protocolo.nombre ?? '').includes(buscado) ||
-          normalizar(protocolo.descripcion ?? '').includes(buscado),
-      )
-      .sort((a, b) => Number(b.estadoActivo) - Number(a.estadoActivo));
+      .filter((protocolo) => {
+        const texto = normalizar(`${protocolo.nombre ?? ''} ${protocolo.descripcion ?? ''}`);
+
+        return palabras.every((palabra) => texto.includes(palabra));
+      })
+      .sort((a, b) => compararEn(this.sentido(), a.nombre, b.nombre));
   });
+
+  protected invertirOrden(): void {
+    this.sentido.update(invertido);
+  }
+
+  protected abrir(): void {
+    this.nuevo.reset();
+    this.abierto.set(true);
+  }
+
+  protected cancelar(): void {
+    this.nuevo.reset();
+    this.abierto.set(false);
+  }
 
   protected readonly nuevo = this.formBuilder.nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(120)]],
@@ -99,7 +124,7 @@ export class Protocolos {
 
     this.alta.mutate(
       { nombre: nombre.trim(), descripcion: descripcion.trim() },
-      { onSuccess: () => this.nuevo.reset() },
+      { onSuccess: () => this.cancelar() },
     );
   }
 

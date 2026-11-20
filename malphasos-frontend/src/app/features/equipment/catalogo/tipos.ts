@@ -6,11 +6,11 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
 import { normalizar } from '../../../core/texto';
+import { CabeceraDePieza } from './cabecera-de-pieza';
+import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   ETIQUETA_DE_MODALIDAD,
@@ -39,7 +39,7 @@ import { traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-tipos-de-equipo',
-  imports: [ReactiveFormsModule, RouterLink, Verificacion],
+  imports: [RouterLink, Verificacion, CabeceraDePieza, ColumnaOrdenable],
   templateUrl: './tipos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -53,14 +53,14 @@ export class TiposDeEquipo {
   private readonly protocolos = this.api.protocolosPorTipo();
 
   /** El sentido del orden por nombre: de la A a la Z por defecto, y la cabecera lo invierte. */
-  protected readonly sentido = signal<'asc' | 'desc'>('asc');
+  protected readonly sentido = signal<Sentido>('asc');
 
   protected invertirOrden(): void {
-    this.sentido.update((sentido) => (sentido === 'asc' ? 'desc' : 'asc'));
+    this.sentido.update(invertido);
   }
 
-  protected readonly filtro = new FormControl('', { nonNullable: true });
-  private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
+  /** Lo escrito en la lupa de la cabecera. */
+  protected readonly busqueda = signal('');
 
   /**
    * Los tipos que casan con lo buscado, sin tildes ni mayusculas, en orden alfabetico en el sentido
@@ -69,7 +69,7 @@ export class TiposDeEquipo {
    * termohigrometro y la nevera aunque ninguno lo lleve en el nombre.
    */
   protected readonly visibles = computed(() => {
-    const palabras = normalizar(this.textoDelFiltro()).split(' ').filter(Boolean);
+    const palabras = normalizar(this.busqueda()).split(' ').filter(Boolean);
 
     return (this.tipos.data() ?? [])
       .filter((tipo) => {
@@ -83,11 +83,7 @@ export class TiposDeEquipo {
 
         return palabras.every((palabra) => texto.includes(palabra));
       })
-      .sort(
-        (a, b) =>
-          (this.sentido() === 'asc' ? 1 : -1) *
-          (a.nombre ?? '').localeCompare(b.nombre ?? '', 'es'),
-      );
+      .sort((a, b) => compararEn(this.sentido(), a.nombre, b.nombre));
   });
 
   /**

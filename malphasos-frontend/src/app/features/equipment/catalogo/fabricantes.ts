@@ -1,9 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoApi } from '../catalogo-api';
 import { UbicacionApi } from '../../location/ubicacion-api';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
+import { normalizar } from '../../../core/texto';
+import { CabeceraDePieza } from './cabecera-de-pieza';
+import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
 
 /**
@@ -19,7 +22,7 @@ import { Buscador, opcionesDe } from '../../../shared/buscador/buscador';
  */
 @Component({
   selector: 'app-fabricantes',
-  imports: [ReactiveFormsModule, Buscador],
+  imports: [ReactiveFormsModule, Buscador, CabeceraDePieza, ColumnaOrdenable],
   templateUrl: './fabricantes.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -40,6 +43,42 @@ export class Fabricantes {
     nombre: ['', [Validators.required, Validators.maxLength(50)]],
     idPais: [''],
   });
+
+  /** El alta se abre con «Nuevo fabricante» y se cierra al anadir o al cancelar. */
+  protected readonly abierto = signal(false);
+
+  /** Lo escrito en la lupa de la cabecera. */
+  protected readonly busqueda = signal('');
+
+  /** El sentido del orden por nombre: de la A a la Z por defecto, y la cabecera lo invierte. */
+  protected readonly sentido = signal<Sentido>('asc');
+
+  /** Los fabricantes que casan con lo buscado —en el nombre o en el pais—, en el orden elegido. */
+  protected readonly visibles = computed(() => {
+    const palabras = normalizar(this.busqueda()).split(' ').filter(Boolean);
+
+    return (this.fabricantes.data() ?? [])
+      .filter((fabricante) => {
+        const texto = normalizar(`${fabricante.nombre ?? ''} ${this.pais(fabricante.idPais)}`);
+
+        return palabras.every((palabra) => texto.includes(palabra));
+      })
+      .sort((a, b) => compararEn(this.sentido(), a.nombre, b.nombre));
+  });
+
+  protected invertirOrden(): void {
+    this.sentido.update(invertido);
+  }
+
+  protected abrir(): void {
+    this.formulario.reset();
+    this.abierto.set(true);
+  }
+
+  protected cancelar(): void {
+    this.formulario.reset();
+    this.abierto.set(false);
+  }
 
   protected readonly hayError = computed(
     () => this.fabricantes.isError() || this.alta.isError() || this.baja.isError(),
@@ -67,7 +106,7 @@ export class Fabricantes {
     const { nombre, idPais } = this.formulario.getRawValue();
 
     this.alta.mutate(idPais ? { nombre, idPais } : { nombre }, {
-      onSuccess: () => this.formulario.reset(),
+      onSuccess: () => this.cancelar(),
     });
   }
 

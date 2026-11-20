@@ -202,3 +202,23 @@ export const PATRONES = [
     estadoActivo: false,
   },
 ];
+
+/**
+ * Busca en una pieza del catalogo como lo haria una persona: abre la lupa de la cabecera si el cuadro no
+ * esta, y escribe. Desde el 2026-11-20 el cuadro no existe hasta que se abre.
+ */
+export async function buscarConLaLupa(
+  fixture: ComponentFixture<unknown>,
+  campo: string,
+  valor: string,
+): Promise<void> {
+  const raiz = fixture.nativeElement as HTMLElement;
+  if (!raiz.querySelector(`#${campo}`)) {
+    raiz.querySelector<HTMLButtonElement>('[data-lupa]')!.click();
+    fixture.detectChanges();
+  }
+  const cuadro = raiz.querySelector<HTMLInputElement>(`#${campo}`)!;
+  cuadro.value = valor;
+  cuadro.dispatchEvent(new Event('input'));
+  await asentar(fixture);
+}

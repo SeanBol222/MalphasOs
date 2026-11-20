@@ -1,16 +1,13 @@
 <section>
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <h2 class="titulo-seccion">Modelos</h2>
-    @if (puedeEscribir() && !abierto()) {
-      <button class="boton-primario min-h-tactil" type="button" (click)="abrir()">
-        Nuevo modelo
-      </button>
-    }
-  </div>
-  <p class="text-neutral-700">
-    Un equipo del catálogo más su fabricante. <strong>Es lo único que se puede instalar</strong>: sin
-    modelos, el alta de un equipo aparece sin opciones.
-  </p>
+  <app-cabecera-de-pieza
+    titulo="Modelos"
+    descripcion="Lo que se instala en un cliente."
+    campo="filtroModelos"
+    pista="Nombre, tipo, marca, fabricante o INVIMA"
+    [boton]="puedeEscribir() && !abierto() ? 'Nuevo modelo' : null"
+    (busqueda)="busqueda.set($event)"
+    (nuevo)="abrir()"
+  />
 
   @if (hayError()) {
     <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
@@ -127,59 +124,69 @@
     </div>
   }
 
-  <div class="mt-2 max-w-[480px]">
-    <label class="block font-semibold" for="filtroModelos">Buscar</label>
-    <input
-      id="filtroModelos"
-      class="campo mt-1 min-h-tactil w-full"
-      type="search"
-      placeholder="Nombre, tipo, marca, fabricante o INVIMA"
-      [formControl]="filtro"
-    />
-  </div>
-
   @if (cargando()) {
-    <p class="mt-1 text-neutral-700" role="status">Cargando modelos…</p>
+    <p class="mt-2 text-neutral-700" role="status">Cargando modelos…</p>
   } @else if (!filas().length) {
-    <p class="mt-1 text-neutral-700">Todavía no hay modelos. Combine un equipo con un fabricante.</p>
+    <p class="mt-2 text-neutral-700">Todavía no hay modelos. Cree el primero con «Nuevo modelo».</p>
   } @else if (!visibles().length) {
-    <p class="mt-1 text-neutral-700">Ningún modelo coincide con «{{ filtro.value }}».</p>
+    <p class="mt-2 text-neutral-700">Ningún modelo coincide con «{{ busqueda() }}».</p>
   } @else {
-    <ul class="mt-1">
-      @for (fila of visibles(); track fila.id) {
-        <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
-          <span class="grow" [class.font-semibold]="fila.estadoActivo">
-            <!--
-              El nombre primero: es lo que identifica al modelo. Antes la fila empezaba por «tipo ·
-              marca», que es la combinacion a la que pertenece, y el modelo en si no se nombraba.
-            -->
-            {{ fila.nombre }}
-            <span class="font-normal text-neutral-700">
-              · {{ fila.equipo }}
-              · {{ fila.fabricante }}
-              @if (fila.invima) {
-                · INVIMA {{ fila.invima }}
-              }
-            </span>
-          </span>
-          @if (puedeEscribir() && fila.estadoActivo) {
-            <a
-              class="flex min-h-tactil items-center px-1 font-semibold underline"
-              [routerLink]="['/catalogo', 'modelos', fila.id, 'ficha']"
-            >
-              Ficha técnica
-            </a>
-            <button
-              class="min-h-tactil px-1 font-semibold underline"
-              type="button"
-              [disabled]="baja.isPending()"
-              (click)="retirar(fila.id)"
-            >
-              Retirar
-            </button>
+    <table class="tabla mt-2">
+      <caption class="sr-only">
+        Modelos del catálogo
+      </caption>
+      <thead>
+        <tr>
+          <th
+            scope="col"
+            app-columna-ordenable
+            etiqueta="Modelo"
+            [sentido]="sentido()"
+            (invertir)="invertirOrden()"
+          ></th>
+          <th scope="col">Tipo · Marca</th>
+          <th scope="col">Fabricante</th>
+          <th scope="col">INVIMA</th>
+          @if (puedeEscribir()) {
+            <th scope="col"><span class="sr-only">Acciones</span></th>
           }
-        </li>
-      }
-    </ul>
+        </tr>
+      </thead>
+      <tbody>
+        @for (fila of visibles(); track fila.id) {
+          <tr [attr.data-modelo]="fila.id">
+            <!-- El nombre primero: es lo que identifica al modelo. -->
+            <td [class.font-bold]="fila.estadoActivo">
+              {{ fila.nombre }}{{ fila.estadoActivo ? '' : ' · Retirado' }}
+            </td>
+            <td>{{ fila.equipo }}</td>
+            <td>{{ fila.fabricante }}</td>
+            <td class="tabular-nums">{{ fila.invima || '—' }}</td>
+            @if (puedeEscribir()) {
+              <td class="text-right whitespace-nowrap">
+                @if (fila.estadoActivo) {
+                  <a
+                    class="inline-flex min-h-tactil items-center px-1 font-bold underline"
+                    [routerLink]="['/catalogo', 'modelos', fila.id, 'ficha']"
+                    [attr.aria-label]="'Ficha técnica de ' + fila.nombre"
+                  >
+                    Ficha técnica
+                  </a>
+                  <button
+                    class="min-h-tactil px-1 underline"
+                    type="button"
+                    [attr.aria-label]="'Retirar ' + fila.nombre"
+                    [disabled]="baja.isPending()"
+                    (click)="retirar(fila.id)"
+                  >
+                    Retirar
+                  </button>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
   }
 </section>
