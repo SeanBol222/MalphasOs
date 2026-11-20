@@ -5,10 +5,15 @@ import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar } from '../../../../testing/pantalla';
 import {
+  MARCAS,
   MODELOS,
   ID_EQUIPO,
   ID_FABRICANTE,
+  ID_MARCA,
+  ID_TIPO,
   responderAlCatalogo,
+  TIPOS,
+  URL_EQUIPOS,
   URL_MODELOS,
 } from '../../../../testing/catalogo';
 import { Modelos } from './modelos';
@@ -41,6 +46,29 @@ describe('Modelos del catalogo', () => {
     campo.value = valor;
     campo.dispatchEvent(new Event(campo instanceof HTMLSelectElement ? 'change' : 'input'));
     fixture.detectChanges();
+  }
+
+  function pulsar(etiqueta: string): void {
+    [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === etiqueta)!.click();
+    fixture.detectChanges();
+  }
+
+  /** Una marca que todavia no fabrica ningun tipo, y un segundo tipo que no tiene ninguna marca. */
+  const CON_OMRON = [...MARCAS, { id: 'm3', nombre: 'Omron', estadoActivo: true }];
+  const CON_BASCULA = [...TIPOS, { ...TIPOS[0], id: 't2', nombre: 'Báscula' }];
+
+  const grupo = (etiqueta: string) =>
+    [
+      ...raiz().querySelectorAll<HTMLOptionElement>(
+        `#marcaDelModelo optgroup[label="${etiqueta}"] option`,
+      ),
+    ].map((o) => o.textContent?.trim());
+
+  /** Lo que una escritura del catalogo vuelve a pedir: todo cuelga de la misma clave. */
+  async function atenderRecargas(): Promise<void> {
+    await asentar(fixture);
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
   }
 
   async function enviar(): Promise<void> {
@@ -76,35 +104,88 @@ describe('Modelos del catalogo', () => {
     expect(fila).toContain('INVIMA INV-1');
   });
 
-  it('el desplegable de equipos ofrece la etiqueta legible y no el identificador', async () => {
+  it('el formulario no esta a la vista: se abre con «Nuevo modelo» y se cierra con «Cancelar»', async () => {
     await abrir();
+    expect(raiz().querySelector('form')).toBeNull();
 
-    const opciones = [...raiz().querySelectorAll<HTMLOptionElement>('#equipoDelModelo option')];
+    pulsar('Nuevo modelo');
+    expect(raiz().querySelector('form')).not.toBeNull();
+    // Abierto, el boton sobra: ya se esta creando uno.
+    expect([...raiz().querySelectorAll('button')].map((b) => b.textContent?.trim())).not.toContain(
+      'Nuevo modelo',
+    );
 
-    expect(opciones.map((o) => o.textContent?.trim())).toEqual([
-      'Elija un equipo',
-      'Tensiómetro · Welch Allyn',
-    ]);
+    pulsar('Cancelar');
+    expect(raiz().querySelector('form')).toBeNull();
+  });
+
+  it('la marca espera al tipo, y despues ofrece primero las que ya fabrican ese tipo', async () => {
+    await abrir({ marcas: CON_OMRON });
+    pulsar('Nuevo modelo');
+
+    expect(raiz().querySelector<HTMLSelectElement>('#marcaDelModelo')!.disabled).toBe(true);
+
+    escribir('tipoDelModelo', ID_TIPO);
+
+    expect(raiz().querySelector<HTMLSelectElement>('#marcaDelModelo')!.disabled).toBe(false);
+    expect(grupo('Ya asociadas a este tipo')).toEqual(['Welch Allyn']);
+    // La retirada no se ofrece: el backend rechaza una referencia retirada.
+    expect(grupo('Otras marcas')).toEqual(['Omron']);
+  });
+
+  it('las asociadas son las del tipo elegido, no las de cualquiera', async () => {
+    await abrir({ marcas: CON_OMRON, tipos: CON_BASCULA });
+    pulsar('Nuevo modelo');
+    escribir('tipoDelModelo', 't2');
+
+    expect(grupo('Ya asociadas a este tipo')).toEqual([]);
+    expect(grupo('Otras marcas')).toEqual(['Omron', 'Welch Allyn']);
+  });
+
+  it('cambiar de tipo suelta la marca elegida', async () => {
+    await abrir({ tipos: CON_BASCULA });
+    pulsar('Nuevo modelo');
+    escribir('tipoDelModelo', ID_TIPO);
+    escribir('marcaDelModelo', ID_MARCA);
+    escribir('tipoDelModelo', 't2');
+
+    expect(raiz().querySelector<HTMLSelectElement>('#marcaDelModelo')!.value).toBe('');
+  });
+
+  it('volver a «Elija un tipo» desactiva otra vez la marca', async () => {
+    await abrir();
+    pulsar('Nuevo modelo');
+    escribir('tipoDelModelo', ID_TIPO);
+    escribir('tipoDelModelo', '');
+
+    expect(raiz().querySelector<HTMLSelectElement>('#marcaDelModelo')!.disabled).toBe(true);
   });
 
   it('sin nombre no llega al servidor', async () => {
     // La validacion del formulario corre antes: es lo que evita un 400 que nadie sabria leer.
     await abrir();
-    escribir('equipoDelModelo', ID_EQUIPO);
+    pulsar('Nuevo modelo');
+    escribir('tipoDelModelo', ID_TIPO);
+    escribir('marcaDelModelo', ID_MARCA);
     escribir('fabricanteDelModelo', ID_FABRICANTE);
     await enviar();
 
     http.expectNone({ method: 'POST', url: URL_MODELOS });
+    http.expectNone({ method: 'POST', url: URL_EQUIPOS });
   });
 
-  it('crear un modelo con INVIMA manda los cuatro campos', async () => {
+  it('con una marca ya asociada reutiliza la combinacion y manda los cuatro campos', async () => {
     await abrir();
-    escribir('nombreDelModelo', 'IdeaPad 3');
-    escribir('equipoDelModelo', ID_EQUIPO);
+    pulsar('Nuevo modelo');
+    escribir('tipoDelModelo', ID_TIPO);
+    escribir('marcaDelModelo', ID_MARCA);
     escribir('fabricanteDelModelo', ID_FABRICANTE);
+    escribir('nombreDelModelo', 'IdeaPad 3');
     escribir('invimaDelModelo', 'INV-2');
     await enviar();
 
+    // Ninguna combinacion nueva: ya existia y otra igual seria un duplicado.
+    http.expectNone({ method: 'POST', url: URL_EQUIPOS });
     const alta = http.expectOne({ method: 'POST', url: URL_MODELOS });
 
     expect(alta.request.body).toEqual({
@@ -114,36 +195,60 @@ describe('Modelos del catalogo', () => {
       invima: 'INV-2',
     });
     alta.flush({ id: 'mo2' });
-    await asentar(fixture);
-    http.match(() => true).forEach((p) => p.flush([]));
-    await asentar(fixture);
+    await atenderRecargas();
+    expect(raiz().querySelector('form')).toBeNull();
   });
 
-  it('sin INVIMA la clave no viaja, pero el nombre si: no son simetricos', async () => {
-    // Un modelo SIN registro sanitario es un estado normal mientras se tramita; uno sin nombre no es
-    // nada, y el servidor lo rechaza con la columna.
-    await abrir();
-    escribir('nombreDelModelo', 'IdeaPad 3');
-    escribir('equipoDelModelo', ID_EQUIPO);
+  it('con una marca sin asociar crea antes la combinacion, y el modelo cuelga de ella', async () => {
+    await abrir({ marcas: CON_OMRON });
+    pulsar('Nuevo modelo');
+    escribir('tipoDelModelo', ID_TIPO);
+    escribir('marcaDelModelo', 'm3');
     escribir('fabricanteDelModelo', ID_FABRICANTE);
+    escribir('nombreDelModelo', 'HEM-7120');
     await enviar();
 
-    const alta = http.expectOne({ method: 'POST', url: URL_MODELOS });
+    const combinacion = http.expectOne({ method: 'POST', url: URL_EQUIPOS });
+    expect(combinacion.request.body).toEqual({ idTipoEquipo: ID_TIPO, idMarca: 'm3' });
+    combinacion.flush({ id: 'e-nuevo' });
+    await asentar(fixture);
 
-    expect(alta.request.body).not.toHaveProperty('invima');
-    expect(alta.request.body.nombre).toBe('IdeaPad 3');
-    alta.flush({ id: 'mo2' });
-    await asentar(fixture);
-    http.match(() => true).forEach((p) => p.flush([]));
-    await asentar(fixture);
+    const alta = http.expectOne({ method: 'POST', url: URL_MODELOS });
+    // Sin INVIMA la clave no viaja: un modelo sin registro sanitario es normal mientras se tramita.
+    expect(alta.request.body).toEqual({
+      nombre: 'HEM-7120',
+      idEquipo: 'e-nuevo',
+      idFabricante: ID_FABRICANTE,
+    });
+    alta.flush({ id: 'mo3' });
+    await atenderRecargas();
   });
 
-  it('sin equipo y fabricante no llega al servidor', async () => {
+  it('si el alta falla, lo dice y el formulario sigue abierto con lo escrito', async () => {
     await abrir();
+    pulsar('Nuevo modelo');
+    escribir('tipoDelModelo', ID_TIPO);
+    escribir('marcaDelModelo', ID_MARCA);
+    escribir('fabricanteDelModelo', ID_FABRICANTE);
+    escribir('nombreDelModelo', 'IdeaPad 3');
+    await enviar();
+
+    http
+      .expectOne({ method: 'POST', url: URL_MODELOS })
+      .flush({ codigo: 'X' }, { status: 409, statusText: 'Conflict' });
+    await asentar(fixture);
+
+    expect(raiz().querySelector('[role="alert"]')).not.toBeNull();
+    expect(raiz().querySelector<HTMLInputElement>('#nombreDelModelo')!.value).toBe('IdeaPad 3');
+  });
+
+  it('sin nada elegido no llega al servidor y dice que falta', async () => {
+    await abrir();
+    pulsar('Nuevo modelo');
     await enviar();
 
     http.expectNone({ method: 'POST', url: URL_MODELOS });
-    expect(texto()).toContain('Elija un equipo del catálogo y un fabricante');
+    expect(texto()).toContain('Elija el tipo, la marca y el fabricante');
   });
 
   afterEach(() => http.verify());

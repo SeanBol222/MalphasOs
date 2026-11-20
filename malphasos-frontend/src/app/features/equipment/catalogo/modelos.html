@@ -1,5 +1,12 @@
 <section>
-  <h2 class="titulo-seccion">Modelos</h2>
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="titulo-seccion">Modelos</h2>
+    @if (puedeEscribir() && !abierto()) {
+      <button class="boton-primario min-h-tactil" type="button" (click)="abrir()">
+        Nuevo modelo
+      </button>
+    }
+  </div>
   <p class="text-neutral-700">
     Un equipo del catálogo más su fabricante. <strong>Es lo único que se puede instalar</strong>: sin
     modelos, el alta de un equipo aparece sin opciones.
@@ -11,12 +18,121 @@
     </div>
   }
 
+  <!--
+    El alta se abre con «Nuevo modelo», encima de la lista. Se recorre en el orden en que se piensa:
+    el tipo, la marca y el modelo. La combinacion de tipo y marca se crea sola si falta.
+  -->
+  @if (puedeEscribir() && abierto()) {
+    <div class="mt-2 border-l-2 border-ink bg-neutral-100 p-2">
+      <h3 class="font-bold">Nuevo modelo</h3>
+      <form class="mt-1 grid gap-2 sm:grid-cols-2" [formGroup]="formulario" (ngSubmit)="agregar()">
+        <div>
+          <label class="block font-semibold" for="tipoDelModelo">
+            Tipo <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <select
+            id="tipoDelModelo"
+            class="campo mt-1 min-h-tactil w-full"
+            formControlName="idTipo"
+            aria-required="true"
+          >
+            <option value="">Elija un tipo</option>
+            @for (tipo of tiposActivos(); track tipo.id) {
+              <option [value]="tipo.id">{{ tipo.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold" for="marcaDelModelo">
+            Marca <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <select
+            id="marcaDelModelo"
+            class="campo mt-1 min-h-tactil w-full"
+            formControlName="idMarca"
+            aria-required="true"
+          >
+            <option value="">
+              {{ formulario.controls.idTipo.value ? 'Elija una marca' : 'Elija antes el tipo' }}
+            </option>
+            @if (marcasDelTipo().asociadas.length) {
+              <optgroup label="Ya asociadas a este tipo">
+                @for (marca of marcasDelTipo().asociadas; track marca.id) {
+                  <option [value]="marca.id">{{ marca.nombre }}</option>
+                }
+              </optgroup>
+            }
+            @if (marcasDelTipo().otras.length) {
+              <optgroup label="Otras marcas">
+                @for (marca of marcasDelTipo().otras; track marca.id) {
+                  <option [value]="marca.id">{{ marca.nombre }}</option>
+                }
+              </optgroup>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold" for="fabricanteDelModelo">
+            Fabricante <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <select
+            id="fabricanteDelModelo"
+            class="campo mt-1 min-h-tactil w-full"
+            formControlName="idFabricante"
+            aria-required="true"
+          >
+            <option value="">Elija un fabricante</option>
+            @for (fabricante of fabricantesActivos(); track fabricante.id) {
+              <option [value]="fabricante.id">{{ fabricante.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold" for="nombreDelModelo">
+            Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="nombreDelModelo"
+            class="campo mt-1 min-h-tactil w-full"
+            formControlName="nombre"
+            maxlength="50"
+            aria-required="true"
+            placeholder="IdeaPad 3"
+          />
+        </div>
+        <div>
+          <!-- Opcional, al contrario que el nombre: se tramita despues de dar de alta el modelo. -->
+          <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
+          <input
+            id="invimaDelModelo"
+            class="campo mt-1 min-h-tactil w-full"
+            formControlName="invima"
+            maxlength="50"
+          />
+        </div>
+        <div class="flex flex-wrap items-end gap-2">
+          <button class="boton-primario min-h-tactil" type="submit" [disabled]="creando()">
+            {{ creando() ? 'Creando…' : 'Crear modelo' }}
+          </button>
+          <button class="boton-secundario min-h-tactil" type="button" (click)="cancelar()">
+            Cancelar
+          </button>
+        </div>
+      </form>
+      @if (formulario.invalid && formulario.touched) {
+        <p class="mt-1 font-semibold text-accent-700">
+          Elija el tipo, la marca y el fabricante, y escriba el nombre.
+        </p>
+      }
+    </div>
+  }
+
   @if (cargando()) {
     <p class="mt-1 text-neutral-700" role="status">Cargando modelos…</p>
   } @else if (!filas().length) {
     <p class="mt-1 text-neutral-700">Todavía no hay modelos. Combine un equipo con un fabricante.</p>
   } @else {
-    <ul class="mt-1 max-h-64 overflow-y-auto">
+    <ul class="mt-1">
       @for (fila of filas(); track fila.id) {
         <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
           <span class="grow" [class.font-semibold]="fila.estadoActivo">
@@ -52,71 +168,5 @@
         </li>
       }
     </ul>
-  }
-
-  @if (puedeEscribir()) {
-    <form class="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]" [formGroup]="formulario" (ngSubmit)="agregar()">
-      <div>
-        <label class="block font-semibold" for="equipoDelModelo">Equipo del catálogo <span class="text-accent-700" aria-hidden="true">*</span></label>
-        <select
-          id="equipoDelModelo"
-          class="campo mt-1 min-h-tactil w-full"
-          formControlName="idEquipo"
-      aria-required="true"
-        >
-          <option value="">Elija un equipo</option>
-          @for (equipo of equiposActivos(); track equipo.id) {
-            <option [value]="equipo.id">{{ equipo.etiqueta }}</option>
-          }
-        </select>
-      </div>
-      <div>
-        <label class="block font-semibold" for="fabricanteDelModelo">Fabricante <span class="text-accent-700" aria-hidden="true">*</span></label>
-        <select
-          id="fabricanteDelModelo"
-          class="campo mt-1 min-h-tactil w-full"
-          formControlName="idFabricante"
-      aria-required="true"
-        >
-          <option value="">Elija un fabricante</option>
-          @for (fabricante of fabricantesActivos(); track fabricante.id) {
-            <option [value]="fabricante.id">{{ fabricante.nombre }}</option>
-          }
-        </select>
-      </div>
-      <div>
-        <label class="block font-semibold" for="nombreDelModelo">
-          Nombre <span class="text-accent-700" aria-hidden="true">*</span>
-        </label>
-        <input
-          id="nombreDelModelo"
-          class="campo mt-1 min-h-tactil w-full"
-          formControlName="nombre"
-          maxlength="50"
-          aria-required="true"
-          placeholder="IdeaPad 3"
-        />
-      </div>
-      <div>
-        <!-- Opcional, al contrario que el nombre: se tramita despues de dar de alta el modelo. -->
-        <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
-        <input
-          id="invimaDelModelo"
-          class="campo mt-1 min-h-tactil w-full"
-          formControlName="invima"
-          maxlength="50"
-        />
-      </div>
-      <button
-        class="boton-primario min-h-tactil self-end"
-        type="submit"
-        [disabled]="alta.isPending()"
-      >
-        Crear modelo
-      </button>
-    </form>
-    @if (formulario.invalid && formulario.touched) {
-      <p class="mt-1 font-semibold text-accent-700">Elija un equipo del catálogo y un fabricante.</p>
-    }
   }
 </section>
