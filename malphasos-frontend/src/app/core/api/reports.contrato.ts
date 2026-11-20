@@ -605,6 +605,8 @@ export interface components {
             certificado?: string;
             /** @description Nulo si el catalogo no lo tenia */
             codigoInterno?: string;
+            /** @description Si lo puso la orden, que reparte sus patrones por tipo de equipo; falso si se puso a mano */
+            desdeOrden?: boolean;
             /** @description Nula si el catalogo no la tenia */
             empresaCalibradora?: string;
             /**
