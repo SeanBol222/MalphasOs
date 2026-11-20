@@ -58,6 +58,8 @@ describe('Catálogo de equipos', () => {
     const fila = raiz.querySelector('nav[aria-label="Piezas del catálogo"]')!;
     expect(fila.className).toContain('max-md:overflow-x-auto');
     expect(fila.querySelector('ul')!.className).toContain('flex-nowrap');
+    // Y en escritorio se reparten todo el ancho del recuadro.
+    expect(fila.querySelector('li')!.className).toContain('md:flex-1');
   });
 
   it('cada pieza tiene su propia dirección', async () => {

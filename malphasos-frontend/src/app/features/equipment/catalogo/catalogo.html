@@ -20,9 +20,13 @@
   >
     <ul class="flex list-none flex-nowrap md:flex-wrap">
       @for (pieza of piezas; track pieza.ruta) {
-        <li>
+        <!--
+          En escritorio (2026-11-20) las pestañas se reparten todo el ancho del recuadro: cada una crece
+          por igual. Si no caben en una fila, cada fila sigue llenando el ancho.
+        -->
+        <li class="md:flex-1">
           <a
-            class="flex min-h-tactil flex-none items-center gap-0.5 border-b-4 border-transparent px-1.5 whitespace-nowrap text-neutral-800 hover:text-ink md:min-w-[7.5rem] md:flex-col md:items-start md:justify-center md:gap-0 md:px-2 md:py-1"
+            class="flex min-h-tactil flex-none items-center gap-0.5 border-b-4 border-transparent px-1.5 whitespace-nowrap text-neutral-800 hover:text-ink md:h-full md:min-w-[7.5rem] md:flex-col md:items-start md:justify-center md:gap-0 md:px-2 md:py-1"
             routerLinkActive="border-accent! bg-neutral-100 font-bold text-ink"
             ariaCurrentWhenActive="page"
             [routerLink]="['/catalogo', pieza.ruta]"
