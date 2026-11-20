@@ -28,6 +28,7 @@
     [attr.aria-invalid]="sinCoincidencias() ? 'true' : null"
     [attr.aria-describedby]="sinCoincidencias() ? campo() + '-aviso' : null"
     [value]="texto()"
+    [disabled]="desactivado()"
     (input)="escribir($event)"
     (focus)="abrir()"
     (blur)="cerrar()"
@@ -36,7 +37,9 @@
 
   @if (abierto() && sugerencias().length) {
     <ul
-      class="absolute z-10 max-h-32 w-full overflow-y-auto border border-neutral-400 bg-paper"
+      class="absolute z-10 w-full overflow-y-auto border border-neutral-400 bg-paper"
+      [class.max-h-32]="!todasAlAbrir()"
+      [class.max-h-64]="todasAlAbrir()"
       role="listbox"
       [id]="campo() + '-lista'"
     >

@@ -70,6 +70,25 @@ class Anfitrion {
   readonly opciones = signal<readonly Opcion[]>(PAISES);
 }
 
+@Component({
+  selector: 'app-anfitrion-todas',
+  imports: [ReactiveFormsModule, Buscador],
+  template: `
+    <app-buscador
+      [formControl]="control"
+      campo="paisTodas"
+      etiqueta="País"
+      historial="pais"
+      [opciones]="PAISES"
+      [todasAlAbrir]="true"
+    />
+  `,
+})
+class AnfitrionTodas {
+  readonly control = new FormControl('', { nonNullable: true });
+  protected readonly PAISES = PAISES;
+}
+
 describe('Campo de búsqueda', () => {
   let fixture: ComponentFixture<Anfitrion>;
   let desinstalar: () => void;
@@ -103,6 +122,45 @@ describe('Campo de búsqueda', () => {
     entrada().dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
     fixture.detectChanges();
   }
+
+  describe('Con todasAlAbrir (2026-11-20)', () => {
+    it('al abrirlo sin escribir ofrece el catálogo entero, y al escribir filtra como siempre', () => {
+      const conTodas = TestBed.createComponent(AnfitrionTodas);
+      conTodas.detectChanges();
+      const raizTodas = conTodas.nativeElement as HTMLElement;
+      const campo = raizTodas.querySelector<HTMLInputElement>('#paisTodas')!;
+      const ofrecidas = () =>
+        [...raizTodas.querySelectorAll('#paisTodas-lista [role="option"]')].map((o) =>
+          o.textContent?.trim(),
+        );
+
+      campo.dispatchEvent(new Event('focus'));
+      conTodas.detectChanges();
+      expect(ofrecidas()).toEqual(['Colombia', 'Perú', 'México', 'España']);
+
+      campo.value = 'peru';
+      campo.dispatchEvent(new Event('input'));
+      conTodas.detectChanges();
+      expect(ofrecidas()).toEqual(['Perú']);
+    });
+  });
+
+  describe('Desactivado por el formulario (2026-11-20)', () => {
+    it('no deja escribir, y si tenía la lista abierta la cierra', () => {
+      escribir('colo');
+      expect(sugerencias()).toEqual(['Colombia']);
+
+      fixture.componentInstance.control.disable();
+      fixture.detectChanges();
+
+      expect(entrada().disabled).toBe(true);
+      expect(sugerencias()).toEqual([]);
+
+      fixture.componentInstance.control.enable();
+      fixture.detectChanges();
+      expect(entrada().disabled).toBe(false);
+    });
+  });
 
   describe('Qué ofrece', () => {
     it('sin escribir nada no ofrece el catálogo entero', () => {
