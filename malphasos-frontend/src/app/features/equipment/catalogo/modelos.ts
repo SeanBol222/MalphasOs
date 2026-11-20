@@ -7,11 +7,12 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
+import { normalizar } from '../../../core/texto';
 
 /**
  * Los modelos: un equipo del catalogo mas un fabricante, con su registro INVIMA.
@@ -100,6 +101,28 @@ export class Modelos {
       fabricante: fabricantes.get(modelo.idFabricante!) ?? 'Fabricante no disponible',
       invima: modelo.invima,
     }));
+  });
+
+  protected readonly filtro = new FormControl('', { nonNullable: true });
+  private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
+
+  /**
+   * Los modelos que casan con lo buscado, sin tildes ni mayusculas, en orden alfabetico. Cada palabra
+   * puede caer en el nombre, el tipo, la marca, el fabricante o el INVIMA: «tensiometro omron»
+   * encuentra los tensiometros de Omron aunque ninguno lo diga en el nombre.
+   */
+  protected readonly visibles = computed(() => {
+    const palabras = normalizar(this.textoDelFiltro()).split(' ').filter(Boolean);
+
+    return this.filas()
+      .filter((fila) => {
+        const texto = normalizar(
+          [fila.nombre, fila.equipo, fila.fabricante, fila.invima].filter(Boolean).join(' '),
+        );
+
+        return palabras.every((palabra) => texto.includes(palabra));
+      })
+      .sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? '', 'es'));
   });
 
   private readonly idTipo = toSignal(this.formulario.controls.idTipo.valueChanges, {

@@ -220,5 +220,64 @@ describe('Tipos de equipo', () => {
     expect(enlaces).toContain(`/catalogo/tipos/${ID_TIPO}/editar`);
   });
 
+  describe('el buscador', () => {
+    const TRES_TIPOS = [
+      TIPOS[0],
+      {
+        ...TIPOS[0],
+        id: 't2',
+        nombre: 'Termohigrómetro',
+        tecnologiaPredominante: 'Electrónica',
+        verificaciones: [{ ...TIPOS[0].verificaciones[0], magnitud: 'Temperatura' }],
+      },
+      {
+        ...TIPOS[0],
+        id: 't3',
+        nombre: 'Báscula',
+        tecnologiaPredominante: 'Mecánica',
+        verificaciones: [{ ...TIPOS[0].verificaciones[0], magnitud: 'Masa' }],
+      },
+    ];
+
+    const nombres = () =>
+      [...raiz().querySelectorAll('tr[data-tipo] td:first-child span:first-child')].map((s) =>
+        s.textContent!.trim(),
+      );
+
+    async function buscar(valor: string): Promise<void> {
+      const campo = raiz().querySelector<HTMLInputElement>('#filtroTipos')!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      await asentar(fixture);
+    }
+
+    beforeEach(() => abrir({ tipos: TRES_TIPOS }));
+
+    it('sin buscar ensena todos, en orden alfabetico', () => {
+      expect(nombres()).toEqual(['Báscula', 'Tensiómetro', 'Termohigrómetro']);
+    });
+
+    it('encuentra por el nombre sin tildes ni mayusculas', async () => {
+      await buscar('TERMOHIGROMETRO');
+
+      expect(nombres()).toEqual(['Termohigrómetro']);
+    });
+
+    it('encuentra por la tecnologia y por lo que se le mide', async () => {
+      await buscar('mecanica');
+      expect(nombres()).toEqual(['Báscula']);
+
+      await buscar('temperatura');
+      expect(nombres()).toEqual(['Termohigrómetro']);
+    });
+
+    it('si nada coincide, lo dice con lo buscado', async () => {
+      await buscar('desfibrilador');
+
+      expect(nombres()).toEqual([]);
+      expect(texto()).toContain('Ningún tipo coincide con «desfibrilador»');
+    });
+  });
+
   afterEach(() => http.verify());
 });

@@ -142,5 +142,54 @@ describe('Equipos del catalogo', () => {
     expect(texto()).toContain('Elija un tipo y una marca');
   });
 
+  describe('el buscador', () => {
+    const DOS_TIPOS = [...TIPOS, { ...TIPOS[0], id: 't2', nombre: 'Báscula' }];
+    const TRES_EQUIPOS = [
+      ...EQUIPOS,
+      { id: 'e2', idTipoEquipo: 't2', idMarca: ID_MARCA, estadoActivo: true },
+      { id: 'e3', idTipoEquipo: ID_TIPO, idMarca: 'm3', estadoActivo: true },
+    ];
+    const TRES_MARCAS = [...MARCAS, { id: 'm3', nombre: 'Omron', estadoActivo: true }];
+
+    const filas = () =>
+      [...raiz().querySelectorAll('li > span')].map((s) => s.textContent!.replace(/\s+/g, ' ').trim());
+
+    async function buscar(valor: string): Promise<void> {
+      const campo = raiz().querySelector<HTMLInputElement>('#filtroEquipos')!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      await asentar(fixture);
+    }
+
+    beforeEach(() => abrir({ tipos: DOS_TIPOS, equipos: TRES_EQUIPOS, marcas: TRES_MARCAS }));
+
+    it('sin buscar ensena todos, por tipo y luego por marca', () => {
+      expect(filas()).toEqual([
+        'Báscula · Welch Allyn',
+        'Tensiómetro · Omron',
+        'Tensiómetro · Welch Allyn',
+      ]);
+    });
+
+    it('encuentra sin tildes ni mayusculas', async () => {
+      await buscar('BASCULA');
+
+      expect(filas()).toEqual(['Báscula · Welch Allyn']);
+    });
+
+    it('cada palabra puede caer en el tipo o en la marca', async () => {
+      await buscar('tensiometro welch');
+
+      expect(filas()).toEqual(['Tensiómetro · Welch Allyn']);
+    });
+
+    it('si nada coincide, lo dice con lo buscado', async () => {
+      await buscar('desfibrilador');
+
+      expect(filas()).toEqual([]);
+      expect(texto()).toContain('Ningún equipo coincide con «desfibrilador»');
+    });
+  });
+
   afterEach(() => http.verify());
 });

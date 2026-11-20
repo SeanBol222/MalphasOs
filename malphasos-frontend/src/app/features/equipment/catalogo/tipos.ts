@@ -6,8 +6,11 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
+import { normalizar } from '../../../core/texto';
 import { Sesion } from '../../../core/auth/sesion';
 import {
   ETIQUETA_DE_MODALIDAD,
@@ -36,7 +39,7 @@ import { traducirError } from '../../../core/errores/traducir';
  */
 @Component({
   selector: 'app-tipos-de-equipo',
-  imports: [RouterLink, Verificacion],
+  imports: [ReactiveFormsModule, RouterLink, Verificacion],
   templateUrl: './tipos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -48,6 +51,32 @@ export class TiposDeEquipo {
   private readonly modelos = this.api.listarModelos();
   private readonly equiposDelCatalogo = this.api.listarEquipos();
   private readonly protocolos = this.api.protocolosPorTipo();
+
+  protected readonly filtro = new FormControl('', { nonNullable: true });
+  private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
+
+  /**
+   * Los tipos que casan con lo buscado, sin tildes ni mayusculas, en orden alfabetico. Cada palabra
+   * puede caer en el nombre, en la tecnologia o en lo que se le mide: «temperatura» encuentra el
+   * termohigrometro y la nevera aunque ninguno lo lleve en el nombre.
+   */
+  protected readonly visibles = computed(() => {
+    const palabras = normalizar(this.textoDelFiltro()).split(' ').filter(Boolean);
+
+    return (this.tipos.data() ?? [])
+      .filter((tipo) => {
+        const texto = normalizar(
+          [
+            tipo.nombre,
+            tipo.tecnologiaPredominante,
+            ...(tipo.verificaciones ?? []).map((verificacion) => verificacion.magnitud),
+          ].join(' '),
+        );
+
+        return palabras.every((palabra) => texto.includes(palabra));
+      })
+      .sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? '', 'es'));
+  });
 
   /**
    * Lo que la tabla del rediseño (2026-10-11) dice de cada tipo además de su nombre: cuántos modelos

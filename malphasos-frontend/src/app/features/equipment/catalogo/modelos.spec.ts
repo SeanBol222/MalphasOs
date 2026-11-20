@@ -251,5 +251,56 @@ describe('Modelos del catalogo', () => {
     expect(texto()).toContain('Elija el tipo, la marca y el fabricante');
   });
 
+  describe('el buscador', () => {
+    const TRES_MODELOS = [
+      MODELOS[0],
+      { ...MODELOS[0], id: 'mo2', nombre: 'Accutorr 7', invima: 'INV-77' },
+      { ...MODELOS[0], id: 'mo3', nombre: 'Vital Signs', idEquipo: 'e3', invima: undefined },
+    ];
+    const DOS_EQUIPOS = [
+      { id: ID_EQUIPO, idTipoEquipo: ID_TIPO, idMarca: ID_MARCA, estadoActivo: true },
+      { id: 'e3', idTipoEquipo: ID_TIPO, idMarca: 'm3', estadoActivo: true },
+    ];
+
+    const nombres = () =>
+      [...raiz().querySelectorAll('li > span')].map((s) => s.firstChild!.textContent!.trim());
+
+    async function buscar(valor: string): Promise<void> {
+      const campo = raiz().querySelector<HTMLInputElement>('#filtroModelos')!;
+      campo.value = valor;
+      campo.dispatchEvent(new Event('input'));
+      await asentar(fixture);
+    }
+
+    beforeEach(() => abrir({ modelos: TRES_MODELOS, equipos: DOS_EQUIPOS, marcas: CON_OMRON }));
+
+    it('sin buscar ensena todos, en orden alfabetico', () => {
+      expect(nombres()).toEqual(['Accutorr 7', 'Connex Spot', 'Vital Signs']);
+    });
+
+    it('encuentra por el nombre sin tildes ni mayusculas', async () => {
+      await buscar('ACCUTORR');
+      expect(nombres()).toEqual(['Accutorr 7']);
+    });
+
+    it('cada palabra puede caer en el tipo, la marca, el fabricante o el INVIMA', async () => {
+      await buscar('tensiometro omron');
+      expect(nombres()).toEqual(['Vital Signs']);
+
+      await buscar('inv-77');
+      expect(nombres()).toEqual(['Accutorr 7']);
+
+      await buscar('medtronic welch');
+      expect(nombres()).toEqual(['Accutorr 7', 'Connex Spot']);
+    });
+
+    it('si nada coincide, lo dice con lo buscado', async () => {
+      await buscar('desfibrilador');
+
+      expect(nombres()).toEqual([]);
+      expect(texto()).toContain('Ningún modelo coincide con «desfibrilador»');
+    });
+  });
+
   afterEach(() => http.verify());
 });

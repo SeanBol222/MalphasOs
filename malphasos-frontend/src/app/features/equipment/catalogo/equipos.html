@@ -71,15 +71,28 @@
     </div>
   }
 
+  <div class="mt-2 max-w-[480px]">
+    <label class="block font-semibold" for="filtroEquipos">Buscar</label>
+    <input
+      id="filtroEquipos"
+      class="campo mt-1 min-h-tactil w-full"
+      type="search"
+      placeholder="Tipo o marca"
+      [formControl]="filtro"
+    />
+  </div>
+
   @if (cargando()) {
     <p class="mt-1 text-neutral-700" role="status">Cargando el catálogo…</p>
   } @else if (!filas().length) {
     <p class="mt-1 text-neutral-700">
       Todavía no hay combinaciones. Registre un tipo y una marca, y combínelos aquí.
     </p>
+  } @else if (!visibles().length) {
+    <p class="mt-1 text-neutral-700">Ningún equipo coincide con «{{ filtro.value }}».</p>
   } @else {
     <ul class="mt-1 max-h-64 overflow-y-auto">
-      @for (fila of filas(); track fila.id) {
+      @for (fila of visibles(); track fila.id) {
         <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
           <span class="grow" [class.font-semibold]="fila.estadoActivo">
             {{ fila.tipo }}
