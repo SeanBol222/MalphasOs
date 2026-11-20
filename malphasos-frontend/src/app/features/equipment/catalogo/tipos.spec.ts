@@ -277,6 +277,30 @@ describe('Tipos de equipo', () => {
       expect(nombres()).toEqual([]);
       expect(texto()).toContain('Ningún tipo coincide con «desfibrilador»');
     });
+    it('la cabecera invierte el orden, y otra pulsacion lo devuelve de la A a la Z', async () => {
+      const cabecera = () => raiz().querySelector<HTMLElement>('th[aria-sort]')!;
+      const ordenar = async () => {
+        raiz().querySelector<HTMLButtonElement>('[data-ordenar="nombre"]')!.click();
+        await asentar(fixture);
+      };
+
+      expect(cabecera().getAttribute('aria-sort')).toBe('ascending');
+
+      await ordenar();
+      expect(nombres()).toEqual(['Termohigrómetro', 'Tensiómetro', 'Báscula']);
+      expect(cabecera().getAttribute('aria-sort')).toBe('descending');
+
+      await ordenar();
+      expect(nombres()).toEqual(['Báscula', 'Tensiómetro', 'Termohigrómetro']);
+      expect(cabecera().getAttribute('aria-sort')).toBe('ascending');
+    });
+
+    it('el orden elegido se mantiene al buscar', async () => {
+      raiz().querySelector<HTMLButtonElement>('[data-ordenar="nombre"]')!.click();
+      await buscar('electronica');
+
+      expect(nombres()).toEqual(['Termohigrómetro', 'Tensiómetro']);
+    });
   });
 
   afterEach(() => http.verify());

@@ -41,7 +41,29 @@
       </caption>
       <thead>
         <tr>
-          <th scope="col">Tipo</th>
+          <!--
+            La cabecera ordena por nombre: de la A a la Z por defecto, y cada pulsacion invierte el
+            sentido. La flecha lo dibuja y aria-sort lo dice a un lector de pantalla, como en el listado
+            de ordenes.
+          -->
+          <th scope="col" [attr.aria-sort]="sentido() === 'asc' ? 'ascending' : 'descending'">
+            <button
+              class="inline-flex min-h-tactil items-center gap-0.5 font-[inherit] underline-offset-2 hover:underline"
+              type="button"
+              data-ordenar="nombre"
+              [attr.aria-label]="
+                sentido() === 'asc'
+                  ? 'Tipo, de la A a la Z. Ordenar de la Z a la A'
+                  : 'Tipo, de la Z a la A. Ordenar de la A a la Z'
+              "
+              (click)="invertirOrden()"
+            >
+              Tipo
+              <span class="inline-block w-[1em] text-center" aria-hidden="true">{{
+                sentido() === 'asc' ? '▲' : '▼'
+              }}</span>
+            </button>
+          </th>
           <th scope="col">Verificación</th>
           <th scope="col">Protocolo preventivo</th>
           <th scope="col" class="text-right">Modelos</th>

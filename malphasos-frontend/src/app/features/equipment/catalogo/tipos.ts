@@ -52,11 +52,19 @@ export class TiposDeEquipo {
   private readonly equiposDelCatalogo = this.api.listarEquipos();
   private readonly protocolos = this.api.protocolosPorTipo();
 
+  /** El sentido del orden por nombre: de la A a la Z por defecto, y la cabecera lo invierte. */
+  protected readonly sentido = signal<'asc' | 'desc'>('asc');
+
+  protected invertirOrden(): void {
+    this.sentido.update((sentido) => (sentido === 'asc' ? 'desc' : 'asc'));
+  }
+
   protected readonly filtro = new FormControl('', { nonNullable: true });
   private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
 
   /**
-   * Los tipos que casan con lo buscado, sin tildes ni mayusculas, en orden alfabetico. Cada palabra
+   * Los tipos que casan con lo buscado, sin tildes ni mayusculas, en orden alfabetico en el sentido
+   * elegido. Cada palabra
    * puede caer en el nombre, en la tecnologia o en lo que se le mide: «temperatura» encuentra el
    * termohigrometro y la nevera aunque ninguno lo lleve en el nombre.
    */
@@ -75,7 +83,11 @@ export class TiposDeEquipo {
 
         return palabras.every((palabra) => texto.includes(palabra));
       })
-      .sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? '', 'es'));
+      .sort(
+        (a, b) =>
+          (this.sentido() === 'asc' ? 1 : -1) *
+          (a.nombre ?? '').localeCompare(b.nombre ?? '', 'es'),
+      );
   });
 
   /**
