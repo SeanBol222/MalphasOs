@@ -3177,3 +3177,20 @@ solo los admitidos y vigentes, y avisa cuando el catálogo no declara ninguno. V
 muertas: sin la guarda, sin comparar la verificación y sin el filtro de la pantalla.
 
 **Lo que queda**: los patrones de la orden por tipo —tanda 3— y sus pantallas —tanda 4—.
+
+## [2026-11-19] ingest | Los patrones de la orden por tipo de equipo (tanda 3)
+
+La tanda 3 de [[hoja-de-ruta-producto]]: el agregado `WorkOrderStandards` en `work-order`, con su `GET` y su
+`PATCH` por tipo; el único patrón vigente que la orden pone sola al entrar el primer equipo de un tipo; la
+limpieza al salir el último; y el reparto a los borradores de ese tipo, por verificación, marcado
+`desdeOrden` —que entra en el dominio del reporte y en su API— y nunca sobre lo puesto a mano. Para no caminar
+la cadena del catálogo equipo por equipo, `equipmentTypesOf` da el tipo de varios en una consulta. Ver
+[[decisiones-tecnicas-malphasos]].
+
+**1797** pruebas en el backend, 163 clases, y **875** en el frontend, cero fallos. Dieciocho mutaciones y
+**una superviviente**: el filtro de `desdeOrden` en el distribuidor repetía la guarda del agregado, que es la
+que decide y está probada. Se quitó el duplicado en vez de escribirle una prueba que no podía fallar.
+**Y el contrato de identidad de los agregados pidió un solo campo incluido**: la orden y el tipo van en una
+`Clave`, sin tocar la prueba.
+
+**Lo que queda**: las pantallas de la orden —tanda 4—. El frontend ya tiene los tipos regenerados.
