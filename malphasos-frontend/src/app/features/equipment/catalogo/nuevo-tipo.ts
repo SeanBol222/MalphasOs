@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
@@ -50,6 +51,32 @@ export class NuevoTipo {
   protected readonly modelos = signal<ConfiguracionDeModelos>({ modelos: [], valida: true });
   private readonly bloqueDeModelos = viewChild(MarcasYModelos);
 
+  /** Las otras dos secciones plegadas de la columna de lo opcional (2026-11-20). */
+  protected readonly verificacionAbierta = signal(false);
+  protected readonly fichaAbierta = signal(false);
+
+  /** Lo que lleva cada seccion, dicho en su cabecera para que se vea aun plegada. */
+  protected readonly resumenDeVerificacion = computed(() => {
+    const cuantas = this.verificacion().verificaciones.length;
+
+    return cuantas ? `${cuantas} ${cuantas === 1 ? 'magnitud' : 'magnitudes'}` : 'Sin verificación';
+  });
+  protected readonly resumenDeModelos = computed(() => {
+    const cuantos = this.modelos().modelos.length;
+
+    return cuantos ? `${cuantos} ${cuantos === 1 ? 'modelo' : 'modelos'}` : 'Ninguno';
+  });
+  protected readonly resumenDeFicha = computed(() => {
+    const valores = this.valores();
+    const llenos = [
+      valores.uso?.trim(),
+      valores.limpiezaCotidiana?.trim(),
+      valores.valorUnitarioMantenimiento !== null && valores.valorUnitarioMantenimiento !== undefined,
+    ].filter(Boolean).length;
+
+    return llenos ? `${llenos} de 3` : 'Sin completar';
+  });
+
   /** Mientras dura la cadena entera: el tipo, sus protocolos y sus modelos. */
   private readonly guardando = signal(false);
 
@@ -92,6 +119,11 @@ export class NuevoTipo {
     uso: ['', Validators.maxLength(250)],
     limpiezaCotidiana: ['', Validators.maxLength(250)],
     valorUnitarioMantenimiento: [null as number | null],
+  });
+
+  /** Los valores como senal: un formulario reactivo no lo es, y el resumen de la ficha depende de ellos. */
+  private readonly valores = toSignal(this.formulario.valueChanges, {
+    initialValue: this.formulario.getRawValue(),
   });
 
   protected readonly enviando = computed(
@@ -137,7 +169,10 @@ export class NuevoTipo {
       // Que los bloques pinten sus propios errores: hasta que se intenta guardar no se les reprocha nada.
       this.bloqueDeVerificacion()?.marcarIntento();
       this.bloqueDeModelos()?.marcarIntento();
-      // Una fila a medias en una seccion plegada no se veria.
+      // Un error en una seccion plegada no se veria: se abre la que lo tenga.
+      if (!verificacion.valida) {
+        this.verificacionAbierta.set(true);
+      }
       if (!this.modelos().valida) {
         this.modelosAbiertos.set(true);
       }

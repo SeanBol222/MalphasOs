@@ -100,6 +100,56 @@ describe('Alta de un tipo de equipo', () => {
     await asentar(fixture);
   }
 
+  describe('Dos columnas: los datos generales y lo opcional (2026-11-20)', () => {
+    const columna = (id: string) =>
+      raiz().querySelector<HTMLElement>(`section[aria-labelledby="${id}"]`)!;
+    const seccion = (nombre: string) =>
+      raiz().querySelector<HTMLButtonElement>(`[data-seccion="${nombre}"]`)!;
+
+    it('a la izquierda los obligatorios, el protocolo y los botones; a la derecha lo opcional', () => {
+      const generales = columna('datosGenerales');
+      const opcionales = columna('datosOpcionales');
+
+      for (const id of ['nombre', 'definicionTecnica', 'recomendacionesCuidado']) {
+        expect(generales.querySelector(`#${id}`)).not.toBeNull();
+      }
+      expect(generales.querySelector('app-protocolos-del-tipo')).not.toBeNull();
+      expect(generales.querySelector('button[type="submit"]')).not.toBeNull();
+      expect(generales.textContent).toContain('Los campos con * son obligatorios');
+
+      expect(opcionales.querySelector('app-verificacion')).not.toBeNull();
+      expect(opcionales.querySelector('#uso')).not.toBeNull();
+      expect(opcionales.querySelector('[data-seccion="modelos"]')).not.toBeNull();
+    });
+
+    it('las secciones de lo opcional abren plegadas, y cada una se abre por su cuenta', async () => {
+      for (const nombre of ['verificacion', 'modelos', 'ficha']) {
+        expect(seccion(nombre).getAttribute('aria-expanded')).toBe('false');
+      }
+      expect(raiz().querySelector<HTMLElement>('#seccionFicha')!.hidden).toBe(true);
+
+      seccion('ficha').click();
+      await asentar(fixture);
+
+      expect(raiz().querySelector<HTMLElement>('#seccionFicha')!.hidden).toBe(false);
+      expect(raiz().querySelector<HTMLElement>('#seccionVerificacion')!.hidden).toBe(true);
+
+      seccion('ficha').click();
+      await asentar(fixture);
+      expect(raiz().querySelector<HTMLElement>('#seccionFicha')!.hidden).toBe(true);
+    });
+
+    it('la cabecera de la ficha dice cuantos de sus tres datos lleva', async () => {
+      expect(seccion('ficha').textContent).toContain('Sin completar');
+
+      escribir('uso', 'Consulta externa');
+      escribir('valorUnitarioMantenimiento', '120000');
+      await asentar(fixture);
+
+      expect(seccion('ficha').textContent).toContain('2 de 3');
+    });
+  });
+
   describe('Las marcas y los modelos, plegados (2026-11-19)', () => {
     const seccion = () =>
       [...raiz().querySelectorAll('button')].find((b) => b.textContent?.includes('Marcas y modelos'))!;
@@ -550,6 +600,38 @@ describe('Alta de un tipo de equipo', () => {
 
       http.expectNone({ method: 'POST', url: URL_TIPOS });
       expect(texto()).toContain('al menos un punto');
+    });
+
+    it('si la verificacion esta a medias y plegada, guardar la abre para que se vea el error', async () => {
+      rellenarObligatorios();
+      await abrirPanel(ID_PRESION, ID_MMHG);
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
+      escribirEn('#cantidad-1', '3');
+      expect(raiz().querySelector<HTMLElement>('#seccionVerificacion')!.hidden).toBe(true);
+
+      await enviar();
+
+      expect(raiz().querySelector<HTMLElement>('#seccionVerificacion')!.hidden).toBe(false);
+      expect(
+        raiz().querySelector('[data-seccion="verificacion"]')!.getAttribute('aria-expanded'),
+      ).toBe('true');
+    });
+
+    it('la cabecera dice cuantas magnitudes lleva, aun plegada', async () => {
+      const cabecera = () => raiz().querySelector('[data-seccion="verificacion"]')!.textContent;
+      expect(cabecera()).toContain('Sin verificación');
+
+      await abrirPanel(ID_PRESION, ID_MMHG);
+      escribirEn('#modalidad-1', 'PATRON_CONSTANTE');
+      escribirEn('#cantidad-1', '3');
+      await asentar(fixture);
+      // A medias no cuenta: solo se cuentan las que se guardarian.
+      expect(cabecera()).toContain('Sin verificación');
+
+      escribirEn('#valor-1-0', '100');
+      await asentar(fixture);
+
+      expect(cabecera()).toContain('1 magnitud');
     });
 
     it('sin magnitud no llega al servidor', async () => {
