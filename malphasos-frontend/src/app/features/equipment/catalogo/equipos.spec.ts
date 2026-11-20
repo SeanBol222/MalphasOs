@@ -150,7 +150,7 @@ describe('Equipos del catalogo', () => {
     expect(texto()).toContain('Elija un tipo y una marca');
   });
 
-  it('retirar pregunta antes, y solo «Sí, retirar» retira (2026-11-20)', async () => {
+  it('retirar pregunta antes, y solo el «Retirar» de la pregunta retira (2026-11-20)', async () => {
     await abrir();
     pulsar('Retirar');
     await asentar(fixture);
@@ -161,7 +161,8 @@ describe('Equipos del catalogo', () => {
     expect(texto()).not.toContain('¿Seguro que quiere retirar');
 
     pulsar('Retirar');
-    pulsar('Sí, retirar');
+    raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+    fixture.detectChanges();
     await asentar(fixture);
     http.expectOne({ method: 'DELETE', url: `${URL_EQUIPOS}/${EQUIPOS[0].id}` }).flush(null);
     await asentar(fixture);

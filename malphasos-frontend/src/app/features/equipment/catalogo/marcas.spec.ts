@@ -151,9 +151,10 @@ describe('Marcas del catalogo', () => {
     // Mientras pregunta, la fila solo enseña la pregunta: «Renombrar» se oculta.
     expect(
       [...raiz().querySelectorAll('[data-marca="m1"] button')].map((b) => b.textContent?.trim()),
-    ).toEqual(['Sí, retirar', 'Cancelar']);
+    ).toEqual(['Retirar', 'Cancelar']);
 
-    pulsar('Sí, retirar');
+    raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+    fixture.detectChanges();
     await asentar(fixture);
 
     http.expectOne({ method: 'DELETE', url: `${URL_MARCAS}/m1` }).flush(null);

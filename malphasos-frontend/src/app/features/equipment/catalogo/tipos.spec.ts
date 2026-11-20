@@ -97,20 +97,21 @@ describe('Tipos de equipo', () => {
       expect(texto()).toContain('¿Seguro que quiere retirar?');
       // Mientras pregunta, la fila solo enseña la pregunta: sin Editar, Verificación ni Patrones.
       const acciones = () =>
-        [...raiz().querySelectorAll(`[data-tipo="${ID_TIPO}"] td[data-acciones] :is(a, button)`)].map(
-          (b) => b.textContent?.trim(),
-        );
-      expect(acciones()).toEqual(['Sí, retirar', 'Cancelar']);
+        [
+          ...raiz().querySelectorAll(`[data-tipo="${ID_TIPO}"] td[data-acciones] :is(a, button)`),
+        ].map((b) => b.textContent?.trim());
+      expect(acciones()).toEqual(['Retirar', 'Cancelar']);
 
       pulsar('Cancelar');
       expect(texto()).not.toContain('¿Seguro que quiere retirar');
       expect(acciones()).toEqual(['Editar', 'Verificación', 'Patrones', 'Retirar']);
     });
 
-    it('«Sí, retirar» lo retira, y la pregunta se cierra', async () => {
+    it('el «Retirar» de la pregunta lo retira, y la pregunta se cierra', async () => {
       await abrir();
       pulsar('Retirar');
-      pulsar('Sí, retirar');
+      raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+      fixture.detectChanges();
       await asentar(fixture);
 
       http.expectOne({ method: 'DELETE', url: `${URL_TIPOS}/${ID_TIPO}` }).flush(null);

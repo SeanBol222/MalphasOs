@@ -103,10 +103,11 @@ describe('Modelos del catalogo', () => {
       expect(texto()).toContain('Retirar');
     });
 
-    it('«Sí, retirar» lo retira, y la pregunta se cierra', async () => {
+    it('el «Retirar» de la pregunta lo retira, y la pregunta se cierra', async () => {
       await abrir();
       pulsar('Retirar');
-      pulsar('Sí, retirar');
+      raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+      fixture.detectChanges();
       await asentar(fixture);
 
       http.expectOne({ method: 'DELETE', url: `${URL_MODELOS}/${MODELOS[0].id}` }).flush(null);

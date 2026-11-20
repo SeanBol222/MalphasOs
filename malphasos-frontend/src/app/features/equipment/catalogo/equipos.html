@@ -113,12 +113,13 @@
                   @if (confirmandoRetiro() === fila.id) {
                     <span class="mr-2 font-semibold" role="alert">¿Seguro que quiere retirar?</span>
                     <button
+                      data-confirmar-retiro
                       class="boton-primario min-h-tactil"
                       type="button"
                       [disabled]="baja.isPending()"
                       (click)="retirar(fila.id)"
                     >
-                      Sí, retirar
+                      Retirar
                     </button>
                     <button
                       class="min-h-tactil px-1 underline"

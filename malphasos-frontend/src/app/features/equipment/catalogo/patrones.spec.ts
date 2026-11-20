@@ -381,7 +381,7 @@ describe('Equipos patrón', () => {
     ).toEqual(['1524', 'BB-PAT-003', '-50 a 150 °C', '0,01 °C', 'Metrología Andina', '2026-01-31']);
   });
 
-  it('retirar pregunta antes, oculta «Editar» mientras tanto, y solo «Sí, retirar» retira', async () => {
+  it('retirar pregunta antes, oculta «Editar» mientras tanto, y solo el «Retirar» de la pregunta retira', async () => {
     montar();
     await abrir();
     const botones = () =>
@@ -393,9 +393,9 @@ describe('Equipos patrón', () => {
     await asentar(fixture);
     http.expectNone({ method: 'DELETE', url: `${URL}/p3` });
     expect(raiz().textContent).toContain('¿Seguro que quiere retirar?');
-    expect(botones()).toEqual(['Sí, retirar', 'Cancelar']);
+    expect(botones()).toEqual(['Retirar', 'Cancelar']);
 
-    boton('Sí, retirar').click();
+    raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
     await asentar(fixture);
     http.expectOne({ method: 'DELETE', url: `${URL}/p3` }).flush(null);
     await asentar(fixture);

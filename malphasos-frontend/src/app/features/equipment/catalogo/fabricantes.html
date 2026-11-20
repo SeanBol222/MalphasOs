@@ -155,12 +155,13 @@
                         >¿Seguro que quiere retirar?</span
                       >
                       <button
+                        data-confirmar-retiro
                         class="boton-primario min-h-tactil"
                         type="button"
                         [disabled]="baja.isPending()"
                         (click)="retirar(fabricante.id!)"
                       >
-                        Sí, retirar
+                        Retirar
                       </button>
                       <button
                         class="min-h-tactil px-1 underline"

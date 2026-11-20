@@ -193,7 +193,7 @@ describe('Fabricantes del catalogo', () => {
     expect(texto()).toContain('Medtronic');
   });
 
-  it('retirar pregunta antes, oculta «Renombrar» mientras tanto, y solo «Sí, retirar» retira', async () => {
+  it('retirar pregunta antes, oculta «Renombrar» mientras tanto, y solo el «Retirar» de la pregunta retira', async () => {
     await abrir();
     const fila = `[data-fabricante="${FABRICANTES[0].id}"]`;
     const botones = () =>
@@ -203,13 +203,14 @@ describe('Fabricantes del catalogo', () => {
     await asentar(fixture);
     http.expectNone({ method: 'DELETE', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` });
     expect(texto()).toContain('¿Seguro que quiere retirar?');
-    expect(botones()).toEqual(['Sí, retirar', 'Cancelar']);
+    expect(botones()).toEqual(['Retirar', 'Cancelar']);
 
     pulsar('Cancelar');
     expect(botones()).toEqual(['Renombrar', 'Retirar']);
 
     pulsar('Retirar');
-    pulsar('Sí, retirar');
+    raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+    fixture.detectChanges();
     await asentar(fixture);
     http.expectOne({ method: 'DELETE', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` }).flush(null);
     await asentar(fixture);
