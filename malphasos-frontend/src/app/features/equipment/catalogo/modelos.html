@@ -19,63 +19,86 @@
     El alta se abre con «Nuevo modelo», encima de la lista. Se recorre en el orden en que se piensa:
     el tipo, la marca y el modelo. La combinacion de tipo y marca se crea sola si falta.
   -->
+  <!--
+    En dos recuadros desde el 2026-11-20, como el de los patrones y a pedido del usuario: a la
+    izquierda el titulo y de que es el modelo —tipo, marca y fabricante—; a la derecha el modelo en si,
+    con lo que falta y los botones al pie. En una pantalla estrecha el de la derecha baja debajo.
+  -->
   @if (puedeEscribir() && abierto()) {
-    <div class="mt-2 border-l-2 border-ink bg-neutral-100 p-2">
-      <h3 class="font-bold">Nuevo modelo</h3>
-      <form class="mt-1 grid gap-2 sm:grid-cols-2" [formGroup]="formulario" (ngSubmit)="agregar()">
+    <form
+      class="mt-2 grid items-start gap-3 lg:grid-cols-2"
+      [formGroup]="formulario"
+      (ngSubmit)="agregar()"
+    >
+      <section class="superficie" data-columna="clasificacion" aria-labelledby="modelo-formulario">
+        <h3 id="modelo-formulario" class="text-2xl leading-tight font-extrabold">Nuevo modelo</h3>
+        <h4 class="titulo-seccion mt-1.5">Tipo, marca y fabricante</h4>
         <!--
           Se escriben y se eligen de lo que casa: «we» ofrece Welch Allyn. Al abrirlos sin escribir
           ofrecen la lista entera, para recorrerla. La marca espera al tipo, y las que ya fabrican ese
           tipo salen primero.
         -->
-        <app-buscador
-          formControlName="idTipo"
-          campo="tipoDelModelo"
-          etiqueta="Tipo"
-          historial="tipoDeEquipo"
-          [todasAlAbrir]="true"
-          [opciones]="opcionesDeTipo()"
-        />
-        <app-buscador
-          formControlName="idMarca"
-          campo="marcaDelModelo"
-          etiqueta="Marca"
-          historial="marca"
-          [todasAlAbrir]="true"
-          [opciones]="opcionesDeMarca()"
-        />
-        <app-buscador
-          formControlName="idFabricante"
-          campo="fabricanteDelModelo"
-          etiqueta="Fabricante"
-          historial="fabricante"
-          [todasAlAbrir]="true"
-          [opciones]="opcionesDeFabricante()"
-        />
-        <div>
-          <label class="block font-semibold" for="nombreDelModelo">
-            Nombre <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="nombreDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="nombre"
-            maxlength="50"
-            aria-required="true"
-            placeholder="IdeaPad 3"
+        <div class="mt-1.5 grid gap-2">
+          <app-buscador
+            formControlName="idTipo"
+            campo="tipoDelModelo"
+            etiqueta="Tipo"
+            historial="tipoDeEquipo"
+            [todasAlAbrir]="true"
+            [opciones]="opcionesDeTipo()"
+          />
+          <app-buscador
+            formControlName="idMarca"
+            campo="marcaDelModelo"
+            etiqueta="Marca"
+            historial="marca"
+            [todasAlAbrir]="true"
+            [opciones]="opcionesDeMarca()"
+          />
+          <app-buscador
+            formControlName="idFabricante"
+            campo="fabricanteDelModelo"
+            etiqueta="Fabricante"
+            historial="fabricante"
+            [todasAlAbrir]="true"
+            [opciones]="opcionesDeFabricante()"
           />
         </div>
-        <div>
-          <!-- Opcional, al contrario que el nombre: se tramita despues de dar de alta el modelo. -->
-          <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
-          <input
-            id="invimaDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="invima"
-            maxlength="50"
-          />
+      </section>
+
+      <section class="superficie" data-columna="modelo" aria-labelledby="modelo-datos">
+        <h4 id="modelo-datos" class="titulo-seccion">El modelo</h4>
+        <div class="mt-1.5 grid gap-2">
+          <div>
+            <label class="block font-semibold" for="nombreDelModelo">
+              Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="nombreDelModelo"
+              class="campo mt-1 min-h-tactil w-full"
+              formControlName="nombre"
+              maxlength="50"
+              aria-required="true"
+              placeholder="IdeaPad 3"
+            />
+          </div>
+          <div>
+            <!-- Opcional, al contrario que el nombre: se tramita despues de dar de alta el modelo. -->
+            <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
+            <input
+              id="invimaDelModelo"
+              class="campo mt-1 min-h-tactil w-full"
+              formControlName="invima"
+              maxlength="50"
+            />
+          </div>
         </div>
-        <div class="flex flex-wrap items-end gap-2">
+        @if (formulario.invalid && formulario.touched) {
+          <p class="mt-1 font-semibold text-accent-700">
+            Elija el tipo, la marca y el fabricante, y escriba el nombre.
+          </p>
+        }
+        <div class="mt-2 flex flex-wrap gap-2">
           <button class="boton-primario min-h-tactil" type="submit" [disabled]="creando()">
             {{ creando() ? 'Creando…' : 'Crear modelo' }}
           </button>
@@ -83,13 +106,8 @@
             Cancelar
           </button>
         </div>
-      </form>
-      @if (formulario.invalid && formulario.touched) {
-        <p class="mt-1 font-semibold text-accent-700">
-          Elija el tipo, la marca y el fabricante, y escriba el nombre.
-        </p>
-      }
-    </div>
+      </section>
+    </form>
   }
 
   @if (cargando()) {

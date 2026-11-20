@@ -169,6 +169,28 @@ describe('Modelos del catalogo', () => {
     expect(raiz().querySelector('form')).toBeNull();
   });
 
+  it('el alta va en dos recuadros, como la de un patrón: de qué es el modelo, y el modelo con los botones', async () => {
+    await abrir();
+    pulsar('Nuevo modelo');
+    const clasificacion = raiz().querySelector('[data-columna="clasificacion"]')!;
+    const modelo = raiz().querySelector('[data-columna="modelo"]')!;
+
+    expect(clasificacion.classList).toContain('superficie');
+    expect(modelo.classList).toContain('superficie');
+    expect(clasificacion.contains(modelo)).toBe(false);
+    expect(clasificacion.querySelector('h3')?.textContent?.trim()).toBe('Nuevo modelo');
+    for (const id of ['tipoDelModelo', 'marcaDelModelo', 'fabricanteDelModelo']) {
+      expect(clasificacion.querySelector(`#${id}`)).not.toBeNull();
+    }
+    for (const id of ['nombreDelModelo', 'invimaDelModelo']) {
+      expect(modelo.querySelector(`#${id}`)).not.toBeNull();
+    }
+    expect([...modelo.querySelectorAll('button')].map((b) => b.textContent?.trim())).toEqual([
+      'Crear modelo',
+      'Cancelar',
+    ]);
+  });
+
   it('la marca espera al tipo, y despues ofrece primero las que ya fabrican ese tipo', async () => {
     await abrir({ marcas: CON_OMRON });
     pulsar('Nuevo modelo');
