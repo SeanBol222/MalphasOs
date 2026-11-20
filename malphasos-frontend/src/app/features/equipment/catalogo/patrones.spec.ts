@@ -109,6 +109,34 @@ describe('Equipos patrón', () => {
     expect(raiz().textContent).toContain('Ningún patrón coincide con «desfibrilador»');
   });
 
+  it('el formulario va en dos recuadros: el aparato a la izquierda, su calibración y los botones a la derecha', async () => {
+    montar();
+    await abrir();
+    abrirAlta();
+    const aparato = raiz().querySelector('[data-columna="aparato"]')!;
+    const calibracion = raiz().querySelector('[data-columna="calibracion"]')!;
+
+    for (const id of ['patronNombre', 'patronMarca', 'patronModelo', 'patronSerie', 'patronCodigo', 'patronRango', 'patronResolucion']) {
+      expect(aparato.querySelector(`#${id}`)).not.toBeNull();
+    }
+    for (const id of ['patronCertificado', 'patronEmpresa', 'patronCalibrado', 'patronVence']) {
+      expect(calibracion.querySelector(`#${id}`)).not.toBeNull();
+    }
+    const botones = [...calibracion.querySelectorAll('button')].map((b) => b.textContent?.trim());
+    expect(botones).toEqual(['Registrar patrón', 'Cancelar']);
+    // Dos recuadros separados, cada uno con su titulo del mismo tamano, y el del formulario dentro del
+    // de la izquierda, mas grande.
+    expect(aparato.classList).toContain('superficie');
+    expect(calibracion.classList).toContain('superficie');
+    expect(aparato.contains(calibracion)).toBe(false);
+    expect(aparato.querySelector('h4.titulo-seccion')?.textContent?.trim()).toBe('El dispositivo');
+    expect(calibracion.querySelector('h4.titulo-seccion')?.textContent?.trim()).toBe('Su calibración');
+    const titulo = raiz().querySelector('#patron-formulario')!;
+    expect(titulo.textContent?.trim()).toBe('Patrón nuevo');
+    expect(titulo.className).toContain('text-2xl');
+    expect(aparato.contains(titulo)).toBe(true);
+  });
+
   it('el formulario no esta a la vista: se abre con «Nuevo patrón» o al editar, y se cierra al cancelar', async () => {
     montar();
     await abrir();
