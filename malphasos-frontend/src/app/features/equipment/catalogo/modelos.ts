@@ -14,6 +14,7 @@ import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 import { normalizar } from '../../../core/texto';
 import { CabeceraDePieza } from './cabecera-de-pieza';
+import { Buscador, Opcion, opcionesDe } from '../../../shared/buscador/buscador';
 import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 
 /**
@@ -34,7 +35,7 @@ import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-orde
  */
 @Component({
   selector: 'app-modelos',
-  imports: [ReactiveFormsModule, RouterLink, CabeceraDePieza, ColumnaOrdenable],
+  imports: [ReactiveFormsModule, RouterLink, CabeceraDePieza, ColumnaOrdenable, Buscador],
   templateUrl: './modelos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -165,6 +166,19 @@ export class Modelos {
       otras: activas.filter((m) => !asociadas.has(m.id)),
     };
   });
+  /**
+   * Tipo, marca y fabricante se escriben y se eligen de lo que casa, sin tildes ni mayusculas
+   * (2026-11-20, pedido por el usuario): con cientos de marcas, un desplegable obligaba a recorrerlo. Las
+   * marcas que ya fabrican el tipo elegido van primero en las sugerencias.
+   */
+  protected readonly opcionesDeTipo = computed(() => opcionesDe(this.tiposActivos()));
+  protected readonly opcionesDeMarca = computed<readonly Opcion[]>(() => {
+    const { asociadas, otras } = this.marcasDelTipo();
+
+    return opcionesDe([...asociadas, ...otras]);
+  });
+  protected readonly opcionesDeFabricante = computed(() => opcionesDe(this.fabricantesActivos()));
+
   protected readonly fabricantesActivos = computed(() =>
     (this.fabricantes.data() ?? []).filter((f) => f.estadoActivo),
   );

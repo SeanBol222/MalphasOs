@@ -23,67 +23,35 @@
     <div class="mt-2 border-l-2 border-ink bg-neutral-100 p-2">
       <h3 class="font-bold">Nuevo modelo</h3>
       <form class="mt-1 grid gap-2 sm:grid-cols-2" [formGroup]="formulario" (ngSubmit)="agregar()">
-        <div>
-          <label class="block font-semibold" for="tipoDelModelo">
-            Tipo <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <select
-            id="tipoDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="idTipo"
-            aria-required="true"
-          >
-            <option value="">Elija un tipo</option>
-            @for (tipo of tiposActivos(); track tipo.id) {
-              <option [value]="tipo.id">{{ tipo.nombre }}</option>
-            }
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold" for="marcaDelModelo">
-            Marca <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <select
-            id="marcaDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="idMarca"
-            aria-required="true"
-          >
-            <option value="">
-              {{ formulario.controls.idTipo.value ? 'Elija una marca' : 'Elija antes el tipo' }}
-            </option>
-            @if (marcasDelTipo().asociadas.length) {
-              <optgroup label="Ya asociadas a este tipo">
-                @for (marca of marcasDelTipo().asociadas; track marca.id) {
-                  <option [value]="marca.id">{{ marca.nombre }}</option>
-                }
-              </optgroup>
-            }
-            @if (marcasDelTipo().otras.length) {
-              <optgroup label="Otras marcas">
-                @for (marca of marcasDelTipo().otras; track marca.id) {
-                  <option [value]="marca.id">{{ marca.nombre }}</option>
-                }
-              </optgroup>
-            }
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold" for="fabricanteDelModelo">
-            Fabricante <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <select
-            id="fabricanteDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="idFabricante"
-            aria-required="true"
-          >
-            <option value="">Elija un fabricante</option>
-            @for (fabricante of fabricantesActivos(); track fabricante.id) {
-              <option [value]="fabricante.id">{{ fabricante.nombre }}</option>
-            }
-          </select>
-        </div>
+        <!--
+          Se escriben y se eligen de lo que casa: «we» ofrece Welch Allyn. Al abrirlos sin escribir
+          ofrecen la lista entera, para recorrerla. La marca espera al tipo, y las que ya fabrican ese
+          tipo salen primero.
+        -->
+        <app-buscador
+          formControlName="idTipo"
+          campo="tipoDelModelo"
+          etiqueta="Tipo"
+          historial="tipoDeEquipo"
+          [todasAlAbrir]="true"
+          [opciones]="opcionesDeTipo()"
+        />
+        <app-buscador
+          formControlName="idMarca"
+          campo="marcaDelModelo"
+          etiqueta="Marca"
+          historial="marca"
+          [todasAlAbrir]="true"
+          [opciones]="opcionesDeMarca()"
+        />
+        <app-buscador
+          formControlName="idFabricante"
+          campo="fabricanteDelModelo"
+          etiqueta="Fabricante"
+          historial="fabricante"
+          [todasAlAbrir]="true"
+          [opciones]="opcionesDeFabricante()"
+        />
         <div>
           <label class="block font-semibold" for="nombreDelModelo">
             Nombre <span class="text-accent-700" aria-hidden="true">*</span>
