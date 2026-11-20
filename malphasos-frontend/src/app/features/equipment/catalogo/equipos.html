@@ -109,15 +109,34 @@
             @if (puedeEscribir()) {
               <td data-acciones class="text-right whitespace-nowrap">
                 @if (fila.estadoActivo) {
-                  <button
-                    class="min-h-tactil px-1 underline"
-                    type="button"
-                    [attr.aria-label]="'Retirar ' + fila.tipo + ' ' + fila.marca"
-                    [disabled]="baja.isPending()"
-                    (click)="retirar(fila.id)"
-                  >
-                    Retirar
-                  </button>
+                  <!-- Retirar pregunta antes: ninguna pantalla lo devuelve. -->
+                  @if (confirmandoRetiro() === fila.id) {
+                    <span class="mr-2 font-semibold" role="alert">¿Seguro que quiere retirar?</span>
+                    <button
+                      class="boton-primario min-h-tactil"
+                      type="button"
+                      [disabled]="baja.isPending()"
+                      (click)="retirar(fila.id)"
+                    >
+                      Sí, retirar
+                    </button>
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      (click)="confirmandoRetiro.set(null)"
+                    >
+                      Cancelar
+                    </button>
+                  } @else {
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      [attr.aria-label]="'Retirar ' + fila.tipo + ' ' + fila.marca"
+                      (click)="confirmandoRetiro.set(fila.id)"
+                    >
+                      Retirar
+                    </button>
+                  }
                 }
               </td>
             }

@@ -143,12 +143,35 @@ describe('Marcas del catalogo', () => {
 
     expect(retirar).toHaveLength(1);
 
+    // Desde el 2026-11-20 pregunta antes: el primer clic no retira.
     retirar[0].click();
+    await asentar(fixture);
+    http.expectNone({ method: 'DELETE', url: `${URL_MARCAS}/m1` });
+    expect(texto()).toContain('¿Seguro que quiere retirar?');
+    // Mientras pregunta, la fila solo enseña la pregunta: «Renombrar» se oculta.
+    expect(
+      [...raiz().querySelectorAll('[data-marca="m1"] button')].map((b) => b.textContent?.trim()),
+    ).toEqual(['Sí, retirar', 'Cancelar']);
+
+    pulsar('Sí, retirar');
     await asentar(fixture);
 
     http.expectOne({ method: 'DELETE', url: `${URL_MARCAS}/m1` }).flush(null);
     await asentar(fixture);
+    // La recarga trae la marca otra vez: si la pregunta se va es porque se cerró.
     await atenderRefresco(fixture, http, URL_MARCAS, MARCAS);
+    expect(texto()).not.toContain('¿Seguro que quiere retirar');
+  });
+
+  it('«Cancelar» deja la marca como estaba, sin retirarla', async () => {
+    await abrir();
+    pulsar('Retirar');
+    await asentar(fixture);
+    pulsar('Cancelar');
+    await asentar(fixture);
+
+    http.expectNone({ method: 'DELETE', url: `${URL_MARCAS}/m1` });
+    expect(texto()).not.toContain('¿Seguro que quiere retirar');
   });
 
   it('sin equipment.write se ve el catalogo y no se toca', async () => {

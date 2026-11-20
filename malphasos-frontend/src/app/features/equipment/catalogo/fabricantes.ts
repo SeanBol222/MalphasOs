@@ -37,6 +37,9 @@ export class Fabricantes {
   protected readonly opcionesDePais = computed(() => opcionesDe(this.paises.data()));
   protected readonly alta = this.api.crearFabricante();
   protected readonly baja = this.api.retirarFabricante();
+
+  /** El fabricante cuyo retiro se esta confirmando: «Retirar» pregunta antes (2026-11-20). */
+  protected readonly confirmandoRetiro = signal<string | null>(null);
   protected readonly cambio = this.api.editarFabricante();
 
   /**
@@ -147,6 +150,6 @@ export class Fabricantes {
   }
 
   protected retirar(id: string): void {
-    this.baja.mutate(id);
+    this.baja.mutate(id, { onSettled: () => this.confirmandoRetiro.set(null) });
   }
 }

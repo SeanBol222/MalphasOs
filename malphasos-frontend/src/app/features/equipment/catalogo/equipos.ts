@@ -40,6 +40,9 @@ export class EquiposDeCatalogo {
   protected readonly alta = this.api.crearEquipo();
   protected readonly baja = this.api.retirarEquipo();
 
+  /** El equipo del catálogo cuyo retiro se esta confirmando: «Retirar» pregunta antes (2026-11-20). */
+  protected readonly confirmandoRetiro = signal<string | null>(null);
+
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
   private readonly formBuilder = inject(FormBuilder);
@@ -145,6 +148,6 @@ export class EquiposDeCatalogo {
   }
 
   protected retirar(id: string): void {
-    this.baja.mutate(id);
+    this.baja.mutate(id, { onSettled: () => this.confirmandoRetiro.set(null) });
   }
 }

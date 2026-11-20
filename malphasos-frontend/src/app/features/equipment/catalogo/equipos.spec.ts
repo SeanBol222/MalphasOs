@@ -150,6 +150,30 @@ describe('Equipos del catalogo', () => {
     expect(texto()).toContain('Elija un tipo y una marca');
   });
 
+  it('retirar pregunta antes, y solo «Sí, retirar» retira (2026-11-20)', async () => {
+    await abrir();
+    pulsar('Retirar');
+    await asentar(fixture);
+    http.expectNone({ method: 'DELETE', url: `${URL_EQUIPOS}/${EQUIPOS[0].id}` });
+    expect(texto()).toContain('¿Seguro que quiere retirar?');
+
+    pulsar('Cancelar');
+    expect(texto()).not.toContain('¿Seguro que quiere retirar');
+
+    pulsar('Retirar');
+    pulsar('Sí, retirar');
+    await asentar(fixture);
+    http.expectOne({ method: 'DELETE', url: `${URL_EQUIPOS}/${EQUIPOS[0].id}` }).flush(null);
+    await asentar(fixture);
+    for (const url of [URL_MARCAS, URL_TIPOS, URL_EQUIPOS]) {
+      http.match(url).forEach((p) => p.flush(url === URL_MARCAS ? MARCAS : url === URL_TIPOS ? TIPOS : EQUIPOS));
+    }
+    await asentar(fixture);
+    // La recarga trae la combinación otra vez: si la pregunta se va es porque se cerró.
+    expect(raiz().querySelector('tbody tr')).not.toBeNull();
+    expect(texto()).not.toContain('¿Seguro que quiere retirar');
+  });
+
   describe('el buscador', () => {
     const DOS_TIPOS = [...TIPOS, { ...TIPOS[0], id: 't2', nombre: 'Báscula' }];
     const TRES_EQUIPOS = [

@@ -137,24 +137,48 @@
               <td data-etiqueta="País">{{ pais(fabricante.idPais) }}</td>
               @if (puedeEscribir()) {
                 <td data-acciones class="text-right whitespace-nowrap">
-                  <button
-                    class="min-h-tactil px-1 font-bold underline"
-                    type="button"
-                    [attr.aria-label]="'Renombrar ' + fabricante.nombre"
-                    (click)="empezarARenombrar(fabricante.id!, fabricante.nombre)"
-                  >
-                    Renombrar
-                  </button>
-                  @if (fabricante.estadoActivo) {
+                  <!-- Mientras se confirma el retiro, la fila solo enseña la pregunta. -->
+                  @if (confirmandoRetiro() !== fabricante.id) {
                     <button
-                      class="min-h-tactil px-1 underline"
+                      class="min-h-tactil px-1 font-bold underline"
                       type="button"
-                      [attr.aria-label]="'Retirar ' + fabricante.nombre"
-                      [disabled]="baja.isPending()"
-                      (click)="retirar(fabricante.id!)"
+                      [attr.aria-label]="'Renombrar ' + fabricante.nombre"
+                      (click)="empezarARenombrar(fabricante.id!, fabricante.nombre)"
                     >
-                      Retirar
+                      Renombrar
                     </button>
+                  }
+                  @if (fabricante.estadoActivo) {
+                    <!-- Retirar pregunta antes: ninguna pantalla lo devuelve. -->
+                    @if (confirmandoRetiro() === fabricante.id) {
+                      <span class="mr-2 font-semibold" role="alert"
+                        >¿Seguro que quiere retirar?</span
+                      >
+                      <button
+                        class="boton-primario min-h-tactil"
+                        type="button"
+                        [disabled]="baja.isPending()"
+                        (click)="retirar(fabricante.id!)"
+                      >
+                        Sí, retirar
+                      </button>
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        (click)="confirmandoRetiro.set(null)"
+                      >
+                        Cancelar
+                      </button>
+                    } @else {
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        [attr.aria-label]="'Retirar ' + fabricante.nombre"
+                        (click)="confirmandoRetiro.set(fabricante.id!)"
+                      >
+                        Retirar
+                      </button>
+                    }
                   }
                 </td>
               }

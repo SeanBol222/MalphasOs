@@ -60,6 +60,12 @@ export class Modelos {
   private readonly altaDeEquipo = this.api.crearEquipo();
   protected readonly baja = this.api.retirarModelo();
 
+  /**
+   * El modelo cuyo retiro se esta confirmando (2026-11-20, pedido por el usuario tras retirar uno por
+   * accidente): «Retirar» pregunta antes, y solo «Sí, retirar» lo hace. Ninguna pantalla lo devuelve.
+   */
+  protected readonly confirmandoRetiro = signal<string | null>(null);
+
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
   /** El formulario del alta se abre con «Nuevo modelo» y se cierra al crear o al cancelar. */
@@ -264,6 +270,6 @@ export class Modelos {
   }
 
   protected retirar(id: string): void {
-    this.baja.mutate(id);
+    this.baja.mutate(id, { onSettled: () => this.confirmandoRetiro.set(null) });
   }
 }

@@ -193,6 +193,33 @@ describe('Fabricantes del catalogo', () => {
     expect(texto()).toContain('Medtronic');
   });
 
+  it('retirar pregunta antes, oculta «Renombrar» mientras tanto, y solo «Sí, retirar» retira', async () => {
+    await abrir();
+    const fila = `[data-fabricante="${FABRICANTES[0].id}"]`;
+    const botones = () =>
+      [...raiz().querySelectorAll(`${fila} button`)].map((b) => b.textContent?.trim());
+
+    pulsar('Retirar');
+    await asentar(fixture);
+    http.expectNone({ method: 'DELETE', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` });
+    expect(texto()).toContain('¿Seguro que quiere retirar?');
+    expect(botones()).toEqual(['Sí, retirar', 'Cancelar']);
+
+    pulsar('Cancelar');
+    expect(botones()).toEqual(['Renombrar', 'Retirar']);
+
+    pulsar('Retirar');
+    pulsar('Sí, retirar');
+    await asentar(fixture);
+    http.expectOne({ method: 'DELETE', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` }).flush(null);
+    await asentar(fixture);
+    // La recarga trae el fabricante otra vez: si la pregunta se va es porque se cerró.
+    http.match(URL_FABRICANTES).forEach((p) => p.flush(FABRICANTES));
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+    expect(texto()).not.toContain('¿Seguro que quiere retirar');
+  });
+
   afterEach(() => {
     // En finally a proposito: si verify() lanza por una peticion abierta, sin esto el doble de
     // localStorage se queda instalado y el fichero SIGUIENTE hereda lo que este guardo. Es la variante

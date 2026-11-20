@@ -123,6 +123,12 @@ export class TiposDeEquipo {
     );
   });
   protected readonly baja = this.api.retirarTipo();
+
+  /**
+   * El tipo cuyo retiro se esta confirmando (2026-11-20, pedido por el usuario tras retirar uno por
+   * accidente): «Retirar» pregunta antes, y solo «Sí, retirar» lo hace. Ninguna pantalla lo devuelve.
+   */
+  protected readonly confirmandoRetiro = signal<string | null>(null);
   protected readonly cambioDeVerificaciones = this.api.declararVerificaciones();
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
@@ -208,6 +214,6 @@ export class TiposDeEquipo {
   }
 
   protected retirar(id: string): void {
-    this.baja.mutate(id);
+    this.baja.mutate(id, { onSettled: () => this.confirmandoRetiro.set(null) });
   }
 }

@@ -85,6 +85,44 @@ describe('Tipos de equipo', () => {
     fixture.detectChanges();
   }
 
+  describe('retirar pregunta antes (2026-11-20)', () => {
+    // Se pidio tras retirar uno por accidente: ninguna pantalla devuelve un tipo retirado.
+    it('«Retirar» no retira: pregunta, y «Cancelar» lo deja como estaba', async () => {
+      await abrir();
+      pulsar('Retirar');
+      await asentar(fixture);
+
+      http.expectNone({ method: 'DELETE', url: `${URL_TIPOS}/${ID_TIPO}` });
+      // Sin el nombre del tipo: ya esta en la misma fila (2026-11-20, pedido por el usuario).
+      expect(texto()).toContain('¿Seguro que quiere retirar?');
+      // Mientras pregunta, la fila solo enseña la pregunta: sin Editar, Verificación ni Patrones.
+      const acciones = () =>
+        [...raiz().querySelectorAll(`[data-tipo="${ID_TIPO}"] td[data-acciones] :is(a, button)`)].map(
+          (b) => b.textContent?.trim(),
+        );
+      expect(acciones()).toEqual(['Sí, retirar', 'Cancelar']);
+
+      pulsar('Cancelar');
+      expect(texto()).not.toContain('¿Seguro que quiere retirar');
+      expect(acciones()).toEqual(['Editar', 'Verificación', 'Patrones', 'Retirar']);
+    });
+
+    it('«Sí, retirar» lo retira, y la pregunta se cierra', async () => {
+      await abrir();
+      pulsar('Retirar');
+      pulsar('Sí, retirar');
+      await asentar(fixture);
+
+      http.expectOne({ method: 'DELETE', url: `${URL_TIPOS}/${ID_TIPO}` }).flush(null);
+      await asentar(fixture);
+      // La recarga trae el tipo otra vez: si la pregunta se va es porque se cerró.
+      await atenderRecargas();
+
+      expect(raiz().querySelector(`[data-tipo="${ID_TIPO}"]`)).not.toBeNull();
+      expect(texto()).not.toContain('¿Seguro que quiere retirar');
+    });
+  });
+
   it('ensena que se le mide y en que unidad, no «la» modalidad', async () => {
     // Un termohigrometro tiene dos modalidades: una sola etiqueta tendria que mentir sobre una.
     await abrir();

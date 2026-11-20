@@ -32,6 +32,12 @@ export class Marcas {
   protected readonly cambio = this.api.renombrarMarca();
   protected readonly baja = this.api.retirarMarca();
 
+  /**
+   * La marca cuyo retiro se esta confirmando (2026-11-20, pedido por el usuario tras retirar una por
+   * accidente): «Retirar» pregunta antes, y solo «Sí, retirar» lo hace. Ninguna pantalla la devuelve.
+   */
+  protected readonly confirmandoRetiro = signal<string | null>(null);
+
   private readonly sesion = inject(Sesion);
 
   /** Señal y no booleano: las autoridades se releen en cada evento de Keycloak. */
@@ -123,6 +129,6 @@ export class Marcas {
   }
 
   protected retirar(id: string): void {
-    this.baja.mutate(id);
+    this.baja.mutate(id, { onSettled: () => this.confirmandoRetiro.set(null) });
   }
 }

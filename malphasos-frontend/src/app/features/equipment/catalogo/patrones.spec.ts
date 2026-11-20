@@ -381,6 +381,30 @@ describe('Equipos patrón', () => {
     ).toEqual(['1524', 'BB-PAT-003', '-50 a 150 °C', '0,01 °C', 'Metrología Andina', '2026-01-31']);
   });
 
+  it('retirar pregunta antes, oculta «Editar» mientras tanto, y solo «Sí, retirar» retira', async () => {
+    montar();
+    await abrir();
+    const botones = () =>
+      [...raiz().querySelectorAll('[data-patron="p3"] td[data-acciones] button')].map((b) =>
+        b.textContent?.trim(),
+      );
+
+    boton('Retirar Manómetro').click();
+    await asentar(fixture);
+    http.expectNone({ method: 'DELETE', url: `${URL}/p3` });
+    expect(raiz().textContent).toContain('¿Seguro que quiere retirar?');
+    expect(botones()).toEqual(['Sí, retirar', 'Cancelar']);
+
+    boton('Sí, retirar').click();
+    await asentar(fixture);
+    http.expectOne({ method: 'DELETE', url: `${URL}/p3` }).flush(null);
+    await asentar(fixture);
+    // La recarga trae los patrones otra vez: si la pregunta se va es porque se cerró.
+    http.match(URL).forEach((p) => p.flush(PATRONES));
+    await asentar(fixture);
+    expect(raiz().textContent).not.toContain('¿Seguro que quiere retirar');
+  });
+
   it('sin equipment.write se ve y no se toca', async () => {
     montar(['equipment.read']);
     await abrir();

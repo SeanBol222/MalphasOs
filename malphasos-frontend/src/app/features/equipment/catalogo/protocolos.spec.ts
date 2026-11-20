@@ -180,7 +180,8 @@ describe('Protocolos del catálogo', () => {
 
     expect(http.match({ method: 'DELETE' })).toHaveLength(0);
 
-    await pulsar('Confirmar retiro');
+    expect(texto()).toContain('¿Seguro que quiere retirar?');
+    await pulsar('Sí, retirar');
     http
       .expectOne({ method: 'DELETE', url: `${URL_PROTOCOLOS}/pr1` })
       .flush(

@@ -260,13 +260,14 @@
               <td data-acciones class="whitespace-nowrap text-right">
                 @if (fila.patron.estadoActivo) {
                   @if (confirmandoRetiro() === fila.patron.id) {
+                    <span class="mr-2 font-semibold" role="alert">¿Seguro que quiere retirar?</span>
                     <button
                       class="boton-primario min-h-tactil"
                       type="button"
                       [disabled]="baja.isPending()"
                       (click)="retirar(fila.patron.id!)"
                     >
-                      Confirmar retiro
+                      Sí, retirar
                     </button>
                     <button
                       class="min-h-tactil px-1 underline"

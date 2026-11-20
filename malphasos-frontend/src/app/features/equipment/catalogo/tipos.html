@@ -84,40 +84,65 @@
             </td>
             @if (puedeEscribir()) {
               <td data-acciones class="whitespace-nowrap text-right">
-                <a
-                  class="inline-flex min-h-tactil items-center px-1 font-bold underline"
-                  [routerLink]="['/catalogo/tipos', tipo.id, 'editar']"
-                  [attr.aria-label]="'Editar ' + tipo.nombre"
-                >
-                  Editar
-                </a>
-                <button
-                  class="min-h-tactil px-1 underline"
-                  type="button"
-                  [attr.aria-label]="'Verificación de ' + tipo.nombre"
-                  (click)="empezarACambiar(tipo)"
-                >
-                  Verificación
-                </button>
-                @if (tipo.estadoActivo && tipo.verificaciones?.length) {
+                <!--
+                  Mientras se confirma el retiro, la fila solo enseña la pregunta: con Editar,
+                  Verificación y Patrones al lado se comprimía (2026-11-20, pedido por el usuario).
+                -->
+                @if (confirmandoRetiro() !== tipo.id) {
                   <a
-                    class="inline-flex min-h-tactil items-center px-1 underline"
-                    [routerLink]="['/catalogo/tipos', tipo.id, 'patrones']"
-                    [attr.aria-label]="'Patrones de ' + tipo.nombre"
+                    class="inline-flex min-h-tactil items-center px-1 font-bold underline"
+                    [routerLink]="['/catalogo/tipos', tipo.id, 'editar']"
+                    [attr.aria-label]="'Editar ' + tipo.nombre"
                   >
-                    Patrones
+                    Editar
                   </a>
-                }
-                @if (tipo.estadoActivo) {
                   <button
                     class="min-h-tactil px-1 underline"
                     type="button"
-                    [attr.aria-label]="'Retirar ' + tipo.nombre"
-                    [disabled]="baja.isPending()"
-                    (click)="retirar(tipo.id!)"
+                    [attr.aria-label]="'Verificación de ' + tipo.nombre"
+                    (click)="empezarACambiar(tipo)"
                   >
-                    Retirar
+                    Verificación
                   </button>
+                  @if (tipo.estadoActivo && tipo.verificaciones?.length) {
+                    <a
+                      class="inline-flex min-h-tactil items-center px-1 underline"
+                      [routerLink]="['/catalogo/tipos', tipo.id, 'patrones']"
+                      [attr.aria-label]="'Patrones de ' + tipo.nombre"
+                    >
+                      Patrones
+                    </a>
+                  }
+                }
+                <!-- Retirar pregunta antes: ninguna pantalla devuelve un tipo retirado. -->
+                @if (tipo.estadoActivo) {
+                  @if (confirmandoRetiro() === tipo.id) {
+                    <span class="mr-2 font-semibold" role="alert">¿Seguro que quiere retirar?</span>
+                    <button
+                      class="boton-primario min-h-tactil"
+                      type="button"
+                      [disabled]="baja.isPending()"
+                      (click)="retirar(tipo.id!)"
+                    >
+                      Sí, retirar
+                    </button>
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      (click)="confirmandoRetiro.set(null)"
+                    >
+                      Cancelar
+                    </button>
+                  } @else {
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      [attr.aria-label]="'Retirar ' + tipo.nombre"
+                      (click)="confirmandoRetiro.set(tipo.id!)"
+                    >
+                      Retirar
+                    </button>
+                  }
                 }
               </td>
             }

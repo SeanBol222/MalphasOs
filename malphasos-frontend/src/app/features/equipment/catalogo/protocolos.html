@@ -182,13 +182,16 @@
                 <td data-acciones class="whitespace-nowrap">
                   @if (protocolo.estadoActivo) {
                     @if (confirmandoRetiro() === protocolo.id) {
+                      <span class="mr-2 font-semibold" role="alert"
+                        >¿Seguro que quiere retirar?</span
+                      >
                       <button
                         class="boton-primario min-h-tactil"
                         type="button"
                         [disabled]="baja.isPending()"
                         (click)="retirar(protocolo.id!)"
                       >
-                        Confirmar retiro
+                        Sí, retirar
                       </button>
                       <button
                         class="min-h-tactil px-1 font-semibold underline"

@@ -140,22 +140,46 @@
             @if (puedeEscribir()) {
               <td data-acciones class="text-right whitespace-nowrap">
                 @if (fila.estadoActivo) {
-                  <a
-                    class="inline-flex min-h-tactil items-center px-1 font-bold underline"
-                    [routerLink]="['/catalogo', 'modelos', fila.id, 'ficha']"
-                    [attr.aria-label]="'Ficha técnica de ' + fila.nombre"
-                  >
-                    Ficha técnica
-                  </a>
-                  <button
-                    class="min-h-tactil px-1 underline"
-                    type="button"
-                    [attr.aria-label]="'Retirar ' + fila.nombre"
-                    [disabled]="baja.isPending()"
-                    (click)="retirar(fila.id)"
-                  >
-                    Retirar
-                  </button>
+                  <!-- Mientras se confirma el retiro, la fila solo enseña la pregunta. -->
+                  @if (confirmandoRetiro() !== fila.id) {
+                    <a
+                      class="inline-flex min-h-tactil items-center px-1 font-bold underline"
+                      [routerLink]="['/catalogo', 'modelos', fila.id, 'ficha']"
+                      [attr.aria-label]="'Ficha técnica de ' + fila.nombre"
+                    >
+                      Ficha técnica
+                    </a>
+                  }
+                  <!-- Retirar pregunta antes: ninguna pantalla devuelve un modelo retirado. -->
+                  @if (confirmandoRetiro() === fila.id) {
+                    <span class="mr-2 font-semibold" role="alert" [attr.data-confirmar]="fila.id"
+                      >¿Seguro que quiere retirar?</span
+                    >
+                    <button
+                      class="boton-primario min-h-tactil"
+                      type="button"
+                      [disabled]="baja.isPending()"
+                      (click)="retirar(fila.id)"
+                    >
+                      Sí, retirar
+                    </button>
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      (click)="confirmandoRetiro.set(null)"
+                    >
+                      Cancelar
+                    </button>
+                  } @else {
+                    <button
+                      class="min-h-tactil px-1 underline"
+                      type="button"
+                      [attr.aria-label]="'Retirar ' + fila.nombre"
+                      (click)="confirmandoRetiro.set(fila.id)"
+                    >
+                      Retirar
+                    </button>
+                  }
                 }
               </td>
             }

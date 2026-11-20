@@ -126,24 +126,48 @@
               <td data-etiqueta="Estado">{{ marca.estadoActivo ? 'Activa' : 'Retirada' }}</td>
               @if (puedeEscribir()) {
                 <td data-acciones class="text-right whitespace-nowrap">
-                  <button
-                    class="min-h-tactil px-1 font-bold underline"
-                    type="button"
-                    [attr.aria-label]="'Renombrar ' + marca.nombre"
-                    (click)="empezarARenombrar(marca.id!, marca.nombre)"
-                  >
-                    Renombrar
-                  </button>
-                  @if (marca.estadoActivo) {
+                  <!-- Mientras se confirma el retiro, la fila solo enseña la pregunta. -->
+                  @if (confirmandoRetiro() !== marca.id) {
                     <button
-                      class="min-h-tactil px-1 underline"
+                      class="min-h-tactil px-1 font-bold underline"
                       type="button"
-                      [attr.aria-label]="'Retirar ' + marca.nombre"
-                      [disabled]="baja.isPending()"
-                      (click)="retirar(marca.id!)"
+                      [attr.aria-label]="'Renombrar ' + marca.nombre"
+                      (click)="empezarARenombrar(marca.id!, marca.nombre)"
                     >
-                      Retirar
+                      Renombrar
                     </button>
+                  }
+                  <!-- Retirar pregunta antes: ninguna pantalla devuelve una marca retirada. -->
+                  @if (marca.estadoActivo) {
+                    @if (confirmandoRetiro() === marca.id) {
+                      <span class="mr-2 font-semibold" role="alert"
+                        >¿Seguro que quiere retirar?</span
+                      >
+                      <button
+                        class="boton-primario min-h-tactil"
+                        type="button"
+                        [disabled]="baja.isPending()"
+                        (click)="retirar(marca.id!)"
+                      >
+                        Sí, retirar
+                      </button>
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        (click)="confirmandoRetiro.set(null)"
+                      >
+                        Cancelar
+                      </button>
+                    } @else {
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        [attr.aria-label]="'Retirar ' + marca.nombre"
+                        (click)="confirmandoRetiro.set(marca.id!)"
+                      >
+                        Retirar
+                      </button>
+                    }
                   }
                 </td>
               }
