@@ -19,6 +19,14 @@ import {
   URL_PROTOCOLOS_DE_TIPO,
   URL_TIPOS,
   URL_UNIDADES_DE,
+  FABRICANTES,
+  ID_FABRICANTE,
+  ID_MARCA,
+  MARCAS,
+  URL_EQUIPOS,
+  URL_FABRICANTES,
+  URL_MARCAS,
+  URL_MODELOS,
 } from '../../../../testing/catalogo';
 import { NuevoTipo } from './nuevo-tipo';
 
@@ -91,6 +99,217 @@ describe('Alta de un tipo de equipo', () => {
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
     await asentar(fixture);
   }
+
+  describe('Las marcas y los modelos, plegados (2026-11-19)', () => {
+    const seccion = () =>
+      [...raiz().querySelectorAll('button')].find((b) => b.textContent?.includes('Marcas y modelos'))!;
+
+    /** Abre la seccion y responde a las dos listas que el bloque pide al crearse. */
+    async function abrirSeccion(): Promise<void> {
+      seccion().click();
+      await asentar(fixture);
+      await responderA(fixture, http, URL_MARCAS, MARCAS);
+      await responderA(fixture, http, URL_FABRICANTES, FABRICANTES);
+    }
+
+    function pulsar(etiqueta: string): void {
+      [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === etiqueta)!.click();
+      fixture.detectChanges();
+    }
+
+    /** Responde a la peticion de escritura que toca, y devuelve lo que se mando. */
+    async function responderEscritura(url: string, respuesta: object): Promise<unknown> {
+      await asentar(fixture);
+      const peticion = http.expectOne({ method: 'POST', url });
+      peticion.flush(respuesta);
+      await asentar(fixture);
+
+      return peticion.request.body;
+    }
+
+    /** Las recargas que cada escritura del catalogo lanza, hasta que no quede ninguna. */
+    async function atenderRecargas(): Promise<void> {
+      for (let ronda = 0; ronda < 3; ronda += 1) {
+        await asentar(fixture);
+        http.match(() => true).forEach((p) => p.flush([]));
+      }
+      await asentar(fixture);
+    }
+
+    it('esta plegada, y sin abrirla no pide marcas ni fabricantes', () => {
+      expect(seccion().getAttribute('aria-expanded')).toBe('false');
+      expect(raiz().querySelector('#marcaDeModelo0')).toBeNull();
+      http.expectNone(URL_MARCAS);
+      http.expectNone(URL_FABRICANTES);
+    });
+
+    it('al abrirla trae ya una fila, y plegarla no pierde lo escrito', async () => {
+      await abrirSeccion();
+      expect(seccion().getAttribute('aria-expanded')).toBe('true');
+      escribir('nombreDeModelo0', 'Connex Spot');
+
+      seccion().click();
+      await asentar(fixture);
+      expect(raiz().querySelector<HTMLElement>('#marcasYModelos')!.hidden).toBe(true);
+      seccion().click();
+      await asentar(fixture);
+      expect(raiz().querySelector<HTMLElement>('#marcasYModelos')!.hidden).toBe(false);
+
+      expect(raiz().querySelector<HTMLInputElement>('#nombreDeModelo0')!.value).toBe('Connex Spot');
+      // Y la cabecera dice cuantos lleva, para que se vea aun plegada.
+      expect(seccion().textContent).toContain('1 modelo');
+    });
+
+    it('con marca y fabricante existentes crea el tipo, la combinacion y el modelo, en ese orden', async () => {
+      await abrirSeccion();
+      rellenarObligatorios();
+      escribir('marcaDeModelo0', ID_MARCA);
+      escribir('fabricanteDeModelo0', ID_FABRICANTE);
+      escribir('nombreDeModelo0', 'Connex Spot');
+      escribir('invimaDeModelo0', 'INV-9');
+      await enviar();
+
+      await responderEscritura(URL_TIPOS, { id: 't9' });
+      http.expectNone({ method: 'POST', url: URL_MARCAS });
+      expect(await responderEscritura(URL_EQUIPOS, { id: 'e9' })).toEqual({
+        idTipoEquipo: 't9',
+        idMarca: ID_MARCA,
+      });
+      expect(await responderEscritura(URL_MODELOS, { id: 'mo9' })).toEqual({
+        nombre: 'Connex Spot',
+        idEquipo: 'e9',
+        idFabricante: ID_FABRICANTE,
+        invima: 'INV-9',
+      });
+      await atenderRecargas();
+
+      expect(TestBed.inject(Router).url).toBe('/catalogo');
+    });
+
+    it('una marca y un fabricante nuevos se crean antes, con el nombre escrito', async () => {
+      await abrirSeccion();
+      rellenarObligatorios();
+      escribir('marcaDeModelo0', 'nuevo');
+      escribir('nombreDeMarca0', 'Omron');
+      escribir('fabricanteDeModelo0', 'nuevo');
+      escribir('nombreDeFabricante0', 'Omron Healthcare');
+      escribir('nombreDeModelo0', 'HEM-7120');
+      await enviar();
+
+      await responderEscritura(URL_TIPOS, { id: 't9' });
+      expect(await responderEscritura(URL_MARCAS, { id: 'm9' })).toEqual({ nombre: 'Omron' });
+      expect(await responderEscritura(URL_FABRICANTES, { id: 'f9' })).toEqual({
+        nombre: 'Omron Healthcare',
+      });
+      expect(await responderEscritura(URL_EQUIPOS, { id: 'e9' })).toEqual({
+        idTipoEquipo: 't9',
+        idMarca: 'm9',
+      });
+      // Sin INVIMA la clave no viaja.
+      expect(await responderEscritura(URL_MODELOS, { id: 'mo9' })).toEqual({
+        nombre: 'HEM-7120',
+        idEquipo: 'e9',
+        idFabricante: 'f9',
+      });
+      await atenderRecargas();
+    });
+
+    it('una marca nueva escrita con el nombre de una que existe es esa, y no se duplica', async () => {
+      await abrirSeccion();
+      rellenarObligatorios();
+      escribir('marcaDeModelo0', 'nuevo');
+      escribir('nombreDeMarca0', 'WELCH ALLYN');
+      escribir('fabricanteDeModelo0', ID_FABRICANTE);
+      escribir('nombreDeModelo0', 'Connex Spot');
+      await enviar();
+
+      await responderEscritura(URL_TIPOS, { id: 't9' });
+      http.expectNone({ method: 'POST', url: URL_MARCAS });
+      expect(await responderEscritura(URL_EQUIPOS, { id: 'e9' })).toEqual({
+        idTipoEquipo: 't9',
+        idMarca: ID_MARCA,
+      });
+      await responderEscritura(URL_MODELOS, { id: 'mo9' });
+      await atenderRecargas();
+    });
+
+    it('dos modelos de la misma marca nueva crean la marca y la combinacion una sola vez', async () => {
+      await abrirSeccion();
+      rellenarObligatorios();
+      escribir('marcaDeModelo0', 'nuevo');
+      escribir('nombreDeMarca0', 'Omron');
+      escribir('fabricanteDeModelo0', ID_FABRICANTE);
+      escribir('nombreDeModelo0', 'HEM-7120');
+      pulsar('Agregar otro modelo');
+      escribir('marcaDeModelo1', 'nuevo');
+      escribir('nombreDeMarca1', 'omron');
+      escribir('fabricanteDeModelo1', ID_FABRICANTE);
+      escribir('nombreDeModelo1', 'HEM-7156');
+      await enviar();
+
+      await responderEscritura(URL_TIPOS, { id: 't9' });
+      await responderEscritura(URL_MARCAS, { id: 'm9' });
+      await responderEscritura(URL_EQUIPOS, { id: 'e9' });
+      expect(await responderEscritura(URL_MODELOS, { id: 'mo1' })).toMatchObject({
+        nombre: 'HEM-7120',
+        idEquipo: 'e9',
+      });
+      // La segunda fila reutiliza la marca y la combinacion de la primera.
+      http.expectNone({ method: 'POST', url: URL_MARCAS });
+      http.expectNone({ method: 'POST', url: URL_EQUIPOS });
+      expect(await responderEscritura(URL_MODELOS, { id: 'mo2' })).toMatchObject({
+        nombre: 'HEM-7156',
+        idEquipo: 'e9',
+      });
+      await atenderRecargas();
+    });
+
+    it('una fila quitada no se crea', async () => {
+      await abrirSeccion();
+      rellenarObligatorios();
+      pulsar('Quitar este modelo');
+      await enviar();
+
+      await responderEscritura(URL_TIPOS, { id: 't9' });
+      http.expectNone({ method: 'POST', url: URL_MODELOS });
+      await atenderRecargas();
+
+      expect(TestBed.inject(Router).url).toBe('/catalogo');
+    });
+
+    it('una fila a medias no deja guardar, y si estaba plegada se abre para verla', async () => {
+      await abrirSeccion();
+      rellenarObligatorios();
+      escribir('nombreDeModelo0', 'Connex Spot');
+      seccion().click();
+      await asentar(fixture);
+      await enviar();
+
+      http.expectNone({ method: 'POST', url: URL_TIPOS });
+      expect(seccion().getAttribute('aria-expanded')).toBe('true');
+      expect(texto()).toContain('Elija o escriba la marca y el fabricante');
+    });
+
+    it('si un modelo falla, dice que el tipo si se creo y cuantos modelos quedaron', async () => {
+      await abrirSeccion();
+      rellenarObligatorios();
+      escribir('marcaDeModelo0', ID_MARCA);
+      escribir('fabricanteDeModelo0', ID_FABRICANTE);
+      escribir('nombreDeModelo0', 'Connex Spot');
+      await enviar();
+
+      await responderEscritura(URL_TIPOS, { id: 't9' });
+      await responderEscritura(URL_EQUIPOS, { id: 'e9' });
+      await asentar(fixture);
+      http
+        .expectOne({ method: 'POST', url: URL_MODELOS })
+        .flush({ code: 'X' }, { status: 409, statusText: 'Conflict' });
+      await atenderRecargas();
+
+      expect(texto()).toContain('El tipo se creó, y 0 de 1 modelos');
+      expect(TestBed.inject(Router).url).not.toBe('/catalogo');
+    });
+  });
 
   describe('Los protocolos del preventivo, con el mismo botón (2026-10-10)', () => {
     /** Vuelve a montar con el catalogo de protocolos lleno: el de arriba lo responde vacio. */

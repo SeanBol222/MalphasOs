@@ -90,6 +90,36 @@
   <app-protocolos-del-tipo (cambio)="protocolos.set($event)" />
 
   <!--
+    Las marcas y los modelos del tipo, plegados: la mayoria de las altas no los usan y el formulario ya
+    es largo. El bloque no se crea hasta abrirlo la primera vez, y despues se conserva al plegarlo.
+  -->
+  <div class="mb-3">
+    <button
+      class="flex min-h-tactil w-full items-center gap-1 border-b border-neutral-300 text-left font-semibold"
+      type="button"
+      aria-controls="marcasYModelos"
+      [attr.aria-expanded]="modelosAbiertos()"
+      (click)="alternarModelos()"
+    >
+      <span class="inline-block w-[1em]" aria-hidden="true">{{ modelosAbiertos() ? '▾' : '▸' }}</span>
+      Marcas y modelos
+      @if (modelos().modelos.length) {
+        <span class="font-normal text-neutral-700">
+          · {{ modelos().modelos.length }} {{ modelos().modelos.length === 1 ? 'modelo' : 'modelos' }}
+        </span>
+      }
+    </button>
+    @if (modelosAbiertosAlgunaVez()) {
+      <div id="marcasYModelos" class="mt-2" [hidden]="!modelosAbiertos()">
+        <p class="mb-2 text-neutral-700">
+          Se crean con el tipo. Una marca o un fabricante que no exista se crea escribiendo su nombre.
+        </p>
+        <app-marcas-y-modelos (cambio)="modelos.set($event)" />
+      </div>
+    }
+  </div>
+
+  <!--
     Voltaje y amperaje estaban aqui hasta el 2026-10-05: son de cada modelo y no del tipo, y se
     anotan en su ficha tecnica, en Catalogo > Modelos.
   -->
