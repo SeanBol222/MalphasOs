@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoApi } from '../catalogo-api';
 import { Sesion } from '../../../core/auth/sesion';
@@ -32,7 +32,12 @@ export class EquiposDeCatalogo {
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
-  protected readonly formulario = inject(FormBuilder).nonNullable.group({
+  private readonly formBuilder = inject(FormBuilder);
+
+  /** El formulario de la combinacion se abre con «Nuevo equipo» y se cierra al combinar o cancelar. */
+  protected readonly abierto = signal(false);
+
+  protected readonly formulario = this.formBuilder.nonNullable.group({
     idTipoEquipo: ['', Validators.required],
     idMarca: ['', Validators.required],
   });
@@ -76,8 +81,18 @@ export class EquiposDeCatalogo {
     }
 
     this.alta.mutate(this.formulario.getRawValue(), {
-      onSuccess: () => this.formulario.reset(),
+      onSuccess: () => this.cancelar(),
     });
+  }
+
+  protected abrir(): void {
+    this.formulario.reset();
+    this.abierto.set(true);
+  }
+
+  protected cancelar(): void {
+    this.formulario.reset();
+    this.abierto.set(false);
   }
 
   protected retirar(id: string): void {

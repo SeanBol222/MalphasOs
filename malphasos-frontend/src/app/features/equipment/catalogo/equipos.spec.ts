@@ -38,6 +38,11 @@ describe('Equipos del catalogo', () => {
     await responderAlCatalogo(fixture, http, datos);
   }
 
+  function pulsar(etiqueta: string): void {
+    [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === etiqueta)!.click();
+    fixture.detectChanges();
+  }
+
   function escribir(id: string, valor: string): void {
     const campo = raiz().querySelector<HTMLSelectElement>(`#${id}`)!;
     campo.value = valor;
@@ -70,8 +75,22 @@ describe('Equipos del catalogo', () => {
     expect(texto()).toContain('Tipo no disponible');
   });
 
+  it('el formulario no esta a la vista: se abre con «Nuevo equipo» y se cierra con «Cancelar»', async () => {
+    await abrir();
+    expect(raiz().querySelector('form')).toBeNull();
+
+    pulsar('Nuevo equipo');
+    expect(raiz().querySelector('form')).not.toBeNull();
+    // Abierto, el boton sobra: ya se esta creando uno.
+    expect(texto()).not.toContain('Nuevo equipo');
+
+    pulsar('Cancelar');
+    expect(raiz().querySelector('form')).toBeNull();
+  });
+
   it('solo ofrece tipos y marcas activos: el backend rechaza una referencia retirada', async () => {
     await abrir();
+    pulsar('Nuevo equipo');
 
     const marcas = [...raiz().querySelectorAll<HTMLOptionElement>('#marcaDelEquipo option')];
 
@@ -79,8 +98,9 @@ describe('Equipos del catalogo', () => {
     expect(texto()).not.toContain('Marca retirada');
   });
 
-  it('combinar manda los dos identificadores y nada mas', async () => {
+  it('combinar manda los dos identificadores y nada mas, y cierra el formulario', async () => {
     await abrir();
+    pulsar('Nuevo equipo');
     escribir('tipoDelEquipo', ID_TIPO);
     escribir('marcaDelEquipo', ID_MARCA);
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
@@ -97,10 +117,24 @@ describe('Equipos del catalogo', () => {
       http.match(url).forEach((p) => p.flush(url === URL_MARCAS ? MARCAS : url === URL_TIPOS ? TIPOS : EQUIPOS));
     }
     await asentar(fixture);
+    expect(raiz().querySelector('form')).toBeNull();
+  });
+
+  it('sin permiso de escritura no hay boton para crear', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [...proveerApiSimulado(), ...proveerSesionFalsa({ autoridades: ['equipment.read'] })],
+    });
+    fixture = TestBed.createComponent(EquiposDeCatalogo);
+    http = TestBed.inject(HttpTestingController);
+    await abrir();
+
+    expect(texto()).not.toContain('Nuevo equipo');
   });
 
   it('sin elegir las dos piezas no llega al servidor', async () => {
     await abrir();
+    pulsar('Nuevo equipo');
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
     await asentar(fixture);
 
