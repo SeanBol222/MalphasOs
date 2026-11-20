@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- La marca de la barra lateral: la M de MalphasOS, en tinta y papel, radio cero. -->
+  <rect width="32" height="32" fill="#201e1d"/>
+  <path d="M6 25V7h5l5 8 5-8h5v18h-5V16l-5 7.5-5-7.5v9z" fill="#f3f2f2"/>
+  <rect x="21" y="27" width="5" height="2" fill="#ec3013"/>
+</svg>
