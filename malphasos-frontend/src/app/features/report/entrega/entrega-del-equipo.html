@@ -119,18 +119,28 @@
         </div>
         <fieldset class="mt-1" data-alcance>
           <legend class="font-semibold">Aplicar esta firma a</legend>
-          @for (opcion of alcances; track opcion.valor) {
-            <label class="flex min-h-tactil items-center gap-1">
-              <input
-                type="radio"
-                name="alcance"
-                [value]="opcion.valor"
-                [attr.data-alcance-opcion]="opcion.valor"
-                [formControl]="alcance"
-              />
-              {{ opcion.etiqueta }}
-            </label>
-          }
+          <!--
+            Recuadros enteros y sin el circulito del radio (2026-11-21, pedido por el usuario), como el
+            resultado del reporte: el elegido se pone en tinta. El radio sigue ahí, oculto, para el
+            teclado y el lector de pantalla, y su foco se dibuja en el recuadro.
+          -->
+          <div class="mt-1 flex max-w-[600px] flex-col gap-1">
+            @for (opcion of alcances; track opcion.valor) {
+              <label
+                class="flex min-h-tactil cursor-pointer items-center border border-neutral-700 px-1.5 py-1 font-semibold has-[:checked]:border-2 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:disabled]:cursor-not-allowed has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
+              >
+                <input
+                  class="sr-only"
+                  type="radio"
+                  name="alcance"
+                  [value]="opcion.valor"
+                  [attr.data-alcance-opcion]="opcion.valor"
+                  [formControl]="alcance"
+                />
+                {{ opcion.etiqueta }}
+              </label>
+            }
+          </div>
         </fieldset>
         @if (faltaQuienFirma()) {
           <p class="mt-1 font-semibold text-accent-700" role="alert">
