@@ -126,6 +126,24 @@ class LifeSheetHtmlRendererTest {
     }
 
     @Test
+    @DisplayName("lo que el cierre baja lo llenan renglones en blanco hasta las firmas, y el resto es margen (2026-11-21)")
+    void renglonesHastaLasFirmas() {
+        Document documento = Jsoup.parse(RENDERER.render(new UnaHojaDeVida().impresa(), 3 * 44 + 10));
+
+        assertThat(documento.select("tr.hv-en-blanco")).hasSize(6 + 3);
+        assertThat(documento.selectFirst(".hv-cierre").attr("style")).isEqualTo("margin-top: 18.00px");
+    }
+
+    @Test
+    @DisplayName("sin nada que bajar, seis renglones y el margen de la plantilla")
+    void sinBajar() {
+        Document documento = Jsoup.parse(RENDERER.render(new UnaHojaDeVida().impresa(), 0));
+
+        assertThat(documento.select("tr.hv-en-blanco")).hasSize(6);
+        assertThat(documento.selectFirst(".hv-cierre").hasAttr("style")).isFalse();
+    }
+
+    @Test
     @DisplayName("un historial vacío lo dice: no se esconde")
     void historialVacio() {
         assertThat(pintar(new UnaHojaDeVida()).text()).contains("Sin intervenciones todavía.");

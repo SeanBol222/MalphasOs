@@ -1,6 +1,7 @@
 package com.malphasos.malphasos.equipment.infrastructure.output.pdf;
 
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheetPrint;
+import com.malphasos.malphasos.shared.infrastructure.output.pdf.ClosingAtBottom;
 import com.malphasos.malphasos.shared.infrastructure.output.pdf.PdfFonts;
 import com.malphasos.malphasos.shared.infrastructure.output.pdf.QrSvg;
 import java.util.Locale;
@@ -27,6 +28,23 @@ public class LifeSheetHtmlRenderer {
     /** El alto de cada hoja: la carta menos el margen del pie. */
     static final String ALTO_DE_HOJA = String.format(Locale.ROOT, "%.2fin", 11 - MARGEN_DEL_PIE);
 
+    /**
+     * El cierre de la hoja 2 —la empresa y las dos líneas de firma— al pie de su última página
+     * (2026-11-21). La marca es la última firma; por debajo del alto de hoja solo está el pie numerado.
+     * La línea de base objetivo se midió en el PDF de una hoja que cabe, donde la deja el CSS.
+     */
+    public static final ClosingAtBottom.Spec CIERRE =
+            new ClosingAtBottom.Spec("Recibió · Profesional responsable", 732.75, (11 - MARGEN_DEL_PIE) * 72);
+
+    /** Las líneas en blanco del historial cuando no hay que bajar nada: para anotar a mano. */
+    static final int FILAS_EN_BLANCO = 6;
+
+    /** Lo que ocupa una línea en blanco, en píxeles CSS: medido en el PDF, con su borde. */
+    static final double ALTO_DE_FILA = 44;
+
+    /** El margen del cierre sobre el historial, el de la plantilla. */
+    private static final double MARGEN_DEL_CIERRE = 8;
+
     private final ITemplateEngine plantillas;
     private final String frontend;
 
@@ -36,7 +54,21 @@ public class LifeSheetHtmlRenderer {
     }
 
     public String render(LifeSheetPrint hoja) {
+        return render(hoja, 0);
+    }
+
+    /**
+     * Con el cierre bajado tantos píxeles: ver {@link ClosingAtBottom}. Lo que baja lo llenan líneas en
+     * blanco del historial, hasta las firmas (2026-11-21, pedido por el usuario); lo que no llega a una
+     * línea entera queda de margen.
+     */
+    public String render(LifeSheetPrint hoja, double bajadaDelCierre) {
+        int filas = (int) Math.floor(Math.max(bajadaDelCierre, 0) / ALTO_DE_FILA);
+        double resto = bajadaDelCierre - filas * ALTO_DE_FILA;
+
         Context contexto = contexto(hoja);
+        contexto.setVariable("filasEnBlanco", FILAS_EN_BLANCO + filas);
+        contexto.setVariable("estiloDelCierre", resto > 0 ? ClosingAtBottom.estilo(MARGEN_DEL_CIERRE + resto) : null);
         contexto.setVariable("qr", QrSvg.of(frontend + "/equipos/" + hoja.idEquipoCliente() + "/hoja-de-vida"));
         contexto.setVariable("altoDeHoja", ALTO_DE_HOJA);
         contexto.setVariable("fuenteLatinaExtendida", PdfFonts.LATINA_EXTENDIDA);

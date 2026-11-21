@@ -8,7 +8,10 @@ import com.malphasos.malphasos.shared.infrastructure.output.pdf.PdfConverterUnav
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/** La hoja de vida en PDF con Gotenberg (2026-10-18), con el pie numerado en cada página. */
+/**
+ * La hoja de vida en PDF con Gotenberg (2026-10-18), con el pie numerado en cada página y, desde el
+ * 2026-11-21, las firmas al pie de la última.
+ */
 @Component
 @RequiredArgsConstructor
 public class GotenbergLifeSheetPdfAdapter implements LifeSheetPdfPort {
@@ -19,8 +22,11 @@ public class GotenbergLifeSheetPdfAdapter implements LifeSheetPdfPort {
     @Override
     public byte[] render(LifeSheetPrint hoja) {
         try {
-            return conversor.convert(
-                    renderer.render(hoja), renderer.renderPie(hoja), LifeSheetHtmlRenderer.MARGEN_DEL_PIE);
+            return conversor.convertWithClosingAtBottom(
+                    bajada -> renderer.render(hoja, bajada),
+                    renderer.renderPie(hoja),
+                    LifeSheetHtmlRenderer.MARGEN_DEL_PIE,
+                    LifeSheetHtmlRenderer.CIERRE);
         } catch (PdfConverterUnavailableException caido) {
             throw new LifeSheetPdfUnavailableException(caido);
         }
