@@ -1,4 +1,4 @@
-<section class="superficie mt-3">
+<section class="superficie @container mt-3">
   <!-- Es el bloque 3 de la ficha del reporte: lo que se midio, entre lo que se hizo y como queda. -->
   <h2
     class="titulo-seccion -mx-3 -mt-3 mb-2 flex items-center gap-1.5 border-b border-neutral-300 px-3 py-2"
@@ -158,14 +158,21 @@
             }
           </div>
 
-          <table class="tabla mt-1 max-w-[720px]">
-            <caption class="text-left text-neutral-700">
+          <!--
+            En un telefono, o donde la caja no llega a 672 px, cada lectura es una tarjeta: el punto y el numero de titulo, los dos valores
+            lado a lado y el error y la conformidad debajo, cada uno con su nombre (2026-11-21, pedido
+            por el usuario: las seis columnas no cabian).
+          -->
+          <table
+            class="tabla mt-1 max-w-[720px] @max-2xl:block @max-2xl:border-0 @max-2xl:bg-transparent"
+          >
+            <caption class="text-left text-neutral-700 @max-2xl:block">
               Los valores se expresan en
               {{
                 grupo.unidad
               }}.
             </caption>
-            <thead>
+            <thead class="@max-2xl:hidden">
               <tr class="border-b-2 border-ink text-left">
                 <th scope="col">Punto</th>
                 <th scope="col">Nº</th>
@@ -175,18 +182,29 @@
                 <th scope="col">Conforme</th>
               </tr>
             </thead>
-            <tbody formArrayName="casillas">
+            <tbody class="@max-2xl:flex @max-2xl:flex-col @max-2xl:gap-1" formArrayName="casillas">
               @for (par of grupo.filas; track par.indice) {
-                <tr [formGroupName]="par.indice">
-                  <td>{{ par.fila.punto }}</td>
-                  <td>{{ par.fila.secuencia }}</td>
-                  <td>
+                <tr
+                  class="@max-2xl:grid @max-2xl:grid-cols-2 @max-2xl:gap-x-1.5 @max-2xl:gap-y-1 @max-2xl:border @max-2xl:border-neutral-300 @max-2xl:bg-white @max-2xl:p-1.5"
+                  [formGroupName]="par.indice"
+                >
+                  <td class="@max-2xl:border-0 @max-2xl:p-0 @max-2xl:font-bold">
+                    {{ par.fila.punto }}
+                  </td>
+                  <td
+                    class="@max-2xl:border-0 @max-2xl:p-0 @max-2xl:text-right @max-2xl:text-neutral-700 @max-2xl:before:content-['Lectura_']"
+                  >
+                    {{ par.fila.secuencia }}
+                  </td>
+                  <td
+                    class="@max-2xl:border-0 @max-2xl:p-0 @max-2xl:before:block @max-2xl:before:text-xs @max-2xl:before:tracking-[0.06em] @max-2xl:before:text-neutral-700 @max-2xl:before:uppercase @max-2xl:before:content-['Patrón']"
+                  >
                     <label class="sr-only" [for]="'patron-' + par.indice">
                       Valor del patrón de {{ grupo.magnitud }} en {{ par.fila.punto }}, lectura
                       {{ par.fila.secuencia }}
                     </label>
                     <input
-                      class="campo min-h-tactil w-full min-w-[6rem]"
+                      class="campo min-h-tactil w-full min-w-[6rem] @max-2xl:min-w-0"
                       [id]="'patron-' + par.indice"
                       type="number"
                       step="any"
@@ -194,13 +212,15 @@
                       formControlName="valorPatron"
                     />
                   </td>
-                  <td>
+                  <td
+                    class="@max-2xl:border-0 @max-2xl:p-0 @max-2xl:before:block @max-2xl:before:text-xs @max-2xl:before:tracking-[0.06em] @max-2xl:before:text-neutral-700 @max-2xl:before:uppercase @max-2xl:before:content-['Equipo']"
+                  >
                     <label class="sr-only" [for]="'equipo-' + par.indice">
                       Valor del equipo de {{ grupo.magnitud }} en {{ par.fila.punto }}, lectura
                       {{ par.fila.secuencia }}
                     </label>
                     <input
-                      class="campo min-h-tactil w-full min-w-[6rem]"
+                      class="campo min-h-tactil w-full min-w-[6rem] @max-2xl:min-w-0"
                       [id]="'equipo-' + par.indice"
                       type="number"
                       step="any"
@@ -213,8 +233,17 @@
                     negrita: el manual distingue los estados por peso, no por un color nuevo.
                   -->
                   @let comparada = comparacion(grupo, par.indice);
-                  <td class="tabular-nums" data-error>{{ comparada.error }}</td>
-                  <td data-conforme [class.font-extrabold]="comparada.conforme === false">
+                  <td
+                    class="tabular-nums @max-2xl:border-0 @max-2xl:p-0 @max-2xl:text-sm @max-2xl:before:text-neutral-700 @max-2xl:before:content-['Error:_']"
+                    data-error
+                  >
+                    {{ comparada.error }}
+                  </td>
+                  <td
+                    class="@max-2xl:border-0 @max-2xl:p-0 @max-2xl:text-right @max-2xl:text-sm @max-2xl:before:font-normal @max-2xl:before:text-neutral-700 @max-2xl:before:content-['Conforme:_']"
+                    data-conforme
+                    [class.font-extrabold]="comparada.conforme === false"
+                  >
                     {{ comparada.conforme === null ? '—' : comparada.conforme ? 'Sí' : 'No' }}
                   </td>
                 </tr>
