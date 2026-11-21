@@ -22,6 +22,7 @@
 		<keycloak.version>26.0.9</keycloak.version>
 		<zxing.version>3.5.3</zxing.version>
 		<jsoup.version>1.21.2</jsoup.version>
+		<pdfbox.version>3.0.3</pdfbox.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -57,6 +58,13 @@
 			<groupId>com.google.zxing</groupId>
 			<artifactId>core</artifactId>
 			<version>${zxing.version}</version>
+		</dependency>
+		<!-- Para leer donde cayeron las firmas en el PDF y llevarlas al pie de la ultima pagina
+		     (2026-11-21): solo Chromium sabe como pagino, y eso solo se ve en el PDF. -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>${pdfbox.version}</version>
 		</dependency>
 
 		<dependency>

@@ -4,6 +4,7 @@ import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.function.DoubleFunction;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
@@ -63,6 +64,24 @@ public class GotenbergPdfConverter {
         partes.add("marginBottom", String.format(Locale.ROOT, "%.2f", margenInferior));
 
         return enviar(partes);
+    }
+
+    /**
+     * Con el cierre —las firmas— al pie de la última página en que cae (2026-11-21). Convierte, mide en
+     * el PDF cuánto le sobra debajo y, si sobra, convierte otra vez con ese hueco delante: ver
+     * {@link ClosingAtBottom}. Con una página basta la primera, porque lo resuelve el CSS.
+     *
+     * @param html la página, dado cuántos píxeles hay que bajar el cierre; con cero, donde lo deje el CSS
+     * @throws PdfConverterUnavailableException si el conversor no responde o falla
+     */
+    public byte[] convertWithClosingAtBottom(DoubleFunction<String> html, ClosingAtBottom.Spec cierre) {
+        return ClosingAtBottom.acomodar(bajada -> convert(html.apply(bajada)), cierre);
+    }
+
+    /** Lo mismo, con el pie de {@link #convert(String, String, double)} en cada página. */
+    public byte[] convertWithClosingAtBottom(
+            DoubleFunction<String> html, String pie, double margenInferior, ClosingAtBottom.Spec cierre) {
+        return ClosingAtBottom.acomodar(bajada -> convert(html.apply(bajada), pie, margenInferior), cierre);
     }
 
     private static MultiValueMap<String, Object> partes(String html) {

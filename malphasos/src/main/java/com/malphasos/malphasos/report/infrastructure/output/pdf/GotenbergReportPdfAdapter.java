@@ -22,7 +22,8 @@ public class GotenbergReportPdfAdapter implements ReportPdfPort {
     @Override
     public byte[] render(ReportSheet hoja) {
         try {
-            return conversor.convert(renderer.render(hoja));
+            return conversor.convertWithClosingAtBottom(
+                    bajada -> renderer.render(hoja, bajada), ReportHtmlRenderer.CIERRE);
         } catch (PdfConverterUnavailableException caido) {
             throw new ReportPdfUnavailableException(caido);
         }

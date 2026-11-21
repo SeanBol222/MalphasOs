@@ -341,7 +341,10 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 24px;
+        /* Al pie de la hoja: con una página lo hace esto; con varias, el servidor mide el PDF y lo baja
+           con un margen propio (2026-11-21). Y ni las firmas se parten ni el pie se queda sin ellas. */
         margin-top: auto;
+        break-inside: avoid;
         font-size: 12px;
       }
 
@@ -370,6 +373,7 @@
       }
 
       .rs-pie {
+        break-before: avoid;
         display: flex;
         justify-content: space-between;
         gap: 16px;
@@ -684,7 +688,7 @@
             </p>
           </section>
 
-          <section class="rs-firmas" aria-label="Firmas">
+          <section class="rs-firmas" aria-label="Firmas" th:style="${estiloDelCierre}">
             <div>
               <div class="rs-firmas__linea">
                 <img
