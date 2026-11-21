@@ -251,6 +251,10 @@ export class DetalleOrden {
    *
    * <p>El área de cada equipo es la de hoy, del listado de equipos: mientras la orden no se ejecuta, sus
    * equipos no se trasladan. La de una orden ejecutada está en su documento.
+   *
+   * <p><b>Áreas y equipos van en orden alfabético</b> (2026-11-20, pedido por el usuario), también en
+   * una orden ejecutada: el equipo por lo que es —tipo, marca y modelo— y, a igualdad, por su hoja de
+   * vida y su serie. El documento impreso conserva el orden del servidor.
    */
   protected readonly grupos = computed(() => {
     const resumen = new Map((this.resumen.data()?.filas ?? []).map((fila) => [fila.id, fila]));
@@ -290,7 +294,7 @@ export class DetalleOrden {
         grupos.set(area, grupo);
       }
 
-      return [...grupos.values()];
+      return alfabeticos([...grupos.values()]);
     }
 
     for (const equipo of this.orden.data()?.equipos ?? []) {
@@ -311,7 +315,7 @@ export class DetalleOrden {
       grupos.set(clave, grupo);
     }
 
-    return [...grupos.values()].sort((a, b) => a.area.localeCompare(b.area, 'es'));
+    return alfabeticos([...grupos.values()]);
   });
 
   protected readonly totalDeEquipos = computed(
@@ -572,4 +576,22 @@ function estadoDelReporte(
   }
 
   return { reporte: 'Sin reporte', peso: 'font-medium', cuadro: 'bg-transparent', cerrado: false };
+}
+
+/** Sin distinguir tildes ni mayúsculas, y «Consultorio 2» antes que «Consultorio 10». */
+const ALFABETICO = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
+
+/** Las áreas por su nombre, y dentro de cada una los equipos por lo que son y luego por su serie. */
+function alfabeticos(
+  grupos: { area: string; equipos: EquipoDelAlcance[] }[],
+): { area: string; equipos: EquipoDelAlcance[] }[] {
+  return grupos
+    .map((grupo) => ({
+      ...grupo,
+      equipos: [...grupo.equipos].sort(
+        (a, b) =>
+          ALFABETICO.compare(a.nombre, b.nombre) || ALFABETICO.compare(a.detalle, b.detalle),
+      ),
+    }))
+    .sort((a, b) => ALFABETICO.compare(a.area, b.area));
 }
