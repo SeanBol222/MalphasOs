@@ -14,6 +14,7 @@ import { Sesion } from '../auth/sesion';
 import { ETIQUETA_DE_TIPO_DE_PERSONA } from '../api/tipos';
 import { PersonaApi } from '../../features/person/persona-api';
 import { VentanaDeUsuario } from '../../features/person/ventana/ventana-de-usuario';
+import { CampanaDeAvisos } from '../../features/home/avisos/campana-de-avisos';
 
 /**
  * Los trazos del icono de cada destino de primer nivel, en una reticula de 24.
@@ -80,7 +81,14 @@ const ICONOS: Readonly<Record<string, readonly string[]>> = {
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, VentanaDeUsuario],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    NgTemplateOutlet,
+    VentanaDeUsuario,
+    CampanaDeAvisos,
+  ],
   templateUrl: './shell.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

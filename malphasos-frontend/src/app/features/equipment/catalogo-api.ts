@@ -283,8 +283,8 @@ export class CatalogoApi {
   }
 
   /** Los equipos patrón de la empresa (2026-10-14), vigentes y retirados, por nombre. */
-  listarPatrones() {
-    return this.listar<Patron>('patrones', 'reference-standards');
+  listarPatrones(habilitada?: Signal<boolean>) {
+    return this.listar<Patron>('patrones', 'reference-standards', habilitada);
   }
 
   crearPatron() {
@@ -379,10 +379,11 @@ export class CatalogoApi {
 
   // --- Las cinco piezas se manejan igual ------------------------------------
 
-  private listar<T>(pieza: string, recurso: string) {
+  private listar<T>(pieza: string, recurso: string, habilitada?: Signal<boolean>) {
     return injectQuery(() => ({
       queryKey: CatalogoApi.clave(pieza),
       queryFn: () => firstValueFrom(this.http.get<T[]>(`${this.api}/${recurso}`)),
+      enabled: habilitada ? habilitada() : true,
     }));
   }
 
