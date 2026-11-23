@@ -37,8 +37,13 @@
         <span class="text-xs tracking-[0.14em] text-neutral-400 uppercase">Mantenimiento</span>
       </span>
 
+      <!-- En un teléfono la campanita va aquí, a la vista con el menú cerrado (2026-11-21). -->
+      <div class="ml-auto flex md:hidden">
+        <app-campana-de-avisos />
+      </div>
+
       <button
-        class="ml-auto flex h-tactil w-tactil items-center justify-center md:hidden"
+        class="flex h-tactil w-tactil items-center justify-center md:hidden"
         type="button"
         [attr.aria-expanded]="menuAbierto()"
         aria-controls="menu-principal"
@@ -155,44 +160,52 @@
       Quien tiene la sesión, y su ventana: datos, firma digital y cerrar sesión (2026-10-17). Toda la fila
       es el botón, y abierta lleva la misma franja que el destino activo del menú.
     -->
-    <button
-      #botonDeUsuario
-      class="mt-auto w-full items-center gap-2 border-t border-neutral-800 px-2 py-2 text-left hover:bg-brand-black md:flex md:px-3"
+    <div
+      class="mt-auto items-center border-t border-neutral-800 md:flex"
       [class.hidden]="!menuAbierto()"
       [class.flex]="menuAbierto()"
-      [class.bg-brand-black]="ventanaAbierta()"
-      [class.shadow-[inset_4px_0_0_var(--color-accent)]]="ventanaAbierta()"
-      type="button"
-      aria-haspopup="dialog"
-      [attr.aria-expanded]="ventanaAbierta()"
-      data-boton-de-usuario
-      (click)="alternarVentana()"
     >
-      <span
-        class="flex h-tactil w-tactil flex-none items-center justify-center bg-neutral-700 text-sm font-bold"
-        aria-hidden="true"
+      <button
+        #botonDeUsuario
+        class="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left hover:bg-brand-black md:px-3"
+        [class.bg-brand-black]="ventanaAbierta()"
+        [class.shadow-[inset_4px_0_0_var(--color-accent)]]="ventanaAbierta()"
+        type="button"
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="ventanaAbierta()"
+        data-boton-de-usuario
+        (click)="alternarVentana()"
       >
-        {{ iniciales() }}
-      </span>
-      <span class="flex min-w-0 grow flex-col">
-        <span class="truncate text-sm font-bold">{{ sesion.nombre() }}</span>
-        @if (rol()) {
-          <span class="truncate text-xs text-neutral-400">{{ rol() }}</span>
-        }
-      </span>
-      <svg
-        class="flex-none"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        aria-hidden="true"
-      >
-        <path [attr.d]="ventanaAbierta() ? 'M6 9l6 6 6-6' : 'M6 15l6-6 6 6'" />
-      </svg>
-    </button>
+        <span
+          class="flex h-tactil w-tactil flex-none items-center justify-center bg-neutral-700 text-sm font-bold"
+          aria-hidden="true"
+        >
+          {{ iniciales() }}
+        </span>
+        <span class="flex min-w-0 grow flex-col">
+          <span class="truncate text-sm font-bold">{{ sesion.nombre() }}</span>
+          @if (rol()) {
+            <span class="truncate text-xs text-neutral-400">{{ rol() }}</span>
+          }
+        </span>
+        <svg
+          class="flex-none"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path [attr.d]="ventanaAbierta() ? 'M6 9l6 6 6-6' : 'M6 15l6-6 6 6'" />
+        </svg>
+      </button>
+      <!-- En escritorio, junto al nombre: la propuesta elegida por el usuario el 2026-11-21. -->
+      <div class="hidden pr-2 md:flex md:pr-3">
+        <app-campana-de-avisos />
+      </div>
+    </div>
   </header>
 
   <main

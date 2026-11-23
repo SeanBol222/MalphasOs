@@ -315,11 +315,37 @@ describe('Ficha de una persona', () => {
     });
   });
 
-  it('una persona retirada no ofrece ninguna escritura', async () => {
+  it('una persona retirada no se edita: solo se ofrece reactivarla (2026-11-22)', async () => {
     await abrir(persona({ estadoActivo: false }));
 
-    expect(botones()).toEqual([]);
+    expect(botones()).toEqual(['Reactivar']);
     expect(texto()).toContain('Retirada');
+  });
+
+  it('reactivar la pide al servidor y se queda en la ficha, que vuelve a ofrecer editarla', async () => {
+    const viaje = vi.spyOn(TestBed.inject(Router), 'navigate');
+    await abrir(persona({ estadoActivo: false }));
+    pulsar('Reactivar');
+    await asentar(fixture);
+
+    const peticion = http.expectOne(`${URL}/${ID}/reactivation`);
+    expect(peticion.request.method).toBe('PATCH');
+    peticion.flush(persona());
+    await asentar(fixture);
+    http.match(`${URL}/${ID}`).forEach((p) => p.flush(persona()));
+    http.match(`${URL}/${ID}/account`).forEach((p) => p.flush({ tieneCuenta: true }));
+    await asentar(fixture);
+
+    expect(viaje).not.toHaveBeenCalled();
+    expect(botones()).toContain('Editar datos');
+  });
+
+  it('reactivar sigue la escalera: sin el escalón de un ingeniero no se ofrece', async () => {
+    TestBed.resetTestingModule();
+    montar(['person.read', 'person.write']);
+    await abrir(persona({ tipoPersona: 'ENGINEER', estadoActivo: false }));
+
+    expect(botones()).not.toContain('Reactivar');
   });
 
   describe('El correo de la cuenta (V40)', () => {

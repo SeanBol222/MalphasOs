@@ -262,6 +262,121 @@
       vertical-align: top;
     }
   }
+
+  /*
+   * Una tabla que en un telefono se lee como tarjetas (2026-11-20, sobre la maqueta que aprobo el
+   * usuario): cada fila es un recuadro con su primera celda de titulo, cada dato con su etiqueta
+   * —la de la celda, en data-etiqueta— y las acciones al pie, sin desplazarse de lado. La cabecera
+   * desaparece, y quien la use pone el orden aparte, con app-orden-movil. En escritorio es una tabla.
+   */
+  .tabla.tabla-tarjetas {
+    @media (width < 48rem) {
+      display: block;
+      overflow: visible;
+      background-color: transparent;
+      border: 0;
+
+      & thead {
+        display: none;
+      }
+
+      & tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      & tr {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 1rem;
+        background-color: #ffffff;
+        border: 1px solid var(--color-neutral-300);
+      }
+
+      & td {
+        display: block;
+        padding: 0;
+        border: 0;
+        text-align: left;
+        white-space: normal;
+      }
+
+      & td[data-etiqueta] {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+      }
+
+      & td[data-etiqueta]::before {
+        content: attr(data-etiqueta);
+        flex: none;
+        width: 6rem;
+        padding-top: 0.125rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-neutral-700);
+      }
+
+      & td[data-acciones] {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 1rem;
+        row-gap: 0.5rem;
+        margin-top: 0.25rem;
+        /*
+         * Tanto aire sobre las acciones como el que deja debajo el relleno de la tarjeta: con 4 px
+         * arriba y 16 abajo, la pregunta y sus botones quedaban altos en su franja (2026-11-20).
+         */
+        padding-top: 1rem;
+        border-top: 1px solid var(--color-neutral-200);
+      }
+
+      /*
+       * Los enlaces subrayados pierden su relleno lateral para alinearse al borde de la tarjeta; los
+       * botones rellenos lo conservan, o el texto queda pegado a sus bordes (2026-11-20: le pasaba al
+       * «Retirar» de la pregunta).
+       */
+      & td[data-acciones] > :not(.boton-primario, .boton-secundario) {
+        padding-inline: 0;
+      }
+
+      /*
+       * La pregunta de «¿Seguro que quiere retirar?» a la izquierda y sus dos botones a la derecha, en la
+       * misma linea (2026-11-20, pedido por el usuario): la pregunta toma lo que los botones dejan y, si
+       * no cabe, se parte en dos lineas en vez de empujarlos abajo.
+       */
+      & td[data-acciones] > [role='alert'] {
+        flex: 1 1 auto;
+        /*
+         * En una sola linea y en letra algo menor (2026-11-20, pedido por el usuario). Sin min-width: 0,
+         * a proposito: si en un telefono muy estrecho no cabe, los botones bajan a la linea siguiente
+         * en vez de que la pregunta se corte o se salga.
+         */
+        white-space: nowrap;
+        font-size: 0.8125rem;
+        /* Centrada en el espacio que le dejan los botones. */
+        text-align: center;
+      }
+
+      /* Mientras se pregunta, menos aire entre los tres y un boton mas compacto, para que quepan. */
+      & td[data-acciones]:has(> [role='alert']) {
+        column-gap: 0.5rem;
+
+        & > .boton-primario {
+          padding-inline: 0.75rem;
+        }
+      }
+
+      /* Una fila sin acciones —una retirada— no deja la linea de separacion sola. */
+      & td[data-acciones]:empty {
+        display: none;
+      }
+    }
+  }
 }
 
 /*

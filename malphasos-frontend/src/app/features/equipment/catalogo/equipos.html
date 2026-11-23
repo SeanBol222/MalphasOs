@@ -1,16 +1,13 @@
 <section>
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <h2 class="titulo-seccion">Equipos del catálogo</h2>
-    @if (puedeEscribir() && !abierto()) {
-      <button class="boton-primario min-h-tactil" type="button" (click)="abrir()">
-        Nuevo equipo
-      </button>
-    }
-  </div>
-  <p class="text-neutral-700">
-    Un tipo más una marca: «tensiómetro Welch Allyn» como categoría, no una máquina.
-    <strong>La máquina concreta se registra en un área de servicio</strong>, con su serie.
-  </p>
+  <app-cabecera-de-pieza
+    titulo="Equipos del catálogo"
+    descripcion="Qué marcas hacen cada tipo."
+    campo="filtroEquipos"
+    pista="Tipo o marca"
+    [boton]="puedeEscribir() && !abierto() ? 'Nuevo equipo' : null"
+    (busqueda)="busqueda.set($event)"
+    (nuevo)="abrir()"
+  />
 
   @if (hayError()) {
     <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
@@ -20,96 +17,146 @@
 
   <!--
     La combinacion nueva se abre con «Nuevo equipo», encima de la lista: con cientos de combinaciones
-    el formulario quedaba al final de la pagina y no se veia.
+    el formulario quedaba al final de la pagina y no se veia. «Equipo» aqui es una categoria —un tipo de
+    una marca—, no una maquina: la maquina se registra en un area de servicio, con su serie.
   -->
   @if (puedeEscribir() && abierto()) {
     <div class="mt-2 border-l-2 border-ink bg-neutral-100 p-2">
-    <h3 class="font-bold">Nueva combinación</h3>
-    <form class="mt-1 flex flex-wrap items-end gap-2" [formGroup]="formulario" (ngSubmit)="agregar()">
-      <div class="grow">
-        <label class="block font-semibold" for="tipoDelEquipo">Tipo <span class="text-accent-700" aria-hidden="true">*</span></label>
-        <select
-          id="tipoDelEquipo"
-          class="campo mt-1 min-h-tactil w-full"
-          formControlName="idTipoEquipo"
-      aria-required="true"
-        >
-          <option value="">Elija un tipo</option>
-          @for (tipo of tiposActivos(); track tipo.id) {
-            <option [value]="tipo.id">{{ tipo.nombre }}</option>
-          }
-        </select>
-      </div>
-      <div class="grow">
-        <label class="block font-semibold" for="marcaDelEquipo">Marca <span class="text-accent-700" aria-hidden="true">*</span></label>
-        <select
-          id="marcaDelEquipo"
-          class="campo mt-1 min-h-tactil w-full"
-          formControlName="idMarca"
-      aria-required="true"
-        >
-          <option value="">Elija una marca</option>
-          @for (marca of marcasActivas(); track marca.id) {
-            <option [value]="marca.id">{{ marca.nombre }}</option>
-          }
-        </select>
-      </div>
-      <button
-        class="boton-primario min-h-tactil"
-        type="submit"
-        [disabled]="alta.isPending()"
+      <h3 class="font-bold">Nueva combinación</h3>
+      <form
+        class="mt-1 flex flex-wrap items-end gap-2"
+        [formGroup]="formulario"
+        (ngSubmit)="agregar()"
       >
-        Combinar
-      </button>
-      <button class="boton-secundario min-h-tactil" type="button" (click)="cancelar()">
-        Cancelar
-      </button>
-    </form>
-    @if (formulario.invalid && formulario.touched) {
-      <p class="mt-1 font-semibold text-accent-700">Elija un tipo y una marca.</p>
-    }
+        <!--
+          Se escriben y se eligen de lo que casa, o se recorren enteros al hacer clic, como en el alta
+          de un modelo. En un telefono cada campo ocupa todo el ancho; desde 640 px van lado a lado,
+          con 240 px como minimo (la escala es de 8 px: min-w-60 serian 480).
+        -->
+        <app-buscador
+          class="w-full sm:w-auto sm:min-w-[15rem] sm:flex-1"
+          formControlName="idTipoEquipo"
+          campo="tipoDelEquipo"
+          etiqueta="Tipo"
+          historial="tipoDeEquipo"
+          [todasAlAbrir]="true"
+          [opciones]="opcionesDeTipo()"
+        />
+        <app-buscador
+          class="w-full sm:w-auto sm:min-w-[15rem] sm:flex-1"
+          formControlName="idMarca"
+          campo="marcaDelEquipo"
+          etiqueta="Marca"
+          historial="marca"
+          [todasAlAbrir]="true"
+          [opciones]="opcionesDeMarca()"
+        />
+        <button class="boton-primario min-h-tactil" type="submit" [disabled]="alta.isPending()">
+          Combinar
+        </button>
+        <button class="boton-secundario min-h-tactil" type="button" (click)="cancelar()">
+          Cancelar
+        </button>
+      </form>
+      @if (formulario.invalid && formulario.touched) {
+        <p class="mt-1 font-semibold text-accent-700">Elija un tipo y una marca.</p>
+      }
     </div>
   }
 
-  <div class="mt-2 max-w-[480px]">
-    <label class="block font-semibold" for="filtroEquipos">Buscar</label>
-    <input
-      id="filtroEquipos"
-      class="campo mt-1 min-h-tactil w-full"
-      type="search"
-      placeholder="Tipo o marca"
-      [formControl]="filtro"
-    />
-  </div>
-
   @if (cargando()) {
-    <p class="mt-1 text-neutral-700" role="status">Cargando el catálogo…</p>
+    <p class="mt-2 text-neutral-700" role="status">Cargando el catálogo…</p>
   } @else if (!filas().length) {
-    <p class="mt-1 text-neutral-700">
+    <p class="mt-2 text-neutral-700">
       Todavía no hay combinaciones. Registre un tipo y una marca, y combínelos aquí.
     </p>
   } @else if (!visibles().length) {
-    <p class="mt-1 text-neutral-700">Ningún equipo coincide con «{{ filtro.value }}».</p>
+    <p class="mt-2 text-neutral-700">Ningún equipo coincide con «{{ busqueda() }}».</p>
   } @else {
-    <ul class="mt-1 max-h-64 overflow-y-auto">
-      @for (fila of visibles(); track fila.id) {
-        <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
-          <span class="grow" [class.font-semibold]="fila.estadoActivo">
-            {{ fila.tipo }}
-            <span class="font-normal text-neutral-700">· {{ fila.marca }}</span>
-          </span>
-          @if (puedeEscribir() && fila.estadoActivo) {
-            <button
-              class="min-h-tactil px-1 font-semibold underline"
-              type="button"
-              [disabled]="baja.isPending()"
-              (click)="retirar(fila.id)"
-            >
-              Retirar
-            </button>
+    <!-- En un telefono la tabla se lee como tarjetas, y el orden y el contador van encima. -->
+    <app-orden-movil
+      etiqueta="Tipo"
+      [sentido]="sentido()"
+      [cuantos]="visibles().length"
+      (invertir)="invertirOrden()"
+    />
+    <!--
+      En una ventana estrecha la tabla no cabe y se salia de la pantalla: se desplaza de lado dentro
+      de su caja, con su barra (2026-11-22, pedido por el usuario). En un telefono es tarjetas.
+    -->
+    <div
+      class="mt-2 overflow-x-auto"
+      role="region"
+      aria-label="Equipos del catálogo, se desplaza de lado"
+      tabindex="0"
+    >
+      <table class="tabla tabla-tarjetas">
+        <caption class="sr-only">
+          Equipos del catálogo
+        </caption>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              app-columna-ordenable
+              etiqueta="Tipo"
+              [sentido]="sentido()"
+              (invertir)="invertirOrden()"
+            ></th>
+            <th scope="col">Marca</th>
+            @if (puedeEscribir()) {
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (fila of visibles(); track fila.id) {
+            <tr [attr.data-equipo]="fila.id">
+              <td [class.font-bold]="fila.estadoActivo">
+                {{ fila.tipo }}{{ fila.estadoActivo ? '' : ' · Retirado' }}
+              </td>
+              <td data-etiqueta="Marca">{{ fila.marca }}</td>
+              @if (puedeEscribir()) {
+                <td data-acciones class="text-right whitespace-nowrap">
+                  @if (fila.estadoActivo) {
+                    <!-- Retirar pregunta antes: ninguna pantalla lo devuelve. -->
+                    @if (confirmandoRetiro() === fila.id) {
+                      <span class="font-semibold md:mr-2" role="alert"
+                        >¿Seguro que quiere retirar?</span
+                      >
+                      <button
+                        data-confirmar-retiro
+                        class="boton-primario min-h-tactil"
+                        type="button"
+                        [disabled]="baja.isPending()"
+                        (click)="retirar(fila.id)"
+                      >
+                        Retirar
+                      </button>
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        (click)="confirmandoRetiro.set(null)"
+                      >
+                        Cancelar
+                      </button>
+                    } @else {
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        [attr.aria-label]="'Retirar ' + fila.tipo + ' ' + fila.marca"
+                        (click)="confirmandoRetiro.set(fila.id)"
+                      >
+                        Retirar
+                      </button>
+                    }
+                  }
+                </td>
+              }
+            </tr>
           }
-        </li>
-      }
-    </ul>
+        </tbody>
+      </table>
+    </div>
   }
 </section>

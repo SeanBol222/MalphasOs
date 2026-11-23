@@ -20,6 +20,7 @@ import {
   URL_PROTOCOLOS,
   URL_TIPOS,
   URL_UNIDADES_DE,
+  buscarConLaLupa,
 } from '../../../../testing/catalogo';
 import { TiposDeEquipo } from './tipos';
 
@@ -83,6 +84,45 @@ describe('Tipos de equipo', () => {
     boton.click();
     fixture.detectChanges();
   }
+
+  describe('retirar pregunta antes (2026-11-20)', () => {
+    // Se pidio tras retirar uno por accidente: ninguna pantalla devuelve un tipo retirado.
+    it('«Retirar» no retira: pregunta, y «Cancelar» lo deja como estaba', async () => {
+      await abrir();
+      pulsar('Retirar');
+      await asentar(fixture);
+
+      http.expectNone({ method: 'DELETE', url: `${URL_TIPOS}/${ID_TIPO}` });
+      // Sin el nombre del tipo: ya esta en la misma fila (2026-11-20, pedido por el usuario).
+      expect(texto()).toContain('¿Seguro que quiere retirar?');
+      // Mientras pregunta, la fila solo enseña la pregunta: sin Editar, Verificación ni Patrones.
+      const acciones = () =>
+        [
+          ...raiz().querySelectorAll(`[data-tipo="${ID_TIPO}"] td[data-acciones] :is(a, button)`),
+        ].map((b) => b.textContent?.trim());
+      expect(acciones()).toEqual(['Retirar', 'Cancelar']);
+
+      pulsar('Cancelar');
+      expect(texto()).not.toContain('¿Seguro que quiere retirar');
+      expect(acciones()).toEqual(['Editar', 'Verificación', 'Patrones', 'Retirar']);
+    });
+
+    it('el «Retirar» de la pregunta lo retira, y la pregunta se cierra', async () => {
+      await abrir();
+      pulsar('Retirar');
+      raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+      fixture.detectChanges();
+      await asentar(fixture);
+
+      http.expectOne({ method: 'DELETE', url: `${URL_TIPOS}/${ID_TIPO}` }).flush(null);
+      await asentar(fixture);
+      // La recarga trae el tipo otra vez: si la pregunta se va es porque se cerró.
+      await atenderRecargas();
+
+      expect(raiz().querySelector(`[data-tipo="${ID_TIPO}"]`)).not.toBeNull();
+      expect(texto()).not.toContain('¿Seguro que quiere retirar');
+    });
+  });
 
   it('ensena que se le mide y en que unidad, no «la» modalidad', async () => {
     // Un termohigrometro tiene dos modalidades: una sola etiqueta tendria que mentir sobre una.
@@ -244,12 +284,7 @@ describe('Tipos de equipo', () => {
         s.textContent!.trim(),
       );
 
-    async function buscar(valor: string): Promise<void> {
-      const campo = raiz().querySelector<HTMLInputElement>('#filtroTipos')!;
-      campo.value = valor;
-      campo.dispatchEvent(new Event('input'));
-      await asentar(fixture);
-    }
+    const buscar = (valor: string) => buscarConLaLupa(fixture, 'filtroTipos', valor);
 
     beforeEach(() => abrir({ tipos: TRES_TIPOS }));
 
@@ -280,7 +315,7 @@ describe('Tipos de equipo', () => {
     it('la cabecera invierte el orden, y otra pulsacion lo devuelve de la A a la Z', async () => {
       const cabecera = () => raiz().querySelector<HTMLElement>('th[aria-sort]')!;
       const ordenar = async () => {
-        raiz().querySelector<HTMLButtonElement>('[data-ordenar="nombre"]')!.click();
+        raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
         await asentar(fixture);
       };
 
@@ -296,7 +331,7 @@ describe('Tipos de equipo', () => {
     });
 
     it('el orden elegido se mantiene al buscar', async () => {
-      raiz().querySelector<HTMLButtonElement>('[data-ordenar="nombre"]')!.click();
+      raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
       await buscar('electronica');
 
       expect(nombres()).toEqual(['Termohigrómetro', 'Tensiómetro']);

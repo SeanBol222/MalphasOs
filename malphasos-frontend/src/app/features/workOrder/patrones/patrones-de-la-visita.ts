@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { RouterLink } from '@angular/router';
 import { CatalogoApi } from '../../equipment/catalogo-api';
 import { OrdenApi } from '../orden-api';
+import { pidePatrones } from './se-verifica';
 
 /**
  * Lo que la orden lleva a la visita, en su ficha (V60): por tipo de equipo, los nombres de sus patrones,
@@ -28,19 +29,26 @@ export class PatronesDeLaVisita {
   );
 
   protected readonly filas = computed(() => {
-    const tipos = new Map((this.tipos.data() ?? []).map((t) => [t.id, t.nombre ?? '']));
+    const tipos = new Map((this.tipos.data() ?? []).map((t) => [t.id, t]));
     const patrones = new Map(
       (this.patrones.data() ?? []).map((p) => [p.id, `${p.nombre} · serie ${p.serie}`]),
     );
 
+    // Los tipos que no se verifican no llevan patrones, y no se listan (2026-11-22).
     return (this.porTipo.data() ?? [])
+      .filter((tipo) => pidePatrones(tipos.get(tipo.idTipoEquipo), tipo.patrones))
       .map((tipo) => ({
         idTipo: tipo.idTipoEquipo!,
-        tipo: tipos.get(tipo.idTipoEquipo) ?? 'Tipo de equipo',
+        tipo: tipos.get(tipo.idTipoEquipo)?.nombre ?? 'Tipo de equipo',
         patrones: (tipo.patrones ?? [])
           .map((id) => patrones.get(id) ?? 'Patrón')
           .sort((a, b) => a.localeCompare(b, 'es')),
       }))
       .sort((a, b) => a.tipo.localeCompare(b.tipo, 'es'));
   });
+
+  /** Tiene equipos, pero ninguno de un tipo que se verifique. */
+  protected readonly sinVerificables = computed(
+    () => !!this.porTipo.data()?.length && !this.filas().length,
+  );
 }

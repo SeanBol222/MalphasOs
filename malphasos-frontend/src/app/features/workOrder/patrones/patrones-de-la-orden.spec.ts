@@ -152,6 +152,27 @@ describe('Patrones de la orden', () => {
     expect(guardar()).toBeUndefined();
   });
 
+  it('no ofrece elegir para un tipo sin verificación metrológica (2026-11-22)', async () => {
+    fixture.detectChanges();
+    await asentar(fixture);
+    http.match(URL_ORDEN).forEach((p) => p.flush(orden({ estadoEjecucion: 'EN_EJECUCION' })));
+    http
+      .match(URL_PATRONES_DE_LA_ORDEN)
+      .forEach((p) => p.flush([{ idTipoEquipo: 'vortex', patrones: [] }]));
+    http
+      .match(URL_TIPOS)
+      .forEach((p) =>
+        p.flush([...TIPOS, { id: 'vortex', nombre: 'Agitador vórtex', verificaciones: [] }]),
+      );
+    http.match(URL_PATRONES).forEach((p) => p.flush(PATRONES));
+    await asentar(fixture);
+
+    expect(texto()).not.toContain('Agitador vórtex');
+    expect(raiz().querySelector('[data-sin-verificables]')).not.toBeNull();
+    // Ni siquiera se pregunta al catálogo qué patrones admite.
+    http.expectNone(`${URL_TIPOS}/vortex/reference-standards`);
+  });
+
   it('una orden sin equipos no tiene tipos para los que elegir', async () => {
     await abrir({ tipos: [] });
 

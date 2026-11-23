@@ -1094,6 +1094,41 @@ describe('Ficha de una orden de trabajo', () => {
       expect(texto()).not.toContain('se sustituyó');
     });
 
+    it('áreas y equipos van en orden alfabético, aunque el documento los traiga en otro', async () => {
+      // 2026-11-20, pedido por el usuario. El documento llega ordenado por hoja de vida; la ficha los
+      // lee por lo que son, sin que la tilde mande «Área de partos» al final.
+      const equipo = (id: string, area: string, tipo: string, serie: string) => ({
+        id,
+        area,
+        tipo,
+        marca: 'Kern',
+        modelo: 'PCB',
+        serie,
+        numeroHojaVida: `HV-${id}`,
+      });
+      await abrir(
+        ejecutada({
+          equipos: [
+            equipo('e1', 'Urgencias', 'Tensiómetro', 'S1'),
+            equipo('e2', 'Urgencias', 'báscula', 'S2'),
+            equipo('e3', 'Área de partos', 'Monitor', 'S3'),
+            equipo('e4', 'Urgencias', 'Báscula', 'S0'),
+          ],
+        }),
+      );
+
+      expect([...raiz().querySelectorAll('h3')].map((h) => h.textContent?.trim())).toEqual([
+        'Área de partos',
+        'Urgencias',
+      ]);
+      expect(
+        [...raiz().querySelectorAll('[aria-label="Urgencias"] [data-equipo]')].map((e) =>
+          e.getAttribute('data-equipo'),
+        ),
+        // Las dos básculas empatan -la mayúscula no cuenta- y las desempata su hoja de vida.
+      ).toEqual(['e2', 'e4', 'e1']);
+    });
+
     it('si su reporte se sustituyó después, lo dice y enlaza al vigente', async () => {
       await abrir(ejecutada(), [
         reporte({ idEquipoCliente: ID_EQUIPO, estado: 'BORRADOR', numero: 'BBB222' }),

@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  Injector,
+  signal,
+  viewChild,
+} from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -11,6 +21,10 @@ import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 import { fechaCorta, fechaIso, HOY } from '../../../core/fechas';
 import { Patron } from '../../../core/api/tipos';
+import { normalizar } from '../../../core/texto';
+import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
+import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 
 /** Cuántos días antes del vencimiento se avisa. Es el umbral de RF-41, que todavía no se construye. */
 export const DIAS_DE_AVISO = 30;
@@ -48,7 +62,7 @@ const opcional = (valor: string) => valor.trim() || undefined;
  */
 @Component({
   selector: 'app-patrones',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable, OrdenMovil],
   templateUrl: './patrones.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -65,17 +79,45 @@ export class Patrones {
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
-  /** Los vigentes primero; entre ellos, los que vencen antes. Los retirados al final. */
+  /** Lo escrito en la lupa de la cabecera. */
+  protected readonly busqueda = signal('');
+
+  /** El sentido del orden por nombre: de la A a la Z por defecto, y la cabecera lo invierte. */
+  protected readonly sentido = signal<Sentido>('asc');
+
+  protected invertirOrden(): void {
+    this.sentido.update(invertido);
+  }
+
+  /**
+   * Los que casan con lo buscado —nombre, marca, modelo, serie, codigo o certificado—, por nombre en el
+   * orden elegido. Hasta el 2026-11-20 iban los vigentes primero y, entre ellos, los que vencen antes;
+   * desde entonces el catalogo entero ordena por su primera columna, decidido por el usuario, y lo que
+   * urge se sigue viendo por el peso de «Vencido» y «Por vencer».
+   */
   protected readonly filas = computed(() => {
     const hoy = fechaIso(this.hoy());
     const aviso = fechaIso(new Date(this.hoy().getTime() + DIAS_DE_AVISO * 86_400_000));
+    const palabras = normalizar(this.busqueda()).split(' ').filter(Boolean);
 
     return [...(this.patrones.data() ?? [])]
-      .sort(
-        (a, b) =>
-          Number(b.estadoActivo) - Number(a.estadoActivo) ||
-          (a.vencimientoCertificado ?? '').localeCompare(b.vencimientoCertificado ?? ''),
-      )
+      .filter((patron) => {
+        const texto = normalizar(
+          [
+            patron.nombre,
+            patron.marca,
+            patron.modelo,
+            patron.serie,
+            patron.codigoInterno,
+            patron.certificado,
+          ]
+            .filter(Boolean)
+            .join(' '),
+        );
+
+        return palabras.every((palabra) => texto.includes(palabra));
+      })
+      .sort((a, b) => compararEn(this.sentido(), a.nombre, b.nombre))
       .map((patron) => {
         const vence = patron.vencimientoCertificado ?? '';
         const vencido = !!vence && vence < hoy;
@@ -109,8 +151,24 @@ export class Patrones {
     { validators: calibracionAntesDelVencimiento },
   );
 
+  private readonly injector = inject(Injector);
+  private readonly formularioEnPantalla = viewChild<ElementRef<HTMLElement>>('formularioDePatron');
+
   /** El patrón que se está corrigiendo, o nulo si el formulario es de alta. */
   protected readonly editando = signal<string | null>(null);
+
+  /**
+   * El formulario se abre con «Nuevo patrón» o al corregir uno, encima de la tabla, y se cierra al
+   * guardar o al cancelar.
+   */
+  private readonly altaAbierta = signal(false);
+  protected readonly abierto = computed(() => this.altaAbierta() || !!this.editando());
+
+  protected abrir(): void {
+    this.formulario.reset();
+    this.editando.set(null);
+    this.altaAbierta.set(true);
+  }
   protected readonly confirmandoRetiro = signal<string | null>(null);
 
   protected readonly hayError = computed(
@@ -145,11 +203,22 @@ export class Patrones {
       vencimientoCertificado: patron.vencimientoCertificado ?? '',
     });
     this.editando.set(patron.id!);
+    // El formulario se abre encima de la tabla: si se pulso «Editar» en una fila de abajo, quedaria
+    // fuera de la vista. Se sube hasta el en cuanto existe (2026-11-20, pedido por el usuario).
+    afterNextRender(
+      () =>
+        this.formularioEnPantalla()?.nativeElement.scrollIntoView?.({
+          behavior: 'smooth',
+          block: 'start',
+        }),
+      { injector: this.injector },
+    );
   }
 
   protected cancelar(): void {
     this.formulario.reset();
     this.editando.set(null);
+    this.altaAbierta.set(false);
   }
 
   protected guardar(): void {

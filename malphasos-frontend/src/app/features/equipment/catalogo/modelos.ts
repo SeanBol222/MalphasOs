@@ -7,12 +7,16 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CatalogoApi } from '../catalogo-api';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 import { normalizar } from '../../../core/texto';
+import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
+import { Buscador, Opcion, opcionesDe } from '../../../shared/buscador/buscador';
+import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 
 /**
  * Los modelos: un equipo del catalogo mas un fabricante, con su registro INVIMA.
@@ -32,7 +36,14 @@ import { normalizar } from '../../../core/texto';
  */
 @Component({
   selector: 'app-modelos',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    CabeceraDePieza,
+    ColumnaOrdenable,
+    Buscador,
+    OrdenMovil,
+  ],
   templateUrl: './modelos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -48,6 +59,12 @@ export class Modelos {
   protected readonly alta = this.api.crearModelo();
   private readonly altaDeEquipo = this.api.crearEquipo();
   protected readonly baja = this.api.retirarModelo();
+
+  /**
+   * El modelo cuyo retiro se esta confirmando (2026-11-20, pedido por el usuario tras retirar uno por
+   * accidente): «Retirar» pregunta antes, y solo «Sí, retirar» lo hace. Ninguna pantalla lo devuelve.
+   */
+  protected readonly confirmandoRetiro = signal<string | null>(null);
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
@@ -103,8 +120,15 @@ export class Modelos {
     }));
   });
 
-  protected readonly filtro = new FormControl('', { nonNullable: true });
-  private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
+  /** Lo escrito en la lupa de la cabecera. */
+  protected readonly busqueda = signal('');
+
+  /** El sentido del orden por nombre: de la A a la Z por defecto, y la cabecera lo invierte. */
+  protected readonly sentido = signal<Sentido>('asc');
+
+  protected invertirOrden(): void {
+    this.sentido.update(invertido);
+  }
 
   /**
    * Los modelos que casan con lo buscado, sin tildes ni mayusculas, en orden alfabetico. Cada palabra
@@ -112,7 +136,7 @@ export class Modelos {
    * encuentra los tensiometros de Omron aunque ninguno lo diga en el nombre.
    */
   protected readonly visibles = computed(() => {
-    const palabras = normalizar(this.textoDelFiltro()).split(' ').filter(Boolean);
+    const palabras = normalizar(this.busqueda()).split(' ').filter(Boolean);
 
     return this.filas()
       .filter((fila) => {
@@ -122,7 +146,7 @@ export class Modelos {
 
         return palabras.every((palabra) => texto.includes(palabra));
       })
-      .sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? '', 'es'));
+      .sort((a, b) => compararEn(this.sentido(), a.nombre, b.nombre));
   });
 
   private readonly idTipo = toSignal(this.formulario.controls.idTipo.valueChanges, {
@@ -156,6 +180,19 @@ export class Modelos {
       otras: activas.filter((m) => !asociadas.has(m.id)),
     };
   });
+  /**
+   * Tipo, marca y fabricante se escriben y se eligen de lo que casa, sin tildes ni mayusculas
+   * (2026-11-20, pedido por el usuario): con cientos de marcas, un desplegable obligaba a recorrerlo. Las
+   * marcas que ya fabrican el tipo elegido van primero en las sugerencias.
+   */
+  protected readonly opcionesDeTipo = computed(() => opcionesDe(this.tiposActivos()));
+  protected readonly opcionesDeMarca = computed<readonly Opcion[]>(() => {
+    const { asociadas, otras } = this.marcasDelTipo();
+
+    return opcionesDe([...asociadas, ...otras]);
+  });
+  protected readonly opcionesDeFabricante = computed(() => opcionesDe(this.fabricantesActivos()));
+
   protected readonly fabricantesActivos = computed(() =>
     (this.fabricantes.data() ?? []).filter((f) => f.estadoActivo),
   );
@@ -233,6 +270,6 @@ export class Modelos {
   }
 
   protected retirar(id: string): void {
-    this.baja.mutate(id);
+    this.baja.mutate(id, { onSettled: () => this.confirmandoRetiro.set(null) });
   }
 }

@@ -488,6 +488,8 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 16px;
+        /* Justo tras el historial: el servidor mide el PDF y llena con líneas en blanco lo que falta
+           hasta el pie, con una página o con varias (2026-11-21). Y nunca partido entre dos páginas. */
         margin-top: 8px;
         break-inside: avoid;
       }
@@ -526,7 +528,7 @@
       <header class="hv-banda">
         <div class="hv-banda__texto">
           <p class="hv-logo">
-            <img th:if="${hoja.empresa.logo}" th:src="${hoja.empresa.logo}" alt="" width="30" height="30" />
+            <img th:if="${hoja.empresa.logo}" th:src="${hoja.empresa.logo}" alt="" width="48" height="48" />
             <span th:text="${hoja.empresa.nombre}">Empresa</span>
           </p>
           <p class="hv-banda__rotulo" th:text="'Hoja de vida · ' + ${hoja.numeroHojaVida}">Hoja de vida</p>
@@ -629,7 +631,7 @@
 
       <header class="hv-banda hv-banda--estrecha">
         <p class="hv-logo">
-          <img th:if="${hoja.empresa.logo}" th:src="${hoja.empresa.logo}" alt="" width="26" height="26" />
+          <img th:if="${hoja.empresa.logo}" th:src="${hoja.empresa.logo}" alt="" width="48" height="48" />
           <span th:text="${hoja.empresa.nombre}">Empresa</span>
         </p>
         <p class="hv-banda__resumen">
@@ -706,7 +708,7 @@
                   Sin intervenciones todavía. Se anotan solas al cerrar un reporte de servicio.
                 </td>
               </tr>
-              <tr class="hv-en-blanco" th:each="vacia : ${#numbers.sequence(1, 6)}">
+              <tr class="hv-en-blanco" th:each="vacia : ${#numbers.sequence(1, filasEnBlanco)}">
                 <td></td>
                 <td></td>
                 <td></td>
@@ -716,7 +718,7 @@
           </table>
         </section>
 
-        <div class="hv-cierre">
+        <div class="hv-cierre" th:style="${estiloDelCierre}">
           <section class="hv-tarjeta">
             <h2>Servicio técnico</h2>
             <address class="hv-empresa">

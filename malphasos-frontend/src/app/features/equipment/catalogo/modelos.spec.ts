@@ -3,7 +3,8 @@ import { provideRouter } from '@angular/router';
 import { HttpTestingController } from '@angular/common/http/testing';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
-import { asentar } from '../../../../testing/pantalla';
+import { asentar, elegirEnBuscador, escribirEnBuscador } from '../../../../testing/pantalla';
+import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
 import {
   MARCAS,
   MODELOS,
@@ -15,14 +16,18 @@ import {
   TIPOS,
   URL_EQUIPOS,
   URL_MODELOS,
+  buscarConLaLupa,
 } from '../../../../testing/catalogo';
 import { Modelos } from './modelos';
 
 describe('Modelos del catalogo', () => {
   let fixture: ComponentFixture<Modelos>;
   let http: HttpTestingController;
+  let desinstalarAlmacenamiento: () => void;
 
   beforeEach(() => {
+    // Los campos que predicen guardan lo ya elegido en localStorage.
+    desinstalarAlmacenamiento = instalarAlmacenamiento();
     TestBed.configureTestingModule({
       providers: [
         ...proveerApiSimulado(),
@@ -57,12 +62,17 @@ describe('Modelos del catalogo', () => {
   const CON_OMRON = [...MARCAS, { id: 'm3', nombre: 'Omron', estadoActivo: true }];
   const CON_BASCULA = [...TIPOS, { ...TIPOS[0], id: 't2', nombre: 'Báscula' }];
 
-  const grupo = (etiqueta: string) =>
-    [
-      ...raiz().querySelectorAll<HTMLOptionElement>(
-        `#marcaDelModelo optgroup[label="${etiqueta}"] option`,
-      ),
-    ].map((o) => o.textContent?.trim());
+  /** Tipo, marca y fabricante se escriben y se eligen de lo que casa, desde el 2026-11-20. */
+  const elegir = (campo: string, etiqueta: string) => elegirEnBuscador(fixture, campo, etiqueta);
+
+  /** Lo que el campo de la marca sugiere al escribir «n», que tienen Welch Allyn y Omron. */
+  async function marcasSugeridas(): Promise<(string | undefined)[]> {
+    await escribirEnBuscador(fixture, 'marcaDelModelo', 'n');
+
+    return [...raiz().querySelectorAll('#marcaDelModelo-lista [role="option"]')].map((o) =>
+      o.textContent?.trim(),
+    );
+  }
 
   /** Lo que una escritura del catalogo vuelve a pedir: todo cuelga de la misma clave. */
   async function atenderRecargas(): Promise<void> {
@@ -76,6 +86,42 @@ describe('Modelos del catalogo', () => {
     await asentar(fixture);
   }
 
+  describe('retirar pregunta antes (2026-11-20)', () => {
+    // Se pidio tras retirar uno por accidente: ninguna pantalla devuelve un modelo retirado.
+    it('«Retirar» no retira: pregunta, y «Cancelar» lo deja como estaba', async () => {
+      await abrir();
+      pulsar('Retirar');
+      await asentar(fixture);
+
+      http.expectNone({ method: 'DELETE', url: `${URL_MODELOS}/${MODELOS[0].id}` });
+      expect(texto()).toContain('¿Seguro que quiere retirar?');
+      // Mientras pregunta, la fila solo enseña la pregunta: la ficha técnica se oculta.
+      expect(texto()).not.toContain('Ficha técnica');
+
+      pulsar('Cancelar');
+      expect(texto()).not.toContain('¿Seguro que quiere retirar');
+      expect(texto()).toContain('Retirar');
+    });
+
+    it('el «Retirar» de la pregunta lo retira, y la pregunta se cierra', async () => {
+      await abrir();
+      pulsar('Retirar');
+      raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+      fixture.detectChanges();
+      await asentar(fixture);
+
+      http.expectOne({ method: 'DELETE', url: `${URL_MODELOS}/${MODELOS[0].id}` }).flush(null);
+      await asentar(fixture);
+      // La recarga trae el modelo otra vez: si la pregunta se va es porque se cerró, no porque la
+      // lista llegó vacía.
+      http.match(URL_MODELOS).forEach((p) => p.flush(MODELOS));
+      await atenderRecargas();
+
+      expect(raiz().querySelector('tbody tr')).not.toBeNull();
+      expect(texto()).not.toContain('¿Seguro que quiere retirar');
+    });
+  });
+
   it('cada modelo enlaza a su ficha tecnica, que tiene pagina propia', async () => {
     // Voltaje, amperaje y el resto de la placa son del modelo desde el 2026-10-05, y se llenan ahi.
     await abrir();
@@ -86,22 +132,27 @@ describe('Modelos del catalogo', () => {
     expect(enlace?.getAttribute('href')).toBe(`/catalogo/modelos/${MODELOS[0].id}/ficha`);
   });
 
-  it('dice que un modelo es lo unico que se puede instalar', async () => {
-    // Es la causa mas probable de que el alta de un equipo aparezca sin opciones.
+  it('dice en una linea que es: lo que se instala en un cliente', async () => {
+    // Es la causa mas probable de que el alta de un equipo aparezca sin opciones. La frase se acorto el
+    // 2026-11-20, pedido por el usuario: la cabecera lleva una linea.
     await abrir();
 
-    expect(texto()).toContain('Es lo único que se puede instalar');
+    expect(texto()).toContain('Lo que se instala en un cliente.');
   });
 
   it('una fila se lee cruzando cuatro listas: tipo, marca, fabricante e INVIMA', async () => {
     await abrir();
 
-    const fila = raiz().querySelector('li')!.textContent ?? '';
+    const celdas = [...raiz().querySelectorAll('tbody tr:first-child td')].map((td) =>
+      td.textContent!.trim(),
+    );
 
-    expect(fila).toContain('Tensiómetro');
-    expect(fila).toContain('Welch Allyn');
-    expect(fila).toContain('Medtronic');
-    expect(fila).toContain('INVIMA INV-1');
+    expect(celdas.slice(0, 4)).toEqual([
+      'Connex Spot',
+      'Tensiómetro · Welch Allyn',
+      'Medtronic',
+      'INV-1',
+    ]);
   });
 
   it('el formulario no esta a la vista: se abre con «Nuevo modelo» y se cierra con «Cancelar»', async () => {
@@ -119,55 +170,107 @@ describe('Modelos del catalogo', () => {
     expect(raiz().querySelector('form')).toBeNull();
   });
 
+  it('el alta va en dos recuadros, como la de un patrón: de qué es el modelo, y el modelo con los botones', async () => {
+    await abrir();
+    pulsar('Nuevo modelo');
+    const clasificacion = raiz().querySelector('[data-columna="clasificacion"]')!;
+    const modelo = raiz().querySelector('[data-columna="modelo"]')!;
+
+    expect(clasificacion.classList).toContain('superficie');
+    expect(modelo.classList).toContain('superficie');
+    expect(clasificacion.contains(modelo)).toBe(false);
+    expect(clasificacion.querySelector('h3')?.textContent?.trim()).toBe('Nuevo modelo');
+    for (const id of ['tipoDelModelo', 'marcaDelModelo', 'fabricanteDelModelo']) {
+      expect(clasificacion.querySelector(`#${id}`)).not.toBeNull();
+    }
+    for (const id of ['nombreDelModelo', 'invimaDelModelo']) {
+      expect(modelo.querySelector(`#${id}`)).not.toBeNull();
+    }
+    expect([...modelo.querySelectorAll('button')].map((b) => b.textContent?.trim())).toEqual([
+      'Crear modelo',
+      'Cancelar',
+    ]);
+  });
+
   it('la marca espera al tipo, y despues ofrece primero las que ya fabrican ese tipo', async () => {
     await abrir({ marcas: CON_OMRON });
     pulsar('Nuevo modelo');
 
-    expect(raiz().querySelector<HTMLSelectElement>('#marcaDelModelo')!.disabled).toBe(true);
+    expect(raiz().querySelector<HTMLInputElement>('#marcaDelModelo')!.disabled).toBe(true);
 
-    escribir('tipoDelModelo', ID_TIPO);
+    await elegir('tipoDelModelo', 'Tensiómetro');
 
-    expect(raiz().querySelector<HTMLSelectElement>('#marcaDelModelo')!.disabled).toBe(false);
-    expect(grupo('Ya asociadas a este tipo')).toEqual(['Welch Allyn']);
-    // La retirada no se ofrece: el backend rechaza una referencia retirada.
-    expect(grupo('Otras marcas')).toEqual(['Omron']);
+    expect(raiz().querySelector<HTMLInputElement>('#marcaDelModelo')!.disabled).toBe(false);
+    // Welch Allyn ya fabrica tensiometros: va antes que Omron aunque el alfabeto diga lo contrario. La
+    // retirada no se ofrece: el backend rechaza una referencia retirada.
+    expect(await marcasSugeridas()).toEqual(['Welch Allyn', 'Omron']);
+  });
+
+  it('al hacer clic sin escribir, cada campo ofrece su lista entera', async () => {
+    await abrir({ marcas: CON_OMRON, tipos: CON_BASCULA });
+    pulsar('Nuevo modelo');
+    const ofrecidas = (campo: string) =>
+      [...raiz().querySelectorAll(`#${campo}-lista [role="option"]`)].map((o) =>
+        o.textContent?.trim(),
+      );
+
+    await escribirEnBuscador(fixture, 'tipoDelModelo', '');
+    expect(ofrecidas('tipoDelModelo')).toEqual(['Báscula', 'Tensiómetro']);
+
+    await elegir('tipoDelModelo', 'Tensiómetro');
+    await escribirEnBuscador(fixture, 'marcaDelModelo', '');
+    // Entera, y con la que ya fabrica tensiometros primero.
+    expect(ofrecidas('marcaDelModelo')).toEqual(['Welch Allyn', 'Omron']);
+
+    await escribirEnBuscador(fixture, 'fabricanteDelModelo', '');
+    expect(ofrecidas('fabricanteDelModelo')).toEqual(['Medtronic']);
   });
 
   it('las asociadas son las del tipo elegido, no las de cualquiera', async () => {
     await abrir({ marcas: CON_OMRON, tipos: CON_BASCULA });
     pulsar('Nuevo modelo');
-    escribir('tipoDelModelo', 't2');
+    await elegir('tipoDelModelo', 'Báscula');
 
-    expect(grupo('Ya asociadas a este tipo')).toEqual([]);
-    expect(grupo('Otras marcas')).toEqual(['Omron', 'Welch Allyn']);
+    // Ninguna fabrica basculas: el orden es solo el alfabetico.
+    expect(await marcasSugeridas()).toEqual(['Omron', 'Welch Allyn']);
   });
 
   it('cambiar de tipo suelta la marca elegida', async () => {
     await abrir({ tipos: CON_BASCULA });
     pulsar('Nuevo modelo');
-    escribir('tipoDelModelo', ID_TIPO);
-    escribir('marcaDelModelo', ID_MARCA);
-    escribir('tipoDelModelo', 't2');
+    await elegir('tipoDelModelo', 'Tensiómetro');
+    await elegir('marcaDelModelo', 'Welch Allyn');
+    await elegir('tipoDelModelo', 'Báscula');
 
-    expect(raiz().querySelector<HTMLSelectElement>('#marcaDelModelo')!.value).toBe('');
+    expect(raiz().querySelector<HTMLInputElement>('#marcaDelModelo')!.value).toBe('');
   });
 
-  it('volver a «Elija un tipo» desactiva otra vez la marca', async () => {
+  it('cambiar de tipo borra tambien una marca escrita a medias, sin elegir', async () => {
+    await abrir({ tipos: CON_BASCULA });
+    pulsar('Nuevo modelo');
+    await elegir('tipoDelModelo', 'Tensiómetro');
+    await escribirEnBuscador(fixture, 'marcaDelModelo', 'wel');
+    await elegir('tipoDelModelo', 'Báscula');
+
+    expect(raiz().querySelector<HTMLInputElement>('#marcaDelModelo')!.value).toBe('');
+  });
+
+  it('borrar el tipo desactiva otra vez la marca', async () => {
     await abrir();
     pulsar('Nuevo modelo');
-    escribir('tipoDelModelo', ID_TIPO);
-    escribir('tipoDelModelo', '');
+    await elegir('tipoDelModelo', 'Tensiómetro');
+    await escribirEnBuscador(fixture, 'tipoDelModelo', '');
 
-    expect(raiz().querySelector<HTMLSelectElement>('#marcaDelModelo')!.disabled).toBe(true);
+    expect(raiz().querySelector<HTMLInputElement>('#marcaDelModelo')!.disabled).toBe(true);
   });
 
   it('sin nombre no llega al servidor', async () => {
     // La validacion del formulario corre antes: es lo que evita un 400 que nadie sabria leer.
     await abrir();
     pulsar('Nuevo modelo');
-    escribir('tipoDelModelo', ID_TIPO);
-    escribir('marcaDelModelo', ID_MARCA);
-    escribir('fabricanteDelModelo', ID_FABRICANTE);
+    await elegir('tipoDelModelo', 'Tensiómetro');
+    await elegir('marcaDelModelo', 'Welch Allyn');
+    await elegir('fabricanteDelModelo', 'Medtronic');
     await enviar();
 
     http.expectNone({ method: 'POST', url: URL_MODELOS });
@@ -177,9 +280,9 @@ describe('Modelos del catalogo', () => {
   it('con una marca ya asociada reutiliza la combinacion y manda los cuatro campos', async () => {
     await abrir();
     pulsar('Nuevo modelo');
-    escribir('tipoDelModelo', ID_TIPO);
-    escribir('marcaDelModelo', ID_MARCA);
-    escribir('fabricanteDelModelo', ID_FABRICANTE);
+    await elegir('tipoDelModelo', 'Tensiómetro');
+    await elegir('marcaDelModelo', 'Welch Allyn');
+    await elegir('fabricanteDelModelo', 'Medtronic');
     escribir('nombreDelModelo', 'IdeaPad 3');
     escribir('invimaDelModelo', 'INV-2');
     await enviar();
@@ -202,9 +305,9 @@ describe('Modelos del catalogo', () => {
   it('con una marca sin asociar crea antes la combinacion, y el modelo cuelga de ella', async () => {
     await abrir({ marcas: CON_OMRON });
     pulsar('Nuevo modelo');
-    escribir('tipoDelModelo', ID_TIPO);
-    escribir('marcaDelModelo', 'm3');
-    escribir('fabricanteDelModelo', ID_FABRICANTE);
+    await elegir('tipoDelModelo', 'Tensiómetro');
+    await elegir('marcaDelModelo', 'Omron');
+    await elegir('fabricanteDelModelo', 'Medtronic');
     escribir('nombreDelModelo', 'HEM-7120');
     await enviar();
 
@@ -227,9 +330,9 @@ describe('Modelos del catalogo', () => {
   it('si el alta falla, lo dice y el formulario sigue abierto con lo escrito', async () => {
     await abrir();
     pulsar('Nuevo modelo');
-    escribir('tipoDelModelo', ID_TIPO);
-    escribir('marcaDelModelo', ID_MARCA);
-    escribir('fabricanteDelModelo', ID_FABRICANTE);
+    await elegir('tipoDelModelo', 'Tensiómetro');
+    await elegir('marcaDelModelo', 'Welch Allyn');
+    await elegir('fabricanteDelModelo', 'Medtronic');
     escribir('nombreDelModelo', 'IdeaPad 3');
     await enviar();
 
@@ -263,14 +366,16 @@ describe('Modelos del catalogo', () => {
     ];
 
     const nombres = () =>
-      [...raiz().querySelectorAll('li > span')].map((s) => s.firstChild!.textContent!.trim());
+      [...raiz().querySelectorAll('tbody tr td:first-child')].map((td) => td.textContent!.trim());
 
-    async function buscar(valor: string): Promise<void> {
-      const campo = raiz().querySelector<HTMLInputElement>('#filtroModelos')!;
-      campo.value = valor;
-      campo.dispatchEvent(new Event('input'));
+    const buscar = (valor: string) => buscarConLaLupa(fixture, 'filtroModelos', valor);
+
+    it('la cabecera invierte el orden por nombre', async () => {
+      raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
       await asentar(fixture);
-    }
+
+      expect(nombres()).toEqual(['Vital Signs', 'Connex Spot', 'Accutorr 7']);
+    });
 
     beforeEach(() => abrir({ modelos: TRES_MODELOS, equipos: DOS_EQUIPOS, marcas: CON_OMRON }));
 
@@ -302,5 +407,12 @@ describe('Modelos del catalogo', () => {
     });
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    // En finally: si verify() lanza, el doble de localStorage no debe pasar al fichero siguiente.
+    try {
+      http.verify();
+    } finally {
+      desinstalarAlmacenamiento();
+    }
+  });
 });

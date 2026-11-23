@@ -4,7 +4,7 @@ description: RF-40 y RF-41, Alertas y calibracion (ERS 3.2.7). Won't Have, previ
 tags: [requisitos, rf, calibracion, metrologia]
 fuente: "Documentation/IEEE830/IEEE830.tex, apartado 3.2.7"
 estado: vigente
-updated: 2026-10-16
+updated: 2026-11-22
 ---
 
 # 3.2.7. Alertas y calibración (RF-40, RF-41)
@@ -54,6 +54,11 @@ verifica un equipo y qué salió al verificarlo, no cuándo caduca su calibraci�
 **RF-40 sigue previsto**: el criterio de este proyecto cuenta lo que se satisface por completo. **RF-41
 también**: no hay alerta, ni estado «Alerta de Calibración», ni nada que reinicie el umbral al renovar
 el certificado —renovarlo es editar el patrón—.
+
+> **Matizado el 22 de noviembre de 2026.** Desde el 21 hay en el frontend una **campanita** que avisa de los
+> patrones vencidos y de los que vencen en 30 días o menos, con un número de avisos sin leer. Se acerca a
+> RF-41, y **no lo cumple**: se calcula al mirar, no a diario; no hay estado «Alerta de Calibración» en el
+> servidor; y lo leído se guarda en el navegador de cada quien. Los dos siguen **previstos**.
 
 ## Notas relacionadas
 

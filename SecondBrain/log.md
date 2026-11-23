@@ -3223,3 +3223,17 @@ un arnés que no mide nada no puede contar como muerte.
 
 **La rama sigue abierta**: el usuario tiene más cambios del frontend en la misma línea.
 
+## [2026-11-22] ingest | El frontend en una ventana estrecha, la campanita y reactivar personas
+
+Se cierra la rama `feat/frontend-improvements`, con **32** commits desde el 2026-11-20: el catálogo rehecho
+—ya anotado aquí ese día—, los retoques de los PDF, **la campanita de avisos**, **el frontend en una ventana
+estrecha** —el reporte por el ancho de su caja, y los listados y el catálogo desplazándose de lado con su
+barra—, **«Por aprobar» solo desde que existe la aprobación**, **reactivar a una persona retirada** —la única
+pieza de backend, con su ruta y su contrato— y **los patrones de la orden solo para los tipos que se
+verifican**. Las decisiones, en [[decisiones-tecnicas-malphasos]]; la campanita y RF-41, en
+[[hoja-de-ruta-producto]]; reactivar, en [[modelo-de-permisos]].
+
+**979** pruebas en el frontend, 67 archivos, cero fallos. **1820** en el backend, **163** clases, cero fallos,
+medidos borrando `target/surefire-reports` y `target/test-classes` antes. Se mutó el orden de la reactivación,
+la regla de los patrones y la de la aprobación: las tres pruebas fallan sin su regla.
+

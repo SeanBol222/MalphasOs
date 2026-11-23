@@ -4,7 +4,7 @@ import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar, elegirEnBuscador, responderA } from '../../../../testing/pantalla';
 import { instalarAlmacenamiento } from '../../../../testing/almacenamiento';
-import { FABRICANTES, URL_FABRICANTES } from '../../../../testing/catalogo';
+import { FABRICANTES, URL_FABRICANTES, buscarConLaLupa } from '../../../../testing/catalogo';
 import { Fabricantes } from './fabricantes';
 
 const URL_PAISES = 'http://localhost:8081/v1/api/countries';
@@ -48,15 +48,49 @@ describe('Fabricantes del catalogo', () => {
     fixture.detectChanges();
   }
 
+  function pulsar(etiqueta: string): void {
+    [...raiz().querySelectorAll('button')].find((b) => b.textContent?.trim() === etiqueta)!.click();
+    fixture.detectChanges();
+  }
+
   async function enviar(): Promise<void> {
     raiz().querySelector('form')!.dispatchEvent(new Event('submit'));
     await asentar(fixture);
   }
 
-  it('distingue fabricante de marca, que es la confusion probable', async () => {
+  it('dice en una linea que es: quien lo produce y en que pais', async () => {
+    // La frase se acorto el 2026-11-20, pedido por el usuario: la cabecera lleva una linea.
     await abrir();
 
-    expect(texto()).toContain('No es lo mismo que la marca');
+    expect(texto()).toContain('Quién lo produce y en qué país.');
+  });
+
+  it('el alta no esta a la vista: se abre con «Nuevo fabricante» y se cierra con «Cancelar»', async () => {
+    await abrir();
+    expect(raiz().querySelector('form')).toBeNull();
+
+    pulsar('Nuevo fabricante');
+    expect(raiz().querySelector('form')).not.toBeNull();
+
+    pulsar('Cancelar');
+    expect(raiz().querySelector('form')).toBeNull();
+  });
+
+  it('busca por el pais, y la cabecera invierte el orden por nombre', async () => {
+    await abrir([
+      ...FABRICANTES,
+      { id: 'f2', nombre: 'Philips', estadoActivo: true },
+    ]);
+    const nombres = () =>
+      [...raiz().querySelectorAll('tbody td:first-child')].map((n) => n.textContent?.trim());
+
+    expect(nombres()).toEqual(['Medtronic', 'Philips']);
+    raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
+    await asentar(fixture);
+    expect(nombres()).toEqual(['Philips', 'Medtronic']);
+
+    await buscarConLaLupa(fixture, 'filtroFabricantes', 'colombia');
+    expect(nombres()).toEqual(['Medtronic']);
   });
 
   it('ensena el pais en palabras', async () => {
@@ -87,8 +121,9 @@ describe('Fabricantes del catalogo', () => {
     expect(texto()).toContain('No disponible');
   });
 
-  it('crear un fabricante con pais manda las dos claves', async () => {
+  it('crear un fabricante con pais manda las dos claves, y cierra el alta', async () => {
     await abrir();
+    pulsar('Nuevo fabricante');
     escribir('fabricanteNuevo', 'Philips');
     await elegirEnBuscador(fixture, 'paisFabricante', 'Colombia');
     await enviar();
@@ -100,10 +135,12 @@ describe('Fabricantes del catalogo', () => {
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));
     await asentar(fixture);
+    expect(raiz().querySelector('form')).toBeNull();
   });
 
   it('sin pais elegido, la clave no viaja', async () => {
     await abrir();
+    pulsar('Nuevo fabricante');
     escribir('fabricanteNuevo', 'Philips');
     await enviar();
 
@@ -114,6 +151,74 @@ describe('Fabricantes del catalogo', () => {
     await asentar(fixture);
     http.match(() => true).forEach((p) => p.flush([]));
     await asentar(fixture);
+  });
+
+  it('renombrar llega con el nombre actual puesto y manda solo el nombre: el país se queda', async () => {
+    await abrir();
+    pulsar('Renombrar');
+
+    const campo = raiz().querySelector<HTMLInputElement>(`#fabricante-${FABRICANTES[0].id}`)!;
+    expect(campo.value).toBe('Medtronic');
+
+    escribir(`fabricante-${FABRICANTES[0].id}`, ' Medtronic plc ');
+    pulsar('Guardar');
+    await asentar(fixture);
+
+    const cambio = http.expectOne({ method: 'PATCH', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` });
+    expect(cambio.request.body).toEqual({ nombre: 'Medtronic plc' });
+    cambio.flush({ ...FABRICANTES[0], nombre: 'Medtronic plc' });
+    await asentar(fixture);
+    // La recarga trae el fabricante otra vez: si la fila desaparece es porque el campo se cerró, no
+    // porque la lista llegó vacía.
+    http.match(URL_FABRICANTES).forEach((p) => p.flush(FABRICANTES));
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+
+    expect(raiz().querySelector(`#fabricante-${FABRICANTES[0].id}`)).toBeNull();
+    expect(raiz().querySelector(`[data-fabricante="${FABRICANTES[0].id}"]`)).not.toBeNull();
+  });
+
+  it('renombrar con el nombre vacío no llega al servidor, y Cancelar deja la fila como estaba', async () => {
+    await abrir();
+    pulsar('Renombrar');
+    escribir(`fabricante-${FABRICANTES[0].id}`, '');
+    pulsar('Guardar');
+    await asentar(fixture);
+
+    http.expectNone({ method: 'PATCH', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` });
+    expect(texto()).toContain('El nombre es obligatorio');
+
+    pulsar('Cancelar');
+    expect(raiz().querySelector(`#fabricante-${FABRICANTES[0].id}`)).toBeNull();
+    expect(texto()).toContain('Medtronic');
+  });
+
+  it('retirar pregunta antes, oculta «Renombrar» mientras tanto, y solo el «Retirar» de la pregunta retira', async () => {
+    await abrir();
+    const fila = `[data-fabricante="${FABRICANTES[0].id}"]`;
+    const botones = () =>
+      [...raiz().querySelectorAll(`${fila} button`)].map((b) => b.textContent?.trim());
+
+    pulsar('Retirar');
+    await asentar(fixture);
+    http.expectNone({ method: 'DELETE', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` });
+    expect(texto()).toContain('¿Seguro que quiere retirar?');
+    expect(botones()).toEqual(['Retirar', 'Cancelar']);
+
+    pulsar('Cancelar');
+    expect(botones()).toEqual(['Renombrar', 'Retirar']);
+
+    pulsar('Retirar');
+    raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+    fixture.detectChanges();
+    await asentar(fixture);
+    http.expectOne({ method: 'DELETE', url: `${URL_FABRICANTES}/${FABRICANTES[0].id}` }).flush(null);
+    await asentar(fixture);
+    // La recarga trae el fabricante otra vez: si la pregunta se va es porque se cerró.
+    http.match(URL_FABRICANTES).forEach((p) => p.flush(FABRICANTES));
+    http.match(() => true).forEach((p) => p.flush([]));
+    await asentar(fixture);
+    expect(texto()).not.toContain('¿Seguro que quiere retirar');
   });
 
   afterEach(() => {

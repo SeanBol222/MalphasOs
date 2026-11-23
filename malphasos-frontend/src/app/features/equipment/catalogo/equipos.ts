@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogoApi } from '../catalogo-api';
 import { normalizar } from '../../../core/texto';
+import { CabeceraDePieza } from './cabecera-de-pieza';
+import { OrdenMovil } from './orden-movil';
+import { Buscador, Opcion, opcionesDe } from '../../../shared/buscador/buscador';
+import { ColumnaOrdenable, Sentido, compararEn, invertido } from './columna-ordenable';
 import { Sesion } from '../../../core/auth/sesion';
 import { traducirError } from '../../../core/errores/traducir';
 
@@ -16,9 +19,14 @@ import { traducirError } from '../../../core/errores/traducir';
  * <p>La respuesta solo trae identificadores, de modo que cada fila se compone cruzando las listas de
  * tipos y marcas. Es la misma ausencia que tenían los encargados: el API no devuelve nombres.
  */
+/** Una copia de las opciones en orden alfabetico, en castellano. */
+function alfabetico(opciones: readonly Opcion[]): readonly Opcion[] {
+  return [...opciones].sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, 'es'));
+}
+
 @Component({
   selector: 'app-equipos-de-catalogo',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CabeceraDePieza, ColumnaOrdenable, OrdenMovil, Buscador],
   templateUrl: './equipos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -31,6 +39,9 @@ export class EquiposDeCatalogo {
   protected readonly marcas = this.api.listarMarcas();
   protected readonly alta = this.api.crearEquipo();
   protected readonly baja = this.api.retirarEquipo();
+
+  /** El equipo del catálogo cuyo retiro se esta confirmando: «Retirar» pregunta antes (2026-11-20). */
+  protected readonly confirmandoRetiro = signal<string | null>(null);
 
   protected readonly puedeEscribir = computed(() => this.sesion.puede('equipment.write'));
 
@@ -60,8 +71,15 @@ export class EquiposDeCatalogo {
     }));
   });
 
-  protected readonly filtro = this.formBuilder.nonNullable.control('');
-  private readonly textoDelFiltro = toSignal(this.filtro.valueChanges, { initialValue: '' });
+  /** Lo escrito en la lupa de la cabecera. */
+  protected readonly busqueda = signal('');
+
+  /** El sentido del orden por tipo —y dentro de cada tipo, por marca—: de la A a la Z por defecto. */
+  protected readonly sentido = signal<Sentido>('asc');
+
+  protected invertirOrden(): void {
+    this.sentido.update(invertido);
+  }
 
   /**
    * Las filas que casan con lo buscado, sin tildes ni mayusculas, y en orden alfabetico por tipo y
@@ -69,7 +87,7 @@ export class EquiposDeCatalogo {
    * combinacion aunque ninguna de las dos piezas contenga la frase entera.
    */
   protected readonly visibles = computed(() => {
-    const palabras = normalizar(this.textoDelFiltro()).split(' ').filter(Boolean);
+    const palabras = normalizar(this.busqueda()).split(' ').filter(Boolean);
 
     return this.filas()
       .filter((fila) => {
@@ -77,10 +95,22 @@ export class EquiposDeCatalogo {
 
         return palabras.every((palabra) => texto.includes(palabra));
       })
-      .sort((a, b) => a.tipo.localeCompare(b.tipo, 'es') || a.marca.localeCompare(b.marca, 'es'));
+      .sort(
+        (a, b) =>
+          compararEn(this.sentido(), a.tipo, b.tipo) ||
+          compararEn(this.sentido(), a.marca, b.marca),
+      );
   });
 
   /** Solo se ofrecen piezas activas: el backend rechaza una referencia retirada. */
+  /**
+   * Tipo y marca se escriben y se eligen de lo que casa, o se recorren enteros al abrir el campo
+   * (2026-11-20, pedido por el usuario), como en el alta de un modelo: con cientos, un desplegable
+   * obligaba a recorrerlo. En orden alfabetico.
+   */
+  protected readonly opcionesDeTipo = computed(() => alfabetico(opcionesDe(this.tiposActivos())));
+  protected readonly opcionesDeMarca = computed(() => alfabetico(opcionesDe(this.marcasActivas())));
+
   protected readonly tiposActivos = computed(() =>
     (this.tipos.data() ?? []).filter((t) => t.estadoActivo),
   );
@@ -118,6 +148,6 @@ export class EquiposDeCatalogo {
   }
 
   protected retirar(id: string): void {
-    this.baja.mutate(id);
+    this.baja.mutate(id, { onSettled: () => this.confirmandoRetiro.set(null) });
   }
 }

@@ -1,16 +1,13 @@
 <section>
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <h2 class="titulo-seccion">Modelos</h2>
-    @if (puedeEscribir() && !abierto()) {
-      <button class="boton-primario min-h-tactil" type="button" (click)="abrir()">
-        Nuevo modelo
-      </button>
-    }
-  </div>
-  <p class="text-neutral-700">
-    Un equipo del catálogo más su fabricante. <strong>Es lo único que se puede instalar</strong>: sin
-    modelos, el alta de un equipo aparece sin opciones.
-  </p>
+  <app-cabecera-de-pieza
+    titulo="Modelos"
+    descripcion="Lo que se instala en un cliente."
+    campo="filtroModelos"
+    pista="Nombre, tipo, marca, fabricante o INVIMA"
+    [boton]="puedeEscribir() && !abierto() ? 'Nuevo modelo' : null"
+    (busqueda)="busqueda.set($event)"
+    (nuevo)="abrir()"
+  />
 
   @if (hayError()) {
     <div class="mt-1 border-l-2 border-accent-700 bg-accent-100 p-2" role="alert">
@@ -22,95 +19,86 @@
     El alta se abre con «Nuevo modelo», encima de la lista. Se recorre en el orden en que se piensa:
     el tipo, la marca y el modelo. La combinacion de tipo y marca se crea sola si falta.
   -->
+  <!--
+    En dos recuadros desde el 2026-11-20, como el de los patrones y a pedido del usuario: a la
+    izquierda el titulo y de que es el modelo —tipo, marca y fabricante—; a la derecha el modelo en si,
+    con lo que falta y los botones al pie. En una pantalla estrecha el de la derecha baja debajo.
+  -->
   @if (puedeEscribir() && abierto()) {
-    <div class="mt-2 border-l-2 border-ink bg-neutral-100 p-2">
-      <h3 class="font-bold">Nuevo modelo</h3>
-      <form class="mt-1 grid gap-2 sm:grid-cols-2" [formGroup]="formulario" (ngSubmit)="agregar()">
-        <div>
-          <label class="block font-semibold" for="tipoDelModelo">
-            Tipo <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <select
-            id="tipoDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
+    <form
+      class="mt-2 grid items-start gap-3 lg:grid-cols-2"
+      [formGroup]="formulario"
+      (ngSubmit)="agregar()"
+    >
+      <section class="superficie" data-columna="clasificacion" aria-labelledby="modelo-formulario">
+        <h3 id="modelo-formulario" class="text-2xl leading-tight font-extrabold">Nuevo modelo</h3>
+        <h4 class="titulo-seccion mt-1.5">Tipo, marca y fabricante</h4>
+        <!--
+          Se escriben y se eligen de lo que casa: «we» ofrece Welch Allyn. Al abrirlos sin escribir
+          ofrecen la lista entera, para recorrerla. La marca espera al tipo, y las que ya fabrican ese
+          tipo salen primero.
+        -->
+        <div class="mt-1.5 grid gap-2">
+          <app-buscador
             formControlName="idTipo"
-            aria-required="true"
-          >
-            <option value="">Elija un tipo</option>
-            @for (tipo of tiposActivos(); track tipo.id) {
-              <option [value]="tipo.id">{{ tipo.nombre }}</option>
-            }
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold" for="marcaDelModelo">
-            Marca <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <select
-            id="marcaDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
+            campo="tipoDelModelo"
+            etiqueta="Tipo"
+            historial="tipoDeEquipo"
+            [todasAlAbrir]="true"
+            [opciones]="opcionesDeTipo()"
+          />
+          <app-buscador
             formControlName="idMarca"
-            aria-required="true"
-          >
-            <option value="">
-              {{ formulario.controls.idTipo.value ? 'Elija una marca' : 'Elija antes el tipo' }}
-            </option>
-            @if (marcasDelTipo().asociadas.length) {
-              <optgroup label="Ya asociadas a este tipo">
-                @for (marca of marcasDelTipo().asociadas; track marca.id) {
-                  <option [value]="marca.id">{{ marca.nombre }}</option>
-                }
-              </optgroup>
-            }
-            @if (marcasDelTipo().otras.length) {
-              <optgroup label="Otras marcas">
-                @for (marca of marcasDelTipo().otras; track marca.id) {
-                  <option [value]="marca.id">{{ marca.nombre }}</option>
-                }
-              </optgroup>
-            }
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold" for="fabricanteDelModelo">
-            Fabricante <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <select
-            id="fabricanteDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
+            campo="marcaDelModelo"
+            etiqueta="Marca"
+            historial="marca"
+            [todasAlAbrir]="true"
+            [opciones]="opcionesDeMarca()"
+          />
+          <app-buscador
             formControlName="idFabricante"
-            aria-required="true"
-          >
-            <option value="">Elija un fabricante</option>
-            @for (fabricante of fabricantesActivos(); track fabricante.id) {
-              <option [value]="fabricante.id">{{ fabricante.nombre }}</option>
-            }
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold" for="nombreDelModelo">
-            Nombre <span class="text-accent-700" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="nombreDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="nombre"
-            maxlength="50"
-            aria-required="true"
-            placeholder="IdeaPad 3"
+            campo="fabricanteDelModelo"
+            etiqueta="Fabricante"
+            historial="fabricante"
+            [todasAlAbrir]="true"
+            [opciones]="opcionesDeFabricante()"
           />
         </div>
-        <div>
-          <!-- Opcional, al contrario que el nombre: se tramita despues de dar de alta el modelo. -->
-          <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
-          <input
-            id="invimaDelModelo"
-            class="campo mt-1 min-h-tactil w-full"
-            formControlName="invima"
-            maxlength="50"
-          />
+      </section>
+
+      <section class="superficie" data-columna="modelo" aria-labelledby="modelo-datos">
+        <h4 id="modelo-datos" class="titulo-seccion">El modelo</h4>
+        <div class="mt-1.5 grid gap-2">
+          <div>
+            <label class="block font-semibold" for="nombreDelModelo">
+              Nombre <span class="text-accent-700" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="nombreDelModelo"
+              class="campo mt-1 min-h-tactil w-full"
+              formControlName="nombre"
+              maxlength="50"
+              aria-required="true"
+              placeholder="IdeaPad 3"
+            />
+          </div>
+          <div>
+            <!-- Opcional, al contrario que el nombre: se tramita despues de dar de alta el modelo. -->
+            <label class="block font-semibold" for="invimaDelModelo">INVIMA</label>
+            <input
+              id="invimaDelModelo"
+              class="campo mt-1 min-h-tactil w-full"
+              formControlName="invima"
+              maxlength="50"
+            />
+          </div>
         </div>
-        <div class="flex flex-wrap items-end gap-2">
+        @if (formulario.invalid && formulario.touched) {
+          <p class="mt-1 font-semibold text-accent-700">
+            Elija el tipo, la marca y el fabricante, y escriba el nombre.
+          </p>
+        }
+        <div class="mt-2 flex flex-wrap gap-2">
           <button class="boton-primario min-h-tactil" type="submit" [disabled]="creando()">
             {{ creando() ? 'Creando…' : 'Crear modelo' }}
           </button>
@@ -118,68 +106,119 @@
             Cancelar
           </button>
         </div>
-      </form>
-      @if (formulario.invalid && formulario.touched) {
-        <p class="mt-1 font-semibold text-accent-700">
-          Elija el tipo, la marca y el fabricante, y escriba el nombre.
-        </p>
-      }
-    </div>
+      </section>
+    </form>
   }
 
-  <div class="mt-2 max-w-[480px]">
-    <label class="block font-semibold" for="filtroModelos">Buscar</label>
-    <input
-      id="filtroModelos"
-      class="campo mt-1 min-h-tactil w-full"
-      type="search"
-      placeholder="Nombre, tipo, marca, fabricante o INVIMA"
-      [formControl]="filtro"
-    />
-  </div>
-
   @if (cargando()) {
-    <p class="mt-1 text-neutral-700" role="status">Cargando modelos…</p>
+    <p class="mt-2 text-neutral-700" role="status">Cargando modelos…</p>
   } @else if (!filas().length) {
-    <p class="mt-1 text-neutral-700">Todavía no hay modelos. Combine un equipo con un fabricante.</p>
+    <p class="mt-2 text-neutral-700">Todavía no hay modelos. Cree el primero con «Nuevo modelo».</p>
   } @else if (!visibles().length) {
-    <p class="mt-1 text-neutral-700">Ningún modelo coincide con «{{ filtro.value }}».</p>
+    <p class="mt-2 text-neutral-700">Ningún modelo coincide con «{{ busqueda() }}».</p>
   } @else {
-    <ul class="mt-1">
-      @for (fila of visibles(); track fila.id) {
-        <li class="flex min-h-tactil flex-wrap items-center gap-2 border-b border-neutral-200">
-          <span class="grow" [class.font-semibold]="fila.estadoActivo">
-            <!--
-              El nombre primero: es lo que identifica al modelo. Antes la fila empezaba por «tipo ·
-              marca», que es la combinacion a la que pertenece, y el modelo en si no se nombraba.
-            -->
-            {{ fila.nombre }}
-            <span class="font-normal text-neutral-700">
-              · {{ fila.equipo }}
-              · {{ fila.fabricante }}
-              @if (fila.invima) {
-                · INVIMA {{ fila.invima }}
+    <!-- En un telefono la tabla se lee como tarjetas, y el orden y el contador van encima. -->
+    <app-orden-movil
+      etiqueta="Modelo"
+      [sentido]="sentido()"
+      [cuantos]="visibles().length"
+      (invertir)="invertirOrden()"
+    />
+    <!--
+      En una ventana estrecha la tabla no cabe y se salia de la pantalla: se desplaza de lado dentro
+      de su caja, con su barra (2026-11-22, pedido por el usuario). En un telefono es tarjetas.
+    -->
+    <div
+      class="mt-2 overflow-x-auto"
+      role="region"
+      aria-label="Modelos, se desplaza de lado"
+      tabindex="0"
+    >
+      <table class="tabla tabla-tarjetas md:min-w-[48rem]">
+        <caption class="sr-only">
+          Modelos del catálogo
+        </caption>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              app-columna-ordenable
+              etiqueta="Modelo"
+              [sentido]="sentido()"
+              (invertir)="invertirOrden()"
+            ></th>
+            <th scope="col">Tipo · Marca</th>
+            <th scope="col">Fabricante</th>
+            <th scope="col">INVIMA</th>
+            @if (puedeEscribir()) {
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (fila of visibles(); track fila.id) {
+            <tr [attr.data-modelo]="fila.id">
+              <!-- El nombre primero: es lo que identifica al modelo. -->
+              <td [class.font-bold]="fila.estadoActivo">
+                {{ fila.nombre }}{{ fila.estadoActivo ? '' : ' · Retirado' }}
+              </td>
+              <td data-etiqueta="Tipo · Marca">{{ fila.equipo }}</td>
+              <td data-etiqueta="Fabricante">{{ fila.fabricante }}</td>
+              <td data-etiqueta="INVIMA" class="tabular-nums">{{ fila.invima || '—' }}</td>
+              @if (puedeEscribir()) {
+                <td data-acciones class="text-right whitespace-nowrap">
+                  @if (fila.estadoActivo) {
+                    <!-- Mientras se confirma el retiro, la fila solo enseña la pregunta. -->
+                    @if (confirmandoRetiro() !== fila.id) {
+                      <a
+                        class="inline-flex min-h-tactil items-center px-1 font-bold underline"
+                        [routerLink]="['/catalogo', 'modelos', fila.id, 'ficha']"
+                        [attr.aria-label]="'Ficha técnica de ' + fila.nombre"
+                      >
+                        Ficha técnica
+                      </a>
+                    }
+                    <!-- Retirar pregunta antes: ninguna pantalla devuelve un modelo retirado. -->
+                    @if (confirmandoRetiro() === fila.id) {
+                      <span
+                        class="font-semibold md:mr-2"
+                        role="alert"
+                        [attr.data-confirmar]="fila.id"
+                        >¿Seguro que quiere retirar?</span
+                      >
+                      <button
+                        data-confirmar-retiro
+                        class="boton-primario min-h-tactil"
+                        type="button"
+                        [disabled]="baja.isPending()"
+                        (click)="retirar(fila.id)"
+                      >
+                        Retirar
+                      </button>
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        (click)="confirmandoRetiro.set(null)"
+                      >
+                        Cancelar
+                      </button>
+                    } @else {
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        [attr.aria-label]="'Retirar ' + fila.nombre"
+                        (click)="confirmandoRetiro.set(fila.id)"
+                      >
+                        Retirar
+                      </button>
+                    }
+                  }
+                </td>
               }
-            </span>
-          </span>
-          @if (puedeEscribir() && fila.estadoActivo) {
-            <a
-              class="flex min-h-tactil items-center px-1 font-semibold underline"
-              [routerLink]="['/catalogo', 'modelos', fila.id, 'ficha']"
-            >
-              Ficha técnica
-            </a>
-            <button
-              class="min-h-tactil px-1 font-semibold underline"
-              type="button"
-              [disabled]="baja.isPending()"
-              (click)="retirar(fila.id)"
-            >
-              Retirar
-            </button>
+            </tr>
           }
-        </li>
-      }
-    </ul>
+        </tbody>
+      </table>
+    </div>
   }
 </section>

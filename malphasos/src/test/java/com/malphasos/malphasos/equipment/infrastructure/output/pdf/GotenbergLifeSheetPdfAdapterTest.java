@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.malphasos.malphasos.equipment.application.ports.output.LifeSheetPdfUnavailableException;
 import com.malphasos.malphasos.equipment.application.services.lifeSheet.UnaHojaDeVida;
+import com.malphasos.malphasos.shared.infrastructure.output.pdf.ClosingAtBottom;
 import com.malphasos.malphasos.shared.infrastructure.output.pdf.GotenbergPdfConverter;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
@@ -12,6 +13,8 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.testcontainers.containers.GenericContainer;
@@ -83,6 +86,21 @@ class GotenbergLifeSheetPdfAdapterTest {
         assertThat(paginas(pdf)).isGreaterThan(3);
     }
 
+    @ParameterizedTest(name = "con {0} servicios")
+    @ValueSource(ints = {0, 2, 8, 12, 20, 25, 30, 35, 40})
+    @DisplayName("la empresa y las firmas van al pie de la última página, quepan con el historial o vayan solas (2026-11-21)")
+    void cierreAlPie(int servicios) {
+        // Con 40 el cierre no cabe tras el historial y va solo a la quinta: antes quedaba arriba de ella.
+        // La línea objetivo es la del pie de una hoja que cabe en una página. Con varias puede quedar algo
+        // más abajo sin que nadie lo baje —es donde corta Chromium—, pero nunca sobre el pie numerado.
+        byte[] pdf = adaptador.render(new UnaHojaDeVida().conPasos(9).conServicios(servicios).impresa());
+
+        ClosingAtBottom.Posicion cierre = ClosingAtBottom.posicion(pdf, LifeSheetHtmlRenderer.CIERRE).orElseThrow();
+        assertThat(cierre.pagina()).isEqualTo(paginas(pdf));
+        assertThat(cierre.base()).isBetween(
+                LifeSheetHtmlRenderer.CIERRE.baseObjetivo() - 2, LifeSheetHtmlRenderer.CIERRE.limite());
+    }
+
     @Test
     @DisplayName("si el conversor no responde, lo dice con la excepción de la hoja de vida")
     void sinConversor() {
@@ -102,7 +120,11 @@ class GotenbergLifeSheetPdfAdapterTest {
         new GotenbergLifeSheetPdfAdapter(renderer, conversor).render(new UnaHojaDeVida().impresa());
 
         ArgumentCaptor<String> pie = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(conversor).convert(Mockito.anyString(), pie.capture(), Mockito.eq(LifeSheetHtmlRenderer.MARGEN_DEL_PIE));
+        Mockito.verify(conversor).convertWithClosingAtBottom(
+                Mockito.any(),
+                pie.capture(),
+                Mockito.eq(LifeSheetHtmlRenderer.MARGEN_DEL_PIE),
+                Mockito.eq(LifeSheetHtmlRenderer.CIERRE));
         assertThat(pie.getValue()).contains("pageNumber", "totalPages", "FT-HV-01");
     }
 }

@@ -259,6 +259,46 @@ public class PersonService implements PersonServicePort {
     }
 
     /**
+     * Vuelve a activar a una persona retirada (2026-11-22, pedido por el usuario): la ficha y, si tiene
+     * cuenta, su acceso, con la contraseña que tenía.
+     *
+     * <p><b>El orden es el contrario al de {@link #delete}, por la misma razón</b>: que un fallo a
+     * mitad de camino deje el sistema cerrado. Primero se guarda la ficha y después se habilita la
+     * cuenta; si Keycloak falla, la excepción deshace la transacción y la persona sigue retirada y sin
+     * acceso. Con el orden inverso, un fallo al guardar dejaría una cuenta habilitada para una persona
+     * retirada, que es justo lo que la baja impide.
+     *
+     * <p>Como la baja, es idempotente y no mira si ya estaba activa: repetirla repara una cuenta que
+     * alguien deshabilitó a mano en la consola. Que la persona no tenga cuenta no es un error: se
+     * reactiva solo la ficha.
+     */
+    @Override
+    @Transactional
+    public Person reactivate(UUID id) {
+        Person person = personPersistencePort.findById(id)
+                .orElseThrow(() -> new PersonNotFoundException(id));
+
+        person.setEstadoActivo(true);
+        Person saved = personPersistencePort.save(person);
+        restoreAccess(person);
+
+        return saved;
+    }
+
+    /** Devuelve el acceso de la persona al sistema, si tiene cuenta. */
+    private void restoreAccess(Person person) {
+        try {
+            personIdentityPort.enableUser(person.getIdentificador().toString());
+
+        } catch (KeycloakUserNotFoundException sinCuenta) {
+            log.info(
+                    "La persona {} no tiene usuario en el proveedor de identidad; se reactiva solo "
+                            + "en la base de datos.",
+                    person.getIdentificador());
+        }
+    }
+
+    /**
      * Retira el acceso de la persona al sistema, si es que lo tenía.
      *
      * <p>Que no exista el usuario no impide la baja: quien se registró con {@link #save} nunca tuvo

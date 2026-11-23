@@ -24,7 +24,11 @@
       La orden está ejecutada o anulada: sus patrones ya no cambian.
     </p>
   }
-  @if (!bloques().length) {
+  @if (sinVerificables()) {
+    <p class="mt-2 text-neutral-700" data-sin-verificables>
+      Ningún equipo de la orden tiene verificación metrológica: no hay patrones que elegir.
+    </p>
+  } @else if (!bloques().length) {
     <p class="mt-2 text-neutral-700">
       La orden no tiene equipos todavía: los patrones se eligen para los tipos que lleva.
     </p>

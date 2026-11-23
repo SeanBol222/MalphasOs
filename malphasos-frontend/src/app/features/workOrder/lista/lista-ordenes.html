@@ -53,24 +53,34 @@
         [formControl]="buscador"
       />
     </label>
-    <div class="flex flex-wrap border border-ink" role="group" aria-label="Estado">
-      @for (opcion of filtros(); track opcion.clave; let primero = $first) {
-        <button
-          type="button"
-          class="min-h-tactil px-1.5 text-sm"
-          [class.border-l]="!primero"
-          [class.border-ink]="!primero"
-          [class]="filtro() === opcion.clave ? 'bg-ink font-bold text-white' : 'bg-white'"
-          [attr.aria-pressed]="filtro() === opcion.clave"
-          (click)="filtro.set(opcion.clave)"
-        >
-          {{ opcion.etiqueta }} · {{ cuantas()[opcion.clave] }}
-        </button>
-      }
+    <!--
+      Los estados en una sola fila: en una ventana estrecha se desplaza de lado en vez de partirse en
+      dos renglones desiguales (2026-11-21, pedido por el usuario).
+    -->
+    <div class="max-w-full">
+      <div class="flex overflow-x-auto border border-ink" role="group" aria-label="Estado">
+        @for (opcion of filtros(); track opcion.clave; let primero = $first) {
+          <button
+            type="button"
+            class="min-h-tactil flex-none px-1.5 text-sm whitespace-nowrap"
+            [class.border-l]="!primero"
+            [class.border-ink]="!primero"
+            [class]="filtro() === opcion.clave ? 'bg-ink font-bold text-white' : 'bg-white'"
+            [attr.aria-pressed]="filtro() === opcion.clave"
+            (click)="filtro.set(opcion.clave)"
+          >
+            {{ opcion.etiqueta }} · {{ cuantas()[opcion.clave] }}
+          </button>
+        }
+      </div>
     </div>
-    <label class="flex items-center gap-1 text-sm">
+    <!--
+      El desplegable mide lo que su opción más larga si nadie lo frena, y un cliente de cuarenta letras
+      lo sacaba de la caja: ocupa lo que haya y no más.
+    -->
+    <label class="flex max-w-[22rem] min-w-0 flex-[1_1_14rem] items-center gap-1 text-sm">
       <span class="text-neutral-700">Cliente</span>
-      <select id="filtroCliente" class="campo min-h-tactil" [formControl]="cliente">
+      <select id="filtroCliente" class="campo min-h-tactil w-full min-w-0" [formControl]="cliente">
         <option value="">Todos</option>
         @for (opcion of opcionesDeCliente(); track opcion.id) {
           <option [value]="opcion.id">{{ opcion.nombre }}</option>
@@ -78,9 +88,13 @@
       </select>
     </label>
     @if (veIngenieros()) {
-      <label class="flex items-center gap-1 text-sm">
+      <label class="flex max-w-[22rem] min-w-0 flex-[1_1_14rem] items-center gap-1 text-sm">
         <span class="text-neutral-700">Ingeniero</span>
-        <select id="filtroIngeniero" class="campo min-h-tactil" [formControl]="ingeniero">
+        <select
+          id="filtroIngeniero"
+          class="campo min-h-tactil w-full min-w-0"
+          [formControl]="ingeniero"
+        >
           <option value="">Todos</option>
           <option [value]="SIN_ASIGNAR">Sin asignar</option>
           @for (opcion of opcionesDeIngeniero(); track opcion.id) {
@@ -94,92 +108,105 @@
   @if (!filas().length) {
     <p class="superficie mt-3 text-neutral-800">No hay órdenes que coincidan con estos filtros.</p>
   } @else {
-    <table class="tabla mt-3">
-      <caption class="sr-only">
-        Órdenes de trabajo
-      </caption>
-      <thead>
-        <tr>
-          <!--
+    <!--
+      En una ventana estrecha la tabla se desplaza de lado con su barra, dentro de su caja. Con el
+      teclado se llega enfocándola, por eso es una región con nombre.
+    -->
+    <div class="mt-3">
+      <div
+        class="overflow-x-auto"
+        role="region"
+        aria-label="Órdenes de trabajo, se desplaza de lado"
+        tabindex="0"
+      >
+        <table class="tabla min-w-[52rem]">
+          <caption class="sr-only">
+            Órdenes de trabajo
+          </caption>
+          <thead>
+            <tr>
+              <!--
             Cada cabecera ordena por su columna, y la segunda vez invierte el sentido (2026-10-27). La
             flecha lo dibuja y aria-sort lo dice a un lector de pantalla.
           -->
-          @for (cabecera of cabeceras(); track cabecera.columna) {
-            <th scope="col" [attr.aria-sort]="ariaSort(cabecera.columna)">
-              <button
-                class="inline-flex min-h-tactil items-center gap-0.5 font-[inherit] underline-offset-2 hover:underline"
-                type="button"
-                [attr.data-ordenar]="cabecera.columna"
-                (click)="ordenarPor(cabecera.columna)"
-              >
-                {{ cabecera.etiqueta }}
-                <span
-                  class="inline-block w-[1em] text-center"
-                  [class.text-neutral-500]="orden().columna !== cabecera.columna"
-                  aria-hidden="true"
-                  >{{
-                    orden().columna !== cabecera.columna
-                      ? '↕'
-                      : orden().sentido === 'asc'
-                        ? '▲'
-                        : '▼'
-                  }}</span
-                >
-              </button>
-            </th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (fila of filas(); track fila.id) {
-          <tr [attr.data-orden]="fila.id">
-            <td class="whitespace-nowrap">
-              <a
-                class="block font-bold tabular-nums underline"
-                [routerLink]="['/ordenes', fila.id]"
-                >{{ fila.fecha }}</a
-              >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.dia }}</span>
-            </td>
-            <td>
-              <span class="block font-bold">{{ fila.cliente }}</span
-              >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.sede }}</span>
-            </td>
-            <td>
-              <span class="block">{{ fila.servicio }}</span
-              >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.cada }}</span>
-            </td>
-            @if (veIngenieros()) {
-              <!-- Sin ingeniero la orden no tiene quien la haga: es un aviso, y pesa. -->
-              <td [class.font-bold]="fila.sinIngeniero" data-ingeniero>{{ fila.ingeniero }}</td>
+              @for (cabecera of cabeceras(); track cabecera.columna) {
+                <th scope="col" [attr.aria-sort]="ariaSort(cabecera.columna)">
+                  <button
+                    class="inline-flex min-h-tactil items-center gap-0.5 font-[inherit] underline-offset-2 hover:underline"
+                    type="button"
+                    [attr.data-ordenar]="cabecera.columna"
+                    (click)="ordenarPor(cabecera.columna)"
+                  >
+                    {{ cabecera.etiqueta }}
+                    <span
+                      class="inline-block w-[1em] text-center"
+                      [class.text-neutral-500]="orden().columna !== cabecera.columna"
+                      aria-hidden="true"
+                      >{{
+                        orden().columna !== cabecera.columna
+                          ? '↕'
+                          : orden().sentido === 'asc'
+                            ? '▲'
+                            : '▼'
+                      }}</span
+                    >
+                  </button>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of filas(); track fila.id) {
+              <tr [attr.data-orden]="fila.id">
+                <td class="whitespace-nowrap">
+                  <a
+                    class="block font-bold tabular-nums underline"
+                    [routerLink]="['/ordenes', fila.id]"
+                    >{{ fila.fecha }}</a
+                  >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.dia }}</span>
+                </td>
+                <td>
+                  <span class="block font-bold">{{ fila.cliente }}</span
+                  >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.sede }}</span>
+                </td>
+                <td>
+                  <span class="block">{{ fila.servicio }}</span
+                  >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.cada }}</span>
+                </td>
+                @if (veIngenieros()) {
+                  <!-- Sin ingeniero la orden no tiene quien la haga: es un aviso, y pesa. -->
+                  <td [class.font-bold]="fila.sinIngeniero" data-ingeniero>{{ fila.ingeniero }}</td>
+                }
+                <td class="min-w-[11rem]" data-reportes>
+                  <span class="block tabular-nums" [class.font-bold]="fila.sinEquipos">{{
+                    fila.reportes
+                  }}</span>
+                  @if (fila.conBarra) {
+                    <span
+                      class="mt-0.5 block h-[0.375rem] w-[8.75rem] bg-neutral-200"
+                      aria-hidden="true"
+                      ><span class="block h-full bg-ink" [style.width.%]="fila.avance"></span
+                    ></span>
+                  }
+                </td>
+                <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
+                <td [class]="fila.peso" data-estado>
+                  {{ fila.estado }}
+                  @if (fila.aprobacion) {
+                    <!-- V54: lo que falta por aprobar pesa más, como lo que falta por hacer. -->
+                    <span
+                      class="block text-sm"
+                      [class.font-bold]="fila.aprobacion === 'Por aprobar'"
+                      data-aprobacion
+                      >{{ fila.aprobacion }}</span
+                    >
+                  }
+                </td>
+              </tr>
             }
-            <td class="min-w-[11rem]" data-reportes>
-              <span class="block tabular-nums" [class.font-bold]="fila.sinEquipos">{{
-                fila.reportes
-              }}</span>
-              @if (fila.conBarra) {
-                <span
-                  class="mt-0.5 block h-[0.375rem] w-[8.75rem] bg-neutral-200"
-                  aria-hidden="true"
-                  ><span class="block h-full bg-ink" [style.width.%]="fila.avance"></span
-                ></span>
-              }
-            </td>
-            <!-- El manual: el estado por peso tipografico, nunca por un color nuevo. -->
-            <td [class]="fila.peso" data-estado>
-              {{ fila.estado }}
-              @if (fila.aprobacion) {
-                <!-- V54: lo que falta por aprobar pesa más, como lo que falta por hacer. -->
-                <span
-                  class="block text-sm"
-                  [class.font-bold]="fila.aprobacion === 'Por aprobar'"
-                  data-aprobacion
-                  >{{ fila.aprobacion }}</span
-                >
-              }
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
+          </tbody>
+        </table>
+      </div>
+    </div>
   }
 }

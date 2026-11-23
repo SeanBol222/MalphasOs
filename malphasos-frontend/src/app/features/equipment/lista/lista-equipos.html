@@ -118,70 +118,84 @@
   }
 } @else {
   <div class="mt-3" [class.opacity-60]="resumen.isPlaceholderData()">
-    <table class="tabla">
-      <caption class="sr-only">
-        Equipos instalados
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">Hoja de vida</th>
-          <th scope="col">Equipo</th>
-          <th scope="col">Serie</th>
-          <th scope="col">Ubicación</th>
-          <th scope="col">Último servicio</th>
-          <th scope="col">Resultado</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (fila of filas(); track fila.id) {
-          <tr [attr.data-equipo]="fila.id">
-            <td class="whitespace-nowrap font-bold tabular-nums">
-              <a class="underline" [routerLink]="['/equipos', fila.id, 'hoja-de-vida']">
-                {{ fila.numeroHojaVida }}
-              </a>
-            </td>
-            <td>
-              <!-- &ngsp; es un espacio que Angular no quita: sin el, se leeria «BalanzaKern». -->
-              <span class="block font-bold">{{ fila.tipo }}</span
-              >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.modelo }}</span>
-            </td>
-            <td class="tabular-nums">{{ fila.serie }}</td>
-            <td>
-              <span class="block">{{ fila.cliente }}</span>
-              <!-- El area enlaza a su ficha: ahi se da de baja un equipo o se registra otro. -->
-              <a
-                class="block text-sm text-neutral-700 underline"
-                [routerLink]="['/areas', fila.idArea]"
-              >
-                {{ fila.lugar }}
-              </a>
-            </td>
-            <td class="whitespace-nowrap tabular-nums">
-              <!--
+    <!--
+      En una ventana estrecha con la barra lateral, la tabla no cabe y se sale de la pantalla: la
+      pantalla todavía es de escritorio y la regla del teléfono no se aplica. Se desplaza de lado
+      dentro de su caja, como en el teléfono (2026-11-21, pedido por el usuario).
+    -->
+    <div>
+      <div
+        class="overflow-x-auto"
+        role="region"
+        aria-label="Equipos instalados, se desplaza de lado"
+        tabindex="0"
+      >
+        <table class="tabla min-w-[56rem]">
+          <caption class="sr-only">
+            Equipos instalados
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Hoja de vida</th>
+              <th scope="col">Equipo</th>
+              <th scope="col">Serie</th>
+              <th scope="col">Ubicación</th>
+              <th scope="col">Último servicio</th>
+              <th scope="col">Resultado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of filas(); track fila.id) {
+              <tr [attr.data-equipo]="fila.id">
+                <td class="whitespace-nowrap font-bold tabular-nums">
+                  <a class="underline" [routerLink]="['/equipos', fila.id, 'hoja-de-vida']">
+                    {{ fila.numeroHojaVida }}
+                  </a>
+                </td>
+                <td>
+                  <!-- &ngsp; es un espacio que Angular no quita: sin el, se leeria «BalanzaKern». -->
+                  <span class="block font-bold">{{ fila.tipo }}</span
+                  >&ngsp;<span class="block text-sm text-neutral-700">{{ fila.modelo }}</span>
+                </td>
+                <td class="tabular-nums">{{ fila.serie }}</td>
+                <td>
+                  <span class="block">{{ fila.cliente }}</span>
+                  <!-- El area enlaza a su ficha: ahi se da de baja un equipo o se registra otro. -->
+                  <a
+                    class="block text-sm text-neutral-700 underline"
+                    [routerLink]="['/areas', fila.idArea]"
+                  >
+                    {{ fila.lugar }}
+                  </a>
+                </td>
+                <td class="whitespace-nowrap tabular-nums">
+                  <!--
                 El historial de reportes —borradores y retirados incluidos— se entra desde la fecha:
                 es lo que hay detras del ultimo servicio.
               -->
-              <a class="underline" [routerLink]="['/equipos', fila.id, 'historial']">
-                {{ fila.ultimoServicio }}
-              </a>
-            </td>
-            <td>
-              <span class="inline-flex items-center gap-1" [class]="fila.peso">
-                <span
-                  class="size-1 shrink-0 border border-ink"
-                  [class]="fila.cuadro"
-                  aria-hidden="true"
-                ></span>
-                {{ fila.resultado }}
-              </span>
-              @if (fila.deBaja) {
-                <span class="block text-sm text-neutral-700">Dado de baja</span>
-              }
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
+                  <a class="underline" [routerLink]="['/equipos', fila.id, 'historial']">
+                    {{ fila.ultimoServicio }}
+                  </a>
+                </td>
+                <td>
+                  <span class="inline-flex items-center gap-1" [class]="fila.peso">
+                    <span
+                      class="size-1 shrink-0 border border-ink"
+                      [class]="fila.cuadro"
+                      aria-hidden="true"
+                    ></span>
+                    {{ fila.resultado }}
+                  </span>
+                  @if (fila.deBaja) {
+                    <span class="block text-sm text-neutral-700">Dado de baja</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <nav
       class="flex flex-wrap items-center gap-2 border border-t-0 border-neutral-300 bg-white px-2 py-1.5 text-sm"

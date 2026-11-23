@@ -4,6 +4,7 @@ import { CatalogoApi } from '../../equipment/catalogo-api';
 import { OrdenApi } from '../orden-api';
 import { traducirError } from '../../../core/errores/traducir';
 import { PatronesDeUnTipo } from './patrones-de-un-tipo';
+import { pidePatrones } from './se-verifica';
 
 /**
  * Los patrones que la orden lleva a su visita, por tipo de equipo (V60, 2026-11-19).
@@ -49,16 +50,22 @@ export class PatronesDeLaOrden {
     () => this.orden.data()?.estadoEjecucion !== 'EJECUTADA' && !!this.orden.data()?.estadoActivo,
   );
 
-  /** Un bloque por tipo de la orden, por nombre. */
+  /** Un bloque por tipo de la orden que pide patrones, por nombre: los que no se verifican, no. */
   protected readonly bloques = computed(() => {
-    const nombres = new Map((this.tipos.data() ?? []).map((t) => [t.id, t.nombre ?? '']));
+    const tipos = new Map((this.tipos.data() ?? []).map((t) => [t.id, t]));
 
     return (this.porTipo.data() ?? [])
+      .filter((tipo) => pidePatrones(tipos.get(tipo.idTipoEquipo), tipo.patrones))
       .map((tipo) => ({
         idTipo: tipo.idTipoEquipo!,
-        nombre: nombres.get(tipo.idTipoEquipo) ?? 'Tipo de equipo',
+        nombre: tipos.get(tipo.idTipoEquipo)?.nombre ?? 'Tipo de equipo',
         guardados: tipo.patrones ?? [],
       }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   });
+
+  /** Tiene equipos, pero ninguno de un tipo que se verifique. */
+  protected readonly sinVerificables = computed(
+    () => !!this.porTipo.data()?.length && !this.bloques().length,
+  );
 }

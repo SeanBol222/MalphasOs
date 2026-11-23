@@ -99,6 +99,11 @@ public class PersonIdentityAdapter implements PersonIdentityPort {
     }
 
     @Override
+    public void enableUser(String userId) {
+        modifyUser(userId, "habilitar el usuario " + userId, user -> user.setEnabled(true));
+    }
+
+    @Override
     public void updateUserProfile(String userId, PersonIdentityProfile profile) {
         modifyUser(userId, "actualizar el usuario " + userId, user -> {
             user.setFirstName(profile.firstName());

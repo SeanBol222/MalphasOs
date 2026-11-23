@@ -295,6 +295,7 @@ class SecurityIntegrationTest {
         void elAdministradorTocaAlRepresentante() throws Exception {
             // El doble devuelve un SUPERVISOR, de modo que basta person.write.
             autorizado(delete("/v1/api/persons/" + ID).with(comoElGrupo("admins")));
+            autorizado(patch("/v1/api/persons/" + ID + "/reactivation").with(comoElGrupo("admins")));
         }
 
         @Test
@@ -305,6 +306,7 @@ class SecurityIntegrationTest {
             when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.ENGINEER));
 
             prohibido(delete("/v1/api/persons/" + ID).with(comoElGrupo("admins")));
+            prohibido(patch("/v1/api/persons/" + ID + "/reactivation").with(comoElGrupo("admins")));
             prohibido(put("/v1/api/persons/" + ID)
                     .with(comoElGrupo("admins"))
                     .contentType(MediaType.APPLICATION_JSON)
@@ -421,6 +423,8 @@ class SecurityIntegrationTest {
             when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.ENGINEER));
 
             autorizado(delete("/v1/api/persons/" + ID).with(conRoles(ApiAuthority.SUPER_ADMIN_FULL)));
+            autorizado(patch("/v1/api/persons/" + ID + "/reactivation")
+                    .with(conRoles(ApiAuthority.SUPER_ADMIN_FULL)));
         }
     }
 
@@ -513,6 +517,7 @@ class SecurityIntegrationTest {
             "DELETE, /v1/api/countries/" + ID,
             "DELETE, /v1/api/cities/" + ID,
             "DELETE, /v1/api/persons/" + ID,
+            "PATCH, /v1/api/persons/" + ID + "/reactivation",
             "DELETE, /v1/api/persons/" + ID + "/emails/" + ID,
             "DELETE, /v1/api/persons/" + ID + "/phones/" + ID,
             "DELETE, /v1/api/clients/" + ID,

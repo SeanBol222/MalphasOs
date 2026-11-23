@@ -93,54 +93,65 @@
     búsqueda.
   </p>
 } @else {
-  <table class="tabla mt-3">
-    <caption class="sr-only">
-      Clientes registrados
-    </caption>
-    <thead>
-      <tr>
-        <th scope="col">Cliente</th>
-        <th scope="col">Documento</th>
-        @if (veCiudades()) {
-          <th scope="col">Ciudades</th>
-        }
-        <th scope="col" class="text-right">Sedes</th>
-        @if (veEquipos()) {
-          <th scope="col" class="text-right">Equipos</th>
-          <th scope="col">Último servicio</th>
-        }
-      </tr>
-    </thead>
-    <tbody>
-      @for (cliente of filas(); track cliente.id) {
-        <tr [attr.data-cliente]="cliente.id">
-          <td>
-            <span class="flex items-center gap-1.5">
-              <!-- La sigla en su caja: es la que encabeza los números de hoja de vida del cliente. -->
-              <span
-                class="inline-flex h-[28px] min-w-[44px] shrink-0 items-center justify-center border border-ink px-0.5 text-xs font-extrabold tracking-[0.06em]"
-                aria-hidden="true"
-                >{{ cliente.sigla }}</span
-              >&ngsp;<a class="font-bold underline" [routerLink]="['/clientes', cliente.id]">
-                {{ cliente.razonSocial }}
-              </a>
-            </span>
-          </td>
-          <td class="tabular-nums">
-            <!-- &ngsp;: Angular quita el blanco entre dos elementos y se leeria «900123456NIT». -->
-            <span class="block">{{ cliente.documento }}</span
-            >&ngsp;<span class="block text-sm text-neutral-700">{{ cliente.tipoDocumento }}</span>
-          </td>
+  <!--
+    En una ventana estrecha la tabla no cabe y se salia de la pantalla: se desplaza de lado dentro de
+    su caja, con su barra (2026-11-22, pedido por el usuario).
+  -->
+  <div
+    class="mt-3 overflow-x-auto"
+    role="region"
+    aria-label="Clientes registrados, se desplaza de lado"
+    tabindex="0"
+  >
+    <table class="tabla min-w-[56rem]">
+      <caption class="sr-only">
+        Clientes registrados
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Cliente</th>
+          <th scope="col">Documento</th>
           @if (veCiudades()) {
-            <td>{{ cliente.ciudades }}</td>
+            <th scope="col">Ciudades</th>
           }
-          <td class="text-right tabular-nums">{{ cliente.sedes }}</td>
+          <th scope="col" class="text-right">Sedes</th>
           @if (veEquipos()) {
-            <td class="text-right font-bold tabular-nums">{{ cliente.equipos }}</td>
-            <td class="tabular-nums text-neutral-800">{{ cliente.ultimoServicio }}</td>
+            <th scope="col" class="text-right">Equipos</th>
+            <th scope="col">Último servicio</th>
           }
         </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @for (cliente of filas(); track cliente.id) {
+          <tr [attr.data-cliente]="cliente.id">
+            <td>
+              <span class="flex items-center gap-1.5">
+                <!-- La sigla en su caja: es la que encabeza los números de hoja de vida del cliente. -->
+                <span
+                  class="inline-flex h-[28px] min-w-[44px] shrink-0 items-center justify-center border border-ink px-0.5 text-xs font-extrabold tracking-[0.06em]"
+                  aria-hidden="true"
+                  >{{ cliente.sigla }}</span
+                >&ngsp;<a class="font-bold underline" [routerLink]="['/clientes', cliente.id]">
+                  {{ cliente.razonSocial }}
+                </a>
+              </span>
+            </td>
+            <td class="tabular-nums">
+              <!-- &ngsp;: Angular quita el blanco entre dos elementos y se leeria «900123456NIT». -->
+              <span class="block">{{ cliente.documento }}</span
+              >&ngsp;<span class="block text-sm text-neutral-700">{{ cliente.tipoDocumento }}</span>
+            </td>
+            @if (veCiudades()) {
+              <td>{{ cliente.ciudades }}</td>
+            }
+            <td class="text-right tabular-nums">{{ cliente.sedes }}</td>
+            @if (veEquipos()) {
+              <td class="text-right font-bold tabular-nums">{{ cliente.equipos }}</td>
+              <td class="tabular-nums text-neutral-800">{{ cliente.ultimoServicio }}</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }

@@ -14,6 +14,7 @@ import { Sesion } from '../auth/sesion';
 import { ETIQUETA_DE_TIPO_DE_PERSONA } from '../api/tipos';
 import { PersonaApi } from '../../features/person/persona-api';
 import { VentanaDeUsuario } from '../../features/person/ventana/ventana-de-usuario';
+import { CampanaDeAvisos } from '../../features/home/avisos/campana-de-avisos';
 
 /**
  * Los trazos del icono de cada destino de primer nivel, en una reticula de 24.
@@ -31,6 +32,9 @@ const ICONOS: Readonly<Record<string, readonly string[]>> = {
     'M2 21c0-4 3-6 7-6s7 2 7 6M17 4a4 4 0 0 1 0 8M22 21c0-3-2-5-4-6',
   ],
   catalogo: ['M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'],
+  // Un maletin: la empresa que presta el servicio (2026-11-20). Hasta entonces era el unico destino
+  // sin dibujo.
+  empresa: ['M3 7h18v13H3z', 'M8 7V4h8v3', 'M3 12h18M11 12v2h2v-2'],
   // Una flecha que entra en una bandeja: los datos llegan de fuera (2026-11-08).
   importar: ['M12 3v12M7 10l5 5 5-5', 'M4 17v4h16v-4'],
 };
@@ -77,7 +81,14 @@ const ICONOS: Readonly<Record<string, readonly string[]>> = {
  */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, VentanaDeUsuario],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    NgTemplateOutlet,
+    VentanaDeUsuario,
+    CampanaDeAvisos,
+  ],
   templateUrl: './shell.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

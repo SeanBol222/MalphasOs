@@ -1,0 +1,66 @@
+<!--
+  En escritorio, una fila: el titulo, el cuadro de busqueda si esta abierto, la lupa y el boton. En un
+  telefono (2026-11-20) la lupa y el boton se quedan a la derecha del titulo, y el cuadro baja a una linea
+  propia a todo el ancho: a su lado no cabia y empujaba la pagina de lado.
+-->
+<div class="flex flex-wrap items-start gap-x-2 gap-y-1.5 md:items-center md:justify-between">
+  <!-- El titulo cede espacio antes que los botones: la descripcion se parte y el cuadro no baja. -->
+  <div class="min-w-0 flex-[1_1_0%] md:flex-[1_1_15rem]">
+    <h2 class="titulo-seccion">{{ titulo() }}</h2>
+    <p class="text-neutral-700">{{ descripcion() }}</p>
+  </div>
+
+  @if (abierto()) {
+    <div class="order-last w-full md:order-none md:w-[18rem] md:flex-none">
+      <label class="sr-only" [for]="campo()">Buscar</label>
+      <input
+        #cuadro
+        class="campo min-h-tactil w-full"
+        type="search"
+        [id]="campo()"
+        [placeholder]="pista()"
+        (input)="escribir($event)"
+      />
+    </div>
+  }
+
+  <div class="flex flex-none items-center gap-1">
+    <button
+      class="flex size-tactil flex-none items-center justify-center border border-ink"
+      [class.bg-ink]="abierto()"
+      [class.text-paper]="abierto()"
+      [class.bg-white]="!abierto()"
+      type="button"
+      data-lupa
+      [attr.aria-label]="abierto() ? 'Cerrar la búsqueda' : 'Buscar'"
+      [attr.aria-expanded]="abierto()"
+      [attr.aria-controls]="abierto() ? campo() : null"
+      (click)="alternar()"
+    >
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3.25"
+        stroke-linecap="square"
+        aria-hidden="true"
+      >
+        <circle cx="10.5" cy="10.5" r="6.5" />
+        <path d="M15.5 15.5L21 21" />
+      </svg>
+    </button>
+    @if (boton()) {
+      @if (enlace()) {
+        <a class="boton-primario flex min-h-tactil items-center" [routerLink]="enlace()">
+          {{ boton() }}
+        </a>
+      } @else {
+        <button class="boton-primario min-h-tactil" type="button" (click)="nuevo.emit()">
+          {{ boton() }}
+        </button>
+      }
+    }
+  </div>
+</div>

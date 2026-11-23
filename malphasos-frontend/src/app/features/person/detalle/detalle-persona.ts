@@ -61,6 +61,7 @@ export class DetallePersona {
 
   protected readonly edicion = this.api.editar();
   protected readonly baja = this.api.retirar();
+  protected readonly reactivacion = this.api.reactivar();
 
   protected readonly editando = signal(false);
   protected readonly confirmandoBaja = signal(false);
@@ -179,6 +180,7 @@ export class DetallePersona {
       this.persona.isError() ||
       this.edicion.isError() ||
       this.baja.isError() ||
+      this.reactivacion.isError() ||
       this.altaDeCorreo.isError() ||
       this.bajaDeCorreo.isError() ||
       this.correoDeCuenta.isError() ||
@@ -192,6 +194,7 @@ export class DetallePersona {
       this.persona.error() ??
         this.edicion.error() ??
         this.baja.error() ??
+        this.reactivacion.error() ??
         this.altaDeCorreo.error() ??
         this.bajaDeCorreo.error() ??
         this.correoDeCuenta.error() ??
@@ -365,6 +368,11 @@ export class DetallePersona {
   private cerrarContacto(): void {
     this.contactoNuevo.reset();
     this.anadiendo.set(null);
+  }
+
+  /** Se queda en la ficha: la consulta se recarga y aparecen otra vez los botones de editar. */
+  protected reactivar(): void {
+    this.reactivacion.mutate(this.id());
   }
 
   protected retirar(): void {

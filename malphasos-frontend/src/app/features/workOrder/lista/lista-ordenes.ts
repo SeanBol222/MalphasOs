@@ -17,6 +17,7 @@ import {
 import { desdeIso, fechaCorta } from '../../../core/fechas';
 import { normalizar } from '../../../core/texto';
 import { traducirError } from '../../../core/errores/traducir';
+import { esperaAprobacion } from '../aprobacion';
 
 /** Lo que dice cada botón del filtro de estado. */
 type Filtro = 'POR_HACER' | 'TODAS' | 'EJECUTADAS' | 'POR_APROBAR' | 'ANULADAS';
@@ -116,12 +117,23 @@ export class ListaOrdenes {
   /**
    * Quien aprueba ve cuáles faltan por aprobar (V54, 2026-11-02): el filtro y, en la columna de estado,
    * si una ejecutada está aprobada. Las que faltan las da el servidor en una consulta, ya acotadas a lo
-   * que la sesión ve; una ejecutada que no está en esa lista está aprobada.
+   * que la sesión ve; una ejecutada que no está en esa lista está aprobada. Las del historial, ejecutadas
+   * antes de que existiera la aprobación, ni se cuentan por aprobar ni se dicen aprobadas: no lo están, y
+   * nadie va a aprobarlas (2026-11-22, decidido por el usuario; ver {@link esperaAprobacion}).
    */
   protected readonly aprueba = computed(() => this.sesion.puede('work-order.approve'));
   private readonly pendientes = inject(OrdenApi).porAprobar(this.aprueba);
   private readonly porAprobar = computed(
-    () => new Set((this.pendientes.data() ?? []).map((orden) => orden.id!)),
+    () =>
+      new Set((this.pendientes.data() ?? []).filter(esperaAprobacion).map((orden) => orden.id!)),
+  );
+  private readonly delHistorial = computed(
+    () =>
+      new Set(
+        (this.pendientes.data() ?? [])
+          .filter((orden) => !esperaAprobacion(orden))
+          .map((orden) => orden.id!),
+      ),
   );
 
   protected readonly filtros = computed(() =>
@@ -268,6 +280,7 @@ export class ListaOrdenes {
     const sedes = this.nombresDeSedes();
     const personas = this.nombresDePersonas();
     const porAprobar = this.porAprobar();
+    const delHistorial = this.delHistorial();
     // Sin la lista de pendientes no se sabe, y entonces no se dice: una ejecutada no se da por aprobada.
     const conAprobacion = this.aprueba() && this.pendientes.isSuccess();
 
@@ -304,7 +317,10 @@ export class ListaOrdenes {
           conBarra: equipos > 0 && estado !== 'CREADA',
           estado: orden.estadoActivo ? (estado ? ETIQUETA_DE_ESTADO[estado] : '') : 'Anulada',
           aprobacion:
-            conAprobacion && orden.estadoActivo && estado === 'EJECUTADA'
+            conAprobacion &&
+            orden.estadoActivo &&
+            estado === 'EJECUTADA' &&
+            !delHistorial.has(orden.id!)
               ? porAprobar.has(orden.id!)
                 ? 'Por aprobar'
                 : 'Aprobada'

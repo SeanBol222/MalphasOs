@@ -57,7 +57,12 @@ describe('Añadir equipos a una orden', () => {
   const texto = () => raiz().textContent ?? '';
   const casillas = () => [...raiz().querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];
 
-  async function abrir(datos: object = orden(), equipos: object[] = EQUIPOS): Promise<void> {
+  /** Las áreas llegan cerradas (2026-11-20): {@code desplegadas} las abre todas, como haría quien elige. */
+  async function abrir(
+    datos: object = orden(),
+    equipos: object[] = EQUIPOS,
+    { desplegadas = true } = {},
+  ): Promise<void> {
     fixture.detectChanges();
     await responderA(fixture, http, URL, datos);
     await responderA(fixture, http, urlAreasDeSede(ID_SEDE), AREAS);
@@ -65,7 +70,14 @@ describe('Añadir equipos a una orden', () => {
     await asentar(fixture);
     http.match((r) => r.url === URL_LISTADO).forEach((peticion) => peticion.flush(LISTADO));
     await asentar(fixture);
+
+    if (desplegadas) {
+      cabeceras().forEach((cabecera) => cabecera.click());
+      fixture.detectChanges();
+    }
   }
+
+  const cabeceras = () => [...raiz().querySelectorAll<HTMLButtonElement>('[data-area] h2 button')];
 
   function pulsar(etiqueta: string): void {
     const boton = [...raiz().querySelectorAll('button')].find((b) =>
@@ -180,6 +192,99 @@ describe('Añadir equipos a una orden', () => {
 
   afterEach(() => http.verify());
 
+  describe('Las áreas son desplegables y todo va en orden alfabético (2026-11-20)', () => {
+    it('al entrar las áreas están cerradas y dicen cuántos equipos ofrecen', async () => {
+      await abrir(orden(), EQUIPOS, { desplegadas: false });
+
+      expect(casillas()).toHaveLength(0);
+      expect(cabeceras()[0].getAttribute('aria-expanded')).toBe('false');
+      expect(raiz().querySelector('[data-resumen]')?.textContent?.trim()).toBe('2 equipos');
+    });
+
+    it('un clic en el área la abre, y otro la cierra sin perder lo marcado', async () => {
+      await abrir(orden(), EQUIPOS, { desplegadas: false });
+      cabeceras()[0].click();
+      fixture.detectChanges();
+
+      expect(cabeceras()[0].getAttribute('aria-expanded')).toBe('true');
+      expect(casillas()).toHaveLength(2);
+
+      casillas()[0].click();
+      fixture.detectChanges();
+      cabeceras()[0].click();
+      fixture.detectChanges();
+
+      expect(casillas()).toHaveLength(0);
+      // Cerrada, sigue diciendo lo elegido, y el botón lo sigue contando.
+      expect(raiz().querySelector('[data-resumen]')?.textContent?.trim()).toBe(
+        '2 equipos · 1 marcado',
+      );
+      expect(texto()).toContain('Añadir 1 equipo(s)');
+    });
+
+    it('las áreas van en orden alfabético, sin que la tilde las mande al final', async () => {
+      fixture.detectChanges();
+      await responderA(fixture, http, URL, orden());
+      await responderA(fixture, http, urlAreasDeSede(ID_SEDE), [
+        { id: ID_AREA, nombre: 'Urgencias', idSede: ID_SEDE, estadoActivo: true },
+        { id: 'a3', nombre: 'laboratorio', idSede: ID_SEDE, estadoActivo: true },
+        { id: 'a4', nombre: 'Área de partos', idSede: ID_SEDE, estadoActivo: true },
+      ]);
+      // Con alguna área con equipos: si ninguna tiene, la pantalla lo dice en vez de listarlas.
+      http.match(urlEquiposDeArea(ID_AREA)).forEach((peticion) => peticion.flush(EQUIPOS));
+      http.match(() => true).forEach((peticion) => peticion.flush([]));
+      await asentar(fixture);
+      http.match((r) => r.url === URL_LISTADO).forEach((peticion) => peticion.flush(LISTADO));
+      await asentar(fixture);
+
+      expect(
+        [...raiz().querySelectorAll('[data-area] .titulo-seccion')].map((e) =>
+          e.textContent?.trim(),
+        ),
+      ).toEqual(['Área de partos', 'laboratorio', 'Urgencias']);
+    });
+
+    it('los equipos de cada área van en orden alfabético por lo que son', async () => {
+      // El servidor los entrega en otro orden: el tensiómetro primero.
+      await abrir(orden(), [...EQUIPOS].reverse());
+
+      expect(
+        [...raiz().querySelectorAll('[data-descripcion]')].map((e) => e.textContent?.trim()),
+      ).toEqual(['Báscula · Kern', 'Tensiómetro · Welch Allyn']);
+    });
+
+    it('sin descripción, los equipos van en orden por su serie', async () => {
+      TestBed.resetTestingModule();
+      montar(['work-order.write']);
+      await abrir(orden(), [...EQUIPOS].reverse());
+
+      expect(
+        [...raiz().querySelectorAll('[data-area] label')].map((e) =>
+          e.textContent?.includes('SN-0001') ? 'SN-0001' : 'SN-0002',
+        ),
+      ).toEqual(['SN-0001', 'SN-0002']);
+    });
+
+    it('un equipo marcado oscurece su fila entera, y desmarcarlo la devuelve', async () => {
+      await abrir();
+      const fila = () => casillas()[0].closest('label')!;
+
+      expect(fila().classList).not.toContain('bg-ink');
+
+      casillas()[0].click();
+      fixture.detectChanges();
+
+      expect(fila().classList).toContain('bg-ink');
+      expect(fila().classList).toContain('text-white');
+      expect(casillas()[1].closest('label')!.classList).not.toContain('bg-ink');
+
+      casillas()[0].click();
+      fixture.detectChanges();
+
+      expect(fila().classList).not.toContain('bg-ink');
+    });
+  });
+
   describe('Cada equipo dice qué es (2026-10-27)', () => {
     it('ofrece cada equipo con su tipo y su marca, y debajo su serie', async () => {
       await abrir();
@@ -229,6 +334,8 @@ describe('Añadir equipos a una orden', () => {
         }),
       );
       await asentar(fixture);
+      cabeceras().forEach((cabecera) => cabecera.click());
+      fixture.detectChanges();
 
       expect(raiz().querySelectorAll('[data-descripcion]')).toHaveLength(150);
     });

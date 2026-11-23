@@ -4,7 +4,7 @@
   cambio -un radio, una casilla, salir de un texto-. Enter tambien guarda, por el submit.
 -->
 <form
-  class="border-b border-neutral-300 p-3"
+  class="@container border-b border-neutral-300 p-3"
   [formGroup]="formulario"
   (ngSubmit)="guardar()"
   (change)="guardar()"
@@ -17,12 +17,17 @@
     </div>
   }
 
-  <!-- Las mismas columnas que el informe impreso: una fila por verificacion, un radio por estado. -->
-  <table class="tabla mt-1">
+  <!--
+    Las mismas columnas que el informe impreso: una fila por verificacion, un radio por estado. En un
+    telefono —o donde la caja no llega a 672 px, como una ventana estrecha con la barra lateral— cada
+    fila es una tarjeta —el nombre, los estados en fila con su nombre a la vista y la
+    observacion debajo— porque las cinco columnas no caben (2026-11-21, pedido por el usuario).
+  -->
+  <table class="tabla mt-1 @max-2xl:block @max-2xl:border-0 @max-2xl:bg-transparent">
     <caption class="sr-only">
       Verificaciones al ingreso
     </caption>
-    <thead>
+    <thead class="@max-2xl:hidden">
       <tr class="text-left">
         <th scope="col">Verificación</th>
         @for (estado of ESTADOS; track estado) {
@@ -31,36 +36,70 @@
         <th scope="col">Observación</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody class="@max-2xl:flex @max-2xl:flex-col @max-2xl:gap-1">
       @for (verificacion of VERIFICACIONES; track verificacion.clave) {
-        <tr [formGroupName]="verificacion.clave" [attr.data-ingreso]="verificacion.clave">
-          <th scope="row" class="font-normal">{{ verificacion.texto }}</th>
+        <tr
+          class="@max-2xl:flex @max-2xl:flex-wrap @max-2xl:border @max-2xl:border-neutral-300 @max-2xl:bg-white @max-2xl:p-1.5"
+          [formGroupName]="verificacion.clave"
+          [attr.data-ingreso]="verificacion.clave"
+        >
+          <th
+            scope="row"
+            class="font-normal @max-2xl:basis-full @max-2xl:border-0 @max-2xl:p-0 @max-2xl:font-bold"
+          >
+            {{ verificacion.texto }}
+          </th>
           @for (estado of ESTADOS; track estado) {
-            <td>
-              <!-- La etiqueta envuelve el radio y da el area tactil de 44 px; el radio, a su tamano. -->
+            <td class="@max-2xl:border-0 @max-2xl:p-0 @max-2xl:pr-1">
+              <!--
+                La etiqueta envuelve el radio y da el area tactil de 44 px. El radio no se ve: se ve un
+                recuadro que se pone en tinta con la marca blanca al elegirlo (2026-11-21, pedido por el
+                usuario: el circulito apenas se distinguia). Sigue siendo un radio de verdad, asi que
+                se recorre con las flechas y el foco se dibuja en el recuadro. En una caja estrecha no
+                hay cabecera, y el recuadro lleva dentro el nombre del estado.
+              -->
               <label
-                class="flex min-h-tactil min-w-tactil cursor-pointer items-center"
+                class="flex min-h-tactil min-w-tactil cursor-pointer items-center has-disabled:cursor-default"
                 [for]="idDe(verificacion.clave, estado)"
               >
                 <input
-                  class="h-[1.25rem] w-[1.25rem] accent-ink"
+                  class="peer sr-only"
                   type="radio"
                   formControlName="estado"
                   [id]="idDe(verificacion.clave, estado)"
                   [value]="estado"
                   [attr.value]="estado"
                 />
+                <span
+                  class="flex h-[1.75rem] w-[1.75rem] items-center justify-center border-2 border-ink bg-white text-transparent peer-checked:bg-ink peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent @max-2xl:h-tactil @max-2xl:w-auto @max-2xl:px-1.5 @max-2xl:text-sm @max-2xl:font-bold @max-2xl:text-ink @max-2xl:peer-checked:text-white"
+                  aria-hidden="true"
+                  data-recuadro
+                >
+                  <svg
+                    class="@max-2xl:hidden"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                  >
+                    <path d="M5 12l5 5 9-10" />
+                  </svg>
+                  <span class="hidden @max-2xl:inline">{{ etiqueta[estado] }}</span>
+                </span>
                 <span class="sr-only">{{ verificacion.texto }}: {{ etiqueta[estado] }}</span>
               </label>
             </td>
           }
-          <td>
+          <td class="@max-2xl:mt-1 @max-2xl:basis-full @max-2xl:border-0 @max-2xl:p-0">
             <label class="sr-only" [for]="'ingreso-' + verificacion.clave + '-observacion'">
               Observación: {{ verificacion.texto }}
             </label>
             <input
-              class="campo min-h-tactil w-full min-w-[10rem]"
+              class="campo min-h-tactil w-full min-w-[10rem] @max-2xl:min-w-0"
               maxlength="500"
+              placeholder="Observación"
               formControlName="observacion"
               [id]="'ingreso-' + verificacion.clave + '-observacion'"
             />

@@ -1,0 +1,181 @@
+@if (visible()) {
+  <button
+    #boton
+    class="relative flex h-tactil w-tactil flex-none items-center justify-center border text-paper"
+    [class.border-neutral-700]="!abierto()"
+    [class.border-accent]="abierto()"
+    [class.bg-neutral-800]="abierto()"
+    type="button"
+    aria-haspopup="dialog"
+    [attr.aria-expanded]="abierto()"
+    [attr.aria-label]="etiqueta()"
+    data-campana
+    (click)="alternar()"
+  >
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+    @if (noLeidos() > 0) {
+      <span
+        class="absolute -top-[6px] -right-[6px] flex h-[20px] min-w-[20px] items-center justify-center bg-accent-700 px-[4px] text-xs font-extrabold text-white"
+        aria-hidden="true"
+        data-sin-leer
+      >
+        {{ noLeidos() }}
+      </span>
+    }
+  </button>
+
+  @if (abierto()) {
+    <!--
+      Un cuadro y no una pantalla, también en el teléfono (pedido por el usuario): cuelga de la campanita y
+      oscurece lo de detrás, que al tocarlo lo cierra. En escritorio sale junto al pie de la barra lateral,
+      como la ventana de la sesión, y lo de detrás no se oscurece.
+    -->
+    <div
+      class="fixed inset-0 z-30 bg-ink/35 md:bg-transparent print:hidden"
+      aria-hidden="true"
+      (click)="cerrar()"
+    ></div>
+
+    <section
+      class="fixed top-[4.25rem] right-1.5 left-1.5 z-40 flex max-h-[min(540px,calc(100dvh-5.5rem))] flex-col border border-ink bg-white text-ink shadow-[0_12px_32px_rgb(32_30_29/0.28)] md:top-auto md:right-auto md:bottom-1 md:left-[calc(15.5rem+0.5rem)] md:max-h-[calc(100dvh-1rem)] md:w-[420px] print:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-avisos"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+    >
+      <span
+        class="absolute -top-[7px] right-[72px] h-[12px] w-[12px] rotate-45 border-t border-l border-ink bg-white md:hidden"
+        aria-hidden="true"
+      ></span>
+
+      <div class="flex items-center justify-between border-b border-neutral-300 py-0.5 pr-0.5 pl-2">
+        <h2 id="titulo-avisos" class="text-lg font-extrabold">Avisos</h2>
+        <button
+          class="flex h-tactil w-tactil items-center justify-center"
+          type="button"
+          aria-label="Cerrar"
+          (click)="cerrar()"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path d="M5 5l14 14M19 5L5 19" />
+          </svg>
+        </button>
+      </div>
+
+      @if (filtros().length) {
+        <div
+          class="flex gap-1 border-b border-neutral-200 px-1.5 py-1 text-sm"
+          role="group"
+          aria-label="Filtrar avisos"
+        >
+          @for (f of filtros(); track f.clave) {
+            <button
+              class="min-h-tactil border border-ink px-1 font-bold"
+              [class.bg-ink]="filtro() === f.clave"
+              [class.text-white]="filtro() === f.clave"
+              [class.bg-white]="filtro() !== f.clave"
+              type="button"
+              [attr.aria-pressed]="filtro() === f.clave"
+              (click)="filtro.set(f.clave)"
+            >
+              {{ f.texto }}
+            </button>
+          }
+        </div>
+      }
+
+      <ul class="min-h-0 flex-1 list-none overflow-y-auto" aria-live="polite">
+        @for (aviso of visibles(); track aviso.clave) {
+          <li class="border-b border-neutral-200">
+            <button
+              class="flex w-full gap-1.5 px-2 py-[14px] text-left hover:bg-neutral-100"
+              [class.bg-accent-100]="!leido(aviso)"
+              type="button"
+              data-aviso
+              [attr.data-leido]="leido(aviso)"
+              (click)="abrir(aviso)"
+            >
+              <span
+                class="mt-[5px] h-[10px] w-[10px] flex-none"
+                [class.bg-accent-700]="aviso.nivel === 'vencido'"
+                [class.border-2]="aviso.nivel === 'pronto' || aviso.nivel === 'despues'"
+                [class.border-accent-700]="aviso.nivel === 'pronto'"
+                [class.border-neutral-700]="aviso.nivel === 'despues'"
+                [class.bg-ink]="aviso.nivel === 'orden'"
+                aria-hidden="true"
+              ></span>
+              <span class="flex min-w-0 flex-1 flex-col">
+                <span
+                  class="text-xs font-extrabold tracking-[0.1em] uppercase"
+                  [class.text-accent-700]="aviso.nivel === 'vencido' || aviso.nivel === 'pronto'"
+                  [class.text-neutral-700]="aviso.nivel === 'despues' || aviso.nivel === 'orden'"
+                >
+                  {{ aviso.etiqueta }}
+                </span>
+                <span
+                  class="mt-[2px]"
+                  [class.font-extrabold]="!leido(aviso)"
+                  [class.font-semibold]="leido(aviso)"
+                >
+                  {{ aviso.titulo }}
+                  @if (!leido(aviso)) {
+                    <span class="sr-only">, sin leer</span>
+                  }
+                </span>
+                <span class="mt-[2px] text-sm text-neutral-700">{{ aviso.detalle }}</span>
+              </span>
+              @if (!leido(aviso)) {
+                <span
+                  class="mt-[6px] h-[8px] w-[8px] flex-none bg-accent-700"
+                  aria-hidden="true"
+                ></span>
+              }
+            </button>
+          </li>
+        } @empty {
+          <li class="px-2 py-3 text-neutral-700">
+            @if (cargando()) {
+              Buscando avisos…
+            } @else if (fallo()) {
+              No se pudieron consultar los avisos. Inténtelo de nuevo más tarde.
+            } @else {
+              No hay avisos. Todo está al día.
+            }
+          </li>
+        }
+      </ul>
+
+      @if (noLeidos() > 0) {
+        <button
+          class="min-h-tactil border-t border-neutral-300 bg-white font-bold hover:bg-neutral-100"
+          type="button"
+          (click)="marcarTodo()"
+        >
+          Marcar todo como leído
+        </button>
+      }
+    </section>
+  }
+}

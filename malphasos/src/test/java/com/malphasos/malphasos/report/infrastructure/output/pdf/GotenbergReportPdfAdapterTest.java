@@ -2,8 +2,10 @@ package com.malphasos.malphasos.report.infrastructure.output.pdf;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 
 import com.malphasos.malphasos.report.application.ports.output.ReportPdfUnavailableException;
+import com.malphasos.malphasos.shared.infrastructure.output.pdf.ClosingAtBottom;
 import com.malphasos.malphasos.shared.infrastructure.output.pdf.GotenbergPdfConverter;
 import com.malphasos.malphasos.report.application.services.serviceReport.sheet.ReportSheetComposer;
 import com.malphasos.malphasos.report.application.sheet.UnInforme;
@@ -80,6 +82,36 @@ class GotenbergReportPdfAdapterTest {
         byte[] pdf = adaptador.render(ReportSheetComposer.compose(new UnInforme().conLecturas().vista()));
 
         assertThat(paginas(pdf)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("las firmas y el pie van al final de la hoja 1 cuando cabe en una carta")
+    void firmasAlPie() {
+        // La línea objetivo es esta: la que deja el CSS. Si la plantilla cambia, hay que medirla otra vez.
+        byte[] pdf = adaptador.render(ReportSheetComposer.compose(new UnInforme().conLecturas().vista()));
+
+        ClosingAtBottom.Posicion cierre = ClosingAtBottom.posicion(pdf, ReportHtmlRenderer.CIERRE).orElseThrow();
+        assertThat(cierre.pagina()).isEqualTo(1);
+        assertThat(cierre.base()).isCloseTo(ReportHtmlRenderer.CIERRE.baseObjetivo(), within(2.0));
+    }
+
+    @Test
+    @DisplayName("si el protocolo no cabe, las firmas van al pie de la página siguiente y no a media hoja (2026-11-21)")
+    void firmasAlPieConProtocoloLargo() {
+        UnInforme informe = new UnInforme().conLecturas();
+        for (int i = 0; i < 45; i++) {
+            informe.conPaso("Paso número " + i + " del protocolo, con un nombre más bien largo",
+                    com.malphasos.malphasos.report.domain.serviceReport.StepState.HECHO,
+                    i % 3 == 0 ? "Una nota del paso" : null);
+        }
+
+        byte[] pdf = adaptador.render(ReportSheetComposer.compose(informe.vista()));
+
+        // La hoja 1 ocupa dos páginas y la verificación la tercera: bajar las firmas no añade ninguna.
+        ClosingAtBottom.Posicion cierre = ClosingAtBottom.posicion(pdf, ReportHtmlRenderer.CIERRE).orElseThrow();
+        assertThat(paginas(pdf)).isEqualTo(3);
+        assertThat(cierre.pagina()).isEqualTo(2);
+        assertThat(cierre.base()).isCloseTo(ReportHtmlRenderer.CIERRE.baseObjetivo(), within(2.0));
     }
 
     @Test

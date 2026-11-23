@@ -94,6 +94,16 @@ export class Buscador implements ControlValueAccessor, Validator {
   /** Si un texto que no es ninguna opcion invalida el control, en vez de dejarlo vacio sin mas. */
   readonly rechazaSinCoincidencia = input<boolean>(false);
 
+  /**
+   * Si al abrir el campo sin haber escrito nada se ofrece el catalogo entero, para recorrerlo con la
+   * rueda, en vez de solo lo ya usado (2026-11-20, pedido por el usuario para el alta de un modelo).
+   *
+   * <p>Solo para catalogos que se pueden recorrer —decenas de tipos, marcas o fabricantes—: con los 249
+   * paises o los 1.350 municipios es justo lo que este campo existe para evitar, y por eso no es lo de
+   * siempre.
+   */
+  readonly todasAlAbrir = input<boolean>(false);
+
   /** Cuantas sugerencias se ensenan al escribir. Mas no caben sin convertir la lista en otra lista. */
   private static readonly MAXIMO_SUGERENCIAS = 10;
 
@@ -101,6 +111,12 @@ export class Buscador implements ControlValueAccessor, Validator {
   protected readonly abierto = signal(false);
   protected readonly resaltada = signal(-1);
   protected readonly tocado = signal(false);
+
+  /**
+   * Desactivado por el formulario, desde el 2026-11-20: el alta de un modelo no deja elegir la marca
+   * hasta tener el tipo, porque las marcas se ordenan segun el tipo elegido.
+   */
+  protected readonly desactivado = signal(false);
 
   /** El identificador elegido, que es lo que ve el formulario. */
   private readonly valor = signal('');
@@ -127,11 +143,16 @@ export class Buscador implements ControlValueAccessor, Validator {
    * Lo que se ofrece en cada momento.
    *
    * <p>Sin texto, lo ya usado —y solo lo que siga existiendo en el catalogo, porque una opcion retirada
-   * no debe volver por la puerta de atras—. Con texto, el catalogo entero filtrado.
+   * no debe volver por la puerta de atras—, o el catalogo entero si {@link todasAlAbrir}. Con texto, el
+   * catalogo entero filtrado.
    */
   protected readonly sugerencias = computed<readonly Opcion[]>(() => {
     const escrito = normalizar(this.texto());
     const opciones = this.opciones();
+
+    if (!escrito && this.todasAlAbrir()) {
+      return opciones;
+    }
 
     if (!escrito) {
       const porId = new Map(opciones.map((opcion) => [opcion.id, opcion]));
@@ -161,6 +182,13 @@ export class Buscador implements ControlValueAccessor, Validator {
   writeValue(valor: string | null): void {
     this.escribiendo = false;
     this.valor.set(valor ?? '');
+  }
+
+  setDisabledState(desactivado: boolean): void {
+    this.desactivado.set(desactivado);
+    if (desactivado) {
+      this.abierto.set(false);
+    }
   }
 
   registerOnChange(fn: (valor: string) => void): void {

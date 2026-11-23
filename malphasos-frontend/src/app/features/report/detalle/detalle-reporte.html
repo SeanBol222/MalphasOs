@@ -438,7 +438,7 @@
               >
               Cómo queda el equipo
             </h2>
-            <div class="p-3">
+            <div class="@container p-3">
               <fieldset>
                 <legend class="font-bold">
                   Resultado <span class="text-accent-700" aria-hidden="true">*</span>
@@ -450,15 +450,23 @@
                   Tres opciones grandes y no un desplegable: son pocas, se eligen con el equipo delante y
                   el resultado es lo que mas pesa del reporte —de el cuelgan la hoja de vida y las alertas—.
                   Siguen siendo radios de verdad, asi que se recorren con las flechas.
+
+                  Una debajo de otra mientras la caja no llegue a 672 px (2026-11-21, pedido por el
+                  usuario): en una ventana estrecha, en tres columnas no cabia la ayuda de cada una.
                 -->
-                <div class="mt-1 grid gap-1.5 md:grid-cols-3">
+                <div class="mt-1 grid gap-1.5 @2xl:grid-cols-3">
                   @for (resultado of RESULTADOS; track resultado) {
+                    <!--
+                      Sin el circulito del radio (2026-11-21, pedido por el usuario): lo dice el
+                      recuadro, que se pone en tinta al elegirlo. El radio sigue ahi, oculto, para el
+                      teclado y el lector de pantalla, y su foco se dibuja en el recuadro.
+                    -->
                     <label
-                      class="flex min-h-tactil cursor-pointer gap-1 border p-1.5 has-[:checked]:border-2 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:disabled]:cursor-not-allowed"
-                      [class.border-neutral-400]="formulario.value.resultado !== resultado"
+                      class="flex min-h-tactil cursor-pointer border p-1.5 has-[:checked]:border-2 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:disabled]:cursor-not-allowed has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
+                      [class.border-neutral-700]="formulario.value.resultado !== resultado"
                     >
                       <input
-                        class="mt-0.5 accent-white"
+                        class="sr-only"
                         type="radio"
                         name="resultado"
                         [value]="resultado"

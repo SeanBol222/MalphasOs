@@ -40,6 +40,13 @@ import { traducirError } from '../../../core/errores/traducir';
  * <p><b>Cada equipo dice qué es, no solo su serie</b> (2026-10-27, pedido por el usuario): tipo y marca,
  * sacados del listado que compone el servidor. Los equipos de un área solo traen el identificador de su
  * modelo, y el tipo y la marca están dos eslabones más arriba en el catálogo.
+ *
+ * <p><b>Las áreas son desplegables y van en orden alfabético, como sus equipos</b> (2026-11-20, pedido
+ * por el usuario): con todas abiertas la pantalla se llenaba, y un área del final obligaba a recorrer
+ * las de arriba. Cerradas, la lista de áreas cabe en una pantalla, y cada una dice cuántos equipos
+ * tiene y cuántos lleva marcados, para que cerrarla no esconda lo elegido. Un equipo marcado se ve
+ * por la fila entera, oscura, y no por una casilla: la casilla sigue ahí para el teclado y el lector de
+ * pantalla.
  */
 @Component({
   selector: 'app-agregar-equipos',
@@ -86,6 +93,8 @@ export class AgregarEquipos {
   );
 
   protected readonly seleccionados = signal<ReadonlySet<string>>(new Set());
+  /** Las áreas desplegadas. Todas empiezan cerradas. */
+  protected readonly abiertas = signal<ReadonlySet<string>>(new Set());
   protected readonly enviando = signal(false);
   protected readonly resultado = signal<{ entraron: number; fallaron: number } | null>(null);
   protected readonly fallo = signal<unknown>(null);
@@ -107,6 +116,7 @@ export class AgregarEquipos {
 
     return (this.areas.data() ?? [])
       .filter((area) => area.estadoActivo)
+      .sort((a, b) => ALFABETICO.compare(a.nombre ?? '', b.nombre ?? ''))
       .map((area) => ({
         id: area.id!,
         nombre: area.nombre,
@@ -117,7 +127,11 @@ export class AgregarEquipos {
             serie: equipo.serie,
             inventario: equipo.numeroInventario,
             descripcion: descripcion.get(equipo.id) ?? '',
-          })),
+          }))
+          // Por lo que es; sin descripcion -sin equipment.read-, por la serie, que es lo que se ve.
+          .sort((a, b) =>
+            ALFABETICO.compare(a.descripcion || a.serie || '', b.descripcion || b.serie || ''),
+          ),
       }));
   });
 
@@ -134,6 +148,38 @@ export class AgregarEquipos {
   protected readonly mensajeDeError = computed(() =>
     this.fallo() === null ? '' : traducirError(this.fallo()),
   );
+
+  protected abierta(idArea: string): boolean {
+    return this.abiertas().has(idArea);
+  }
+
+  protected desplegar(idArea: string): void {
+    this.abiertas.update((actuales) => {
+      const nuevas = new Set(actuales);
+
+      if (!nuevas.delete(idArea)) {
+        nuevas.add(idArea);
+      }
+
+      return nuevas;
+    });
+  }
+
+  /** Lo que el área dice cerrada: cuántos equipos ofrece y cuántos lleva marcados. */
+  protected resumen(grupo: { equipos: readonly { id: string }[] }): string {
+    const total = grupo.equipos.length;
+
+    if (!total) {
+      return 'Sin equipos disponibles';
+    }
+
+    const marcados = grupo.equipos.filter((equipo) => this.marcado(equipo.id)).length;
+    const equipos = `${total} ${total === 1 ? 'equipo' : 'equipos'}`;
+
+    return marcados
+      ? `${equipos} · ${marcados} ${marcados === 1 ? 'marcado' : 'marcados'}`
+      : equipos;
+  }
 
   protected marcado(id: string): boolean {
     return this.seleccionados().has(id);
@@ -207,6 +253,9 @@ export class AgregarEquipos {
     }
   }
 }
+
+/** Sin distinguir tildes ni mayúsculas: «Área de partos» va con la A, no después de la Z. */
+const ALFABETICO = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
 
 /**
  * Los equipos de varias áreas, en una sola consulta de caché.

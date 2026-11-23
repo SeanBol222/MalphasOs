@@ -3,7 +3,7 @@ import { HttpTestingController } from '@angular/common/http/testing';
 import { proveerApiSimulado } from '../../../../testing/entorno';
 import { proveerSesionFalsa } from '../../../../testing/keycloak-falso';
 import { asentar, atenderRefresco, responderA } from '../../../../testing/pantalla';
-import { PROTOCOLOS, URL_PROTOCOLOS } from '../../../../testing/catalogo';
+import { PROTOCOLOS, URL_PROTOCOLOS, buscarConLaLupa } from '../../../../testing/catalogo';
 import { Protocolos } from './protocolos';
 
 /** El catalogo de protocolos de mantenimiento, del 2026-10-10. */
@@ -50,30 +50,57 @@ describe('Protocolos del catálogo', () => {
 
   afterEach(() => http.verify());
 
-  it('lista los vigentes primero, y el estado se distingue por peso y no por color', async () => {
+  it('lista por nombre, y el estado se distingue por peso y no por color', async () => {
+    // Hasta el 2026-11-20 iban los vigentes primero; desde entonces el catalogo ordena por su primera
+    // columna, de la A a la Z, y el retirado se reconoce por el peso.
     montar();
     await abrir([PROTOCOLOS[2], PROTOCOLOS[0], PROTOCOLOS[1]]);
 
-    expect(filas()[2]?.textContent).toContain('Protocolo viejo');
-    expect(filas()[2]?.textContent).toContain('Retirado');
+    expect(filas()[1]?.textContent).toContain('Protocolo viejo');
+    expect(filas()[1]?.textContent).toContain('Retirado');
     const estados = filas().map((fila) => fila.querySelectorAll('td')[2]!);
     expect(estados[0]!.className).toContain('font-semibold');
-    expect(estados[2]!.className).not.toContain('font-semibold');
+    expect(estados[1]!.className).not.toContain('font-semibold');
     expect(estados.every((celda) => !celda.className.includes('accent'))).toBe(true);
   });
 
   it('el buscador filtra por nombre o descripción, sin tildes', async () => {
     montar();
     await abrir();
-    await escribir('filtroProtocolos', 'multimetro');
+    await buscarConLaLupa(fixture, 'filtroProtocolos', 'multimetro');
 
     expect(filas()).toHaveLength(1);
     expect(filas()[0]?.textContent).toContain('Verificación eléctrica');
   });
 
+  it('la cabecera invierte el orden por nombre', async () => {
+    montar();
+    await abrir();
+    const nombres = () => filas().map((fila) => fila.querySelector('td')!.textContent);
+
+    expect(nombres()[0]).toContain('Limpieza');
+    raiz().querySelector<HTMLButtonElement>('[data-ordenar]')!.click();
+    await asentar(fixture);
+
+    expect(nombres()[0]).toContain('Verificación eléctrica');
+  });
+
+  it('el alta no esta a la vista: se abre con «Nuevo protocolo» y se cierra con «Cancelar»', async () => {
+    montar();
+    await abrir();
+    expect(raiz().querySelector('#protocoloNombre')).toBeNull();
+
+    await pulsar('Nuevo protocolo');
+    expect(raiz().querySelector('#protocoloNombre')).not.toBeNull();
+
+    await pulsar('Cancelar');
+    expect(raiz().querySelector('#protocoloNombre')).toBeNull();
+  });
+
   it('crear avisa de los parecidos y manda nombre y descripción', async () => {
     montar();
     await abrir();
+    await pulsar('Nuevo protocolo');
     await escribir('protocoloNombre', 'Limpieza profunda');
 
     expect(texto()).toContain('Ya existen protocolos parecidos');
@@ -92,6 +119,8 @@ describe('Protocolos del catálogo', () => {
     // La recarga del catalogo sale un tic despues de la escritura.
     await asentar(fixture);
     await atenderRefresco(fixture, http, URL_PROTOCOLOS, PROTOCOLOS);
+    // Creado, el alta se cierra.
+    expect(raiz().querySelector('#protocoloNombre')).toBeNull();
   });
 
   it('uno retirado no cuenta como parecido ni como repetido: su nombre está libre', async () => {
@@ -99,6 +128,7 @@ describe('Protocolos del catálogo', () => {
     // que ya no se puede asignar.
     montar();
     await abrir();
+    await pulsar('Nuevo protocolo');
     await escribir('protocoloNombre', 'Protocolo viejo');
 
     expect(texto()).not.toContain('Ya existe');
@@ -109,6 +139,7 @@ describe('Protocolos del catálogo', () => {
     // Sin tildes ni mayusculas es el mismo, que es lo que el servidor rechazaria con un 409.
     montar();
     await abrir();
+    await pulsar('Nuevo protocolo');
     await escribir('protocoloNombre', 'LIMPIEZA Y DESINFECCION');
 
     expect(texto()).toContain('Ya existe «Limpieza y desinfección»');
@@ -149,7 +180,9 @@ describe('Protocolos del catálogo', () => {
 
     expect(http.match({ method: 'DELETE' })).toHaveLength(0);
 
-    await pulsar('Confirmar retiro');
+    expect(texto()).toContain('¿Seguro que quiere retirar?');
+    raiz().querySelector<HTMLButtonElement>('[data-confirmar-retiro]')!.click();
+    await asentar(fixture);
     http
       .expectOne({ method: 'DELETE', url: `${URL_PROTOCOLOS}/pr1` })
       .flush(
