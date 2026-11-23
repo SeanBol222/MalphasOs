@@ -3273,3 +3273,14 @@ reabierta: el botón de reporte de cada equipo pegado a la derecha cuando la fil
 el recibido» como recuadro que se pone en tinta, igual que el alcance de la firma del reporte —ver «Una
 ventana estrecha no es un teléfono» en [[decisiones-tecnicas-malphasos]]—. Solo frontend.
 
+## [2026-11-23] ingest | La historia adicional de un equipo (V61)
+
+Lo que otras empresas le hicieron a un equipo, anotado desde su hoja de vida y mezclado por fecha con los
+reportes, con el permiso nuevo `equipment-history.write` que tiene también el supervisor del cliente. Y el
+número del reporte en cada línea del historial. Tocadas [[decisiones-tecnicas-malphasos]],
+[[esquema-bd-malphasos]] —35 tablas—, [[hoja-de-vida]] y [[modelo-de-permisos]]; el cambio está también en
+el artifact del esquema.
+
+**1861** pruebas en el backend, **169** clases, cero fallos; **986** en el frontend. Se mutó la unión del
+listado y el orden del historial: las dos tienen prueba que falla sin ellas.
+

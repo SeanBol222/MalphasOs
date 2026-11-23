@@ -3,7 +3,7 @@ name: modelo-de-permisos
 description: Las 22 autoridades del API, la expansion en dos escalones que separa al super usuario del administrador, la escalera de quien puede crear a quien, y la unica excepcion a la autoridad literal
 tags: [malphasos, seguridad, keycloak, autorizacion, "reusable:media", "describe:malphasos"]
 estado: estable
-updated: 2026-11-22
+updated: 2026-11-23
 ---
 
 # Modelo de permisos de MalphasOS
@@ -15,6 +15,12 @@ updated: 2026-11-22
 > entró `work-order.approve`** (`V54`): aprobar una orden ejecutada, que tienen los tres grupos. El
 > vocabulario tiene **23** autoridades —**20** de recurso—. Donde la nota dice «representante» o
 > «encargado», hoy es el supervisor.
+>
+> **Y el 2026-11-23 entró `equipment-history.write`** (`V61`): anotar y retirar lo que otras empresas le
+> hicieron a un equipo. La tienen **los tres grupos**: el supervisor del cliente también, porque a veces es
+> el cliente quien contrata la calibración —decidido por el usuario—, pero **sin `equipment.write`**, así que
+> no toca nada más del equipo, y el alcance lo limita a los equipos de sus clientes. Son **24**
+> autoridades, **21** de recurso.
 
 Escrito el 2026-09-08, al cerrar la tanda que lo construyó (nueve commits, `e68f83e`…`2de115f`, rama `feat/permission-model`). Antes de esa tanda **el modelo de permisos no existía**: las 83 operaciones REST exigían `admin.full` y el realm solo se lo daba al grupo `admins`. Ver [[seguridad-keycloak-backend]] para las piezas de seguridad y [[keycloak-configuracion]] para el realm.
 

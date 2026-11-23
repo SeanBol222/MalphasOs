@@ -4,10 +4,17 @@ description: Que es la hoja de vida de un equipo en MalphasOS -un compilado de s
 tags: [dominio, equipos, reportes, hoja-de-vida, "describe:malphasos"]
 source: malphasos/src/main/java/com/malphasos/malphasos/equipment/application/services/lifeSheet/LifeSheetService.java
 estado: estable
-updated: 2026-10-28
+updated: 2026-11-23
 ---
 
 # La hoja de vida de un equipo
+
+> **Al día el 2026-11-23 (`V61`)**: el historial ya no sale **solo** de los reportes. Lo que otras empresas
+> le hicieron al equipo se anota en `intervencion_externa`, desde la propia hoja de vida —«Historia
+> adicional»—, y se mezcla con las líneas de los reportes **por fecha**: una calibración externa de ayer va
+> encima del mantenimiento de la semana pasada. Cuenta para el último servicio; el estado, solo si se anotó
+> el resultado. La línea de un reporte dice ahora su número delante del ingeniero —«N.º 5C9C83 · Ana
+> Pérez»— y la externa, «Externo · empresa · certificado». Ver [[decisiones-tecnicas-malphasos]].
 
 **Construida el 2026-10-04, en cuatro tandas, y cierra RF-22, RF-24, RF-26 y RF-27.** Antes de empezar
 se construyó lo que no era: un historial de reportes presentado como hoja de vida. La aclaración del
