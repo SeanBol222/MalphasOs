@@ -3,6 +3,31 @@
 Lo que trae cada versión, para quien usa y despliega MalphasOS. El detalle de cada decisión y de cómo se
 construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/`.
 
+## [1.3.0] — 2026-11-23
+
+La historia de un equipo también con lo que le hicieron otras empresas.
+
+### Equipos
+
+- **Historia adicional en la hoja de vida**: los mantenimientos, calibraciones y demás que el equipo tuvo con
+  otras empresas, o antes de usar MalphasOS, se anotan desde su hoja de vida con «Añadir al historial»:
+  cuándo, qué tipo —preventivo, correctivo, calibración u otro—, qué se hizo y qué empresa, y si se quiere
+  cómo quedó y el número del certificado. Una mal anotada se retira.
+- **El historial los ordena por fecha** junto con los reportes: una calibración externa de ayer va encima del
+  mantenimiento de la semana pasada, y es el último servicio, en la hoja de vida y en el listado de equipos.
+  El estado del equipo cambia solo si se anotó cómo quedó.
+- **Cada línea de un reporte dice su número** delante del ingeniero: «N.º 5C9C83 · Ana Pérez».
+- **El supervisor del cliente también puede anotarlas**, en los equipos de sus clientes y sin poder editar
+  nada más del equipo.
+
+### Actualizar desde la 1.2.2
+
+- **Respaldar la base antes.** El backend aplica una migración al arrancar, `V61`, que solo añade una tabla.
+- **Un permiso nuevo en Keycloak, `equipment-history.write`.** Una instalación nueva lo trae en el realm; una
+  que ya está en marcha **no relee el archivo**, y hay que crearlo a mano: un rol del cliente
+  `malphasos-api` con ese nombre, añadido a los grupos `engineers`, `clients` y `admins`. Sin él, nadie salvo
+  el SuperUsuario ve «Añadir al historial». Quien tenga la sesión abierta lo recibe al volver a entrar.
+
 ## [1.2.2] — 2026-11-22
 
 ### Pantallas
