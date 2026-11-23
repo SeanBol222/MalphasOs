@@ -3,6 +3,67 @@
 Lo que trae cada versión, para quien usa y despliega MalphasOS. El detalle de cada decisión y de cómo se
 construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/`.
 
+## [1.2.0] — 2026-11-22
+
+Los patrones que lleva cada visita, un catálogo pensado para cientos de filas después de la carga de
+datos, una campanita con lo que pide atención, y la aplicación usable en una ventana estrecha.
+
+### Patrones de medición
+
+- **Cada verificación dice con qué patrones se hace**, en Catálogo › Tipos › «Patrones», y el reporte solo
+  ofrece esos. Los que ya se habían usado en reportes quedan admitidos al actualizar, y una carga de datos
+  hace lo mismo con los suyos.
+- **La orden elige los patrones que lleva a la visita**, por tipo de equipo —las pesas de 5 kg para unos
+  equipos y las de 20 kg para otros—, y cada reporte de ese tipo los recibe. Si el catálogo admite un solo
+  patrón vigente para un tipo, la orden ya lo trae puesto. Se cambian hasta ejecutarla, y lo que el
+  ingeniero ponga a mano en un reporte no se toca. **Los tipos sin verificación metrológica no aparecen**:
+  no tienen contra qué medirse.
+
+### Catálogo
+
+- **Un buscador en cada lista** —equipos del catálogo, tipos, modelos, marcas, fabricantes, protocolos y
+  patrones—, sin tildes ni mayúsculas, y tablas que se ordenan desde la cabecera.
+- **Un modelo se crea eligiendo tipo y después marca**, escribiendo o desplegando la lista, y la
+  combinación se crea si falta. **El alta de un tipo trae sus marcas y modelos**, en dos columnas.
+- Los formularios de alta se abren con un botón; retirar algo pregunta antes; un fabricante se renombra
+  desde su fila, como una marca.
+- **En un teléfono**, pestañas que se deslizan y tablas como tarjetas.
+
+### Avisos
+
+- **Una campanita** al pie de la barra lateral —arriba en un teléfono— con los **patrones vencidos o que
+  vencen en 30 días** y las **órdenes ejecutadas por aprobar**, según lo que cada quien puede hacer, y el
+  número de los que no ha leído. Un aviso desaparece solo cuando se resuelve lo que lo causa.
+
+### Personas
+
+- **Una persona retirada se puede reactivar** desde su ficha: vuelve, y si tenía cuenta, entra con la
+  contraseña de antes.
+
+### Pantallas
+
+- **En una ventana estrecha**, con la barra lateral abierta, nada se sale de la pantalla: el reporte pasa
+  a tarjetas, y los listados —órdenes, equipos, clientes, personas y el catálogo— se desplazan de lado
+  dentro de su recuadro, con sus filtros en una sola fila.
+- En el reporte, **recuadros que se ponen oscuros** en vez de circulitos para el estado al recibir, el
+  resultado y el alcance de la firma.
+- Las áreas de una sede se pliegan, y los equipos de una orden van en orden alfabético.
+
+### Documentos
+
+- **Las firmas del informe al pie de su última página**, y en la hoja de vida, líneas de historial en
+  blanco hasta las firmas para anotar a mano. El logo, más pequeño.
+
+### Actualizar desde la 1.1.0
+
+- **Respaldar la base antes.** El backend aplica dos migraciones al arrancar: `V59` guarda lo que dice
+  cada reporte en un solo documento y **conserva solo lo vigente** —lo que se había retirado dentro de un
+  reporte, como una lectura corregida o un accesorio quitado, no se migra; ningún informe lo imprimía—, y `V60` añade los patrones de cada verificación y de cada orden.
+- **Una variable nueva, `APP_APPROVAL_SINCE`**: desde qué día una orden ejecutada espera la aprobación del
+  supervisor. Lo ejecutado antes —el historial que trajo una carga de datos— no la espera. Se pone en
+  `.env.prod` con una fecha posterior a la última orden cargada; vacía, todo el historial sale «por
+  aprobar». Ver `DESPLIEGUE.md`.
+
 ## [1.1.0] — 2026-11-08
 
 Traer los datos de la aplicación que la empresa usaba antes, con su historial, sin pasarlos a mano; la

@@ -87,7 +87,7 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__eq
 
 | Rama | Estado | Pruebas |
 |---|---|---|
-| `main` | **La versión 1.1.0**: la carga de datos de otro sistema con su pantalla, la foto de cada equipo y el despliegue en la red local, sobre la 1.0.0: los siete módulos, el modelo de permisos, la sincronización con Keycloak, órdenes de trabajo y reportes de servicio de extremo a extremo, **la firma digital y el PDF del servidor**, un frontend completo y **el despliegue de producción** —ver `DESPLIEGUE.md`— | **1828** medidos el 2026-11-22 |
+| `main` | **La versión 1.2.0**: los patrones de cada verificación y de cada orden, el catálogo para cientos de filas, la campanita de avisos, reactivar personas y la aplicación en una ventana estrecha, sobre la 1.1.0: la carga de datos de otro sistema con su pantalla, la foto de cada equipo y el despliegue en la red local, sobre la 1.0.0: los siete módulos, el modelo de permisos, la sincronización con Keycloak, órdenes de trabajo y reportes de servicio de extremo a extremo, **la firma digital y el PDF del servidor**, un frontend completo y **el despliegue de producción** —ver `DESPLIEGUE.md`— | **1828** medidos el 2026-11-22 |
 | ~~`feat/work-order-rest`~~ · ~~`fix/work-order-headquarter-scope`~~ · ~~`docs/wiki-work-order-modulo`~~ | **Mergeadas** el 2026-09-13 por `e69437d`, `1adc2fc` y `b9563a9`, y borradas | — |
 | ~~`feat/work-order-schema`~~ · ~~`feat/relocation-same-client`~~ | Mergeadas antes, por `49b6453` y `1ef55cf` | — |
 
@@ -147,6 +147,12 @@ reglas que el esquema no tenía, un advice que respondía por la causa, y una se
 un administrador las autoridades `super.`. El tag `v1.1.0` lo pone el usuario, tras una prueba más en local.
 **La tanda 6 cambió de sitio el 2026-11-08**: el servidor de la oficina se deja de lado y la carga real
 se hará en un servidor en línea, que el usuario está alquilando; hasta entonces todo es local.
+
+**Y la versión 1.2.0, etiquetada el 2026-11-22** a petición del usuario, con lo construido desde la 1.1.0:
+el reporte en un solo documento (`V59`), los patrones de cada verificación y los que lleva cada orden
+(`V60`), el catálogo rehecho para cientos de filas, la campanita, reactivar a una persona, la aplicación
+usable en una ventana estrecha y el corte de la aprobación como configuración, `APP_APPROVAL_SINCE`. **La
+1.1.0 se queda sin tag**: nunca se puso, y se pasó directamente a la 1.2.0. Ver `CHANGELOG.md`.
 
 **Y la primera versión funcional, decidida el 2026-10-14 y construida hasta el 2026-10-16**: ejecutar una orden exige sus reportes cerrados, el reporte distingue el correctivo, y todo reporte con lecturas dice contra qué patrón se midió y si es conforme; el listado de órdenes, rehecho. Seis tandas y **el marcador no se mueve** —21—, porque ningún RF describe esos formatos. Ver [[hoja-de-ruta-producto]].
 
