@@ -304,6 +304,8 @@ describe('Listado de órdenes de trabajo', () => {
 
   describe('Lo que falta por aprobar (V54)', () => {
     const URL_POR_APROBAR = `${URL_ORDENES}/pending-approval`;
+    /** Desde cuándo se aprueba: lo dice el servidor por su configuración (2026-11-22). */
+    const URL_INICIO = `${URL_ORDENES}/approval-start`;
     const EJECUTADAS = [
       orden({ id: 'o1', fechaMantenimiento: '2026-11-03', estadoEjecucion: 'EJECUTADA' }),
       orden({ id: 'o2', fechaMantenimiento: '2026-11-04', estadoEjecucion: 'EJECUTADA' }),
@@ -315,6 +317,7 @@ describe('Listado de órdenes de trabajo', () => {
       montar([...TODAS, 'work-order.approve']);
       fixture.detectChanges();
       await responderA(fixture, http, URL_POR_APROBAR, pendientes);
+      await responderA(fixture, http, URL_INICIO, { desde: '2026-11-02' });
       await abrir(EJECUTADAS);
     }
 
@@ -338,7 +341,8 @@ describe('Listado de órdenes de trabajo', () => {
       expect(o1.querySelector('[data-aprobacion]')!.className).not.toContain('font-bold');
     });
 
-    it('las del historial, ejecutadas antes de la aprobación, ni cuentan por aprobar ni se dicen aprobadas', async () => {
+    it('una del historial, ejecutada antes del corte del servidor, no se dice aprobada', async () => {
+      // El servidor ya no la da por pendiente; sin el corte, la pantalla la llamaría «Aprobada».
       const vieja = orden({
         id: 'vieja',
         fechaMantenimiento: '2026-10-01',
@@ -347,7 +351,8 @@ describe('Listado de órdenes de trabajo', () => {
       TestBed.resetTestingModule();
       montar([...TODAS, 'work-order.approve']);
       fixture.detectChanges();
-      await responderA(fixture, http, URL_POR_APROBAR, [EJECUTADAS[1], vieja]);
+      await responderA(fixture, http, URL_POR_APROBAR, [EJECUTADAS[1]]);
+      await responderA(fixture, http, URL_INICIO, { desde: '2026-11-02' });
       await abrir([...EJECUTADAS, vieja]);
 
       expect(texto()).toContain('Por aprobar · 1');
@@ -363,10 +368,28 @@ describe('Listado de órdenes de trabajo', () => {
       expect(filas()[0].querySelector('[data-aprobacion]')).toBeNull();
     });
 
+    it('sin corte en el servidor, toda ejecutada fuera de las pendientes está aprobada', async () => {
+      const vieja = orden({
+        id: 'vieja',
+        fechaMantenimiento: '2026-10-01',
+        estadoEjecucion: 'EJECUTADA',
+      });
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'work-order.approve']);
+      fixture.detectChanges();
+      await responderA(fixture, http, URL_POR_APROBAR, []);
+      await responderA(fixture, http, URL_INICIO, { desde: null });
+      await abrir([vieja]);
+      pulsar('Ejecutadas');
+
+      expect(celda(filas()[0], 'data-aprobacion')).toBe('Aprobada');
+    });
+
     it('si no se pudo saber qué falta, no da ninguna por aprobada', async () => {
       TestBed.resetTestingModule();
       montar([...TODAS, 'work-order.approve']);
       fixture.detectChanges();
+      await responderA(fixture, http, URL_INICIO, { desde: '2026-11-02' });
       http
         .expectOne(URL_POR_APROBAR)
         .flush(null, { status: 500, statusText: 'Internal Server Error' });
@@ -380,6 +403,7 @@ describe('Listado de órdenes de trabajo', () => {
       await abrir(EJECUTADAS);
 
       http.expectNone(URL_POR_APROBAR);
+      http.expectNone(URL_INICIO);
       expect(texto()).not.toContain('Por aprobar');
       pulsar('Ejecutadas');
       expect(raiz().querySelector('[data-aprobacion]')).toBeNull();

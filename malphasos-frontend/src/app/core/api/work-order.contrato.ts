@@ -28,6 +28,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api/work-orders/approval-start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desde cuando se aprueban las ordenes
+         * @description El dia desde el que una orden ejecutada espera aprobacion; lo ejecutado antes, como el historial cargado de otro sistema, no la espera. Nulo si no hay corte.
+         */
+        get: operations["approvalStart"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/work-orders/pending-approval": {
         parameters: {
             query?: never;
@@ -257,6 +277,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ApprovalStartResponse: {
+            /**
+             * Format: date
+             * @description Dia desde el que una ejecutada espera aprobacion; nulo si no hay corte
+             * @example 2026-11-02
+             */
+            desde?: string;
+        };
         AssignWorkOrderStandardsRequest: {
             patrones: string[];
         };
@@ -513,6 +541,62 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WorkOrderResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkOrderErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+        };
+    };
+    approvalStart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApprovalStartResponse"];
                 };
             };
             /** @description Bad Request */

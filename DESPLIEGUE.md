@@ -47,6 +47,7 @@ Llenar `.env.prod`. **Cada contraseña y cada secreto se genera para este servid
 | `KC_ADMIN_USER`, `KC_ADMIN_PASSWORD` | El administrador de Keycloak. Solo se usa desde el servidor |
 | `MALPHASOS_BACKEND_ADMIN_SECRET` | El secreto con que el backend da de alta personas en Keycloak |
 | `RESPALDO_HORA`, `TZ`, `RESPALDO_DIAS`, `RESPALDO_DIR` | Cuándo, en qué zona horaria, cuántos días y dónde se guardan los respaldos |
+| `APP_APPROVAL_SINCE` | Desde qué día una orden ejecutada espera la aprobación del supervisor, `AAAA-MM-DD`. Lo ejecutado antes —el historial que traiga una carga de datos— no la espera. **El día que el servidor se pone en marcha**, posterior a la última orden de la carga. Vacía, todo el historial saldría «por aprobar» |
 
 Opcional: los datos de la empresa que presta el servicio, para el membrete de los documentos. Si no se
 ponen, se llenan después desde la pantalla «Empresa»:

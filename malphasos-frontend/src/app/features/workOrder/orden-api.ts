@@ -202,6 +202,24 @@ export class OrdenApi {
     }));
   }
 
+  /**
+   * Desde qué día una ejecutada espera aprobación (2026-11-22): lo decide la configuración del servidor, y
+   * lo ejecutado antes —el historial cargado— no la espera. Nulo si no hay corte. No cambia mientras el
+   * servidor corre, así que se pide una vez, y fuera de la clave de las órdenes para que ninguna escritura
+   * lo vuelva a pedir.
+   */
+  inicioDeLaAprobacion(habilitada?: Signal<boolean>) {
+    return injectQuery(() => ({
+      queryKey: ['aprobacion', 'desde'] as const,
+      queryFn: () =>
+        firstValueFrom(this.http.get<{ desde?: string | null }>(`${this.url}/approval-start`)).then(
+          (respuesta) => respuesta.desde ?? null,
+        ),
+      staleTime: Infinity,
+      enabled: habilitada ? habilitada() : true,
+    }));
+  }
+
   /** Las dos transiciones son la misma llamada con otro nombre: el estado lo decide el servidor. */
   private transicion(paso: 'start' | 'execute') {
     return injectMutation(() => ({

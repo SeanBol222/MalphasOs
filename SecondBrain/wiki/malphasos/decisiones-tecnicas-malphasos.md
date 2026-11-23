@@ -1067,6 +1067,17 @@ frente a aprobarlas en bloque o marcarlas en la base—. El 2026-11-22 la misma 
 del listado de órdenes, que contaba **1153**, y **vive en un solo sitio**, `workOrder/aprobacion.ts`. Las del
 historial tampoco se dicen «Aprobada» en la columna de estado: no lo están.
 
+> **Corregido el 2026-11-22, unas horas después.** La fecha fija en el frontend solo valía para la base de
+> desarrollo. En el servidor en línea, lo que la empresa ejecutara en el sistema viejo después del 2026-11-02
+> entraría con la carga y saldría «por aprobar», y el servidor seguía mandando las 1158 en cada consulta.
+> **El corte es ahora configuración del servidor**, `APP_APPROVAL_SINCE` —`app.approval.since`, en
+> `ApprovalStart`—: el día en que la aprobación empezó a usarse en esa instalación. Las pendientes lo dejan
+> fuera, `GET /work-orders/approval-start` lo publica, y la pantalla solo lo usa para no llamar «Aprobada» a
+> una orden del historial. **Sin columna nueva**: la carga no cambia el esquema, decidido por el usuario el
+> 2026-11-03; marcar lo cargado se descartó por eso. En desarrollo vale 2026-11-02; en un servidor nuevo, una
+> fecha posterior a la última orden de la carga —ver `DESPLIEGUE.md`—. Sin fecha, no hay corte, y una mal
+> escrita tumba el arranque.
+
 ## Una ventana estrecha no es un teléfono (2026-11-21 y 22)
 
 **Lo que lo pidió**: con la barra lateral abierta en una ventana de unos 800 px, la pantalla sigue siendo de

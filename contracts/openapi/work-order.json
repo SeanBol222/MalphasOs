@@ -1,6 +1,17 @@
 {
   "components" : {
     "schemas" : {
+      "ApprovalStartResponse" : {
+        "properties" : {
+          "desde" : {
+            "description" : "Dia desde el que una ejecutada espera aprobacion; nulo si no hay corte",
+            "example" : "2026-11-02",
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "AssignWorkOrderStandardsRequest" : {
         "properties" : {
           "patrones" : {
@@ -564,6 +575,66 @@
         },
         "summary" : "Programar un mantenimiento",
         "tags" : [ "WorkOrder" ]
+      }
+    },
+    "/v1/api/work-orders/approval-start" : {
+      "get" : {
+        "description" : "El dia desde el que una orden ejecutada espera aprobacion; lo ejecutado antes, como el historial cargado de otro sistema, no la espera. Nulo si no hay corte.",
+        "operationId" : "approvalStart",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApprovalStartResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkOrderErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          }
+        },
+        "summary" : "Desde cuando se aprueban las ordenes",
+        "tags" : [ "WorkOrderApproval" ]
       }
     },
     "/v1/api/work-orders/pending-approval" : {

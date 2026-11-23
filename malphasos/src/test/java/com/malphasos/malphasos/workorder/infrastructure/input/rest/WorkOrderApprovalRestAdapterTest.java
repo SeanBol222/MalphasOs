@@ -173,4 +173,13 @@ class WorkOrderApprovalRestAdapterTest {
                 .contains("/v1/api/work-orders/{id}/approval/mine")
                 .contains("/v1/api/work-orders/pending-approval");
     }
+
+    @Test
+    @DisplayName("GET approval-start dice desde cuándo se aprueba, y nulo sin corte (2026-11-22)")
+    void desdeCuando() throws Exception {
+        // La configuración de pruebas no pone corte.
+        mockMvc.perform(get(RUTA + "approval-start"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.desde").value(org.hamcrest.Matchers.nullValue()));
+    }
 }

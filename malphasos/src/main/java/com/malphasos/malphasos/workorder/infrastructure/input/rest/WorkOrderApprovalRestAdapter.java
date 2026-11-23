@@ -3,11 +3,13 @@ package com.malphasos.malphasos.workorder.infrastructure.input.rest;
 import com.malphasos.malphasos.client.infrastructure.input.security.ReadScopeResolver;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderApprovalServicePort;
 import com.malphasos.malphasos.workorder.application.ports.input.WorkOrderServicePort;
+import com.malphasos.malphasos.workorder.application.services.approval.ApprovalStart;
 import com.malphasos.malphasos.workorder.application.services.approval.commands.ApproveFromAccountCommand;
 import com.malphasos.malphasos.workorder.application.services.approval.commands.ApproveOnSiteCommand;
 import com.malphasos.malphasos.workorder.domain.workOrder.WorkOrder;
 import com.malphasos.malphasos.workorder.infrastructure.input.mapper.WorkOrderRestMapper;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.request.WorkOrderApprovalRequest;
+import com.malphasos.malphasos.workorder.infrastructure.input.model.response.ApprovalStartResponse;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.response.WorkOrderApprovalResponse;
 import com.malphasos.malphasos.workorder.infrastructure.input.model.response.WorkOrderResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,6 +50,7 @@ public class WorkOrderApprovalRestAdapter {
     private final WorkOrderServicePort workOrderServicePort;
     private final WorkOrderRestMapper mapper;
     private final ReadScopeResolver readScopeResolver;
+    private final ApprovalStart approvalStart;
 
     @Operation(summary = "La aprobacion vigente de una orden", description = "204 si no esta aprobada.")
     @PreAuthorize("hasAuthority('work-order.read')")
@@ -102,6 +105,15 @@ public class WorkOrderApprovalRestAdapter {
 
         return mapper.toList(
                 pendientes, workOrderServicePort.equipmentOf(pendientes.stream().map(WorkOrder::getId).toList()));
+    }
+
+    @Operation(summary = "Desde cuando se aprueban las ordenes",
+            description = "El dia desde el que una orden ejecutada espera aprobacion; lo ejecutado antes, "
+                    + "como el historial cargado de otro sistema, no la espera. Nulo si no hay corte.")
+    @PreAuthorize("hasAuthority('work-order.read')")
+    @GetMapping("/approval-start")
+    public ApprovalStartResponse approvalStart() {
+        return new ApprovalStartResponse(approvalStart.desde().orElse(null));
     }
 
     private static byte[] png(String imagen) {

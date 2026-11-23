@@ -504,6 +504,7 @@ class SecurityIntegrationTest {
         @ParameterizedTest(name = "{0} {1}")
         @CsvSource({
             "GET, /v1/api/persons",
+            "GET, /v1/api/work-orders/approval-start",
             "GET, /v1/api/countries",
             "GET, /v1/api/clients",
             "GET, /v1/api/brands",

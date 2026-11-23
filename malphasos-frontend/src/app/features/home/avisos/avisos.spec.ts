@@ -63,16 +63,16 @@ describe('Avisos', () => {
     expect(aviso!.ruta).toEqual(['/ordenes', 'o1']);
   });
 
-  it('no avisa de las órdenes ejecutadas antes de que existiera la aprobación: el historial cargado', () => {
+  it('ordena por el día de ejecución, la que más lleva esperando primero', () => {
+    // El historial cargado ya no llega: el servidor lo deja fuera por su corte (2026-11-22).
     const avisos = avisosDeOrdenes(
       [
-        { id: 'vieja', fechaMantenimiento: '2026-10-05' },
         {
           id: 'tardia',
           fechaMantenimiento: '2026-10-30',
-          documento: { fechaEjecucion: '2026-11-03' },
+          documento: { fechaEjecucion: '2026-11-08' },
         },
-        { id: 'nueva', fechaMantenimiento: '2026-11-02' },
+        { id: 'nueva', fechaMantenimiento: '2026-11-05' },
       ],
       new Map(),
     );
