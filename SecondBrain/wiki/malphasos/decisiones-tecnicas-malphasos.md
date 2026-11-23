@@ -1126,3 +1126,15 @@ en el informe; **las firmas del informe al pie de su última página**, no a con
 de historial en blanco** en la hoja de vida hasta las firmas, para anotar a mano lo que se haga fuera del
 sistema.
 
+## El resumen de la orden en .xlsx, provisional y aparte (2026-11-22, v1.2.1)
+
+El usuario pidió que el ZIP de los informes de una orden lleve también el resumen como hoja de cálculo,
+**provisionalmente**: un cliente lo necesita, y en el futuro lo hará una aplicación externa. Decidido con él:
+**.xlsx** —formato abierto, ISO/IEC 29500— y las columnas del PDF con la marca y el modelo separados y el
+cierre como fecha.
+
+**Se construyó para poder quitarlo**: un módulo propio, `orderworkbook`, enganchado por una interfaz del módulo
+de reportes, `WorkOrderArchiveExtension`, que el servicio usa solo si alguien la implementa. La librería es
+**fastexcel**, que solo escribe y pesa poco, frente a Apache POI. Cómo se retira, paso a paso, en
+[[piezas-provisionales]], que entró ese día como registro de todo lo que es así.
+

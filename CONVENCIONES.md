@@ -162,6 +162,19 @@ usable en una ventana estrecha y el corte de la aprobación como configuración,
 
 > **Corregido el 2026-09-27**: aquí se decía que los reportes eran lo siguiente «porque el módulo de órdenes ya emite los siete eventos que un reporte querría escuchar». Se construyeron, y **el reporte no escucha ninguno**: consulta la orden por su identificador. Los siete **siguen sin consumidor**, y ese argumento no justificaba nada.
 
+## Piezas provisionales
+
+**Hay código que está en MalphasOS sabiendo que se va a ir**: lo pidió un cliente para ya y su sitio
+definitivo es otro. Cada pieza vive **aparte**, detrás de una interfaz que el resto usa solo si alguien la
+implementa, y **su receta para retirarla está en [[piezas-provisionales]]** —
+`SecondBrain/wiki/malphasos/piezas-provisionales.md`—. Hoy hay una:
+
+- **El resumen de la orden en .xlsx dentro del ZIP** (2026-11-22, v1.2.1): el módulo `orderworkbook` y la
+  dependencia `fastexcel` del `pom.xml`, marcada PROVISIONAL. Se va cuando exista la aplicación externa que
+  lo haga.
+
+Antes de retirar una, o de añadir otra, se lee esa nota.
+
 ## Cómo se trabaja aquí
 
 **Micro-commits.** Una preocupación por commit, una rama por preocupación, siempre desde `main` actualizado. Merge con `--no-ff` y borrado de la rama. **El usuario revisa el diff antes de cada commit** — no commitear sin su visto bueno.
