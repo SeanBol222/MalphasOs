@@ -3237,3 +3237,13 @@ verifican**. Las decisiones, en [[decisiones-tecnicas-malphasos]]; la campanita 
 medidos borrando `target/surefire-reports` y `target/test-classes` antes. Se mutó el orden de la reactivación,
 la regla de los patrones y la de la aprobación: las tres pruebas fallan sin su regla.
 
+## [2026-11-22] ingest | El corte de la aprobación pasa al servidor
+
+Revisando si la carga de datos seguía bien tras `V59` y `V60` —lo está: `V60` la adaptó el mismo día, con
+`62bcdb5b`— apareció que el historial cargado salía «por aprobar» y que el frontend lo tapaba con una fecha
+fija que en el servidor en línea no serviría. El corte es ahora `APP_APPROVAL_SINCE`; ver
+[[decisiones-tecnicas-malphasos]], corregida.
+
+**1828** pruebas en el backend, **164** clases, cero fallos; **980** en el frontend. Se mutó el filtro del
+servidor y la regla de la pantalla: las dos tienen prueba que falla sin ellas.
+
