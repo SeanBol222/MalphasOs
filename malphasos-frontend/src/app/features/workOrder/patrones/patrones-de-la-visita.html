@@ -2,6 +2,10 @@
   <h2 id="patrones-visita" class="titulo-seccion">Patrones de la visita</h2>
   @if (cargando()) {
     <p class="mt-1 text-neutral-700" role="status">Cargando…</p>
+  } @else if (sinVerificables()) {
+    <p class="mt-1 text-neutral-700" data-sin-verificables>
+      Ningún equipo de la orden tiene verificación metrológica: no lleva patrones.
+    </p>
   } @else if (!filas().length) {
     <p class="mt-1 text-neutral-700">Se eligen por tipo de equipo cuando la orden tiene equipos.</p>
   } @else {
