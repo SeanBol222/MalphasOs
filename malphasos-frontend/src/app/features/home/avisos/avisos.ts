@@ -1,5 +1,6 @@
 import { Patron, OrdenDeTrabajo } from '../../../core/api/tipos';
 import { desdeIso, fechaCorta } from '../../../core/fechas';
+import { ejecutadaEl, esperaAprobacion } from '../../workOrder/aprobacion';
 
 /**
  * Los avisos de la campanita (2026-11-21, propuesta 2 de tres, elegida por el usuario sobre un
@@ -85,18 +86,6 @@ export function avisosDePatrones(patrones: readonly Patron[], hoy: Date): Aviso[
 }
 
 /**
- * Desde cuándo una orden sin aprobar es algo pendiente: el día que entró la aprobación (V54). Las
- * ejecutadas antes —el historial cargado de otro sistema, cientos— nunca pudieron aprobarse, y avisar de
- * ellas llenaba la campanita con 1158 avisos que nadie va a resolver (2026-11-21, decidido por el usuario).
- */
-export const DESDE_LA_APROBACION = '2026-11-02';
-
-/** El día en que se ejecutó, o el programado si la orden se congeló tarde y no lo sabe. */
-function ejecutadaEl(orden: OrdenDeTrabajo): string {
-  return orden.documento?.fechaEjecucion ?? orden.fechaMantenimiento ?? '';
-}
-
-/**
  * Las órdenes ejecutadas desde que existe la aprobación y que la esperan, la más antigua primero: es la
  * que más lleva esperando.
  */
@@ -105,7 +94,7 @@ export function avisosDeOrdenes(
   clientes: ReadonlyMap<string, string>,
 ): Aviso[] {
   return ordenes
-    .filter((orden) => ejecutadaEl(orden) >= DESDE_LA_APROBACION)
+    .filter(esperaAprobacion)
     .sort((a, b) => ejecutadaEl(a).localeCompare(ejecutadaEl(b)))
     .map((orden): Aviso => ({
       clave: `orden:${orden.id}`,

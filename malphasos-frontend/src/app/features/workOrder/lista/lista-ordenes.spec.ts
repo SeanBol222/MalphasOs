@@ -305,9 +305,9 @@ describe('Listado de órdenes de trabajo', () => {
   describe('Lo que falta por aprobar (V54)', () => {
     const URL_POR_APROBAR = `${URL_ORDENES}/pending-approval`;
     const EJECUTADAS = [
-      orden({ id: 'o1', fechaMantenimiento: '2026-10-01', estadoEjecucion: 'EJECUTADA' }),
-      orden({ id: 'o2', fechaMantenimiento: '2026-10-02', estadoEjecucion: 'EJECUTADA' }),
-      orden({ id: 'o3', fechaMantenimiento: '2026-10-03' }),
+      orden({ id: 'o1', fechaMantenimiento: '2026-11-03', estadoEjecucion: 'EJECUTADA' }),
+      orden({ id: 'o2', fechaMantenimiento: '2026-11-04', estadoEjecucion: 'EJECUTADA' }),
+      orden({ id: 'o3', fechaMantenimiento: '2026-11-05' }),
     ];
 
     async function abrirConAprobacion(pendientes: object[]): Promise<void> {
@@ -336,6 +336,24 @@ describe('Listado de órdenes de trabajo', () => {
       expect(o2.querySelector('[data-aprobacion]')!.className).toContain('font-bold');
       expect(celda(o1, 'data-aprobacion')).toBe('Aprobada');
       expect(o1.querySelector('[data-aprobacion]')!.className).not.toContain('font-bold');
+    });
+
+    it('las del historial, ejecutadas antes de la aprobación, ni cuentan por aprobar ni se dicen aprobadas', async () => {
+      const vieja = orden({
+        id: 'vieja',
+        fechaMantenimiento: '2026-10-01',
+        estadoEjecucion: 'EJECUTADA',
+      });
+      TestBed.resetTestingModule();
+      montar([...TODAS, 'work-order.approve']);
+      fixture.detectChanges();
+      await responderA(fixture, http, URL_POR_APROBAR, [EJECUTADAS[1], vieja]);
+      await abrir([...EJECUTADAS, vieja]);
+
+      expect(texto()).toContain('Por aprobar · 1');
+      pulsar('Ejecutadas');
+      const historica = filas().find((f) => f.getAttribute('data-orden') === 'vieja')!;
+      expect(historica.querySelector('[data-aprobacion]')).toBeNull();
     });
 
     it('una orden sin ejecutar no dice nada de aprobación', async () => {
