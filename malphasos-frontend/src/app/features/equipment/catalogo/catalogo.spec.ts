@@ -48,7 +48,7 @@ describe('Catálogo de equipos', () => {
     expect(texto(raiz)).toContain('Tipos de equipo');
   });
 
-  it('se describe en una línea, y en un teléfono el título y las pestañas no se parten (2026-11-20)', async () => {
+  it('se describe en una línea, el título no se parte en un teléfono y las pestañas nunca (2026-11-22)', async () => {
     const raiz = await abrir('/catalogo/tipos');
 
     expect(texto(raiz)).toContain('Configuración común a todos los clientes.');
@@ -56,9 +56,11 @@ describe('Catálogo de equipos', () => {
     // de pruebas no tiene: lo que se fija es que las clases estén puestas.
     expect(raiz.querySelector('h1')!.className).toContain('max-md:whitespace-nowrap');
     const fila = raiz.querySelector('nav[aria-label="Piezas del catálogo"]')!;
-    expect(fila.className).toContain('max-md:overflow-x-auto');
-    expect(fila.querySelector('ul')!.className).toContain('flex-nowrap');
-    // Y en escritorio se reparten todo el ancho del recuadro.
+    // Una sola fila con su barra también en escritorio: en una ventana estrecha se partía en tres.
+    expect(fila.classList).toContain('overflow-x-auto');
+    expect(fila.querySelector('ul')!.className).not.toContain('flex-wrap');
+    expect(fila.querySelector('ul')!.classList).toContain('flex-nowrap');
+    // Y en escritorio, si caben, se reparten todo el ancho del recuadro.
     expect(fila.querySelector('li')!.className).toContain('md:flex-1');
   });
 

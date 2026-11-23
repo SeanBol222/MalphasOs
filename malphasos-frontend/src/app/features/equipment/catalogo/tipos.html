@@ -29,165 +29,178 @@
       [cuantos]="visibles().length"
       (invertir)="invertirOrden()"
     />
-    <table class="tabla tabla-tarjetas mt-2">
-      <caption class="sr-only">
-        Tipos de equipo
-      </caption>
-      <thead>
-        <tr>
-          <th
-            scope="col"
-            app-columna-ordenable
-            etiqueta="Tipo"
-            [sentido]="sentido()"
-            (invertir)="invertirOrden()"
-          ></th>
-          <th scope="col">Verificación</th>
-          <th scope="col">Protocolo preventivo</th>
-          <th scope="col" class="text-right">Modelos</th>
-          @if (puedeEscribir()) {
-            <th scope="col"><span class="sr-only">Acciones</span></th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (tipo of visibles(); track tipo.id) {
-          @let detalle = detalles().get(tipo.id);
-          <tr [attr.data-tipo]="tipo.id">
-            <td>
-              <span class="block" [class.font-bold]="tipo.estadoActivo">{{ tipo.nombre }}</span
-              >&ngsp;<span class="block text-sm text-neutral-700">
-                {{ tipo.tecnologiaPredominante }}{{ tipo.estadoActivo ? '' : ' · Retirado' }}
-              </span>
-            </td>
-            <!--
-              Se resume que se le mide y en que unidad, no «la» modalidad: un termohigrometro tiene dos,
-              y una sola etiqueta tendria que mentir sobre una de las dos.
-            -->
-            <td data-etiqueta="Verificación">
-              {{ tipo.verificaciones?.length ? resumenDeVerificaciones(tipo) : 'Sin verificación' }}
-            </td>
-            <td data-etiqueta="Protocolo">
-              @if (detalle?.pasos) {
-                <span class="block font-bold"
-                  >{{ detalle!.pasos }} {{ detalle!.pasos === 1 ? 'paso' : 'pasos' }}</span
-                >&ngsp;<span class="block text-sm text-neutral-700">{{ detalle!.primero }}</span>
-              } @else {
-                <span class="block">Sin protocolo</span>&ngsp;<span
-                  class="block text-sm text-neutral-700"
-                  >Los preventivos se llenan con texto libre</span
-                >
-              }
-            </td>
-            <td data-etiqueta="Modelos" class="text-right font-bold tabular-nums">
-              {{ detalle?.modelos ?? 0 }}
-            </td>
+    <!--
+      En una ventana estrecha la tabla no cabe y se salia de la pantalla: se desplaza de lado dentro
+      de su caja, con su barra (2026-11-22, pedido por el usuario). En un telefono es tarjetas.
+    -->
+    <div
+      class="mt-2 overflow-x-auto"
+      role="region"
+      aria-label="Tipos de equipo, se desplaza de lado"
+      tabindex="0"
+    >
+      <table class="tabla tabla-tarjetas md:min-w-[52rem]">
+        <caption class="sr-only">
+          Tipos de equipo
+        </caption>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              app-columna-ordenable
+              etiqueta="Tipo"
+              [sentido]="sentido()"
+              (invertir)="invertirOrden()"
+            ></th>
+            <th scope="col">Verificación</th>
+            <th scope="col">Protocolo preventivo</th>
+            <th scope="col" class="text-right">Modelos</th>
             @if (puedeEscribir()) {
-              <td data-acciones class="whitespace-nowrap text-right">
-                <!--
-                  Mientras se confirma el retiro, la fila solo enseña la pregunta: con Editar,
-                  Verificación y Patrones al lado se comprimía (2026-11-20, pedido por el usuario).
-                -->
-                @if (confirmandoRetiro() !== tipo.id) {
-                  <a
-                    class="inline-flex min-h-tactil items-center px-1 font-bold underline"
-                    [routerLink]="['/catalogo/tipos', tipo.id, 'editar']"
-                    [attr.aria-label]="'Editar ' + tipo.nombre"
-                  >
-                    Editar
-                  </a>
-                  <button
-                    class="min-h-tactil px-1 font-bold underline"
-                    type="button"
-                    [attr.aria-label]="'Verificación de ' + tipo.nombre"
-                    (click)="empezarACambiar(tipo)"
-                  >
-                    Verificación
-                  </button>
-                  @if (tipo.estadoActivo && tipo.verificaciones?.length) {
-                    <a
-                      class="inline-flex min-h-tactil items-center px-1 font-bold underline"
-                      [routerLink]="['/catalogo/tipos', tipo.id, 'patrones']"
-                      [attr.aria-label]="'Patrones de ' + tipo.nombre"
-                    >
-                      Patrones
-                    </a>
-                  }
-                }
-                <!-- Retirar pregunta antes: ninguna pantalla devuelve un tipo retirado. -->
-                @if (tipo.estadoActivo) {
-                  @if (confirmandoRetiro() === tipo.id) {
-                    <span class="font-semibold md:mr-2" role="alert"
-                      >¿Seguro que quiere retirar?</span
-                    >
-                    <button
-                      data-confirmar-retiro
-                      class="boton-primario min-h-tactil"
-                      type="button"
-                      [disabled]="baja.isPending()"
-                      (click)="retirar(tipo.id!)"
-                    >
-                      Retirar
-                    </button>
-                    <button
-                      class="min-h-tactil px-1 underline"
-                      type="button"
-                      (click)="confirmandoRetiro.set(null)"
-                    >
-                      Cancelar
-                    </button>
-                  } @else {
-                    <button
-                      class="min-h-tactil px-1 underline"
-                      type="button"
-                      [attr.aria-label]="'Retirar ' + tipo.nombre"
-                      (click)="confirmandoRetiro.set(tipo.id!)"
-                    >
-                      Retirar
-                    </button>
-                  }
-                }
-              </td>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
             }
           </tr>
-
-          @if (cambiando() === tipo.id) {
-            <!--
-              El mismo bloque que el alta: cuantas verificaciones, y cada una con su magnitud, su unidad,
-              su modalidad, sus lecturas por punto y sus valores. Tenerlo en un solo componente es lo que
-              evita que las dos pantallas se desvien.
-            -->
-            <tr>
-              <td colspan="5" class="bg-neutral-100">
-                <div class="border-l-2 border-ink p-2">
-                  <app-verificacion
-                    [inicial]="configuracionGuardada()"
-                    (cambio)="configuracion.set($event)"
-                  />
-
-                  <div class="flex flex-wrap gap-2">
-                    <button
-                      class="boton-primario min-h-tactil"
-                      type="button"
-                      [disabled]="cambioDeVerificaciones.isPending()"
-                      (click)="declararVerificaciones(tipo.id!)"
-                    >
-                      {{ cambioDeVerificaciones.isPending() ? 'Guardando…' : 'Guardar' }}
-                    </button>
-                    <button
-                      class="boton-secundario min-h-tactil"
-                      type="button"
-                      (click)="cambiando.set(null)"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
+        </thead>
+        <tbody>
+          @for (tipo of visibles(); track tipo.id) {
+            @let detalle = detalles().get(tipo.id);
+            <tr [attr.data-tipo]="tipo.id">
+              <td>
+                <span class="block" [class.font-bold]="tipo.estadoActivo">{{ tipo.nombre }}</span
+                >&ngsp;<span class="block text-sm text-neutral-700">
+                  {{ tipo.tecnologiaPredominante }}{{ tipo.estadoActivo ? '' : ' · Retirado' }}
+                </span>
               </td>
+              <!--
+                Se resume que se le mide y en que unidad, no «la» modalidad: un termohigrometro tiene dos,
+                y una sola etiqueta tendria que mentir sobre una de las dos.
+              -->
+              <td data-etiqueta="Verificación">
+                {{
+                  tipo.verificaciones?.length ? resumenDeVerificaciones(tipo) : 'Sin verificación'
+                }}
+              </td>
+              <td data-etiqueta="Protocolo">
+                @if (detalle?.pasos) {
+                  <span class="block font-bold"
+                    >{{ detalle!.pasos }} {{ detalle!.pasos === 1 ? 'paso' : 'pasos' }}</span
+                  >&ngsp;<span class="block text-sm text-neutral-700">{{ detalle!.primero }}</span>
+                } @else {
+                  <span class="block">Sin protocolo</span>&ngsp;<span
+                    class="block text-sm text-neutral-700"
+                    >Los preventivos se llenan con texto libre</span
+                  >
+                }
+              </td>
+              <td data-etiqueta="Modelos" class="text-right font-bold tabular-nums">
+                {{ detalle?.modelos ?? 0 }}
+              </td>
+              @if (puedeEscribir()) {
+                <td data-acciones class="whitespace-nowrap text-right">
+                  <!--
+                    Mientras se confirma el retiro, la fila solo enseña la pregunta: con Editar,
+                    Verificación y Patrones al lado se comprimía (2026-11-20, pedido por el usuario).
+                  -->
+                  @if (confirmandoRetiro() !== tipo.id) {
+                    <a
+                      class="inline-flex min-h-tactil items-center px-1 font-bold underline"
+                      [routerLink]="['/catalogo/tipos', tipo.id, 'editar']"
+                      [attr.aria-label]="'Editar ' + tipo.nombre"
+                    >
+                      Editar
+                    </a>
+                    <button
+                      class="min-h-tactil px-1 font-bold underline"
+                      type="button"
+                      [attr.aria-label]="'Verificación de ' + tipo.nombre"
+                      (click)="empezarACambiar(tipo)"
+                    >
+                      Verificación
+                    </button>
+                    @if (tipo.estadoActivo && tipo.verificaciones?.length) {
+                      <a
+                        class="inline-flex min-h-tactil items-center px-1 font-bold underline"
+                        [routerLink]="['/catalogo/tipos', tipo.id, 'patrones']"
+                        [attr.aria-label]="'Patrones de ' + tipo.nombre"
+                      >
+                        Patrones
+                      </a>
+                    }
+                  }
+                  <!-- Retirar pregunta antes: ninguna pantalla devuelve un tipo retirado. -->
+                  @if (tipo.estadoActivo) {
+                    @if (confirmandoRetiro() === tipo.id) {
+                      <span class="font-semibold md:mr-2" role="alert"
+                        >¿Seguro que quiere retirar?</span
+                      >
+                      <button
+                        data-confirmar-retiro
+                        class="boton-primario min-h-tactil"
+                        type="button"
+                        [disabled]="baja.isPending()"
+                        (click)="retirar(tipo.id!)"
+                      >
+                        Retirar
+                      </button>
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        (click)="confirmandoRetiro.set(null)"
+                      >
+                        Cancelar
+                      </button>
+                    } @else {
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        [attr.aria-label]="'Retirar ' + tipo.nombre"
+                        (click)="confirmandoRetiro.set(tipo.id!)"
+                      >
+                        Retirar
+                      </button>
+                    }
+                  }
+                </td>
+              }
             </tr>
+
+            @if (cambiando() === tipo.id) {
+              <!--
+                El mismo bloque que el alta: cuantas verificaciones, y cada una con su magnitud, su unidad,
+                su modalidad, sus lecturas por punto y sus valores. Tenerlo en un solo componente es lo que
+                evita que las dos pantallas se desvien.
+              -->
+              <tr>
+                <td colspan="5" class="bg-neutral-100">
+                  <div class="border-l-2 border-ink p-2">
+                    <app-verificacion
+                      [inicial]="configuracionGuardada()"
+                      (cambio)="configuracion.set($event)"
+                    />
+
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        class="boton-primario min-h-tactil"
+                        type="button"
+                        [disabled]="cambioDeVerificaciones.isPending()"
+                        (click)="declararVerificaciones(tipo.id!)"
+                      >
+                        {{ cambioDeVerificaciones.isPending() ? 'Guardando…' : 'Guardar' }}
+                      </button>
+                      <button
+                        class="boton-secundario min-h-tactil"
+                        type="button"
+                        (click)="cambiando.set(null)"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
           }
-        }
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   }
 </section>

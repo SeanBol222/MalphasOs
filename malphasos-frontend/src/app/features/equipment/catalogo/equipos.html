@@ -80,72 +80,83 @@
       [cuantos]="visibles().length"
       (invertir)="invertirOrden()"
     />
-    <table class="tabla tabla-tarjetas mt-2">
-      <caption class="sr-only">
-        Equipos del catálogo
-      </caption>
-      <thead>
-        <tr>
-          <th
-            scope="col"
-            app-columna-ordenable
-            etiqueta="Tipo"
-            [sentido]="sentido()"
-            (invertir)="invertirOrden()"
-          ></th>
-          <th scope="col">Marca</th>
-          @if (puedeEscribir()) {
-            <th scope="col"><span class="sr-only">Acciones</span></th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (fila of visibles(); track fila.id) {
-          <tr [attr.data-equipo]="fila.id">
-            <td [class.font-bold]="fila.estadoActivo">
-              {{ fila.tipo }}{{ fila.estadoActivo ? '' : ' · Retirado' }}
-            </td>
-            <td data-etiqueta="Marca">{{ fila.marca }}</td>
+    <!--
+      En una ventana estrecha la tabla no cabe y se salia de la pantalla: se desplaza de lado dentro
+      de su caja, con su barra (2026-11-22, pedido por el usuario). En un telefono es tarjetas.
+    -->
+    <div
+      class="mt-2 overflow-x-auto"
+      role="region"
+      aria-label="Equipos del catálogo, se desplaza de lado"
+      tabindex="0"
+    >
+      <table class="tabla tabla-tarjetas">
+        <caption class="sr-only">
+          Equipos del catálogo
+        </caption>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              app-columna-ordenable
+              etiqueta="Tipo"
+              [sentido]="sentido()"
+              (invertir)="invertirOrden()"
+            ></th>
+            <th scope="col">Marca</th>
             @if (puedeEscribir()) {
-              <td data-acciones class="text-right whitespace-nowrap">
-                @if (fila.estadoActivo) {
-                  <!-- Retirar pregunta antes: ninguna pantalla lo devuelve. -->
-                  @if (confirmandoRetiro() === fila.id) {
-                    <span class="font-semibold md:mr-2" role="alert"
-                      >¿Seguro que quiere retirar?</span
-                    >
-                    <button
-                      data-confirmar-retiro
-                      class="boton-primario min-h-tactil"
-                      type="button"
-                      [disabled]="baja.isPending()"
-                      (click)="retirar(fila.id)"
-                    >
-                      Retirar
-                    </button>
-                    <button
-                      class="min-h-tactil px-1 underline"
-                      type="button"
-                      (click)="confirmandoRetiro.set(null)"
-                    >
-                      Cancelar
-                    </button>
-                  } @else {
-                    <button
-                      class="min-h-tactil px-1 underline"
-                      type="button"
-                      [attr.aria-label]="'Retirar ' + fila.tipo + ' ' + fila.marca"
-                      (click)="confirmandoRetiro.set(fila.id)"
-                    >
-                      Retirar
-                    </button>
-                  }
-                }
-              </td>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
             }
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (fila of visibles(); track fila.id) {
+            <tr [attr.data-equipo]="fila.id">
+              <td [class.font-bold]="fila.estadoActivo">
+                {{ fila.tipo }}{{ fila.estadoActivo ? '' : ' · Retirado' }}
+              </td>
+              <td data-etiqueta="Marca">{{ fila.marca }}</td>
+              @if (puedeEscribir()) {
+                <td data-acciones class="text-right whitespace-nowrap">
+                  @if (fila.estadoActivo) {
+                    <!-- Retirar pregunta antes: ninguna pantalla lo devuelve. -->
+                    @if (confirmandoRetiro() === fila.id) {
+                      <span class="font-semibold md:mr-2" role="alert"
+                        >¿Seguro que quiere retirar?</span
+                      >
+                      <button
+                        data-confirmar-retiro
+                        class="boton-primario min-h-tactil"
+                        type="button"
+                        [disabled]="baja.isPending()"
+                        (click)="retirar(fila.id)"
+                      >
+                        Retirar
+                      </button>
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        (click)="confirmandoRetiro.set(null)"
+                      >
+                        Cancelar
+                      </button>
+                    } @else {
+                      <button
+                        class="min-h-tactil px-1 underline"
+                        type="button"
+                        [attr.aria-label]="'Retirar ' + fila.tipo + ' ' + fila.marca"
+                        (click)="confirmandoRetiro.set(fila.id)"
+                      >
+                        Retirar
+                      </button>
+                    }
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </section>

@@ -12,17 +12,16 @@
 
     En un telefono (2026-11-20) las siete van en una sola fila que se desliza de lado, con el numero al
     lado del nombre: envueltas ocupaban cuatro filas antes del contenido. La fila sale hasta los bordes
-    del recuadro, y la ultima pestaña cortada en el borde dice que hay mas.
+    del recuadro, y la ultima pestaña cortada en el borde dice que hay mas. Y en escritorio igual
+    (2026-11-22, pedido por el usuario): en una ventana estrecha se partian en tres filas, y ahora la
+    fila es una sola que se desplaza de lado con su barra.
   -->
-  <nav
-    aria-label="Piezas del catálogo"
-    class="mt-2 max-md:-mx-3 max-md:overflow-x-auto max-md:px-1.5"
-  >
-    <ul class="flex list-none flex-nowrap md:flex-wrap">
+  <nav aria-label="Piezas del catálogo" class="mt-2 overflow-x-auto max-md:-mx-3 max-md:px-1.5">
+    <ul class="flex list-none flex-nowrap">
       @for (pieza of piezas; track pieza.ruta) {
         <!--
           En escritorio (2026-11-20) las pestañas se reparten todo el ancho del recuadro: cada una crece
-          por igual. Si no caben en una fila, cada fila sigue llenando el ancho.
+          por igual, y sin bajar de su ancho minimo: si no caben, la fila se desplaza.
         -->
         <li class="md:flex-1">
           <a

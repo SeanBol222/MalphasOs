@@ -69,113 +69,124 @@
       [cuantos]="visibles().length"
       (invertir)="invertirOrden()"
     />
-    <table class="tabla tabla-tarjetas mt-2">
-      <caption class="sr-only">
-        Marcas del catálogo
-      </caption>
-      <thead>
-        <tr>
-          <th
-            scope="col"
-            app-columna-ordenable
-            etiqueta="Marca"
-            [sentido]="sentido()"
-            (invertir)="invertirOrden()"
-          ></th>
-          <th scope="col">Estado</th>
-          @if (puedeEscribir()) {
-            <th scope="col"><span class="sr-only">Acciones</span></th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (marca of visibles(); track marca.id) {
-          <tr [attr.data-marca]="marca.id">
-            @if (renombrando() === marca.id) {
-              <td colspan="3">
-                <div class="flex flex-wrap items-center gap-2">
-                  <label class="sr-only" [attr.for]="'marca-' + marca.id">
-                    Nuevo nombre de la marca
-                  </label>
-                  <input
-                    class="campo min-h-tactil grow"
-                    [id]="'marca-' + marca.id"
-                    [formControl]="nombreEditado"
-                    maxlength="50"
-                  />
-                  <button
-                    class="boton-primario min-h-tactil"
-                    type="button"
-                    [disabled]="cambio.isPending()"
-                    (click)="renombrar(marca.id!)"
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    class="boton-secundario min-h-tactil"
-                    type="button"
-                    (click)="renombrando.set(null)"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </td>
-            } @else {
-              <!-- La retirada se distingue por peso, no por color: es lo que pide el manual. -->
-              <td [class.font-bold]="marca.estadoActivo">{{ marca.nombre }}</td>
-              <td data-etiqueta="Estado">{{ marca.estadoActivo ? 'Activa' : 'Retirada' }}</td>
-              @if (puedeEscribir()) {
-                <td data-acciones class="text-right whitespace-nowrap">
-                  <!-- Mientras se confirma el retiro, la fila solo enseña la pregunta. -->
-                  @if (confirmandoRetiro() !== marca.id) {
-                    <button
-                      class="min-h-tactil px-1 font-bold underline"
-                      type="button"
-                      [attr.aria-label]="'Renombrar ' + marca.nombre"
-                      (click)="empezarARenombrar(marca.id!, marca.nombre)"
-                    >
-                      Renombrar
-                    </button>
-                  }
-                  <!-- Retirar pregunta antes: ninguna pantalla devuelve una marca retirada. -->
-                  @if (marca.estadoActivo) {
-                    @if (confirmandoRetiro() === marca.id) {
-                      <span class="font-semibold md:mr-2" role="alert"
-                        >¿Seguro que quiere retirar?</span
-                      >
-                      <button
-                        data-confirmar-retiro
-                        class="boton-primario min-h-tactil"
-                        type="button"
-                        [disabled]="baja.isPending()"
-                        (click)="retirar(marca.id!)"
-                      >
-                        Retirar
-                      </button>
-                      <button
-                        class="min-h-tactil px-1 underline"
-                        type="button"
-                        (click)="confirmandoRetiro.set(null)"
-                      >
-                        Cancelar
-                      </button>
-                    } @else {
-                      <button
-                        class="min-h-tactil px-1 underline"
-                        type="button"
-                        [attr.aria-label]="'Retirar ' + marca.nombre"
-                        (click)="confirmandoRetiro.set(marca.id!)"
-                      >
-                        Retirar
-                      </button>
-                    }
-                  }
-                </td>
-              }
+    <!--
+      En una ventana estrecha la tabla no cabe y se salia de la pantalla: se desplaza de lado dentro
+      de su caja, con su barra (2026-11-22, pedido por el usuario). En un telefono es tarjetas.
+    -->
+    <div
+      class="mt-2 overflow-x-auto"
+      role="region"
+      aria-label="Marcas, se desplaza de lado"
+      tabindex="0"
+    >
+      <table class="tabla tabla-tarjetas">
+        <caption class="sr-only">
+          Marcas del catálogo
+        </caption>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              app-columna-ordenable
+              etiqueta="Marca"
+              [sentido]="sentido()"
+              (invertir)="invertirOrden()"
+            ></th>
+            <th scope="col">Estado</th>
+            @if (puedeEscribir()) {
+              <th scope="col"><span class="sr-only">Acciones</span></th>
             }
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (marca of visibles(); track marca.id) {
+            <tr [attr.data-marca]="marca.id">
+              @if (renombrando() === marca.id) {
+                <td colspan="3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <label class="sr-only" [attr.for]="'marca-' + marca.id">
+                      Nuevo nombre de la marca
+                    </label>
+                    <input
+                      class="campo min-h-tactil grow"
+                      [id]="'marca-' + marca.id"
+                      [formControl]="nombreEditado"
+                      maxlength="50"
+                    />
+                    <button
+                      class="boton-primario min-h-tactil"
+                      type="button"
+                      [disabled]="cambio.isPending()"
+                      (click)="renombrar(marca.id!)"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      class="boton-secundario min-h-tactil"
+                      type="button"
+                      (click)="renombrando.set(null)"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </td>
+              } @else {
+                <!-- La retirada se distingue por peso, no por color: es lo que pide el manual. -->
+                <td [class.font-bold]="marca.estadoActivo">{{ marca.nombre }}</td>
+                <td data-etiqueta="Estado">{{ marca.estadoActivo ? 'Activa' : 'Retirada' }}</td>
+                @if (puedeEscribir()) {
+                  <td data-acciones class="text-right whitespace-nowrap">
+                    <!-- Mientras se confirma el retiro, la fila solo enseña la pregunta. -->
+                    @if (confirmandoRetiro() !== marca.id) {
+                      <button
+                        class="min-h-tactil px-1 font-bold underline"
+                        type="button"
+                        [attr.aria-label]="'Renombrar ' + marca.nombre"
+                        (click)="empezarARenombrar(marca.id!, marca.nombre)"
+                      >
+                        Renombrar
+                      </button>
+                    }
+                    <!-- Retirar pregunta antes: ninguna pantalla devuelve una marca retirada. -->
+                    @if (marca.estadoActivo) {
+                      @if (confirmandoRetiro() === marca.id) {
+                        <span class="font-semibold md:mr-2" role="alert"
+                          >¿Seguro que quiere retirar?</span
+                        >
+                        <button
+                          data-confirmar-retiro
+                          class="boton-primario min-h-tactil"
+                          type="button"
+                          [disabled]="baja.isPending()"
+                          (click)="retirar(marca.id!)"
+                        >
+                          Retirar
+                        </button>
+                        <button
+                          class="min-h-tactil px-1 underline"
+                          type="button"
+                          (click)="confirmandoRetiro.set(null)"
+                        >
+                          Cancelar
+                        </button>
+                      } @else {
+                        <button
+                          class="min-h-tactil px-1 underline"
+                          type="button"
+                          [attr.aria-label]="'Retirar ' + marca.nombre"
+                          (click)="confirmandoRetiro.set(marca.id!)"
+                        >
+                          Retirar
+                        </button>
+                      }
+                    }
+                  </td>
+                }
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </section>
