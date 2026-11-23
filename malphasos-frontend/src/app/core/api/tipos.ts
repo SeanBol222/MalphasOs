@@ -205,6 +205,9 @@ export interface ConsultaDeEquipos {
 
 /** Una linea del historial: la cuarta seccion de la hoja de vida, que se escribe sola al cerrar un reporte. */
 export type Intervencion = equipos['schemas']['InterventionResponse'];
+/** Lo que otra empresa le hizo a un equipo (V61). */
+export type IntervencionExterna = equipos['schemas']['ExternalInterventionResponse'];
+export type NuevaIntervencionExterna = equipos['schemas']['ExternalInterventionRequest'];
 
 /** Las tres modalidades de verificacion, en el orden en que el esquema las declara. */
 export const MODALIDADES_DE_VERIFICACION: readonly ModalidadDeVerificacion[] = [
