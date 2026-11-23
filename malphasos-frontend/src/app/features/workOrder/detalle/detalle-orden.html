@@ -200,7 +200,11 @@
                       {{ equipo.reporte }}
                     </span>
 
-                    <div class="flex flex-wrap gap-1">
+                    <!--
+                      Pegado a la derecha (2026-11-22, pedido por el usuario): en una ventana estrecha o
+                      un teléfono la fila se parte y el botón caía a la izquierda, bajo el nombre.
+                    -->
+                    <div class="ml-auto flex flex-wrap justify-end gap-1">
                       @if (equipo.idReporte) {
                         <a
                           class="boton-secundario flex min-h-tactil items-center text-sm"
