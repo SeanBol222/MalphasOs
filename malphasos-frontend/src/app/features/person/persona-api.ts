@@ -124,6 +124,18 @@ export class PersonaApi {
     }));
   }
 
+  /**
+   * Vuelve a activar a una persona retirada (2026-11-22, pedido por el usuario), y a su cuenta de
+   * Keycloak si la tiene, con la contraseña de antes. Es lo contrario de {@link retirar}.
+   */
+  reactivar() {
+    return injectMutation(() => ({
+      mutationFn: (id: string) =>
+        firstValueFrom(this.http.patch<Persona>(`${this.url}/${id}/reactivation`, null)),
+      onSuccess: () => this.invalidar(),
+    }));
+  }
+
   // --- Correos y telefonos: sub-recursos con sus propias rutas -----------------
 
   /**

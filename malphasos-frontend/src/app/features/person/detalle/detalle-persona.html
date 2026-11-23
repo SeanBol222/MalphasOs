@@ -66,6 +66,22 @@
             </button>
           }
         }
+
+        <!--
+          Una persona retirada no se edita, pero se puede reactivar (2026-11-22, pedido por el
+          usuario): vuelve la ficha y, si tiene cuenta, su acceso con la contraseña de antes. La misma
+          escalera que retirar.
+        -->
+        @if (puedeEscribir() && !datos.estadoActivo) {
+          <button
+            class="boton-primario min-h-tactil"
+            type="button"
+            [disabled]="reactivacion.isPending()"
+            (click)="reactivar()"
+          >
+            Reactivar
+          </button>
+        }
       </div>
     </div>
 
