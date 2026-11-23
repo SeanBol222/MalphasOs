@@ -47,7 +47,7 @@ class RealmAuthorityContractTest {
     }
 
     @Test
-    @DisplayName("el grupo de administradores trae admin.full y las diecinueve autoridades de recurso")
+    @DisplayName("el grupo de administradores trae admin.full y todas las autoridades de recurso")
     void elGrupoDeAdministradoresLoTraeTodo() {
         Set<String> esperado = new LinkedHashSet<>(ApiAuthority.RESOURCE_AUTHORITIES);
         esperado.add(ApiAuthority.ADMIN_FULL);
@@ -85,6 +85,8 @@ class RealmAuthorityContractTest {
                         ApiAuthority.EQUIPMENT_READ,
                         ApiAuthority.EQUIPMENT_WRITE,
                         ApiAuthority.EQUIPMENT_ASSIGN,
+                        // Anota lo que otra empresa le hizo a un equipo (V61).
+                        ApiAuthority.EQUIPMENT_HISTORY_WRITE,
                         ApiAuthority.WORK_ORDER_READ,
                         ApiAuthority.WORK_ORDER_WRITE,
                         ApiAuthority.WORK_ORDER_ASSIGN,
@@ -97,7 +99,7 @@ class RealmAuthorityContractTest {
     }
 
     @Test
-    @DisplayName("el grupo de clientes solo lee, y solo lo suyo")
+    @DisplayName("el grupo de clientes lee lo suyo, aprueba sus órdenes y anota lo que otros le hicieron a sus equipos")
     void elPerfilDelCliente() {
         assertThat(RealmFixture.rolesDelGrupo("clients"))
                 .containsExactlyInAnyOrder(
@@ -107,6 +109,9 @@ class RealmAuthorityContractTest {
                         ApiAuthority.WORK_ORDER_READ,
                         // Su supervisor aprueba sus ordenes ejecutadas, sin poder tocarlas (V54).
                         ApiAuthority.WORK_ORDER_APPROVE,
+                        // Anota la calibración que su cliente contrató con otra empresa, en sus equipos
+                        // y en nada más del equipo (V61, decidido por el usuario).
+                        ApiAuthority.EQUIPMENT_HISTORY_WRITE,
                         // El cliente lee los reportes de sus equipos; llenarlos no es suyo.
                         ApiAuthority.REPORT_READ);
     }
@@ -127,5 +132,7 @@ class RealmAuthorityContractTest {
         // report.write no esta en la lista de vedadas a proposito: el ingeniero si la tiene, porque
         // llenar el reporte es su oficio. El cliente no, y eso se comprueba aparte.
         assertThat(RealmFixture.rolesDelGrupo("clients")).doesNotContain(ApiAuthority.REPORT_WRITE);
+        // Anotar el historial externo no es editar el equipo (V61): el cliente sigue sin equipment.write.
+        assertThat(RealmFixture.rolesDelGrupo("clients")).doesNotContain(ApiAuthority.EQUIPMENT_WRITE);
     }
 }

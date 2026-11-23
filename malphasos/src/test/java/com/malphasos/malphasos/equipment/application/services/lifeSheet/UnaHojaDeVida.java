@@ -5,6 +5,8 @@ import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheetPrint;
+import com.malphasos.malphasos.equipment.domain.externalIntervention.ExternalIntervention;
+import com.malphasos.malphasos.equipment.domain.externalIntervention.ExternalServiceType;
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
@@ -34,6 +36,7 @@ public class UnaHojaDeVida {
     private int pasos = 2;
     private BigDecimal voltaje = new BigDecimal("110");
     private final List<Intervention> historial = new ArrayList<>();
+    private final List<ExternalIntervention> externas = new ArrayList<>();
     private Optional<ServiceCompany> empresa = Optional.of(empresa(null));
     private String foto;
 
@@ -55,8 +58,20 @@ public class UnaHojaDeVida {
 
     /** Intervenciones de la más reciente a la más antigua, como las manda el servidor. */
     public UnaHojaDeVida con(InterventionResult resultado, LocalDate fecha) {
-        historial.add(new Intervention(ID, UUID.randomUUID(), fecha.atTime(9, 0),
+        return con(UUID.randomUUID(), resultado, fecha);
+    }
+
+    /** Con el reporte dado, para saber qué número imprime. */
+    public UnaHojaDeVida con(UUID reporte, InterventionResult resultado, LocalDate fecha) {
+        historial.add(new Intervention(ID, reporte, fecha.atTime(9, 0),
                 InterventionType.PREVENTIVO, resultado, "Limpieza y verificación eléctrica", "Ada Lovelace"));
+        return this;
+    }
+
+    /** Lo que otra empresa le hizo al equipo (V61), con o sin resultado. */
+    public UnaHojaDeVida conExterna(ExternalServiceType tipo, InterventionResult resultado, LocalDate fecha) {
+        externas.add(ExternalIntervention.rehydrate(UUID.randomUUID(), ID, fecha, tipo, "Calibración de masa",
+                "Metrología S.A.S.", resultado, "CAL-2026-118", fecha.atTime(18, 0), true));
         return this;
     }
 
@@ -96,7 +111,8 @@ public class UnaHojaDeVida {
                                         i == 1 ? "Alcohol isopropílico" : null))
                                 .toList()),
                 new LifeSheet.Fabricante("Kern & Sohn", "Alemania"),
-                List.copyOf(historial));
+                List.copyOf(historial),
+                List.copyOf(externas));
     }
 
     public Optional<ServiceCompany> empresa() {

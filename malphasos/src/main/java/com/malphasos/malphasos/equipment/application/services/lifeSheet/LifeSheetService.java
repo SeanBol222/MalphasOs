@@ -15,6 +15,7 @@ import com.malphasos.malphasos.equipment.application.ports.input.BrandServicePor
 import com.malphasos.malphasos.equipment.application.ports.input.ClientEquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.EquipmentTypeServicePort;
+import com.malphasos.malphasos.equipment.application.ports.input.ExternalInterventionServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.InterventionServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.ManufacturerServicePort;
@@ -64,6 +65,7 @@ public class LifeSheetService implements LifeSheetServicePort {
     private final BrandServicePort brandServicePort;
     private final ManufacturerServicePort manufacturerServicePort;
     private final InterventionServicePort interventionServicePort;
+    private final ExternalInterventionServicePort externalInterventionServicePort;
     private final ServiceAreaServicePort serviceAreaServicePort;
     private final HeadquarterServicePort headquarterServicePort;
     private final ClientServicePort clientServicePort;
@@ -141,7 +143,9 @@ public class LifeSheetService implements LifeSheetServicePort {
                 // La cuarta seccion, y la unica que sale de los reportes. Se pide con el alcance
                 // original aunque ya se sepa que el equipo es visible: asi esta llamada sigue siendo
                 // correcta si algun dia se usa desde otro sitio.
-                interventionServicePort.findByEquipment(idEquipoCliente, alcance));
+                interventionServicePort.findByEquipment(idEquipoCliente, alcance),
+                // Lo que otras empresas le hicieron (V61): se mezcla con lo de los reportes por fecha.
+                externalInterventionServicePort.findByEquipment(idEquipoCliente, alcance));
     }
 
     /**

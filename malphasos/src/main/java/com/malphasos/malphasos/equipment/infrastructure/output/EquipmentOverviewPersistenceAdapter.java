@@ -39,19 +39,36 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EquipmentOverviewPersistenceAdapter implements EquipmentOverviewPersistencePort {
 
+    /**
+     * El último servicio de cada equipo y cómo quedó (V61, 2026-11-23): lo de sus reportes cerrados y lo que le
+     * hicieron otras empresas, juntos. La fecha es la más reciente de las dos; el resultado, el de la más
+     * reciente que lo dice, porque una externa puede no saberlo y no por eso el equipo deja de tener estado.
+     * Una externa cuenta desde el comienzo de su día: si un reporte se cerró ese mismo día, manda el reporte.
+     */
+    private static final String ULTIMO_SERVICIO = """
+            LEFT JOIN LATERAL (
+                SELECT max(h.f_fecha_servicio) AS f_fecha_servicio,
+                       (array_agg(h.t_resultado ORDER BY h.f_fecha_servicio DESC)
+                            FILTER (WHERE h.t_resultado IS NOT NULL))[1] AS t_resultado
+                FROM (
+                    SELECT r.f_finalizado AS f_fecha_servicio, r.t_resultado
+                    FROM reporte_servicio r
+                    WHERE r.k_id_equipo_cliente = u.k_id_equipo_cliente AND r.t_estado_reporte = 'FINALIZADO'
+                    UNION ALL
+                    SELECT x.f_realizada::timestamp, x.t_resultado
+                    FROM intervencion_externa x
+                    WHERE x.k_id_equipo_cliente = u.k_id_equipo_cliente AND x.b_estado_activo
+                ) h
+            ) ult ON true
+            """;
+
     private static final String DESDE = """
             FROM equipo_cliente u
             JOIN modelo m ON m.k_id_modelo = u.k_id_modelo
             JOIN equipo e ON e.k_id_equipo = m.k_id_equipo
             JOIN tipo_equipo t ON t.k_id_tipo_equipo = e.k_id_tipo_equipo
             JOIN marca b ON b.k_id_marca = e.k_id_marca
-            LEFT JOIN LATERAL (
-                SELECT r.f_finalizado AS f_fecha_servicio, r.t_resultado
-                FROM reporte_servicio r
-                WHERE r.k_id_equipo_cliente = u.k_id_equipo_cliente AND r.t_estado_reporte = 'FINALIZADO'
-                ORDER BY r.f_finalizado DESC
-                LIMIT 1
-            ) ult ON true
+            """ + ULTIMO_SERVICIO + """
             """;
 
     /** Sin tildes ni mayúsculas, en SQL. Su gemela en Java es {@link #sinTildes}. */
@@ -101,13 +118,7 @@ public class EquipmentOverviewPersistenceAdapter implements EquipmentOverviewPer
                        count(*) FILTER (WHERE ult.t_resultado = 'FUERA_DE_SERVICIO') AS fuera,
                        max(ult.f_fecha_servicio) AS ultimo
                 FROM equipo_cliente u
-                LEFT JOIN LATERAL (
-                    SELECT r.f_finalizado AS f_fecha_servicio, r.t_resultado
-                    FROM reporte_servicio r
-                    WHERE r.k_id_equipo_cliente = u.k_id_equipo_cliente AND r.t_estado_reporte = 'FINALIZADO'
-                    ORDER BY r.f_finalizado DESC
-                    LIMIT 1
-                ) ult ON true
+                """ + ULTIMO_SERVICIO + """
                 WHERE u.b_estado_activo
                 """ + filtro + """
                 GROUP BY u.k_id_area_servicio
