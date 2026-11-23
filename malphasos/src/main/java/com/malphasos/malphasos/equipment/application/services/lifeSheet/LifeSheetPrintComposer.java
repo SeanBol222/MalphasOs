@@ -5,7 +5,7 @@ import com.malphasos.malphasos.company.domain.serviceCompany.CompanyLogo;
 import com.malphasos.malphasos.company.domain.serviceCompany.ServiceCompany;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheetPrint;
-import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
+import com.malphasos.malphasos.equipment.application.model.lifeSheet.HistoryLine;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionType;
 import com.malphasos.malphasos.equipment.domain.model.RiskClass;
@@ -56,9 +56,17 @@ public final class LifeSheetPrintComposer {
                 .orElse(LifeSheetPrint.Empresa.NINGUNA);
         String nombreDeLaEmpresa = empresa.map(e -> e.getDatos().nombre()).orElse(null);
 
-        List<LifeSheetPrint.Linea> historial = hoja.servicioTecnico().stream()
+        // Lo de los reportes y lo que hicieron otras empresas, junto y por fecha (V61).
+        List<HistoryLine> lineas = hoja.historial();
+        List<LifeSheetPrint.Linea> historial = lineas.stream()
                 .map(linea -> linea(linea, nombreDeLaEmpresa))
                 .toList();
+        // El estado de hoy es el de la más reciente que dice cómo quedó: una externa puede no decirlo.
+        String estadoActual = lineas.stream()
+                .filter(linea -> linea.resultado() != null)
+                .findFirst()
+                .map(linea -> resultado(linea.resultado()))
+                .orElse(historial.isEmpty() ? "Sin servicios" : SIN_DATO);
 
         return new LifeSheetPrint(
                 id.idEquipoCliente(),
@@ -70,8 +78,7 @@ public final class LifeSheetPrintComposer {
                 oRaya(id.cliente()),
                 !id.estadoActivo(),
                 new LifeSheetPrint.Estado(
-                        // El historial llega de la más reciente a la más antigua: la primera es el estado de hoy.
-                        historial.isEmpty() ? "Sin servicios" : historial.getFirst().resultado(),
+                        estadoActual,
                         historial.isEmpty() ? SIN_DATO : historial.getFirst().fecha(),
                         historial.size(),
                         ficha.riesgo() == null ? SIN_DATO : riesgo(ficha.riesgo())),
@@ -136,19 +143,24 @@ public final class LifeSheetPrintComposer {
                 Objects.toString(datos.correo(), ""));
     }
 
-    private static LifeSheetPrint.Linea linea(Intervention intervencion, String empresa) {
-        InterventionResult resultado = intervencion.resultado();
+    private static LifeSheetPrint.Linea linea(HistoryLine linea, String empresa) {
+        InterventionResult resultado = linea.resultado();
 
         return new LifeSheetPrint.Linea(
-                fecha(intervencion.fechaServicio().toLocalDate()),
-                servicio(intervencion.tipoServicio()),
-                // Los procedimientos del reporte, congelados al cerrarse (V17); uno viejo sin ellos, la raya.
-                oRaya(intervencion.descripcion()),
-                // «Grace Hopper · Servicios de Ejemplo S.A.S.»: el ingeniero y la empresa, decidido el 2026-10-05.
-                unidos(" · ", intervencion.responsable(), empresa),
-                resultado.name(),
-                resultado(resultado),
-                resultado != InterventionResult.OPERATIVO);
+                fecha(linea.fecha()),
+                servicio(linea.tipoServicio()),
+                // Los procedimientos del reporte, congelados al cerrarse (V17), o lo que anotó quien metió la
+                // externa; uno viejo sin ellos, la raya.
+                oRaya(linea.descripcion()),
+                linea.externa()
+                        // «Externo · Metrología S.A.S. · CAL-2026-118»: quién la hizo y su certificado (V61).
+                        ? unidos(" · ", "Externo", linea.empresaExterna(), linea.documento())
+                        // «N.º 5C9C83 · Grace Hopper · Servicios de Ejemplo S.A.S.»: el reporte, el ingeniero y
+                        // la empresa. El número, pedido por el usuario el 2026-11-23.
+                        : unidos(" · ", "N.º " + linea.numeroReporte(), linea.responsable(), empresa),
+                resultado == null ? "" : resultado.name(),
+                resultado == null ? SIN_DATO : resultado(resultado),
+                resultado != null && resultado != InterventionResult.OPERATIVO);
     }
 
     static String resultado(InterventionResult resultado) {
@@ -160,10 +172,17 @@ public final class LifeSheetPrintComposer {
     }
 
     static String servicio(InterventionType tipo) {
+        return servicio(tipo.name());
+    }
+
+    /** Por su nombre, porque una externa admite además OTRO (V61). */
+    static String servicio(String tipo) {
         return switch (tipo) {
-            case PREVENTIVO -> "Preventivo";
-            case CORRECTIVO -> "Correctivo";
-            case CALIBRACION -> "Calibración";
+            case "PREVENTIVO" -> "Preventivo";
+            case "CORRECTIVO" -> "Correctivo";
+            case "CALIBRACION" -> "Calibración";
+            case "OTRO" -> "Otro";
+            default -> tipo;
         };
     }
 

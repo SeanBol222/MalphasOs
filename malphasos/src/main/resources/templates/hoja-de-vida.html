@@ -696,7 +696,7 @@
                 </td>
                 <td>
                   <span class="hv-resultado" th:classappend="${linea.enRojo} ? 'hv-rojo'"
-                    ><span th:class="'hv-marca hv-marca--' + ${linea.marca}"></span
+                    ><span th:if="${!#strings.isEmpty(linea.marca)}" th:class="'hv-marca hv-marca--' + ${linea.marca}"></span
                     ><th:block th:text="${linea.resultado}">Resultado</th:block></span
                   >
                 </td>

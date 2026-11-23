@@ -126,6 +126,50 @@ export interface paths {
         patch: operations["update_4"];
         trace?: never;
     };
+    "/v1/api/client-equipments/{id}/external-interventions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Las intervenciones externas de un equipo
+         * @description De la mas reciente a la mas antigua.
+         */
+        get: operations["getByEquipment"];
+        put?: never;
+        /**
+         * Anotar algo que otra empresa le hizo al equipo
+         * @description 400 si la fecha es futura o falta un dato; 404 si el equipo no existe o no es de un cliente de quien llama.
+         */
+        post: operations["record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api/client-equipments/{id}/external-interventions/{idIntervencion}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirar una intervencion externa mal anotada
+         * @description No la borra.
+         */
+        delete: operations["deactivate_7"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api/client-equipments/{id}/interventions": {
         parameters: {
             query?: never;
@@ -137,7 +181,7 @@ export interface paths {
          * Historial de intervenciones de un equipo
          * @description De la mas reciente a la mas antigua. Se alimenta solo al cerrar un reporte.
          */
-        get: operations["getByEquipment"];
+        get: operations["getByEquipment_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -941,12 +985,110 @@ export interface components {
             /** Format: int64 */
             valorUnitarioMantenimiento?: number;
         };
+        /** @description Algo que otra empresa le hizo al equipo */
+        ExternalInterventionRequest: {
+            /**
+             * @description Que se hizo
+             * @example Calibracion de presion en tres puntos
+             */
+            descripcion: string;
+            /**
+             * @description Opcional: el numero del certificado o del informe del tercero
+             * @example CAL-2026-118
+             */
+            documento?: string;
+            /**
+             * @description La empresa que lo hizo
+             * @example Metrologia S.A.S.
+             */
+            empresa: string;
+            /**
+             * Format: date
+             * @description El dia en que se hizo; no puede ser futuro
+             * @example 2026-11-20
+             */
+            realizada: string;
+            /** @description Opcional: OPERATIVO, OPERATIVO_CON_RESTRICCIONES o FUERA_DE_SERVICIO */
+            resultado?: string;
+            /**
+             * @description PREVENTIVO, CORRECTIVO, CALIBRACION u OTRO
+             * @example CALIBRACION
+             */
+            tipoServicio: string;
+        };
+        /** @description Algo que otra empresa le hizo al equipo */
+        ExternalInterventionResponse: {
+            descripcion?: string;
+            /** @description Certificado o informe del tercero; nulo si no se anoto */
+            documento?: string;
+            /** @description La empresa que lo hizo */
+            empresa?: string;
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            idEquipoCliente?: string;
+            /**
+             * Format: date
+             * @description El dia en que se hizo
+             * @example 2026-11-20
+             */
+            realizada?: string;
+            /**
+             * Format: date-time
+             * @description Cuando se anoto en MalphasOS
+             */
+            registrada?: string;
+            /** @description Como quedo el equipo; nulo si no se anoto */
+            resultado?: string;
+            /** @example CALIBRACION */
+            tipoServicio?: string;
+        };
         GlobalErrorResponse: {
             code?: string;
             details?: string[];
             message?: string;
             /** Format: date-time */
             timestamp?: string;
+        };
+        /** @description Una linea del historial de la hoja de vida */
+        HistoryLineResponse: {
+            descripcion?: string;
+            /** @description Certificado o informe del tercero, en una externa */
+            documento?: string;
+            /** @description Quien la hizo, en una externa */
+            empresaExterna?: string;
+            /**
+             * Format: date
+             * @description El dia en que se hizo
+             * @example 2026-11-20
+             */
+            fecha?: string;
+            /**
+             * Format: uuid
+             * @description La intervencion externa, en una externa
+             */
+            idIntervencionExterna?: string;
+            /**
+             * Format: uuid
+             * @description El reporte del que sale, en una de reporte
+             */
+            idReporteServicio?: string;
+            /**
+             * @description El numero del reporte, en una de reporte
+             * @example 5C9C83
+             */
+            numeroReporte?: string;
+            /**
+             * @description REPORTE o EXTERNA
+             * @example REPORTE
+             */
+            origen?: string;
+            /** @description El ingeniero, en una de reporte */
+            responsable?: string;
+            /** @description Como quedo el equipo; en una externa puede ser nulo */
+            resultado?: string;
+            /** @example CALIBRACION */
+            tipoServicio?: string;
         };
         /** @description Una intervencion registrada en la hoja de vida */
         InterventionResponse: {
@@ -1067,7 +1209,7 @@ export interface components {
             /** @description Que unidad es y de quien */
             identificacion?: components["schemas"]["LifeSheetIdentificacion"];
             /** @description Historial de intervenciones, de la mas reciente a la mas antigua */
-            servicioTecnico?: components["schemas"]["InterventionResponse"][];
+            servicioTecnico?: components["schemas"]["HistoryLineResponse"][];
             /** @description Que es el equipo: tipo, marca y modelo */
             tecnica?: components["schemas"]["LifeSheetTecnica"];
         };
@@ -2139,6 +2281,214 @@ export interface operations {
         };
     };
     getByEquipment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del equipo instalado */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExternalInterventionResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+        };
+    };
+    record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del equipo instalado */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExternalInterventionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExternalInterventionResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+        };
+    };
+    deactivate_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del equipo instalado */
+                id: string;
+                /** @description La intervencion externa */
+                idIntervencion: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GlobalErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EquipmentErrorResponse"];
+                };
+            };
+        };
+    };
+    getByEquipment_1: {
         parameters: {
             query?: never;
             header?: never;

@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-11-22
+updated: 2026-11-23
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -1137,4 +1137,31 @@ cierre como fecha.
 de reportes, `WorkOrderArchiveExtension`, que el servicio usa solo si alguien la implementa. La librería es
 **fastexcel**, que solo escribe y pesa poco, frente a Apache POI. Cómo se retira, paso a paso, en
 [[piezas-provisionales]], que entró ese día como registro de todo lo que es así.
+
+## El historial de un equipo, también con lo que hicieron otras empresas (2026-11-23, `V61`)
+
+**Lo que lo pidió**: la historia de un equipo no son solo los reportes de esta empresa; también tiene
+mantenimientos y calibraciones de otras. Planeado con el usuario sobre el artifact del esquema.
+
+**Una tabla, `intervencion_externa`** —nombre elegido por el usuario—, y no volver a la `intervencion` que
+`V52` quitó: aquella copiaba los reportes, y esta guarda lo que **ningún reporte dice**. **Pocos campos, para
+que sea rápido de meter**: cuándo, qué tipo —los tres de un reporte más `OTRO`—, qué se hizo y qué empresa;
+opcionales el resultado y el número del certificado. **Sin adjunto**, decidido por el usuario. No se edita:
+una mal anotada se retira y se anota otra.
+
+**Se mezcla con los reportes por fecha**, en la hoja de vida y en el listado de equipos: la calibración
+externa de ayer va encima del mantenimiento de la semana pasada, y es el último servicio. **El estado del
+equipo, solo si se anotó el resultado**: una externa sin él no deja al equipo sin estado, cuenta la anterior
+que lo diga. En el listado, una externa cuenta desde el comienzo de su día, así que un reporte cerrado ese
+mismo día manda.
+
+**Quién la anota**: ingenieros, administradores **y el supervisor del cliente**, que a veces es quien
+contrata la calibración. Con una autoridad propia, `equipment-history.write`, para no darle
+`equipment.write`; el alcance lo limita a sus equipos. Ver [[modelo-de-permisos]].
+
+**Y de paso, el número del reporte en cada línea del historial**, pedido por el usuario: «N.º 5C9C83 · Ana
+Pérez · empresa». La externa sale como «Externo · Metrología S.A.S. · CAL-2026-118».
+
+**Una Keycloak ya instalada no relee el realm**: el rol nuevo se crea a mano —en desarrollo se hizo con
+`kcadm` el mismo día—, y el CHANGELOG lo dice para el servidor.
 

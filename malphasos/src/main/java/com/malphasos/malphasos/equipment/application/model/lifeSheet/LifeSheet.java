@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.equipment.application.model.lifeSheet;
 
+import com.malphasos.malphasos.equipment.domain.externalIntervention.ExternalIntervention;
 import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.domain.model.TechnicalSheet;
 import java.time.LocalDate;
@@ -27,7 +28,27 @@ public record LifeSheet(
         Identificacion identificacion,
         Tecnica tecnica,
         Fabricante fabricante,
-        List<Intervention> servicioTecnico) {
+        List<Intervention> servicioTecnico,
+        List<ExternalIntervention> externas) {
+
+    public LifeSheet {
+        servicioTecnico = List.copyOf(servicioTecnico);
+        externas = externas == null ? List.of() : List.copyOf(externas);
+    }
+
+    /** Sin intervenciones externas (V61): las hojas que no las piden. */
+    public LifeSheet(
+            Identificacion identificacion, Tecnica tecnica, Fabricante fabricante, List<Intervention> servicioTecnico) {
+        this(identificacion, tecnica, fabricante, servicioTecnico, List.of());
+    }
+
+    /**
+     * El historial completo (V61, 2026-11-23): lo de los reportes y lo que hicieron otras empresas, junto y de
+     * lo más reciente a lo más antiguo.
+     */
+    public List<HistoryLine> historial() {
+        return HistoryLine.merge(servicioTecnico, externas);
+    }
 
     /** Qué unidad es y de quién, que es lo que la distingue de otra igual. */
     public record Identificacion(

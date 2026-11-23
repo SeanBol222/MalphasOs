@@ -537,6 +537,9 @@ class SecurityIntegrationTest {
             // La foto del equipo, del 2026-11-08 (V58). Su PATCH lleva un archivo: por lo mismo que la
             // asignacion de abajo, no esta.
             "DELETE, /v1/api/client-equipments/" + ID + "/photo",
+            // Lo que otras empresas le hicieron a un equipo (V61).
+            "GET, /v1/api/client-equipments/" + ID + "/external-interventions",
+            "DELETE, /v1/api/client-equipments/" + ID + "/external-interventions/" + ID,
             // Los protocolos, del 2026-10-10: el catalogo y su asignacion a un tipo.
             "GET, /v1/api/protocols",
             "DELETE, /v1/api/protocols/" + ID,
@@ -857,6 +860,15 @@ class SecurityIntegrationTest {
             autorizado(get("/v1/api/clients").with(comoElGrupo("clients")));
             autorizado(get("/v1/api/service-areas/" + ID).with(comoElGrupo("clients")));
             autorizado(get("/v1/api/client-equipments").with(comoElGrupo("clients")));
+        }
+
+        @Test
+        @DisplayName("un cliente si retira lo que otra empresa le hizo a su equipo, y nada mas del equipo (V61)")
+        void elClienteAnotaElHistorialExterno() throws Exception {
+            // El alcance, no la autoridad, lo limita a sus equipos: eso lo prueba la de integracion.
+            autorizado(delete("/v1/api/client-equipments/" + ID + "/external-interventions/" + ID)
+                    .with(comoElGrupo("clients")));
+            prohibido(delete("/v1/api/client-equipments/" + ID + "/photo").with(comoElGrupo("clients")));
         }
 
         @Test

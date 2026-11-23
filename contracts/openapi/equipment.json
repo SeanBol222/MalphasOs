@@ -542,6 +542,94 @@
         },
         "type" : "object"
       },
+      "ExternalInterventionRequest" : {
+        "description" : "Algo que otra empresa le hizo al equipo",
+        "properties" : {
+          "descripcion" : {
+            "description" : "Que se hizo",
+            "example" : "Calibracion de presion en tres puntos",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "documento" : {
+            "description" : "Opcional: el numero del certificado o del informe del tercero",
+            "example" : "CAL-2026-118",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "empresa" : {
+            "description" : "La empresa que lo hizo",
+            "example" : "Metrologia S.A.S.",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "realizada" : {
+            "description" : "El dia en que se hizo; no puede ser futuro",
+            "example" : "2026-11-20",
+            "format" : "date",
+            "type" : "string"
+          },
+          "resultado" : {
+            "description" : "Opcional: OPERATIVO, OPERATIVO_CON_RESTRICCIONES o FUERA_DE_SERVICIO",
+            "type" : "string"
+          },
+          "tipoServicio" : {
+            "description" : "PREVENTIVO, CORRECTIVO, CALIBRACION u OTRO",
+            "example" : "CALIBRACION",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "descripcion", "empresa", "realizada", "tipoServicio" ],
+        "type" : "object"
+      },
+      "ExternalInterventionResponse" : {
+        "description" : "Algo que otra empresa le hizo al equipo",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "documento" : {
+            "description" : "Certificado o informe del tercero; nulo si no se anoto",
+            "type" : "string"
+          },
+          "empresa" : {
+            "description" : "La empresa que lo hizo",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idEquipoCliente" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "realizada" : {
+            "description" : "El dia en que se hizo",
+            "example" : "2026-11-20",
+            "format" : "date",
+            "type" : "string"
+          },
+          "registrada" : {
+            "description" : "Cuando se anoto en MalphasOS",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "resultado" : {
+            "description" : "Como quedo el equipo; nulo si no se anoto",
+            "type" : "string"
+          },
+          "tipoServicio" : {
+            "example" : "CALIBRACION",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "GlobalErrorResponse" : {
         "properties" : {
           "code" : {
@@ -558,6 +646,61 @@
           },
           "timestamp" : {
             "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HistoryLineResponse" : {
+        "description" : "Una linea del historial de la hoja de vida",
+        "properties" : {
+          "descripcion" : {
+            "type" : "string"
+          },
+          "documento" : {
+            "description" : "Certificado o informe del tercero, en una externa",
+            "type" : "string"
+          },
+          "empresaExterna" : {
+            "description" : "Quien la hizo, en una externa",
+            "type" : "string"
+          },
+          "fecha" : {
+            "description" : "El dia en que se hizo",
+            "example" : "2026-11-20",
+            "format" : "date",
+            "type" : "string"
+          },
+          "idIntervencionExterna" : {
+            "description" : "La intervencion externa, en una externa",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "idReporteServicio" : {
+            "description" : "El reporte del que sale, en una de reporte",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "numeroReporte" : {
+            "description" : "El numero del reporte, en una de reporte",
+            "example" : "5C9C83",
+            "type" : "string"
+          },
+          "origen" : {
+            "description" : "REPORTE o EXTERNA",
+            "example" : "REPORTE",
+            "type" : "string"
+          },
+          "responsable" : {
+            "description" : "El ingeniero, en una de reporte",
+            "type" : "string"
+          },
+          "resultado" : {
+            "description" : "Como quedo el equipo; en una externa puede ser nulo",
+            "type" : "string"
+          },
+          "tipoServicio" : {
+            "example" : "CALIBRACION",
             "type" : "string"
           }
         },
@@ -801,7 +944,7 @@
           "servicioTecnico" : {
             "description" : "Historial de intervenciones, de la mas reciente a la mas antigua",
             "items" : {
-              "$ref" : "#/components/schemas/InterventionResponse"
+              "$ref" : "#/components/schemas/HistoryLineResponse"
             },
             "type" : "array"
           },
@@ -2335,10 +2478,263 @@
         "tags" : [ "ClientEquipment" ]
       }
     },
+    "/v1/api/client-equipments/{id}/external-interventions" : {
+      "get" : {
+        "description" : "De la mas reciente a la mas antigua.",
+        "operationId" : "getByEquipment",
+        "parameters" : [ {
+          "description" : "Identificador del equipo instalado",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExternalInterventionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Las intervenciones externas de un equipo",
+        "tags" : [ "ExternalIntervention" ]
+      },
+      "post" : {
+        "description" : "400 si la fecha es futura o falta un dato; 404 si el equipo no existe o no es de un cliente de quien llama.",
+        "operationId" : "record",
+        "parameters" : [ {
+          "description" : "Identificador del equipo instalado",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExternalInterventionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExternalInterventionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Anotar algo que otra empresa le hizo al equipo",
+        "tags" : [ "ExternalIntervention" ]
+      }
+    },
+    "/v1/api/client-equipments/{id}/external-interventions/{idIntervencion}" : {
+      "delete" : {
+        "description" : "No la borra.",
+        "operationId" : "deactivate_7",
+        "parameters" : [ {
+          "description" : "Identificador del equipo instalado",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "La intervencion externa",
+          "in" : "path",
+          "name" : "idIntervencion",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Conflict"
+          },
+          "500" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GlobalErrorResponse"
+                }
+              }
+            },
+            "description" : "Internal Server Error"
+          },
+          "503" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentErrorResponse"
+                }
+              }
+            },
+            "description" : "Service Unavailable"
+          }
+        },
+        "summary" : "Retirar una intervencion externa mal anotada",
+        "tags" : [ "ExternalIntervention" ]
+      }
+    },
     "/v1/api/client-equipments/{id}/interventions" : {
       "get" : {
         "description" : "De la mas reciente a la mas antigua. Se alimenta solo al cerrar un reporte.",
-        "operationId" : "getByEquipment",
+        "operationId" : "getByEquipment_1",
         "parameters" : [ {
           "description" : "Identificador del equipo instalado",
           "in" : "path",
@@ -6128,6 +6524,9 @@
   }, {
     "description" : "Catalogo de equipos patron",
     "name" : "ReferenceStandard"
+  }, {
+    "description" : "Lo que otras empresas le hicieron a un equipo",
+    "name" : "ExternalIntervention"
   }, {
     "description" : "Magnitudes y unidades con las que se verifica",
     "name" : "MetrologyCatalog"

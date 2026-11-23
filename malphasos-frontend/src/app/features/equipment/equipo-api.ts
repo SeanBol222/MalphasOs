@@ -16,6 +16,8 @@ import {
   EquiposDeArea,
   FotoDeEquipo,
   HojaDeVida,
+  IntervencionExterna,
+  NuevaIntervencionExterna,
   NuevoEquipoDeCliente,
   ResumenDeEquipos,
 } from '../../core/api/tipos';
@@ -126,6 +128,53 @@ export class EquipoApi {
         );
       },
       onSuccess: () => this.invalidarHojaDeVida(),
+    }));
+  }
+
+  /**
+   * Lo que otras empresas le hicieron al equipo (V61, 2026-11-23), de lo más reciente a lo más antiguo.
+   * Cuelga de la clave de la hoja de vida: anotar o retirar una caduca también su PDF.
+   */
+  intervencionesExternas(id: Signal<string>, activa: Signal<boolean>) {
+    return injectQuery(() => ({
+      queryKey: [...EquipoApi.CLAVE_HOJA_DE_VIDA, id(), 'externas'],
+      queryFn: () =>
+        firstValueFrom(
+          this.http.get<IntervencionExterna[]>(
+            `${this.api}/client-equipments/${id()}/external-interventions`,
+          ),
+        ),
+      enabled: !!id() && activa(),
+    }));
+  }
+
+  /**
+   * Anota una. Cambia el último servicio del equipo, así que caduca también el listado, además de la
+   * hoja de vida.
+   */
+  anotarIntervencionExterna() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, intervencion }: { id: string; intervencion: NuevaIntervencionExterna }) =>
+        firstValueFrom(
+          this.http.post<IntervencionExterna>(
+            `${this.api}/client-equipments/${id}/external-interventions`,
+            intervencion,
+          ),
+        ),
+      onSuccess: () => this.invalidarHistorial(),
+    }));
+  }
+
+  /** La retira: no se borra, deja de contar. */
+  retirarIntervencionExterna() {
+    return injectMutation(() => ({
+      mutationFn: ({ id, idIntervencion }: { id: string; idIntervencion: string }) =>
+        firstValueFrom(
+          this.http.delete<void>(
+            `${this.api}/client-equipments/${id}/external-interventions/${idIntervencion}`,
+          ),
+        ),
+      onSuccess: () => this.invalidarHistorial(),
     }));
   }
 
@@ -275,6 +324,12 @@ export class EquipoApi {
         firstValueFrom(this.http.delete<void>(`${this.api}/client-equipments/${id}`)),
       onSuccess: () => this.invalidar(),
     }));
+  }
+
+  /** Sin esperar el listado: la hoja de vida es lo que está a la vista. */
+  private async invalidarHistorial(): Promise<void> {
+    void this.queryClient.invalidateQueries({ queryKey: EquipoApi.CLAVE });
+    await this.invalidarHojaDeVida();
   }
 
   private async invalidarHojaDeVida(): Promise<void> {

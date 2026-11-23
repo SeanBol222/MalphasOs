@@ -119,6 +119,14 @@ public final class ApiAuthority {
   /** Vincular un equipo a un área de servicio o trasladarlo a otra. */
   public static final String EQUIPMENT_ASSIGN = "equipment.assign";
 
+  /**
+   * Anotar en el historial de un equipo lo que le hizo otra empresa, y retirarlo (V61, 2026-11-23). Aparte
+   * de {@link #EQUIPMENT_WRITE} para que el supervisor del cliente lo anote —la calibración externa la
+   * contrata a veces el cliente— sin poder tocar nada más del equipo. La tienen los tres grupos; el
+   * supervisor, solo sobre los equipos de los clientes que supervisa.
+   */
+  public static final String EQUIPMENT_HISTORY_WRITE = "equipment-history.write";
+
   public static final String WORK_ORDER_READ = "work-order.read";
   public static final String WORK_ORDER_WRITE = "work-order.write";
   public static final String WORK_ORDER_ASSIGN = "work-order.assign";
@@ -180,6 +188,7 @@ public final class ApiAuthority {
           EQUIPMENT_READ,
           EQUIPMENT_WRITE,
           EQUIPMENT_ASSIGN,
+          EQUIPMENT_HISTORY_WRITE,
           WORK_ORDER_READ,
           WORK_ORDER_WRITE,
           WORK_ORDER_ASSIGN,

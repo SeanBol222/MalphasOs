@@ -9,9 +9,8 @@ import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheet;
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheetPdf;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetPdfServicePort;
 import com.malphasos.malphasos.equipment.application.ports.input.LifeSheetServicePort;
-import com.malphasos.malphasos.equipment.domain.intervention.Intervention;
 import com.malphasos.malphasos.equipment.infrastructure.input.mapper.EquipmentRestMapper;
-import com.malphasos.malphasos.equipment.infrastructure.input.model.response.InterventionResponse;
+import com.malphasos.malphasos.equipment.infrastructure.input.model.response.HistoryLineResponse;
 import com.malphasos.malphasos.equipment.infrastructure.input.model.response.LifeSheetResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -137,7 +136,8 @@ public class LifeSheetRestAdapter {
                                 .toList()),
                 new LifeSheetResponse.Fabricante(
                         hoja.fabricante().nombre(), hoja.fabricante().pais()),
-                hoja.servicioTecnico().stream().map(LifeSheetRestAdapter::toResponse).toList(),
+                // Lo de los reportes y lo de otras empresas, junto y por fecha (V61).
+                hoja.historial().stream().map(HistoryLineResponse::from).toList(),
                 serviceCompanyServicePort.find()
                         .map(empresa -> toResponse(empresa, serviceCompanyServicePort.cityName(empresa)))
                         .orElse(null));
@@ -160,17 +160,5 @@ public class LifeSheetRestAdapter {
                 datos.aclaracion(),
                 datos.codigoHojaDeVida(),
                 datos.codigoInforme());
-    }
-
-    private static InterventionResponse toResponse(Intervention intervencion) {
-        return new InterventionResponse(
-                intervencion.id(),
-                intervencion.idEquipoCliente(),
-                intervencion.idReporteServicio(),
-                intervencion.fechaServicio(),
-                intervencion.tipoServicio().name(),
-                intervencion.resultado().name(),
-                intervencion.descripcion(),
-                intervencion.responsable());
     }
 }

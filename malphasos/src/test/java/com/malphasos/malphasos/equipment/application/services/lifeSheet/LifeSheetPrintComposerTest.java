@@ -3,8 +3,10 @@ package com.malphasos.malphasos.equipment.application.services.lifeSheet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.malphasos.malphasos.equipment.application.model.lifeSheet.LifeSheetPrint;
+import com.malphasos.malphasos.equipment.domain.externalIntervention.ExternalServiceType;
 import com.malphasos.malphasos.equipment.domain.intervention.InterventionResult;
 import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -42,12 +44,15 @@ class LifeSheetPrintComposerTest {
     @DisplayName("cada línea del historial dice quién con su empresa, y en rojo lo que no es operativo")
     void lineasDelHistorial() {
         LifeSheetPrint hoja = new UnaHojaDeVida()
-                .con(InterventionResult.FUERA_DE_SERVICIO, LocalDate.of(2026, 10, 4))
+                .con(UUID.fromString("5c9c8306-0000-4000-8000-000000000000"),
+                        InterventionResult.FUERA_DE_SERVICIO, LocalDate.of(2026, 10, 4))
                 .con(InterventionResult.OPERATIVO, LocalDate.of(2026, 3, 1))
                 .impresa();
 
         LifeSheetPrint.Linea reciente = hoja.historial().getFirst();
-        assertThat(reciente.responsable()).isEqualTo("Ada Lovelace · Servicios Biomédicos de Ejemplo S.A.S.");
+        // El número del reporte delante del ingeniero, pedido por el usuario el 2026-11-23.
+        assertThat(reciente.responsable())
+                .isEqualTo("N.º 5C9C83 · Ada Lovelace · Servicios Biomédicos de Ejemplo S.A.S.");
         assertThat(reciente.servicio()).isEqualTo("Preventivo");
         assertThat(reciente.marca()).isEqualTo("FUERA_DE_SERVICIO");
         assertThat(reciente.enRojo()).isTrue();
@@ -98,7 +103,7 @@ class LifeSheetPrintComposerTest {
 
         assertThat(hoja.empresa()).isEqualTo(LifeSheetPrint.Empresa.NINGUNA);
         assertThat(hoja.codigoYFecha()).isEqualTo("Actualizada el 18 oct 2026");
-        assertThat(hoja.historial().getFirst().responsable()).isEqualTo("Ada Lovelace");
+        assertThat(hoja.historial().getFirst().responsable()).startsWith("N.º ").endsWith(" · Ada Lovelace");
     }
 
     @Test
@@ -106,5 +111,42 @@ class LifeSheetPrintComposerTest {
     void deBaja() {
         assertThat(new UnaHojaDeVida().deBaja().impresa().deBaja()).isTrue();
         assertThat(new UnaHojaDeVida().impresa().deBaja()).isFalse();
+    }
+
+    @Test
+    @DisplayName("lo que hizo otra empresa entra en el historial por su fecha: la calibración de ayer, encima (V61)")
+    void conLasExternas() {
+        LifeSheetPrint hoja = new UnaHojaDeVida()
+                .con(InterventionResult.OPERATIVO, LocalDate.of(2026, 10, 10))
+                .conExterna(ExternalServiceType.CALIBRACION, InterventionResult.OPERATIVO_CON_RESTRICCIONES,
+                        LocalDate.of(2026, 10, 17))
+                .conExterna(ExternalServiceType.OTRO, null, LocalDate.of(2026, 9, 1))
+                .impresa();
+
+        assertThat(hoja.historial()).extracting(LifeSheetPrint.Linea::servicio)
+                .containsExactly("Calibración", "Preventivo", "Otro");
+        LifeSheetPrint.Linea calibracion = hoja.historial().getFirst();
+        assertThat(calibracion.responsable()).isEqualTo("Externo · Metrología S.A.S. · CAL-2026-118");
+        assertThat(calibracion.fecha()).isEqualTo("17 oct 2026");
+        assertThat(hoja.estado().ultimoServicio()).isEqualTo("17 oct 2026");
+        assertThat(hoja.estado().actual()).isEqualTo("Operativo con restricciones");
+        assertThat(hoja.estado().intervenciones()).isEqualTo(3);
+        // Una externa sin resultado no pinta marca ni se marca en rojo.
+        LifeSheetPrint.Linea sinResultado = hoja.historial().getLast();
+        assertThat(sinResultado.marca()).isEmpty();
+        assertThat(sinResultado.resultado()).isEqualTo("—");
+        assertThat(sinResultado.enRojo()).isFalse();
+    }
+
+    @Test
+    @DisplayName("el estado de hoy es el de la más reciente que lo dice: una externa sin resultado no lo borra")
+    void estadoSinResultado() {
+        LifeSheetPrint hoja = new UnaHojaDeVida()
+                .con(InterventionResult.FUERA_DE_SERVICIO, LocalDate.of(2026, 10, 1))
+                .conExterna(ExternalServiceType.OTRO, null, LocalDate.of(2026, 10, 15))
+                .impresa();
+
+        assertThat(hoja.estado().ultimoServicio()).isEqualTo("15 oct 2026");
+        assertThat(hoja.estado().actual()).isEqualTo("Fuera de servicio");
     }
 }

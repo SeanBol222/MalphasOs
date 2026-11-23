@@ -2,6 +2,7 @@ package com.malphasos.malphasos.equipment.infrastructure.input.errors;
 
 import com.malphasos.malphasos.equipment.application.ports.output.LifeSheetPdfUnavailableException;
 import com.malphasos.malphasos.client.domain.exception.ServiceAreaNotFoundException;
+import com.malphasos.malphasos.equipment.domain.exception.ExternalInterventionNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.BrandNotFoundException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolInUseException;
 import com.malphasos.malphasos.equipment.domain.exception.ProtocolNameTakenException;
@@ -24,6 +25,7 @@ import com.malphasos.malphasos.equipment.infrastructure.input.rest.BrandRestAdap
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.ClientEquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentOverviewRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentPhotoRestAdapter;
+import com.malphasos.malphasos.equipment.infrastructure.input.rest.ExternalInterventionRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeProtocolRestAdapter;
 import com.malphasos.malphasos.equipment.infrastructure.input.rest.EquipmentTypeRestAdapter;
@@ -68,7 +70,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
             LifeSheetRestAdapter.class,
             InterventionRestAdapter.class,
             EquipmentOverviewRestAdapter.class,
-            EquipmentPhotoRestAdapter.class
+            EquipmentPhotoRestAdapter.class,
+            ExternalInterventionRestAdapter.class
         })
 public class EquipmentControllerAdvice {
 
@@ -219,6 +222,14 @@ public class EquipmentControllerAdvice {
     public EquipmentErrorResponse handleVerification(VerificationNotFoundException ex) {
         return EquipmentErrorResponse.of(
                 EquipmentErrorCatalog.VERIFICATION_NOT_FOUND, List.of(ex.getMessage()));
+    }
+
+    /** La intervención externa no existe, o no es de ese equipo. */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(ExternalInterventionNotFoundException.class)
+    public EquipmentErrorResponse handleExternalIntervention(ExternalInterventionNotFoundException ex) {
+        return EquipmentErrorResponse.of(
+                EquipmentErrorCatalog.EXTERNAL_INTERVENTION_NOT_FOUND, List.of(ex.getMessage()));
     }
 
     /** Otro equipo patrón vigente ya tiene esa serie. */

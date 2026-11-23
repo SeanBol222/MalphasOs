@@ -18,7 +18,7 @@ public record LifeSheetResponse(
         @Schema(description = "Que es el equipo: tipo, marca y modelo") Tecnica tecnica,
         @Schema(description = "Quien lo fabrico") Fabricante fabricante,
         @Schema(description = "Historial de intervenciones, de la mas reciente a la mas antigua")
-        List<InterventionResponse> servicioTecnico,
+        List<HistoryLineResponse> servicioTecnico,
         @Schema(description = "La empresa que presta el servicio: el membrete del documento. Nula si no se ha configurado")
                 Empresa empresa) {
 

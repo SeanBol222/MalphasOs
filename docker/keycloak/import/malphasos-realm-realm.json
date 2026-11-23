@@ -425,6 +425,15 @@
           "attributes": {}
         },
         {
+          "id": "7d4b22db-1237-4924-9f6d-9adaabc74ac1",
+          "name": "equipment-history.write",
+          "description": "",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "8d04bc0e-d921-47a4-ba58-fdfbfee4b949",
+          "attributes": {}
+        },
+        {
           "id": "3f9c1b54-2e7a-4d18-9b06-51a7c4e0d2f1",
           "name": "report.read",
           "description": "",
@@ -658,7 +667,8 @@
           "work-order.assign",
           "work-order.read",
           "work-order.write",
-          "work-order.approve"
+          "work-order.approve",
+          "equipment-history.write"
         ]
       }
     },
@@ -677,7 +687,8 @@
           "work-order.read",
           "equipment.read",
           "report.read",
-          "work-order.approve"
+          "work-order.approve",
+          "equipment-history.write"
         ]
       }
     },
@@ -703,7 +714,8 @@
           "work-order.assign",
           "work-order.read",
           "work-order.write",
-          "work-order.approve"
+          "work-order.approve",
+          "equipment-history.write"
         ]
       }
     }

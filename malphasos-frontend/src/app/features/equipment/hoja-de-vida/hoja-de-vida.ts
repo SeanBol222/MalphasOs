@@ -15,6 +15,7 @@ import { traducirError } from '../../../core/errores/traducir';
 import { EncuadreDeFoto } from '../../../shared/foto/encuadre-de-foto';
 import { REDUCIR_FOTO } from '../../../shared/foto/reducir-foto';
 import { EquipoApi } from '../equipo-api';
+import { HistorialExterno } from './historial-externo';
 
 /**
  * La hoja de vida de un equipo instalado (RF-22): el PDF que compone y convierte el servidor, a la vista
@@ -32,10 +33,13 @@ import { EquipoApi } from '../equipo-api';
  * pone quien tiene {@code equipment.write} —el ingeniero, en campo, con la cámara del teléfono—, eligiéndola,
  * soltándola o pegándola. Antes de subirla se encuadra en un recuadro cuadrado —se mueve y se acerca—, el
  * navegador la deja en PNG de 400 px, y el PDF se recarga solo con ella.
+ *
+ * <p><b>Y lo que hicieron otras empresas</b> (V61, 2026-11-23): se anota aquí y entra en el historial del
+ * PDF por su fecha. Ver {@link HistorialExterno}.
  */
 @Component({
   selector: 'app-hoja-de-vida',
-  imports: [RouterLink, EncuadreDeFoto],
+  imports: [RouterLink, EncuadreDeFoto, HistorialExterno],
   template: `
     <div class="flex flex-wrap items-center gap-2">
       <h2 class="titulo-seccion">Hoja de vida</h2>
@@ -131,6 +135,10 @@ import { EquipoApi } from '../equipo-api';
       </section>
     }
 
+    @if (anotaHistorial()) {
+      <app-historial-externo [id]="id()" />
+    }
+
     @if (porEncuadrar(); as archivo) {
       <app-encuadre-de-foto
         [archivo]="archivo"
@@ -168,6 +176,11 @@ export class HojaDeVida implements OnDestroy {
 
   private readonly sesion = inject(Sesion);
   protected readonly puedeCambiarFoto = computed(() => this.sesion.puede('equipment.write'));
+  /**
+   * Quien anota lo que hicieron otras empresas (V61): ingenieros, administradores y el supervisor del
+   * cliente, que no edita nada más del equipo.
+   */
+  protected readonly anotaHistorial = computed(() => this.sesion.puede('equipment-history.write'));
   protected readonly foto = this.api.fotoDe(this.id, this.puedeCambiarFoto);
   private readonly puesta = this.api.ponerFoto();
   private readonly quitada = this.api.quitarFoto();

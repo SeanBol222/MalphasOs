@@ -57,7 +57,10 @@ public enum EquipmentErrorCatalog {
 
     // V60: los patrones de cada verificacion. Una verificacion que no es de ese tipo es "no existe", con
     // codigo propio para no confundirla con el tipo que si existe.
-    VERIFICATION_NOT_FOUND("ERR_EQUIPMENT_022", "The equipment type has no such verification");
+    VERIFICATION_NOT_FOUND("ERR_EQUIPMENT_022", "The equipment type has no such verification"),
+
+    // V61: lo que se le hizo a un equipo fuera de MalphasOS. Una que no es de ese equipo es "no existe".
+    EXTERNAL_INTERVENTION_NOT_FOUND("ERR_EQUIPMENT_023", "External intervention not found");
 
     private final String code;
     private final String message;

@@ -4,7 +4,7 @@ description: El esquema de MalphasOS hoy — 34 tablas, 46 foráneas, con diagra
 tags: [base-de-datos, diagrama, "describe:malphasos"]
 source: malphasos/src/main/resources/db/migration/
 estado: estable
-updated: 2026-11-19
+updated: 2026-11-23
 ---
 
 # El esquema de MalphasOS, hoy
@@ -82,10 +82,10 @@ lo demás sigue dependiendo de leer el diagrama contra `\d tabla`.
 
 | | |
 |---|---|
-| Migraciones aplicadas | **60** (`V1`…`V60`): `V60` los patrones de cada verificación y de cada orden, el 2026-11-19; `V59` muda lo que el reporte dice a un documento JSON, el 2026-11-19 —decía **58** hasta entonces—; `V58` la foto de cada equipo del cliente, el 2026-11-08 —decía **57** hasta entonces—; la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
-| Tablas de dominio | **34** — `V60` añade `patron_verificacion` y `patron_orden_trabajo`; **32** con `V59`; eran **36** hasta `V58`: `V59` quitó las cuatro hijas del reporte; **35** hasta `V57`, **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
-| Llaves foráneas | **46** —`V60` añade cinco, todas simples; **41** con `V59`; **50** hasta `V58`, que añadió las dos de la foto; `V59` se llevó nueve con las tablas hijas del reporte—, **ninguna compuesta** desde `V59` —la última, la de la lectura con su punto, salió con `dato_verificacion`—, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
-| Restricciones `CHECK` propias | **57** — eran **70** hasta `V58`: `V59` quitó las de las tablas hijas y las de los textos del reporte, rehízo dos que mezclaban columna y documento y añadió la de la forma del documento; **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
+| Migraciones aplicadas | **61** (`V1`…`V61`): `V61` lo que otras empresas le hicieron a un equipo, el 2026-11-23 —decía **60** hasta entonces—; `V60` los patrones de cada verificación y de cada orden, el 2026-11-19; `V59` muda lo que el reporte dice a un documento JSON, el 2026-11-19 —decía **58** hasta entonces—; `V58` la foto de cada equipo del cliente, el 2026-11-08 —decía **57** hasta entonces—; la refactorización a 3FN acabó en `V52`, `V53` puso al supervisor del cliente, `V54` la aprobación de la orden, `V55` a quien recibe como persona registrada, `V56` en cascada las foráneas hacia `persona` y `V57` el voltaje decimal del modelo, que rehace su `CHECK` sin cambiar la cuenta. Decía **56** hasta el 2026-11-07 |
+| Tablas de dominio | **35** — `V61` añade `intervencion_externa`, el 2026-11-23; **34** con `V60`, que añade `patron_verificacion` y `patron_orden_trabajo`; **32** con `V59`; eran **36** hasta `V58`: `V59` quitó las cuatro hijas del reporte; **35** hasta `V57`, **34** hasta `V54`, **36** hasta `V53`, **37** hasta `V52` y **38** hasta `V50` |
+| Llaves foráneas | **47** —`V61` añade la de `intervencion_externa` al equipo; **46** con `V60`, que añade cinco, todas simples; **41** con `V59`; **50** hasta `V58`, que añadió las dos de la foto; `V59` se llevó nueve con las tablas hijas del reporte—, **ninguna compuesta** desde `V59` —la última, la de la lectura con su punto, salió con `dato_verificacion`—, y **8 con `ON UPDATE CASCADE`** —las que apuntan a `persona`, desde `V56`; ninguna antes— — eran **47** hasta `V55`, **43** hasta `V54`, **47** hasta `V53`, **50** hasta `V52`, y **52** y **2** compuestas hasta `V50` |
+| Restricciones `CHECK` propias | **61** — `V61` añade cuatro: tipo, resultado y los dos textos no vacíos; **57** con `V60`, y eran **70** hasta `V58`: `V59` quitó las de las tablas hijas y las de los textos del reporte, rehízo dos que mezclaban columna y documento y añadió la de la forma del documento; **69** hasta `V53`, **73** hasta `V52`, **77** hasta `V51` y **76** hasta `V49` |
 | Restricciones de exclusión | **1** — el correo de la cuenta, de `V40` |
 | Triggers propios | **2** — los primeros del esquema, desde `V19` y `V20` |
 | Índices únicos **parciales** | **8** — eran **11** hasta `V58`: `V59` se llevó los de lecturas, patrones y pasos del reporte; **10** hasta `V54`, **9** hasta `V51` y **10** hasta `V48` |
@@ -971,3 +971,14 @@ restricción que el esquema **podría** expresar y que **no debe**, porque conge
   esquema no tiene, y sigue sin tener, es una columna que lo diga en un solo sitio: el camino del dato
   al dueño son hasta tres saltos y los recorre la capa de aplicación. Ver [[filtrado-por-dueno]].
 - **La firma digital** no tiene tablas todavía. (Esta línea decía también «la hoja de vida como entidad»: **la hoja de vida no es una entidad** y no tiene tabla; lo que sí la tiene desde `V12` es su historial, `intervencion`. Ver [[hoja-de-vida]].)
+
+## `intervencion_externa` (V61, 2026-11-23)
+
+Lo que se le hizo a un equipo **fuera de MalphasOS** —otra empresa, o antes de usar el sistema—: una fila por
+intervención, colgada de `equipo_cliente`. Cuándo (`f_realizada`), qué tipo (`t_tipo_servicio`: los tres de
+un reporte más `OTRO`), qué se hizo, qué empresa (`n_empresa`), y opcionales cómo quedó (`t_resultado`) y el
+certificado del tercero (`n_documento`). Retirar es `b_estado_activo`; `f_registrada` la pone la base. Que la
+fecha no sea futura no va como `CHECK` —`now()` no es inmutable—: lo comprueba el dominio. Un índice por
+(equipo, fecha) encabeza la foránea. La hoja de vida y el listado de equipos la leen junto con los reportes
+cerrados; ver [[hoja-de-vida]].
+
