@@ -1,6 +1,6 @@
 {
     "name": "malphasos-keycloak-theme",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Tema de Keycloak de MalphasOS: login y consola de administracion con la marca del producto",
     "type": "module",
     "scripts": {

@@ -3,6 +3,20 @@
 Lo que trae cada versión, para quien usa y despliega MalphasOS. El detalle de cada decisión y de cómo se
 construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/`.
 
+## [1.2.1] — 2026-11-22
+
+### Órdenes de trabajo
+
+- **El resumen de la orden también en hoja de cálculo**: el ZIP de los informes —«Descargar informes (ZIP)» en
+  la ficha de la orden— trae `orden-XXXXXX.xlsx` junto al PDF, con una fila por equipo atendido, la marca y el
+  modelo en columnas separadas, el día de cierre como fecha, la cabecera fija y filtros. Lo abren Excel,
+  LibreOffice y Google Sheets. **Es provisional**: lo hará en el futuro una aplicación aparte, y entonces se
+  retirará del ZIP.
+
+### Actualizar desde la 1.2.0
+
+- Nada que hacer: sin migraciones ni variables nuevas.
+
 ## [1.2.0] — 2026-11-22
 
 Los patrones que lleva cada visita, un catálogo pensado para cientos de filas después de la carga de

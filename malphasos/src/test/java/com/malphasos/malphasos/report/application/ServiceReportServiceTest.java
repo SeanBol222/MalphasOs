@@ -1,5 +1,7 @@
 package com.malphasos.malphasos.report.application;
 
+import com.malphasos.malphasos.report.application.ports.output.WorkOrderArchiveExtension;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -1771,6 +1773,30 @@ class ServiceReportServiceTest {
             assertThat(archivo.informes().get(1).contenido()).isEqualTo(CRONOGRAMA);
             // Un retirado borrador no impide descargar ni entra: no es de la orden.
             verify(reportPdfPort, org.mockito.Mockito.times(2)).render(any());
+        }
+
+        @Test
+        @DisplayName("lo que otro módulo añade al ZIP va tras el resumen y sale del mismo resumen (2026-11-22)")
+        void conUnaExtension() {
+            ServiceReport uno = cerrado(UUID.fromString("aaaaaa00-0000-0000-0000-000000000000"), UUID.randomUUID());
+            when(serviceReportPersistencePort.findByWorkOrder(ORDEN)).thenReturn(List.of(uno));
+            when(reportPdfPort.render(any())).thenReturn(new byte[] {1});
+            estubarResumen();
+            List<WorkOrderSummarySheet> recibidos = new java.util.ArrayList<>();
+            WorkOrderArchiveExtension extension = resumen -> {
+                recibidos.add(resumen);
+                return new ReportPdf("orden-" + resumen.numero() + ".xlsx", new byte[] {7});
+            };
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "extensionesDelZip", List.of(extension));
+
+            ReportArchive archivo = service.pdfsOfWorkOrder(ORDEN, ReadScope.unrestricted());
+
+            // El número del resumen es el del documento de la orden; en estos datos de prueba no coincide.
+            assertThat(archivo.informes()).extracting(ReportPdf::nombre).startsWith(
+                    "orden-" + unaOrdenEnEjecucion().numero() + ".pdf", "orden-" + recibidos.get(0).numero() + ".xlsx");
+            ArgumentCaptor<WorkOrderSummarySheet> alPdf = ArgumentCaptor.forClass(WorkOrderSummarySheet.class);
+            verify(workOrderSummaryPdfPort).render(alPdf.capture());
+            assertThat(recibidos).containsExactly(alPdf.getValue());
         }
 
         @Test

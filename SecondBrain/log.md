@@ -3255,3 +3255,14 @@ eligió **`v1.2.0`** sobre el `main` de hoy, con las versiones subidas y su entr
 pide respaldar antes de actualizar —`V59` conserva solo lo vigente de cada reporte— y poner
 `APP_APPROVAL_SINCE`. La 1.1.0 se queda sin tag.
 
+## [2026-11-22] ingest | El resumen de la orden en .xlsx, y el registro de lo provisional
+
+Para la v1.2.1, el ZIP de los informes de una orden lleva también `orden-XXXXXX.xlsx`, **provisional** hasta que
+una aplicación externa lo haga: un módulo aparte, `orderworkbook`, enganchado por
+`WorkOrderArchiveExtension`. Entró la nota [[piezas-provisionales]] —58 notas—, pedida por el usuario para que
+sea fácil reconocer y retirar esta parte, enlazada desde el índice, desde [[decisiones-tecnicas-malphasos]] y
+desde el `CONVENCIONES.md` de la raíz, que es lo que carga cada sesión.
+
+**1834** pruebas en el backend, **165** clases, cero fallos; el frontend no cambió. El .xlsx se escribió y se
+volvió a leer en las pruebas, y se abrió con LibreOffice.
+

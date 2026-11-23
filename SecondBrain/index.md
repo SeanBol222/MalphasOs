@@ -21,6 +21,7 @@ Reorganizado el 2026-09-09: hasta entonces estaba ordenado por las categorías t
 ### Antes de decidir nada
 
 - [[decisiones-tecnicas-malphasos]] ⭐ — Toda decisión ya tomada, con su justificación y su coste. Consultar antes de re-decidir algo.
+- [[piezas-provisionales]] — Lo que está en MalphasOS sabiendo que se va a ir —hoy, el resumen de la orden en .xlsx— y la receta exacta para retirar cada pieza. Entró el 2026-11-22.
 - [[stack-spring-boot-4-particularidades]] — Spring Boot 4, Flyway 12, Testcontainers 2 y las trampas de conteo de Surefire. Nada de esto se deduce del proyecto original.
 
 ### Arquitectura y convenciones transversales
@@ -113,4 +114,4 @@ Enlaces sin destino, a propósito: marcan lo que merece una nota y todavía no l
 
 ---
 
-**57 notas** · reorganizado el 2026-09-09 · última corrección el 2026-10-17, con la versión 1.0.0 · ver [[log.md]] para el historial.
+**58 notas** · reorganizado el 2026-09-09 · última nota el 2026-11-22, [[piezas-provisionales]] · ver [[log.md]] para el historial.
