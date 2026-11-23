@@ -21,6 +21,7 @@
 		<springdoc.version>3.0.2</springdoc.version>
 		<keycloak.version>26.0.9</keycloak.version>
 		<zxing.version>3.5.3</zxing.version>
+		<fastexcel.version>0.18.4</fastexcel.version>
 		<jsoup.version>1.21.2</jsoup.version>
 		<pdfbox.version>3.0.3</pdfbox.version>
 	</properties>
@@ -58,6 +59,19 @@
 			<groupId>com.google.zxing</groupId>
 			<artifactId>core</artifactId>
 			<version>${zxing.version}</version>
+		</dependency>
+		<!-- PROVISIONAL (2026-11-22, v1.2.1): el resumen de la orden en .xlsx dentro del ZIP, hasta que una
+		     aplicacion externa lo haga. Solo lo usa el modulo orderworkbook; se retira con el. -->
+		<dependency>
+			<groupId>org.dhatim</groupId>
+			<artifactId>fastexcel</artifactId>
+			<version>${fastexcel.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.dhatim</groupId>
+			<artifactId>fastexcel-reader</artifactId>
+			<version>${fastexcel.version}</version>
+			<scope>test</scope>
 		</dependency>
 		<!-- Para leer donde cayeron las firmas en el PDF y llevarlas al pie de la ultima pagina
 		     (2026-11-21): solo Chromium sabe como pagino, y eso solo se ve en el PDF. -->
