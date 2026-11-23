@@ -411,13 +411,25 @@
                     />
                   </div>
                   @if (sinRecibido().length) {
-                    <label class="mt-1 flex min-h-tactil items-center gap-1 text-sm">
-                      <input type="checkbox" data-tambien-recibe [formControl]="tambienRecibe" />
-                      También firma el recibido de
+                    <!--
+                      Un recuadro entero que se pone en tinta al marcarlo, sin la casilla pequeña
+                      (2026-11-22, pedido por el usuario), como el alcance de la firma del reporte.
+                      Sigue siendo una casilla de verdad: se marca con el espacio y el foco se dibuja.
+                    -->
+                    <label
+                      class="mt-1 flex min-h-tactil cursor-pointer items-center border border-neutral-700 px-1.5 py-1 text-sm font-semibold has-[:checked]:border-2 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
+                    >
+                      <input
+                        class="sr-only"
+                        type="checkbox"
+                        data-tambien-recibe
+                        [formControl]="tambienRecibe"
+                      />
+                      También firma el recibido
                       {{
                         sinRecibido().length === 1
-                          ? 'el informe'
-                          : 'los ' + sinRecibido().length + ' informes'
+                          ? 'del informe'
+                          : 'de los ' + sinRecibido().length + ' informes'
                       }}
                       sin firmar
                     </label>
