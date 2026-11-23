@@ -87,7 +87,7 @@ Migraciones: `V1__baseline`, `V2__person`, `V3__location`, `V4__client`, `V5__eq
 
 | Rama | Estado | Pruebas |
 |---|---|---|
-| `main` | **La versión 1.2.1**: el resumen de la orden en .xlsx dentro del ZIP, provisional, sobre la 1.2.0: los patrones de cada verificación y de cada orden, el catálogo para cientos de filas, la campanita de avisos, reactivar personas y la aplicación en una ventana estrecha, sobre la 1.1.0: la carga de datos de otro sistema con su pantalla, la foto de cada equipo y el despliegue en la red local, sobre la 1.0.0: los siete módulos, el modelo de permisos, la sincronización con Keycloak, órdenes de trabajo y reportes de servicio de extremo a extremo, **la firma digital y el PDF del servidor**, un frontend completo y **el despliegue de producción** —ver `DESPLIEGUE.md`— | **1834** medidos el 2026-11-22 |
+| `main` | **La versión 1.2.2**: dos retoques de la ficha de la orden, sobre la 1.2.1, que puso el resumen de la orden en .xlsx dentro del ZIP, provisional, y la 1.2.0: los patrones de cada verificación y de cada orden, el catálogo para cientos de filas, la campanita de avisos, reactivar personas y la aplicación en una ventana estrecha, sobre la 1.1.0: la carga de datos de otro sistema con su pantalla, la foto de cada equipo y el despliegue en la red local, sobre la 1.0.0: los siete módulos, el modelo de permisos, la sincronización con Keycloak, órdenes de trabajo y reportes de servicio de extremo a extremo, **la firma digital y el PDF del servidor**, un frontend completo y **el despliegue de producción** —ver `DESPLIEGUE.md`— | **1834** medidos el 2026-11-22 |
 | ~~`feat/work-order-rest`~~ · ~~`fix/work-order-headquarter-scope`~~ · ~~`docs/wiki-work-order-modulo`~~ | **Mergeadas** el 2026-09-13 por `e69437d`, `1adc2fc` y `b9563a9`, y borradas | — |
 | ~~`feat/work-order-schema`~~ · ~~`feat/relocation-same-client`~~ | Mergeadas antes, por `49b6453` y `1ef55cf` | — |
 
@@ -154,7 +154,8 @@ el reporte en un solo documento (`V59`), los patrones de cada verificación y lo
 usable en una ventana estrecha y el corte de la aprobación como configuración, `APP_APPROVAL_SINCE`. **La
 1.1.0 se queda sin tag**: nunca se puso, y se pasó directamente a la 1.2.0. Ver `CHANGELOG.md`. **Y la
 1.2.1, el mismo día**: el resumen de la orden en .xlsx dentro del ZIP, provisional —ver «Piezas
-provisionales»—.
+provisionales»—. **Y la 1.2.2**, también ese día: el botón de reporte a la derecha de su fila en una ventana
+estrecha y el «También firma el recibido» como recuadro.
 
 **Y la primera versión funcional, decidida el 2026-10-14 y construida hasta el 2026-10-16**: ejecutar una orden exige sus reportes cerrados, el reporte distingue el correctivo, y todo reporte con lecturas dice contra qué patrón se midió y si es conforme; el listado de órdenes, rehecho. Seis tandas y **el marcador no se mueve** —21—, porque ningún RF describe esos formatos. Ver [[hoja-de-ruta-producto]].
 
