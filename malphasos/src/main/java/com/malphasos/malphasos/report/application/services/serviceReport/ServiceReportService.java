@@ -30,6 +30,7 @@ import com.malphasos.malphasos.report.application.ports.input.ServiceReportServi
 import com.malphasos.malphasos.report.application.ports.output.ServiceReportPersistencePort;
 import com.malphasos.malphasos.report.application.model.ReportCatalog;
 import com.malphasos.malphasos.report.application.model.ReportDocumentView;
+import com.malphasos.malphasos.report.application.ports.output.WorkOrderArchiveExtension;
 import com.malphasos.malphasos.report.application.ports.output.WorkOrderSchedulePdfPort;
 import com.malphasos.malphasos.report.application.ports.output.WorkOrderSummaryPdfPort;
 import com.malphasos.malphasos.report.application.services.serviceReport.sheet.WorkOrderScheduleComposer;
@@ -82,6 +83,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -130,6 +132,13 @@ public class ServiceReportService implements ServiceReportServicePort {
     private final ReportPdfPort reportPdfPort;
     private final WorkOrderSummaryPdfPort workOrderSummaryPdfPort;
     private final WorkOrderSchedulePdfPort workOrderSchedulePdfPort;
+
+    /**
+     * Lo que otros módulos añaden al ZIP de una orden (2026-11-22): por campo y opcional, para que quitar el
+     * último no exija tocar nada aquí. Ver {@link WorkOrderArchiveExtension}.
+     */
+    @Autowired(required = false)
+    private List<WorkOrderArchiveExtension> extensionesDelZip = List.of();
     private final ServiceCompanyServicePort serviceCompanyServicePort;
     private final ServiceReportDrafts serviceReportDrafts;
 
@@ -639,7 +648,9 @@ public class ServiceReportService implements ServiceReportServicePort {
         WorkOrderDocument documento = workOrderServicePort.documentOf(orden);
 
         List<ReportPdf> archivos = new ArrayList<>();
-        archivos.add(resumenDe(orden, documento, cerrados));
+        WorkOrderSummarySheet resumen = resumenDe(orden, documento, cerrados);
+        archivos.add(new ReportPdf("orden-" + orden.numero() + ".pdf", workOrderSummaryPdfPort.render(resumen)));
+        extensionesDelZip.forEach(extension -> archivos.add(extension.fileFor(resumen)));
         if (WorkOrderScheduleComposer.applies(documento)) {
             archivos.add(cronogramaDe(orden, documento, cerrados));
         }
@@ -668,13 +679,12 @@ public class ServiceReportService implements ServiceReportServicePort {
     }
 
     /** La empresa se lee hoy, como el membrete de un borrador: el resumen no se congela, se compone. */
-    private ReportPdf resumenDe(WorkOrder orden, WorkOrderDocument documento, List<ServiceReport> cerrados) {
+    private WorkOrderSummarySheet resumenDe(WorkOrder orden, WorkOrderDocument documento, List<ServiceReport> cerrados) {
         Optional<ServiceCompany> empresa = serviceCompanyServicePort.find();
-        WorkOrderSummarySheet hoja = WorkOrderSummaryComposer.compose(orden.getId(), documento, cerrados,
+
+        return WorkOrderSummaryComposer.compose(orden.getId(), documento, cerrados,
                 empresa.map(e -> e.getDatos().nombre()).orElse(null), logoDe(empresa), this::quienRecibe,
                 aprobacionDe(orden.getId()));
-
-        return new ReportPdf("orden-" + orden.numero() + ".pdf", workOrderSummaryPdfPort.render(hoja));
     }
 
     /** Como el resumen: la empresa de hoy. Lanza si la orden no tiene periodicidad. */

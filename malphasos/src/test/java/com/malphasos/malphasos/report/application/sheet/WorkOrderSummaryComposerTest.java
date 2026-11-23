@@ -53,6 +53,19 @@ class WorkOrderSummaryComposerTest {
     }
 
     @Test
+    @DisplayName("cada fila lleva también la marca, el modelo y el día de cierre sueltos, para una hoja de cálculo")
+    void lasPiezasSueltas() {
+        // El documento lista la bomba, la balanza y el monitor; el monitor no tiene modelo (2026-11-22).
+        List<WorkOrderSummarySheet.Fila> filas = componer(LocalDate.of(2026, 10, 18)).filas();
+
+        assertThat(filas).extracting(WorkOrderSummarySheet.Fila::marca)
+                .containsExactly("Marca B", "Kern", "Mindray");
+        assertThat(filas).extracting(WorkOrderSummarySheet.Fila::modelo).containsExactly("Modelo B", "PCB", null);
+        assertThat(filas).extracting(WorkOrderSummarySheet.Fila::cerradoEl)
+                .containsOnly(LocalDate.of(2026, 10, 16));
+    }
+
+    @Test
     @DisplayName("los totales cuentan los reportes por resultado")
     void losTotales() {
         assertThat(componer(LocalDate.of(2026, 10, 18)).totales())

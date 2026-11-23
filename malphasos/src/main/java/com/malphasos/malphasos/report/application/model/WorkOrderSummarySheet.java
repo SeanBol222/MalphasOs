@@ -1,5 +1,6 @@
 package com.malphasos.malphasos.report.application.model;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +39,12 @@ public record WorkOrderSummarySheet(
     public record Totales(int equipos, int operativos, int conRestricciones, int fueraDeServicio) {
     }
 
-    /** @param destacada si el resultado no es operativo: se imprime con más peso, no con otro color */
+    /**
+     * @param destacada si el resultado no es operativo: se imprime con más peso, no con otro color
+     * @param marca la marca sola, y {@code modelo} el modelo solo, para una hoja de cálculo que los filtre;
+     *     nulos si el documento no los trae (2026-11-22)
+     * @param cerradoEl el día en que se cerró el informe, como fecha, o nulo
+     */
     public record Fila(
             int n,
             String area,
@@ -50,6 +56,9 @@ public record WorkOrderSummarySheet(
             String cerrado,
             String resultado,
             String recibio,
-            boolean destacada) {
+            boolean destacada,
+            String marca,
+            String modelo,
+            LocalDate cerradoEl) {
     }
 }

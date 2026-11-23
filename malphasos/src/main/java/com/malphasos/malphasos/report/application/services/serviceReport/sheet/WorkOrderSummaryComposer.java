@@ -85,7 +85,10 @@ public final class WorkOrderSummaryComposer {
                     reporte.getFinalizado() == null ? SheetFormat.SIN_DATO : fechaCorta(reporte.getFinalizado().toLocalDate()),
                     resultado == null ? SheetFormat.SIN_DATO : RESULTADO.get(resultado),
                     nombreDe(quienRecibe.apply(reporte)),
-                    resultado != null && resultado != ServiceResult.OPERATIVO));
+                    resultado != null && resultado != ServiceResult.OPERATIVO,
+                    equipo.marca(),
+                    equipo.modelo(),
+                    reporte.getFinalizado() == null ? null : reporte.getFinalizado().toLocalDate()));
         }
 
         return new WorkOrderSummarySheet(
