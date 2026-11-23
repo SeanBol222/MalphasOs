@@ -1,6 +1,6 @@
 import { Patron, OrdenDeTrabajo } from '../../../core/api/tipos';
 import { desdeIso, fechaCorta } from '../../../core/fechas';
-import { ejecutadaEl, esperaAprobacion } from '../../workOrder/aprobacion';
+import { ejecutadaEl } from '../../workOrder/aprobacion';
 
 /**
  * Los avisos de la campanita (2026-11-21, propuesta 2 de tres, elegida por el usuario sobre un
@@ -86,15 +86,14 @@ export function avisosDePatrones(patrones: readonly Patron[], hoy: Date): Aviso[
 }
 
 /**
- * Las órdenes ejecutadas desde que existe la aprobación y que la esperan, la más antigua primero: es la
- * que más lleva esperando.
+ * Las órdenes que esperan aprobación, la más antigua primero: es la que más lleva esperando. El servidor
+ * ya deja fuera lo ejecutado antes de que se usara la aprobación (2026-11-22).
  */
 export function avisosDeOrdenes(
   ordenes: readonly OrdenDeTrabajo[],
   clientes: ReadonlyMap<string, string>,
 ): Aviso[] {
-  return ordenes
-    .filter(esperaAprobacion)
+  return [...ordenes]
     .sort((a, b) => ejecutadaEl(a).localeCompare(ejecutadaEl(b)))
     .map((orden): Aviso => ({
       clave: `orden:${orden.id}`,
