@@ -3247,3 +3247,11 @@ fija que en el servidor en línea no serviría. El corte es ahora `APP_APPROVAL_
 **1828** pruebas en el backend, **164** clases, cero fallos; **980** en el frontend. Se mutó el filtro del
 servidor y la regla de la pantalla: las dos tienen prueba que falla sin ellas.
 
+## [2026-11-22] ingest | La versión 1.2.0
+
+El usuario pidió el tag tras cerrar las mejoras del frontend y el corte de la aprobación. Como la 1.1.0 nunca
+se etiquetó y desde ella entraron `V59`, `V60`, el catálogo rehecho, la campanita y reactivar personas, se
+eligió **`v1.2.0`** sobre el `main` de hoy, con las versiones subidas y su entrada en el `CHANGELOG`, que
+pide respaldar antes de actualizar —`V59` conserva solo lo vigente de cada reporte— y poner
+`APP_APPROVAL_SINCE`. La 1.1.0 se queda sin tag.
+
