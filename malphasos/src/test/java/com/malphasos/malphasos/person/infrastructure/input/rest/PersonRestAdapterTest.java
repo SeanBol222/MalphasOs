@@ -221,6 +221,28 @@ class PersonRestAdapterTest {
     }
 
     @Test
+    @DisplayName("reactivar una persona responde 200 con la persona activa (2026-11-22)")
+    void reactivatePersonReturnsThePerson() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(personServicePort.reactivate(id)).thenReturn(samplePerson(id));
+
+        mockMvc.perform(patch("/v1/api/persons/{id}/reactivation", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.identificador").value(id.toString()))
+                .andExpect(jsonPath("$.estadoActivo").value(true));
+    }
+
+    @Test
+    @DisplayName("reactivar a quien no existe responde 404")
+    void reactivateUnknownPersonReturnsNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(personServicePort.reactivate(id)).thenThrow(new PersonNotFoundException(id));
+
+        mockMvc.perform(patch("/v1/api/persons/{id}/reactivation", id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("desactivar con Keycloak caido responde 503 y no un 500 generico")
     void deleteWithKeycloakDownReturnsServiceUnavailable() throws Exception {
         UUID id = UUID.randomUUID();

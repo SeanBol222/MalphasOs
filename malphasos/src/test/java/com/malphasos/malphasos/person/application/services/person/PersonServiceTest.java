@@ -355,6 +355,86 @@ class PersonServiceTest {
         verify(identityPort).disableUser(id.toString());
     }
 
+    /** Una persona retirada, para reactivarla. */
+    private Person retirada(UUID id) {
+        return Person.builder()
+                .identificador(id)
+                .tipoPersona(PersonType.ENGINEER)
+                .estadoActivo(false)
+                .build();
+    }
+
+    @Test
+    @DisplayName("reactivar vuelve a activar la ficha y habilita su cuenta (2026-11-22)")
+    void reactivateRestoresThePersonAndItsAccount() {
+        UUID id = UUID.randomUUID();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(retirada(id)));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Person reactivada = service().reactivate(id);
+
+        assertThat(reactivada.isEstadoActivo()).isTrue();
+        ArgumentCaptor<Person> saved = ArgumentCaptor.forClass(Person.class);
+        verify(persistencePort).save(saved.capture());
+        assertThat(saved.getValue().isEstadoActivo()).isTrue();
+        verify(identityPort).enableUser(id.toString());
+    }
+
+    @Test
+    @DisplayName("el orden falla cerrado: se guarda la ficha antes de habilitar la cuenta")
+    void reactivatePersistsBeforeRestoringAccess() {
+        // El contrario de la baja, por la misma razon: si se habilitara antes y el guardado fallara,
+        // quedaria una cuenta abierta para una persona retirada.
+        UUID id = UUID.randomUUID();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(retirada(id)));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service().reactivate(id);
+
+        InOrder orden = Mockito.inOrder(identityPort, persistencePort);
+        orden.verify(persistencePort).save(any());
+        orden.verify(identityPort).enableUser(id.toString());
+    }
+
+    @Test
+    @DisplayName("si Keycloak no responde al reactivar, se propaga el fallo para deshacer la transaccion")
+    void reactivateFailsClosedWhenKeycloakIsUnreachable() {
+        UUID id = UUID.randomUUID();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(retirada(id)));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new KeycloakConnectionException("keycloak caido"))
+                .when(identityPort)
+                .enableUser(id.toString());
+
+        assertThatThrownBy(() -> service().reactivate(id))
+                .isInstanceOf(KeycloakConnectionException.class);
+    }
+
+    @Test
+    @DisplayName("si la persona no tiene cuenta, se reactiva solo la ficha")
+    void reactivateCompletesWhenIdentityAccountIsMissing() {
+        UUID id = UUID.randomUUID();
+        when(persistencePort.findById(id)).thenReturn(Optional.of(retirada(id)));
+        when(persistencePort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new KeycloakUserNotFoundException("no existe"))
+                .when(identityPort)
+                .enableUser(id.toString());
+
+        assertThat(service().reactivate(id).isEstadoActivo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("reactivar una persona inexistente no llama al proveedor de identidad")
+    void reactivateOfUnknownPersonNeverTouchesIdentityPort() {
+        UUID id = UUID.randomUUID();
+        when(persistencePort.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service().reactivate(id)).isInstanceOf(PersonNotFoundException.class);
+
+        verify(identityPort, never()).enableUser(any());
+        verify(persistencePort, never()).save(any());
+    }
+
     @Test
     @DisplayName("dar de baja una persona inexistente no llama al proveedor de identidad")
     void deleteOfUnknownPersonNeverTouchesIdentityPort() {

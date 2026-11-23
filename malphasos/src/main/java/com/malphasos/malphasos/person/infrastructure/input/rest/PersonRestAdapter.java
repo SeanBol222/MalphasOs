@@ -121,6 +121,18 @@ public class PersonRestAdapter {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(
+            summary = "Reactivar una persona retirada",
+            description = "Vuelve a activarla y, si tiene cuenta, le devuelve el acceso con la "
+                    + "contraseña que tenía. Repetirlo no cambia nada.")
+    @PreAuthorize("@personWriteGuard.canWrite(#id, authentication)")
+    @PatchMapping("/{id}/reactivation")
+    public PersonResponse reactivatePerson(
+            @Parameter(description = "Identificador de la persona") @PathVariable UUID id) {
+
+        return personRestMapper.toResponse(personServicePort.reactivate(id));
+    }
+
     private ResponseEntity<PersonResponse> created(
             com.malphasos.malphasos.person.domain.person.Person person) {
 

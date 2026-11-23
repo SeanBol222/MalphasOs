@@ -46,6 +46,17 @@ public interface PersonIdentityPort {
     void disableUser(String userId);
 
     /**
+     * Devuelve el acceso a un usuario deshabilitado (2026-11-22): la contraparte de
+     * {@link #disableUser}, para reactivar a una persona retirada. La cuenta y su contraseña son las
+     * de antes.
+     *
+     * <p>Es idempotente: habilitar un usuario ya habilitado no falla ni cambia nada.
+     *
+     * @throws KeycloakUserNotFoundException si no hay ningún usuario con ese identificador
+     */
+    void enableUser(String userId);
+
+    /**
      * Actualiza en el proveedor de identidad los datos personales que también guarda la aplicación.
      *
      * <p>Solo viaja lo que aparece en {@link PersonIdentityProfile}: ni el nombre de usuario, ni el

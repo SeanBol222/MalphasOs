@@ -259,6 +259,28 @@ class PersonIdentityAdapterTest {
     }
 
     @Test
+    @DisplayName("habilitar envia la representacion leida con la cuenta habilitada (2026-11-22)")
+    void enableUserSendsTheRepresentationItRead() {
+        String userId = UUID.randomUUID().toString();
+        UserRepresentation existing = new UserRepresentation();
+        existing.setId(userId);
+        existing.setUsername("ada");
+        existing.setEmail("ada@malphasos.local");
+        existing.setEnabled(false);
+        when(usersResource.get(userId)).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(existing);
+
+        adapter.enableUser(userId);
+
+        ArgumentCaptor<UserRepresentation> sent = ArgumentCaptor.forClass(UserRepresentation.class);
+        verify(userResource).update(sent.capture());
+        assertThat(sent.getValue()).isSameAs(existing);
+        assertThat(sent.getValue().isEnabled()).isTrue();
+        assertThat(sent.getValue().getUsername()).isEqualTo("ada");
+        assertThat(sent.getValue().getCredentials()).isNull();
+    }
+
+    @Test
     @DisplayName("actualizar el perfil solo cambia nombre y apellido")
     void updateUserProfileTouchesOnlyNameFields() {
         String userId = UUID.randomUUID().toString();
@@ -284,7 +306,7 @@ class PersonIdentityAdapterTest {
     }
 
     @ParameterizedTest(name = "un usuario inexistente al {0} se traduce a KeycloakUserNotFoundException")
-    @ValueSource(strings = {"disable", "update"})
+    @ValueSource(strings = {"disable", "enable", "update"})
     void missingUserIsTranslatedOnBothOperations(String operation) {
         // Regresion del case 404 nuevo en translateClientFailure: debe cubrir las dos operaciones
         // que lo introdujeron sin alterar lo que ya traducian createUser y deleteUser.
@@ -293,10 +315,12 @@ class PersonIdentityAdapterTest {
         when(userResource.toRepresentation())
                 .thenThrow(new ProcessingException(new NotFoundException("HTTP 404 Not Found")));
 
-        Runnable call = "disable".equals(operation)
-                ? () -> adapter.disableUser(userId)
-                : () -> adapter.updateUserProfile(
-                        userId, PersonIdentityProfile.builder().firstName("Grace").build());
+        Runnable call = switch (operation) {
+            case "disable" -> () -> adapter.disableUser(userId);
+            case "enable" -> () -> adapter.enableUser(userId);
+            default -> () -> adapter.updateUserProfile(
+                    userId, PersonIdentityProfile.builder().firstName("Grace").build());
+        };
 
         assertThatThrownBy(call::run).isInstanceOf(KeycloakUserNotFoundException.class);
     }

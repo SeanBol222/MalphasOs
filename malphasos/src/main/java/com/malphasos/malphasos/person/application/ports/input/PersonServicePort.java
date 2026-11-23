@@ -39,6 +39,9 @@ public interface PersonServicePort {
     /** Desactiva la persona sin borrarla, conservando su historial. */
     void delete(UUID id);
 
+    /** Vuelve a activar a una persona retirada, y a su cuenta si la tiene. */
+    Person reactivate(UUID id);
+
     Person addEmail(UUID personId, EmailPerson email);
 
     Person addPhone(UUID personId, PhonePerson phone);
