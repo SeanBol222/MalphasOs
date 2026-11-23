@@ -3,6 +3,19 @@
 Lo que trae cada versión, para quien usa y despliega MalphasOS. El detalle de cada decisión y de cómo se
 construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/`.
 
+## [1.2.2] — 2026-11-22
+
+### Pantallas
+
+- En la ficha de la orden, **el botón de reporte de cada equipo queda a la derecha** de su fila también en una
+  ventana estrecha y en el teléfono, donde caía bajo el nombre.
+- Al aprobar en sitio, **«También firma el recibido…» es un recuadro que se pone oscuro** al marcarlo, como el
+  alcance de la firma del reporte, en vez de una casilla pequeña.
+
+### Actualizar desde la 1.2.1
+
+- Nada que hacer: solo cambia el frontend.
+
 ## [1.2.1] — 2026-11-22
 
 ### Órdenes de trabajo

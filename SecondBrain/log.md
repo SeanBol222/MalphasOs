@@ -3266,3 +3266,10 @@ desde el `CONVENCIONES.md` de la raíz, que es lo que carga cada sesión.
 **1834** pruebas en el backend, **165** clases, cero fallos; el frontend no cambió. El .xlsx se escribió y se
 volvió a leer en las pruebas, y se abrió con LibreOffice.
 
+## [2026-11-22] ingest | La versión 1.2.2
+
+Dos retoques de la ficha de la orden pedidos por el usuario, en la rama `feat/frontend-improvements`
+reabierta: el botón de reporte de cada equipo pegado a la derecha cuando la fila se parte, y «También firma
+el recibido» como recuadro que se pone en tinta, igual que el alcance de la firma del reporte —ver «Una
+ventana estrecha no es un teléfono» en [[decisiones-tecnicas-malphasos]]—. Solo frontend.
+
