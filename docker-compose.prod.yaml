@@ -124,6 +124,8 @@ services:
       # backend no arranca sin la lista y una explicita es mejor que una vacia.
       APP_CORS_ALLOWED_ORIGINS: https://${MALPHASOS_DOMAIN}
       APP_FRONTEND_URL: https://${MALPHASOS_DOMAIN}
+      # Desde que dia una orden ejecutada espera aprobacion; ver DESPLIEGUE.md.
+      APP_APPROVAL_SINCE: ${APP_APPROVAL_SINCE:-}
       GOTENBERG_URL: http://gotenberg:3000
       # Sin documentacion publica del API en produccion.
       SPRINGDOC_API_DOCS_ENABLED: "false"

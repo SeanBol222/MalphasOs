@@ -165,7 +165,10 @@ aparatos, a uno se le quita la serie en el archivo y recibe la provisional.
 - **Patrones**: el catálogo se queda con el certificado **más reciente**. Cada reporte usa el que estaba
   **vigente el día del servicio**, que es lo que imprime.
 - **Órdenes**: entran **ejecutadas**. No se puede seguir trabajando en ellas, como en cualquier orden
-  terminada.
+  terminada. **Y sin aprobación**: el sistema de origen no la tenía. Para que no salgan «por aprobar»,
+  la instalación declara desde qué día se aprueba, `APP_APPROVAL_SINCE` —ver `DESPLIEGUE.md`—, y lo
+  ejecutado antes no la espera. Si una orden del archivo se ejecutó después de ese día, sí saldrá: la
+  fecha se elige posterior a la última orden de la carga.
 - **Reportes**: entran **cerrados**, y MalphasOS los cierra como cualquier otro: compone y congela su
   documento con **el formato actual** y la firma guardada del ingeniero. El documento **no dice que es
   importado**: sale como cualquier reporte, con los recuadros de las firmas que falten vacíos.

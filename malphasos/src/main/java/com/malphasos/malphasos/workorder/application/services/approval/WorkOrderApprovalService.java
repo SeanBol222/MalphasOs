@@ -56,6 +56,7 @@ public class WorkOrderApprovalService implements WorkOrderApprovalServicePort {
     private final PersonSignatureServicePort personSignatureServicePort;
     private final DocumentImageStorePort documentImageStorePort;
     private final EventDispatcherPort eventDispatcherPort;
+    private final ApprovalStart approvalStart;
 
     @Override
     @Transactional(readOnly = true)
@@ -89,6 +90,8 @@ public class WorkOrderApprovalService implements WorkOrderApprovalServicePort {
         List<WorkOrder> ejecutadas = workOrderServicePort.findAll(alcance).stream()
                 .filter(WorkOrder::isEstadoActivo)
                 .filter(orden -> orden.getEstadoEjecucion() == ExecutionState.EJECUTADA)
+                // Lo ejecutado antes de que la aprobación se usara no la espera: ver ApprovalStart.
+                .filter(approvalStart::awaits)
                 .toList();
         Set<UUID> aprobadas = approvalPersistencePort.findApprovedAmong(
                 ejecutadas.stream().map(WorkOrder::getId).toList());
