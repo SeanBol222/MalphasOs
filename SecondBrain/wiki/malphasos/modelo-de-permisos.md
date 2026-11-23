@@ -3,7 +3,7 @@ name: modelo-de-permisos
 description: Las 22 autoridades del API, la expansion en dos escalones que separa al super usuario del administrador, la escalera de quien puede crear a quien, y la unica excepcion a la autoridad literal
 tags: [malphasos, seguridad, keycloak, autorizacion, "reusable:media", "describe:malphasos"]
 estado: estable
-updated: 2026-11-02
+updated: 2026-11-22
 ---
 
 # Modelo de permisos de MalphasOS
@@ -49,7 +49,7 @@ Las 17 de recurso, con las operaciones que protegen a fecha de hoy (contado sobr
 | Autoridad | Operaciones | Notas |
 |---|---|---|
 | `person.read` | 3 | **Eran 2 hasta el 2026-11-02**: entró la consulta de si una persona tiene cuenta. Darle acceso, la escritura de al lado, delega en el mismo bean que editarla —crearle la cuenta es tomarla, así que pide el escalón de esa persona— |
-| `person.write` | 1 | **Era 12 hasta el 2026-09-13, y 2 hasta el 2026-11-01**, cuando el alta sin cuenta de los encargados salió con ellos. Ahora cubre el alta de supervisores del cliente; las altas de la gente de la casa subieron de escalón, y editar y retirar —incluidos correos y teléfonos— delegan en un bean porque dependen del tipo de la persona |
+| `person.write` | 1 | **Era 12 hasta el 2026-09-13, y 2 hasta el 2026-11-01**, cuando el alta sin cuenta de los encargados salió con ellos. Ahora cubre el alta de supervisores del cliente; las altas de la gente de la casa subieron de escalón, y editar y retirar —incluidos correos y teléfonos— delegan en un bean porque dependen del tipo de la persona. **Reactivar**, desde el 2026-11-22, delega en el mismo bean que retirar |
 | `location.read` | 4 | |
 | `location.write` | 6 | |
 | `client.read` | 4 | |

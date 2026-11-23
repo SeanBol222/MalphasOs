@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-11-20
+updated: 2026-11-22
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -1039,3 +1039,79 @@ sección plegada la abre al guardar.
 
 **La pestaña del navegador lleva la marca de MalphasOS** desde el 2026-11-19 —antes, el escudo de Angular que
 dejó la plantilla—, y el título y el idioma del documento dejaron de ser los de la plantilla.
+
+## La campanita: avisos que se deducen, sin tabla (2026-11-21)
+
+**Lo que lo pidió**: el usuario quería enterarse de lo que pide atención sin ir a buscarlo. Eligió la segunda
+de tres propuestas, sobre un prototipo interactivo: una campana al pie de la barra lateral —y en la barra de
+arriba en un teléfono— con un número de avisos sin leer y un cuadro que se abre encima, también en el
+teléfono, donde no cubre la pantalla entera.
+
+**Dos clases de aviso, decididas por el usuario**: los **patrones** vencidos o que vencen en **30 días** —15 o
+menos se marcan urgentes—, que ve quien tiene `equipment.write`, y las **órdenes ejecutadas por aprobar**, que
+ve quien tiene `work-order.approve`. Con las dos, el cuadro ofrece filtrarlas.
+
+**No hay tabla de avisos.** Cada uno se deduce de un dato que ya existe —el vencimiento del certificado, la
+lista de pendientes de aprobar—, así que **desaparece solo cuando se resuelve lo que lo causa**. Lo único que
+se guarda es qué ha leído cada quien, **en su navegador** (`localStorage`, por usuario), decidido por el
+usuario frente a guardarlo en el servidor. La clave de un aviso de patrón lleva su nivel y su fecha: uno leído
+cuando estaba «por vencer» vuelve a salir al vencer.
+
+**Lo que no es**: no hay tarea programada ni estado de alerta en el backend. El aviso se calcula al mirar, en
+el frontend; RF-41 sigue sin cumplirse entero. Ver [[hoja-de-ruta-producto]].
+
+**Lo que la primera prueba real destapó**: la campana salió con **1158** avisos, todos órdenes del historial
+cargado de otro sistema, ejecutadas antes de que existiera la aprobación (`V54`) y que nadie va a aprobar. **Se
+cuentan solo las ejecutadas desde el 2026-11-02**, el día que entró la aprobación —opción elegida por el usuario
+frente a aprobarlas en bloque o marcarlas en la base—. El 2026-11-22 la misma regla pasó al filtro «Por aprobar»
+del listado de órdenes, que contaba **1153**, y **vive en un solo sitio**, `workOrder/aprobacion.ts`. Las del
+historial tampoco se dicen «Aprobada» en la columna de estado: no lo están.
+
+## Una ventana estrecha no es un teléfono (2026-11-21 y 22)
+
+**Lo que lo pidió**: con la barra lateral abierta en una ventana de unos 800 px, la pantalla sigue siendo de
+escritorio —las reglas `max-md:` no se aplican—, y el reporte, los listados y el catálogo se salían de la
+pantalla por la derecha.
+
+**El reporte responde al ancho de su caja, no al de la ventana**: `@container` y variantes `@max-2xl:` de
+Tailwind 4, de modo que la recepción y la tabla de verificación pasan a tarjetas cuando su caja baja de 672 px,
+haya o no barra lateral. Y de paso, pedido por el usuario: **recuadros que se ponen en tinta en vez de radios
+con su circulito** —el estado al recibir, el resultado y el alcance de la firma—. Siguen siendo radios de
+verdad, ocultos con `sr-only`, así que el teclado y los lectores de pantalla no notan el cambio.
+
+**Los listados se desplazan de lado dentro de su caja, con su barra**: órdenes, equipos, clientes, personas y
+las siete tablas del catálogo, cada una como región enfocable con nombre para llegar con el teclado. Las filas
+de filtros —los estados de las órdenes, las pestañas del catálogo, los filtros de personas— van en **una sola
+fila** que también se desplaza, en vez de partirse en renglones desiguales.
+
+**Se probó y se retiró una alternativa**: sin barra, con la rueda moviendo de lado solo sobre la cabecera de la
+tabla y una sombra en el borde que aún esconde algo. Funcionaba, con sus pruebas, y **el usuario prefirió la
+barra** al verla. No se commiteó.
+
+## Reactivar a una persona retirada (2026-11-22)
+
+Hasta este día una baja no tenía vuelta: el API solo retiraba, y la ficha de una persona retirada no ofrecía
+nada. **`PATCH /persons/{id}/reactivation`** activa la ficha y, si tiene cuenta, la habilita en Keycloak con la
+contraseña que tenía; sin cuenta, reactiva solo la ficha. La protege la misma escalera que la baja —ver
+[[modelo-de-permisos]]—.
+
+**El orden es el contrario al de la baja, por la misma razón**: que un fallo a mitad deje el sistema cerrado.
+La baja deshabilita la cuenta antes de guardar; la reactivación **guarda antes de habilitar**, de modo que si
+Keycloak falla la transacción se deshace y la persona sigue retirada y sin acceso. Al revés, un fallo al guardar
+dejaría una cuenta abierta para alguien retirado. Hay una prueba del orden, y se vio fallar invirtiéndolo.
+
+## Los patrones de la orden, solo para los tipos que se verifican (2026-11-22)
+
+La pantalla de patrones de la orden ofrecía elegir para **todos** los tipos de sus equipos, incluidos los que no
+tienen ninguna verificación metrológica —un agitador vórtex, un analizador—. Ahora salen solo los tipos con
+alguna verificación en el catálogo, ahí y en el resumen de la ficha de la orden, pedido por el usuario. **Uno sin
+verificación que ya tenga patrones elegidos sigue saliendo**, para poder quitárselos, y uno que el catálogo no
+trae no se da por no verificable. Es un filtro de pantalla: el servidor sigue aceptando lo que aceptaba.
+
+## Los PDF, retocados (2026-11-21)
+
+Tres ajustes pedidos por el usuario sobre los documentos del servidor: el logo a **48 px** en la hoja de vida y
+en el informe; **las firmas del informe al pie de su última página**, no a continuación del contenido; y **líneas
+de historial en blanco** en la hoja de vida hasta las firmas, para anotar a mano lo que se haga fuera del
+sistema.
+

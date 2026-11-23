@@ -395,3 +395,10 @@ La réplica de la firma de quien recibe deja de ser una casilla de la orden: se 
 área del equipo en la orden o todos los de la orden. Lo pedía el análisis de [[diseno-base-de-datos]], y
 no lleva migración. RF-21 sigue implementado; cambia cómo se elige a cuántos reportes va. Ver
 [[rf-firma-digital]].
+
+## [2026-11-22] ingest | RF-40 y RF-41: la campanita no los cumple
+
+El frontend avisa desde el 2026-11-21 de los patrones vencidos o que vencen en 30 días. Se anota en
+[[rf-alertas-calibracion]] por qué los dos requisitos siguen previstos: el aviso se calcula al mirar, sin
+tarea diaria ni estado de alerta en el servidor.
+

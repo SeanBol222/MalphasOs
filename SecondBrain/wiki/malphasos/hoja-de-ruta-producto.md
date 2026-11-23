@@ -4,7 +4,7 @@ description: Que falta por construir en MalphasOS -backend y frontend- ordenado 
 tags: [malphasos, planificacion, hoja-de-ruta, "describe:malphasos"]
 source: Documentation/IEEE830/IEEE830.tex apartado 3.2 y Documentation/wiki/ (28 notas), contrastados contra malphasos/
 estado: estable
-updated: 2026-11-19
+updated: 2026-11-22
 ---
 
 # Hoja de ruta del producto
@@ -728,7 +728,7 @@ reloj, que nunca se midió—. Probablemente faltan certificados renovados que e
 | 4 | **Historial de intervenciones** (RF-26, RF-27) | Cierra las hojas de vida | **Desbloqueado el 2026-09-27** y **con pantalla desde el 2026-09-28**: `/equipos/:id/historial` lista los reportes de un equipo, con su fecha, su resultado y sus lecturas. **No cuenta como RF-26**: estos dos requisitos piden el historial **dentro de** la hoja de vida, que no existe como entidad. Lo que falta es exactamente eso, no la consulta |
 | 5 | **Frontend** | Firma digital, seis RNF, los manuales de usuario | Ninguna técnica. **Decidido el 2026-09-13: entra ahora.** Clientes cerrado el 2026-09-26, equipos y catálogo ese mismo día, y **las órdenes de trabajo el 2026-09-27**: con eso el primer bloque está completo y el marcador de requisitos sube por primera vez gracias al frontend |
 | 6 | **Firma digital** (RF-18, RF-21) → **PDF** (RF-17) | Cierra reportes | Requiere los bloques 2 y 5. **Decidido el 2026-10-17** y en construcción para la 1.0.0: ver la sección anterior |
-| 7 | **Alertas y calibración** (RF-40, RF-41) | — | Requiere el bloque 3 + tareas programadas. **Won't Have** |
+| 7 | **Alertas y calibración** (RF-40, RF-41) | — | Requiere el bloque 3 + tareas programadas. **Won't Have**. **Desde el 2026-11-21 hay una campanita** que avisa de los patrones vencidos o que vencen en 30 días, calculada en el frontend al mirar: no hay tarea programada ni estado de alerta en el servidor, así que **ningún RF sube**. Ver [[decisiones-tecnicas-malphasos]] |
 | 8 | **Inventario y módulo comercial** | — | **Requisitos ausentes que hay que escribir primero.** Inventario es Won't Have |
 
 **La prioridad MoSCoW de la ERS coincide con este orden en lo que importa**: los bloques 1 y 2 concentran casi todos los *Must Have*; el 4 y el 6 son *Could Have* o sin clasificar; el 7 y la mitad del 8 son *Won't Have*. No hubo que elegir entre dependencias y prioridad.
