@@ -87,8 +87,17 @@ class SecurityIntegrationTest {
      * puerto devuelve {@code null} y la peticion muere con un 500 que se leeria como un fallo de
      * autorizacion.
      */
+    /**
+     * Un solo {@code @BeforeEach}: JUnit no garantiza en qué orden corren dos de la misma clase. Los dos
+     * estubados son independientes, pero así no hay orden que adivinar.
+     */
     @BeforeEach
-    void laPersonaDelIdentificadorEsUnRepresentante() {
+    void preparar() {
+        laPersonaDelIdentificadorEsUnRepresentante();
+        elDecodificadorDevuelveLosRolesQuePideLaPeticion();
+    }
+
+    private void laPersonaDelIdentificadorEsUnRepresentante() {
         when(personServicePort.findById(any())).thenReturn(personaDeTipo(PersonType.SUPERVISOR));
     }
 
@@ -188,8 +197,7 @@ class SecurityIntegrationTest {
      * contexto, de modo que el converter de la aplicación no llega a ejecutarse nunca y el claim
      * {@code resource_access} que se le ponga al token no lo lee nadie.
      */
-    @BeforeEach
-    void elDecodificadorDevuelveLosRolesQuePideLaPeticion() {
+    private void elDecodificadorDevuelveLosRolesQuePideLaPeticion() {
         when(jwtDecoder.decode(anyString())).thenAnswer(invocacion -> {
             String valor = invocacion.getArgument(0, String.class);
             String[] roles = valor.isEmpty() ? new String[0] : valor.split("~");
