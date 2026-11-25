@@ -24,6 +24,7 @@
 		<fastexcel.version>0.18.4</fastexcel.version>
 		<jsoup.version>1.21.2</jsoup.version>
 		<pdfbox.version>3.0.3</pdfbox.version>
+		<jacoco.version>0.8.13</jacoco.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -242,6 +243,29 @@
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- La cobertura de las pruebas (2026-11-25), para verla en SonarQube: prepare-agent engancha el
+			     agente a Surefire por argLine, y report escribe target/site/jacoco/jacoco.xml en verify, que
+			     es el que lee el análisis. No exige ningún mínimo: solo mide. -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>
