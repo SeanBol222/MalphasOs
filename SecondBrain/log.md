@@ -3284,3 +3284,13 @@ el artifact del esquema.
 **1861** pruebas en el backend, **169** clases, cero fallos; **986** en el frontend. Se mutó la unión del
 listado y el orden del historial: las dos tienen prueba que falla sin ellas.
 
+
+## [2026-11-25] ingest | La auditoría con SonarQube y la cobertura con JaCoCo
+
+SonarQube sobre el backend: seis records con `byte[]` que comparaban por referencia, arreglados y fijados
+por una prueba parametrizada mutada, y un `@BeforeEach` duplicado; cinco falsos positivos y seis code smells
+dejados a propósito. JaCoCo entra midiendo sin umbral —90 % de cobertura—. Y una prueba de carga con JMeter,
+sin errores hasta 200 hilos, cuyas evidencias viven en `raw/`, fuera del repositorio. Tocada
+[[decisiones-tecnicas-malphasos]].
+
+**1879** pruebas en el backend, **170** clases, cero fallos; el frontend no cambió.

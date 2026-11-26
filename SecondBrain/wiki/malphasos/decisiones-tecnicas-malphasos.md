@@ -2,7 +2,7 @@
 name: decisiones-tecnicas-malphasos
 description: Registro cronológico de decisiones técnicas tomadas al construir MalphasOS, con su justificación y en qué se apartan del proyecto original
 tags: [malphasos, decisiones, adr, "describe:malphasos"]
-updated: 2026-11-23
+updated: 2026-11-25
 ---
 
 # Decisiones técnicas de MalphasOS
@@ -1165,3 +1165,35 @@ Pérez · empresa». La externa sale como «Externo · Metrología S.A.S. · CAL
 **Una Keycloak ya instalada no relee el realm**: el rol nuevo se crea a mano —en desarrollo se hizo con
 `kcadm` el mismo día—, y el CHANGELOG lo dice para el servidor.
 
+
+## La primera auditoría con SonarQube, y la cobertura con JaCoCo (2026-11-25)
+
+**Lo que la pidió**: el usuario quiso auditar el backend con SonarQube. Se levantó la edición Community en
+Docker, solo en `127.0.0.1`, y se analizó con el plugin de Maven; **el token de análisis vivió solo en el
+disco de quien trabaja**, nunca en el repositorio, decidido por el usuario. El contenedor y sus volúmenes se
+retiraron al terminar.
+
+**Lo que encontró y se arregló**: seis records que llevan `byte[]` —el logo de la empresa, la firma, el
+archivo de una carga, el PDF de la hoja de vida— comparaban el arreglo **por referencia** (regla S6218): dos
+con los mismos bytes en arreglos distintos no eran iguales, y su `toString` pintaba la dirección del arreglo.
+Ahora comparan por contenido, y `toString` dice cuántos bytes son **sin volcarlos** —una firma en un log no
+sirve a nadie—. Los fija `ByteArrayRecordsContractTest`, una prueba parametrizada sobre los seis, y se mutó:
+sin el `equals` de `DataLoadFile` falla. Y `SecurityIntegrationTest` tenía dos `@BeforeEach`, cuyo orden
+JUnit no garantiza; quedó uno.
+
+**Lo que se dejó, a propósito**: cinco «vulnerabilidades» que son falsos positivos —tres de SQL dinámico en
+`EquipmentOverviewPersistenceAdapter`, donde lo concatenado son constantes y todo valor del usuario va como
+parámetro con nombre, y dos de CSRF desactivado, que es lo correcto en un API sin sesión con JWT— y seis code
+smells menores. La puerta de calidad pasa: cero bugs, duplicación del 0,3 %.
+
+**JaCoCo mide y no exige** (`jacoco-maven-plugin` 0.8.13, `prepare-agent` y `report` en `verify`): deja
+`target/site/jacoco/jacoco.xml`, que SonarQube lee solo. Medido ese día: **90 %** de cobertura, 92 % de líneas
+y 84,1 % de ramas. Sin umbral que tumbe la construcción, porque un porcentaje no dice si una regla se ejerce
+—eso lo dice mutar, ver el `CONVENCIONES.md` de la raíz—.
+
+**Y una prueba de carga externa con JMeter**, solo de lecturas y contra la PC de desarrollo: escalonada a 10,
+25 y 50 hilos y de estrés hasta 200, **cero errores en 64 196 peticiones**, sin punto de quiebre. El cuello de
+botella es el PDF de la hoja de vida, que pasa por Gotenberg; de lo que responde JSON, el listado de órdenes
+es lo más lento, entre 43 y 68 ms. **Nada de esto vive en el repositorio**: el plan, los guiones y las
+evidencias están en `raw/auditoria/`, ignorado por git, porque fue un taller de la universidad y no parte
+del producto. Lo que sí queda como pendiente real: repetir la carga en el servidor de producción.
