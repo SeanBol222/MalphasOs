@@ -3294,3 +3294,16 @@ sin errores hasta 200 hilos, cuyas evidencias viven en `raw/`, fuera del reposit
 [[decisiones-tecnicas-malphasos]].
 
 **1879** pruebas en el backend, **170** clases, cero fallos; el frontend no cambió.
+
+## [2026-11-26] ingest | Producción detrás del Caddy del servidor
+
+El servidor en línea ya tiene un Caddy para sus otras aplicaciones, así que `docker-compose.prod.yaml` deja
+el suyo: ningún servicio publica puertos, y el frontend, el backend y Keycloak se unen a la red externa `web`
+con alias `malphasos-*`, siguiendo el compose de otra aplicación del mismo servidor que dio el usuario. Sale
+`docker/caddy/` entero, incluida la instalación en la red local, y los registros de cada contenedor quedan
+acotados. Las rutas pasan a `DESPLIEGUE.md` como el bloque que se pega en el Caddyfile del servidor.
+Tocadas [[docker-compose]] y [[hoja-de-ruta-producto]].
+
+**Probado levantándolo**: la pila de producción con `localhost` y un Caddy aparte en la red `web` con el
+bloque copiado de la guía. El frontend, el API —401 sin token—, el emisor de Keycloak en `https://` y la
+consola bloqueada con 404, todo a través de ese Caddy.

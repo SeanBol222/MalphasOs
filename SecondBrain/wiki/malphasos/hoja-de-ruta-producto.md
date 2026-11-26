@@ -529,7 +529,7 @@ ninguna clase de producción**.
 | Pregunta | Decisión |
 |---|---|
 | Dónde corre | **Aún no se sabe**: se deja listo para cualquier servidor con Docker y el dominio va en el `.env` |
-| HTTPS | **Caddy dentro del compose**, con certificados automáticos; es lo único que publica puertos |
+| HTTPS | **Caddy dentro del compose**, con certificados automáticos; es lo único que publica puertos. **Retirado el 2026-11-26**: el servidor en línea ya tiene su Caddy, y MalphasOS va detrás de él por su red `web` — ver [[docker-compose]] |
 | Respaldo | **`pg_dump` diario** de la base de la aplicación y la de Keycloak, con retención y una restauración probada |
 | Alcance | **Lo decidido más producción, y también la firma digital** (RF-17, RF-18 y RF-21) |
 
