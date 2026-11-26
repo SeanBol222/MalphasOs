@@ -6,14 +6,23 @@
 # Va aparte del docker-compose.yaml de desarrollo a proposito: no hereda nada de el. Las diferencias son
 # las que separan una maquina de trabajo de un servidor:
 #
-#   - Caddy es el UNICO servicio que publica puertos, el 80 y el 443, con HTTPS automatico. Postgres,
-#     Keycloak, el backend, Gotenberg y el frontend solo se alcanzan por la red interna.
+#   - NINGUN servicio publica puertos. El proxy es el Caddy que ya tiene el servidor (2026-11-26): el
+#     frontend, el backend y Keycloak se unen a su red externa -«web», o la que diga
+#     MALPHASOS_PROXY_NETWORK- y el resto solo se alcanza por la red interna. Su bloque de Caddy, con el
+#     HTTPS y las rutas, esta en DESPLIEGUE.md.
 #   - Un solo dominio: el frontend en /, el API en /v1 y Keycloak en /auth.
 #   - Keycloak en modo «start», detras del proxy, con un realm SIN usuarios ni secretos escritos.
 #   - El backend con la seguridad encendida y sin Swagger.
 #   - Sin pgAdmin.
 
 name: malphasos-produccion
+
+# Los registros de cada contenedor, acotados: sin limite, un servicio que escribe mucho llena el disco.
+x-registros: &registros
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   postgres:
@@ -30,6 +39,7 @@ services:
     networks:
       - interna
     restart: unless-stopped
+    logging: *registros
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -58,8 +68,8 @@ services:
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
 
-      # La direccion publica, la que el navegador ve y la que Keycloak escribe en cada token. Caddy
-      # termina el TLS y le habla por HTTP en la red interna, diciendole por cabeceras como llego.
+      # La direccion publica, la que el navegador ve y la que Keycloak escribe en cada token. El Caddy del
+      # servidor termina el TLS y le habla por HTTP, diciendole por cabeceras como llego.
       KC_HOSTNAME: https://${MALPHASOS_DOMAIN}/auth
       KC_HTTP_RELATIVE_PATH: /auth
       KC_HTTP_ENABLED: "true"
@@ -75,9 +85,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    expose:
+      - "8080"
     networks:
-      - interna
+      interna:
+      proxy:
+        aliases: [malphasos-keycloak]
     restart: unless-stopped
+    logging: *registros
     healthcheck:
       test:
         - CMD-SHELL
@@ -93,6 +108,7 @@ services:
     networks:
       - interna
     restart: unless-stopped
+    logging: *registros
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:3000/health"]
       interval: 15s
@@ -141,9 +157,14 @@ services:
         condition: service_healthy
       gotenberg:
         condition: service_healthy
+    expose:
+      - "8081"
     networks:
-      - interna
+      interna:
+      proxy:
+        aliases: [malphasos-app]
     restart: unless-stopped
+    logging: *registros
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
@@ -161,40 +182,13 @@ services:
       MALPHASOS_KEYCLOAK_URL: https://${MALPHASOS_DOMAIN}/auth
       MALPHASOS_KEYCLOAK_REALM: malphasos-realm
       MALPHASOS_KEYCLOAK_CLIENT_ID: malphasos-frontend
+    expose:
+      - "8080"
     networks:
-      - interna
+      proxy:
+        aliases: [malphasos-frontend]
     restart: unless-stopped
-
-  caddy:
-    image: caddy:2.10-alpine
-    # El Caddyfile se elige en .env.prod: el de un dominio, o el de la red local, que entra por IP
-    # (2026-11-08). Ver DESPLIEGUE.md.
-    command: caddy run --config /etc/caddy/${MALPHASOS_CADDYFILE:-Caddyfile} --adapter caddyfile
-    environment:
-      MALPHASOS_DOMAIN: ${MALPHASOS_DOMAIN}
-      MALPHASOS_IP: ${MALPHASOS_IP:-}
-    # Los puertos se pueden cambiar en .env.prod cuando el servidor ya tiene el 80 y el 443 ocupados por
-    # otro proxy. El de HTTPS tiene que ser el mismo dentro y fuera, y el mismo que lleve MALPHASOS_DOMAIN:
-    # Caddy escucha en el puerto que dice la direccion del sitio.
-    ports:
-      - "${MALPHASOS_HTTP_PORT:-80}:80"
-      - "${MALPHASOS_HTTPS_PORT:-443}:${MALPHASOS_HTTPS_PORT:-443}"
-      - "${MALPHASOS_HTTPS_PORT:-443}:${MALPHASOS_HTTPS_PORT:-443}/udp"
-    volumes:
-      # La carpeta y no un archivo suelto: los dos Caddyfile importan rutas.caddy, y un archivo montado
-      # suelto deja de verse cuando un editor lo reemplaza en lugar de escribir encima.
-      - ./docker/caddy:/etc/caddy:ro
-      # Los certificados y la cuenta de Let's Encrypt: perderlos obliga a pedirlos otra vez, y hay un
-      # limite de peticiones por semana.
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - app
-      - keycloak
-      - frontend
-    networks:
-      - interna
-    restart: unless-stopped
+    logging: *registros
 
   # Un respaldo al dia de las dos bases, con pg_dump (2026-10-17). Ver docker/respaldo/respaldo.sh.
   respaldo:
@@ -219,11 +213,16 @@ services:
     networks:
       - interna
     restart: unless-stopped
+    logging: *registros
 
 volumes:
   postgres-data:
-  caddy-data:
-  caddy-config:
 
 networks:
   interna:
+  # La red del Caddy del servidor, que ya existe: este archivo no la crea ni la borra. Los tres servicios
+  # que se unen a ella llevan un alias con el prefijo malphasos-, porque en una red compartida con otras
+  # aplicaciones un nombre como «app» no es de nadie.
+  proxy:
+    name: ${MALPHASOS_PROXY_NETWORK:-web}
+    external: true

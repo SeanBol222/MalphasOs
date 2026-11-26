@@ -3,7 +3,7 @@ name: docker-compose
 description: 5 servicios orquestados — Postgres con initdb ordenado por prefijo, Keycloak compartiendo la instancia de Postgres, RabbitMQ, pgAdmin, backend
 tags: [infraestructura, docker, "reusable:alta", "describe:ambos"]
 source: docker-compose.yaml
-updated: 2026-10-17
+updated: 2026-11-26
 ---
 
 # `docker-compose.yaml` — orquestación
@@ -39,9 +39,15 @@ Lo de arriba describe el compose **del original**. El de MalphasOS se separó en
 - **`docker-compose.yaml`, el de desarrollo**: Postgres, Keycloak en `start-dev` con el realm de
   desarrollo —con `dev.admin`—, el backend, el frontend, Gotenberg y pgAdmin con el perfil `tools`.
   Publica los puertos de todo para poder trabajar.
-- **`docker-compose.prod.yaml`, el de producción**, aparte y sin heredar nada: **solo Caddy publica
-  puertos**, el 80 y el 443, con HTTPS automático, y todo vive en un dominio —el frontend en `/`, el API en
-  `/v1` y Keycloak en `/auth`, con su consola de administración bloqueada—. Keycloak corre en `start`, con
+- **`docker-compose.prod.yaml`, el de producción**, aparte y sin heredar nada: **ningún servicio publica
+  puertos**, y todo vive en un dominio —el frontend en `/`, el API en `/v1` y Keycloak en `/auth`, con su
+  consola de administración bloqueada—. **Desde el 2026-11-26 el proxy es el Caddy que ya tiene el
+  servidor**: el frontend, el backend y Keycloak se unen a su red externa, `web` —`MALPHASOS_PROXY_NETWORK`—,
+  con los alias `malphasos-frontend`, `malphasos-app` y `malphasos-keycloak`, porque en una red que comparten
+  varias aplicaciones un nombre de servicio como `app` no es de nadie; Postgres, Gotenberg y el respaldo
+  se quedan en la interna. El bloque para su Caddyfile está en `DESPLIEGUE.md`. (Decía que **solo Caddy
+  publicaba puertos**, el 80 y el 443: cierto hasta ese día, con un Caddy dentro del compose y un segundo
+  Caddyfile para la red local, `Caddyfile.red-local`, que salió con él.) Keycloak corre en `start`, con
   un realm derivado del de desarrollo **sin usuarios ni secretos escritos**; el backend, con la seguridad
   encendida y sin Swagger; y un servicio `respaldo` saca un `pg_dump` diario de las dos bases. Cómo se
   instala, en `DESPLIEGUE.md` de la raíz.

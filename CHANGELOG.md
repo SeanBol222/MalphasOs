@@ -3,6 +3,36 @@
 Lo que trae cada versión, para quien usa y despliega MalphasOS. El detalle de cada decisión y de cómo se
 construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/`.
 
+## [1.4.0] — 2026-11-26
+
+MalphasOS detrás del Caddy que el servidor ya tiene, y una primera auditoría de calidad.
+
+### Despliegue
+
+- **MalphasOS ya no trae su propio Caddy**: va detrás del Caddy que el servidor ya tiene, como las demás
+  aplicaciones que corren en él. Ningún servicio publica puertos; el frontend, el API y Keycloak se unen a la
+  red de Docker de ese Caddy —`web`, o la que diga `MALPHASOS_PROXY_NETWORK`— con los alias
+  `malphasos-frontend`, `malphasos-app` y `malphasos-keycloak`. El bloque para su Caddyfile, con las rutas y
+  la consola de Keycloak bloqueada, está en `DESPLIEGUE.md`.
+- **Salió la instalación en la red local sin dominio**, que dependía de ese Caddy, con `MALPHASOS_CADDYFILE`,
+  `MALPHASOS_IP`, `MALPHASOS_HTTP_PORT` y `MALPHASOS_HTTPS_PORT`.
+- **Los registros de cada contenedor van acotados**: 10 MB por archivo y tres archivos.
+
+### Calidad
+
+- **Seis piezas que llevan bytes** —el logo, las firmas, el archivo de una carga, el PDF de la hoja de vida—
+  se comparan por su contenido y ya no vuelcan los bytes en los registros. Lo encontró una auditoría con
+  SonarQube.
+- **El backend mide su cobertura de pruebas** con JaCoCo al construirse, sin exigir un mínimo.
+
+### Actualizar desde la 1.3.0
+
+- **No hay migraciones.**
+- **Una instalación que ya corría con el Caddy de MalphasOS**: antes de actualizar, añadir el bloque de
+  `DESPLIEGUE.md` al Caddy del servidor y unir ese Caddy a la red `web`. Al levantar la versión nueva, el
+  contenedor `caddy` viejo queda huérfano: `docker compose -f docker-compose.prod.yaml --env-file .env.prod
+  up -d --build --remove-orphans` lo quita.
+
 ## [1.3.0] — 2026-11-23
 
 La historia de un equipo también con lo que le hicieron otras empresas.
