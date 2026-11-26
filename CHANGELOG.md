@@ -3,7 +3,9 @@
 Lo que trae cada versión, para quien usa y despliega MalphasOS. El detalle de cada decisión y de cómo se
 construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/`.
 
-## [Sin publicar]
+## [1.4.0] — 2026-11-26
+
+MalphasOS detrás del Caddy que el servidor ya tiene, y una primera auditoría de calidad.
 
 ### Despliegue
 
@@ -15,6 +17,21 @@ construyó está en `SecondBrain/`; los requisitos, en la ERS de `Documentation/
 - **Salió la instalación en la red local sin dominio**, que dependía de ese Caddy, con `MALPHASOS_CADDYFILE`,
   `MALPHASOS_IP`, `MALPHASOS_HTTP_PORT` y `MALPHASOS_HTTPS_PORT`.
 - **Los registros de cada contenedor van acotados**: 10 MB por archivo y tres archivos.
+
+### Calidad
+
+- **Seis piezas que llevan bytes** —el logo, las firmas, el archivo de una carga, el PDF de la hoja de vida—
+  se comparan por su contenido y ya no vuelcan los bytes en los registros. Lo encontró una auditoría con
+  SonarQube.
+- **El backend mide su cobertura de pruebas** con JaCoCo al construirse, sin exigir un mínimo.
+
+### Actualizar desde la 1.3.0
+
+- **No hay migraciones.**
+- **Una instalación que ya corría con el Caddy de MalphasOS**: antes de actualizar, añadir el bloque de
+  `DESPLIEGUE.md` al Caddy del servidor y unir ese Caddy a la red `web`. Al levantar la versión nueva, el
+  contenedor `caddy` viejo queda huérfano: `docker compose -f docker-compose.prod.yaml --env-file .env.prod
+  up -d --build --remove-orphans` lo quita.
 
 ## [1.3.0] — 2026-11-23
 
